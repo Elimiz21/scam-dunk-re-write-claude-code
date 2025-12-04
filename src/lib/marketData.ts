@@ -1,190 +1,264 @@
 /**
  * Market Data Module
  *
- * This module provides stock market data for risk analysis.
- * Currently uses stub/mock data. Replace with actual API integration
- * (e.g., Alpha Vantage, Polygon.io, Yahoo Finance) for production.
+ * This module provides real stock market data for risk analysis using Alpha Vantage API.
  *
- * Required environment variables:
- * - MARKET_DATA_API_KEY: API key for the market data provider
- * - MARKET_DATA_API_URL: Base URL for the market data API
+ * Alpha Vantage API Documentation: https://www.alphavantage.co/documentation/
+ * Rate Limits: 5 API requests per minute, 500 requests per day (free tier)
  */
 
 import { MarketData, StockQuote, PriceHistory } from "./types";
+import { config } from "./config";
 
-// Known major exchanges
-const MAJOR_EXCHANGES = ["NYSE", "NASDAQ", "NYSE American", "BATS", "IEX"];
-const OTC_EXCHANGES = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets"];
+// Known OTC exchanges
+const OTC_EXCHANGES = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets", "OTHER_OTC"];
 
-// Mock data for development/testing
-const MOCK_STOCKS: Record<string, StockQuote> = {
-  AAPL: {
-    ticker: "AAPL",
-    companyName: "Apple Inc.",
-    exchange: "NASDAQ",
-    lastPrice: 178.50,
-    marketCap: 2_800_000_000_000,
-    avgVolume30d: 55_000_000,
-    avgDollarVolume30d: 9_817_500_000,
-  },
-  MSFT: {
-    ticker: "MSFT",
-    companyName: "Microsoft Corporation",
-    exchange: "NASDAQ",
-    lastPrice: 375.20,
-    marketCap: 2_790_000_000_000,
-    avgVolume30d: 22_000_000,
-    avgDollarVolume30d: 8_254_400_000,
-  },
-  // Penny stock example
-  ABCD: {
-    ticker: "ABCD",
-    companyName: "ABCD Holdings Inc.",
-    exchange: "OTC",
-    lastPrice: 0.45,
-    marketCap: 15_000_000,
-    avgVolume30d: 500_000,
-    avgDollarVolume30d: 225_000,
-  },
-  // Small cap example
-  SCAM: {
-    ticker: "SCAM",
-    companyName: "Suspicious Corp",
-    exchange: "PINK",
-    lastPrice: 2.50,
-    marketCap: 50_000_000,
-    avgVolume30d: 2_000_000,
-    avgDollarVolume30d: 5_000_000,
-  },
-  // Recent spike example
-  PUMP: {
-    ticker: "PUMP",
-    companyName: "Pump Industries Ltd",
-    exchange: "OTCQB",
-    lastPrice: 3.75,
-    marketCap: 75_000_000,
-    avgVolume30d: 800_000,
-    avgDollarVolume30d: 3_000_000,
-  },
-};
+// Simple in-memory cache to reduce API calls
+const cache: Map<string, { data: MarketData; timestamp: number }> = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Generate mock price history with optional spike pattern
-function generateMockPriceHistory(
-  basePrice: number,
-  days: number = 60,
-  includeSpike: boolean = false
-): PriceHistory[] {
-  const history: PriceHistory[] = [];
-  const today = new Date();
-  let price = basePrice * (includeSpike ? 0.5 : 0.9); // Start lower if spike
+// Alpha Vantage base URL
+const ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query";
 
-  for (let i = days; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
+/**
+ * Fetch stock quote from Alpha Vantage GLOBAL_QUOTE endpoint
+ */
+async function fetchQuote(ticker: string): Promise<StockQuote | null> {
+  const url = `${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${config.alphaVantageApiKey}`;
 
-    // If including spike, create a pattern
-    if (includeSpike && i <= 10 && i > 5) {
-      // Spike up
-      price *= 1.15;
-    } else if (includeSpike && i <= 5) {
-      // Drop after spike
-      price *= 0.9;
-    } else {
-      // Normal random movement
-      const change = (Math.random() - 0.5) * 0.04;
-      price *= 1 + change;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    // Check for API errors
+    if (data["Error Message"] || data["Note"]) {
+      console.error("Alpha Vantage API error:", data["Error Message"] || data["Note"]);
+      return null;
     }
 
-    const dayVolume = Math.floor(Math.random() * 1000000) + 100000;
+    const quote = data["Global Quote"];
+    if (!quote || !quote["05. price"]) {
+      return null;
+    }
 
-    history.push({
-      date: date.toISOString().split("T")[0],
-      open: price * (1 + (Math.random() - 0.5) * 0.02),
-      high: price * (1 + Math.random() * 0.03),
-      low: price * (1 - Math.random() * 0.03),
-      close: price,
-      volume: dayVolume,
-    });
+    const lastPrice = parseFloat(quote["05. price"]);
+    const volume = parseInt(quote["06. volume"], 10);
+
+    return {
+      ticker: ticker.toUpperCase(),
+      companyName: ticker.toUpperCase(), // Alpha Vantage GLOBAL_QUOTE doesn't return company name
+      exchange: "Unknown", // Will be updated from OVERVIEW endpoint
+      lastPrice,
+      marketCap: 0, // Will be updated from OVERVIEW endpoint
+      avgVolume30d: volume, // Using current volume as approximation
+      avgDollarVolume30d: volume * lastPrice,
+    };
+  } catch (error) {
+    console.error("Error fetching quote:", error);
+    return null;
   }
-
-  return history;
 }
 
 /**
- * Fetch market data for a given ticker
+ * Fetch company overview from Alpha Vantage OVERVIEW endpoint
+ */
+async function fetchCompanyOverview(ticker: string): Promise<{
+  companyName: string;
+  exchange: string;
+  marketCap: number;
+} | null> {
+  const url = `${ALPHA_VANTAGE_BASE_URL}?function=OVERVIEW&symbol=${ticker}&apikey=${config.alphaVantageApiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data["Error Message"] || !data["Name"]) {
+      return null;
+    }
+
+    return {
+      companyName: data["Name"] || ticker,
+      exchange: data["Exchange"] || "Unknown",
+      marketCap: parseInt(data["MarketCapitalization"] || "0", 10),
+    };
+  } catch (error) {
+    console.error("Error fetching company overview:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch daily price history from Alpha Vantage TIME_SERIES_DAILY endpoint
+ */
+async function fetchPriceHistory(ticker: string): Promise<PriceHistory[]> {
+  const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${config.alphaVantageApiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data["Error Message"] || data["Note"]) {
+      console.error("Alpha Vantage API error:", data["Error Message"] || data["Note"]);
+      return [];
+    }
+
+    const timeSeries = data["Time Series (Daily)"];
+    if (!timeSeries) {
+      return [];
+    }
+
+    const history: PriceHistory[] = [];
+    const dates = Object.keys(timeSeries).sort(); // Sort dates ascending
+
+    for (const date of dates) {
+      const dayData = timeSeries[date];
+      history.push({
+        date,
+        open: parseFloat(dayData["1. open"]),
+        high: parseFloat(dayData["2. high"]),
+        low: parseFloat(dayData["3. low"]),
+        close: parseFloat(dayData["4. close"]),
+        volume: parseInt(dayData["5. volume"], 10),
+      });
+    }
+
+    return history;
+  } catch (error) {
+    console.error("Error fetching price history:", error);
+    return [];
+  }
+}
+
+/**
+ * Calculate 30-day average volume from price history
+ */
+function calculateAvgVolume30d(priceHistory: PriceHistory[]): number {
+  if (priceHistory.length === 0) return 0;
+
+  const last30Days = priceHistory.slice(-30);
+  const totalVolume = last30Days.reduce((sum, day) => sum + day.volume, 0);
+  return Math.floor(totalVolume / last30Days.length);
+}
+
+/**
+ * Fetch market data for a given ticker using Alpha Vantage API
  *
  * @param ticker - Stock ticker symbol (e.g., "AAPL")
  * @returns MarketData object with quote, price history, and exchange info
- *
- * TODO: Replace with actual API call in production
- * Example providers:
- * - Polygon.io: https://polygon.io/docs/stocks
- * - Alpha Vantage: https://www.alphavantage.co/documentation/
- * - Yahoo Finance (unofficial): Various npm packages available
  */
 export async function fetchMarketData(ticker: string): Promise<MarketData> {
   const normalizedTicker = ticker.toUpperCase().trim();
 
-  // Check if we have mock data for this ticker
-  const mockQuote = MOCK_STOCKS[normalizedTicker];
+  // Check cache first
+  const cached = cache.get(normalizedTicker);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
 
-  if (mockQuote) {
-    const includeSpike = normalizedTicker === "PUMP" || normalizedTicker === "SCAM";
-    const priceHistory = generateMockPriceHistory(mockQuote.lastPrice, 60, includeSpike);
-
+  // Check if API key is configured
+  if (!config.alphaVantageApiKey) {
+    console.error("Alpha Vantage API key not configured");
     return {
-      quote: mockQuote,
-      priceHistory,
-      isOTC: OTC_EXCHANGES.includes(mockQuote.exchange),
-      dataAvailable: true,
+      quote: null,
+      priceHistory: [],
+      isOTC: false,
+      dataAvailable: false,
     };
   }
 
-  // For unknown tickers, simulate API call that returns no data
-  // In production, this would be an actual API call
+  try {
+    // Fetch quote and price history in parallel
+    // Note: Be careful of rate limits (5 calls/min on free tier)
+    const [quote, priceHistory] = await Promise.all([
+      fetchQuote(normalizedTicker),
+      fetchPriceHistory(normalizedTicker),
+    ]);
 
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 100));
+    if (!quote) {
+      return {
+        quote: null,
+        priceHistory: [],
+        isOTC: false,
+        dataAvailable: false,
+      };
+    }
 
-  // Generate random data for unknown tickers to simulate real behavior
-  // In production, return dataAvailable: false for truly unknown tickers
-  const isOTC = Math.random() < 0.3;
-  const basePrice = isOTC ? Math.random() * 5 + 0.1 : Math.random() * 200 + 10;
-  const marketCap = isOTC ? Math.random() * 100_000_000 : Math.random() * 50_000_000_000 + 500_000_000;
+    // Fetch company overview for additional details
+    // Adding a small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const overview = await fetchCompanyOverview(normalizedTicker);
 
-  const simulatedQuote: StockQuote = {
-    ticker: normalizedTicker,
-    companyName: `${normalizedTicker} Corporation`,
-    exchange: isOTC ? "OTC" : Math.random() < 0.5 ? "NYSE" : "NASDAQ",
-    lastPrice: basePrice,
-    marketCap: marketCap,
-    avgVolume30d: Math.floor(Math.random() * 5_000_000) + 100_000,
-    avgDollarVolume30d: Math.floor(Math.random() * 500_000_000) + 1_000_000,
-  };
+    // Update quote with overview data
+    if (overview) {
+      quote.companyName = overview.companyName;
+      quote.exchange = overview.exchange;
+      quote.marketCap = overview.marketCap;
+    }
 
-  return {
-    quote: simulatedQuote,
-    priceHistory: generateMockPriceHistory(basePrice, 60, false),
-    isOTC: isOTC,
-    dataAvailable: true,
-  };
+    // Calculate 30-day average volume
+    const avgVolume30d = calculateAvgVolume30d(priceHistory);
+    quote.avgVolume30d = avgVolume30d;
+    quote.avgDollarVolume30d = avgVolume30d * quote.lastPrice;
+
+    // Determine if OTC
+    const isOTC = OTC_EXCHANGES.some(exc =>
+      quote.exchange.toUpperCase().includes(exc.toUpperCase())
+    );
+
+    const marketData: MarketData = {
+      quote,
+      priceHistory,
+      isOTC,
+      dataAvailable: true,
+    };
+
+    // Cache the result
+    cache.set(normalizedTicker, { data: marketData, timestamp: Date.now() });
+
+    return marketData;
+  } catch (error) {
+    console.error("Error fetching market data:", error);
+    return {
+      quote: null,
+      priceHistory: [],
+      isOTC: false,
+      dataAvailable: false,
+    };
+  }
 }
 
 /**
  * Check if a stock is on any regulatory alert/suspension list
  *
+ * This checks the SEC's trading suspension list via their RSS feed.
+ * Note: This is a simplified implementation. For production, consider:
+ * - Caching the suspension list and refreshing periodically
+ * - Checking multiple sources (SEC, FINRA, OTC Markets)
+ *
  * @param ticker - Stock ticker symbol
  * @returns true if the stock is on an alert list
- *
- * TODO: Implement actual alert list checking
- * Potential sources:
- * - SEC trading suspensions: https://www.sec.gov/litigation/suspensions.htm
- * - FINRA alerts: https://www.finra.org/investors/alerts
  */
 export async function checkAlertList(ticker: string): Promise<boolean> {
-  // Mock implementation - in production, check actual regulatory lists
-  const MOCK_ALERT_LIST = ["ALRT", "SUSP", "WARN"];
-  return MOCK_ALERT_LIST.includes(ticker.toUpperCase());
+  const normalizedTicker = ticker.toUpperCase().trim();
+
+  try {
+    // Fetch SEC trading suspensions RSS feed
+    const response = await fetch("https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom");
+    const text = await response.text();
+
+    // Simple check if ticker appears in recent suspension notices
+    // This is a basic implementation - the SEC RSS contains trading suspension orders
+    if (text.toUpperCase().includes(normalizedTicker)) {
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    // If we can't check the alert list, return false (don't block the analysis)
+    console.error("Error checking alert list:", error);
+    return false;
+  }
 }
 
 /**

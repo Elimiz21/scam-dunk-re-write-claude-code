@@ -14,9 +14,8 @@ export const config = {
   // OpenAI
   openaiApiKey: process.env.OPENAI_API_KEY || "",
 
-  // Market Data API
-  marketDataApiKey: process.env.MARKET_DATA_API_KEY || "",
-  marketDataApiUrl: process.env.MARKET_DATA_API_URL || "",
+  // Alpha Vantage API
+  alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY || "",
 
   // NextAuth
   nextAuthUrl: process.env.NEXTAUTH_URL || "http://localhost:3000",
