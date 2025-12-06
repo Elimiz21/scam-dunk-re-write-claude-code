@@ -38,6 +38,7 @@ declare module "next-auth/jwt" {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  trustHost: true, // Required for Vercel deployments
   adapter: PrismaAdapter(prisma) as any,
   providers: [
     Credentials({

@@ -8,6 +8,9 @@
 import type { NextAuthConfig } from "next-auth";
 
 export const authConfig: NextAuthConfig = {
+  // Explicitly set secret - NextAuth v5 uses AUTH_SECRET by default
+  // We support both AUTH_SECRET and NEXTAUTH_SECRET for flexibility
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
   },
