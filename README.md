@@ -21,9 +21,11 @@ ScamDunk is a web application that helps retail investors identify potential sca
 - **Stock Risk Analysis**: Analyzes stock ticker for structural red flags (penny stocks, low liquidity, OTC exchanges)
 - **Price Pattern Detection**: Detects pump-and-dump patterns, price spikes, volume explosions
 - **Behavioral Analysis**: NLP-based detection of scam language in pitch text (guaranteed returns, urgency, insider claims)
-- **User Authentication**: Email/password authentication with NextAuth.js
+- **Real Market Data**: Live stock data from Alpha Vantage API with 5-minute caching
+- **AI Narratives**: GPT-4 powered explanations of risk signals
+- **User Authentication**: Email/password authentication with NextAuth.js v5
 - **Usage Limits**: FREE plan (5 checks/month) and PAID plan (200 checks/month)
-- **Stripe Integration**: Payment processing for plan upgrades (stub implementation)
+- **Stripe Integration**: Payment processing for plan upgrades
 - **Responsive UI**: Mobile-friendly design with Tailwind CSS
 
 ## Tech Stack
@@ -34,9 +36,9 @@ ScamDunk is a web application that helps retail investors identify potential sca
 - **Database**: PostgreSQL (Supabase)
 - **ORM**: Prisma
 - **Authentication**: NextAuth.js v5 (Auth.js)
-- **Payments**: Stripe (stub)
-- **AI/LLM**: OpenAI GPT-4 (for narrative generation only)
-- **Market Data**: Alpha Vantage API (stub with mock data)
+- **Payments**: Stripe
+- **AI/LLM**: OpenAI GPT-4o-mini (for narrative generation)
+- **Market Data**: Alpha Vantage API (real-time quotes, company data, price history)
 - **Testing**: Jest
 
 ## Project Structure
@@ -69,11 +71,11 @@ scamdunk/
 │   ├── lib/
 │   │   ├── auth.config.ts     # Edge-compatible auth config
 │   │   ├── auth.ts            # Full auth config with providers
-│   │   ├── billing.ts         # Stripe integration (stub)
+│   │   ├── billing.ts         # Stripe integration
 │   │   ├── config.ts          # App configuration
 │   │   ├── db.ts              # Prisma client singleton
-│   │   ├── marketData.ts      # Market data fetching (stub)
-│   │   ├── narrative.ts       # LLM narrative generation
+│   │   ├── marketData.ts      # Alpha Vantage API integration
+│   │   ├── narrative.ts       # OpenAI narrative generation
 │   │   ├── scoring.ts         # Risk scoring engine
 │   │   ├── types.ts           # TypeScript types
 │   │   ├── usage.ts           # Usage tracking
@@ -143,10 +145,10 @@ NEXTAUTH_URL="http://localhost:3000"
 # OpenAI (for narrative generation)
 OPENAI_API_KEY="sk-..."
 
-# Alpha Vantage (for market data - optional, uses mock data if not set)
+# Alpha Vantage (for real market data)
 ALPHA_VANTAGE_API_KEY="your-key"
 
-# Stripe (optional - uses stubs if not set)
+# Stripe (for payment processing)
 STRIPE_SECRET_KEY="sk_..."
 STRIPE_PUBLISHABLE_KEY="pk_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
