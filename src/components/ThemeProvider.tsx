@@ -10,7 +10,11 @@ interface ThemeContextType {
   setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "auto",
+  resolvedTheme: "dark",
+  setTheme: () => {},
+});
 
 function getTimeBasedTheme(): "light" | "dark" {
   const hour = new Date().getHours();
@@ -30,6 +34,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (stored && ["light", "dark", "auto"].includes(stored)) {
       setThemeState(stored);
     }
+    // Apply initial theme based on time
+    const initial = stored === "light" || stored === "dark" ? stored : getTimeBasedTheme();
+    setResolvedTheme(initial);
+    document.documentElement.classList.remove("light", "dark");
+    document.documentElement.classList.add(initial);
   }, []);
 
   // Update resolved theme based on theme setting
@@ -75,15 +84,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("scamdunk-theme", newTheme);
   };
 
-  // Prevent flash by not rendering until mounted
-  if (!mounted) {
-    return (
-      <div className="dark">
-        {children}
-      </div>
-    );
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
       {children}
@@ -92,9 +92,5 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error("useTheme must be used within a ThemeProvider");
-  }
-  return context;
+  return useContext(ThemeContext);
 }
