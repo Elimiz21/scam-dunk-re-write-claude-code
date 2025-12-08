@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarToggle } from "./Sidebar";
+import { ThemeToggle } from "./ThemeToggle";
 import { cn } from "@/lib/utils";
 import { UsageInfo } from "@/lib/types";
 
@@ -56,6 +57,9 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          {/* Theme toggle */}
+          <ThemeToggle />
+
           {/* Share button */}
           {showShare && onShare && (
             <Button

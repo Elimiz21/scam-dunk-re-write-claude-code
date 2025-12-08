@@ -12,6 +12,7 @@ import { LimitReached } from "@/components/LimitReached";
 import { LoadingStepper } from "@/components/LoadingStepper";
 import { Shield, TrendingUp, AlertTriangle, Zap } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
+import { getRandomTagline } from "@/lib/taglines";
 
 type Step = {
   label: string;
@@ -35,6 +36,9 @@ export default function HomePage() {
     { label: "Checking risk signals", status: "pending" },
     { label: "Generating report", status: "pending" },
   ]);
+
+  // Get random tagline on mount (changes on refresh)
+  const [tagline] = useState(() => getRandomTagline());
 
   // Fetch initial usage
   useEffect(() => {
@@ -190,7 +194,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background dark">
+    <div className="min-h-screen bg-background">
       {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -265,10 +269,10 @@ export default function HomePage() {
                   </div>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-                  Ready when you are.
+                  {tagline.headline}
                 </h1>
                 <p className="text-muted-foreground max-w-md mx-auto">
-                  Enter a stock ticker or crypto symbol to scan for scam red flags.
+                  {tagline.subtext}
                 </p>
               </div>
 
