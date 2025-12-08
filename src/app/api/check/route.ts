@@ -108,8 +108,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error("Check API error:", error);
+
+    // Return more specific error for debugging
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "An error occurred while checking the stock" },
+      { error: `Check failed: ${errorMessage}` },
       { status: 500 }
     );
   }
