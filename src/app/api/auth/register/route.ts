@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { registerUser } from "@/lib/auth";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/db";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -23,18 +24,39 @@ export async function POST(request: NextRequest) {
 
     const { email, password, name } = validation.data;
 
-    // Register user
-    const result = await registerUser(email, password, name);
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
 
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Email already registered" },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ success: true, userId: result.userId });
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        email,
+        hashedPassword,
+        name: name || null,
+        plan: "FREE",
+      },
+    });
+
+    return NextResponse.json({ success: true, userId: user.id });
   } catch (error) {
     console.error("Registration error:", error);
+
+    // Return more specific error for debugging
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "An error occurred during registration" },
+      { error: `Registration failed: ${errorMessage}` },
       { status: 500 }
     );
   }
