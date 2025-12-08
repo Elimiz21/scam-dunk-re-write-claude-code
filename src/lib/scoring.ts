@@ -12,7 +12,6 @@ import {
   ScoringInput,
   ScoringResult,
   MarketData,
-  CheckRequest,
 } from "./types";
 import {
   calculatePriceChange,
@@ -258,11 +257,16 @@ function getPatternSignals(marketData: MarketData): RiskSignal[] {
  * Generate behavioral signals from user input and pitch text analysis
  */
 function getBehavioralSignals(
-  context: CheckRequest["context"],
+  context: ScoringInput["context"],
   pitchText: string
 ): RiskSignal[] {
   const signals: RiskSignal[] = [];
-  const nlpResults = analyzePitchText(pitchText);
+  const nlpResults = pitchText ? analyzePitchText(pitchText) : {
+    hasPromisedReturns: false,
+    hasUrgency: false,
+    hasSecrecy: false,
+    hasSpecificReturnClaim: false,
+  };
 
   // UNSOLICITED
   if (context.unsolicited) {

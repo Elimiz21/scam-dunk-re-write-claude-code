@@ -13,17 +13,18 @@ import {
   StockSummary,
 } from "@/lib/types";
 
-// Request validation schema
+// Request validation schema - only ticker is required
 const checkRequestSchema = z.object({
   ticker: z.string().min(1, "Ticker is required").max(10),
   companyName: z.string().optional(),
-  pitchText: z.string().min(1, "Pitch text is required").max(10000),
+  assetType: z.enum(["stock", "crypto"]).optional().default("stock"),
+  pitchText: z.string().max(10000).optional(),
   context: z.object({
-    unsolicited: z.boolean(),
-    promisesHighReturns: z.boolean(),
-    urgencyPressure: z.boolean(),
-    secrecyInsideInfo: z.boolean(),
-  }),
+    unsolicited: z.boolean().optional().default(false),
+    promisesHighReturns: z.boolean().optional().default(false),
+    urgencyPressure: z.boolean().optional().default(false),
+    secrecyInsideInfo: z.boolean().optional().default(false),
+  }).optional().default({}),
 });
 
 export async function POST(request: NextRequest) {
@@ -67,11 +68,19 @@ export async function POST(request: NextRequest) {
     // Fetch market data
     const marketData = await fetchMarketData(checkRequest.ticker);
 
+    // Build context with defaults
+    const context = {
+      unsolicited: checkRequest.context?.unsolicited ?? false,
+      promisesHighReturns: checkRequest.context?.promisesHighReturns ?? false,
+      urgencyPressure: checkRequest.context?.urgencyPressure ?? false,
+      secrecyInsideInfo: checkRequest.context?.secrecyInsideInfo ?? false,
+    };
+
     // Compute risk score (deterministic)
     const scoringResult = await computeRiskScore({
       marketData,
-      pitchText: checkRequest.pitchText,
-      context: checkRequest.context,
+      pitchText: checkRequest.pitchText || "",
+      context,
     });
 
     // Build stock summary

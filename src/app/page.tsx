@@ -1,305 +1,363 @@
 "use client";
 
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Shield, AlertTriangle, TrendingUp, Users, Loader2, Check } from "lucide-react";
+import { Sidebar } from "@/components/Sidebar";
+import { Header } from "@/components/Header";
+import { ScanInput } from "@/components/ScanInput";
+import { RiskCard } from "@/components/RiskCard";
+import { LimitReached } from "@/components/LimitReached";
+import { LoadingStepper } from "@/components/LoadingStepper";
+import { Shield, TrendingUp, AlertTriangle, Zap } from "lucide-react";
+import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
 
-export default function LandingPage() {
+type Step = {
+  label: string;
+  status: "pending" | "loading" | "complete";
+};
+
+export default function HomePage() {
   const { data: session, status } = useSession();
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<RiskResponse | null>(null);
+  const [limitReached, setLimitReached] = useState<LimitReachedResponse | null>(null);
+  const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [currentTicker, setCurrentTicker] = useState("");
+
+  const [steps, setSteps] = useState<Step[]>([
+    { label: "Fetching market data", status: "pending" },
+    { label: "Analyzing price patterns", status: "pending" },
+    { label: "Checking risk signals", status: "pending" },
+    { label: "Generating report", status: "pending" },
+  ]);
+
+  // Fetch initial usage
+  useEffect(() => {
+    if (session?.user) {
+      fetchUsage();
+    }
+  }, [session]);
+
+  const fetchUsage = async () => {
+    try {
+      const response = await fetch("/api/user/usage");
+      if (response.ok) {
+        const data = await response.json();
+        setUsage(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch usage:", err);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error || "Failed to start upgrade process");
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+    }
+  };
+
+  const handleSubmit = async (data: {
+    ticker: string;
+    assetType: AssetType;
+    pitchText?: string;
+    context?: {
+      unsolicited: boolean;
+      promisesHighReturns: boolean;
+      urgencyPressure: boolean;
+      secrecyInsideInfo: boolean;
+    };
+  }) => {
+    // Check if user is logged in
+    if (!session) {
+      window.location.href = "/login?callbackUrl=/";
+      return;
+    }
+
+    setError("");
+    setResult(null);
+    setLimitReached(null);
+    setIsLoading(true);
+    setCurrentTicker(data.ticker);
+
+    // Reset steps
+    setSteps([
+      { label: "Fetching market data", status: "loading" },
+      { label: "Analyzing price patterns", status: "pending" },
+      { label: "Checking risk signals", status: "pending" },
+      { label: "Generating report", status: "pending" },
+    ]);
+
+    try {
+      // Simulate step progress
+      const simulateSteps = async () => {
+        await new Promise((r) => setTimeout(r, 500));
+        setSteps((s) => [
+          { ...s[0], status: "complete" },
+          { ...s[1], status: "loading" },
+          s[2],
+          s[3],
+        ]);
+
+        await new Promise((r) => setTimeout(r, 400));
+        setSteps((s) => [
+          s[0],
+          { ...s[1], status: "complete" },
+          { ...s[2], status: "loading" },
+          s[3],
+        ]);
+
+        await new Promise((r) => setTimeout(r, 300));
+        setSteps((s) => [
+          s[0],
+          s[1],
+          { ...s[2], status: "complete" },
+          { ...s[3], status: "loading" },
+        ]);
+      };
+
+      const [response] = await Promise.all([
+        fetch("/api/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ticker: data.ticker,
+            assetType: data.assetType,
+            pitchText: data.pitchText,
+            context: data.context,
+          }),
+        }),
+        simulateSteps(),
+      ]);
+
+      // Complete final step
+      setSteps((s) => [s[0], s[1], s[2], { ...s[3], status: "complete" }]);
+
+      const responseData = await response.json();
+
+      if (response.status === 429) {
+        setLimitReached(responseData as LimitReachedResponse);
+        setUsage({
+          plan: responseData.usage.plan,
+          scansUsedThisMonth: responseData.usage.scansUsedThisMonth,
+          scansLimitThisMonth: responseData.usage.scansLimitThisMonth,
+          limitReached: true,
+        });
+      } else if (!response.ok) {
+        setError(responseData.error || "An error occurred");
+      } else {
+        setResult(responseData as RiskResponse);
+        setUsage(responseData.usage);
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNewScan = () => {
+    setResult(null);
+    setLimitReached(null);
+    setError("");
+    setCurrentTicker("");
+  };
+
+  const handleShare = () => {
+    if (result) {
+      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${result.riskLevel} RISK (Score: ${result.totalScore})`;
+      if (navigator.share) {
+        navigator.share({ title: "ScamDunk Analysis", text: shareText });
+      } else {
+        navigator.clipboard.writeText(shareText);
+        alert("Analysis copied to clipboard!");
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Header */}
-      <header className="border-b bg-white sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-            <span className="text-xl sm:text-2xl font-bold">ScamDunk</span>
-          </div>
-          <nav className="flex items-center gap-2 sm:gap-4">
-            {status === "loading" ? (
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            ) : session ? (
-              <>
-                <Link href="/check">
-                  <Button variant="ghost" size="sm" className="hidden sm:inline-flex">Check Stock</Button>
-                  <Button variant="ghost" size="sm" className="sm:hidden">Check</Button>
-                </Link>
-                <Link href="/account">
-                  <Button variant="outline" size="sm">Account</Button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/login">
-                  <Button variant="ghost" size="sm">Log in</Button>
-                </Link>
-                <Link href="/signup">
-                  <Button size="sm">Sign up</Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background dark">
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onNewScan={handleNewScan}
+      />
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-12 sm:py-20 text-center">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 sm:mb-6">
-          Got a stock tip?
-          <br />
-          <span className="text-primary">Check it for red flags.</span>
-        </h1>
-        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-2">
-          Paste the stock ticker and the pitch you received. ScamDunk highlights
-          potential scam patterns so you can make informed decisions.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
-          {session ? (
-            <Link href="/check">
-              <Button size="lg" className="px-8 w-full sm:w-auto">
-                Check a stock now
-              </Button>
-            </Link>
-          ) : (
-            <>
-              <Link href="/signup" className="w-full sm:w-auto">
-                <Button size="lg" className="px-8 w-full">
-                  Try free (5 checks/month)
-                </Button>
-              </Link>
-              <Link href="/login" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full">
-                  Log in
-                </Button>
-              </Link>
-            </>
+      {/* Main Content */}
+      <div className="flex flex-col min-h-screen">
+        {/* Header */}
+        <Header
+          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+          usage={usage}
+          onShare={handleShare}
+          showShare={!!result}
+        />
+
+        {/* Content Area */}
+        <main className="flex-1 flex flex-col">
+          {/* Show limit reached message */}
+          {limitReached && (
+            <div className="flex-1 flex items-center justify-center p-4">
+              <div className="max-w-md w-full">
+                <LimitReached
+                  plan={limitReached.usage.plan}
+                  scansUsed={limitReached.usage.scansUsedThisMonth}
+                  scansLimit={limitReached.usage.scansLimitThisMonth}
+                  onUpgrade={handleUpgrade}
+                />
+                <div className="mt-4 text-center">
+                  <Button variant="outline" onClick={handleNewScan}>
+                    Go back
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
-        </div>
-      </section>
 
-      {/* Features */}
-      <section className="container mx-auto px-4 py-12 sm:py-16">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">How it works</h2>
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-3">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex-1 flex items-center justify-center p-4">
+              <div className="max-w-md w-full text-center">
+                <h2 className="text-xl font-semibold mb-6">
+                  Analyzing {currentTicker}...
+                </h2>
+                <LoadingStepper steps={steps} />
               </div>
-              <CardTitle className="text-lg">Enter the stock</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                Type the US stock ticker you received a tip about. We check
-                price, volume, market cap, and exchange data.
-              </p>
-            </CardContent>
-          </Card>
+            </div>
+          )}
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mb-3">
-                <Users className="h-6 w-6 text-green-600" />
+          {/* Results */}
+          {result && !isLoading && (
+            <div className="flex-1 overflow-y-auto p-4 pb-32">
+              <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+                <RiskCard result={result} />
+                <div className="flex justify-center gap-3">
+                  <Button variant="outline" onClick={handleNewScan}>
+                    Check another
+                  </Button>
+                </div>
               </div>
-              <CardTitle className="text-lg">Paste the pitch</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                Copy-paste the message from WhatsApp, Telegram, email, or
-                wherever you received the stock tip.
-              </p>
-            </CardContent>
-          </Card>
+            </div>
+          )}
 
-          <Card className="sm:col-span-2 md:col-span-1">
-            <CardHeader>
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-orange-100 mb-3">
-                <AlertTriangle className="h-6 w-6 text-orange-600" />
+          {/* Welcome State (no result, not loading) */}
+          {!result && !isLoading && !limitReached && (
+            <div className="flex-1 flex flex-col items-center justify-center p-4 pb-32">
+              <div className="text-center mb-8">
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 rounded-2xl bg-secondary">
+                    <Shield className="h-12 w-12 text-primary" />
+                  </div>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+                  Ready when you are.
+                </h1>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Enter a stock ticker or crypto symbol to scan for scam red flags.
+                </p>
               </div>
-              <CardTitle className="text-lg">See red flags</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">
-                Get an instant risk assessment: LOW, MEDIUM, or HIGH, with
-                specific red flags and what to watch out for.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
 
-      {/* What We Check */}
-      <section className="bg-gray-50 py-12 sm:py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
-            What we look for
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto">
-            <Card className="bg-white">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-blue-500" />
-                  Stock & Market Signals
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Penny stocks (price under $5)
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Small market cap (under $300M)
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Low liquidity / trading volume
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    OTC / Pink Sheet listings
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Recent price spikes (50%+ in 7 days)
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Pump-and-dump patterns
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-            <Card className="bg-white">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5 text-orange-500" />
-                  Pitch & Behavior Patterns
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Unsolicited stock tips
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Guaranteed or high return promises
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Time pressure / urgency tactics
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Claims of secret or insider info
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Specific % gains in timeframes
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Get-rich-quick language
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+              {/* Error message */}
+              {error && (
+                <div className="mb-6 p-4 rounded-xl bg-destructive/10 text-destructive text-sm max-w-md text-center">
+                  {error}
+                </div>
+              )}
+
+              {/* Quick Examples for non-logged in users */}
+              {!session && status !== "loading" && (
+                <div className="mb-8">
+                  <p className="text-sm text-muted-foreground text-center mb-4">
+                    Quick examples to try:
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => handleSubmit({ ticker: "AAPL", assetType: "stock" })}
+                    >
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      AAPL
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => handleSubmit({ ticker: "TSLA", assetType: "stock" })}
+                    >
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      TSLA
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => handleSubmit({ ticker: "BTC", assetType: "crypto" })}
+                    >
+                      <Zap className="h-3 w-3 mr-1" />
+                      BTC
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Features */}
+              {!session && status !== "loading" && (
+                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mt-4">
+                  <div className="p-4 rounded-xl bg-card border border-border text-center">
+                    <TrendingUp className="h-6 w-6 mx-auto mb-2 text-blue-500" />
+                    <h3 className="font-medium text-sm mb-1">Market Analysis</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Price, volume, and market cap signals
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-card border border-border text-center">
+                    <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-orange-500" />
+                    <h3 className="font-medium text-sm mb-1">Red Flag Detection</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Pump-and-dump patterns identified
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-card border border-border text-center">
+                    <Shield className="h-6 w-6 mx-auto mb-2 text-green-500" />
+                    <h3 className="font-medium text-sm mb-1">AI-Powered</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Smart analysis with suggestions
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+
+        {/* Bottom Input Bar */}
+        {!isLoading && !limitReached && (
+          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background to-transparent pt-8 pb-4 px-4">
+            <ScanInput
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+              disabled={usage?.limitReached && !result}
+            />
           </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section className="container mx-auto px-4 py-12 sm:py-16">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">Simple pricing</h2>
-        <div className="grid sm:grid-cols-2 gap-6 sm:gap-8 max-w-3xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Free</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl sm:text-4xl font-bold mb-4">$0</p>
-              <ul className="space-y-3 text-sm text-muted-foreground mb-6">
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  5 stock checks per month
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Full risk analysis
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Red flag explanations
-                </li>
-              </ul>
-              <Link href="/signup">
-                <Button variant="outline" className="w-full">
-                  Get started free
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="border-primary border-2 relative">
-            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Most Popular</Badge>
-            <CardHeader>
-              <CardTitle className="text-lg">Pro</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl sm:text-4xl font-bold mb-4">
-                $9<span className="text-base sm:text-lg font-normal text-muted-foreground">/month</span>
-              </p>
-              <ul className="space-y-3 text-sm text-muted-foreground mb-6">
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  <strong className="text-foreground">200</strong> stock checks per month
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Full risk analysis
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Red flag explanations
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Priority support
-                </li>
-              </ul>
-              <Link href="/signup">
-                <Button className="w-full">Upgrade to Pro</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Disclaimer */}
-      <section className="bg-gray-100 py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p className="max-w-2xl mx-auto">
-            <strong>Disclaimer:</strong> ScamDunk provides informational risk
-            analysis only. It does not provide financial advice, buy/sell
-            recommendations, or guarantee the safety of any investment. Always
-            do your own research and consult a licensed financial advisor.
-          </p>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} ScamDunk. All rights reserved.</p>
-        </div>
-      </footer>
+        )}
+      </div>
     </div>
   );
 }

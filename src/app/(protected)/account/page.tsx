@@ -137,19 +137,19 @@ function AccountContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-white sticky top-0 z-50">
+      <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
             <span className="text-xl sm:text-2xl font-bold">ScamDunk</span>
           </Link>
           <nav className="flex items-center gap-2 sm:gap-4">
-            <Link href="/check">
+            <Link href="/">
               <Button variant="ghost" size="sm">
-                <span className="hidden sm:inline">Check Stock</span>
-                <span className="sm:hidden">Check</span>
+                <span className="hidden sm:inline">New Scan</span>
+                <span className="sm:hidden">Scan</span>
               </Button>
             </Link>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
@@ -255,7 +255,7 @@ function AccountContent() {
                       % used
                     </span>
                   </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary rounded-full transition-all"
                       style={{
