@@ -78,7 +78,7 @@ export function RiskCard({ result }: RiskCardProps) {
 
       <CardContent className="space-y-5 sm:space-y-6">
         {/* Stock Summary */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-secondary rounded-lg">
           <div>
             <p className="text-xs text-muted-foreground">Exchange</p>
             <p className="font-medium">{stockSummary.exchange || "N/A"}</p>

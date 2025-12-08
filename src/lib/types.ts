@@ -13,15 +13,18 @@ export interface RiskSignal {
   weight: number;
 }
 
+export type AssetType = "stock" | "crypto";
+
 export interface CheckRequest {
   ticker: string;
   companyName?: string;
-  pitchText: string;
-  context: {
-    unsolicited: boolean;
-    promisesHighReturns: boolean;
-    urgencyPressure: boolean;
-    secrecyInsideInfo: boolean;
+  assetType?: AssetType;
+  pitchText?: string;
+  context?: {
+    unsolicited?: boolean;
+    promisesHighReturns?: boolean;
+    urgencyPressure?: boolean;
+    secrecyInsideInfo?: boolean;
   };
 }
 
@@ -100,7 +103,12 @@ export interface MarketData {
 export interface ScoringInput {
   marketData: MarketData;
   pitchText: string;
-  context: CheckRequest["context"];
+  context: {
+    unsolicited: boolean;
+    promisesHighReturns: boolean;
+    urgencyPressure: boolean;
+    secrecyInsideInfo: boolean;
+  };
 }
 
 export interface ScoringResult {
