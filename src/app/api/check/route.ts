@@ -98,7 +98,8 @@ export async function POST(request: NextRequest) {
       scoringResult.riskLevel,
       scoringResult.totalScore,
       scoringResult.signals,
-      stockSummary
+      stockSummary,
+      scoringResult.isLegitimate
     );
 
     // Increment scan count after successful analysis
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
       stockSummary,
       narrative,
       usage: updatedUsage,
+      isLegitimate: scoringResult.isLegitimate,
     };
 
     return NextResponse.json(response);

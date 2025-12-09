@@ -33,17 +33,19 @@ function getOpenAI(): OpenAI {
  * @param totalScore - Numeric risk score
  * @param signals - List of triggered risk signals
  * @param stockSummary - Basic stock information
+ * @param isLegitimate - Whether this is a well-established legitimate company
  * @returns Narrative object with header, red flags, suggestions, and disclaimers
  */
 export async function generateNarrative(
   riskLevel: RiskLevel,
   totalScore: number,
   signals: RiskSignal[],
-  stockSummary: StockSummary
+  stockSummary: StockSummary,
+  isLegitimate: boolean = false
 ): Promise<Narrative> {
   // If OpenAI is not configured, use fallback narrative
   if (!config.openaiApiKey) {
-    return generateFallbackNarrative(riskLevel, totalScore, signals, stockSummary);
+    return generateFallbackNarrative(riskLevel, totalScore, signals, stockSummary, isLegitimate);
   }
 
   try {
@@ -55,7 +57,7 @@ export async function generateNarrative(
       pattern,
       behavioral,
       alert,
-    });
+    }, isLegitimate);
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -107,7 +109,7 @@ Output must be valid JSON matching the exact schema provided.`,
   } catch (error) {
     console.error("Error generating narrative with LLM:", error);
     // Fall back to deterministic narrative
-    return generateFallbackNarrative(riskLevel, totalScore, signals, stockSummary);
+    return generateFallbackNarrative(riskLevel, totalScore, signals, stockSummary, isLegitimate);
   }
 }
 
@@ -124,12 +126,43 @@ function buildPrompt(
     pattern: RiskSignal[];
     behavioral: RiskSignal[];
     alert: RiskSignal[];
-  }
+  },
+  isLegitimate: boolean = false
 ): string {
+  const legitimateNote = isLegitimate
+    ? `\n\nNOTE: This is a well-established, large-cap company traded on a major exchange with high liquidity. No scam red flags were detected. The tone should be reassuring but still encourage due diligence.`
+    : "";
+
+  const signalsSection = signals.length > 0
+    ? `SIGNALS DETECTED:\n${signals.map((s) => `- [${s.category}] ${s.code}: ${s.description} (weight: ${s.weight})`).join("\n")}`
+    : "SIGNALS DETECTED: None - no risk signals were triggered for this stock.";
+
+  const headerInstruction = isLegitimate
+    ? "A one-sentence summary with positive tone since this is a well-established company"
+    : `A one-sentence summary appropriate for the ${riskLevel} risk level`;
+
+  const stockRedFlagsInstruction = isLegitimate
+    ? "No concerning market signals detected for this well-established company"
+    : "Array of bullet points about stock/market signals - one per signal from STRUCTURAL, PATTERN, and ALERT categories";
+
+  const hasBehavioralSignals = signals.filter(s => s.category === 'BEHAVIORAL').length > 0;
+  const behaviorRedFlagsInstruction = hasBehavioralSignals
+    ? "Array of bullet points about behavioral signals - one per signal from BEHAVIORAL category"
+    : "No behavioral red flags detected";
+
+  const suggestionsInstruction = isLegitimate
+    ? "3-4 actionable suggestions focusing on general investment best practices"
+    : "3-4 actionable suggestions like 'Verify this through official SEC filings' or 'Be wary of time pressure tactics'";
+
+  const finalImportant = isLegitimate
+    ? "For legitimate companies with no red flags, the tone should be positive and reassuring"
+    : "Do not say the stock is safe or a scam definitively";
+
   return `Generate a narrative for a stock risk analysis with the following data:
 
 RISK LEVEL: ${riskLevel}
 TOTAL SCORE: ${totalScore}
+IS LEGITIMATE COMPANY: ${isLegitimate}${legitimateNote}
 
 STOCK SUMMARY:
 - Ticker: ${stockSummary.ticker}
@@ -138,15 +171,14 @@ STOCK SUMMARY:
 - Price: ${stockSummary.lastPrice ? `$${stockSummary.lastPrice.toFixed(2)}` : "N/A"}
 - Market Cap: ${stockSummary.marketCap ? `$${(stockSummary.marketCap / 1_000_000).toFixed(1)}M` : "N/A"}
 
-SIGNALS DETECTED:
-${signals.map((s) => `- [${s.category}] ${s.code}: ${s.description} (weight: ${s.weight})`).join("\n")}
+${signalsSection}
 
 Generate a JSON response with this exact structure:
 {
-  "header": "A one-sentence summary appropriate for the ${riskLevel} risk level",
-  "stockRedFlags": ["Array of bullet points about stock/market signals - one per signal from STRUCTURAL, PATTERN, and ALERT categories"],
-  "behaviorRedFlags": ["Array of bullet points about behavioral signals - one per signal from BEHAVIORAL category"],
-  "suggestions": ["3-4 actionable suggestions for the user, like 'Verify this through official SEC filings' or 'Be wary of time pressure tactics'"],
+  "header": "${headerInstruction}",
+  "stockRedFlags": ["${stockRedFlagsInstruction}"],
+  "behaviorRedFlags": ["${behaviorRedFlagsInstruction}"],
+  "suggestions": ["${suggestionsInstruction}"],
   "disclaimers": ["1-2 short disclaimers reminding this is not financial advice"]
 }
 
@@ -155,7 +187,7 @@ IMPORTANT:
 - Each red flag should be a clear, simple explanation
 - Suggestions should be practical and educational
 - Do not recommend buying or selling
-- Do not say the stock is safe or a scam definitively`;
+- ${finalImportant}`;
 }
 
 /**
@@ -166,52 +198,77 @@ function generateFallbackNarrative(
   riskLevel: RiskLevel,
   totalScore: number,
   signals: RiskSignal[],
-  stockSummary: StockSummary
+  stockSummary: StockSummary,
+  isLegitimate: boolean = false
 ): Narrative {
   const { structural, pattern, behavioral, alert } = getSignalsByCategory(signals);
 
-  // Generate header based on risk level
+  // Generate header based on risk level and legitimacy
   let header: string;
-  switch (riskLevel) {
-    case "HIGH":
-      header = `Multiple high-risk signals detected for ${stockSummary.ticker}. This pitch shows patterns commonly associated with stock scams.`;
-      break;
-    case "MEDIUM":
-      header = `Some risk signals detected for ${stockSummary.ticker}. Exercise caution and do additional research before considering any investment.`;
-      break;
-    case "LOW":
-      header = `Few risk signals detected for ${stockSummary.ticker}. However, always conduct your own due diligence before investing.`;
-      break;
-    case "INSUFFICIENT":
-      header = `Unable to provide a complete risk assessment for ${stockSummary.ticker}. Limited data available or this is a large, established company with no behavioral red flags.`;
-      break;
+
+  if (isLegitimate) {
+    header = `${stockSummary.ticker} appears to be a well-established company. No scam red flags detected. As always, do your own research before investing.`;
+  } else {
+    switch (riskLevel) {
+      case "HIGH":
+        header = `Multiple high-risk signals detected for ${stockSummary.ticker}. This pitch shows patterns commonly associated with stock scams.`;
+        break;
+      case "MEDIUM":
+        header = `Some risk signals detected for ${stockSummary.ticker}. Exercise caution and do additional research before considering any investment.`;
+        break;
+      case "LOW":
+        header = `Few risk signals detected for ${stockSummary.ticker}. However, always conduct your own due diligence before investing.`;
+        break;
+      case "INSUFFICIENT":
+        header = `Unable to provide a complete risk assessment for ${stockSummary.ticker}. Limited market data available for analysis.`;
+        break;
+    }
   }
 
   // Stock red flags from structural, pattern, and alert signals
-  const stockRedFlags: string[] = [...structural, ...pattern, ...alert].map(
-    (s) => s.description
-  );
-
-  // Behavioral red flags
-  const behaviorRedFlags: string[] = behavioral.map((s) => s.description);
-
-  // Generate suggestions based on signals present
-  const suggestions: string[] = [
-    "Research the company through official SEC filings at sec.gov",
-    "Check for recent news from reputable financial sources",
-    "Never invest money you cannot afford to lose",
-  ];
-
-  if (behavioral.length > 0) {
-    suggestions.unshift(
-      "Be skeptical of unsolicited stock tips and high-pressure tactics"
-    );
+  let stockRedFlags: string[];
+  if (isLegitimate || (structural.length === 0 && pattern.length === 0 && alert.length === 0)) {
+    stockRedFlags = ["No concerning market signals detected for this stock"];
+  } else {
+    stockRedFlags = [...structural, ...pattern, ...alert].map((s) => s.description);
   }
 
-  if (structural.length > 0 || pattern.length > 0) {
-    suggestions.push(
-      "Penny stocks and OTC stocks have higher manipulation risk"
-    );
+  // Behavioral red flags
+  let behaviorRedFlags: string[];
+  if (behavioral.length === 0) {
+    behaviorRedFlags = ["No behavioral red flags detected"];
+  } else {
+    behaviorRedFlags = behavioral.map((s) => s.description);
+  }
+
+  // Generate suggestions based on legitimacy and signals present
+  let suggestions: string[];
+
+  if (isLegitimate) {
+    suggestions = [
+      "Even established companies can be overvalued - check current valuation metrics",
+      "Review recent quarterly earnings and guidance",
+      "Consider how this fits your overall portfolio diversification",
+      "Never invest money you cannot afford to lose",
+    ];
+  } else {
+    suggestions = [
+      "Research the company through official SEC filings at sec.gov",
+      "Check for recent news from reputable financial sources",
+      "Never invest money you cannot afford to lose",
+    ];
+
+    if (behavioral.length > 0) {
+      suggestions.unshift(
+        "Be skeptical of unsolicited stock tips and high-pressure tactics"
+      );
+    }
+
+    if (structural.length > 0 || pattern.length > 0) {
+      suggestions.push(
+        "Penny stocks and OTC stocks have higher manipulation risk"
+      );
+    }
   }
 
   // Disclaimers
