@@ -312,11 +312,6 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
           </div>
         </div>
       </form>
-
-      {/* Helper Text */}
-      <p className="text-center text-xs text-muted-foreground mt-3">
-        Enter a ticker to scan for red flags. Add pitch text or context for deeper analysis.
-      </p>
     </div>
   );
 }
