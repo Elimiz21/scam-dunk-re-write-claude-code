@@ -344,29 +344,35 @@ function calculateRiskLevel(
 }
 
 /**
- * Check if result should be INSUFFICIENT
+ * Check if result should be INSUFFICIENT (only when no data available)
  */
 function checkIsInsufficient(
   marketData: MarketData,
-  signals: RiskSignal[]
 ): boolean {
-  // No data available
+  // No data available - can't analyze
   if (!marketData.dataAvailable || !marketData.quote) {
     return true;
   }
 
-  // Large, liquid stock on major exchange with no behavioral flags
+  return false;
+}
+
+/**
+ * Check if stock appears to be a legitimate, well-established company
+ */
+function checkIsLegitimate(
+  marketData: MarketData,
+  signals: RiskSignal[]
+): boolean {
+  if (!marketData.quote) return false;
+
   const { quote } = marketData;
   const isLargeCap = quote.marketCap > 10_000_000_000; // > $10B
   const isHighLiquidity = quote.avgDollarVolume30d > 10_000_000; // > $10M daily
   const isMajorExchange = !marketData.isOTC;
-  const behavioralSignals = signals.filter((s) => s.category === "BEHAVIORAL");
+  const hasNoRedFlags = signals.length === 0;
 
-  if (isLargeCap && isHighLiquidity && isMajorExchange && behavioralSignals.length === 0) {
-    return true;
-  }
-
-  return false;
+  return isLargeCap && isHighLiquidity && isMajorExchange && hasNoRedFlags;
 }
 
 /**
@@ -403,14 +409,18 @@ export async function computeRiskScore(input: ScoringInput): Promise<ScoringResu
   // Determine risk level
   const riskLevel = calculateRiskLevel(totalScore, signals, marketData);
 
-  // Check if insufficient
-  const isInsufficient = checkIsInsufficient(marketData, signals);
+  // Check if insufficient (only when no data available)
+  const isInsufficient = checkIsInsufficient(marketData);
+
+  // Check if this is a legitimate, well-established company
+  const isLegitimate = checkIsLegitimate(marketData, signals);
 
   return {
     signals,
     totalScore,
     riskLevel: isInsufficient ? "INSUFFICIENT" : riskLevel,
     isInsufficient,
+    isLegitimate,
   };
 }
 

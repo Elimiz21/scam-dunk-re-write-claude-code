@@ -59,6 +59,7 @@ export interface RiskResponse {
   stockSummary: StockSummary;
   narrative: Narrative;
   usage: UsageInfo;
+  isLegitimate?: boolean;
 }
 
 export interface LimitReachedResponse {
@@ -116,4 +117,5 @@ export interface ScoringResult {
   totalScore: number;
   riskLevel: RiskLevel;
   isInsufficient: boolean;
+  isLegitimate: boolean;
 }

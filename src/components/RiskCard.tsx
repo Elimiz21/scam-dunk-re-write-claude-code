@@ -117,15 +117,24 @@ export function RiskCard({ result }: RiskCardProps) {
               Stock & Market Behavior
             </h3>
             <ul className="space-y-2">
-              {narrative.stockRedFlags.map((flag, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground"
-                >
-                  <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                  {flag}
-                </li>
-              ))}
+              {narrative.stockRedFlags.map((flag, index) => {
+                const isPositive = flag.toLowerCase().includes("no concerning") ||
+                                   flag.toLowerCase().includes("no red flags") ||
+                                   flag.toLowerCase().includes("no signals");
+                return (
+                  <li
+                    key={index}
+                    className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground"
+                  >
+                    {isPositive ? (
+                      <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                    )}
+                    {flag}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -138,15 +147,24 @@ export function RiskCard({ result }: RiskCardProps) {
               Pitch & Behavior Patterns
             </h3>
             <ul className="space-y-2">
-              {narrative.behaviorRedFlags.map((flag, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground"
-                >
-                  <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                  {flag}
-                </li>
-              ))}
+              {narrative.behaviorRedFlags.map((flag, index) => {
+                const isPositive = flag.toLowerCase().includes("no behavioral") ||
+                                   flag.toLowerCase().includes("no red flags") ||
+                                   flag.toLowerCase().includes("no concerning");
+                return (
+                  <li
+                    key={index}
+                    className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground"
+                  >
+                    {isPositive ? (
+                      <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                    )}
+                    {flag}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
