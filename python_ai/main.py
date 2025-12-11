@@ -643,8 +643,24 @@ def main():
         action='store_true',
         help='Use scam-like synthetic data (for testing)'
     )
+    parser.add_argument(
+        '--live', '-L',
+        action='store_true',
+        help='Use LIVE API data (requires API keys in .env)'
+    )
+    parser.add_argument(
+        '--setup',
+        action='store_true',
+        help='Run interactive setup for live API connections'
+    )
 
     args = parser.parse_args()
+
+    # Handle setup command
+    if args.setup:
+        import subprocess
+        subprocess.run([sys.executable, 'setup_live.py'])
+        return
 
     print("\n" + "=" * 70)
     print("SCAM DETECTION SYSTEM")
@@ -677,12 +693,43 @@ def main():
     # Analyze specific ticker
     if args.ticker:
         print(f"\nAnalyzing ticker: {args.ticker}")
-        assessment = pipeline.analyze(
-            ticker=args.ticker,
-            use_synthetic=True,
-            is_scam_scenario=args.scam_scenario,
-            news_flag=args.news
-        )
+
+        if args.live:
+            # Use LIVE API data
+            print("Using LIVE API data...")
+            try:
+                from data_ingestion import create_live_asset_context
+                context = create_live_asset_context(
+                    args.ticker,
+                    asset_type='auto',
+                    news_flag=args.news
+                )
+                assessment = pipeline.analyze(
+                    ticker=args.ticker,
+                    price_data=context['price_data'],
+                    fundamentals=context['fundamentals'],
+                    news_flag=args.news,
+                    use_synthetic=False
+                )
+            except Exception as e:
+                print(f"\nError using live data: {e}")
+                print("Run 'python3 main.py --setup' to configure API keys.")
+                print("Falling back to synthetic data...\n")
+                assessment = pipeline.analyze(
+                    ticker=args.ticker,
+                    use_synthetic=True,
+                    is_scam_scenario=args.scam_scenario,
+                    news_flag=args.news
+                )
+        else:
+            # Use synthetic data
+            assessment = pipeline.analyze(
+                ticker=args.ticker,
+                use_synthetic=True,
+                is_scam_scenario=args.scam_scenario,
+                news_flag=args.news
+            )
+
         print(format_risk_output(assessment))
 
     # If no specific action, run tests and generate report
