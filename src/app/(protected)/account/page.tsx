@@ -5,11 +5,27 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Shield, User, CreditCard, LogOut, Zap, Check, Loader2 } from "lucide-react";
+import {
+  Shield,
+  User,
+  CreditCard,
+  LogOut,
+  Zap,
+  Check,
+  Loader2,
+  Lock,
+  Edit2,
+  X,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { UsageInfo } from "@/lib/types";
+import { useToast } from "@/components/ui/toast";
 
 function AccountAlerts() {
   const searchParams = useSearchParams();
@@ -19,14 +35,13 @@ function AccountAlerts() {
   return (
     <>
       {upgraded && (
-        <Alert className="bg-green-50 border-green-200">
+        <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
           <Check className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-800">
+          <AlertTitle className="text-green-800 dark:text-green-200">
             Welcome to ScamDunk Pro!
           </AlertTitle>
-          <AlertDescription className="text-green-700">
-            Your account has been upgraded. You now have 200 checks per
-            month.
+          <AlertDescription className="text-green-700 dark:text-green-300">
+            Your account has been upgraded. You now have 200 checks per month.
           </AlertDescription>
         </Alert>
       )}
@@ -44,13 +59,29 @@ function AccountAlerts() {
 }
 
 function AccountContent() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
+  const { addToast } = useToast();
 
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isManaging, setIsManaging] = useState(false);
   const [error, setError] = useState("");
+
+  // Profile editing
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Password change
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -61,6 +92,7 @@ function AccountContent() {
   useEffect(() => {
     if (session?.user) {
       fetchUsage();
+      setEditName(session.user.name || "");
     }
   }, [session]);
 
@@ -120,6 +152,95 @@ function AccountContent() {
     }
   };
 
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update session with new name
+        await update({ name: editName.trim() });
+        setIsEditingProfile(false);
+        addToast({
+          type: "success",
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        });
+      } else {
+        setError(data.error || "Failed to update profile");
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters");
+      return;
+    }
+
+    setIsSavingPassword(true);
+
+    try {
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsChangingPassword(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmNewPassword("");
+        addToast({
+          type: "success",
+          title: "Password changed",
+          description: "Your password has been updated successfully.",
+        });
+      } else {
+        setPasswordError(data.error || "Failed to change password");
+      }
+    } catch (err) {
+      setPasswordError("An error occurred. Please try again.");
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  const handleCancelProfileEdit = () => {
+    setIsEditingProfile(false);
+    setEditName(session?.user?.name || "");
+  };
+
+  const handleCancelPasswordChange = () => {
+    setIsChangingPassword(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setPasswordError("");
+  };
+
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" });
   };
@@ -162,7 +283,7 @@ function AccountContent() {
 
       <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">Account</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Account Settings</h1>
 
           {/* Success/Canceled alerts */}
           <Suspense fallback={null}>
@@ -178,20 +299,212 @@ function AccountContent() {
           {/* Profile Card */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Profile
+                </CardTitle>
+                {!isEditingProfile && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditingProfile(true)}
+                  >
+                    <Edit2 className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{session?.user?.email}</p>
+              {isEditingProfile ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Enter your name"
+                      disabled={isSavingProfile}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Email</Label>
+                    <p className="text-sm mt-1">{session?.user?.email}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Email cannot be changed
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSaveProfile}
+                      disabled={isSavingProfile}
+                      size="sm"
+                    >
+                      {isSavingProfile ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Save
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelProfileEdit}
+                      disabled={isSavingProfile}
+                      size="sm"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Name</p>
+                    <p className="font-medium">
+                      {session?.user?.name || "Not set"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{session?.user?.email}</p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Security Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Security
+                </CardTitle>
+                {!isChangingPassword && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsChangingPassword(true)}
+                  >
+                    Change Password
+                  </Button>
+                )}
               </div>
-              {session?.user?.name && (
+            </CardHeader>
+            <CardContent>
+              {isChangingPassword ? (
+                <div className="space-y-4">
+                  {passwordError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{passwordError}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="currentPassword"
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current password"
+                        disabled={isSavingPassword}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                      >
+                        {showCurrentPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        disabled={isSavingPassword}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label={showNewPassword ? "Hide password" : "Show password"}
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Must be at least 8 characters
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                    <Input
+                      id="confirmNewPassword"
+                      type="password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      disabled={isSavingPassword}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleChangePassword}
+                      disabled={isSavingPassword || !currentPassword || !newPassword || !confirmNewPassword}
+                      size="sm"
+                    >
+                      {isSavingPassword ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Changing...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Change Password
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelPasswordChange}
+                      disabled={isSavingPassword}
+                      size="sm"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
                 <div>
-                  <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="font-medium">{session.user.name}</p>
+                  <p className="text-sm text-muted-foreground">Password</p>
+                  <p className="font-medium">••••••••</p>
                 </div>
               )}
             </CardContent>
@@ -348,6 +661,26 @@ function AccountContent() {
               </CardContent>
             </Card>
           )}
+
+          {/* Danger Zone */}
+          <Card className="border-destructive/50">
+            <CardHeader>
+              <CardTitle className="text-destructive">Danger Zone</CardTitle>
+              <CardDescription>
+                Irreversible actions for your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="outline"
+                className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                onClick={handleSignOut}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
