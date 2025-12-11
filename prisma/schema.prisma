@@ -76,3 +76,168 @@ model ScanUsage {
   @@unique([userId, monthKey])
   @@index([userId, monthKey])
 }
+
+// ==========================================
+// ADMIN WORKSPACE MODELS (Standalone System)
+// ==========================================
+
+model AdminUser {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  hashedPassword String
+  name           String?
+  role           String   @default("ADMIN") // OWNER, ADMIN, VIEWER
+  isActive       Boolean  @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      String?  // ID of admin who invited them
+
+  invitesSent    AdminInvite[] @relation("InvitedBy")
+  sessions       AdminSession[]
+
+  @@index([email])
+}
+
+model AdminSession {
+  id           String    @id @default(cuid())
+  adminUserId  String
+  token        String    @unique
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  ipAddress    String?
+  userAgent    String?
+
+  adminUser    AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([adminUserId])
+}
+
+model AdminInvite {
+  id          String   @id @default(cuid())
+  email       String
+  token       String   @unique
+  role        String   @default("ADMIN") // ADMIN, VIEWER
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+  invitedBy   String
+
+  inviter     AdminUser @relation("InvitedBy", fields: [invitedBy], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([email])
+}
+
+model ApiUsageLog {
+  id            String   @id @default(cuid())
+  service       String   // OPENAI, ALPHA_VANTAGE, STRIPE
+  endpoint      String?
+  requestCount  Int      @default(1)
+  tokensUsed    Int?     // For OpenAI
+  estimatedCost Float?   // In USD
+  responseTime  Int?     // In milliseconds
+  statusCode    Int?
+  errorMessage  String?
+  monthKey      String   // Format: YYYY-MM
+  dayKey        String   // Format: YYYY-MM-DD
+  hourKey       String   // Format: YYYY-MM-DD-HH
+  createdAt     DateTime @default(now())
+
+  @@index([service, monthKey])
+  @@index([service, dayKey])
+  @@index([createdAt])
+}
+
+model ApiCostAlert {
+  id             String   @id @default(cuid())
+  service        String   // ALL, OPENAI, ALPHA_VANTAGE, STRIPE
+  alertType      String   // COST_THRESHOLD, RATE_LIMIT, ERROR_RATE
+  threshold      Float    // Threshold value
+  currentValue   Float?   // Current value when alert triggered
+  isActive       Boolean  @default(true)
+  lastTriggered  DateTime?
+  notifyEmail    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([service, isActive])
+}
+
+model IntegrationConfig {
+  id            String   @id @default(cuid())
+  name          String   @unique // OPENAI, ALPHA_VANTAGE, STRIPE, etc.
+  displayName   String
+  category      String   // API, PAYMENT, DATABASE, ANALYTICS
+  isEnabled     Boolean  @default(true)
+  config        String?  @db.Text // JSON config (encrypted sensitive data)
+  apiKeyMasked  String?  // Masked version of API key for display
+  rateLimit     Int?     // Requests per minute
+  monthlyBudget Float?   // Monthly budget in USD
+  status        String   @default("UNKNOWN") // CONNECTED, ERROR, UNKNOWN
+  lastCheckedAt DateTime?
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category])
+}
+
+model ScanHistory {
+  id              String   @id @default(cuid())
+  userId          String?
+  ticker          String
+  assetType       String   @default("stock")
+  riskLevel       String   // LOW, MEDIUM, HIGH, INSUFFICIENT
+  totalScore      Int
+  signalsCount    Int
+  processingTime  Int?     // In milliseconds
+  openaiTokens    Int?
+  alphaVantageHit Boolean  @default(false)
+  isLegitimate    Boolean?
+  pitchProvided   Boolean  @default(false)
+  contextProvided Boolean  @default(false)
+  ipAddress       String?
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([riskLevel])
+  @@index([ticker])
+  @@index([userId])
+}
+
+model ModelMetrics {
+  id                String   @id @default(cuid())
+  dateKey           String   @unique // Format: YYYY-MM-DD
+  totalScans        Int      @default(0)
+  lowRiskCount      Int      @default(0)
+  mediumRiskCount   Int      @default(0)
+  highRiskCount     Int      @default(0)
+  insufficientCount Int      @default(0)
+  legitDetected     Int      @default(0)
+  avgProcessingTime Float?
+  avgScore          Float?
+  uniqueTickers     Int      @default(0)
+  uniqueUsers       Int      @default(0)
+  falsePositives    Int      @default(0) // Manually marked
+  falseNegatives    Int      @default(0) // Manually marked
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([dateKey])
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  adminUserId String
+  action      String   // LOGIN, LOGOUT, CONFIG_CHANGE, INVITE_SENT, etc.
+  resource    String?  // What was affected
+  details     String?  @db.Text // JSON details
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([adminUserId])
+  @@index([action])
+  @@index([createdAt])
+}
