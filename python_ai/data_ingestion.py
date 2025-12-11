@@ -455,6 +455,67 @@ def create_asset_context(
     }
 
 
+def create_live_asset_context(
+    ticker_or_symbol: str,
+    asset_type: str = 'auto',
+    days: int = 90,
+    news_flag: bool = False
+) -> Dict:
+    """
+    Create asset context using LIVE API data.
+
+    Requires API keys configured in .env file.
+
+    Args:
+        ticker_or_symbol: Ticker symbol
+        asset_type: 'stock', 'crypto', or 'auto'
+        days: Number of days of history
+        news_flag: Whether there's relevant news
+
+    Returns:
+        Dictionary with all asset context from live APIs
+    """
+    try:
+        from live_data import fetch_live_data, check_sec_enforcement
+    except ImportError:
+        raise DataIngestionError(
+            "live_data module not available. Use create_asset_context() with synthetic data."
+        )
+
+    # Fetch live data
+    price_data, fundamentals, sec_status = fetch_live_data(
+        ticker_or_symbol,
+        asset_type=asset_type,
+        days=days
+    )
+
+    # Preprocess price data
+    price_data = preprocess_price_data(price_data)
+
+    # Also check against our static SEC flagged list
+    static_sec_check = check_sec_flagged_list(ticker_or_symbol)
+
+    # Combine SEC status (flagged if either source flags it)
+    sec_flagged = {
+        'is_flagged': sec_status.get('is_flagged', False) or static_sec_check['is_flagged'],
+        'reason': sec_status.get('reason') or static_sec_check.get('reason'),
+        'source': f"{sec_status.get('source', 'API')} + static list",
+        'last_updated': datetime.now().isoformat()
+    }
+
+    return {
+        'ticker': ticker_or_symbol,
+        'asset_type': 'crypto' if asset_type == 'crypto' or ticker_or_symbol.upper() in ['BTC', 'ETH', 'SOL', 'DOGE', 'SHIB'] else 'stock',
+        'price_data': price_data,
+        'fundamentals': fundamentals,
+        'sec_flagged': sec_flagged,
+        'news_flag': news_flag,
+        'sentiment_score': None,
+        'created_at': datetime.now().isoformat(),
+        'data_source': 'LIVE API'
+    }
+
+
 if __name__ == '__main__':
     # Test data ingestion functions
     print("=" * 60)
