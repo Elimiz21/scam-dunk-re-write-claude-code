@@ -9,6 +9,7 @@ import {
   Settings,
   Shield,
   Users,
+  UsersRound,
   LogOut,
   Menu,
   X,
@@ -25,6 +26,7 @@ interface AdminSession {
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Users", href: "/admin/users", icon: UsersRound },
   { name: "API Usage", href: "/admin/api-usage", icon: Activity },
   { name: "Integrations", href: "/admin/integrations", icon: Settings },
   { name: "Model Efficacy", href: "/admin/model-efficacy", icon: Shield },
