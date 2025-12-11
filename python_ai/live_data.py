@@ -217,13 +217,20 @@ def fetch_company_overview(ticker: str) -> Dict:
     shares_str = data.get('SharesOutstanding', '0')
     shares = int(shares_str) if shares_str and shares_str != 'None' else 0
 
+    # Parse average volume safely (can be float string or None)
+    avg_vol_str = data.get('AverageTradingVolume', data.get('SharesOutstanding', '0'))
+    try:
+        avg_volume = int(float(avg_vol_str)) if avg_vol_str and avg_vol_str != 'None' else 0
+    except (ValueError, TypeError):
+        avg_volume = 0
+
     return {
         'ticker': ticker,
         'name': data.get('Name', ticker),
         'market_cap': market_cap,
         'shares_outstanding': shares,
         'float_shares': shares,  # Alpha Vantage doesn't provide float separately
-        'avg_daily_volume': int(data.get('50DayMovingAverage', 0) or 0),
+        'avg_daily_volume': avg_volume,
         'exchange': exchange,
         'is_otc': is_otc,
         'sector': data.get('Sector', 'Unknown'),
