@@ -8,7 +8,7 @@ interface StatCardProps {
   icon: LucideIcon;
   change?: number;
   changeLabel?: string;
-  color?: "blue" | "green" | "yellow" | "red" | "purple" | "indigo";
+  color?: "blue" | "green" | "yellow" | "red" | "purple" | "indigo" | "gray";
 }
 
 const colorClasses = {
@@ -18,6 +18,7 @@ const colorClasses = {
   red: "bg-red-500",
   purple: "bg-purple-500",
   indigo: "bg-indigo-500",
+  gray: "bg-gray-500",
 };
 
 export default function StatCard({
