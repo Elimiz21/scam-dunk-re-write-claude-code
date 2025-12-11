@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ToastProvider } from "@/components/ui/toast";
 
 export const metadata: Metadata = {
   title: "ScamDunk - Detect Stock Scam Red Flags",
@@ -18,7 +19,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
         <SessionProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </ThemeProvider>
         </SessionProvider>
       </body>
     </html>

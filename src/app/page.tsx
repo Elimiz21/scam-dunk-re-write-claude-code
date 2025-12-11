@@ -13,6 +13,7 @@ import { LoadingStepper } from "@/components/LoadingStepper";
 import { Shield, TrendingUp, AlertTriangle, Zap } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
 import { getRandomTagline } from "@/lib/taglines";
+import { useToast } from "@/components/ui/toast";
 
 type Step = {
   label: string;
@@ -21,6 +22,7 @@ type Step = {
 
 export default function HomePage() {
   const { data: session, status } = useSession();
+  const { addToast } = useToast();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -181,15 +183,50 @@ export default function HomePage() {
     setCurrentTicker("");
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (result) {
-      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${result.riskLevel} RISK (Score: ${result.totalScore})`;
+      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${result.riskLevel} RISK (Score: ${result.totalScore})\n\nCheck your stocks for scam red flags at ScamDunk.`;
+      const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+      // Try native share API first
       if (navigator.share) {
-        navigator.share({ title: "ScamDunk Analysis", text: shareText });
+        try {
+          await navigator.share({
+            title: "ScamDunk Analysis",
+            text: shareText,
+            url: shareUrl,
+          });
+          addToast({
+            type: "success",
+            title: "Shared successfully",
+          });
+        } catch (err) {
+          // User cancelled or share failed, fall back to clipboard
+          if ((err as Error).name !== "AbortError") {
+            await copyToClipboard(shareText);
+          }
+        }
       } else {
-        navigator.clipboard.writeText(shareText);
-        alert("Analysis copied to clipboard!");
+        // Fall back to clipboard copy
+        await copyToClipboard(shareText);
       }
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      addToast({
+        type: "success",
+        title: "Copied to clipboard",
+        description: "Analysis summary copied. Paste to share with others.",
+      });
+    } catch (err) {
+      addToast({
+        type: "error",
+        title: "Failed to copy",
+        description: "Please try again or manually copy the results.",
+      });
     }
   };
 

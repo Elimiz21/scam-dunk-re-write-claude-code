@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield, Loader2, Check, ArrowRight } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,13 +74,71 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      // Show success state before redirecting
+      setIsSuccess(true);
+      setIsLoading(false);
     } catch (err) {
       setError("An error occurred. Please try again.");
       setIsLoading(false);
     }
   };
+
+  const handleContinue = () => {
+    router.push("/");
+    router.refresh();
+  };
+
+  // Success state - show welcome message
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
+        <Card className="w-full max-w-md border-border bg-card">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
+                <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl">Welcome to ScamDunk!</CardTitle>
+            <CardDescription className="text-base mt-2">
+              Your account has been created successfully
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 rounded-xl bg-secondary/50">
+              <h3 className="font-medium mb-2">What you can do:</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  Check stocks for scam red flags
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  Analyze investment pitches for suspicious language
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  Get AI-powered risk assessments
+                </li>
+              </ul>
+            </div>
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+              <p className="text-sm">
+                <span className="font-medium">Free plan:</span>{" "}
+                You have 5 stock checks available this month
+              </p>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={handleContinue} className="w-full" size="lg">
+              Start checking stocks
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
@@ -110,6 +169,7 @@ export default function SignupPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isLoading}
+                aria-describedby="name-hint"
               />
             </div>
             <div className="space-y-2">
@@ -122,6 +182,7 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
+                aria-required="true"
               />
             </div>
             <div className="space-y-2">
@@ -134,8 +195,10 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                aria-required="true"
+                aria-describedby="password-hint"
               />
-              <p className="text-xs text-muted-foreground">
+              <p id="password-hint" className="text-xs text-muted-foreground">
                 Must be at least 8 characters
               </p>
             </div>
@@ -149,6 +212,7 @@ export default function SignupPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                aria-required="true"
               />
             </div>
           </CardContent>
