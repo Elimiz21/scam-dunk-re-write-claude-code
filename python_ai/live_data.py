@@ -93,7 +93,14 @@ def fetch_stock_daily(ticker: str, outputsize: str = 'compact') -> pd.DataFrame:
 
     print(f"   Fetching stock data for {ticker} from Alpha Vantage...")
     response = requests.get(url, params=params, timeout=30)
-    data = response.json()
+
+    if response.status_code != 200:
+        raise APIError(f"Alpha Vantage returned status {response.status_code}. Try again in a minute.")
+
+    try:
+        data = response.json()
+    except Exception:
+        raise APIError(f"Invalid response from Alpha Vantage. API may be temporarily unavailable.")
 
     if 'Error Message' in data:
         raise APIError(f"Alpha Vantage error: {data['Error Message']}")
@@ -189,7 +196,13 @@ def fetch_company_overview(ticker: str) -> Dict:
 
     print(f"   Fetching company overview for {ticker}...")
     response = requests.get(url, params=params, timeout=30)
-    data = response.json()
+
+    # Handle empty or invalid response
+    try:
+        data = response.json()
+    except Exception:
+        print(f"   Warning: No company data available for {ticker}")
+        data = {}
 
     if not data or 'Symbol' not in data:
         # Return placeholder data for unknown tickers
@@ -560,6 +573,26 @@ def fetch_live_data(
         price_data = fetch_stock_daily(ticker, 'compact' if days <= 100 else 'full')
         fundamentals = fetch_company_overview(ticker)
         sec_status = check_sec_enforcement(ticker)
+
+        # Enhance fundamentals using price data when company info is incomplete
+        if price_data is not None and len(price_data) > 0:
+            latest_price = price_data['Close'].iloc[-1]
+            avg_volume = price_data['Volume'].mean()
+
+            # If no market cap data, estimate based on price (penny stock heuristic)
+            if fundamentals.get('market_cap', 0) == 0:
+                # Flag as potentially risky if price < $5 (penny stock)
+                if latest_price < 5:
+                    fundamentals['is_penny_stock'] = True
+                    fundamentals['market_cap'] = 50_000_000  # Assume small cap
+                    print(f"   Note: {ticker} is a penny stock (${latest_price:.2f})")
+
+            # Use actual volume data
+            if avg_volume > 0:
+                fundamentals['avg_daily_volume'] = int(avg_volume)
+
+            # Store latest price for reference
+            fundamentals['latest_price'] = latest_price
 
     return price_data, fundamentals, sec_status
 
