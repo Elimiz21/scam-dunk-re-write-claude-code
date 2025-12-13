@@ -16,6 +16,7 @@ import sys
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
+import threading
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,17 +25,9 @@ logger = logging.getLogger(__name__)
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-try:
-    from fastapi import FastAPI, HTTPException
-    from fastapi.middleware.cors import CORSMiddleware
-    from pydantic import BaseModel, Field
-except ImportError:
-    print("FastAPI not installed. Run: pip install fastapi uvicorn")
-    sys.exit(1)
-
-# Import our AI modules
-from config import SEC_FLAGGED_TICKERS
-from pipeline import ScamDetectionPipeline
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -46,14 +39,16 @@ app = FastAPI(
 # Configure CORS for web app access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize the pipeline (loads ML models)
-pipeline: Optional[ScamDetectionPipeline] = None
+# Pipeline will be initialized lazily
+pipeline = None
+pipeline_initializing = False
+pipeline_lock = threading.Lock()
 
 
 class AnalysisRequest(BaseModel):
@@ -62,13 +57,6 @@ class AnalysisRequest(BaseModel):
     asset_type: str = Field(default="stock", description="Asset type: 'stock' or 'crypto'")
     days: int = Field(default=90, description="Days of historical data to analyze")
     use_live_data: bool = Field(default=False, description="Use live API data if available")
-
-    # Optional behavioral context
-    unsolicited: bool = Field(default=False, description="Was this tip unsolicited?")
-    promises_high_returns: bool = Field(default=False, description="Does it promise high returns?")
-    urgency_pressure: bool = Field(default=False, description="Is there urgency/pressure?")
-    secrecy_inside_info: bool = Field(default=False, description="Claims insider info?")
-    pitch_text: Optional[str] = Field(default=None, description="Optional pitch text to analyze")
 
 
 class SignalDetail(BaseModel):
@@ -83,25 +71,15 @@ class AnalysisResponse(BaseModel):
     """Response model for scam analysis"""
     ticker: str
     asset_type: str
-    risk_level: str  # LOW, MEDIUM, HIGH
-    risk_probability: float  # 0.0 to 1.0
-    risk_score: int  # Weighted signal score
-
-    # Model outputs
+    risk_level: str
+    risk_probability: float
+    risk_score: int
     rf_probability: Optional[float] = None
     lstm_probability: Optional[float] = None
     anomaly_score: float = 0.0
-
-    # Signals detected
     signals: List[SignalDetail] = []
-
-    # Feature summary
     features: Dict[str, Any] = {}
-
-    # Explanations
     explanations: List[str] = []
-
-    # Metadata
     sec_flagged: bool = False
     is_otc: bool = False
     is_micro_cap: bool = False
@@ -118,69 +96,116 @@ class HealthResponse(BaseModel):
     version: str
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize ML models on startup"""
-    global pipeline
-    logger.info("Initializing ScamDunk AI Pipeline...")
+def get_pipeline():
+    """Get or initialize the pipeline (lazy loading)"""
+    global pipeline, pipeline_initializing
 
-    try:
-        pipeline = ScamDetectionPipeline(load_models=True)
-        logger.info("Pipeline initialized successfully")
-        logger.info(f"  - Random Forest: {'Ready' if pipeline.rf_available else 'Not loaded'}")
-        logger.info(f"  - LSTM Model: {'Ready' if pipeline.lstm_available else 'Not loaded'}")
-        logger.info(f"  - Anomaly Detector: Ready")
+    if pipeline is not None:
+        return pipeline
 
-        # Train models if not available
-        if not pipeline.rf_available or not pipeline.lstm_available:
-            logger.info("Training missing models...")
-            pipeline.train_models(
-                train_rf=not pipeline.rf_available,
-                train_lstm=not pipeline.lstm_available,
-                lstm_epochs=10,
-                save_models=True
-            )
-            logger.info("Model training complete")
+    with pipeline_lock:
+        # Double-check after acquiring lock
+        if pipeline is not None:
+            return pipeline
 
-    except Exception as e:
-        logger.error(f"Failed to initialize pipeline: {e}")
-        pipeline = None
+        if pipeline_initializing:
+            return None
+
+        pipeline_initializing = True
+        logger.info("Initializing ScamDunk AI Pipeline (lazy load)...")
+
+        try:
+            from config import SEC_FLAGGED_TICKERS
+            from pipeline import ScamDetectionPipeline
+
+            pipeline_instance = ScamDetectionPipeline(load_models=True)
+            logger.info("Pipeline initialized successfully")
+            logger.info(f"  - Random Forest: {'Ready' if pipeline_instance.rf_available else 'Not loaded'}")
+            logger.info(f"  - LSTM Model: {'Ready' if pipeline_instance.lstm_available else 'Not loaded'}")
+
+            # Train models if not available (but skip LSTM to be faster)
+            if not pipeline_instance.rf_available:
+                logger.info("Training Random Forest model...")
+                pipeline_instance.train_models(
+                    train_rf=True,
+                    train_lstm=False,
+                    save_models=True
+                )
+                logger.info("RF training complete")
+
+            # Only train LSTM if really needed and RF is ready
+            if pipeline_instance.rf_available and not pipeline_instance.lstm_available:
+                logger.info("Training LSTM model (this may take a while)...")
+                try:
+                    pipeline_instance.train_models(
+                        train_rf=False,
+                        train_lstm=True,
+                        lstm_epochs=5,  # Reduced epochs for faster startup
+                        save_models=True
+                    )
+                    logger.info("LSTM training complete")
+                except Exception as e:
+                    logger.warning(f"LSTM training failed, will use RF only: {e}")
+
+            # Set global pipeline
+            global pipeline
+            pipeline = pipeline_instance
+            return pipeline
+
+        except Exception as e:
+            logger.error(f"Failed to initialize pipeline: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+        finally:
+            pipeline_initializing = False
+
+
+# Root endpoint - always works
+@app.get("/")
+async def root():
+    """Root endpoint - always available"""
+    return {
+        "service": "ScamDunk AI API",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": {
+            "health": "/health",
+            "analyze": "/analyze (POST)",
+            "sec_check": "/sec-check/{ticker}"
+        }
+    }
 
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Check API health and model status"""
+    p = pipeline  # Get current state without initializing
     return HealthResponse(
-        status="healthy" if pipeline else "degraded",
-        models_loaded=pipeline is not None,
-        rf_ready=pipeline.rf_available if pipeline else False,
-        lstm_ready=pipeline.lstm_available if pipeline else False,
+        status="healthy",
+        models_loaded=p is not None,
+        rf_ready=p.rf_available if p else False,
+        lstm_ready=p.lstm_available if p else False,
         version="1.0.0"
     )
 
 
 @app.post("/analyze", response_model=AnalysisResponse)
 async def analyze_asset(request: AnalysisRequest):
-    """
-    Run full hybrid AI analysis on an asset
+    """Run full hybrid AI analysis on an asset"""
 
-    This uses:
-    - Random Forest classifier
-    - LSTM deep learning model
-    - Statistical anomaly detection
-    - Feature engineering (Z-scores, ATR, Keltner Channels)
-    - Model ensemble with calibration
-    """
-    global pipeline
+    # Get or initialize pipeline
+    p = get_pipeline()
 
-    if pipeline is None:
-        raise HTTPException(status_code=503, detail="AI models not initialized")
+    if p is None:
+        raise HTTPException(
+            status_code=503,
+            detail="AI models are still initializing. Please try again in a moment."
+        )
 
     try:
         # Run the full pipeline analysis
-        # The pipeline.analyze method handles data loading, feature engineering,
-        # anomaly detection, ML predictions, and result combination
-        assessment = pipeline.analyze(
+        assessment = p.analyze(
             ticker=request.ticker,
             asset_type=request.asset_type,
             use_synthetic=not request.use_live_data,
@@ -191,63 +216,22 @@ async def analyze_asset(request: AnalysisRequest):
         # Build signal details from key indicators
         signals = []
         for indicator in assessment.key_indicators:
-            # Map indicators to signal format
             if "SEC" in indicator:
-                signals.append(SignalDetail(
-                    code="SEC_FLAGGED",
-                    category="ALERT",
-                    description=indicator,
-                    weight=5
-                ))
+                signals.append(SignalDetail(code="SEC_FLAGGED", category="ALERT", description=indicator, weight=5))
             elif "OTC" in indicator or "Pink" in indicator:
-                signals.append(SignalDetail(
-                    code="OTC_EXCHANGE",
-                    category="STRUCTURAL",
-                    description=indicator,
-                    weight=3
-                ))
+                signals.append(SignalDetail(code="OTC_EXCHANGE", category="STRUCTURAL", description=indicator, weight=3))
             elif "pump" in indicator.lower() or "dump" in indicator.lower():
-                signals.append(SignalDetail(
-                    code="PUMP_DUMP_PATTERN",
-                    category="PATTERN",
-                    description=indicator,
-                    weight=4
-                ))
+                signals.append(SignalDetail(code="PUMP_DUMP_PATTERN", category="PATTERN", description=indicator, weight=4))
             elif "volume" in indicator.lower():
-                signals.append(SignalDetail(
-                    code="VOLUME_ANOMALY",
-                    category="PATTERN",
-                    description=indicator,
-                    weight=3
-                ))
+                signals.append(SignalDetail(code="VOLUME_ANOMALY", category="PATTERN", description=indicator, weight=3))
             elif "price" in indicator.lower() or "%" in indicator:
-                signals.append(SignalDetail(
-                    code="PRICE_ANOMALY",
-                    category="PATTERN",
-                    description=indicator,
-                    weight=3
-                ))
+                signals.append(SignalDetail(code="PRICE_ANOMALY", category="PATTERN", description=indicator, weight=3))
             elif "RSI" in indicator or "overbought" in indicator.lower():
-                signals.append(SignalDetail(
-                    code="OVERBOUGHT_RSI",
-                    category="PATTERN",
-                    description=indicator,
-                    weight=2
-                ))
+                signals.append(SignalDetail(code="OVERBOUGHT_RSI", category="PATTERN", description=indicator, weight=2))
             elif "cap" in indicator.lower():
-                signals.append(SignalDetail(
-                    code="MICRO_CAP",
-                    category="STRUCTURAL",
-                    description=indicator,
-                    weight=2
-                ))
+                signals.append(SignalDetail(code="MICRO_CAP", category="STRUCTURAL", description=indicator, weight=2))
             else:
-                signals.append(SignalDetail(
-                    code="OTHER",
-                    category="PATTERN",
-                    description=indicator,
-                    weight=1
-                ))
+                signals.append(SignalDetail(code="OTHER", category="PATTERN", description=indicator, weight=1))
 
         # Add anomaly types as signals
         for anomaly_type in assessment.anomaly_types:
@@ -258,15 +242,14 @@ async def analyze_asset(request: AnalysisRequest):
                 weight=2
             ))
 
-        # Build feature summary from detailed report
+        # Build feature summary
         features = {}
         if assessment.detailed_report.get('feature_highlights'):
             features = assessment.detailed_report['feature_highlights']
 
-        # Get explanations from the assessment
+        # Get explanations
         explanations = []
         if assessment.explanation:
-            # Parse explanation into list of points
             for line in assessment.explanation.split('\n'):
                 line = line.strip()
                 if line.startswith('-') or line.startswith('>'):
@@ -274,7 +257,6 @@ async def analyze_asset(request: AnalysisRequest):
                 elif line and not line.startswith('Risk') and not line.startswith('Key'):
                     explanations.append(line)
 
-        # Calculate total score from signals
         total_score = sum(s.weight for s in signals)
 
         return AnalysisResponse(
@@ -306,6 +288,7 @@ async def analyze_asset(request: AnalysisRequest):
 @app.get("/sec-check/{ticker}")
 async def check_sec_flagged(ticker: str):
     """Check if a ticker is on the SEC flagged list"""
+    from config import SEC_FLAGGED_TICKERS
     flagged = ticker.upper() in SEC_FLAGGED_TICKERS
     return {
         "ticker": ticker.upper(),
@@ -317,58 +300,34 @@ async def check_sec_flagged(ticker: str):
 @app.get("/models/status")
 async def get_model_status():
     """Get detailed model status"""
-    if pipeline is None:
+    p = pipeline
+    if p is None:
         return {
             "status": "not_initialized",
+            "message": "Models will be loaded on first /analyze request",
             "rf_model": None,
-            "lstm_model": None,
-            "anomaly_detector": None
+            "lstm_model": None
         }
 
     return {
         "status": "ready",
         "rf_model": {
-            "loaded": pipeline.rf_available,
-            "type": "RandomForestClassifier",
-            "features": "price_zscore, volume_zscore, surge metrics, ATR, Keltner bands"
+            "loaded": p.rf_available,
+            "type": "RandomForestClassifier"
         },
         "lstm_model": {
-            "loaded": pipeline.lstm_available,
-            "type": "LSTM Sequential",
-            "sequence_length": 30
-        },
-        "anomaly_detector": {
-            "loaded": True,
-            "methods": ["zscore", "isolation_forest", "mahalanobis"]
+            "loaded": p.lstm_available,
+            "type": "LSTM Sequential"
         },
         "ensemble": {
             "method": "weighted_average",
-            "rf_weight": 0.4,
-            "lstm_weight": 0.3,
-            "anomaly_weight": 0.3
+            "rf_weight": 0.6,
+            "lstm_weight": 0.4
         }
     }
 
 
-# Run with: python api_server.py
 if __name__ == "__main__":
     import uvicorn
-
     port = int(os.environ.get("PORT", 8000))
-    host = os.environ.get("HOST", "0.0.0.0")
-
-    print(f"""
-╔══════════════════════════════════════════════════════════════╗
-║           ScamDunk AI API Server                             ║
-║                                                              ║
-║  Full Hybrid AI Scam Detection:                              ║
-║  • Random Forest ML Classifier                               ║
-║  • LSTM Deep Learning Model                                  ║
-║  • Statistical Anomaly Detection                             ║
-║  • Z-scores, ATR, Keltner Channels                           ║
-║                                                              ║
-║  Starting on http://{host}:{port}                             ║
-╚══════════════════════════════════════════════════════════════╝
-    """)
-
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
