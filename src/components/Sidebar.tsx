@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import {
@@ -15,9 +15,24 @@ import {
   Search,
   User,
   CreditCard,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  AlertCircle,
+  HelpCircle as HelpIcon,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+interface ScanHistoryItem {
+  id: string;
+  ticker: string;
+  assetType: string;
+  riskLevel: string;
+  totalScore: number;
+  createdAt: string;
+}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,8 +40,72 @@ interface SidebarProps {
   onNewScan: () => void;
 }
 
+function getRiskIcon(riskLevel: string) {
+  switch (riskLevel) {
+    case "LOW":
+      return <CheckCircle className="h-3 w-3 text-green-500" />;
+    case "MEDIUM":
+      return <AlertCircle className="h-3 w-3 text-yellow-500" />;
+    case "HIGH":
+      return <AlertTriangle className="h-3 w-3 text-red-500" />;
+    default:
+      return <HelpIcon className="h-3 w-3 text-gray-500" />;
+  }
+}
+
+function getRiskColor(riskLevel: string) {
+  switch (riskLevel) {
+    case "LOW":
+      return "text-green-600 dark:text-green-400";
+    case "MEDIUM":
+      return "text-yellow-600 dark:text-yellow-400";
+    case "HIGH":
+      return "text-red-600 dark:text-red-400";
+    default:
+      return "text-gray-600 dark:text-gray-400";
+  }
+}
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
   const { data: session } = useSession();
+  const [recentScans, setRecentScans] = useState<ScanHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (session?.user && isOpen) {
+      fetchRecentScans();
+    }
+  }, [session, isOpen]);
+
+  const fetchRecentScans = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/user/scans?limit=10");
+      if (response.ok) {
+        const data = await response.json();
+        setRecentScans(data.scans || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch recent scans:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -57,6 +136,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
               size="icon"
               onClick={onToggle}
               className="h-8 w-8"
+              aria-label="Close sidebar"
             >
               <PanelLeftClose className="h-4 w-4" />
             </Button>
@@ -74,14 +154,55 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             </Button>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation - Recent Scans */}
           <nav className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2">
+            <p className="text-xs font-medium text-muted-foreground px-3 py-2 flex items-center gap-2">
+              <History className="h-3 w-3" />
               Recent Scans
             </p>
-            <div className="text-sm text-muted-foreground px-3 py-2">
-              No recent scans
-            </div>
+
+            {!session ? (
+              <div className="text-sm text-muted-foreground px-3 py-2">
+                <Link href="/login" className="text-primary hover:underline">
+                  Log in
+                </Link>{" "}
+                to see scan history
+              </div>
+            ) : isLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : recentScans.length === 0 ? (
+              <div className="text-sm text-muted-foreground px-3 py-2">
+                No recent scans
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {recentScans.map((scan) => (
+                  <button
+                    key={scan.id}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-left"
+                    onClick={() => {
+                      // Could implement "re-run scan" or "view details" here
+                      onToggle();
+                    }}
+                  >
+                    {getRiskIcon(scan.riskLevel)}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">{scan.ticker}</span>
+                        <span className={cn("text-xs", getRiskColor(scan.riskLevel))}>
+                          {scan.riskLevel}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(scan.createdAt)}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </nav>
 
           {/* Bottom Menu */}
@@ -157,6 +278,7 @@ export function SidebarToggle({ onClick }: { onClick: () => void }) {
       size="icon"
       onClick={onClick}
       className="h-10 w-10 rounded-xl"
+      aria-label="Open sidebar"
     >
       <PanelLeft className="h-5 w-5" />
     </Button>
