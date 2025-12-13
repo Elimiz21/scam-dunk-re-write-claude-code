@@ -20,6 +20,9 @@ export const config = {
   // NextAuth
   nextAuthUrl: process.env.NEXTAUTH_URL || "http://localhost:3000",
   nextAuthSecret: process.env.NEXTAUTH_SECRET || "",
+
+  // Python AI Backend (for full ML models)
+  aiBackendUrl: process.env.AI_BACKEND_URL || "http://localhost:8000",
 } as const;
 
 // Get scan limit based on plan
