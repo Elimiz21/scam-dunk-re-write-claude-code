@@ -5,6 +5,7 @@ import { fetchMarketData } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
 import { generateNarrative } from "@/lib/narrative";
 import { canUserScan, incrementScanCount } from "@/lib/usage";
+import { prisma } from "@/lib/db";
 import {
   CheckRequest,
   CheckResponse,
@@ -104,6 +105,26 @@ export async function POST(request: NextRequest) {
 
     // Increment scan count after successful analysis
     const updatedUsage = await incrementScanCount(userId);
+
+    // Save scan to history for the user
+    try {
+      await prisma.scanHistory.create({
+        data: {
+          userId,
+          ticker: checkRequest.ticker.toUpperCase(),
+          assetType: checkRequest.assetType || "stock",
+          riskLevel: scoringResult.riskLevel,
+          totalScore: scoringResult.totalScore,
+          signalsCount: scoringResult.signals.length,
+          isLegitimate: scoringResult.isLegitimate,
+          pitchProvided: !!checkRequest.pitchText,
+          contextProvided: Object.values(context).some(Boolean),
+        },
+      });
+    } catch (historyError) {
+      // Don't fail the request if history save fails
+      console.error("Failed to save scan history:", historyError);
+    }
 
     // Build response
     const response: RiskResponse = {
