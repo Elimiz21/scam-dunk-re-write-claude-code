@@ -14,6 +14,8 @@ import {
   AlertCircle,
   Check,
   Info,
+  Image as ImageIcon,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,11 +23,18 @@ import { useToast } from "@/components/ui/toast";
 
 type AssetType = "stock" | "crypto";
 
+interface UploadedFile {
+  file: File;
+  preview: string;
+  type: "image" | "text";
+}
+
 interface ScanInputProps {
   onSubmit: (data: {
     ticker: string;
     assetType: AssetType;
     pitchText?: string;
+    chatImages?: File[];
     context?: {
       unsolicited: boolean;
       promisesHighReturns: boolean;
@@ -41,14 +50,20 @@ interface ScanInputProps {
 const STOCK_TICKER_PATTERN = /^[A-Z]{1,5}$/;
 const CRYPTO_TICKER_PATTERN = /^[A-Z]{2,10}$/;
 
+// Accepted file types
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILES = 5;
+
 export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
   const [ticker, setTicker] = useState("");
   const [assetType, setAssetType] = useState<AssetType>("stock");
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-  const [showPitchInput, setShowPitchInput] = useState(false);
+  const [showChatInput, setShowChatInput] = useState(false);
   const [showContextFlags, setShowContextFlags] = useState(false);
-  const [pitchText, setPitchText] = useState("");
-  const [pitchAdded, setPitchAdded] = useState(false);
+  const [chatText, setChatText] = useState("");
+  const [chatAdded, setChatAdded] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [validationError, setValidationError] = useState("");
   const [context, setContext] = useState({
     unsolicited: false,
@@ -59,14 +74,22 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
-  // Focus textarea when pitch input opens
+  // Focus textarea when chat input opens
   useEffect(() => {
-    if (showPitchInput && textareaRef.current) {
+    if (showChatInput && textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, [showPitchInput]);
+  }, [showChatInput]);
+
+  // Cleanup file previews on unmount
+  useEffect(() => {
+    return () => {
+      uploadedFiles.forEach((f) => URL.revokeObjectURL(f.preview));
+    };
+  }, [uploadedFiles]);
 
   const validateTicker = (value: string): string | null => {
     if (!value.trim()) {
@@ -88,7 +111,6 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
   const handleTickerChange = (value: string) => {
     const upperValue = value.toUpperCase();
     setTicker(upperValue);
-    // Clear validation error when user starts typing
     if (validationError) {
       setValidationError("");
     }
@@ -109,13 +131,14 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
     onSubmit({
       ticker: ticker.trim().toUpperCase(),
       assetType,
-      pitchText: pitchText.trim() || undefined,
+      pitchText: chatText.trim() || undefined,
+      chatImages: uploadedFiles.length > 0 ? uploadedFiles.map((f) => f.file) : undefined,
       context: Object.values(context).some(Boolean) ? context : undefined,
     });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && !showPitchInput) {
+    if (e.key === "Enter" && !e.shiftKey && !showChatInput) {
       e.preventDefault();
       handleSubmit(e);
     }
@@ -125,28 +148,104 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
     setContext((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handlePitchSubmit = () => {
-    if (pitchText.trim()) {
-      setPitchAdded(true);
-      setShowPitchInput(false);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = MAX_FILES - uploadedFiles.length;
+    if (remainingSlots <= 0) {
+      addToast({
+        type: "warning",
+        title: "Maximum files reached",
+        description: `You can upload up to ${MAX_FILES} files.`,
+      });
+      return;
+    }
+
+    const newFiles: UploadedFile[] = [];
+    const errors: string[] = [];
+
+    Array.from(files).slice(0, remainingSlots).forEach((file) => {
+      // Validate file type
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        errors.push(`${file.name}: Invalid file type. Only images are supported.`);
+        return;
+      }
+
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: File too large. Maximum size is 10MB.`);
+        return;
+      }
+
+      newFiles.push({
+        file,
+        preview: URL.createObjectURL(file),
+        type: "image",
+      });
+    });
+
+    if (errors.length > 0) {
+      addToast({
+        type: "error",
+        title: "Upload error",
+        description: errors[0],
+      });
+    }
+
+    if (newFiles.length > 0) {
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+      setChatAdded(true);
       addToast({
         type: "success",
-        title: "Pitch added",
-        description: "Your pitch will be analyzed with the stock scan for behavioral red flags.",
+        title: `${newFiles.length} file${newFiles.length > 1 ? "s" : ""} added`,
+        description: "Screenshots will be analyzed for scam patterns.",
       });
-    } else {
-      setShowPitchInput(false);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
-  const handleClearPitch = () => {
-    setPitchText("");
-    setPitchAdded(false);
-    setShowPitchInput(false);
+  const removeFile = (index: number) => {
+    setUploadedFiles((prev) => {
+      const newFiles = [...prev];
+      URL.revokeObjectURL(newFiles[index].preview);
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
+  };
+
+  const handleChatSubmit = () => {
+    if (chatText.trim() || uploadedFiles.length > 0) {
+      setChatAdded(true);
+      setShowChatInput(false);
+      addToast({
+        type: "success",
+        title: "Chat added",
+        description: "Your chat will be analyzed for scam red flags.",
+      });
+    } else {
+      setShowChatInput(false);
+    }
+  };
+
+  const handleClearChat = () => {
+    setChatText("");
+    uploadedFiles.forEach((f) => URL.revokeObjectURL(f.preview));
+    setUploadedFiles([]);
+    setChatAdded(false);
+    setShowChatInput(false);
     addToast({
       type: "info",
-      title: "Pitch removed",
+      title: "Chat removed",
     });
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleContextDone = () => {
@@ -159,14 +258,6 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
         description: "These will be factored into the risk analysis.",
       });
     }
-  };
-
-  const handleUploadClick = () => {
-    addToast({
-      type: "info",
-      title: "Coming soon",
-      description: "Document upload will be available in a future update.",
-    });
   };
 
   const contextLabels = {
@@ -184,9 +275,21 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
   };
 
   const activeContextCount = Object.values(context).filter(Boolean).length;
+  const hasChatContent = chatText.trim() || uploadedFiles.length > 0;
 
   return (
     <div className="w-full max-w-3xl mx-auto">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ACCEPTED_IMAGE_TYPES.join(",")}
+        multiple
+        onChange={handleFileSelect}
+        className="hidden"
+        aria-label="Upload chat screenshots"
+      />
+
       {/* Validation Error */}
       {validationError && (
         <div className="mb-3 animate-fade-in">
@@ -204,31 +307,86 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
         </div>
       )}
 
-      {/* Pitch Text Input (expandable) */}
-      {showPitchInput && (
+      {/* Chat Input (expandable) */}
+      {showChatInput && (
         <div className="mb-3 animate-fade-in">
           <div className="relative">
             <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-card rounded-t-2xl">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Add Investment Pitch</span>
+              <span className="text-sm font-medium">Add Chat / Message</span>
             </div>
+
+            {/* Uploaded Images Preview */}
+            {uploadedFiles.length > 0 && (
+              <div className="p-3 bg-card border-x border-border">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Uploaded screenshots ({uploadedFiles.length}/{MAX_FILES})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {uploadedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="relative group w-20 h-20 rounded-lg overflow-hidden border border-border"
+                    >
+                      <img
+                        src={file.preview}
+                        alt={`Screenshot ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label={`Remove screenshot ${index + 1}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {uploadedFiles.length < MAX_FILES && (
+                    <button
+                      type="button"
+                      onClick={handleUploadClick}
+                      className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span className="text-[10px]">Add more</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <textarea
               ref={textareaRef}
-              value={pitchText}
-              onChange={(e) => setPitchText(e.target.value)}
-              placeholder="Paste the pitch or message you received about this investment. We'll analyze it for common scam language patterns like guaranteed returns, urgency tactics, and insider info claims..."
-              className="w-full min-h-[120px] p-4 rounded-b-2xl bg-card border border-t-0 border-border resize-none focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+              value={chatText}
+              onChange={(e) => setChatText(e.target.value)}
+              placeholder="Paste the chat or message you received about this investment. You can also upload screenshots above..."
+              className={cn(
+                "w-full min-h-[120px] p-4 bg-card border border-border resize-none focus:outline-none focus:ring-2 focus:ring-ring text-sm",
+                uploadedFiles.length > 0 ? "border-t-0 rounded-b-2xl" : "border-t-0 rounded-b-2xl"
+              )}
               disabled={isLoading || disabled}
-              aria-label="Investment pitch text"
+              aria-label="Chat text content"
             />
             <div className="absolute bottom-3 right-3 flex items-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
+                onClick={handleUploadClick}
+                disabled={uploadedFiles.length >= MAX_FILES}
+              >
+                <ImageIcon className="h-4 w-4 mr-1" />
+                Add Image
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
-                  setShowPitchInput(false);
-                  if (!pitchText.trim()) setPitchAdded(false);
+                  setShowChatInput(false);
+                  if (!hasChatContent) setChatAdded(false);
                 }}
               >
                 Cancel
@@ -236,8 +394,8 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               <Button
                 type="button"
                 size="sm"
-                onClick={handlePitchSubmit}
-                disabled={!pitchText.trim()}
+                onClick={handleChatSubmit}
+                disabled={!hasChatContent}
               >
                 <Check className="h-4 w-4 mr-1" />
                 Add
@@ -247,24 +405,34 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
         </div>
       )}
 
-      {/* Pitch Added Indicator */}
-      {pitchAdded && !showPitchInput && pitchText.trim() && (
+      {/* Chat Added Indicator */}
+      {chatAdded && !showChatInput && hasChatContent && (
         <div className="mb-3 animate-fade-in">
           <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20 text-sm">
             <MessageSquare className="h-4 w-4 text-primary flex-shrink-0" />
-            <span className="flex-1 truncate">
-              Pitch added: &ldquo;{pitchText.slice(0, 50)}{pitchText.length > 50 ? "..." : ""}&rdquo;
-            </span>
+            <div className="flex-1 min-w-0">
+              {uploadedFiles.length > 0 && (
+                <div className="flex items-center gap-1 mb-1">
+                  <ImageIcon className="h-3 w-3" />
+                  <span className="text-xs">{uploadedFiles.length} screenshot{uploadedFiles.length > 1 ? "s" : ""}</span>
+                </div>
+              )}
+              {chatText.trim() && (
+                <span className="truncate block">
+                  &ldquo;{chatText.slice(0, 50)}{chatText.length > 50 ? "..." : ""}&rdquo;
+                </span>
+              )}
+            </div>
             <button
-              onClick={() => setShowPitchInput(true)}
+              onClick={() => setShowChatInput(true)}
               className="text-primary hover:underline text-xs"
             >
               Edit
             </button>
             <button
-              onClick={handleClearPitch}
+              onClick={handleClearChat}
               className="p-1 hover:bg-primary/10 rounded"
-              aria-label="Remove pitch"
+              aria-label="Remove chat"
             >
               <X className="h-3 w-3" />
             </button>
@@ -488,23 +656,23 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               variant="ghost"
               size="sm"
               onClick={() => {
-                if (pitchAdded && pitchText.trim()) {
-                  setShowPitchInput(true);
+                if (chatAdded && hasChatContent) {
+                  setShowChatInput(true);
                 } else {
-                  setShowPitchInput(!showPitchInput);
+                  setShowChatInput(!showChatInput);
                 }
               }}
               className={cn(
                 "gap-1.5 rounded-xl text-xs",
-                (showPitchInput || pitchAdded) && "text-primary"
+                (showChatInput || chatAdded) && "text-primary"
               )}
               disabled={isLoading || disabled}
-              aria-label="Add investment pitch"
-              aria-expanded={showPitchInput}
+              aria-label="Add chat or message"
+              aria-expanded={showChatInput}
             >
               <MessageSquare className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Add Pitch</span>
-              {pitchAdded && (
+              <span className="hidden sm:inline">Add Chat</span>
+              {chatAdded && (
                 <Check className="h-3 w-3 text-green-500" />
               )}
             </Button>
@@ -513,14 +681,21 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               type="button"
               variant="ghost"
               size="sm"
-              className="gap-1.5 rounded-xl text-xs opacity-50 cursor-not-allowed"
+              className={cn(
+                "gap-1.5 rounded-xl text-xs",
+                uploadedFiles.length > 0 && "text-primary"
+              )}
               onClick={handleUploadClick}
-              aria-label="Upload document - coming soon"
-              aria-disabled="true"
+              disabled={isLoading || disabled || uploadedFiles.length >= MAX_FILES}
+              aria-label="Upload screenshot"
             >
               <Upload className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Upload</span>
-              <span className="text-[10px] px-1 py-0.5 rounded bg-muted">Soon</span>
+              {uploadedFiles.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px]">
+                  {uploadedFiles.length}
+                </span>
+              )}
             </Button>
 
             <Button
