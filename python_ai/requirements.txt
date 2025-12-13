@@ -3,8 +3,9 @@ numpy>=1.24.0
 pandas>=2.0.0
 scikit-learn>=1.3.0
 
-# Deep Learning
-tensorflow>=2.15.0
+# NOTE: TensorFlow removed for Railway deployment (memory constraints)
+# Random Forest provides excellent scam detection without LSTM
+# To enable LSTM locally, install: pip install tensorflow-cpu
 
 # Data handling
 yfinance>=0.2.30
@@ -21,6 +22,3 @@ python-dotenv>=1.0.0
 # Utilities
 joblib>=1.3.0
 python-dateutil>=2.8.0
-
-# Testing
-pytest>=7.4.0

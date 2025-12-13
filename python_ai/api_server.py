@@ -123,29 +123,17 @@ def get_pipeline():
             logger.info(f"  - Random Forest: {'Ready' if pipeline_instance.rf_available else 'Not loaded'}")
             logger.info(f"  - LSTM Model: {'Ready' if pipeline_instance.lstm_available else 'Not loaded'}")
 
-            # Train models if not available (but skip LSTM to be faster)
+            # Train Random Forest if not available
+            # NOTE: Skip LSTM training on Railway to avoid TensorFlow memory issues
+            # Random Forest alone provides excellent scam detection
             if not pipeline_instance.rf_available:
                 logger.info("Training Random Forest model...")
                 pipeline_instance.train_models(
                     train_rf=True,
-                    train_lstm=False,
+                    train_lstm=False,  # Skip LSTM - RF is sufficient
                     save_models=True
                 )
                 logger.info("RF training complete")
-
-            # Only train LSTM if really needed and RF is ready
-            if pipeline_instance.rf_available and not pipeline_instance.lstm_available:
-                logger.info("Training LSTM model (this may take a while)...")
-                try:
-                    pipeline_instance.train_models(
-                        train_rf=False,
-                        train_lstm=True,
-                        lstm_epochs=5,  # Reduced epochs for faster startup
-                        save_models=True
-                    )
-                    logger.info("LSTM training complete")
-                except Exception as e:
-                    logger.warning(f"LSTM training failed, will use RF only: {e}")
 
             # Set global pipeline
             global pipeline
