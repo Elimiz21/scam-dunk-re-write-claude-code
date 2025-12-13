@@ -18,6 +18,9 @@ import {
   calculateVolumeRatio,
   detectSpikeThenDrop,
   checkAlertList,
+  runAnomalyDetection,
+  calculateRSI,
+  calculateSurgeMetrics,
 } from "./marketData";
 
 // Signal code constants
@@ -31,6 +34,12 @@ export const SIGNAL_CODES = {
   SPIKE_7D: "SPIKE_7D",
   VOLUME_EXPLOSION: "VOLUME_EXPLOSION",
   SPIKE_THEN_DROP: "SPIKE_THEN_DROP",
+  // Advanced Anomaly Detection (from AI module)
+  PRICE_ANOMALY: "PRICE_ANOMALY",
+  VOLUME_ANOMALY: "VOLUME_ANOMALY",
+  EXTREME_SURGE: "EXTREME_SURGE",
+  OVERBOUGHT_RSI: "OVERBOUGHT_RSI",
+  HIGH_VOLATILITY: "HIGH_VOLATILITY",
   // Alert
   ALERT_LIST_HIT: "ALERT_LIST_HIT",
   // Behavioral
@@ -254,6 +263,72 @@ function getPatternSignals(marketData: MarketData): RiskSignal[] {
 }
 
 /**
+ * Generate advanced anomaly signals using AI-powered detection
+ * These signals use Z-score analysis and statistical methods from the Python AI module
+ */
+function getAnomalySignals(marketData: MarketData): RiskSignal[] {
+  const signals: RiskSignal[] = [];
+  const { priceHistory } = marketData;
+
+  if (priceHistory.length < 30) return signals;
+
+  // Run comprehensive anomaly detection
+  const anomalyResult = runAnomalyDetection(priceHistory);
+
+  // Only add signals if anomalies were detected
+  if (!anomalyResult.hasAnomalies) return signals;
+
+  // Add individual anomaly signals based on what was detected
+  for (const signalDesc of anomalyResult.signals) {
+    if (signalDesc.includes("Extreme price movement") || signalDesc.includes("Significant price anomaly")) {
+      signals.push({
+        code: SIGNAL_CODES.PRICE_ANOMALY,
+        category: "PATTERN",
+        description: signalDesc + " - statistically unusual price behavior",
+        weight: signalDesc.includes("Extreme") ? 4 : 3,
+      });
+    } else if (signalDesc.includes("Unusual price movement")) {
+      signals.push({
+        code: SIGNAL_CODES.PRICE_ANOMALY,
+        category: "PATTERN",
+        description: signalDesc + " - may indicate manipulation",
+        weight: 2,
+      });
+    } else if (signalDesc.includes("trading volume")) {
+      signals.push({
+        code: SIGNAL_CODES.VOLUME_ANOMALY,
+        category: "PATTERN",
+        description: signalDesc + " - could signal coordinated buying",
+        weight: 2,
+      });
+    } else if (signalDesc.includes("Extreme price surge")) {
+      signals.push({
+        code: SIGNAL_CODES.EXTREME_SURGE,
+        category: "PATTERN",
+        description: signalDesc + " - rapid appreciation without clear catalyst",
+        weight: 3,
+      });
+    } else if (signalDesc.includes("overbought")) {
+      signals.push({
+        code: SIGNAL_CODES.OVERBOUGHT_RSI,
+        category: "PATTERN",
+        description: signalDesc + " - price may be unsustainably high",
+        weight: signalDesc.includes("Extremely") ? 2 : 1,
+      });
+    } else if (signalDesc.includes("volatility")) {
+      signals.push({
+        code: SIGNAL_CODES.HIGH_VOLATILITY,
+        category: "PATTERN",
+        description: signalDesc + " - erratic price movement increases risk",
+        weight: 1,
+      });
+    }
+  }
+
+  return signals;
+}
+
+/**
  * Generate behavioral signals from user input and pitch text analysis
  */
 function getBehavioralSignals(
@@ -388,6 +463,7 @@ export async function computeRiskScore(input: ScoringInput): Promise<ScoringResu
   // Collect all signals
   signals.push(...getStructuralSignals(marketData));
   signals.push(...getPatternSignals(marketData));
+  signals.push(...getAnomalySignals(marketData)); // Advanced AI-powered anomaly detection
   signals.push(...getBehavioralSignals(context, pitchText));
 
   // Check alert list (async operation)
