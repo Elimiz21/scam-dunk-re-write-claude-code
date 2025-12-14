@@ -86,7 +86,7 @@ class AnalysisRequest(BaseModel):
     ticker: str = Field(..., description="Stock ticker or crypto symbol")
     asset_type: str = Field(default="stock", description="Asset type: 'stock' or 'crypto'")
     days: int = Field(default=90, description="Days of historical data to analyze")
-    use_live_data: bool = Field(default=False, description="Use live API data if available")
+    use_live_data: bool = Field(default=True, description="Use live API data (real market data from yfinance)")
 
 
 class SignalDetail(BaseModel):
