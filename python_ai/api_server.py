@@ -148,7 +148,6 @@ def get_pipeline():
                     logger.warning(f"LSTM training failed: {e}")
 
             # Set global pipeline
-            global pipeline
             pipeline = pipeline_instance
             return pipeline
 
