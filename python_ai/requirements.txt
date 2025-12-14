@@ -12,6 +12,7 @@ yfinance>=0.2.30
 # API Server
 fastapi>=0.109.0
 uvicorn>=0.27.0
+gunicorn>=21.0.0
 pydantic>=2.5.0
 
 # HTTP client for live data

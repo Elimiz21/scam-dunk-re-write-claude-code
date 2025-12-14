@@ -51,5 +51,5 @@ ENV PORT=8000
 # Expose port
 EXPOSE 8000
 
-# Run the API server using JSON format as recommended
-CMD ["sh", "-c", "uvicorn api_server:app --host 0.0.0.0 --port $PORT"]
+# Run the API server with gunicorn (more robust for production)
+CMD ["sh", "-c", "gunicorn api_server:app --bind 0.0.0.0:$PORT --worker-class uvicorn.workers.UvicornWorker --workers 1 --timeout 120 --keep-alive 5 --access-logfile - --error-logfile -"]
