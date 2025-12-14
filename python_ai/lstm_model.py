@@ -10,6 +10,9 @@ This module implements:
 
 The LSTM model is designed to capture temporal patterns in price/volume
 data that may indicate pump-and-dump schemes.
+
+NOTE: TensorFlow is OPTIONAL. If not installed, LSTM features are disabled
+and the system falls back to Random Forest only.
 """
 
 import numpy as np
@@ -23,12 +26,60 @@ from datetime import datetime
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 warnings.filterwarnings('ignore')
 
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization, Input
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.optimizers import Adam
+# TensorFlow is OPTIONAL - lazy import to speed up startup
+tf = None
+keras = None
+Sequential = None
+load_model = None
+LSTM_LAYER = None
+Dense = None
+Dropout = None
+BatchNormalization = None
+Input = None
+EarlyStopping = None
+ReduceLROnPlateau = None
+Adam = None
+TENSORFLOW_AVAILABLE = False
+
+def _import_tensorflow():
+    """Lazily import TensorFlow when needed."""
+    global tf, keras, Sequential, load_model, LSTM_LAYER, Dense, Dropout
+    global BatchNormalization, Input, EarlyStopping, ReduceLROnPlateau, Adam
+    global TENSORFLOW_AVAILABLE
+
+    if TENSORFLOW_AVAILABLE:
+        return True
+
+    try:
+        import tensorflow as _tf
+        tf = _tf
+        keras = tf.keras
+        from tensorflow.keras.models import Sequential as _Sequential, load_model as _load_model
+        from tensorflow.keras.layers import LSTM as _LSTM, Dense as _Dense
+        from tensorflow.keras.layers import Dropout as _Dropout, BatchNormalization as _BatchNorm
+        from tensorflow.keras.layers import Input as _Input
+        from tensorflow.keras.callbacks import EarlyStopping as _EarlyStopping
+        from tensorflow.keras.callbacks import ReduceLROnPlateau as _ReduceLROnPlateau
+        from tensorflow.keras.optimizers import Adam as _Adam
+
+        Sequential = _Sequential
+        load_model = _load_model
+        LSTM_LAYER = _LSTM
+        Dense = _Dense
+        Dropout = _Dropout
+        BatchNormalization = _BatchNorm
+        Input = _Input
+        EarlyStopping = _EarlyStopping
+        ReduceLROnPlateau = _ReduceLROnPlateau
+        Adam = _Adam
+        TENSORFLOW_AVAILABLE = True
+        print("TensorFlow loaded successfully")
+        return True
+    except ImportError as e:
+        print(f"TensorFlow not available: {e}")
+        print("LSTM features disabled - using Random Forest only")
+        return False
+
 from sklearn.preprocessing import MinMaxScaler
 
 from config import LSTM_MODEL_CONFIG, MODEL_PATHS
@@ -54,7 +105,7 @@ class ScamDetectorLSTM:
             'Price_ZScore_Long', 'Volume_ZScore_Long'
         ]
 
-    def _build_model(self, input_shape: Tuple[int, int]) -> Sequential:
+    def _build_model(self, input_shape: Tuple[int, int]):
         """
         Build the LSTM neural network architecture.
 
@@ -62,13 +113,16 @@ class ScamDetectorLSTM:
             input_shape: Shape of input sequences (timesteps, features)
 
         Returns:
-            Compiled Keras Sequential model
+            Compiled Keras Sequential model, or None if TensorFlow unavailable
         """
+        if not _import_tensorflow():
+            return None
+
         model = Sequential([
             Input(shape=input_shape),
 
             # First LSTM layer
-            LSTM(
+            LSTM_LAYER(
                 units=self.config.get('lstm_units_1', 64),
                 return_sequences=True,
                 kernel_regularizer=tf.keras.regularizers.l2(0.01)
@@ -77,7 +131,7 @@ class ScamDetectorLSTM:
             Dropout(self.config.get('dropout_rate', 0.2)),
 
             # Second LSTM layer
-            LSTM(
+            LSTM_LAYER(
                 units=self.config.get('lstm_units_2', 32),
                 return_sequences=False,
                 kernel_regularizer=tf.keras.regularizers.l2(0.01)
@@ -319,8 +373,13 @@ class ScamDetectorLSTM:
             verbose: Verbosity level
 
         Returns:
-            Dictionary of training metrics
+            Dictionary of training metrics, or empty dict if TensorFlow unavailable
         """
+        # Check TensorFlow availability first
+        if not _import_tensorflow():
+            print("Cannot train LSTM: TensorFlow not available")
+            return {}
+
         # Generate synthetic data if not provided
         if X is None or y is None:
             print("Generating synthetic sequence data...")
@@ -345,6 +404,10 @@ class ScamDetectorLSTM:
         print("Building LSTM model...")
         input_shape = (n_timesteps, n_features)
         self.model = self._build_model(input_shape)
+
+        if self.model is None:
+            print("Failed to build LSTM model")
+            return {}
 
         if verbose:
             self.model.summary()
@@ -424,6 +487,9 @@ class ScamDetectorLSTM:
         if not self.is_trained:
             raise RuntimeError("Model not trained. Call train() first.")
 
+        if not TENSORFLOW_AVAILABLE:
+            raise RuntimeError("Cannot predict: TensorFlow not available")
+
         # Ensure correct shape
         if sequence_data.ndim == 2:
             sequence_data = sequence_data.reshape(1, *sequence_data.shape)
@@ -449,6 +515,9 @@ class ScamDetectorLSTM:
         """
         if not self.is_trained:
             raise RuntimeError("Model not trained. Call train() first.")
+
+        if not TENSORFLOW_AVAILABLE:
+            raise RuntimeError("Cannot save LSTM model: TensorFlow not available")
 
         model_path = model_path or MODEL_PATHS['lstm_model']
 
@@ -479,8 +548,13 @@ class ScamDetectorLSTM:
             model_path: Path to model file
 
         Returns:
-            True if loaded successfully
+            True if loaded successfully, False if TensorFlow unavailable or file not found
         """
+        # Check TensorFlow availability first
+        if not _import_tensorflow():
+            print("Cannot load LSTM model: TensorFlow not available")
+            return False
+
         model_path = model_path or MODEL_PATHS['lstm_model']
 
         try:
