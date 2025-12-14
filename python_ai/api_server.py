@@ -52,6 +52,7 @@ pipeline_initializing = False
 # Startup event to log when app is ready
 @app.on_event("startup")
 async def startup_event():
+    import asyncio
     logger.info("=== ScamDunk AI API Starting ===")
     logger.info(f"Python version: {sys.version}")
     try:
@@ -61,6 +62,21 @@ async def startup_event():
     except:
         pass
     logger.info("API ready to receive requests (models load on first analyze request)")
+
+    # Start background keep-alive logging
+    async def keep_alive_log():
+        count = 0
+        while True:
+            await asyncio.sleep(60)
+            count += 1
+            logger.info(f"[Keep-alive] App running for {count} minute(s)")
+
+    asyncio.create_task(keep_alive_log())
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.warning("=== ScamDunk AI API Shutting Down ===")
+    logger.warning("Received shutdown signal")
 
 pipeline_lock = threading.Lock()
 
