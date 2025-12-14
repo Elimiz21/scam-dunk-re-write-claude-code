@@ -39,7 +39,7 @@ interface AIBackendResponse {
   ticker: string;
   asset_type: string;
   risk_level: string;
-  risk_probability: float;
+  risk_probability: number;
   risk_score: number;
   rf_probability: number | null;
   lstm_probability: number | null;
