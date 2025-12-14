@@ -7,10 +7,18 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Environment variables for TensorFlow
+# Environment variables for TensorFlow - memory optimization
 ENV TF_CPP_MIN_LOG_LEVEL=2
 ENV PYTHONUNBUFFERED=1
 ENV PIP_DEFAULT_TIMEOUT=300
+# Limit TensorFlow memory usage
+ENV TF_FORCE_GPU_ALLOW_GROWTH=true
+ENV TF_ENABLE_ONEDNN_OPTS=0
+ENV OMP_NUM_THREADS=1
+ENV TF_NUM_INTEROP_THREADS=1
+ENV TF_NUM_INTRAOP_THREADS=1
+# Disable GPU (use CPU only for Railway)
+ENV CUDA_VISIBLE_DEVICES=-1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

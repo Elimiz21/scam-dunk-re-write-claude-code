@@ -48,6 +48,20 @@ app.add_middleware(
 # Pipeline will be initialized lazily
 pipeline = None
 pipeline_initializing = False
+
+# Startup event to log when app is ready
+@app.on_event("startup")
+async def startup_event():
+    logger.info("=== ScamDunk AI API Starting ===")
+    logger.info(f"Python version: {sys.version}")
+    try:
+        import resource
+        mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+        logger.info(f"Memory usage at startup: {mem:.1f} MB")
+    except:
+        pass
+    logger.info("API ready to receive requests (models load on first analyze request)")
+
 pipeline_lock = threading.Lock()
 
 
