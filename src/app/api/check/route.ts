@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
-import { fetchMarketData } from "@/lib/marketData";
+import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
 import { generateNarrative } from "@/lib/narrative";
 import { canUserScan, incrementScanCount } from "@/lib/usage";
+import { prisma } from "@/lib/db";
 import {
   CheckRequest,
-  CheckResponse,
   LimitReachedResponse,
   RiskResponse,
   StockSummary,
@@ -15,7 +15,7 @@ import {
 } from "@/lib/types";
 
 // Python AI backend URL
-const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000";
+const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "";
 
 // Request validation schema - only ticker is required
 const checkRequestSchema = z.object({
@@ -31,47 +31,36 @@ const checkRequestSchema = z.object({
   }).optional().default({}),
 });
 
-interface AIBackendResponse {
-  ticker: string;
-  asset_type: string;
-  risk_level: string;
-  risk_probability: number;
-  risk_score: number;
-  rf_probability: number | null;
-  lstm_probability: number | null;
-  anomaly_score: number;
-  signals: Array<{
-    code: string;
-    category: string;
-    description: string;
-    weight: number;
-  }>;
-  features: Record<string, number | null>;
-  explanations: string[];
-  sec_flagged: boolean;
-  is_otc: boolean;
-  is_micro_cap: boolean;
-  data_available: boolean;
-  analysis_timestamp: string;
-  stock_info?: {
-    company_name?: string;
-    exchange?: string;
-    last_price?: number;
-    market_cap?: number;
-    avg_volume?: number;
-  };
-}
-
 /**
  * Call the Python AI backend for full ML analysis
  */
-async function callAIBackend(
+async function callPythonAIBackend(
   ticker: string,
   assetType: string
-): Promise<AIBackendResponse | null> {
+): Promise<{
+  success: boolean;
+  riskLevel?: string;
+  probability?: number;
+  signals?: RiskSignal[];
+  rfProbability?: number | null;
+  lstmProbability?: number | null;
+  anomalyScore?: number;
+  explanations?: string[];
+  secFlagged?: boolean;
+  isOtc?: boolean;
+  isMicroCap?: boolean;
+}> {
+  // Skip if no backend URL configured
+  if (!AI_BACKEND_URL) {
+    console.log("AI_BACKEND_URL not configured, using TypeScript scoring");
+    return { success: false };
+  }
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+    console.log(`Calling Python AI backend: ${AI_BACKEND_URL}/analyze`);
 
     const response = await fetch(`${AI_BACKEND_URL}/analyze`, {
       method: "POST",
@@ -89,37 +78,36 @@ async function callAIBackend(
 
     if (!response.ok) {
       console.error(`AI backend returned ${response.status}`);
-      return null;
+      return { success: false };
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log(`AI backend response for ${ticker}: ${data.risk_level} (${data.risk_probability})`);
+
+    // Map signals from Python format to TypeScript format
+    const signals: RiskSignal[] = (data.signals || []).map((s: { code: string; category: string; description: string; weight: number }) => ({
+      code: s.code,
+      category: s.category as "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL",
+      description: s.description,
+      weight: s.weight,
+    }));
+
+    return {
+      success: true,
+      riskLevel: data.risk_level,
+      probability: data.risk_probability,
+      signals,
+      rfProbability: data.rf_probability,
+      lstmProbability: data.lstm_probability,
+      anomalyScore: data.anomaly_score,
+      explanations: data.explanations,
+      secFlagged: data.sec_flagged,
+      isOtc: data.is_otc,
+      isMicroCap: data.is_micro_cap,
+    };
   } catch (error) {
-    console.error("AI backend unavailable:", error);
-    return null;
-  }
-}
-
-/**
- * Check if Python AI backend is available
- */
-async function checkAIBackendHealth(): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const response = await fetch(`${AI_BACKEND_URL}/health`, {
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.status === "healthy";
-    }
-    return false;
-  } catch {
-    return false;
+    console.error("AI backend call failed:", error);
+    return { success: false };
   }
 }
 
@@ -160,6 +148,7 @@ export async function POST(request: NextRequest) {
     }
 
     const checkRequest: CheckRequest = validation.data;
+    const ticker = checkRequest.ticker.toUpperCase();
 
     // Build context with defaults
     const context = {
@@ -169,84 +158,54 @@ export async function POST(request: NextRequest) {
       secrecyInsideInfo: checkRequest.context?.secrecyInsideInfo ?? false,
     };
 
-    // Try the Python AI backend first (has real market data via yfinance)
-    const aiBackendAvailable = await checkAIBackendHealth();
+    // =====================================================
+    // TRY PYTHON AI BACKEND FIRST (Full ML Models)
+    // =====================================================
+    const aiResult = await callPythonAIBackend(ticker, checkRequest.assetType || "stock");
 
-    if (aiBackendAvailable) {
-      const aiResult = await callAIBackend(checkRequest.ticker, checkRequest.assetType || "stock");
+    let scoringResult;
+    let marketData;
+    let usedAIBackend = false;
 
-      if (aiResult && aiResult.data_available) {
-        // Get stock info from AI backend (populated from yfinance)
-        const stockInfo = aiResult.stock_info;
+    if (aiResult.success && aiResult.riskLevel && aiResult.signals) {
+      // Use AI backend results
+      usedAIBackend = true;
+      console.log(`Using Python AI backend for ${ticker}`);
 
-        // Fallback: Extract market cap from features if not in stock_info
-        const logMarketCap = aiResult.features.log_market_cap;
-        const fallbackMarketCap = logMarketCap ? Math.exp(logMarketCap) : undefined;
+      // Fetch market data for stock summary (we still need this for display)
+      marketData = await fetchMarketData(ticker);
 
-        // Build stock summary from AI backend data
-        const stockSummary: StockSummary = {
-          ticker: aiResult.ticker.toUpperCase(),
-          companyName: checkRequest.companyName || stockInfo?.company_name || aiResult.ticker.toUpperCase(),
-          exchange: stockInfo?.exchange || (aiResult.is_otc ? "OTC" : "NYSE/NASDAQ"),
-          lastPrice: stockInfo?.last_price,
-          marketCap: stockInfo?.market_cap || fallbackMarketCap,
-          avgDollarVolume30d: stockInfo?.avg_volume ? stockInfo.avg_volume * (stockInfo.last_price || 1) : undefined,
-        };
+      scoringResult = {
+        riskLevel: aiResult.riskLevel as "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT",
+        totalScore: Math.round((aiResult.probability || 0) * 20), // Convert probability to score
+        signals: aiResult.signals,
+        isInsufficient: false,
+        isLegitimate: aiResult.riskLevel === "LOW" && (aiResult.signals?.length || 0) === 0,
+        // Additional AI data
+        rfProbability: aiResult.rfProbability,
+        lstmProbability: aiResult.lstmProbability,
+        anomalyScore: aiResult.anomalyScore,
+      };
+    } else {
+      // =====================================================
+      // FALLBACK TO TYPESCRIPT SCORING
+      // =====================================================
+      console.log(`Falling back to TypeScript scoring for ${ticker}`);
 
-        // Convert AI signals to RiskSignal format
-        const signals: RiskSignal[] = aiResult.signals.map(s => ({
-          code: s.code,
-          category: s.category as "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL",
-          description: s.description,
-          weight: s.weight,
-        }));
+      // Fetch market data
+      marketData = await fetchMarketData(ticker);
 
-        // Map risk level
-        const riskLevel = aiResult.risk_level as "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT";
-
-        // Generate narrative
-        const narrative = await generateNarrative(
-          riskLevel,
-          aiResult.risk_score,
-          signals,
-          stockSummary,
-          riskLevel === "LOW"
-        );
-
-        // Increment scan count
-        const updatedUsage = await incrementScanCount(userId);
-
-        // Build response
-        const response: RiskResponse = {
-          riskLevel,
-          totalScore: aiResult.risk_score,
-          signals,
-          stockSummary,
-          narrative,
-          usage: updatedUsage,
-          isLegitimate: riskLevel === "LOW",
-        };
-
-        return NextResponse.json(response);
-      }
+      // Compute risk score using TypeScript
+      scoringResult = await computeRiskScore({
+        marketData,
+        pitchText: checkRequest.pitchText || "",
+        context,
+      });
     }
-
-    // Fall back to TypeScript scoring if AI backend unavailable
-    console.log("Falling back to TypeScript scoring");
-
-    // Fetch market data using Alpha Vantage
-    const marketData = await fetchMarketData(checkRequest.ticker);
-
-    // Compute risk score (deterministic)
-    const scoringResult = await computeRiskScore({
-      marketData,
-      pitchText: checkRequest.pitchText || "",
-      context,
-    });
 
     // Build stock summary
     const stockSummary: StockSummary = {
-      ticker: checkRequest.ticker.toUpperCase(),
+      ticker,
       companyName: checkRequest.companyName || marketData.quote?.companyName,
       exchange: marketData.quote?.exchange,
       lastPrice: marketData.quote?.lastPrice,
@@ -263,8 +222,35 @@ export async function POST(request: NextRequest) {
       scoringResult.isLegitimate
     );
 
+    // Add AI backend info to narrative if used
+    if (usedAIBackend) {
+      narrative.disclaimers.push(
+        "Analysis powered by AI models: Random Forest + LSTM + Anomaly Detection"
+      );
+    }
+
     // Increment scan count after successful analysis
     const updatedUsage = await incrementScanCount(userId);
+
+    // Save scan to history for the user
+    try {
+      await prisma.scanHistory.create({
+        data: {
+          userId,
+          ticker,
+          assetType: checkRequest.assetType || "stock",
+          riskLevel: scoringResult.riskLevel,
+          totalScore: scoringResult.totalScore,
+          signalsCount: scoringResult.signals.length,
+          isLegitimate: scoringResult.isLegitimate,
+          pitchProvided: !!checkRequest.pitchText,
+          contextProvided: Object.values(context).some(Boolean),
+        },
+      });
+    } catch (historyError) {
+      // Don't fail the request if history save fails
+      console.error("Failed to save scan history:", historyError);
+    }
 
     // Build response
     const response: RiskResponse = {
