@@ -59,6 +59,18 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          {/* About button */}
+          <Link href="/about">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-xl"
+              aria-label="About"
+            >
+              <Info className="h-5 w-5" />
+            </Button>
+          </Link>
+
           {/* Theme toggle */}
           <ThemeToggle />
 

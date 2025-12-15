@@ -21,6 +21,8 @@ import {
   AlertCircle,
   HelpCircle as HelpIcon,
   Loader2,
+  Info,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -207,22 +209,22 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
 
           {/* Bottom Menu */}
           <div className="border-t border-border p-3 space-y-1">
-            <Link href="/account">
+            <Link href="/about">
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 rounded-xl h-10"
               >
-                <Settings className="h-4 w-4" />
-                Settings
+                <Info className="h-4 w-4" />
+                About
               </Button>
             </Link>
-            <Link href="/account">
+            <Link href="/how-it-works">
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 rounded-xl h-10"
               >
-                <CreditCard className="h-4 w-4" />
-                Subscription
+                <HelpCircle className="h-4 w-4" />
+                How It Works
               </Button>
             </Link>
             <Link href="/help">
@@ -230,8 +232,8 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                 variant="ghost"
                 className="w-full justify-start gap-2 rounded-xl h-10"
               >
-                <HelpCircle className="h-4 w-4" />
-                Help & FAQ
+                <FileText className="h-4 w-4" />
+                Legal & Disclaimer
               </Button>
             </Link>
 
