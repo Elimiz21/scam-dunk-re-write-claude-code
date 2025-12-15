@@ -49,6 +49,13 @@ async function callPythonAIBackend(
   secFlagged?: boolean;
   isOtc?: boolean;
   isMicroCap?: boolean;
+  stockInfo?: {
+    companyName?: string;
+    exchange?: string;
+    lastPrice?: number;
+    marketCap?: number;
+    avgVolume?: number;
+  };
 }> {
   // Skip if no backend URL configured
   if (!AI_BACKEND_URL) {
@@ -104,6 +111,13 @@ async function callPythonAIBackend(
       secFlagged: data.sec_flagged,
       isOtc: data.is_otc,
       isMicroCap: data.is_micro_cap,
+      stockInfo: data.stock_info ? {
+        companyName: data.stock_info.company_name,
+        exchange: data.stock_info.exchange,
+        lastPrice: data.stock_info.last_price,
+        marketCap: data.stock_info.market_cap,
+        avgVolume: data.stock_info.avg_volume,
+      } : undefined,
     };
   } catch (error) {
     console.error("AI backend call failed:", error);
@@ -167,12 +181,15 @@ export async function POST(request: NextRequest) {
     let marketData;
     let usedAIBackend = false;
 
+    let aiStockInfo: typeof aiResult.stockInfo | undefined;
+
     if (aiResult.success && aiResult.riskLevel && aiResult.signals) {
       // Use AI backend results
       usedAIBackend = true;
+      aiStockInfo = aiResult.stockInfo;
       console.log(`Using Python AI backend for ${ticker}`);
 
-      // Fetch market data for stock summary (we still need this for display)
+      // Fetch market data as fallback for stock summary if AI doesn't provide it
       marketData = await fetchMarketData(ticker);
 
       scoringResult = {
@@ -203,14 +220,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build stock summary
+    // Build stock summary - prefer AI backend data when available
     const stockSummary: StockSummary = {
       ticker,
-      companyName: checkRequest.companyName || marketData.quote?.companyName,
-      exchange: marketData.quote?.exchange,
-      lastPrice: marketData.quote?.lastPrice,
-      marketCap: marketData.quote?.marketCap,
-      avgDollarVolume30d: marketData.quote?.avgDollarVolume30d,
+      companyName: checkRequest.companyName || aiStockInfo?.companyName || marketData.quote?.companyName,
+      exchange: aiStockInfo?.exchange || marketData.quote?.exchange,
+      lastPrice: aiStockInfo?.lastPrice ?? marketData.quote?.lastPrice,
+      marketCap: aiStockInfo?.marketCap ?? marketData.quote?.marketCap,
+      avgDollarVolume30d: aiStockInfo?.avgVolume
+        ? aiStockInfo.avgVolume * (aiStockInfo.lastPrice || 1)
+        : marketData.quote?.avgDollarVolume30d,
     };
 
     // Generate narrative (LLM or fallback)
