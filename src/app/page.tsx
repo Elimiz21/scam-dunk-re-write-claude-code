@@ -12,13 +12,12 @@ import { LimitReached } from "@/components/LimitReached";
 import { LoadingStepper } from "@/components/LoadingStepper";
 import { Shield, TrendingUp, AlertTriangle, Zap } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
-import { getRandomTagline } from "@/lib/taglines";
+import { getRandomTagline, taglines } from "@/lib/taglines";
 import { useToast } from "@/components/ui/toast";
+import { Step } from "@/components/LoadingStepper";
 
-type Step = {
-  label: string;
-  status: "pending" | "loading" | "complete";
-};
+// Scanning tips derived from taglines for rotation during analysis
+const scanningTips = taglines.map(t => t.headline);
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -33,11 +32,22 @@ export default function HomePage() {
   const [currentTicker, setCurrentTicker] = useState("");
 
   const [steps, setSteps] = useState<Step[]>([
+    { label: "Validating ticker symbol", status: "pending" },
     { label: "Fetching market data", status: "pending" },
-    { label: "Analyzing price patterns", status: "pending" },
-    { label: "Checking risk signals", status: "pending" },
-    { label: "Generating report", status: "pending" },
+    {
+      label: "Running risk analysis",
+      status: "pending",
+      subSteps: [
+        { label: "Analyzing price patterns", status: "pending" },
+        { label: "Checking volume anomalies", status: "pending" },
+        { label: "Scanning for pump-and-dump signals", status: "pending" },
+      ]
+    },
+    { label: "Checking regulatory alerts", status: "pending" },
+    { label: "Generating risk report", status: "pending" },
   ]);
+  const [currentTip, setCurrentTip] = useState<string>("");
+  const [tipIndex, setTipIndex] = useState(0);
 
   // Get random tagline on mount (changes on refresh)
   const [tagline] = useState(() => getRandomTagline());
@@ -100,39 +110,132 @@ export default function HomePage() {
     setIsLoading(true);
     setCurrentTicker(data.ticker);
 
-    // Reset steps
-    setSteps([
-      { label: "Fetching market data", status: "loading" },
-      { label: "Analyzing price patterns", status: "pending" },
-      { label: "Checking risk signals", status: "pending" },
-      { label: "Generating report", status: "pending" },
-    ]);
+    // Reset steps with enhanced granular progress
+    const initialSteps: Step[] = [
+      { label: "Validating ticker symbol", status: "loading" },
+      { label: "Fetching market data", status: "pending" },
+      {
+        label: "Running risk analysis",
+        status: "pending",
+        subSteps: [
+          { label: "Analyzing price patterns", status: "pending" },
+          { label: "Checking volume anomalies", status: "pending" },
+          { label: "Scanning for pump-and-dump signals", status: "pending" },
+        ]
+      },
+      { label: "Checking regulatory alerts", status: "pending" },
+      { label: "Generating risk report", status: "pending" },
+    ];
+    setSteps(initialSteps);
+
+    // Start rotating tips
+    const startTipIndex = Math.floor(Math.random() * scanningTips.length);
+    setTipIndex(startTipIndex);
+    setCurrentTip(scanningTips[startTipIndex]);
+
+    // Rotate tips every 3 seconds
+    const tipInterval = setInterval(() => {
+      setTipIndex((prev) => {
+        const nextIndex = (prev + 1) % scanningTips.length;
+        setCurrentTip(scanningTips[nextIndex]);
+        return nextIndex;
+      });
+    }, 3000);
 
     try {
-      // Simulate step progress
+      // Simulate step progress with enhanced details
       const simulateSteps = async () => {
-        await new Promise((r) => setTimeout(r, 500));
+        // Step 1: Validating ticker - quick
+        await new Promise((r) => setTimeout(r, 300));
         setSteps((s) => [
-          { ...s[0], status: "complete" },
+          { ...s[0], status: "complete", detail: `${data.ticker.toUpperCase()} is valid` },
           { ...s[1], status: "loading" },
           s[2],
           s[3],
+          s[4],
         ]);
 
+        // Step 2: Fetching market data
+        await new Promise((r) => setTimeout(r, 600));
+        setSteps((s) => [
+          s[0],
+          { ...s[1], status: "complete", detail: "Retrieved price history and company data" },
+          {
+            ...s[2],
+            status: "loading",
+            subSteps: [
+              { label: "Analyzing price patterns", status: "loading" },
+              { label: "Checking volume anomalies", status: "pending" },
+              { label: "Scanning for pump-and-dump signals", status: "pending" },
+            ]
+          },
+          s[3],
+          s[4],
+        ]);
+
+        // Step 3a: Price patterns
         await new Promise((r) => setTimeout(r, 400));
         setSteps((s) => [
           s[0],
-          { ...s[1], status: "complete" },
-          { ...s[2], status: "loading" },
+          s[1],
+          {
+            ...s[2],
+            status: "loading",
+            subSteps: [
+              { label: "Analyzing price patterns", status: "complete" },
+              { label: "Checking volume anomalies", status: "loading" },
+              { label: "Scanning for pump-and-dump signals", status: "pending" },
+            ]
+          },
           s[3],
+          s[4],
         ]);
 
+        // Step 3b: Volume anomalies
+        await new Promise((r) => setTimeout(r, 350));
+        setSteps((s) => [
+          s[0],
+          s[1],
+          {
+            ...s[2],
+            status: "loading",
+            subSteps: [
+              { label: "Analyzing price patterns", status: "complete" },
+              { label: "Checking volume anomalies", status: "complete" },
+              { label: "Scanning for pump-and-dump signals", status: "loading" },
+            ]
+          },
+          s[3],
+          s[4],
+        ]);
+
+        // Step 3c: Pump-and-dump signals
+        await new Promise((r) => setTimeout(r, 350));
+        setSteps((s) => [
+          s[0],
+          s[1],
+          {
+            ...s[2],
+            status: "complete",
+            detail: "Risk patterns analyzed",
+            subSteps: [
+              { label: "Analyzing price patterns", status: "complete" },
+              { label: "Checking volume anomalies", status: "complete" },
+              { label: "Scanning for pump-and-dump signals", status: "complete" },
+            ]
+          },
+          { ...s[3], status: "loading" },
+          s[4],
+        ]);
+
+        // Step 4: Regulatory alerts
         await new Promise((r) => setTimeout(r, 300));
         setSteps((s) => [
           s[0],
           s[1],
-          { ...s[2], status: "complete" },
-          { ...s[3], status: "loading" },
+          s[2],
+          { ...s[3], status: "complete", detail: "SEC and alert databases checked" },
+          { ...s[4], status: "loading" },
         ]);
       };
 
@@ -151,7 +254,16 @@ export default function HomePage() {
       ]);
 
       // Complete final step
-      setSteps((s) => [s[0], s[1], s[2], { ...s[3], status: "complete" }]);
+      setSteps((s) => [
+        s[0],
+        s[1],
+        s[2],
+        s[3],
+        { ...s[4], status: "complete", detail: "Analysis complete" }
+      ]);
+
+      // Stop tip rotation
+      clearInterval(tipInterval);
 
       const responseData = await response.json();
 
@@ -170,9 +282,11 @@ export default function HomePage() {
         setUsage(responseData.usage);
       }
     } catch (err) {
+      clearInterval(tipInterval);
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
+      setCurrentTip("");
     }
   };
 
@@ -277,7 +391,7 @@ export default function HomePage() {
                 <h2 className="text-xl font-semibold mb-6">
                   Analyzing {currentTicker}...
                 </h2>
-                <LoadingStepper steps={steps} />
+                <LoadingStepper steps={steps} currentTip={currentTip} />
               </div>
             </div>
           )}
