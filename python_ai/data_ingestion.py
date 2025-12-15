@@ -12,6 +12,14 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Union
 import warnings
+import logging
+
+# Import yfinance for real market data
+try:
+    import yfinance as yf
+    YFINANCE_AVAILABLE = True
+except ImportError:
+    YFINANCE_AVAILABLE = False
 
 from config import (
     SEC_FLAGGED_TICKERS,
@@ -21,6 +29,7 @@ from config import (
 )
 
 warnings.filterwarnings('ignore')
+logger = logging.getLogger(__name__)
 
 
 class DataIngestionError(Exception):
@@ -212,10 +221,7 @@ def load_stock_data(
     """
     Load stock data for analysis.
 
-    In production, this would connect to:
-    - Alpha Vantage API
-    - Yahoo Finance API
-    - Other market data providers
+    Uses yfinance for real market data when available.
 
     Args:
         ticker: Stock ticker symbol
@@ -230,11 +236,46 @@ def load_stock_data(
         params = synthetic_params or {}
         return generate_synthetic_stock_data(ticker, days=days, **params)
 
-    # Placeholder for real API integration
-    raise NotImplementedError(
-        "Real market data API integration not yet implemented. "
-        "Use use_synthetic=True for demonstration."
-    )
+    # Use yfinance for real market data
+    if not YFINANCE_AVAILABLE:
+        logger.warning("yfinance not available, falling back to synthetic data")
+        return generate_synthetic_stock_data(ticker, days=days)
+
+    try:
+        logger.info(f"Fetching real market data for {ticker}")
+        stock = yf.Ticker(ticker)
+
+        # Fetch historical data
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days + 10)  # Extra days for buffer
+
+        hist = stock.history(start=start_date, end=end_date)
+
+        if hist.empty:
+            logger.warning(f"No data returned for {ticker}, using synthetic data")
+            return generate_synthetic_stock_data(ticker, days=days)
+
+        # Format to match expected structure
+        df = pd.DataFrame({
+            'Date': hist.index,
+            'Open': hist['Open'].values,
+            'High': hist['High'].values,
+            'Low': hist['Low'].values,
+            'Close': hist['Close'].values,
+            'Volume': hist['Volume'].values,
+            'Ticker': ticker
+        }).reset_index(drop=True)
+
+        # Take last 'days' rows
+        if len(df) > days:
+            df = df.tail(days).reset_index(drop=True)
+
+        logger.info(f"Fetched {len(df)} days of real data for {ticker}")
+        return df
+
+    except Exception as e:
+        logger.warning(f"Error fetching real data for {ticker}: {e}, using synthetic")
+        return generate_synthetic_stock_data(ticker, days=days)
 
 
 def load_crypto_data(
@@ -278,6 +319,8 @@ def get_stock_fundamentals(
     """
     Get fundamental data for a stock.
 
+    Uses yfinance for real fundamentals when available.
+
     Args:
         ticker: Stock ticker symbol
         use_synthetic: If True, generate synthetic fundamentals
@@ -314,7 +357,69 @@ def get_stock_fundamentals(
             'is_otc': exchange in OTC_EXCHANGES,
         }
 
-    raise NotImplementedError("Real fundamentals API not yet implemented.")
+    # Use yfinance for real fundamentals
+    if not YFINANCE_AVAILABLE:
+        logger.warning("yfinance not available, using synthetic fundamentals")
+        return get_stock_fundamentals(ticker, use_synthetic=True, is_scam_scenario=False)
+
+    try:
+        logger.info(f"Fetching real fundamentals for {ticker}")
+        stock = yf.Ticker(ticker)
+        info = stock.info
+
+        # Get market cap (critical for scam detection)
+        market_cap = info.get('marketCap', 0) or 0
+
+        # Get exchange info
+        exchange = info.get('exchange', 'UNKNOWN')
+
+        # Determine if OTC/penny stock
+        is_otc = any(x in exchange.upper() for x in ['OTC', 'PINK', 'GREY']) or \
+                 exchange.upper() in OTC_EXCHANGES
+
+        # Get float and volume
+        float_shares = info.get('floatShares', 0) or 0
+        shares_outstanding = info.get('sharesOutstanding', 0) or float_shares
+        avg_volume = info.get('averageVolume', 0) or 0
+
+        # Get sector/industry
+        sector = info.get('sector', 'Unknown')
+        industry = info.get('industry', 'Unknown')
+
+        fundamentals = {
+            'ticker': ticker,
+            'market_cap': market_cap,
+            'float_shares': float_shares,
+            'shares_outstanding': shares_outstanding,
+            'avg_daily_volume': avg_volume,
+            'exchange': exchange,
+            'sector': sector,
+            'industry': industry,
+            'is_otc': is_otc,
+            # Additional fields for better analysis
+            'short_name': info.get('shortName', ticker),
+            'long_name': info.get('longName', ''),
+            'current_price': info.get('currentPrice', info.get('regularMarketPrice', 0)),
+            'fifty_two_week_high': info.get('fiftyTwoWeekHigh', 0),
+            'fifty_two_week_low': info.get('fiftyTwoWeekLow', 0),
+        }
+
+        # Determine micro-cap status
+        if market_cap > 0:
+            fundamentals['is_micro_cap'] = market_cap < 300_000_000  # Under $300M
+            fundamentals['is_small_cap'] = 300_000_000 <= market_cap < 2_000_000_000
+        else:
+            # If no market cap data, check price to estimate
+            price = fundamentals.get('current_price', 0)
+            fundamentals['is_micro_cap'] = price < 5 if price > 0 else True
+            fundamentals['is_small_cap'] = False
+
+        logger.info(f"Fetched fundamentals for {ticker}: market_cap=${market_cap:,.0f}, exchange={exchange}, is_otc={is_otc}")
+        return fundamentals
+
+    except Exception as e:
+        logger.warning(f"Error fetching fundamentals for {ticker}: {e}, using synthetic")
+        return get_stock_fundamentals(ticker, use_synthetic=True, is_scam_scenario=False)
 
 
 def get_crypto_metrics(

@@ -334,3 +334,248 @@ export function detectSpikeThenDrop(priceHistory: PriceHistory[]): boolean {
   // Only count as spike-then-drop if max wasn't at the end (still dropping)
   return dropPercent >= 40 && maxIndex < recent.length - 2;
 }
+
+/**
+ * Advanced Anomaly Detection Features
+ * Ported from Python AI module for enhanced scam detection
+ */
+
+/**
+ * Calculate Z-score for a value given mean and standard deviation
+ */
+function calculateZScore(value: number, mean: number, std: number): number {
+  if (std === 0) return 0;
+  return (value - mean) / std;
+}
+
+/**
+ * Calculate mean of an array
+ */
+function mean(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  return arr.reduce((sum, val) => sum + val, 0) / arr.length;
+}
+
+/**
+ * Calculate standard deviation of an array
+ */
+function std(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  const avg = mean(arr);
+  const squareDiffs = arr.map(value => Math.pow(value - avg, 2));
+  return Math.sqrt(mean(squareDiffs));
+}
+
+/**
+ * Calculate RSI (Relative Strength Index)
+ * RSI > 70 indicates overbought, RSI < 30 indicates oversold
+ */
+export function calculateRSI(priceHistory: PriceHistory[], period: number = 14): number | null {
+  if (priceHistory.length < period + 1) return null;
+
+  const changes: number[] = [];
+  for (let i = 1; i < priceHistory.length; i++) {
+    changes.push(priceHistory[i].close - priceHistory[i - 1].close);
+  }
+
+  const recentChanges = changes.slice(-period);
+  const gains = recentChanges.filter(c => c > 0);
+  const losses = recentChanges.filter(c => c < 0).map(c => Math.abs(c));
+
+  const avgGain = gains.length > 0 ? mean(gains) : 0;
+  const avgLoss = losses.length > 0 ? mean(losses) : 0;
+
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return 100 - (100 / (1 + rs));
+}
+
+/**
+ * Detect price anomaly using Z-score analysis
+ * Returns anomaly details if current price is statistically unusual
+ */
+export function detectPriceAnomaly(priceHistory: PriceHistory[]): {
+  isAnomaly: boolean;
+  zScore: number;
+  severity: "low" | "medium" | "high" | "extreme";
+} {
+  if (priceHistory.length < 30) {
+    return { isAnomaly: false, zScore: 0, severity: "low" };
+  }
+
+  // Calculate daily returns
+  const returns: number[] = [];
+  for (let i = 1; i < priceHistory.length; i++) {
+    const dailyReturn = (priceHistory[i].close - priceHistory[i - 1].close) / priceHistory[i - 1].close;
+    returns.push(dailyReturn);
+  }
+
+  // Use rolling 30-day window for baseline
+  const baselineReturns = returns.slice(-30, -1);
+  const currentReturn = returns[returns.length - 1];
+
+  const returnMean = mean(baselineReturns);
+  const returnStd = std(baselineReturns);
+  const zScore = calculateZScore(currentReturn, returnMean, returnStd);
+
+  // Determine severity based on Z-score thresholds
+  const absZ = Math.abs(zScore);
+  let severity: "low" | "medium" | "high" | "extreme" = "low";
+  let isAnomaly = false;
+
+  if (absZ >= 4) {
+    severity = "extreme";
+    isAnomaly = true;
+  } else if (absZ >= 3) {
+    severity = "high";
+    isAnomaly = true;
+  } else if (absZ >= 2) {
+    severity = "medium";
+    isAnomaly = true;
+  }
+
+  return { isAnomaly, zScore, severity };
+}
+
+/**
+ * Detect volume anomaly using Z-score analysis
+ */
+export function detectVolumeAnomaly(priceHistory: PriceHistory[]): {
+  isAnomaly: boolean;
+  zScore: number;
+  multiplier: number;
+} {
+  if (priceHistory.length < 30) {
+    return { isAnomaly: false, zScore: 0, multiplier: 1 };
+  }
+
+  const volumes = priceHistory.map(p => p.volume);
+  const baselineVolumes = volumes.slice(-30, -1);
+  const currentVolume = volumes[volumes.length - 1];
+
+  const volMean = mean(baselineVolumes);
+  const volStd = std(baselineVolumes);
+  const zScore = calculateZScore(currentVolume, volMean, volStd);
+  const multiplier = volMean > 0 ? currentVolume / volMean : 1;
+
+  // Volume anomaly if Z-score > 2 or volume > 3x average
+  const isAnomaly = zScore > 2 || multiplier > 3;
+
+  return { isAnomaly, zScore, multiplier };
+}
+
+/**
+ * Calculate surge metrics for different time periods
+ */
+export function calculateSurgeMetrics(priceHistory: PriceHistory[]): {
+  surge7d: number | null;
+  surge30d: number | null;
+  surge90d: number | null;
+  isExtremeSurge: boolean;
+} {
+  const result = {
+    surge7d: calculatePriceChange(priceHistory, 7),
+    surge30d: calculatePriceChange(priceHistory, 30),
+    surge90d: calculatePriceChange(priceHistory, 90),
+    isExtremeSurge: false,
+  };
+
+  // Extreme surge: >100% in 7 days or >200% in 30 days
+  if ((result.surge7d && result.surge7d > 100) || (result.surge30d && result.surge30d > 200)) {
+    result.isExtremeSurge = true;
+  }
+
+  return result;
+}
+
+/**
+ * Calculate volatility metrics
+ */
+export function calculateVolatility(priceHistory: PriceHistory[]): {
+  dailyVolatility: number;
+  isHighVolatility: boolean;
+} {
+  if (priceHistory.length < 14) {
+    return { dailyVolatility: 0, isHighVolatility: false };
+  }
+
+  // Calculate daily returns
+  const returns: number[] = [];
+  for (let i = 1; i < priceHistory.length; i++) {
+    const dailyReturn = (priceHistory[i].close - priceHistory[i - 1].close) / priceHistory[i - 1].close;
+    returns.push(dailyReturn);
+  }
+
+  const recentReturns = returns.slice(-14);
+  const dailyVolatility = std(recentReturns) * 100; // As percentage
+
+  // High volatility if daily std > 5%
+  const isHighVolatility = dailyVolatility > 5;
+
+  return { dailyVolatility, isHighVolatility };
+}
+
+/**
+ * Comprehensive anomaly detection combining multiple signals
+ */
+export function runAnomalyDetection(priceHistory: PriceHistory[]): {
+  hasAnomalies: boolean;
+  anomalyScore: number;
+  signals: string[];
+} {
+  const signals: string[] = [];
+  let anomalyScore = 0;
+
+  // Price anomaly detection
+  const priceAnomaly = detectPriceAnomaly(priceHistory);
+  if (priceAnomaly.isAnomaly) {
+    if (priceAnomaly.severity === "extreme") {
+      signals.push(`Extreme price movement detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`);
+      anomalyScore += 4;
+    } else if (priceAnomaly.severity === "high") {
+      signals.push(`Significant price anomaly detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`);
+      anomalyScore += 3;
+    } else if (priceAnomaly.severity === "medium") {
+      signals.push(`Unusual price movement detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`);
+      anomalyScore += 2;
+    }
+  }
+
+  // Volume anomaly detection
+  const volumeAnomaly = detectVolumeAnomaly(priceHistory);
+  if (volumeAnomaly.isAnomaly) {
+    signals.push(`Unusual trading volume: ${volumeAnomaly.multiplier.toFixed(1)}x normal`);
+    anomalyScore += volumeAnomaly.multiplier > 5 ? 3 : 2;
+  }
+
+  // Surge detection
+  const surgeMetrics = calculateSurgeMetrics(priceHistory);
+  if (surgeMetrics.isExtremeSurge) {
+    const surgeVal = surgeMetrics.surge7d || surgeMetrics.surge30d || 0;
+    signals.push(`Extreme price surge: ${surgeVal.toFixed(0)}% gain`);
+    anomalyScore += 3;
+  }
+
+  // RSI overbought detection
+  const rsi = calculateRSI(priceHistory);
+  if (rsi && rsi > 80) {
+    signals.push(`Extremely overbought (RSI: ${rsi.toFixed(0)})`);
+    anomalyScore += 2;
+  } else if (rsi && rsi > 70) {
+    signals.push(`Overbought conditions (RSI: ${rsi.toFixed(0)})`);
+    anomalyScore += 1;
+  }
+
+  // Volatility detection
+  const volatility = calculateVolatility(priceHistory);
+  if (volatility.isHighVolatility) {
+    signals.push(`High volatility: ${volatility.dailyVolatility.toFixed(1)}% daily swings`);
+    anomalyScore += 1;
+  }
+
+  return {
+    hasAnomalies: signals.length > 0,
+    anomalyScore,
+    signals,
+  };
+}
