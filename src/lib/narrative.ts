@@ -131,7 +131,7 @@ function buildPrompt(
 ): string {
   const legitimateNote = isLegitimate
     ? `\n\nNOTE: This is a well-established, large-cap company traded on a major exchange with high liquidity. No scam red flags were detected. The tone should be reassuring but still encourage due diligence.`
-    : "";
+    : `\n\nNOTE: "isLegitimate: false" does NOT mean the company is illegitimate or a scam. It simply means we haven't confirmed it as a well-known blue-chip stock. Many perfectly normal companies have this flag as false. Do NOT say the company is "not recognized as legitimate" or anything similar - that would be misleading.`;
 
   const signalsSection = signals.length > 0
     ? `SIGNALS DETECTED:\n${signals.map((s) => `- [${s.category}] ${s.code}: ${s.description} (weight: ${s.weight})`).join("\n")}`
@@ -162,7 +162,7 @@ function buildPrompt(
 
 RISK LEVEL: ${riskLevel}
 TOTAL SCORE: ${totalScore}
-IS LEGITIMATE COMPANY: ${isLegitimate}${legitimateNote}
+IS CONFIRMED BLUE-CHIP: ${isLegitimate}${legitimateNote}
 
 STOCK SUMMARY:
 - Ticker: ${stockSummary.ticker}
