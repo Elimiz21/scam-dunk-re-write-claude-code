@@ -7,7 +7,10 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
+  // Use pooled connection (Transaction mode) for serverless - port 6543
+  // Add ?pgbouncer=true&connection_limit=1 to DATABASE_URL
   url       = env("DATABASE_URL")
+  // Use direct connection for migrations - port 5432
   directUrl = env("DIRECT_URL")
 }
 
