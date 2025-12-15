@@ -3,6 +3,15 @@
 import { RiskResponse, RiskLevel } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+import {
+  STOCK_SUMMARY_TERMS,
+  RISK_LEVEL_TERMS,
+  STRUCTURAL_SIGNAL_TERMS,
+  PATTERN_SIGNAL_TERMS,
+  ANOMALY_SIGNAL_TERMS,
+  BEHAVIORAL_SIGNAL_TERMS,
+} from "@/lib/glossary";
 import {
   AlertTriangle,
   CheckCircle,
@@ -47,6 +56,95 @@ function getRiskIcon(level: RiskLevel) {
   }
 }
 
+/**
+ * Technical term patterns and their associated glossary definitions
+ * These patterns are matched against flag descriptions to add inline tooltips
+ */
+const TECHNICAL_TERM_PATTERNS = [
+  // Structural terms
+  { pattern: /penny stock/i, glossary: STRUCTURAL_SIGNAL_TERMS.pennyStock },
+  { pattern: /market cap/i, glossary: STRUCTURAL_SIGNAL_TERMS.smallMarketCap },
+  { pattern: /liquidity/i, glossary: STRUCTURAL_SIGNAL_TERMS.microLiquidity },
+  { pattern: /OTC market/i, glossary: STRUCTURAL_SIGNAL_TERMS.otcMarket },
+  { pattern: /OTC/i, glossary: STRUCTURAL_SIGNAL_TERMS.otcMarket },
+  { pattern: /over-the-counter/i, glossary: STRUCTURAL_SIGNAL_TERMS.otcMarket },
+  // Pattern terms
+  { pattern: /price spike/i, glossary: PATTERN_SIGNAL_TERMS.priceSpike },
+  { pattern: /volume explosion/i, glossary: PATTERN_SIGNAL_TERMS.volumeExplosion },
+  { pattern: /pump.?and.?dump/i, glossary: PATTERN_SIGNAL_TERMS.pumpAndDump },
+  { pattern: /pump pattern/i, glossary: PATTERN_SIGNAL_TERMS.pumpAndDump },
+  { pattern: /spike.+drop/i, glossary: PATTERN_SIGNAL_TERMS.spikeThenDrop },
+  // Anomaly terms
+  { pattern: /price anomaly/i, glossary: ANOMALY_SIGNAL_TERMS.priceAnomaly },
+  { pattern: /volume anomaly/i, glossary: ANOMALY_SIGNAL_TERMS.volumeAnomaly },
+  { pattern: /RSI/i, glossary: ANOMALY_SIGNAL_TERMS.rsi },
+  { pattern: /overbought/i, glossary: ANOMALY_SIGNAL_TERMS.overbought },
+  { pattern: /volatility/i, glossary: ANOMALY_SIGNAL_TERMS.volatility },
+  { pattern: /extreme surge/i, glossary: ANOMALY_SIGNAL_TERMS.extremeSurge },
+  { pattern: /statistically/i, glossary: ANOMALY_SIGNAL_TERMS.zScore },
+  // Behavioral terms
+  { pattern: /unsolicited/i, glossary: BEHAVIORAL_SIGNAL_TERMS.unsolicited },
+  { pattern: /guaranteed return/i, glossary: BEHAVIORAL_SIGNAL_TERMS.promisedReturns },
+  { pattern: /promise.+return/i, glossary: BEHAVIORAL_SIGNAL_TERMS.promisedReturns },
+  { pattern: /urgency/i, glossary: BEHAVIORAL_SIGNAL_TERMS.urgencyPressure },
+  { pattern: /time pressure/i, glossary: BEHAVIORAL_SIGNAL_TERMS.urgencyPressure },
+  { pattern: /insider/i, glossary: BEHAVIORAL_SIGNAL_TERMS.secrecyInsider },
+  { pattern: /secret/i, glossary: BEHAVIORAL_SIGNAL_TERMS.secrecyInsider },
+  { pattern: /specific.+return/i, glossary: BEHAVIORAL_SIGNAL_TERMS.specificReturnClaim },
+  { pattern: /percentage gain/i, glossary: BEHAVIORAL_SIGNAL_TERMS.specificReturnClaim },
+];
+
+/**
+ * Find the first matching technical term in a flag description
+ * Returns the glossary term if found, null otherwise
+ */
+function findTechnicalTerm(text: string): { term: string; definition: string } | null {
+  for (const { pattern, glossary } of TECHNICAL_TERM_PATTERNS) {
+    if (pattern.test(text)) {
+      return { term: glossary.term, definition: glossary.definition };
+    }
+  }
+  return null;
+}
+
+/**
+ * Renders a flag item with an optional technical term tooltip
+ */
+function FlagItem({
+  flag,
+  isPositive,
+  iconColor,
+}: {
+  flag: string;
+  isPositive: boolean;
+  iconColor: "green" | "orange" | "red" | "blue";
+}) {
+  const technicalTerm = findTechnicalTerm(flag);
+
+  const iconClasses = {
+    green: "text-green-500",
+    orange: "text-orange-500",
+    red: "text-red-500",
+    blue: "text-blue-500",
+  };
+
+  const IconComponent = isPositive ? CheckCircle : iconColor === "red" ? AlertCircle : AlertTriangle;
+
+  return (
+    <li className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
+      <IconComponent
+        className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${iconClasses[iconColor]} mt-0.5 flex-shrink-0`}
+      />
+      <span className="inline-flex items-start flex-wrap">
+        {flag}
+        {technicalTerm && (
+          <InfoTooltip term={technicalTerm.term} definition={technicalTerm.definition} />
+        )}
+      </span>
+    </li>
+  );
+}
+
 export function RiskCard({ result }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
 
@@ -61,8 +159,12 @@ export function RiskCard({ result }: RiskCardProps) {
               <Badge variant={getRiskBadgeVariant(riskLevel)} className="text-sm">
                 {riskLevel} RISK
               </Badge>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground inline-flex items-center">
                 Score: {totalScore}
+                <InfoTooltip
+                  term={RISK_LEVEL_TERMS.riskScore.term}
+                  definition={RISK_LEVEL_TERMS.riskScore.definition}
+                />
               </span>
             </div>
           </div>
@@ -80,11 +182,23 @@ export function RiskCard({ result }: RiskCardProps) {
         {/* Stock Summary */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-secondary rounded-lg">
           <div>
-            <p className="text-xs text-muted-foreground">Exchange</p>
+            <p className="text-xs text-muted-foreground inline-flex items-center">
+              Exchange
+              <InfoTooltip
+                term={STOCK_SUMMARY_TERMS.exchange.term}
+                definition={STOCK_SUMMARY_TERMS.exchange.definition}
+              />
+            </p>
             <p className="font-medium">{stockSummary.exchange || "N/A"}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Price</p>
+            <p className="text-xs text-muted-foreground inline-flex items-center">
+              Price
+              <InfoTooltip
+                term={STOCK_SUMMARY_TERMS.lastPrice.term}
+                definition={STOCK_SUMMARY_TERMS.lastPrice.definition}
+              />
+            </p>
             <p className="font-medium">
               {stockSummary.lastPrice
                 ? formatPrice(stockSummary.lastPrice)
@@ -92,7 +206,13 @@ export function RiskCard({ result }: RiskCardProps) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Market Cap</p>
+            <p className="text-xs text-muted-foreground inline-flex items-center">
+              Market Cap
+              <InfoTooltip
+                term={STOCK_SUMMARY_TERMS.marketCap.term}
+                definition={STOCK_SUMMARY_TERMS.marketCap.definition}
+              />
+            </p>
             <p className="font-medium">
               {stockSummary.marketCap
                 ? formatNumber(stockSummary.marketCap)
@@ -100,7 +220,13 @@ export function RiskCard({ result }: RiskCardProps) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Avg. Volume</p>
+            <p className="text-xs text-muted-foreground inline-flex items-center">
+              Avg. Volume
+              <InfoTooltip
+                term={STOCK_SUMMARY_TERMS.avgVolume.term}
+                definition={STOCK_SUMMARY_TERMS.avgVolume.definition}
+              />
+            </p>
             <p className="font-medium">
               {stockSummary.avgDollarVolume30d
                 ? formatNumber(stockSummary.avgDollarVolume30d)
@@ -122,17 +248,12 @@ export function RiskCard({ result }: RiskCardProps) {
                                    flag.toLowerCase().includes("no red flags") ||
                                    flag.toLowerCase().includes("no signals");
                 return (
-                  <li
+                  <FlagItem
                     key={index}
-                    className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground"
-                  >
-                    {isPositive ? (
-                      <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    ) : (
-                      <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                    )}
-                    {flag}
-                  </li>
+                    flag={flag}
+                    isPositive={isPositive}
+                    iconColor={isPositive ? "green" : "orange"}
+                  />
                 );
               })}
             </ul>
@@ -152,17 +273,12 @@ export function RiskCard({ result }: RiskCardProps) {
                                    flag.toLowerCase().includes("no red flags") ||
                                    flag.toLowerCase().includes("no concerning");
                 return (
-                  <li
+                  <FlagItem
                     key={index}
-                    className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground"
-                  >
-                    {isPositive ? (
-                      <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    ) : (
-                      <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                    )}
-                    {flag}
-                  </li>
+                    flag={flag}
+                    isPositive={isPositive}
+                    iconColor={isPositive ? "green" : "red"}
+                  />
                 );
               })}
             </ul>
