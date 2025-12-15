@@ -23,6 +23,8 @@ import {
   Loader2,
   Info,
   FileText,
+  MessageCircleQuestion,
+  Scale,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -209,6 +211,10 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
 
           {/* Bottom Menu */}
           <div className="border-t border-border p-3 space-y-1">
+            {/* Information Section */}
+            <p className="text-xs font-medium text-muted-foreground px-3 py-2">
+              Information
+            </p>
             <Link href="/about">
               <Button
                 variant="ghost"
@@ -232,8 +238,54 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                 variant="ghost"
                 className="w-full justify-start gap-2 rounded-xl h-10"
               >
+                <MessageCircleQuestion className="h-4 w-4" />
+                Help & FAQ
+              </Button>
+            </Link>
+
+            {/* Legal Section */}
+            <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-2">
+              Legal
+            </p>
+            <Link href="/disclaimer">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 rounded-xl h-10"
+              >
                 <FileText className="h-4 w-4" />
-                Legal & Disclaimer
+                Disclaimer
+              </Button>
+            </Link>
+            <Link href="/privacy">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 rounded-xl h-10"
+              >
+                <Shield className="h-4 w-4" />
+                Privacy Policy
+              </Button>
+            </Link>
+            <Link href="/terms">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 rounded-xl h-10"
+              >
+                <Scale className="h-4 w-4" />
+                Terms of Service
+              </Button>
+            </Link>
+
+            {/* Account Section */}
+            <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-2">
+              Account
+            </p>
+            <Link href="/account">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 rounded-xl h-10"
+              >
+                <Settings className="h-4 w-4" />
+                Settings
               </Button>
             </Link>
 
