@@ -158,11 +158,7 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
                       </button>
                     </Link>
 
-                    <a
-                      href="https://github.com/anthropics/claude-code/issues"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <Link href="/help">
                       <button
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm hover:bg-secondary transition-smooth"
