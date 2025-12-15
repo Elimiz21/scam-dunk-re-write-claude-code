@@ -170,7 +170,7 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
                         <HelpCircle className="h-4 w-4" />
                         Help
                       </button>
-                    </Link>
+                    </a>
 
                     <div className="border-t border-border mt-2 pt-2">
                       <button
