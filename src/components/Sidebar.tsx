@@ -225,11 +225,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                 Subscription
               </Button>
             </Link>
-            <a
-              href="https://github.com/anthropics/claude-code/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <Link href="/help">
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 rounded-xl h-10"
@@ -237,7 +233,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                 <HelpCircle className="h-4 w-4" />
                 Help & FAQ
               </Button>
-            </a>
+            </Link>
 
             {session && (
               <div className="pt-2 border-t border-border mt-2">

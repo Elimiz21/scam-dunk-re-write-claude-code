@@ -124,11 +124,7 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
                       </button>
                     </Link>
 
-                    <a
-                      href="https://github.com/anthropics/claude-code/issues"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <Link href="/help">
                       <button
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm hover:bg-secondary transition-smooth"
@@ -136,7 +132,7 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
                         <HelpCircle className="h-4 w-4" />
                         Help
                       </button>
-                    </a>
+                    </Link>
 
                     <div className="border-t border-border mt-2 pt-2">
                       <button
