@@ -13,6 +13,8 @@ import {
   ChevronDown,
   CreditCard,
   Loader2,
+  Info,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarToggle } from "./Sidebar";
@@ -121,6 +123,26 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
                       >
                         <CreditCard className="h-4 w-4" />
                         Subscription
+                      </button>
+                    </Link>
+
+                    <Link href="/about">
+                      <button
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm hover:bg-secondary transition-smooth"
+                      >
+                        <Info className="h-4 w-4" />
+                        About
+                      </button>
+                    </Link>
+
+                    <Link href="/disclaimer">
+                      <button
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm hover:bg-secondary transition-smooth"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Legal & Disclaimer
                       </button>
                     </Link>
 
