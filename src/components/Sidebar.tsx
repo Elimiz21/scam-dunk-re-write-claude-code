@@ -227,22 +227,13 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                 How It Works
               </Button>
             </Link>
-            <Link href="/disclaimer">
+            <Link href="/help">
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 rounded-xl h-10"
               >
                 <FileText className="h-4 w-4" />
                 Legal & Disclaimer
-              </Button>
-            </Link>
-            <Link href="/account">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
               </Button>
             </Link>
 

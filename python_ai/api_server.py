@@ -97,6 +97,15 @@ class SignalDetail(BaseModel):
     weight: int
 
 
+class StockInfo(BaseModel):
+    """Stock information from market data"""
+    company_name: Optional[str] = None
+    exchange: Optional[str] = None
+    last_price: Optional[float] = None
+    market_cap: Optional[float] = None
+    avg_volume: Optional[float] = None
+
+
 class AnalysisResponse(BaseModel):
     """Response model for scam analysis"""
     ticker: str
@@ -115,6 +124,8 @@ class AnalysisResponse(BaseModel):
     is_micro_cap: bool = False
     data_available: bool = True
     analysis_timestamp: str
+    # Additional stock info for frontend display
+    stock_info: Optional[StockInfo] = None
 
 
 class HealthResponse(BaseModel):
@@ -288,6 +299,18 @@ async def analyze_asset(request: AnalysisRequest):
 
         total_score = sum(s.weight for s in signals)
 
+        # Extract stock info from detailed report
+        data_summary = assessment.detailed_report.get('data_summary', {})
+        contextual_flags = assessment.detailed_report.get('contextual_flags', {})
+
+        stock_info = StockInfo(
+            company_name=data_summary.get('company_name') or data_summary.get('short_name'),
+            exchange=data_summary.get('exchange'),
+            last_price=data_summary.get('current_price') or data_summary.get('last_price'),
+            market_cap=data_summary.get('market_cap'),
+            avg_volume=data_summary.get('avg_daily_volume') or data_summary.get('avg_volume')
+        )
+
         return AnalysisResponse(
             ticker=request.ticker.upper(),
             asset_type=request.asset_type,
@@ -301,10 +324,11 @@ async def analyze_asset(request: AnalysisRequest):
             features=features,
             explanations=explanations if explanations else assessment.key_indicators,
             sec_flagged=assessment.sec_flagged,
-            is_otc=assessment.detailed_report.get('contextual_flags', {}).get('is_otc', False),
-            is_micro_cap=assessment.detailed_report.get('data_summary', {}).get('market_cap', float('inf')) < 50_000_000,
+            is_otc=contextual_flags.get('is_otc', False),
+            is_micro_cap=data_summary.get('market_cap', float('inf')) < 50_000_000 if data_summary.get('market_cap') else False,
             data_available=True,
-            analysis_timestamp=assessment.timestamp
+            analysis_timestamp=assessment.timestamp,
+            stock_info=stock_info
         )
 
     except Exception as e:
