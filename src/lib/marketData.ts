@@ -9,6 +9,7 @@
 
 import { MarketData, StockQuote, PriceHistory } from "./types";
 import { config } from "./config";
+import { logApiUsage } from "./admin/metrics";
 
 // Known OTC exchanges
 const OTC_EXCHANGES = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets", "OTHER_OTC"];
@@ -167,6 +168,9 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
     };
   }
 
+  const apiStartTime = Date.now();
+  let apiCallCount = 0;
+
   try {
     // Fetch quote and price history in parallel
     // Note: Be careful of rate limits (5 calls/min on free tier)
@@ -174,8 +178,17 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
       fetchQuote(normalizedTicker),
       fetchPriceHistory(normalizedTicker),
     ]);
+    apiCallCount = 2;
 
     if (!quote) {
+      const responseTime = Date.now() - apiStartTime;
+      await logApiUsage({
+        service: "ALPHA_VANTAGE",
+        endpoint: "GLOBAL_QUOTE+TIME_SERIES_DAILY",
+        responseTime,
+        statusCode: 404,
+        errorMessage: "No quote data available",
+      });
       return {
         quote: null,
         priceHistory: [],
@@ -188,6 +201,7 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
     // Adding a small delay to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 200));
     const overview = await fetchCompanyOverview(normalizedTicker);
+    apiCallCount = 3;
 
     // Update quote with overview data
     if (overview) {
@@ -216,8 +230,26 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
     // Cache the result
     cache.set(normalizedTicker, { data: marketData, timestamp: Date.now() });
 
+    // Log successful API usage (Alpha Vantage free tier: no direct cost)
+    const responseTime = Date.now() - apiStartTime;
+    await logApiUsage({
+      service: "ALPHA_VANTAGE",
+      endpoint: `${apiCallCount} calls`,
+      responseTime,
+      statusCode: 200,
+    });
+
     return marketData;
   } catch (error) {
+    const responseTime = Date.now() - apiStartTime;
+    await logApiUsage({
+      service: "ALPHA_VANTAGE",
+      endpoint: `${apiCallCount} calls`,
+      responseTime,
+      statusCode: 500,
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    });
+
     console.error("Error fetching market data:", error);
     return {
       quote: null,

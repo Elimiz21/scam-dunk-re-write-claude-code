@@ -5,7 +5,7 @@ import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
 import { generateNarrative } from "@/lib/narrative";
 import { canUserScan, incrementScanCount } from "@/lib/usage";
-import { prisma } from "@/lib/db";
+import { logScanHistory } from "@/lib/admin/metrics";
 import {
   CheckRequest,
   LimitReachedResponse,
@@ -126,6 +126,8 @@ async function callPythonAIBackend(
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
     // Check authentication
     const session = await auth();
@@ -251,25 +253,27 @@ export async function POST(request: NextRequest) {
     // Increment scan count after successful analysis
     const updatedUsage = await incrementScanCount(userId);
 
-    // Save scan to history for the user
-    try {
-      await prisma.scanHistory.create({
-        data: {
-          userId,
-          ticker,
-          assetType: checkRequest.assetType || "stock",
-          riskLevel: scoringResult.riskLevel,
-          totalScore: scoringResult.totalScore,
-          signalsCount: scoringResult.signals.length,
-          isLegitimate: scoringResult.isLegitimate,
-          pitchProvided: !!checkRequest.pitchText,
-          contextProvided: Object.values(context).some(Boolean),
-        },
-      });
-    } catch (historyError) {
-      // Don't fail the request if history save fails
-      console.error("Failed to save scan history:", historyError);
-    }
+    // Calculate processing time
+    const processingTime = Date.now() - startTime;
+
+    // Get client IP for logging (optional)
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    const ipAddress = forwardedFor ? forwardedFor.split(",")[0].trim() : undefined;
+
+    // Save scan to history and update model metrics for dashboard
+    await logScanHistory({
+      userId,
+      ticker,
+      assetType: checkRequest.assetType || "stock",
+      riskLevel: scoringResult.riskLevel,
+      totalScore: scoringResult.totalScore,
+      signalsCount: scoringResult.signals.length,
+      processingTime,
+      isLegitimate: scoringResult.isLegitimate,
+      pitchProvided: !!checkRequest.pitchText,
+      contextProvided: Object.values(context).some(Boolean),
+      ipAddress,
+    });
 
     // Build response
     const response: RiskResponse = {
