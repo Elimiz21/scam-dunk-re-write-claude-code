@@ -10,6 +10,7 @@ import OpenAI from "openai";
 import { config } from "./config";
 import { RiskLevel, RiskSignal, StockSummary, Narrative } from "./types";
 import { getSignalsByCategory } from "./scoring";
+import { logApiUsage } from "./admin/metrics";
 
 // Initialize OpenAI client (lazy initialization)
 let openaiClient: OpenAI | null = null;
@@ -47,6 +48,8 @@ export async function generateNarrative(
   if (!config.openaiApiKey) {
     return generateFallbackNarrative(riskLevel, totalScore, signals, stockSummary, isLegitimate);
   }
+
+  const apiStartTime = Date.now();
 
   try {
     const openai = getOpenAI();
@@ -87,6 +90,22 @@ Output must be valid JSON matching the exact schema provided.`,
       response_format: { type: "json_object" },
     });
 
+    const responseTime = Date.now() - apiStartTime;
+    const tokensUsed = response.usage?.total_tokens || 0;
+    // GPT-4o-mini pricing: $0.15 per 1M input tokens, $0.60 per 1M output tokens
+    // Approximate with average rate
+    const estimatedCost = tokensUsed * 0.0000003;
+
+    // Log API usage for dashboard tracking
+    await logApiUsage({
+      service: "OPENAI",
+      endpoint: "chat/completions",
+      tokensUsed,
+      estimatedCost,
+      responseTime,
+      statusCode: 200,
+    });
+
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new Error("No content in OpenAI response");
@@ -107,6 +126,16 @@ Output must be valid JSON matching the exact schema provided.`,
 
     return parsed;
   } catch (error) {
+    const responseTime = Date.now() - apiStartTime;
+    // Log the error
+    await logApiUsage({
+      service: "OPENAI",
+      endpoint: "chat/completions",
+      responseTime,
+      statusCode: 500,
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    });
+
     console.error("Error generating narrative with LLM:", error);
     // Fall back to deterministic narrative
     return generateFallbackNarrative(riskLevel, totalScore, signals, stockSummary, isLegitimate);
