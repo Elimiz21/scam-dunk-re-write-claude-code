@@ -27,10 +27,12 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setShowVerificationPrompt(false);
     setIsLoading(true);
 
     try {
@@ -41,14 +43,20 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        // Check if it's an email verification error
+        if (result.error.includes("EMAIL_NOT_VERIFIED")) {
+          setShowVerificationPrompt(true);
+          setError("Please verify your email before logging in.");
+        } else {
+          setError("Invalid email or password");
+        }
         setIsLoading(false);
         return;
       }
 
       router.push(callbackUrl);
       router.refresh();
-    } catch (err) {
+    } catch {
       setError("An error occurred. Please try again.");
       setIsLoading(false);
     }
@@ -61,6 +69,16 @@ function LoginForm() {
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
+        )}
+        {showVerificationPrompt && (
+          <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+              Need a new verification email?{" "}
+              <Link href={`/check-email?email=${encodeURIComponent(email)}`} className="font-medium underline">
+                Resend verification
+              </Link>
+            </p>
+          </div>
         )}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -75,7 +93,12 @@ function LoginForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <Input
             id="password"
             type="password"
