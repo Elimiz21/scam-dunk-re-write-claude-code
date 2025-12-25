@@ -31,7 +31,7 @@ export async function sendVerificationEmail(email: string, token: string): Promi
 
   try {
     const resend = getResend();
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: 'Verify your ScamDunk account',
@@ -77,6 +77,13 @@ export async function sendVerificationEmail(email: string, token: string): Promi
         </html>
       `,
     });
+
+    if (result.error) {
+      console.error('Resend API error (verification):', result.error);
+      return false;
+    }
+
+    console.log('Verification email sent successfully to:', email, 'ID:', result.data?.id);
     return true;
   } catch (error) {
     console.error('Failed to send verification email:', error);
@@ -89,7 +96,7 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
 
   try {
     const resend = getResend();
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: 'Reset your ScamDunk password',
@@ -135,6 +142,13 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
         </html>
       `,
     });
+
+    if (result.error) {
+      console.error('Resend API error (password reset):', result.error);
+      return false;
+    }
+
+    console.log('Password reset email sent successfully to:', email, 'ID:', result.data?.id);
     return true;
   } catch (error) {
     console.error('Failed to send password reset email:', error);
