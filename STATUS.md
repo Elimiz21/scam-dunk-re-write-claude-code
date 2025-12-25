@@ -1,208 +1,234 @@
 # ScamDunk Development Status
 
-## Last Updated: December 7, 2024
+## Last Updated: December 25, 2024
 
 ---
 
-## Current Status: Production Ready & Deployed
+## Current Status: Email Verification Implemented - Awaiting Domain Setup
 
-The ScamDunk V1 application is fully implemented with real API integrations and deployed to Vercel.
+The email verification and password reset features are fully coded and deployed. The only remaining step is to verify your domain in Resend so emails can be delivered to any address.
 
 ---
 
-## Completed Features
+## Recently Completed (December 25, 2024)
+
+### Email Verification System
+- [x] **Database Schema Updated** (`prisma/schema.prisma`)
+  - Added `EmailVerificationToken` model
+  - Added `PasswordResetToken` model
+  - Tables created in Supabase production database
+
+- [x] **Email Service** (`src/lib/email.ts`)
+  - Resend integration for transactional emails
+  - HTML email templates for verification and password reset
+  - Error logging for debugging email delivery issues
+
+- [x] **Token Management** (`src/lib/tokens.ts`)
+  - Secure token generation using crypto.randomBytes
+  - Email verification tokens (24-hour expiry)
+  - Password reset tokens (1-hour expiry)
+  - Automatic cleanup of old tokens
+
+- [x] **API Endpoints**
+  - `POST /api/auth/register` - Updated to send verification email
+  - `GET /api/auth/verify-email` - Verifies token and marks email verified
+  - `POST /api/auth/resend-verification` - Resends verification email
+  - `POST /api/auth/forgot-password` - Sends password reset email
+  - `POST /api/auth/reset-password` - Resets password with valid token
+
+- [x] **UI Pages**
+  - `/verify-email` - Handles verification link clicks
+  - `/check-email` - Allows resending verification email
+  - `/forgot-password` - Request password reset
+  - `/reset-password` - Set new password with token
+  - `/login` - Added "Forgot password?" link
+  - `/signup` - Redirects to check-email after registration
+
+- [x] **Auth Flow Updates** (`src/lib/auth.ts`)
+  - Blocks login for unverified email addresses
+  - Shows helpful error message with resend option
+
+- [x] **Cloudflare Turnstile CAPTCHA** (optional)
+  - Component ready (`src/components/turnstile.tsx`)
+  - Server-side verification (`src/lib/turnstile.ts`)
+  - Activated when `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are set
+
+- [x] **Security Fixes**
+  - Updated Next.js to 14.2.35 (fixed CVE-2025-55184, CVE-2025-67779)
+
+---
+
+## IMMEDIATE NEXT STEPS: Resend Domain Verification
+
+**Current Issue**: Emails are not being delivered because we're using Resend's test sender (`onboarding@resend.dev`), which can only send to the Resend account owner's email.
+
+### Step-by-Step Instructions
+
+#### Step 1: Log into Resend
+1. Go to https://resend.com/login
+2. Sign in with your account
+
+#### Step 2: Add Your Domain
+1. Go to https://resend.com/domains
+2. Click "Add Domain"
+3. Enter your domain: `scamdunk.com`
+4. Click "Add"
+
+#### Step 3: Add DNS Records
+Resend will show you DNS records to add. Go to your domain registrar (e.g., GoDaddy, Namecheap, Cloudflare) and add:
+
+1. **SPF Record** (TXT)
+   - Type: `TXT`
+   - Name: `@` or leave blank
+   - Value: `v=spf1 include:resend.com ~all`
+
+2. **DKIM Records** (CNAME) - Resend will provide 3 CNAME records
+   - Copy each record exactly as shown in Resend
+
+3. **DMARC Record** (TXT) - Optional but recommended
+   - Type: `TXT`
+   - Name: `_dmarc`
+   - Value: `v=DMARC1; p=none;`
+
+#### Step 4: Wait for Verification
+- DNS propagation can take 5 minutes to 48 hours
+- Resend will show "Verified" when complete
+- You can click "Verify" to check status
+
+#### Step 5: Update Environment Variables
+Once the domain is verified, add this environment variable to **both Vercel and Railway**:
+
+```
+EMAIL_FROM=ScamDunk <noreply@scamdunk.com>
+```
+
+**In Vercel:**
+1. Go to your project → Settings → Environment Variables
+2. Add `EMAIL_FROM` with value `ScamDunk <noreply@scamdunk.com>`
+3. Redeploy
+
+**In Railway:**
+1. Go to your project → Variables
+2. Add `EMAIL_FROM` with value `ScamDunk <noreply@scamdunk.com>`
+3. Redeploy
+
+#### Step 6: Test the Flow
+1. Go to your live site
+2. Click "Sign Up"
+3. Enter an email and password
+4. Check your inbox for the verification email
+5. Click the verification link
+6. You should now be able to log in
+
+---
+
+## Environment Variables Reference
+
+### Required for Email
+```
+RESEND_API_KEY=re_xxxxxxxx          # Already set
+EMAIL_FROM=ScamDunk <noreply@scamdunk.com>  # Add after domain verification
+```
+
+### Optional: CAPTCHA (Cloudflare Turnstile)
+```
+TURNSTILE_SITE_KEY=0x4AAAAAAA...     # Get from Cloudflare dashboard
+TURNSTILE_SECRET_KEY=0x4AAAAAAA...   # Get from Cloudflare dashboard
+```
+
+---
+
+## Previously Completed Features
 
 ### Core Functionality
-- [x] **Risk Scoring Engine** (`src/lib/scoring.ts`)
-  - Deterministic scoring with no LLM involvement
-  - All signal types implemented (STRUCTURAL, PATTERN, ALERT, BEHAVIORAL)
-  - NLP keyword detection for behavioral signals
-  - 24 unit tests passing
-
-- [x] **Stock Check API** (`src/app/api/check/route.ts`)
-  - Validates authentication
-  - Checks usage limits
-  - Fetches real market data via Alpha Vantage API
-  - Computes risk score
-  - Generates narrative via OpenAI GPT-4
-  - Returns structured response
-
-- [x] **Real Market Data** (`src/lib/marketData.ts`)
-  - Alpha Vantage GLOBAL_QUOTE for current prices
-  - Alpha Vantage OVERVIEW for company details
-  - Alpha Vantage TIME_SERIES_DAILY for price history
-  - In-memory caching (5 minute TTL) to reduce API calls
-  - Graceful error handling for API failures
-
-- [x] **SEC Alert List Checking** (`src/lib/marketData.ts`)
-  - Checks SEC trading suspensions RSS feed
-  - Returns false on network errors (doesn't block analysis)
-
-- [x] **Usage Tracking** (`src/lib/usage.ts`)
-  - Per-user monthly tracking
-  - FREE: 5 checks/month
-  - PAID: 200 checks/month
-  - Automatic reset each month
-
-- [x] **Narrative Generation** (`src/lib/narrative.ts`)
-  - OpenAI GPT-4 integration for human-readable explanations
-  - Fallback to deterministic narrative when API fails
-  - Structured output with headers, red flags, suggestions, disclaimers
+- [x] **Risk Scoring Engine** - Deterministic scoring with 24 unit tests
+- [x] **Stock Check API** - Real market data via Alpha Vantage
+- [x] **SEC Alert List Checking** - RSS feed integration
+- [x] **Usage Tracking** - FREE: 5/month, PAID: 200/month
+- [x] **Narrative Generation** - OpenAI GPT-4 integration
 
 ### Authentication
-- [x] **NextAuth.js v5 Integration** (`src/lib/auth.ts`)
-  - Email/password credentials provider
-  - JWT session strategy
-  - User plan included in session
-  - Edge-compatible middleware configuration
-
-- [x] **Registration** (`src/app/api/auth/register/route.ts`)
-  - Email validation
-  - Password hashing with bcryptjs
-  - Duplicate email detection
-
-- [x] **Protected Routes** (`src/middleware.ts`)
-  - /check/* requires authentication
-  - /account/* requires authentication
-  - /api/check, /api/billing, /api/user require authentication
+- [x] **NextAuth.js v5** - Email/password with JWT sessions
+- [x] **Email Verification** - Full flow implemented (awaiting domain setup)
+- [x] **Password Reset** - Full flow implemented (awaiting domain setup)
+- [x] **Protected Routes** - Middleware configuration
 
 ### Database
-- [x] **Prisma Schema** (`prisma/schema.prisma`)
-  - User model with plan field
-  - ScanUsage model for tracking
-  - PostgreSQL (Supabase) connection configured
-
-### UI/UX
-- [x] **Landing Page** (`src/app/page.tsx`)
-- [x] **Login/Signup Pages** (`src/app/(auth)/`)
-- [x] **Stock Check Page** (`src/app/(protected)/check/page.tsx`)
-- [x] **Risk Card Component** (`src/components/RiskCard.tsx`)
-- [x] **Account Page** (`src/app/(protected)/account/page.tsx`)
-- [x] **Mobile Responsiveness**
+- [x] **Prisma + Supabase** - PostgreSQL with all models
 
 ### Billing
-- [x] **Stripe Integration** (`src/lib/billing.ts`)
-  - Checkout session creation
-  - Portal session creation
-  - Webhook handling for subscription events
-  - Ready for production (add Stripe keys to enable)
+- [x] **Stripe Integration** - Ready for production
 
 ---
 
-## Environment Configuration
+## Deployment Status
 
-Production environment (Vercel):
-- ✅ DATABASE_URL configured (Supabase PostgreSQL)
-- ✅ DIRECT_URL configured (Supabase PostgreSQL)
-- ✅ AUTH_SECRET configured
-- ✅ NEXTAUTH_URL configured
-- ✅ OPENAI_API_KEY configured
-- ✅ ALPHA_VANTAGE_API_KEY configured
-- ⚠️ STRIPE keys not configured (optional - for paid upgrades)
+| Platform | Status | Notes |
+|----------|--------|-------|
+| Vercel   | ✅ Deployed | Main production environment |
+| Railway  | ✅ Deployed | Updated Next.js to fix vulnerabilities |
+| Supabase | ✅ Active | Database with email token tables |
 
 ---
 
-## API Integrations
+## Files Modified in This Update
 
-### Alpha Vantage (Market Data)
-- **Status**: Fully Implemented
-- **Endpoints Used**:
-  - `GLOBAL_QUOTE` - Current stock price and volume
-  - `OVERVIEW` - Company name, exchange, market cap
-  - `TIME_SERIES_DAILY` - 100 days of price history
-- **Rate Limits**: 5 calls/minute, 500/day (free tier)
-- **Caching**: 5-minute in-memory cache
-
-### OpenAI (Narrative Generation)
-- **Status**: Fully Implemented
-- **Model**: gpt-4o-mini
-- **Fallback**: Deterministic narrative if API fails
-
-### SEC (Alert List)
-- **Status**: Implemented
-- **Source**: SEC EDGAR RSS feed
-- **Behavior**: Returns false on network error (non-blocking)
-
----
-
-## Test Results
-
-```
-Test Suites: 2 passed, 2 total
-Tests:       43 passed, 43 total
-
-Scoring Tests: 24 passed
-E2E Integration Tests: 19 passed
-```
+- `prisma/schema.prisma` - Added token models
+- `src/lib/email.ts` - Email service with Resend
+- `src/lib/tokens.ts` - Token generation utilities
+- `src/lib/turnstile.ts` - CAPTCHA verification
+- `src/lib/auth.ts` - Block unverified logins
+- `src/components/turnstile.tsx` - CAPTCHA component
+- `src/app/api/auth/register/route.ts` - Send verification on signup
+- `src/app/api/auth/verify-email/route.ts` - New endpoint
+- `src/app/api/auth/resend-verification/route.ts` - New endpoint
+- `src/app/api/auth/forgot-password/route.ts` - New endpoint
+- `src/app/api/auth/reset-password/route.ts` - New endpoint
+- `src/app/(auth)/verify-email/page.tsx` - New page
+- `src/app/(auth)/check-email/page.tsx` - New page
+- `src/app/(auth)/forgot-password/page.tsx` - New page
+- `src/app/(auth)/reset-password/page.tsx` - New page
+- `src/app/(auth)/login/page.tsx` - Added forgot password link
+- `src/app/(auth)/signup/page.tsx` - Updated flow
+- `.env.example` - Added new variables
+- `package.json` - Added resend, updated next
 
 ---
-
-## Deployment Instructions
-
-### 1. Vercel Deployment (Recommended)
-
-1. Push code to GitHub
-2. Import project in Vercel
-3. Add environment variables:
-   ```
-   DATABASE_URL=postgresql://...
-   DIRECT_URL=postgresql://...
-   NEXTAUTH_SECRET=your-secret
-   NEXTAUTH_URL=https://your-domain.vercel.app
-   OPENAI_API_KEY=sk-...
-   ALPHA_VANTAGE_API_KEY=your-key
-   ```
-4. Deploy
-
-### 2. Database Setup
-
-Run Prisma migrations:
-```bash
-npx prisma db push
-```
-
-### 3. Stripe Setup (When Ready)
-
-1. Create Stripe account
-2. Create product "ScamDunk Pro" with monthly price
-3. Add to environment:
-   ```
-   STRIPE_SECRET_KEY=sk_live_...
-   STRIPE_PUBLISHABLE_KEY=pk_live_...
-   STRIPE_WEBHOOK_SECRET=whsec_...
-   STRIPE_PRICE_PAID_PLAN_ID=price_...
-   ```
-
----
-
-## Completed Tasks (December 7, 2024)
-
-- [x] Deployed to Vercel
-- [x] Database schema pushed to Supabase
-- [x] AUTH_SECRET configured for production
-- [x] Real Alpha Vantage API integration working
-- [x] Real OpenAI API integration working
-- [x] NextAuth v5 configured with trustHost for Vercel
-- [x] Comprehensive E2E test suite (43 tests passing)
-- [x] TypeScript build passing with no errors
 
 ## Remaining Tasks
 
 ### High Priority
+- [ ] **Verify domain in Resend** (see instructions above)
 - [ ] Configure Stripe for paid plan upgrades
-- [ ] Test live app with various stock tickers
+- [ ] Test complete email verification flow end-to-end
 
 ### Medium Priority
 - [ ] Add rate limiting to API routes
 - [ ] Set up error monitoring (Sentry)
 - [ ] Add analytics
+- [ ] Enable Turnstile CAPTCHA for bot protection
 
 ### Future Enhancements
 - [ ] OAuth providers (Google, GitHub)
-- [ ] Email verification
-- [ ] Password reset
 - [ ] Save scan history
 - [ ] PDF report export
+
+---
+
+## Quick Reference: Testing Email After Domain Setup
+
+```bash
+# 1. Sign up with any email
+# 2. Check inbox for verification email
+# 3. Click verification link
+# 4. Try logging in - should work now
+
+# To test password reset:
+# 1. Go to /forgot-password
+# 2. Enter your email
+# 3. Check inbox for reset link
+# 4. Click link and set new password
+```
 
 ---
 
