@@ -75,7 +75,19 @@ export async function POST(request: NextRequest) {
 
     // Create verification token and send email
     const verificationToken = await createEmailVerificationToken(email);
-    await sendVerificationEmail(email, verificationToken);
+    const emailSent = await sendVerificationEmail(email, verificationToken);
+
+    if (!emailSent) {
+      // Delete the user if we couldn't send the verification email
+      // so they can try again
+      await prisma.user.delete({ where: { id: user.id } });
+      await prisma.emailVerificationToken.deleteMany({ where: { email } });
+
+      return NextResponse.json(
+        { error: "Failed to send verification email. Please try again." },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -85,11 +97,31 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Registration error:", error);
 
-    // Return more specific error for debugging
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    // Check for specific error types and return user-friendly messages
+    // Never expose internal error details to the client
+    let statusCode = 500;
+    let userMessage = "Registration failed. Please try again later.";
+
+    // Check for database connection errors
+    if (error instanceof Error) {
+      const errorString = error.message.toLowerCase();
+      if (
+        errorString.includes("database") ||
+        errorString.includes("prisma") ||
+        errorString.includes("connection") ||
+        errorString.includes("environment variable")
+      ) {
+        userMessage = "Service temporarily unavailable. Please try again later.";
+        statusCode = 503;
+      } else if (errorString.includes("network") || errorString.includes("fetch")) {
+        userMessage = "Unable to complete registration. Please check your connection.";
+        statusCode = 503;
+      }
+    }
+
     return NextResponse.json(
-      { error: `Registration failed: ${errorMessage}` },
-      { status: 500 }
+      { error: userMessage },
+      { status: statusCode }
     );
   }
 }

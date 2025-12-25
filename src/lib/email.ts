@@ -21,7 +21,9 @@ function getResend(): Resend {
   return resendInstance;
 }
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'ScamDunk <noreply@scamdunk.com>';
+// Use Resend's test email if no verified domain is configured
+// To use your own domain, verify it at https://resend.com/domains and set EMAIL_FROM
+const FROM_EMAIL = process.env.EMAIL_FROM || 'ScamDunk <onboarding@resend.dev>';
 const APP_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 export async function sendVerificationEmail(email: string, token: string): Promise<boolean> {

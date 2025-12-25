@@ -47,6 +47,11 @@ function LoginForm() {
         if (result.error.includes("EMAIL_NOT_VERIFIED")) {
           setShowVerificationPrompt(true);
           setError("Please verify your email before logging in.");
+        } else if (result.error === "Configuration" || result.error.includes("Configuration")) {
+          // Server configuration error - database/environment issue
+          setError("Service temporarily unavailable. Please try again later.");
+        } else if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password");
         } else {
           setError("Invalid email or password");
         }
@@ -56,8 +61,10 @@ function LoginForm() {
 
       router.push(callbackUrl);
       router.refresh();
-    } catch {
-      setError("An error occurred. Please try again.");
+    } catch (err) {
+      // Handle network/fetch errors gracefully
+      console.error("Login error:", err);
+      setError("Unable to complete login. Please check your connection and try again.");
       setIsLoading(false);
     }
   };
