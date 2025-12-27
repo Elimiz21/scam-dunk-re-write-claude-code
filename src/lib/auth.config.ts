@@ -22,8 +22,25 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
+
+      // Auth pages that should always be accessible (not protected)
+      const isAuthPage =
+        nextUrl.pathname.startsWith("/login") ||
+        nextUrl.pathname.startsWith("/signup") ||
+        nextUrl.pathname.startsWith("/verify-email") ||
+        nextUrl.pathname.startsWith("/check-email") ||
+        nextUrl.pathname.startsWith("/forgot-password") ||
+        nextUrl.pathname.startsWith("/reset-password") ||
+        nextUrl.pathname.startsWith("/error");
+
+      // Allow auth pages without authentication
+      if (isAuthPage) {
+        return true;
+      }
+
       const isProtectedRoute =
-        nextUrl.pathname.startsWith("/check") ||
+        nextUrl.pathname === "/check" ||
+        nextUrl.pathname.startsWith("/check/") ||
         nextUrl.pathname.startsWith("/account") ||
         nextUrl.pathname.startsWith("/api/check") ||
         nextUrl.pathname.startsWith("/api/billing") ||
