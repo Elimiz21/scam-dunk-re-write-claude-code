@@ -1,133 +1,110 @@
 # ScamDunk Development Status
 
-## Last Updated: December 25, 2024
+## Last Updated: December 27, 2024
 
 ---
 
-## Current Status: Email Verification Implemented - Awaiting Domain Setup
+## Current Status: Email Verification Link Not Working
 
-The email verification and password reset features are fully coded and deployed. The only remaining step is to verify your domain in Resend so emails can be delivered to any address.
+The email system is configured and emails are being delivered successfully. However, clicking the verification link in the email results in an error. The verification page loads but fails to verify the token.
 
----
+### What's Working
+- ✅ Resend domain verified (scamdunk.com)
+- ✅ DNS records configured (DKIM, SPF, MX)
+- ✅ `EMAIL_FROM` environment variable set in Vercel
+- ✅ Signup flow works
+- ✅ Verification emails are delivered to any email address
+- ✅ Auth middleware fixed to allow access to verification pages
 
-## Recently Completed (December 25, 2024)
-
-### Email Verification System
-- [x] **Database Schema Updated** (`prisma/schema.prisma`)
-  - Added `EmailVerificationToken` model
-  - Added `PasswordResetToken` model
-  - Tables created in Supabase production database
-
-- [x] **Email Service** (`src/lib/email.ts`)
-  - Resend integration for transactional emails
-  - HTML email templates for verification and password reset
-  - Error logging for debugging email delivery issues
-
-- [x] **Token Management** (`src/lib/tokens.ts`)
-  - Secure token generation using crypto.randomBytes
-  - Email verification tokens (24-hour expiry)
-  - Password reset tokens (1-hour expiry)
-  - Automatic cleanup of old tokens
-
-- [x] **API Endpoints**
-  - `POST /api/auth/register` - Updated to send verification email
-  - `GET /api/auth/verify-email` - Verifies token and marks email verified
-  - `POST /api/auth/resend-verification` - Resends verification email
-  - `POST /api/auth/forgot-password` - Sends password reset email
-  - `POST /api/auth/reset-password` - Resets password with valid token
-
-- [x] **UI Pages**
-  - `/verify-email` - Handles verification link clicks
-  - `/check-email` - Allows resending verification email
-  - `/forgot-password` - Request password reset
-  - `/reset-password` - Set new password with token
-  - `/login` - Added "Forgot password?" link
-  - `/signup` - Redirects to check-email after registration
-
-- [x] **Auth Flow Updates** (`src/lib/auth.ts`)
-  - Blocks login for unverified email addresses
-  - Shows helpful error message with resend option
-
-- [x] **Cloudflare Turnstile CAPTCHA** (optional)
-  - Component ready (`src/components/turnstile.tsx`)
-  - Server-side verification (`src/lib/turnstile.ts`)
-  - Activated when `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are set
-
-- [x] **Security Fixes**
-  - Updated Next.js to 14.2.35 (fixed CVE-2025-55184, CVE-2025-67779)
+### What's Not Working
+- ❌ Clicking verification link in email fails to verify the account
+- The `/verify-email?token=xxx` page loads but verification fails
 
 ---
 
-## IMMEDIATE NEXT STEPS: Resend Domain Verification
+## Work Completed Today (December 27, 2024)
 
-**Current Issue**: Emails are not being delivered because we're using Resend's test sender (`onboarding@resend.dev`), which can only send to the Resend account owner's email.
+### Resend Domain Setup
+- [x] Added `scamdunk.com` domain to Resend
+- [x] Configured DNS records in Vercel:
+  - TXT record for DKIM (`resend._domainkey`)
+  - MX record (`send` → `feedback-smtp.eu-west-1.amazonses.com`)
+  - TXT record for SPF (`send` → `v=spf1 include:amazonses.com ~all`)
+- [x] Domain verified successfully in Resend
 
-### Step-by-Step Instructions
+### Vercel Configuration
+- [x] Added `EMAIL_FROM` environment variable: `ScamDunk <noreply@scamdunk.com>`
+- [x] Redeployed with cache cleared
 
-#### Step 1: Log into Resend
-1. Go to https://resend.com/login
-2. Sign in with your account
+### Auth Middleware Fix
+- [x] Fixed bug where `/check-email` was blocked by middleware
+  - The middleware was treating `/check-email` as protected because it matched `/check` prefix
+  - Updated `src/lib/auth.config.ts` to explicitly allow auth pages:
+    - `/login`, `/signup`, `/verify-email`, `/check-email`
+    - `/forgot-password`, `/reset-password`, `/error`
+  - Changed `/check` route matching to be exact (`===`) instead of prefix-based
 
-#### Step 2: Add Your Domain
-1. Go to https://resend.com/domains
-2. Click "Add Domain"
-3. Enter your domain: `scamdunk.com`
-4. Click "Add"
+### Testing Results
+- [x] Signup creates account successfully
+- [x] Verification email is sent and delivered
+- [x] Email arrives from `noreply@scamdunk.com`
+- [ ] **BLOCKED**: Verification link click fails
 
-#### Step 3: Add DNS Records
-Resend will show you DNS records to add. Go to your domain registrar (e.g., GoDaddy, Namecheap, Cloudflare) and add:
+---
 
-1. **SPF Record** (TXT)
-   - Type: `TXT`
-   - Name: `@` or leave blank
-   - Value: `v=spf1 include:resend.com ~all`
+## IMMEDIATE NEXT STEPS
 
-2. **DKIM Records** (CNAME) - Resend will provide 3 CNAME records
-   - Copy each record exactly as shown in Resend
+### 1. Debug Verification Link Issue (High Priority)
 
-3. **DMARC Record** (TXT) - Optional but recommended
-   - Type: `TXT`
-   - Name: `_dmarc`
-   - Value: `v=DMARC1; p=none;`
+The verification link format is:
+```
+https://scamdunk.com/verify-email?token=<64-character-hex-token>
+```
 
-#### Step 4: Wait for Verification
-- DNS propagation can take 5 minutes to 48 hours
-- Resend will show "Verified" when complete
-- You can click "Verify" to check status
+**Possible causes to investigate:**
+1. **Token not found in database** - Token may not be saving correctly
+2. **Token already consumed** - Token is deleted after first use
+3. **API endpoint error** - `/api/auth/verify-email` may be failing
+4. **NEXTAUTH_URL mismatch** - Email may contain wrong URL
 
-#### Step 5: Update Environment Variables
-Once the domain is verified, add this environment variable to **both Vercel and Railway**:
+**Debugging steps:**
+1. Check Vercel logs for errors when clicking verification link
+2. Verify `NEXTAUTH_URL` is set to `https://scamdunk.com` in Vercel
+3. Test the API endpoint directly with a known token
+4. Check database for `EmailVerificationToken` records
+
+### 2. Environment Variables to Verify
+
+Ensure these are set correctly in Vercel:
 
 ```
+NEXTAUTH_URL=https://scamdunk.com
+NEXTAUTH_SECRET=<your-secret>
+DATABASE_URL=<supabase-connection-string>
+RESEND_API_KEY=re_xxxxxxxx
 EMAIL_FROM=ScamDunk <noreply@scamdunk.com>
 ```
 
-**In Vercel:**
-1. Go to your project → Settings → Environment Variables
-2. Add `EMAIL_FROM` with value `ScamDunk <noreply@scamdunk.com>`
-3. Redeploy
+### 3. After Fixing Verification
 
-**In Railway:**
-1. Go to your project → Variables
-2. Add `EMAIL_FROM` with value `ScamDunk <noreply@scamdunk.com>`
-3. Redeploy
-
-#### Step 6: Test the Flow
-1. Go to your live site
-2. Click "Sign Up"
-3. Enter an email and password
-4. Check your inbox for the verification email
-5. Click the verification link
-6. You should now be able to log in
+- [ ] Test complete signup → verify → login flow
+- [ ] Test forgot password → reset flow
+- [ ] Configure Stripe for paid plan upgrades
 
 ---
 
 ## Environment Variables Reference
 
-### Required for Email
+### Required for Email (All Set)
 ```
-RESEND_API_KEY=re_xxxxxxxx          # Already set
-EMAIL_FROM=ScamDunk <noreply@scamdunk.com>  # Add after domain verification
+RESEND_API_KEY=re_xxxxxxxx          # ✅ Set
+EMAIL_FROM=ScamDunk <noreply@scamdunk.com>  # ✅ Set
+```
+
+### Required for Auth
+```
+NEXTAUTH_URL=https://scamdunk.com   # Verify this is set!
+NEXTAUTH_SECRET=<secret>            # ✅ Set
 ```
 
 ### Optional: CAPTCHA (Cloudflare Turnstile)
@@ -149,12 +126,14 @@ TURNSTILE_SECRET_KEY=0x4AAAAAAA...   # Get from Cloudflare dashboard
 
 ### Authentication
 - [x] **NextAuth.js v5** - Email/password with JWT sessions
-- [x] **Email Verification** - Full flow implemented (awaiting domain setup)
-- [x] **Password Reset** - Full flow implemented (awaiting domain setup)
-- [x] **Protected Routes** - Middleware configuration
+- [x] **Email Verification** - Code complete, link verification failing
+- [x] **Password Reset** - Code complete, needs testing after verification fix
+- [x] **Protected Routes** - Middleware configuration fixed
 
 ### Database
 - [x] **Prisma + Supabase** - PostgreSQL with all models
+- [x] **EmailVerificationToken** model
+- [x] **PasswordResetToken** model
 
 ### Billing
 - [x] **Stripe Integration** - Ready for production
@@ -165,42 +144,25 @@ TURNSTILE_SECRET_KEY=0x4AAAAAAA...   # Get from Cloudflare dashboard
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| Vercel   | ✅ Deployed | Main production environment |
-| Railway  | ✅ Deployed | Updated Next.js to fix vulnerabilities |
+| Vercel   | ✅ Deployed | Main production environment, EMAIL_FROM configured |
+| Railway  | ✅ Deployed | Python AI backend |
 | Supabase | ✅ Active | Database with email token tables |
+| Resend   | ✅ Verified | Domain scamdunk.com verified |
 
 ---
 
-## Files Modified in This Update
+## Files Modified Today
 
-- `prisma/schema.prisma` - Added token models
-- `src/lib/email.ts` - Email service with Resend
-- `src/lib/tokens.ts` - Token generation utilities
-- `src/lib/turnstile.ts` - CAPTCHA verification
-- `src/lib/auth.ts` - Block unverified logins
-- `src/components/turnstile.tsx` - CAPTCHA component
-- `src/app/api/auth/register/route.ts` - Send verification on signup
-- `src/app/api/auth/verify-email/route.ts` - New endpoint
-- `src/app/api/auth/resend-verification/route.ts` - New endpoint
-- `src/app/api/auth/forgot-password/route.ts` - New endpoint
-- `src/app/api/auth/reset-password/route.ts` - New endpoint
-- `src/app/(auth)/verify-email/page.tsx` - New page
-- `src/app/(auth)/check-email/page.tsx` - New page
-- `src/app/(auth)/forgot-password/page.tsx` - New page
-- `src/app/(auth)/reset-password/page.tsx` - New page
-- `src/app/(auth)/login/page.tsx` - Added forgot password link
-- `src/app/(auth)/signup/page.tsx` - Updated flow
-- `.env.example` - Added new variables
-- `package.json` - Added resend, updated next
+- `src/lib/auth.config.ts` - Fixed middleware to allow auth pages without login
 
 ---
 
 ## Remaining Tasks
 
 ### High Priority
-- [ ] **Verify domain in Resend** (see instructions above)
-- [ ] Configure Stripe for paid plan upgrades
+- [ ] **Fix verification link** (see debugging steps above)
 - [ ] Test complete email verification flow end-to-end
+- [ ] Configure Stripe for paid plan upgrades
 
 ### Medium Priority
 - [ ] Add rate limiting to API routes
@@ -215,13 +177,14 @@ TURNSTILE_SECRET_KEY=0x4AAAAAAA...   # Get from Cloudflare dashboard
 
 ---
 
-## Quick Reference: Testing Email After Domain Setup
+## Quick Reference: Testing After Fix
 
 ```bash
-# 1. Sign up with any email
-# 2. Check inbox for verification email
+# 1. Sign up with any email at https://scamdunk.com/signup
+# 2. Check inbox for verification email from noreply@scamdunk.com
 # 3. Click verification link
-# 4. Try logging in - should work now
+# 4. Should see "Email verified!" success message
+# 5. Try logging in at https://scamdunk.com/login
 
 # To test password reset:
 # 1. Go to /forgot-password
