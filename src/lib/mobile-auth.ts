@@ -1,0 +1,157 @@
+/**
+ * Mobile Authentication Module
+ *
+ * Provides JWT-based authentication for mobile clients.
+ * Web app uses NextAuth sessions, mobile app uses JWTs.
+ */
+
+import jwt from "jsonwebtoken";
+import { prisma } from "./db";
+import { Plan } from "./types";
+
+// JWT Configuration
+const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-change-me";
+const JWT_EXPIRY = "7d";
+const JWT_REFRESH_EXPIRY = "30d";
+
+interface JWTPayload {
+  userId: string;
+  email: string;
+  type: "access" | "refresh";
+  iat?: number;
+  exp?: number;
+}
+
+interface MobileUser {
+  id: string;
+  email: string;
+  name: string | null;
+  plan: Plan;
+}
+
+/**
+ * Generate an access token for mobile authentication
+ */
+export function generateAccessToken(userId: string, email: string): string {
+  const payload: JWTPayload = {
+    userId,
+    email,
+    type: "access",
+  };
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+}
+
+/**
+ * Generate a refresh token for mobile authentication
+ */
+export function generateRefreshToken(userId: string, email: string): string {
+  const payload: JWTPayload = {
+    userId,
+    email,
+    type: "refresh",
+  };
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRY });
+}
+
+/**
+ * Verify and decode a JWT token
+ */
+export function verifyToken(token: string): JWTPayload | null {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    return decoded;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Extract Bearer token from Authorization header
+ */
+function extractBearerToken(authHeader: string | null): string | null {
+  if (!authHeader?.startsWith("Bearer ")) {
+    return null;
+  }
+  return authHeader.slice(7);
+}
+
+/**
+ * Authenticate a mobile request using JWT
+ * Returns the user ID if valid, null otherwise
+ */
+export async function authenticateMobileRequest(
+  request: Request
+): Promise<string | null> {
+  const authHeader = request.headers.get("Authorization");
+  const token = extractBearerToken(authHeader);
+
+  if (!token) {
+    return null;
+  }
+
+  const payload = verifyToken(token);
+
+  if (!payload || payload.type !== "access") {
+    return null;
+  }
+
+  // Verify user still exists in database
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: { id: true },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  return payload.userId;
+}
+
+/**
+ * Get full user data for mobile response
+ */
+export async function getMobileUser(userId: string): Promise<MobileUser | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      plan: true,
+    },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    plan: user.plan as Plan,
+  };
+}
+
+/**
+ * Authenticate with either session (web) or JWT (mobile)
+ * This is a universal auth helper that works for both clients
+ */
+export async function getAuthenticatedUserId(
+  request: Request,
+  sessionAuth: () => Promise<{ user?: { id?: string } } | null>
+): Promise<string | null> {
+  // Try session auth first (web)
+  try {
+    const session = await sessionAuth();
+    if (session?.user?.id) {
+      return session.user.id;
+    }
+  } catch {
+    // Session auth failed, try JWT
+  }
+
+  // Fall back to JWT auth (mobile)
+  return authenticateMobileRequest(request);
+}

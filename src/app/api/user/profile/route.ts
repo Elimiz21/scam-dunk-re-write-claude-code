@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
+import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/db";
 
 const updateProfileSchema = z.object({
@@ -16,9 +17,17 @@ const changePasswordSchema = z.object({
 // Update profile (name)
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await auth();
+    // Support both session (web) and JWT (mobile) auth
+    let userId: string | null = null;
 
-    if (!session?.user?.email) {
+    const session = await auth();
+    if (session?.user?.id) {
+      userId = session.user.id;
+    } else {
+      userId = await authenticateMobileRequest(request);
+    }
+
+    if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -38,9 +47,9 @@ export async function PATCH(request: NextRequest) {
     const { name } = validation.data;
 
     const user = await prisma.user.update({
-      where: { email: session.user.email },
+      where: { id: userId },
       data: { name: name || null },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true, email: true, plan: true },
     });
 
     return NextResponse.json({ success: true, user });
@@ -53,12 +62,62 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// Get user profile
+export async function GET(request: NextRequest) {
+  try {
+    // Support both session (web) and JWT (mobile) auth
+    let userId: string | null = null;
+
+    const session = await auth();
+    if (session?.user?.id) {
+      userId = session.user.id;
+    } else {
+      userId = await authenticateMobileRequest(request);
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, plan: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error("Get profile error:", error);
+    return NextResponse.json(
+      { error: "Failed to get profile" },
+      { status: 500 }
+    );
+  }
+}
+
 // Change password
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth();
+    // Support both session (web) and JWT (mobile) auth
+    let userId: string | null = null;
 
-    if (!session?.user?.email) {
+    const session = await auth();
+    if (session?.user?.id) {
+      userId = session.user.id;
+    } else {
+      userId = await authenticateMobileRequest(request);
+    }
+
+    if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -79,7 +138,7 @@ export async function PUT(request: NextRequest) {
 
     // Get user with password
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: userId },
       select: { id: true, hashedPassword: true },
     });
 

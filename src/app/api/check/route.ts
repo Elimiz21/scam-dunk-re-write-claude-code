@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { z } from "zod";
 import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
@@ -129,13 +130,21 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Check authentication
+    // Check authentication - support both session (web) and JWT (mobile)
+    let userId: string | null = null;
+
+    // Try session auth first (web)
     const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session?.user?.id) {
+      userId = session.user.id;
+    } else {
+      // Fall back to JWT auth (mobile)
+      userId = await authenticateMobileRequest(request);
     }
 
-    const userId = session.user.id;
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Check scan limit
     const { canScan, usage } = await canUserScan(userId);
