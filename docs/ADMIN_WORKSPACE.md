@@ -57,16 +57,16 @@ npm run db:seed:admin
 ```
 
 This creates the default owner:
-- Email: elimizroch@gmail.com
-- Password: Elim2232!
+- Email: admin@scamdunk.com
+- Password: AdminPassword123!
 
 #### Option 2: Using the Setup API
 ```bash
 curl -X POST http://localhost:3000/api/admin/setup \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "elimizroch@gmail.com",
-    "password": "Elim2232!",
+    "email": "admin@scamdunk.com",
+    "password": "AdminPassword123!",
     "name": "Admin Owner"
   }'
 ```
