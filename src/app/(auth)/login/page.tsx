@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useCallback } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Shield, Loader2 } from "lucide-react";
+import { Turnstile } from "@/components/turnstile";
 
 function LoginForm() {
   const router = useRouter();
@@ -28,6 +29,11 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +122,7 @@ function LoginForm() {
             disabled={isLoading}
           />
         </div>
+        <Turnstile onVerify={handleTurnstileVerify} />
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
         <Button type="submit" className="w-full" disabled={isLoading}>

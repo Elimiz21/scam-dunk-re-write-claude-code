@@ -7,6 +7,7 @@ import { computeRiskScore } from "@/lib/scoring";
 import { generateNarrative } from "@/lib/narrative";
 import { canUserScan, incrementScanCount } from "@/lib/usage";
 import { logScanHistory } from "@/lib/admin/metrics";
+import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import {
   CheckRequest,
   LimitReachedResponse,
@@ -130,6 +131,12 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // Rate limit: heavy for CPU-intensive scan operations (10 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "heavy");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     // Check authentication - support both session (web) and JWT (mobile)
     let userId: string | null = null;
 
@@ -172,7 +179,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const checkRequest: CheckRequest = validation.data;
+    const checkRequest = validation.data;
     const ticker = checkRequest.ticker.toUpperCase();
 
     // Build context with defaults

@@ -14,6 +14,7 @@ import {
   generateRefreshToken,
   getMobileUser,
 } from "@/lib/mobile-auth";
+import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -22,6 +23,12 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: strict for login (5 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     const body = await request.json();
     const validation = loginSchema.safeParse(body);
 

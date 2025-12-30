@@ -56,8 +56,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { service, alertType, threshold, notifyEmail } = validation.data;
     const alert = await prisma.apiCostAlert.create({
-      data: validation.data,
+      data: {
+        service,
+        alertType,
+        threshold,
+        notifyEmail: notifyEmail ?? null,
+      },
     });
 
     // Log the action
