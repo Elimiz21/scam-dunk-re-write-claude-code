@@ -335,8 +335,9 @@ export function calculateVolumeRatio(
 }
 
 /**
- * Detect spike-then-drop pattern
- * Returns true if price spiked 50%+ in 10 days then dropped 40%+ from local max
+ * Detect spike-then-drop pattern (pump-and-dump)
+ * Thresholds lowered based on research analysis for earlier detection
+ * Returns true if price spiked 25%+ then dropped 20%+ from local max
  */
 export function detectSpikeThenDrop(priceHistory: PriceHistory[]): boolean {
   if (priceHistory.length < 15) return false;
@@ -355,16 +356,18 @@ export function detectSpikeThenDrop(priceHistory: PriceHistory[]): boolean {
     }
   }
 
-  // Check if there was a 50%+ spike
+  // Check if there was a 25%+ spike (lowered from 50% for earlier detection)
+  // Research: 20-30% rise is typical for smaller pump schemes
   const spikePercent = ((maxPrice - startPrice) / startPrice) * 100;
-  if (spikePercent < 50) return false;
+  if (spikePercent < 25) return false;
 
-  // Check if there's been a 40%+ drop from max
+  // Check if there's been a 20%+ drop from max (lowered from 40%)
+  // Research: 15-20% drop indicates dump phase has begun
   const currentPrice = recent[recent.length - 1].close;
   const dropPercent = ((maxPrice - currentPrice) / maxPrice) * 100;
 
   // Only count as spike-then-drop if max wasn't at the end (still dropping)
-  return dropPercent >= 40 && maxIndex < recent.length - 2;
+  return dropPercent >= 20 && maxIndex < recent.length - 2;
 }
 
 /**

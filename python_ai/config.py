@@ -9,32 +9,39 @@ All thresholds and parameters are easily adjustable here.
 # These thresholds map probability scores to categorical risk levels
 
 RISK_THRESHOLDS = {
-    'LOW': 0.3,        # Probability < 0.3 = Low Risk
-    'MEDIUM': 0.7,     # 0.3 <= Probability < 0.7 = Medium Risk
-    'HIGH': 1.0,       # Probability >= 0.7 = High Risk
+    'LOW': 0.25,       # Probability < 0.25 = Low Risk (was 0.3)
+    'MEDIUM': 0.55,    # 0.25 <= Probability < 0.55 = Medium Risk (was 0.7)
+    'HIGH': 1.0,       # Probability >= 0.55 = High Risk (lowered from 0.7)
 }
+# Research justification: Lowering HIGH threshold from 0.70 to 0.55
+# reduces the overly wide MEDIUM range and catches more suspicious stocks
 
 # =============================================================================
 # ANOMALY DETECTION PARAMETERS
 # =============================================================================
 
 ANOMALY_CONFIG = {
-    # Z-score thresholds for anomaly detection
-    'z_score_threshold': 3.0,           # Standard deviations from mean
+    # Z-score thresholds for anomaly detection - lowered for more sensitivity
+    'z_score_threshold': 2.5,           # was 3.0 - catches more anomalies
     'volume_z_threshold': 2.5,          # Volume Z-score threshold
 
     # Rolling window sizes
     'short_window': 7,                  # Short-term rolling window (days)
     'long_window': 30,                  # Long-term rolling window (days)
 
-    # Price surge thresholds
-    'price_surge_1d_threshold': 0.15,   # 15% daily price change
-    'price_surge_7d_threshold': 0.50,   # 50% weekly price change
-    'price_surge_extreme': 1.00,        # 100% weekly = extreme
+    # Price surge thresholds - Updated based on research (arXiv 2025, IEEE 2019)
+    # Research uses 70-90% for HIGH detection, but we need EARLY warning
+    'price_surge_1d_threshold': 0.10,   # was 15% - 10% daily is notable
+    'price_surge_7d_threshold': 0.25,   # was 50% - 25% weekly (5σ for blue-chips)
+    'price_surge_extreme': 0.50,        # was 100% - 50% is now extreme
 
-    # Volume surge thresholds
-    'volume_surge_moderate': 5.0,       # 5x normal volume
-    'volume_surge_extreme': 10.0,       # 10x normal volume
+    # Volume surge thresholds - Updated per research (300-400% = optimal detection)
+    'volume_surge_moderate': 3.0,       # was 5x - 3x provides early warning
+    'volume_surge_extreme': 5.0,        # was 10x - 5x is now extreme
+
+    # Pump-and-dump pattern thresholds - lowered to catch smaller schemes
+    'pump_dump_rise': 0.20,             # was 0.30 - 20% rise before peak
+    'pump_dump_fall': -0.15,            # was -0.20 - 15% fall after peak
 }
 
 # =============================================================================

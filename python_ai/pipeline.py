@@ -186,14 +186,26 @@ class ScamDetectionPipeline:
             # Minimum 0.85 probability if SEC flagged
             combined = max(combined, 0.85)
 
+        # Early warning: OTC with any notable movement (new threshold-based logic)
+        # Research shows OTC + movement is highly suspicious even at lower thresholds
+        price_change_7d = anomaly_result.details.get('surge_analysis', {}).get('price_change_7d', 0) / 100
+        volume_surge = anomaly_result.details.get('surge_analysis', {}).get('volume_surge_factor', 1)
+
+        if is_otc and (abs(price_change_7d) > 0.15 or volume_surge > 2.5):
+            combined = max(combined, 0.45)  # Ensures at least upper-MEDIUM
+
+        # Structural risk: OTC + micro-cap even without patterns
+        if is_otc and is_micro_cap:
+            combined = max(combined, 0.50)  # High-risk structure
+
         # Severe patterns detection
         severe_anomalies = ['pump_and_dump_pattern', 'pump_pattern_detected',
                           'extreme_volume_explosion', 'extreme_weekly_price_move']
         has_severe_pattern = any(a in anomaly_result.anomaly_types for a in severe_anomalies)
 
-        # Apply floor for severe patterns
+        # Apply floor for severe patterns (raised from 0.6 to 0.65 to guarantee HIGH with 0.55 threshold)
         if has_severe_pattern:
-            combined = max(combined, 0.6)
+            combined = max(combined, 0.65)
 
         # CRITICAL: OTC + severe pattern + micro-cap = HIGH risk
         # This is the classic pump-and-dump setup

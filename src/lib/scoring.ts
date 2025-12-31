@@ -50,15 +50,18 @@ export const SIGNAL_CODES = {
   SPECIFIC_RETURN_CLAIM: "SPECIFIC_RETURN_CLAIM",
 } as const;
 
-// Thresholds from spec
+// Thresholds - Updated based on research analysis (threshold_research_analysis.py)
+// Research sources: arXiv 2025, IEEE 2019, SEC enforcement data
 const THRESHOLDS = {
   microCapPrice: 5,
   smallMarketCap: 300_000_000,
   microLiquidity: 150_000,
-  spike7dMedium: 50,
-  spike7dHigh: 100,
-  volumeExplosionMedium: 5,
-  volumeExplosionHigh: 10,
+  // Price surge thresholds lowered for earlier detection
+  spike7dMedium: 25,        // was 50% - now catches early pumps (5σ for blue-chips)
+  spike7dHigh: 50,          // was 100% - research shows 70-90% optimal for HIGH
+  // Volume thresholds lowered per research (300-400% = 3-4x is detection threshold)
+  volumeExplosionMedium: 3, // was 5x - catches manipulation in earlier stages
+  volumeExplosionHigh: 5,   // was 10x - now matches research recommendations
 };
 
 // Keywords for behavioral NLP analysis
@@ -412,9 +415,11 @@ function calculateRiskLevel(
     return "HIGH";
   }
 
-  // Standard scoring thresholds
-  if (totalScore >= 7) return "HIGH";
-  if (totalScore >= 3) return "MEDIUM";
+  // Standard scoring thresholds - Updated based on research analysis
+  // Lowered from 7 to 5 for HIGH to catch more scam scenarios proactively
+  // Common scam patterns (OTC + Small Cap = 5) now reach HIGH threshold
+  if (totalScore >= 5) return "HIGH";
+  if (totalScore >= 2) return "MEDIUM";
   return "LOW";
 }
 
@@ -434,6 +439,7 @@ function checkIsInsufficient(
 
 /**
  * Check if stock appears to be a legitimate, well-established company
+ * Updated: Only structural, alert, and behavioral signals disqualify - not minor anomaly patterns
  */
 function checkIsLegitimate(
   marketData: MarketData,
@@ -445,9 +451,16 @@ function checkIsLegitimate(
   const isLargeCap = quote.marketCap > 10_000_000_000; // > $10B
   const isHighLiquidity = quote.avgDollarVolume30d > 10_000_000; // > $10M daily
   const isMajorExchange = !marketData.isOTC;
-  const hasNoRedFlags = signals.length === 0;
 
-  return isLargeCap && isHighLiquidity && isMajorExchange && hasNoRedFlags;
+  // Only structural, alert, and behavioral signals should disqualify legitimate stocks
+  // Minor pattern signals (like RSI overbought) shouldn't disqualify large-cap stocks
+  const hasDisqualifyingSignals = signals.some(s =>
+    s.category === "STRUCTURAL" ||
+    s.category === "ALERT" ||
+    s.category === "BEHAVIORAL"
+  );
+
+  return isLargeCap && isHighLiquidity && isMajorExchange && !hasDisqualifyingSignals;
 }
 
 /**

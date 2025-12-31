@@ -255,7 +255,10 @@ def detect_pattern_anomalies(
                 pre_peak_return = (pre_peak['Close'].iloc[-1] / pre_peak['Close'].iloc[0]) - 1
                 post_peak_return = (post_peak['Close'].iloc[-1] / post_peak['Close'].iloc[0]) - 1
 
-                if pre_peak_return > 0.3 and post_peak_return < -0.2:
+                # Use thresholds from config (lowered for earlier detection)
+                pump_rise_threshold = ANOMALY_CONFIG.get('pump_dump_rise', 0.20)
+                pump_fall_threshold = ANOMALY_CONFIG.get('pump_dump_fall', -0.15)
+                if pre_peak_return > pump_rise_threshold and post_peak_return < pump_fall_threshold:
                     anomalies_found.append('pump_and_dump_pattern')
 
     # Pattern 2: Coordinated volume/price (both spike together)
