@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, turnstileToken } = validation.data;
+    const { email: rawEmail, turnstileToken } = validation.data;
+    const email = rawEmail.toLowerCase().trim();
 
     // Verify CAPTCHA if Turnstile is configured
     if (process.env.TURNSTILE_SECRET_KEY) {

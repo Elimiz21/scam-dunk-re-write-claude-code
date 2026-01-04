@@ -54,25 +54,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log("[AUTH] Missing credentials");
           return null;
         }
 
-        const email = credentials.email as string;
+        const email = (credentials.email as string).toLowerCase().trim();
         const password = credentials.password as string;
+
+        console.log("[AUTH] Attempting login for email:", email);
 
         const user = await prisma.user.findUnique({
           where: { email },
         });
 
-        if (!user || !user.hashedPassword) {
+        if (!user) {
+          console.log("[AUTH] User not found for email:", email);
           return null;
         }
 
+        if (!user.hashedPassword) {
+          console.log("[AUTH] User has no password set:", email);
+          return null;
+        }
+
+        console.log("[AUTH] User found, checking password...");
         const passwordMatch = await bcrypt.compare(password, user.hashedPassword);
 
         if (!passwordMatch) {
+          console.log("[AUTH] Password mismatch for:", email);
           return null;
         }
+
+        console.log("[AUTH] Password matched, checking email verification...");
 
         // Check if email is verified
         if (!user.emailVerified) {

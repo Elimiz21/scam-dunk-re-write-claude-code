@@ -40,14 +40,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize email for lookup
+    const normalizedEmail = result.email.toLowerCase().trim();
+
     // Hash the new password
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Update user's password
     await prisma.user.update({
-      where: { email: result.email },
+      where: { email: normalizedEmail },
       data: { hashedPassword },
     });
+
+    console.log("[RESET-PASSWORD] Password updated for:", normalizedEmail);
 
     return NextResponse.json({ success: true });
   } catch (error) {
