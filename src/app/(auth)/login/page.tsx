@@ -50,15 +50,18 @@ function LoginForm() {
 
       if (result?.error) {
         // Check if it's an email verification error
-        if (result.error.includes("EMAIL_NOT_VERIFIED")) {
+        // NextAuth v5 returns the error code from CredentialsSignin subclasses
+        if (result.error === "EMAIL_NOT_VERIFIED" || result.error.includes("EMAIL_NOT_VERIFIED")) {
           setShowVerificationPrompt(true);
           setError("Please verify your email before logging in.");
+        } else if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password");
         } else if (result.error === "Configuration" || result.error.includes("Configuration")) {
           // Server configuration error - database/environment issue
           setError("Service temporarily unavailable. Please try again later.");
-        } else if (result.error === "CredentialsSignin") {
-          setError("Invalid email or password");
         } else {
+          // Log unexpected errors for debugging
+          console.error("Login error:", result.error);
           setError("Invalid email or password");
         }
         setIsLoading(false);
