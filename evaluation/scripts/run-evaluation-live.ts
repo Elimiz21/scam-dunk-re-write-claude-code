@@ -340,8 +340,20 @@ async function fetchAlphaVantageData(symbol: string): Promise<PriceHistory[] | n
 // COMBINED DATA FETCHER WITH FALLBACK
 // ============================================================================
 
+// Control which source to try first
+const PREFER_ALPHA_VANTAGE = process.env.PREFER_ALPHA_VANTAGE === 'true';
+
 async function fetchPriceData(symbol: string): Promise<FetchResult> {
-  // Try Yahoo Finance first
+  // If preferring Alpha Vantage (e.g., when Yahoo is rate limited), try it first
+  if (PREFER_ALPHA_VANTAGE && ALPHA_VANTAGE_API_KEY && alphaVantageCallsToday < ALPHA_VANTAGE_DAILY_LIMIT) {
+    await delay(ALPHA_VANTAGE_DELAY_MS); // Respect rate limit (5/min for free tier)
+    const avData = await fetchAlphaVantageData(symbol);
+    if (avData !== null) {
+      return { data: avData, source: 'alphavantage', rateLimited: false };
+    }
+  }
+
+  // Try Yahoo Finance
   for (let attempt = 0; attempt < YAHOO_MAX_RETRIES; attempt++) {
     const result = await fetchYahooFinanceData(symbol);
 
@@ -360,8 +372,8 @@ async function fetchPriceData(symbol: string): Promise<FetchResult> {
     }
   }
 
-  // Try Alpha Vantage as fallback
-  if (ALPHA_VANTAGE_API_KEY && alphaVantageCallsToday < ALPHA_VANTAGE_DAILY_LIMIT) {
+  // Try Alpha Vantage as fallback (if not already tried as primary)
+  if (!PREFER_ALPHA_VANTAGE && ALPHA_VANTAGE_API_KEY && alphaVantageCallsToday < ALPHA_VANTAGE_DAILY_LIMIT) {
     await delay(ALPHA_VANTAGE_DELAY_MS); // Respect rate limit
     const avData = await fetchAlphaVantageData(symbol);
     if (avData !== null) {
