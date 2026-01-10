@@ -71,25 +71,33 @@ async function testAlphaVantage(): Promise<{ status: string; message?: string }>
 }
 
 /**
- * Test Stripe connection
+ * Test PayPal connection
  */
-async function testStripe(): Promise<{ status: string; message?: string }> {
-  if (!config.stripeSecretKey) {
-    return { status: "ERROR", message: "API key not configured" };
+async function testPayPal(): Promise<{ status: string; message?: string }> {
+  if (!config.paypalClientId || !config.paypalClientSecret) {
+    return { status: "ERROR", message: "API credentials not configured" };
   }
 
   try {
-    const response = await fetch("https://api.stripe.com/v1/balance", {
+    const auth = Buffer.from(`${config.paypalClientId}:${config.paypalClientSecret}`).toString("base64");
+    const baseUrl = config.paypalMode === "live"
+      ? "https://api-m.paypal.com"
+      : "https://api-m.sandbox.paypal.com";
+
+    const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
+      method: "POST",
       headers: {
-        Authorization: `Bearer ${config.stripeSecretKey}`,
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
       },
+      body: "grant_type=client_credentials",
     });
 
     if (response.ok) {
       return { status: "CONNECTED" };
     } else {
       const error = await response.json();
-      return { status: "ERROR", message: error.error?.message || "Connection failed" };
+      return { status: "ERROR", message: error.error_description || "Connection failed" };
     }
   } catch (error) {
     return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
@@ -133,14 +141,14 @@ const INTEGRATIONS = [
     documentation: "https://www.alphavantage.co/documentation/",
   },
   {
-    name: "STRIPE",
-    displayName: "Stripe",
+    name: "PAYPAL",
+    displayName: "PayPal",
     category: "PAYMENT",
     description: "Handles subscription billing and payments",
-    getApiKey: () => config.stripeSecretKey,
-    testConnection: testStripe,
+    getApiKey: () => config.paypalClientId,
+    testConnection: testPayPal,
     rateLimit: 100,
-    documentation: "https://stripe.com/docs/api",
+    documentation: "https://developer.paypal.com/docs/api/",
   },
   {
     name: "DATABASE",
