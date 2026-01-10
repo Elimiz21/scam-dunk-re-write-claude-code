@@ -11,7 +11,7 @@ const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().optional(),
-  turnstileToken: z.string().optional(),
+  turnstileToken: z.string().min(1, "CAPTCHA token is required"),
 });
 
 export async function POST(request: NextRequest) {
@@ -37,13 +37,6 @@ export async function POST(request: NextRequest) {
 
     // Verify CAPTCHA if Turnstile is configured
     if (process.env.TURNSTILE_SECRET_KEY) {
-      if (!turnstileToken) {
-        return NextResponse.json(
-          { error: "Please complete the CAPTCHA verification" },
-          { status: 400 }
-        );
-      }
-
       const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
       const isValidCaptcha = await verifyTurnstileToken(turnstileToken, ip);
 
@@ -88,7 +81,7 @@ export async function POST(request: NextRequest) {
       // Delete the user if we couldn't send the verification email
       // so they can try again
       await prisma.user.delete({ where: { id: user.id } });
-      await prisma.emailVerificationToken.deleteMany({ where: { email } });
+      await prisma.verificationToken.deleteMany({ where: { identifier: email } });
 
       return NextResponse.json(
         { error: "Failed to send verification email. Please try again." },

@@ -1,23 +1,20 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Zap } from "lucide-react";
-import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
+import { PayPalButton } from "@/components/PayPalButton";
 
 interface LimitReachedProps {
   plan: "FREE" | "PAID";
   scansUsed: number;
   scansLimit: number;
-  onUpgrade?: () => void;
 }
 
 export function LimitReached({
   plan,
   scansUsed,
   scansLimit,
-  onUpgrade,
 }: LimitReachedProps) {
   return (
     <Card className="w-full border-yellow-200 bg-yellow-50">
@@ -40,16 +37,8 @@ export function LimitReached({
           to Pro to get 200 checks per month and continue analyzing stocks.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button onClick={onUpgrade} className="flex-1">
-            <Zap className="mr-2 h-4 w-4" />
-            Upgrade to Pro
-          </Button>
-          <Link href="/account" className="flex-1">
-            <Button variant="outline" className="w-full">
-              View Account
-            </Button>
-          </Link>
+        <div className="mt-4">
+          <PayPalButton />
         </div>
 
         <div className="pt-4 border-t">

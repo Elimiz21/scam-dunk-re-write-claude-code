@@ -20,12 +20,12 @@ import {
   Loader2,
   Lock,
   Edit2,
-  X,
   Eye,
   EyeOff,
 } from "lucide-react";
 import { UsageInfo } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
+import { PayPalButton } from "@/components/PayPalButton";
 
 function AccountAlerts() {
   const searchParams = useSearchParams();
@@ -64,8 +64,6 @@ function AccountContent() {
   const { addToast } = useToast();
 
   const [usage, setUsage] = useState<UsageInfo | null>(null);
-  const [isUpgrading, setIsUpgrading] = useState(false);
-  const [isManaging, setIsManaging] = useState(false);
   const [error, setError] = useState("");
 
   // Profile editing
@@ -108,48 +106,21 @@ function AccountContent() {
     }
   };
 
-  const handleUpgrade = async () => {
-    setIsUpgrading(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/billing/checkout", {
-        method: "POST",
-      });
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setError(data.error || "Failed to start upgrade process");
-        setIsUpgrading(false);
-      }
-    } catch (err) {
-      setError("An error occurred. Please try again.");
-      setIsUpgrading(false);
-    }
+  const handlePayPalSuccess = () => {
+    // Refresh usage data
+    fetchUsage();
+    // Show success message
+    addToast({
+      type: "success",
+      title: "Subscription activated!",
+      description: "Welcome to ScamDunk Pro. You now have 200 checks per month.",
+    });
+    // Refresh the page to update UI
+    router.refresh();
   };
 
-  const handleManageSubscription = async () => {
-    setIsManaging(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/billing/portal", {
-        method: "POST",
-      });
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setError(data.error || "Failed to open billing portal");
-        setIsManaging(false);
-      }
-    } catch (err) {
-      setError("An error occurred. Please try again.");
-      setIsManaging(false);
-    }
+  const handlePayPalError = (error: string) => {
+    setError(`Payment failed: ${error}`);
   };
 
   const handleSaveProfile = async () => {
@@ -177,7 +148,7 @@ function AccountContent() {
       } else {
         setError(data.error || "Failed to update profile");
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred. Please try again.");
     } finally {
       setIsSavingProfile(false);
@@ -221,7 +192,7 @@ function AccountContent() {
       } else {
         setPasswordError(data.error || "Failed to change password");
       }
-    } catch (err) {
+    } catch {
       setPasswordError("An error occurred. Please try again.");
     } finally {
       setIsSavingPassword(false);
@@ -530,21 +501,6 @@ function AccountContent() {
                     </Badge>
                   </div>
                 </div>
-                {usage?.plan === "FREE" && (
-                  <Button onClick={handleUpgrade} disabled={isUpgrading} size="sm">
-                    {isUpgrading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="mr-2 h-4 w-4" />
-                        Upgrade to Pro
-                      </>
-                    )}
-                  </Button>
-                )}
               </div>
 
               <div>
@@ -593,20 +549,9 @@ function AccountContent() {
 
               {usage?.plan === "PAID" && (
                 <div className="pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={handleManageSubscription}
-                    disabled={isManaging}
-                  >
-                    {isManaging ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Opening...
-                      </>
-                    ) : (
-                      "Manage Subscription"
-                    )}
-                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    To manage or cancel your subscription, please log in to your PayPal account.
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -643,20 +588,14 @@ function AccountContent() {
                     Priority support
                   </li>
                 </ul>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <div className="flex flex-col gap-3">
                   <p className="text-2xl font-bold">
-                    $9<span className="text-base font-normal">/month</span>
+                    $4.99<span className="text-base font-normal">/month</span>
                   </p>
-                  <Button onClick={handleUpgrade} disabled={isUpgrading} className="w-full sm:w-auto">
-                    {isUpgrading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      "Upgrade Now"
-                    )}
-                  </Button>
+                  <PayPalButton
+                    onSuccess={handlePayPalSuccess}
+                    onError={handlePayPalError}
+                  />
                 </div>
               </CardContent>
             </Card>

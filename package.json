@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.4.0",
+    "@marsidev/react-turnstile": "^1.4.1",
     "@prisma/client": "^5.22.0",
     "@sentry/nextjs": "^10.32.1",
     "@upstash/ratelimit": "^2.0.7",
