@@ -1,0 +1,278 @@
+[
+  {
+    "symbol": "SIDU",
+    "name": "Sidus Space Inc",
+    "exchange": "NASDAQ",
+    "currentPrice": 4.010000228881836,
+    "marketCap": 0,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($4.01) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+50%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 71)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (30.7% daily)"
+      }
+    ],
+    "priceChange7d": 27.70700939209718,
+    "priceChange30d": 477.8098264869297,
+    "volumeVsAvg": 0.7546362762553662,
+    "analyzedAt": "2026-01-10T18:58:17.991Z"
+  },
+  {
+    "symbol": "OPTX",
+    "name": "Syntec Optics Holdings Inc",
+    "exchange": "NASDAQ",
+    "currentPrice": 4.519999980926514,
+    "marketCap": 0,
+    "riskLevel": "HIGH",
+    "totalScore": 9,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($4.52) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+50%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 86)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (11.4% daily)"
+      }
+    ],
+    "priceChange7d": 58.041963171997594,
+    "priceChange30d": 162.79069219427288,
+    "volumeVsAvg": 0.5727427494683027,
+    "analyzedAt": "2026-01-10T18:58:19.674Z"
+  },
+  {
+    "symbol": "SOS",
+    "name": "SOS Limited",
+    "exchange": "NYSE",
+    "currentPrice": 1.7300000190734863,
+    "marketCap": 0,
+    "riskLevel": "HIGH",
+    "totalScore": 8,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.73) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($96K)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (14.5% daily)"
+      }
+    ],
+    "priceChange7d": 24.46043430774779,
+    "priceChange30d": 42.975203680394586,
+    "volumeVsAvg": 0.2535059331175836,
+    "analyzedAt": "2026-01-10T18:58:22.992Z"
+  },
+  {
+    "symbol": "SOBR",
+    "name": "Sobr Safe Inc",
+    "exchange": "NASDAQ",
+    "currentPrice": 1.7699999809265137,
+    "marketCap": 0,
+    "riskLevel": "HIGH",
+    "totalScore": 6,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.77) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (22.6% daily)"
+      }
+    ],
+    "priceChange7d": -17.28972457196347,
+    "priceChange30d": 14.19355066956399,
+    "volumeVsAvg": 0.029941336213223733,
+    "analyzedAt": "2026-01-10T18:58:21.348Z"
+  },
+  {
+    "symbol": "EDHL",
+    "name": "Everbright Digital Holding Ltd",
+    "exchange": "NASDAQ",
+    "currentPrice": 0.25,
+    "marketCap": 0,
+    "riskLevel": "HIGH",
+    "totalScore": 6,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.25) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-35%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (7.8% daily)"
+      }
+    ],
+    "priceChange7d": -33.33333333333333,
+    "priceChange30d": -69.7702547316501,
+    "volumeVsAvg": 9.467466747780882,
+    "analyzedAt": "2026-01-10T18:58:26.357Z"
+  },
+  {
+    "symbol": "GDHG",
+    "name": "Golden Heaven Group Holdings Ltd",
+    "exchange": "NASDAQ",
+    "currentPrice": 2.190000057220459,
+    "marketCap": 0,
+    "riskLevel": "HIGH",
+    "totalScore": 5,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.19) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($23K)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (6.0% daily)"
+      }
+    ],
+    "priceChange7d": 14.840069200150651,
+    "priceChange30d": -46.191647055226056,
+    "volumeVsAvg": 1.0625398851308232,
+    "analyzedAt": "2026-01-10T18:58:24.646Z"
+  },
+  {
+    "symbol": "CIGL",
+    "name": "Concorde International Group Ltd",
+    "exchange": "NASDAQ",
+    "currentPrice": 1.7630000114440918,
+    "marketCap": 0,
+    "riskLevel": "HIGH",
+    "totalScore": 5,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.76) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($32K)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (5.2% daily)"
+      }
+    ],
+    "priceChange7d": 9.503105327922169,
+    "priceChange30d": -0.5640152539480597,
+    "volumeVsAvg": 0.48422597212032287,
+    "analyzedAt": "2026-01-10T18:58:29.733Z"
+  },
+  {
+    "symbol": "WAI",
+    "name": "Top KingWin Ltd",
+    "exchange": "NASDAQ",
+    "currentPrice": 2.200000047683716,
+    "marketCap": 0,
+    "riskLevel": "MEDIUM",
+    "totalScore": 2,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.20) is below $5 (penny stock territory)"
+      }
+    ],
+    "priceChange7d": 3.2863816658137326,
+    "priceChange30d": -14.062496216501957,
+    "volumeVsAvg": 0.063753486518794,
+    "analyzedAt": "2026-01-10T18:58:28.086Z"
+  }
+]

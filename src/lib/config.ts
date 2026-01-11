@@ -15,7 +15,10 @@ export const config = {
   // OpenAI
   openaiApiKey: process.env.OPENAI_API_KEY || "",
 
-  // Alpha Vantage API
+  // Financial Modeling Prep API (Primary)
+  fmpApiKey: process.env.FMP_API_KEY || "",
+
+  // Alpha Vantage API (Legacy/Fallback)
   alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY || "",
 
   // NextAuth

@@ -1,10 +1,15 @@
 /**
  * Market Data Module
  *
- * This module provides real stock market data for risk analysis using Alpha Vantage API.
+ * This module provides real stock market data for risk analysis.
  *
- * Alpha Vantage API Documentation: https://www.alphavantage.co/documentation/
- * Rate Limits: 5 API requests per minute, 500 requests per day (free tier)
+ * Primary: Financial Modeling Prep (FMP) API
+ * - Documentation: https://site.financialmodelingprep.com/developer/docs
+ * - Rate Limits: 300 requests/min (Starter plan)
+ *
+ * Fallback: Alpha Vantage API (Legacy)
+ * - Documentation: https://www.alphavantage.co/documentation/
+ * - Rate Limits: 5 API requests per minute, 500 requests per day (free tier)
  */
 
 import { MarketData, StockQuote, PriceHistory } from "./types";
@@ -18,8 +23,118 @@ const OTC_EXCHANGES = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets", "OTHER_OT
 const cache: Map<string, { data: MarketData; timestamp: number }> = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Alpha Vantage base URL
+// API base URLs
+const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 const ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query";
+
+// ============================================================================
+// FINANCIAL MODELING PREP (PRIMARY)
+// ============================================================================
+
+/**
+ * Fetch stock quote from FMP (using stable API)
+ */
+async function fetchFMPQuote(ticker: string): Promise<StockQuote | null> {
+  const url = `${FMP_BASE_URL}/profile?symbol=${ticker}&apikey=${config.fmpApiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data || data.length === 0 || data["Error Message"]) {
+      return null;
+    }
+
+    const profile = data[0];
+    return {
+      ticker: ticker.toUpperCase(),
+      companyName: profile.companyName || ticker.toUpperCase(),
+      exchange: profile.exchange || "Unknown",
+      lastPrice: profile.price || 0,
+      marketCap: profile.marketCap || 0,
+      avgVolume30d: profile.averageVolume || profile.volume || 0,
+      avgDollarVolume30d: (profile.averageVolume || profile.volume || 0) * (profile.price || 0),
+    };
+  } catch (error) {
+    console.error("Error fetching FMP quote:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch daily price history from FMP (using stable API)
+ */
+async function fetchFMPPriceHistory(ticker: string): Promise<PriceHistory[]> {
+  // Get 100 days of historical data for pattern analysis
+  const url = `${FMP_BASE_URL}/historical-price-eod/full?symbol=${ticker}&apikey=${config.fmpApiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data || data.length === 0 || data["Error Message"]) {
+      return [];
+    }
+
+    // FMP stable API returns data in descending order (newest first), we need ascending
+    const history: PriceHistory[] = data
+      .slice(0, 100) // Get last 100 days
+      .reverse() // Convert to ascending order
+      .map((day: any) => ({
+        date: day.date,
+        open: day.open,
+        high: day.high,
+        low: day.low,
+        close: day.close,
+        volume: day.volume,
+      }));
+
+    return history;
+  } catch (error) {
+    console.error("Error fetching FMP price history:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetch company profile from FMP for additional details (using stable API)
+ * Note: The stable profile endpoint already returns all needed data in fetchFMPQuote
+ * This is kept for additional sector/industry info if not included in initial quote
+ */
+async function fetchFMPProfile(ticker: string): Promise<{
+  companyName: string;
+  exchange: string;
+  marketCap: number;
+  sector: string;
+  industry: string;
+} | null> {
+  const url = `${FMP_BASE_URL}/profile?symbol=${ticker}&apikey=${config.fmpApiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data || data.length === 0 || data["Error Message"]) {
+      return null;
+    }
+
+    const profile = data[0];
+    return {
+      companyName: profile.companyName || ticker,
+      exchange: profile.exchange || "Unknown",
+      marketCap: profile.marketCap || 0,
+      sector: profile.sector || "Unknown",
+      industry: profile.industry || "Unknown",
+    };
+  } catch (error) {
+    console.error("Error fetching FMP profile:", error);
+    return null;
+  }
+}
+
+// ============================================================================
+// ALPHA VANTAGE (FALLBACK/LEGACY)
+// ============================================================================
 
 /**
  * Fetch stock quote from Alpha Vantage GLOBAL_QUOTE endpoint
@@ -143,7 +258,8 @@ function calculateAvgVolume30d(priceHistory: PriceHistory[]): number {
 }
 
 /**
- * Fetch market data for a given ticker using Alpha Vantage API
+ * Fetch market data for a given ticker
+ * Uses FMP as primary source, falls back to Alpha Vantage if FMP fails
  *
  * @param ticker - Stock ticker symbol (e.g., "AAPL")
  * @returns MarketData object with quote, price history, and exchange info
@@ -157,9 +273,107 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
     return cached.data;
   }
 
-  // Check if API key is configured
-  if (!config.alphaVantageApiKey) {
-    console.error("Alpha Vantage API key not configured");
+  // Try FMP first (primary), then Alpha Vantage (fallback)
+  if (config.fmpApiKey) {
+    const fmpResult = await fetchMarketDataFromFMP(normalizedTicker);
+    if (fmpResult.dataAvailable) {
+      cache.set(normalizedTicker, { data: fmpResult, timestamp: Date.now() });
+      return fmpResult;
+    }
+  }
+
+  // Fallback to Alpha Vantage
+  if (config.alphaVantageApiKey) {
+    const avResult = await fetchMarketDataFromAlphaVantage(normalizedTicker);
+    if (avResult.dataAvailable) {
+      cache.set(normalizedTicker, { data: avResult, timestamp: Date.now() });
+      return avResult;
+    }
+  }
+
+  // No API configured or both failed
+  console.error("No market data API configured or all sources failed");
+  return {
+    quote: null,
+    priceHistory: [],
+    isOTC: false,
+    dataAvailable: false,
+  };
+}
+
+/**
+ * Fetch market data from Financial Modeling Prep
+ */
+async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
+  const apiStartTime = Date.now();
+
+  try {
+    // Fetch quote and price history in parallel (FMP has generous rate limits)
+    const [quote, priceHistory] = await Promise.all([
+      fetchFMPQuote(ticker),
+      fetchFMPPriceHistory(ticker),
+    ]);
+
+    if (!quote) {
+      const responseTime = Date.now() - apiStartTime;
+      await logApiUsage({
+        service: "FMP",
+        endpoint: "quote+historical",
+        responseTime,
+        statusCode: 404,
+        errorMessage: "No quote data available",
+      });
+      return {
+        quote: null,
+        priceHistory: [],
+        isOTC: false,
+        dataAvailable: false,
+      };
+    }
+
+    // Optionally fetch profile for more details
+    const profile = await fetchFMPProfile(ticker);
+    if (profile) {
+      quote.companyName = profile.companyName;
+      quote.exchange = profile.exchange;
+      quote.marketCap = profile.marketCap;
+    }
+
+    // Calculate 30-day average volume from history
+    const avgVolume30d = calculateAvgVolume30d(priceHistory);
+    quote.avgVolume30d = avgVolume30d;
+    quote.avgDollarVolume30d = avgVolume30d * quote.lastPrice;
+
+    // Determine if OTC
+    const isOTC = OTC_EXCHANGES.some(exc =>
+      quote.exchange.toUpperCase().includes(exc.toUpperCase())
+    );
+
+    const responseTime = Date.now() - apiStartTime;
+    await logApiUsage({
+      service: "FMP",
+      endpoint: "quote+historical+profile",
+      responseTime,
+      statusCode: 200,
+    });
+
+    return {
+      quote,
+      priceHistory,
+      isOTC,
+      dataAvailable: true,
+    };
+  } catch (error) {
+    const responseTime = Date.now() - apiStartTime;
+    await logApiUsage({
+      service: "FMP",
+      endpoint: "quote+historical",
+      responseTime,
+      statusCode: 500,
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    console.error("Error fetching market data from FMP:", error);
     return {
       quote: null,
       priceHistory: [],
@@ -167,7 +381,12 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
       dataAvailable: false,
     };
   }
+}
 
+/**
+ * Fetch market data from Alpha Vantage (legacy/fallback)
+ */
+async function fetchMarketDataFromAlphaVantage(ticker: string): Promise<MarketData> {
   const apiStartTime = Date.now();
   let apiCallCount = 0;
 
@@ -175,8 +394,8 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
     // Fetch quote and price history in parallel
     // Note: Be careful of rate limits (5 calls/min on free tier)
     const [quote, priceHistory] = await Promise.all([
-      fetchQuote(normalizedTicker),
-      fetchPriceHistory(normalizedTicker),
+      fetchQuote(ticker),
+      fetchPriceHistory(ticker),
     ]);
     apiCallCount = 2;
 
@@ -200,7 +419,7 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
     // Fetch company overview for additional details
     // Adding a small delay to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 200));
-    const overview = await fetchCompanyOverview(normalizedTicker);
+    const overview = await fetchCompanyOverview(ticker);
     apiCallCount = 3;
 
     // Update quote with overview data
@@ -220,17 +439,7 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
       quote.exchange.toUpperCase().includes(exc.toUpperCase())
     );
 
-    const marketData: MarketData = {
-      quote,
-      priceHistory,
-      isOTC,
-      dataAvailable: true,
-    };
-
-    // Cache the result
-    cache.set(normalizedTicker, { data: marketData, timestamp: Date.now() });
-
-    // Log successful API usage (Alpha Vantage free tier: no direct cost)
+    // Log successful API usage
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
       service: "ALPHA_VANTAGE",
@@ -239,7 +448,12 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
       statusCode: 200,
     });
 
-    return marketData;
+    return {
+      quote,
+      priceHistory,
+      isOTC,
+      dataAvailable: true,
+    };
   } catch (error) {
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
@@ -250,7 +464,7 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
       errorMessage: error instanceof Error ? error.message : "Unknown error",
     });
 
-    console.error("Error fetching market data:", error);
+    console.error("Error fetching market data from Alpha Vantage:", error);
     return {
       quote: null,
       priceHistory: [],
