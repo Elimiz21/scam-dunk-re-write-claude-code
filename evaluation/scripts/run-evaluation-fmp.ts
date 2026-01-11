@@ -131,7 +131,12 @@ function sleep(ms: number): Promise<void> {
 // FMP DATA FETCHING
 // ============================================================================
 
-function fetchFMPQuote(symbol: string): StockQuote | null {
+interface ExtendedQuote extends StockQuote {
+  sector?: string;
+  industry?: string;
+}
+
+function fetchFMPQuote(symbol: string): ExtendedQuote | null {
   const url = `${FMP_BASE_URL}/profile?symbol=${symbol}&apikey=${FMP_API_KEY}`;
   const response = curlFetch(url);
 
@@ -150,6 +155,8 @@ function fetchFMPQuote(symbol: string): StockQuote | null {
       marketCap: profile.marketCap || 0,
       avgVolume30d: profile.averageVolume || profile.volume || 0,
       avgDollarVolume30d: (profile.averageVolume || profile.volume || 0) * (profile.price || 0),
+      sector: profile.sector || 'Unknown',
+      industry: profile.industry || 'Unknown',
     };
   } catch {
     return null;
@@ -232,7 +239,7 @@ async function fetchStockData(symbol: string): Promise<MarketData | null> {
 // ============================================================================
 
 function loadStockList(): StockTicker[] {
-  const stockListPath = path.join(DATA_DIR, 'us-stocks-list.json');
+  const stockListPath = path.join(DATA_DIR, 'us-stocks.json');
 
   if (!fs.existsSync(stockListPath)) {
     console.error('Stock list not found. Please run fetch-us-stocks.ts first.');
@@ -362,10 +369,8 @@ async function runEvaluation(): Promise<void> {
         continue;
       }
 
-      // Get profile for sector/industry
-      await sleep(FMP_DELAY_MS);
-      const profile = fetchFMPProfile(stock.symbol);
-      apiCallsMade++;
+      // Get sector/industry from quote (already included in profile call)
+      const extendedQuote = marketData.quote as ExtendedQuote;
 
       // Run scoring
       const scoringResult = computeRiskScore(marketData);
@@ -375,8 +380,8 @@ async function runEvaluation(): Promise<void> {
         symbol: stock.symbol,
         name: marketData.quote?.companyName || stock.name,
         exchange: marketData.quote?.exchange || stock.exchange,
-        sector: profile?.sector || 'Unknown',
-        industry: profile?.industry || 'Unknown',
+        sector: extendedQuote?.sector || 'Unknown',
+        industry: extendedQuote?.industry || 'Unknown',
         marketCap: marketData.quote?.marketCap || null,
         lastPrice: marketData.quote?.lastPrice || null,
         riskLevel: scoringResult.riskLevel,
