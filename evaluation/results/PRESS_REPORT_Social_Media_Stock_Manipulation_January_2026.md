@@ -454,7 +454,76 @@ These stocks show price spikes but NO DROP YET - they may still be in active man
 
 ---
 
-## PART 5: SEC PRECEDENT - ATLAS TRADING DISCORD
+## PART 5: PROMOTIONAL ECOSYSTEM ANALYSIS
+
+### Critical Finding: Single Coordinated Promotional Network
+
+Despite extensive searching across multiple platforms and databases, **ALL promotional activity for the identified HIGH-risk stocks traces back to a single coordinated ecosystem** centered on "Grandmaster-Obi."
+
+### The Promotional Ecosystem Components
+
+| Component | Details | Red Flags |
+|-----------|---------|-----------|
+| **Discord Server** | "Making Easy Money" (~17,000 members) | Closed to new members Jan 10, 2026 |
+| **Twitter/X** | [@ObiMem](https://twitter.com/ObiMem) | Direct link to Discord alerts |
+| **YouTube** | [@OBIfrmMEM](https://youtube.com/@OBIfrmMEM) | Video promotion of alerts |
+| **Promotional Website** | stock-market-loop.com | **NO SEC disclosure (see below)** |
+| **Membership Fee** | Starting at $7.90/month | Pay-to-play alert access |
+
+### stock-market-loop.com: Undisclosed Promotional Vehicle
+
+This website appears to be dedicated exclusively to promoting Grandmaster-Obi and his stock alerts. Our investigation found:
+
+**Missing Disclosures:**
+- ❌ NO "About Us" page with ownership information
+- ❌ NO contact information (only subscription portal)
+- ❌ NO disclosure of paid promotion or compensation
+- ❌ NO disclaimer about relationship with promoted stocks
+- ❌ NO SEC Section 17(b) disclosure (legally required for paid stock promotion)
+
+**Content Characteristics:**
+- All articles exclusively promote Grandmaster-Obi alerts
+- Sensationalized headlines ("600% surge", "new Roaring Kitty", "exploded")
+- Claims of triple-digit returns without risk warnings
+- Direct links to Discord membership signup
+- Site powered by Ghost (publishing platform) with no corporate identity
+
+**SEC Section 17(b) Requirement:**
+Under the Securities Act of 1933, Section 17(b), it is illegal to publish, give publicity to, or circulate any notice, circular, advertisement or communication promoting any security without fully disclosing the receipt of consideration (payment) and the amount thereof. The lack of any disclosure on stock-market-loop.com raises significant legal questions.
+
+### Other Penny Stock Groups Investigated (No Evidence Found)
+
+We searched for other groups potentially promoting our HIGH-risk stocks:
+
+| Group | Members | Finding |
+|-------|---------|---------|
+| Prodigy Trading Discord | ~34,000 | No evidence of promoting our stocks |
+| Penny Stock Alerts Discord | ~17,600 | No evidence of promoting our stocks |
+| Timothy Sykes | Paid service | News coverage only, not promotional alerts |
+| Lion Stock Alerts | Email alerts | No evidence of promoting our stocks |
+| Epic Stock Picks | Newsletter | No evidence of promoting our stocks |
+
+### Why a Single Source is More Concerning
+
+The concentration of promotional activity in one ecosystem suggests:
+
+1. **Coordinated Campaign** - All promotions flow from one source, indicating deliberate coordination
+2. **Information Asymmetry** - Promoter has advance position before "alert" is sent
+3. **Dedicated Media Infrastructure** - stock-market-loop.com exists solely for promotion
+4. **Rapid Exit Strategy** - Discord closed to new members on Jan 10, 2026 (potential evidence of winding down)
+5. **Pattern Matches SEC Precedent** - Identical structure to charged Atlas Trading scheme
+
+### SEC December 2025 Investor Alert
+
+On **December 22, 2025**, the SEC's Office of Investor Education and Assistance issued a warning:
+
+> *"Fraudsters may use investment-related group chats, including on commonly used social media platforms, to lure investors into scams. Investors are advised to never rely solely on information from group chats in making investment decisions."*
+
+**Source:** https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-alerts/gateway-to-investment-scams
+
+---
+
+## PART 6: SEC PRECEDENT - ATLAS TRADING DISCORD (2022)
 
 The current "Making Easy Money" Discord operation mirrors an identical scheme that led to SEC enforcement action in 2022:
 
@@ -476,7 +545,7 @@ The current "Making Easy Money" Discord operation mirrors an identical scheme th
 
 ---
 
-## PART 6: SEC INVESTOR WARNINGS
+## PART 7: SEC INVESTOR WARNINGS
 
 The SEC has issued multiple warnings about social media stock manipulation:
 
@@ -499,7 +568,7 @@ The SEC has issued multiple warnings about social media stock manipulation:
 
 ---
 
-## PART 7: SUMMARY STATISTICS
+## PART 8: SUMMARY STATISTICS
 
 ### Stocks by Promotion Status
 
