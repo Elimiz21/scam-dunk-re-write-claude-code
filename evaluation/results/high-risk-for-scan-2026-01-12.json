@@ -1,0 +1,5090 @@
+[
+  {
+    "symbol": "DRTSW",
+    "name": "Alpha Tau Medical Ltd.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 52005560,
+    "lastPrice": 0.61,
+    "riskLevel": "HIGH",
+    "totalScore": 15,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.61) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($52M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($10K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+72%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.3x normal)"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 85)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (8.1% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, VOLUME_EXPLOSION, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:10:39.579Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "CRE",
+    "name": "Cre8 Enterprise Limited Class A Ordinary Shares",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Specialty Business Services",
+    "marketCap": 6465913,
+    "lastPrice": 0.2873,
+    "riskLevel": "HIGH",
+    "totalScore": 15,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.29) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($6M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($84K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+31%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.3x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (8.9% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:14.389Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SXTC",
+    "name": "China SXT Pharmaceuticals, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic",
+    "marketCap": 15744895,
+    "lastPrice": 0.1357,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.14) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($16M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (-91%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.3x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (25.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T14:57:35.683Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "MTEN",
+    "name": "Mingteng International Corporation Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Manufacturing - Metal Fabrication",
+    "marketCap": 721578,
+    "lastPrice": 0.1055,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.11) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (-88%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.1x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (25.2% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:04:05.064Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "LVRO",
+    "name": "Lavoro Limited",
+    "exchange": "NASDAQ",
+    "sector": "Basic Materials",
+    "industry": "Agricultural Inputs",
+    "marketCap": 128969042,
+    "lastPrice": 1.106,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.11) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($129M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+142%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.3x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (38.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:06:17.354Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "LHSW",
+    "name": "Lianhe Sowell International Group Ltd Ordinary Shares",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Information Technology Services",
+    "marketCap": 40092000,
+    "lastPrice": 0.771,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.77) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($40M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+51%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.0x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (15.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:10:07.177Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "VRME",
+    "name": "VerifyMe, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Security & Protection Services",
+    "marketCap": 11918217,
+    "lastPrice": 0.9671,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.97) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($12M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+61%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.1x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (15.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:16:04.417Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "AEVAW",
+    "name": "Aeva Technologies, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Semiconductors",
+    "marketCap": 8881465,
+    "lastPrice": 0.16,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.16) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($9M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($8K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+100%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (26.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:16:53.755Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SKYQ",
+    "name": "Sky Quarry Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Energy",
+    "industry": "Oil & Gas Integrated",
+    "marketCap": 10106523,
+    "lastPrice": 0.4677,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.47) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($10M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+113%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.1x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (35.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:15.181Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "LUCY",
+    "name": "Innovative Eyewear, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical - Instruments & Supplies",
+    "marketCap": 7250744,
+    "lastPrice": 1.585,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.58) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($7M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+59%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.1x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (14.3% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:23.348Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "PTIX",
+    "name": "Protagenic Therapeutics, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 1233855,
+    "lastPrice": 0.64,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.64) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($77K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (-52%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (14.9% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:19:59.217Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "HSCSW",
+    "name": "HeartSciences Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical - Devices",
+    "marketCap": 238294,
+    "lastPrice": 0.09,
+    "riskLevel": "HIGH",
+    "totalScore": 14,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.09) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($0M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($0K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+99%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (62.3% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:21:52.760Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ALVOW",
+    "name": "Alvotech",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic",
+    "marketCap": 152814545,
+    "lastPrice": 0.51,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.51) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($153M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($4K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-40%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (19.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T14:57:01.521Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "PCTTW",
+    "name": "PureCycle Technologies, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Industrial - Pollution & Treatment Controls",
+    "marketCap": 180155606,
+    "lastPrice": 1.0001,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.00) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($180M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($14K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+28%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (19.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T14:59:29.241Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ATLN",
+    "name": "Atlantic International Corp.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical - Diagnostics & Research",
+    "marketCap": 96761814,
+    "lastPrice": 1.8217,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.82) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($97M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+37%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.7x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (14.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:03:26.807Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ACRV",
+    "name": "Acrivon Therapeutics, Inc. Common Stock",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 52460397,
+    "lastPrice": 1.6625,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.66) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($52M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-31%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.6x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (13.2% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:03:44.339Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "TDTH",
+    "name": "Trident Digital Tech Holdings Ltd American Depository Shares",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Information Technology Services",
+    "marketCap": 3313525,
+    "lastPrice": 0.4303,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.43) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($3M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($141K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+43%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (12.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:10:48.209Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "AIIOW",
+    "name": "Robo.ai Inc. Warrant 2022-11.11.27 on Robo.ai",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Auto - Manufacturers",
+    "marketCap": 20097000,
+    "lastPrice": 0.07,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.07) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($20M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($6K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+39%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (12.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:12:39.067Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ZCMD",
+    "name": "Zhongchao Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical - Healthcare Information Services",
+    "marketCap": 2657166,
+    "lastPrice": 0.5715,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.57) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($3M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($96K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+27%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (13.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:14:09.705Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "BAERW",
+    "name": "Bridger Aerospace Group Holdings, Inc. Warrant",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Security & Protection Services",
+    "marketCap": 23036751,
+    "lastPrice": 0.4275,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.43) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($23M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($32K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+114%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 82)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (18.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:14:13.169Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "OPTXW",
+    "name": "Syntec Optics Holdings, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Hardware, Equipment & Parts",
+    "marketCap": 29116661,
+    "lastPrice": 0.79,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.79) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($29M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($27K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+235%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 88)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (17.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:15:12.979Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ARBEW",
+    "name": "Arbe Robotics Ltd.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Software - Infrastructure",
+    "marketCap": 13340000,
+    "lastPrice": 0.12,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.12) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($13M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($3K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+50%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (36.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:15:31.261Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ZOOZW",
+    "name": "ZOOZ Strategy Ltd.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts",
+    "marketCap": 494042,
+    "lastPrice": 0.0407,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.04) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($0M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($1K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+25%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (15.1% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:16:39.673Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "GOVX",
+    "name": "GeoVax Labs, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 84193620,
+    "lastPrice": 3.32,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($3.32) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($84M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+1947%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 73)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (565.3% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:33.086Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "CYCN",
+    "name": "Cyclerion Therapeutics, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 6040766,
+    "lastPrice": 1.81,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.81) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($6M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+39%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.2x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (12.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:47.470Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "MOBXW",
+    "name": "Mobix Labs, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Semiconductors",
+    "marketCap": 3786000,
+    "lastPrice": 0.0631,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.06) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($4M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($1K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-30%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (15.9% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:51.746Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "LIDRW",
+    "name": "AEye, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Auto - Parts",
+    "marketCap": 5357040,
+    "lastPrice": 0.1189,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.12) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($5M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($5K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+39%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (17.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:18:33.251Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "EUDAW",
+    "name": "EUDA Health Holdings Limited",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical - Healthcare Information Services",
+    "marketCap": 2683346,
+    "lastPrice": 0.0728,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.07) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($3M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($0K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-26%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (24.3% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:18:37.843Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SEGG",
+    "name": "Lottery.com Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information",
+    "marketCap": 1860598,
+    "lastPrice": 0.4722,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.47) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($2M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($80K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-34%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (6.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:18:51.375Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "BFRGW",
+    "name": "Bullfrog AI Holdings, Inc. Warrants",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical - Healthcare Information Services",
+    "marketCap": 2818207,
+    "lastPrice": 0.247,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.25) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($3M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($28K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+29%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (25.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:19:40.076Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SBFMW",
+    "name": "Sunshine Biopharma, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic",
+    "marketCap": 932131,
+    "lastPrice": 0.19,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.19) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($2K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-42%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (17.9% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:21:28.445Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "NIXXW",
+    "name": "Nixxy, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Staffing & Employment Services",
+    "marketCap": 718437,
+    "lastPrice": 0.0281,
+    "riskLevel": "HIGH",
+    "totalScore": 13,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.03) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($0K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-30%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (34.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:21:31.568Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SHMDW",
+    "name": "SCHMID Group N.V. Warrants",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Industrial - Machinery",
+    "marketCap": 111411300,
+    "lastPrice": 2.5901,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.59) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($111M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($144K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+77%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 79)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (13.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:05:08.811Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "MRNO",
+    "name": "Murano Global Investments PLC Ordinary Shares",
+    "exchange": "NASDAQ",
+    "sector": "Real Estate",
+    "industry": "Real Estate - Development",
+    "marketCap": 105489830,
+    "lastPrice": 1.33,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.33) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($105M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+158%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.1x normal)"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 74)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (18.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:07:04.154Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SATLW",
+    "name": "Satellogic Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Hardware, Equipment & Parts",
+    "marketCap": 71735119,
+    "lastPrice": 0.53,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.53) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($72M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($15K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+108%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 70)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (15.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:08:31.914Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "FUFUW",
+    "name": "BitFuFu Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Financial Services",
+    "industry": "Financial - Capital Markets",
+    "marketCap": 48453576,
+    "lastPrice": 0.294,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.29) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($48M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($5K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+47%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 81)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (6.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:08:53.571Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ABVEW",
+    "name": "Above Food Ingredients Inc. Warrants",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods",
+    "marketCap": 48999334,
+    "lastPrice": 0.7899,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.79) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($49M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($100K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+126%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 70)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (25.9% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:11:46.221Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "EEIQ",
+    "name": "Elite Education Group International Limited",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Defensive",
+    "industry": "Education & Training Services",
+    "marketCap": 3765540,
+    "lastPrice": 0.2881,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.29) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($4M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($61K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+31%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.4x normal)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (7.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, VOLUME_EXPLOSION, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:14:56.375Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "MNTS",
+    "name": "Momentus Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense",
+    "marketCap": 6611213,
+    "lastPrice": 11.9751,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($7M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+145%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.6x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (22.0% daily)"
+      }
+    ],
+    "signalSummary": "SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:16:31.403Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "JCSE",
+    "name": "JE Cleantech Holdings Limited",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Industrial - Machinery",
+    "marketCap": 11598873,
+    "lastPrice": 2.205,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.21) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($12M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+106%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.3x normal)"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 78)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (22.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:16.694Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "MASK",
+    "name": "3 E Network Technology Group Ltd Class A Ordinary Shares",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Information Technology Services",
+    "marketCap": 4185176,
+    "lastPrice": 0.3947,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.39) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($4M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+65%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (16.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:18:29.021Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "OCG",
+    "name": "Oriental Culture Holding Ltd.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail",
+    "marketCap": 420431,
+    "lastPrice": 0.0198,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.02) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($0M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (-78%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (20.5% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:18:32.264Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "BSLK",
+    "name": "Bolt Projects Holdings, Inc.",
+    "exchange": "OTC",
+    "sector": "Financial Services",
+    "industry": "Shell Companies",
+    "marketCap": 744696,
+    "lastPrice": 0.36,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.36) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "OTC_EXCHANGE",
+        "category": "STRUCTURAL",
+        "weight": 3,
+        "description": "Traded on OTC/Pink Sheets - less regulated, higher risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (-55%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (9.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, OTC_EXCHANGE, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:19:06.204Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "HAO",
+    "name": "Haoxi Health Technology Limited",
+    "exchange": "NASDAQ",
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies",
+    "marketCap": 10616785,
+    "lastPrice": 1.415,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.42) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($11M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($41K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+33%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 84)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (7.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:19:25.874Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "TALKW",
+    "name": "Talkspace, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical - Care Facilities",
+    "marketCap": 6576543,
+    "lastPrice": 0.0397,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.04) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($7M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($3K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+39%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.3x normal)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (27.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, VOLUME_EXPLOSION, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:01.544Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "PRPH",
+    "name": "ProPhase Labs, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - Specialty & Generic",
+    "marketCap": 969238,
+    "lastPrice": 0.2106,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.21) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (-53%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (10.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:41.189Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "EVTV",
+    "name": "Envirotech Vehicles, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Auto - Manufacturers",
+    "marketCap": 4730930,
+    "lastPrice": 1.34,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.34) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($5M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+251%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.0x normal)"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 79)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (46.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:45.990Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "MYPSW",
+    "name": "PLAYSTUDIOS Inc",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Electronic Gaming & Multimedia",
+    "marketCap": 776890,
+    "lastPrice": 0.0062,
+    "riskLevel": "HIGH",
+    "totalScore": 12,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.01) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($0K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-27%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.4x normal)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (24.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, VOLUME_EXPLOSION, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:21:23.650Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "VTYX",
+    "name": "Ventyx Biosciences, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 984879606,
+    "lastPrice": 13.804,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+53%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.0x normal)"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 78)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (12.3% daily)"
+      }
+    ],
+    "signalSummary": "SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T14:46:17.135Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "IMRX",
+    "name": "Immuneering Corporation",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 160804836,
+    "lastPrice": 4.4296,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($4.43) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($161M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-31%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (13.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T14:49:31.471Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "DVLT",
+    "name": "Datavault AI Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Information Technology Services",
+    "marketCap": 253852500,
+    "lastPrice": 0.905,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.91) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($254M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+40%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (22.1% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T14:57:31.920Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "RVMDW",
+    "name": "Revolution Medicines, Inc. Warrant",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 589640606,
+    "lastPrice": 3.05,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($3.05) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($112K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+229%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 89)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (28.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T14:57:40.771Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "AMBR",
+    "name": "Amber International Holding Ltd",
+    "exchange": "NASDAQ",
+    "sector": "Real Estate",
+    "industry": "Real Estate - Development",
+    "marketCap": 258564867,
+    "lastPrice": 2.76,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.76) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($259M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+60%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 84)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (7.3% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T14:58:22.445Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "PYXS",
+    "name": "Pyxis Oncology, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 129846847,
+    "lastPrice": 2.0859,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.09) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($130M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+71%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 80)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (7.5% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:01:12.095Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SHIM",
+    "name": "Shimmick Corporation Common Stock",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Engineering & Construction",
+    "marketCap": 133373262,
+    "lastPrice": 3.7239,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($3.72) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($133M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($130K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+26%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 73)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (5.5% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:01:14.066Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ZNTL",
+    "name": "Zentalis Pharmaceuticals, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 249265188,
+    "lastPrice": 3.45,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($3.45) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($249M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+150%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 84)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (14.3% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:01:43.083Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "IPSC",
+    "name": "Century Therapeutics, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 161761243,
+    "lastPrice": 1.8797,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.88) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($162M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+89%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 81)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (15.2% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:02:45.379Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "HYFT",
+    "name": "MindWalk Holdings Corp.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 128086224,
+    "lastPrice": 2.7467,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.75) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($128M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+53%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 89)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (5.3% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:02:51.614Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "FLNT",
+    "name": "Fluent, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies",
+    "marketCap": 62797007,
+    "lastPrice": 3.215,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($3.21) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($63M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($123K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+33%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 73)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (8.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:04:15.997Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "DFLI",
+    "name": "Dragonfly Energy Holdings Corp.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts",
+    "marketCap": 2406902,
+    "lastPrice": 3.875,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($3.88) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($2M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+29%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (9.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:08:11.195Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "MVSTW",
+    "name": "Microvast Holdings, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Electrical Equipment & Parts",
+    "marketCap": 46487036,
+    "lastPrice": 0.1438,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.14) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($46M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($19K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+57%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (13.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:09:12.243Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SOPA",
+    "name": "Society Pass Incorporated",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Software - Application",
+    "marketCap": 14965055,
+    "lastPrice": 2.7249,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.72) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($15M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-28%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (24.2% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:09:13.134Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "IZM",
+    "name": "ICZOOM Group Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Technology Distributors",
+    "marketCap": 19525157,
+    "lastPrice": 1.69,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.69) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($20M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-33%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (14.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:09:18.785Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "CGTL",
+    "name": "Creative Global Technology Holdings Limited Ordinary Shares",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail",
+    "marketCap": 61852321,
+    "lastPrice": 2.99,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.99) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($62M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+211%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 92)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (31.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:10:21.634Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "UFG",
+    "name": "Uni-Fuels Holdings Limited",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Marine Shipping",
+    "marketCap": 40423951,
+    "lastPrice": 1.3,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.30) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($40M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+91%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.6x normal)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (23.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:10:59.713Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ONEG",
+    "name": "OneConstruction Group Limited",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Engineering & Construction",
+    "marketCap": 30821164,
+    "lastPrice": 2.3586,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.36) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($31M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+86%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 89)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (8.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:11:13.173Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "HUMAW",
+    "name": "Humacyte, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 162497154,
+    "lastPrice": 0.135,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.14) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($162M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($3K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+62%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (12.5% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:11:20.797Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "OMH",
+    "name": "Ohmyhome Limited",
+    "exchange": "NASDAQ",
+    "sector": "Real Estate",
+    "industry": "Real Estate - Services",
+    "marketCap": 31764055,
+    "lastPrice": 1.375,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.38) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($32M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($111K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+35%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 85)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI",
+    "evaluatedAt": "2026-01-12T15:11:31.192Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ASBP",
+    "name": "Aspire Biopharma Holdings, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 4759446,
+    "lastPrice": 0.0961,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.10) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($5M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-27%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (12.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:11:43.825Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "VWAVW",
+    "name": "VisionWave Holdings, Inc. Warrant",
+    "exchange": "NASDAQ",
+    "sector": "Financial Services",
+    "industry": "Asset Management",
+    "marketCap": 55826120,
+    "lastPrice": 3.38,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($3.38) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($56M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+188%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 85)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (17.2% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:11:55.253Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ELOG",
+    "name": "Eastern International Ltd. Ordinary Shares",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Integrated Freight & Logistics",
+    "marketCap": 15517820,
+    "lastPrice": 1.47,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.47) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($16M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+28%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (12.3% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:12:58.457Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "TBLAW",
+    "name": "Taboola.com, Ltd.",
+    "exchange": "NASDAQ",
+    "sector": "Communication Services",
+    "industry": "Internet Content & Information",
+    "marketCap": 20935243,
+    "lastPrice": 0.0727,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.07) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($21M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($1K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+50%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (24.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:13:00.443Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "PRZO",
+    "name": "ParaZero Technologies Ltd.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense",
+    "marketCap": 25651192,
+    "lastPrice": 1.2503,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.25) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($26M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+54%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.2x normal)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (15.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:13:06.643Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "NAII",
+    "name": "Natural Alternatives International, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods",
+    "marketCap": 27486662,
+    "lastPrice": 4.45,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($4.45) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($27M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($115K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+25%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 92)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI",
+    "evaluatedAt": "2026-01-12T15:13:53.467Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "CABR",
+    "name": "Caring Brands, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Medical - Healthcare Plans",
+    "marketCap": 16505356,
+    "lastPrice": 1.12,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.12) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($17M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+29%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (8.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:13:57.185Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "BNAI",
+    "name": "Brand Engagement Network, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Software - Infrastructure",
+    "marketCap": 14451618,
+    "lastPrice": 3.22,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($3.22) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($14M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+40%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (34.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:14:28.157Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "PASW",
+    "name": "Ping An Biomedical Co., Ltd.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Industrial - Distribution",
+    "marketCap": 4174086,
+    "lastPrice": 0.2284,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.23) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($4M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (-52%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.2x normal)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (22.2% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:14:31.289Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "FATBP",
+    "name": "FAT Brands Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants",
+    "marketCap": 13759882,
+    "lastPrice": 0.99,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.99) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($14M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($29K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+91%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (11.5% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:14:54.453Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "BNZI",
+    "name": "Banzai International, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Software - Application",
+    "marketCap": 4733196,
+    "lastPrice": 1.3692,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.37) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($5M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+39%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (13.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:15:06.049Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "FLDDW",
+    "name": "Fold Holdings, Inc. Warrant 2021-14.02.30 on Fold Holding -A-",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Software - Application",
+    "marketCap": 6197300,
+    "lastPrice": 0.21,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.21) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($6M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($8K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+50%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (20.7% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:16:05.158Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "HIHO",
+    "name": "Highway Holdings Limited",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Manufacturing - Metal Fabrication",
+    "marketCap": 5384135,
+    "lastPrice": 1.17,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.17) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($5M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-27%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (14.9% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:16:10.388Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "XTKG",
+    "name": "X3 Holdings Co Ltd.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Software - Application",
+    "marketCap": 3148730,
+    "lastPrice": 0.1967,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.20) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($3M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-46%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (21.9% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:00.337Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "NAMMW",
+    "name": "Namib Minerals Warrants",
+    "exchange": "NASDAQ",
+    "sector": "Basic Materials",
+    "industry": "Gold",
+    "marketCap": 4782680,
+    "lastPrice": 0.0899,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.09) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($5M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($2K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+25%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "Overbought indicator (RSI: 71)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (9.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:31.531Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "GRRRW",
+    "name": "Gorilla Technology Group Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Software - Infrastructure",
+    "marketCap": 9162198,
+    "lastPrice": 0.395,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.40) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($9M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($69K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+57%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (26.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:17:41.697Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SOWG",
+    "name": "Sow Good Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Defensive",
+    "industry": "Packaged Foods",
+    "marketCap": 7181497,
+    "lastPrice": 0.6223,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.62) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($7M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+79%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.1x normal)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (13.5% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:18:28.270Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "NVVE",
+    "name": "Nuvve Holding Corp.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Specialty Retail",
+    "marketCap": 915371,
+    "lastPrice": 3.45,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($3.45) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+37%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (20.3% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:19:18.600Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "VSTD",
+    "name": "Vestand Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Defensive",
+    "industry": "Food Distribution",
+    "marketCap": 1702519,
+    "lastPrice": 0.2999,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.30) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($2M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (+29%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (7.4% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:19:20.390Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "GP",
+    "name": "GreenPower Motor Company Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Auto - Manufacturers",
+    "marketCap": 3633077,
+    "lastPrice": 1.18,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.18) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($4M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+51%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (4.2x normal)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (14.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:13.104Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "ASBPW",
+    "name": "Aspire Biopharma Holdings, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Biotechnology",
+    "marketCap": 1243102,
+    "lastPrice": 0.0251,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.03) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($1K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+52%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (13.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:18.053Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "KWMWW",
+    "name": "K Wave Media Ltd.",
+    "exchange": "NASDAQ",
+    "sector": "Communication Services",
+    "industry": "Entertainment",
+    "marketCap": 7074,
+    "lastPrice": 0.0699,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.07) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($0M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($1K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+132%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (28.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:18.756Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "MRNOW",
+    "name": "Murano Global Investments PLC Warrants",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Travel Services",
+    "marketCap": 139665777,
+    "lastPrice": 0.0699,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.07) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($140M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($2K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+90%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (61.5% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:26.121Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "WTO",
+    "name": "UTime Limited",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Consumer Electronics",
+    "marketCap": 2066409,
+    "lastPrice": 0.7066,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.71) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($2M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Significant price movement (-31%) in 7 days"
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3,
+        "description": "Pump-and-dump pattern detected: rapid price increase followed by sharp decline"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (17.9% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, SPIKE_THEN_DROP, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:34.055Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "DRCT",
+    "name": "Direct Digital Holdings, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies",
+    "marketCap": 80804267,
+    "lastPrice": 2.55,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.55) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($81M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+3875%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 99)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (1433.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:36.667Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "BETRW",
+    "name": "Better Home & Finance Holding Company",
+    "exchange": "NASDAQ",
+    "sector": "Financial Services",
+    "industry": "Financial - Mortgages",
+    "marketCap": 4551649,
+    "lastPrice": 0.29,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.29) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($5M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($33K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+164%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (16.2% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:48.106Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SDOT",
+    "name": "Sadot Group Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Defensive",
+    "industry": "Agricultural Farm Products",
+    "marketCap": 2810046,
+    "lastPrice": 2.85,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($2.85) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($3M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+133%) in 7 days"
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Elevated trading volume (3.5x normal)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (16.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, VOLUME_EXPLOSION, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:20:55.689Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "KITTW",
+    "name": "Nauticus Robotics, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Industrials",
+    "industry": "Aerospace & Defense",
+    "marketCap": 37057563,
+    "lastPrice": 0.0705,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.07) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($37M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($9K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+56%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (21.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:21:10.182Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "VSME",
+    "name": "VS Media Holdings Limited Class A Ordinary Shares",
+    "exchange": "NASDAQ",
+    "sector": "Communication Services",
+    "industry": "Advertising Agencies",
+    "marketCap": 88892535,
+    "lastPrice": 1.8039,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($1.80) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($89M) - higher manipulation risk"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+1694%) in 7 days"
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 2,
+        "description": "Overbought indicator (RSI: 98)"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (471.2% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, SPIKE_7D, OVERBOUGHT_RSI, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:21:25.846Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "BTBDW",
+    "name": "BT Brands, Inc.",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Cyclical",
+    "industry": "Restaurants",
+    "marketCap": 888126,
+    "lastPrice": 0.1443,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.14) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($1M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($2K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+72%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (38.6% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:21:29.181Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "SCLXW",
+    "name": "Scilex Holding Company",
+    "exchange": "NASDAQ",
+    "sector": "Healthcare",
+    "industry": "Drug Manufacturers - General",
+    "marketCap": 1536661,
+    "lastPrice": 0.1799,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.18) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($2M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($4K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+89%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (13.8% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:21:32.489Z",
+    "priceDataSource": "FMP"
+  },
+  {
+    "symbol": "EDBLW",
+    "name": "Edible Garden AG Incorporated",
+    "exchange": "NASDAQ",
+    "sector": "Consumer Defensive",
+    "industry": "Agricultural Farm Products",
+    "marketCap": 6791983,
+    "lastPrice": 0.15,
+    "riskLevel": "HIGH",
+    "totalScore": 11,
+    "isLegitimate": false,
+    "isInsufficient": false,
+    "signals": [
+      {
+        "code": "MICROCAP_PRICE",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Stock price ($0.15) is below $5 (penny stock territory)"
+      },
+      {
+        "code": "SMALL_MARKET_CAP",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Small market cap ($7M) - higher manipulation risk"
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2,
+        "description": "Very low daily trading volume ($4K)"
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4,
+        "description": "Extreme price movement (+52%) in 7 days"
+      },
+      {
+        "code": "HIGH_VOLATILITY",
+        "category": "PATTERN",
+        "weight": 1,
+        "description": "High price volatility (22.0% daily)"
+      }
+    ],
+    "signalSummary": "MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY, SPIKE_7D, HIGH_VOLATILITY",
+    "evaluatedAt": "2026-01-12T15:21:41.590Z",
+    "priceDataSource": "FMP"
+  }
+]
