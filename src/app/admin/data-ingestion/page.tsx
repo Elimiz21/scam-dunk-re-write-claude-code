@@ -10,6 +10,9 @@ import {
   Clock,
   AlertCircle,
   RefreshCw,
+  Wrench,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 interface IngestionStatus {
@@ -28,19 +31,49 @@ interface IngestionResult {
   totalProcessed: number;
 }
 
+interface DbStatus {
+  status: "ready" | "empty" | "missing_tables";
+  tables: Record<string, { exists: boolean; count?: number; error?: string }>;
+  message: string;
+}
+
 export default function DataIngestionPage() {
   const [status, setStatus] = useState<IngestionStatus | null>(null);
+  const [dbStatus, setDbStatus] = useState<DbStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [ingesting, setIngesting] = useState<string | null>(null);
+  const [creatingTables, setCreatingTables] = useState(false);
   const [results, setResults] = useState<IngestionResult[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchStatus();
+    checkDbStatus();
   }, []);
 
-  async function fetchStatus() {
+  async function checkDbStatus() {
     setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/db-status");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to check database status");
+      }
+      const data = await res.json();
+      setDbStatus(data);
+
+      // If tables exist, fetch ingestion status
+      if (data.status !== "missing_tables") {
+        await fetchStatus();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to check database");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchStatus() {
     try {
       const res = await fetch("/api/admin/ingest-evaluation");
       if (!res.ok) throw new Error("Failed to fetch status");
@@ -48,8 +81,24 @@ export default function DataIngestionPage() {
       setStatus(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
+    }
+  }
+
+  async function createTables() {
+    setCreatingTables(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/db-status", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create tables");
+      }
+      // Refresh status
+      await checkDbStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create tables");
     } finally {
-      setLoading(false);
+      setCreatingTables(false);
     }
   }
 
@@ -105,7 +154,7 @@ export default function DataIngestionPage() {
             </p>
           </div>
           <button
-            onClick={fetchStatus}
+            onClick={checkDbStatus}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900"
           >
             <RefreshCw className="h-4 w-4" />
@@ -115,7 +164,66 @@ export default function DataIngestionPage() {
 
         {error && <AlertBanner type="error" title="Error" message={error} />}
 
-        {/* Status Cards */}
+        {/* Database Status */}
+        {dbStatus && (
+          <div className={`bg-white rounded-lg shadow p-6 border-l-4 ${
+            dbStatus.status === "ready" ? "border-green-500" :
+            dbStatus.status === "empty" ? "border-yellow-500" : "border-red-500"
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Database className={`h-6 w-6 ${
+                  dbStatus.status === "ready" ? "text-green-500" :
+                  dbStatus.status === "empty" ? "text-yellow-500" : "text-red-500"
+                }`} />
+                <div>
+                  <h3 className="font-medium text-gray-900">Database Status</h3>
+                  <p className="text-sm text-gray-500">{dbStatus.message}</p>
+                </div>
+              </div>
+              {dbStatus.status === "missing_tables" && (
+                <button
+                  onClick={createTables}
+                  disabled={creatingTables}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {creatingTables ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Wrench className="h-4 w-4" />
+                      Create Tables
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            {/* Table Status Details */}
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-2">
+              {Object.entries(dbStatus.tables).map(([name, info]) => (
+                <div key={name} className="flex items-center gap-2 text-sm">
+                  {info.exists ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                  <span className={info.exists ? "text-gray-700" : "text-red-600"}>
+                    {name}
+                    {info.exists && info.count !== undefined && (
+                      <span className="text-gray-400 ml-1">({info.count})</span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Status Cards - only show if tables exist */}
+        {dbStatus?.status !== "missing_tables" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
@@ -145,6 +253,7 @@ export default function DataIngestionPage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Pending Imports */}
         {status?.pendingDates && status.pendingDates.length > 0 && (
