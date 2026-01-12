@@ -344,9 +344,29 @@ These stocks completed their pump-and-dump cycle:
 
 ---
 
-## Promoted Stocks Tracking
+## Promoted/Coordinated Stocks Tracking
 
-### Grandmaster-Obi Discord Ecosystem
+This section tracks all stocks identified as being subject to coordinated promotion or manipulation schemes. Stocks are organized by the promotion source/scheme when known, or listed as "Unattributed" when coordination is suspected but source is unconfirmed.
+
+### Summary of Active Schemes
+
+| Scheme ID | Name/Source | Platform | Status | Stocks Tracked | First Detected |
+|-----------|-------------|----------|--------|----------------|----------------|
+| **SCHEME-001** | Grandmaster-Obi / Making Easy Money | Discord + stock-market-loop.com | 🔴 ACTIVE | 9 | Dec 19, 2025 |
+| **SCHEME-002** | *Unattributed Micro-Cap Pumps* | Unknown | 🟡 MONITORING | 5 | Jan 12, 2026 |
+
+---
+
+### SCHEME-001: Grandmaster-Obi / Making Easy Money Discord
+
+**Overview:**
+- **Operator:** Grandmaster-Obi (former WallStreetBets moderator)
+- **Primary Platform:** "Making Easy Money" Discord (~17,000 members)
+- **Secondary Platforms:** stock-market-loop.com, YouTube (@OBIfrmMEM), Twitter/X (@ObiMem)
+- **Status:** Discord CLOSED to new members since Jan 10, 2026
+- **SEC Disclosure Compliance:** ❌ None observed on promotional website
+
+#### Tracked Stocks
 
 | Symbol | Alert Date | Alert Price | Current Status | Signals | Lifecycle Stage |
 |--------|------------|-------------|----------------|---------|-----------------|
@@ -360,7 +380,7 @@ These stocks completed their pump-and-dump cycle:
 | **GPUS** | Jan 2 | $0.25 | 🔴 HIGH RISK | SPIKE_7D, VOLUME 3.0x | **PUMP PHASE** |
 | **UAVS** | Jan 6 | - | 🔴 HIGH RISK | SPIKE_7D, VOLUME 3.7x | **PUMP PHASE** |
 
-### Performance Tracking
+#### Performance Tracking
 
 | Symbol | Alert Price | Peak Price | Current Est. | Max Gain | Status |
 |--------|-------------|------------|--------------|----------|--------|
@@ -371,7 +391,7 @@ These stocks completed their pump-and-dump cycle:
 | **INBS** | $6.90 | ~$41.00 | ~$17.92 | +494% | Active |
 | **DVLT** | $0.62 | $1.50 | ~$0.92 | +142% | Dumping |
 
-### Lifecycle Visualization
+#### Lifecycle Visualization
 
 ```
 ALERT → PUMP PHASE → PEAK → DUMP PHASE → NORMALIZED
@@ -386,6 +406,50 @@ SIDU:   [█████████████████░░░░░░�
 DVLT:   [██████████████████░░░░░░░░░░] Dump phase
 MNTS:   [██████████████████░░░░░░░░░░] Dump phase
 ```
+
+---
+
+### SCHEME-002: Unattributed Micro-Cap Pumps
+
+**Overview:**
+- **Source:** Unknown - no social media promotion identified yet
+- **Pattern:** Stocks showing SPIKE_7D + VOLUME_EXPLOSION + SPIKE_THEN_DROP without identifiable promotion source
+- **Status:** Under monitoring - may represent organic volatility or undiscovered promotion scheme
+
+#### Stocks Under Investigation
+
+| Symbol | Name | Market Cap | Signals | Notes |
+|--------|------|------------|---------|-------|
+| **AHMA** | Ambitions Enterprise | $153.4M | SPIKE_THEN_DROP | New Jan 12, no promo found |
+| **AMCI** | AMC Robotics | $168.6M | SPIKE_THEN_DROP | New Jan 12, no promo found |
+| **ELWS** | Earlyworks Co. | $16.7M | SPIKE_THEN_DROP | New Jan 12, no promo found |
+| **MMA** | Mixed Martial Arts Group | $13.9M | SPIKE_THEN_DROP | New Jan 12, no promo found |
+| **LYRA** | Lyra Therapeutics | $3.1M | SPIKE_7D (-41%) | Crash pattern, no promo found |
+
+**Action Items:**
+- [ ] Search social media for promotion of these stocks
+- [ ] Monitor for pattern repetition
+- [ ] Check for common ownership/insider activity
+- [ ] Cross-reference with other pump schemes
+
+---
+
+### Historical Schemes (Completed/Inactive)
+
+*No completed schemes to report yet. This section will track schemes that have fully wound down.*
+
+---
+
+### Adding New Schemes
+
+When a new promotion scheme is identified:
+
+1. Assign next SCHEME-ID (e.g., SCHEME-003)
+2. Document: Name, Platform, Operator (if known), First Detection Date
+3. List all stocks associated with the scheme
+4. Track alert dates and prices when available
+5. Monitor lifecycle stage for each stock
+6. Update status as scheme evolves
 
 ---
 
@@ -596,17 +660,47 @@ Add to watch list if:
     "withPumpDumpPattern": 5,
     "withVolumeExplosion": 4
   },
-  "promotedStocks": {
-    "totalTracked": 9,
-    "stillHighRisk": 9,
-    "inDumpPhase": ["LVRO", "SIDU", "DVLT", "MNTS"],
-    "inPumpPhase": ["MRNO", "ANPA", "INBS", "GPUS", "UAVS"]
+  "coordinatedSchemes": {
+    "totalSchemes": 2,
+    "activeSchemes": 2,
+    "schemes": {
+      "SCHEME-001": {
+        "name": "Grandmaster-Obi / Making Easy Money",
+        "platform": "Discord + stock-market-loop.com",
+        "status": "active",
+        "firstDetected": "2025-12-19",
+        "stocksTracked": 9,
+        "stocks": {
+          "inDumpPhase": ["LVRO", "SIDU", "DVLT", "MNTS"],
+          "inPumpPhase": ["MRNO", "ANPA", "INBS", "GPUS", "UAVS"]
+        }
+      },
+      "SCHEME-002": {
+        "name": "Unattributed Micro-Cap Pumps",
+        "platform": "Unknown",
+        "status": "monitoring",
+        "firstDetected": "2026-01-12",
+        "stocksTracked": 5,
+        "stocks": {
+          "underInvestigation": ["AHMA", "AMCI", "ELWS", "MMA", "LYRA"]
+        }
+      }
+    }
   },
   "socialMedia": {
-    "discordStatus": "closed",
-    "newArticles": 1,
-    "platform": "stock-market-loop.com",
-    "keyStocks": ["ANPA", "INBS"]
+    "platforms": {
+      "discord": {
+        "status": "closed",
+        "server": "Making Easy Money"
+      },
+      "stockMarketLoop": {
+        "newArticles": 1,
+        "keyStocks": ["ANPA", "INBS"]
+      },
+      "stocktwits": {
+        "trendingStocks": ["SOGP", "ANPA"]
+      }
+    }
   },
   "potentialTargets": {
     "count": 40,

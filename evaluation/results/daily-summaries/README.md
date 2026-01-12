@@ -43,11 +43,15 @@ Each daily summary contains the following sections:
 - Reason for drop (spike normalized, dump completed, etc.)
 - Previous signals when at HIGH risk
 
-### 7. Promoted Stocks Tracking
-- Status of known promoted stocks (Grandmaster-Obi ecosystem)
-- Current signals and risk level
-- Price performance tracking
-- Lifecycle stage (pump vs dump phase)
+### 7. Promoted/Coordinated Stocks Tracking
+- Summary of all identified promotion schemes (assigned SCHEME-IDs)
+- Each scheme includes: operator, platform, status, stocks tracked
+- Current signals and risk level for each stock
+- Price performance tracking (alert price, peak, current)
+- Lifecycle stage visualization (pump vs dump phase)
+- Unattributed pumps under investigation
+- Historical schemes (completed/inactive)
+- Instructions for adding new schemes
 
 ### 8. Social Media Findings
 - New promotional articles discovered
