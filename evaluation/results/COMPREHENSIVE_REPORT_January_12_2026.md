@@ -7,14 +7,16 @@
 
 This comprehensive report documents the findings from ScamDunk's January 12, 2026 analysis of US-listed stocks, combining quantitative pattern detection with extensive social media scanning to identify potential market manipulation schemes.
 
-### Key Metrics (Evaluation In Progress)
+### Key Metrics (Evaluation COMPLETE)
 
 | Metric | Count |
 |--------|-------|
-| **Total Stocks Analyzed** | 6,970 |
-| **Evaluation Progress** | 53.1% (as of report time) |
-| **HIGH Risk Stocks Identified** | 1,151+ |
-| **Pump-and-Dump Patterns Detected** | 185+ |
+| **Total Stocks in Universe** | 6,970 |
+| **Successfully Evaluated** | 6,548 (94%) |
+| **HIGH Risk Stocks Identified** | **1,450** |
+| **MEDIUM Risk Stocks** | 1,864 |
+| **LOW Risk Stocks** | 3,234 |
+| **Pump-and-Dump Patterns Detected** | 200+ |
 | **Stocks with Social Media Promotion** | 12+ confirmed |
 
 ---
@@ -273,7 +275,7 @@ The "Making Easy Money" Discord represents a shift from organic Reddit-style dis
 
 3. **Promotional Website:** stock-market-loop.com appears to be part of the promotional ecosystem, publishing coordinated articles without visible SEC-required compensation disclosures.
 
-4. **Scale of Problem:** With 1,151+ HIGH risk stocks and 185+ showing pump-and-dump patterns, manipulation activity remains widespread in the micro-cap space.
+4. **Scale of Problem:** With **1,450 HIGH risk stocks** (22% of evaluated stocks) and 200+ showing pump-and-dump patterns, manipulation activity remains widespread in the micro-cap space.
 
 ### Recommendations for Investors
 
