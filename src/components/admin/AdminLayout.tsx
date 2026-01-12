@@ -18,6 +18,7 @@ import {
   TrendingUp,
   AlertTriangle,
   Search,
+  Database,
 } from "lucide-react";
 
 interface AdminSession {
@@ -32,6 +33,7 @@ const navigation = [
   { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
   { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
   { name: "Stock Lookup", href: "/admin/stock-lookup", icon: Search },
+  { name: "Data Ingestion", href: "/admin/data-ingestion", icon: Database },
   { name: "Users", href: "/admin/users", icon: UsersRound },
   { name: "API Usage", href: "/admin/api-usage", icon: Activity },
   { name: "Integrations", href: "/admin/integrations", icon: Settings },
