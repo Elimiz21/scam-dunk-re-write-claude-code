@@ -523,99 +523,7 @@ On **December 22, 2025**, the SEC's Office of Investor Education and Assistance 
 
 ---
 
-## PART 6: BROADER SOCIAL MEDIA ACTIVITY SCAN
-
-In addition to the coordinated Grandmaster-Obi operation, we scanned all major social media platforms for general discussion and promotion of HIGH-risk stocks.
-
-### Platform-by-Platform Findings
-
-#### Reddit (r/pennystocks, r/wallstreetbets)
-
-| Stock | Activity Level | Details |
-|-------|---------------|---------|
-| **SIDU** | HIGH | Trending on multiple penny stock watchlists, extremely bullish sentiment |
-| **DVLT** | HIGH | Discussions around CES 2026 showcase and AI partnerships |
-| **ANPA** | MODERATE | Spike discussed but attributed to Grandmaster-Obi alerts |
-| **LVRO** | LOW | Minimal organic Reddit discussion - primarily Discord-driven |
-| **MRNO** | LOW | Not trending organically on Reddit |
-
-**Tools Used:** ApeWisdom (https://apewisdom.io/pennystocks/), Swaggy Stocks, AltIndex Reddit tracking
-
-**Key Observation:** Unlike January 8 findings where stocks like JTAI, OPTT, MVIS had organic Reddit discussion, current HIGH-risk stocks show activity **concentrated in Discord alerts rather than organic Reddit communities**.
-
-#### Stocktwits
-
-| Stock | Sentiment | Message Volume | Details |
-|-------|-----------|----------------|---------|
-| **SIDU** | Extremely Bullish | Extremely High | +390% in past month, retail still bullish |
-| **DVLT** | Extremely Bullish | High | Shifted from bullish after AP Global deal |
-| **ANPA** | Volatile | Extremely High | Swung from "extremely bullish" to "extremely bearish" in 24 hours |
-| **GPUS** | Bullish | Moderate | Discussions around AI/data center plays |
-
-**Links:**
-- SIDU Sentiment: https://stocktwits.com/symbol/SIDU
-- DVLT Sentiment: https://stocktwits.com/symbol/DVLT/sentiment
-- Trending: https://stocktwits.com/sentiment
-
-#### Twitter/X (FinTwit)
-
-**Findings:**
-- Primary activity through @ObiMem (Grandmaster-Obi's account)
-- General FinTwit discussion follows Discord alerts rather than leading them
-- SEC-charged FinTwit case (Atlas Trading) makes community cautious about overt promotion
-- No other major FinTwit influencers found promoting our specific HIGH-risk stocks
-
-**Relevant Context:** Houston FinTwit case revived in 2025 - appeals court reinstated $114M fraud charges against 8 influencers
-
-#### Instagram
-
-**Accounts Monitored:**
-- @realpennystocks (3,044 followers, 382 posts)
-- @penny_stock
-- @penny_shares
-- #pennystocks hashtag
-
-**Findings:** No specific promotion of our HIGH-risk stocks (SIDU, LVRO, MRNO, etc.) found on Instagram. General penny stock content exists but not targeting our flagged stocks.
-
-**Regulatory Note:** SEBI (India) crackdowns on finfluencers continue; actor Arshad Warsi case ongoing for pump-and-dump schemes.
-
-#### Facebook
-
-**Findings:** No specific Facebook groups found promoting our HIGH-risk stocks. SEC December 2025 warning about group chat scams applies broadly.
-
-**General Risk:** Fraudsters use Facebook to direct victims to encrypted WhatsApp/Telegram groups where manipulation occurs.
-
-#### Telegram
-
-**Channels Monitored:**
-- @pennystocks
-- @penny_stocks
-- Divine Stock Alerts
-- Penny Stock Gurus
-- The Trader's Edge (@pennystocksworld)
-
-**Findings:** No specific Telegram channels found promoting our HIGH-risk stocks. Australian ASX pump-and-dump group (sentenced January 2026) targeted different market.
-
-**Active Services:**
-- Divine Stock Alerts - Claims "no pump and dump schemes", free alerts
-- Stock Element - Paid private channel with alerts
-- Cryptocurrency Alerting - Multi-platform alert system
-
-### Key Difference from January 8 Analysis
-
-| Metric | January 8, 2026 | January 11, 2026 |
-|--------|-----------------|------------------|
-| HIGH-risk stocks | JTAI, OPTT, MVIS, BLNK, IQST, DGLY | SIDU, LVRO, MRNO, ANPA, GPUS, DVLT |
-| Reddit activity | Organic discussions across subreddits | Minimal - activity follows Discord alerts |
-| Promotion source | Diffuse across platforms | Concentrated in single Discord operation |
-| Stocktwits sentiment | Mixed | Extremely bullish (coordinated?) |
-| Instagram/Facebook | Some general penny stock accounts | No specific promotion found |
-
-**Conclusion:** The January 11 HIGH-risk stocks show a **distinctly different pattern** than January 8 stocks. Rather than organic social media buzz across multiple platforms, the current cohort's activity is **centrally coordinated through the Making Easy Money Discord**, with other platforms serving as secondary amplification.
-
----
-
-## PART 7: SEC PRECEDENT - ATLAS TRADING DISCORD (2022)
+## PART 6: SEC PRECEDENT - ATLAS TRADING DISCORD (2022)
 
 The current "Making Easy Money" Discord operation mirrors an identical scheme that led to SEC enforcement action in 2022:
 
@@ -637,7 +545,7 @@ The current "Making Easy Money" Discord operation mirrors an identical scheme th
 
 ---
 
-## PART 8: SEC INVESTOR WARNINGS
+## PART 7: SEC INVESTOR WARNINGS
 
 The SEC has issued multiple warnings about social media stock manipulation:
 
@@ -660,7 +568,7 @@ The SEC has issued multiple warnings about social media stock manipulation:
 
 ---
 
-## PART 9: SUMMARY STATISTICS
+## PART 8: SUMMARY STATISTICS
 
 ### Stocks by Promotion Status
 
