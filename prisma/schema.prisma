@@ -263,3 +263,153 @@ model AdminAuditLog {
   @@index([action])
   @@index([createdAt])
 }
+
+// ==========================================
+// STOCK HISTORY TRACKING MODELS
+// For tracking daily risk evaluations over time
+// ==========================================
+
+model TrackedStock {
+  id        String   @id @default(cuid())
+  symbol    String   @unique
+  name      String
+  exchange  String   // NASDAQ, NYSE, AMEX, OTC
+  sector    String?
+  industry  String?
+  isOTC     Boolean  @default(false)
+
+  dailySnapshots     StockDailySnapshot[]
+  riskAlerts         StockRiskAlert[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([exchange])
+  @@index([sector])
+}
+
+model StockDailySnapshot {
+  id        String   @id @default(cuid())
+  stockId   String
+  stock     TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  scanDate  DateTime
+
+  // Risk Assessment
+  riskLevel       String   // LOW, MEDIUM, HIGH, INSUFFICIENT
+  totalScore      Int
+  isLegitimate    Boolean
+  isInsufficient  Boolean  @default(false)
+
+  // Price Data
+  lastPrice       Float?
+  previousClose   Float?
+  priceChangePct  Float?
+
+  // Volume Data
+  volume          Int?
+  avgVolume       Int?
+  volumeRatio     Float?
+
+  // Market Data
+  marketCap       Float?
+
+  // Signals (JSON array)
+  signals         String   @default("[]") @db.Text
+  signalSummary   String?
+  signalCount     Int      @default(0)
+
+  dataSource      String   // FMP, etc.
+  evaluatedAt     DateTime
+
+  createdAt       DateTime @default(now())
+
+  @@unique([stockId, scanDate])
+  @@index([scanDate])
+  @@index([riskLevel])
+  @@index([riskLevel, scanDate])
+}
+
+model DailyScanSummary {
+  id        String   @id @default(cuid())
+  scanDate  DateTime @unique
+
+  totalStocks       Int
+  evaluated         Int
+  skippedNoData     Int
+
+  lowRiskCount      Int
+  mediumRiskCount   Int
+  highRiskCount     Int
+  insufficientCount Int
+
+  byExchange        String   @db.Text // JSON
+  bySector          String?  @db.Text // JSON
+
+  scanDurationMins  Int?
+  apiCallsMade      Int?
+
+  createdAt         DateTime @default(now())
+
+  @@index([scanDate])
+}
+
+model StockRiskAlert {
+  id        String   @id @default(cuid())
+  stockId   String
+  stock     TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  alertDate DateTime
+  alertType String   // NEW_HIGH_RISK, RISK_INCREASED, RISK_DECREASED, PUMP_DETECTED
+
+  previousRiskLevel String?
+  newRiskLevel      String
+  previousScore     Int?
+  newScore          Int
+
+  triggeringSignals String?  @db.Text
+  priceAtAlert      Float?
+  volumeAtAlert     Int?
+
+  isAcknowledged    Boolean  @default(false)
+  notes             String?  @db.Text
+
+  createdAt         DateTime @default(now())
+
+  @@index([alertDate])
+  @@index([alertType])
+  @@index([stockId, alertDate])
+}
+
+model PromotedStock {
+  id        String   @id @default(cuid())
+  symbol    String
+
+  addedDate         DateTime
+  promoterName      String
+  promotionPlatform String   // Discord, Twitter, Reddit
+  promotionGroup    String?
+
+  entryPrice        Float
+  entryMarketCap    Float?
+  entryRiskScore    Int
+
+  peakPrice         Float?
+  peakDate          DateTime?
+  currentPrice      Float?
+  lastUpdateDate    DateTime?
+
+  outcome           String?  // PUMPING, PEAKED, DUMPED, STABLE
+  maxGainPct        Float?
+  currentGainPct    Float?
+
+  evidenceLinks     String?  @db.Text
+
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([symbol, addedDate])
+  @@index([promoterName])
+  @@index([isActive])
+}
