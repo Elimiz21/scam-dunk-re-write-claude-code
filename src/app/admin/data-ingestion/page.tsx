@@ -154,7 +154,7 @@ export default function DataIngestionPage() {
             </p>
           </div>
           <button
-            onClick={fetchStatus}
+            onClick={checkDbStatus}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900"
           >
             <RefreshCw className="h-4 w-4" />
