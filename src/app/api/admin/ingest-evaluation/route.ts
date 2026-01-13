@@ -1,16 +1,15 @@
 /**
  * Admin Ingest Evaluation API - Import daily evaluation data into history tables
+ * Fetches data from Supabase Storage
  */
 
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes for large imports
-
-// GitHub raw URL base for evaluation data
-const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Elimiz21/scam-dunk-re-write-claude-code/main/public/evaluation-data";
 
 interface EvaluationStock {
   symbol: string;
@@ -47,8 +46,34 @@ interface EvaluationSummary {
   apiCallsMade?: number;
 }
 
-// Available evaluation dates (hardcoded for now, could be made dynamic)
-const AVAILABLE_DATES = ["2026-01-12", "2026-01-11"];
+async function fetchEvaluationFile(filename: string): Promise<EvaluationStock[] | null> {
+  // Get public URL from Supabase Storage
+  const { data: urlData } = supabase.storage
+    .from(EVALUATION_BUCKET)
+    .getPublicUrl(filename);
+
+  try {
+    const response = await fetch(urlData.publicUrl);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSummaryFile(filename: string): Promise<EvaluationSummary | null> {
+  const { data: urlData } = supabase.storage
+    .from(EVALUATION_BUCKET)
+    .getPublicUrl(filename);
+
+  try {
+    const response = await fetch(urlData.publicUrl);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -64,31 +89,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Date required (YYYY-MM-DD)" }, { status: 400 });
     }
 
-    if (!AVAILABLE_DATES.includes(date)) {
-      return NextResponse.json({ error: `No evaluation data available for ${date}` }, { status: 404 });
+    // Fetch evaluation file from Supabase Storage
+    const evaluationFilename = `fmp-evaluation-${date}.json`;
+    const summaryFilename = `fmp-summary-${date}.json`;
+
+    const evaluationData = await fetchEvaluationFile(evaluationFilename);
+    if (!evaluationData) {
+      return NextResponse.json(
+        { error: `Evaluation file not found for ${date}. Upload it to Supabase Storage first.` },
+        { status: 404 }
+      );
     }
 
-    // Fetch evaluation file from GitHub
-    const evaluationUrl = `${GITHUB_RAW_BASE}/fmp-evaluation-${date}.json`;
-    const summaryUrl = `${GITHUB_RAW_BASE}/fmp-summary-${date}.json`;
-
-    const evalResponse = await fetch(evaluationUrl);
-    if (!evalResponse.ok) {
-      return NextResponse.json({ error: `Evaluation file not found for ${date}` }, { status: 404 });
-    }
-
-    const evaluationData: EvaluationStock[] = await evalResponse.json();
-
-    // Try to fetch summary (optional)
-    let summaryData: EvaluationSummary | null = null;
-    try {
-      const summaryResponse = await fetch(summaryUrl);
-      if (summaryResponse.ok) {
-        summaryData = await summaryResponse.json();
-      }
-    } catch {
-      // Summary is optional
-    }
+    const summaryData = await fetchSummaryFile(summaryFilename);
 
     const scanDate = new Date(date);
     scanDate.setHours(0, 0, 0, 0);
@@ -284,6 +297,26 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // List files in Supabase Storage bucket
+    const { data: files, error: storageError } = await supabase.storage
+      .from(EVALUATION_BUCKET)
+      .list();
+
+    if (storageError) {
+      console.error("Supabase storage error:", storageError);
+      return NextResponse.json(
+        { error: "Failed to list evaluation files from storage" },
+        { status: 500 }
+      );
+    }
+
+    // Extract dates from evaluation filenames
+    const availableDates = (files || [])
+      .filter((f) => f.name.startsWith("fmp-evaluation-") && f.name.endsWith(".json"))
+      .map((f) => f.name.replace("fmp-evaluation-", "").replace(".json", ""))
+      .sort()
+      .reverse();
+
     // Get already ingested dates from DailyScanSummary
     const ingestedSummaries = await prisma.dailyScanSummary.findMany({
       select: { scanDate: true },
@@ -292,9 +325,9 @@ export async function GET() {
     const ingestedDates = ingestedSummaries.map((s) => s.scanDate.toISOString().split("T")[0]);
 
     return NextResponse.json({
-      availableDates: AVAILABLE_DATES,
+      availableDates,
       ingestedDates,
-      pendingDates: AVAILABLE_DATES.filter((d) => !ingestedDates.includes(d)),
+      pendingDates: availableDates.filter((d) => !ingestedDates.includes(d)),
     });
   } catch (error) {
     console.error("List evaluations error:", error);
