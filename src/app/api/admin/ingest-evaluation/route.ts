@@ -5,10 +5,12 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
-import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes for large imports
+
+// GitHub raw URL base for evaluation data
+const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Elimiz21/scam-dunk-re-write-claude-code/main/public/evaluation-data";
 
 interface EvaluationStock {
   symbol: string;
@@ -66,15 +68,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `No evaluation data available for ${date}` }, { status: 404 });
     }
 
-    // Get the base URL from the request headers
-    const headersList = headers();
-    const host = headersList.get("host") || "localhost:3000";
-    const protocol = host.includes("localhost") ? "http" : "https";
-    const baseUrl = `${protocol}://${host}`;
-
-    // Fetch evaluation file from public folder
-    const evaluationUrl = `${baseUrl}/evaluation-data/fmp-evaluation-${date}.json`;
-    const summaryUrl = `${baseUrl}/evaluation-data/fmp-summary-${date}.json`;
+    // Fetch evaluation file from GitHub
+    const evaluationUrl = `${GITHUB_RAW_BASE}/fmp-evaluation-${date}.json`;
+    const summaryUrl = `${GITHUB_RAW_BASE}/fmp-summary-${date}.json`;
 
     const evalResponse = await fetch(evaluationUrl);
     if (!evalResponse.ok) {
