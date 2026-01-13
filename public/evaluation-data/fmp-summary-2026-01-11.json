@@ -1,0 +1,42 @@
+{
+  "totalStocks": 6970,
+  "evaluated": 6551,
+  "skippedNoData": 419,
+  "fmpSuccessCount": 6551,
+  "byRiskLevel": {
+    "LOW": 3233,
+    "MEDIUM": 1871,
+    "HIGH": 1447,
+    "INSUFFICIENT": 0
+  },
+  "byExchange": {
+    "NASDAQ": {
+      "total": 3978,
+      "LOW": 1436,
+      "MEDIUM": 1246,
+      "HIGH": 1296
+    },
+    "AMEX": {
+      "total": 227,
+      "LOW": 35,
+      "MEDIUM": 112,
+      "HIGH": 80
+    },
+    "NYSE": {
+      "total": 2342,
+      "LOW": 1762,
+      "MEDIUM": 513,
+      "HIGH": 67
+    },
+    "OTC": {
+      "total": 4,
+      "LOW": 0,
+      "MEDIUM": 0,
+      "HIGH": 4
+    }
+  },
+  "startTime": "2026-01-10T19:56:37.812Z",
+  "apiCallsMade": 14139,
+  "endTime": "2026-01-11T08:22:14.411Z",
+  "durationMinutes": 11
+}
