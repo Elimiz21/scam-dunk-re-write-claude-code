@@ -318,12 +318,34 @@ export async function GET() {
       );
     }
 
-    // Extract dates from evaluation filenames (format: fmp-evaluation-YYYY-MM-DD.json)
-    const availableDates = (files || [])
+    // Extract dates from evaluation files (format: fmp-evaluation-YYYY-MM-DD.json)
+    const evaluationFiles = (files || [])
       .filter((f) => f.name.startsWith("fmp-evaluation-") && f.name.endsWith(".json"))
-      .map((f) => f.name.replace("fmp-evaluation-", "").replace(".json", ""))
-      .sort()
-      .reverse();
+      .map((f) => ({
+        filename: f.name,
+        date: f.name.replace("fmp-evaluation-", "").replace(".json", ""),
+      }));
+
+    // Extract dates from summary files (format: fmp-summary-YYYY-MM-DD.json)
+    const summaryFiles = (files || [])
+      .filter((f) => f.name.startsWith("fmp-summary-") && f.name.endsWith(".json"))
+      .map((f) => ({
+        filename: f.name,
+        date: f.name.replace("fmp-summary-", "").replace(".json", ""),
+      }));
+
+    // Get unique dates from evaluation files (required for ingestion)
+    const evaluationDates = evaluationFiles.map((f) => f.date);
+    const summaryDates = new Set(summaryFiles.map((f) => f.date));
+
+    // Build available dates with file status
+    const availableDates = evaluationDates
+      .map((date) => ({
+        date,
+        hasEvaluation: true,
+        hasSummary: summaryDates.has(date),
+      }))
+      .sort((a, b) => b.date.localeCompare(a.date));
 
     // Get already ingested dates from DailyScanSummary
     const ingestedSummaries = await prisma.dailyScanSummary.findMany({
@@ -333,12 +355,16 @@ export async function GET() {
     const ingestedDates = ingestedSummaries.map((s) => s.scanDate.toISOString().split("T")[0]);
 
     return NextResponse.json({
-      availableDates,
+      availableDates: availableDates.map((d) => d.date),
       ingestedDates,
-      pendingDates: availableDates.filter((d) => !ingestedDates.includes(d)),
+      pendingDates: availableDates
+        .filter((d) => !ingestedDates.includes(d.date))
+        .map((d) => d.date),
+      fileStatus: availableDates,
       debug: {
         filesFound: files?.length || 0,
-        evaluationFiles: availableDates.length,
+        evaluationFiles: evaluationFiles.length,
+        summaryFiles: summaryFiles.length,
         allFileNames: files?.map(f => f.name) || [],
       },
     });
