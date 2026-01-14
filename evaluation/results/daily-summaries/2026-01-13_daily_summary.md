@@ -10,7 +10,7 @@
 | **Comparison Period** | January 12, 2026 → January 13, 2026 |
 | **Data Source** | Financial Modeling Prep (FMP) Stable API |
 | **Total Stocks in Universe** | 6,970 |
-| **Scan Status** | ⚠️ PARTIAL (Full scan rate-limited, using Jan 12 baseline + tracked stock updates) |
+| **Scan Status** | ✅ COMPLETE (6,551 stocks evaluated, 70 minute scan) |
 | **Report Generated** | January 14, 2026 (pre-market) |
 
 ---
@@ -21,7 +21,7 @@
 
 | Metric | Value | Trend |
 |--------|-------|-------|
-| **Net HIGH Risk Change** | ~0 (baseline from Jan 12) | → Stable baseline |
+| **Net HIGH Risk Change** | -27 (1,450 → 1,423) | ↓ Slight decrease |
 | **EVTV Explosion** | +40.2% single day, 270M volume | 🔴 EXTREME |
 | **Promoted Stocks Status** | 10 tracked (1 NEW) | 5 in dump phase, 5 in pump phase |
 | **Making Easy Money Discord** | WENT PRIVATE | 🔴 Critical development |
@@ -37,27 +37,33 @@
 
 ---
 
-## Risk Distribution (Baseline from January 12)
+## Risk Distribution (Complete Scan January 14)
 
 ### Overall Distribution
 
-| Risk Level | Jan 12 Baseline | Notes |
-|------------|-----------------|-------|
-| **HIGH** | 1,450 | Full rescan pending |
-| **MEDIUM** | 1,864 | Full rescan pending |
-| **LOW** | 3,234 | Full rescan pending |
-| **INSUFFICIENT** | 0 | - |
-| **Total Evaluated** | 6,548 | Full rescan pending |
-| **Skipped (No Data)** | 422 | - |
+| Risk Level | Jan 12 | Jan 13/14 | Change |
+|------------|--------|-----------|--------|
+| **HIGH** | 1,450 | 1,423 | -27 ↓ |
+| **MEDIUM** | 1,864 | 1,886 | +22 ↑ |
+| **LOW** | 3,234 | 3,242 | +8 ↑ |
+| **INSUFFICIENT** | 0 | 0 | - |
+| **Total Evaluated** | 6,548 | 6,551 | +3 |
+| **Skipped (No Data)** | 422 | 419 | -3 |
 
-**Note:** Due to FMP API rate limiting during the January 13 scan attempt, we are using the January 12 baseline for overall statistics. Fresh data was obtained for all 10 tracked promoted stocks.
+### Exchange Breakdown (January 14 Scan)
 
-### Scan Limitation Details
+| Exchange | Total | HIGH | MEDIUM | LOW |
+|----------|-------|------|--------|-----|
+| **NASDAQ** | 3,978 | 1,263 | 1,253 | 1,462 |
+| **NYSE** | 2,342 | 72 | 527 | 1,743 |
+| **AMEX** | 227 | 84 | 106 | 37 |
+| **OTC** | 4 | 4 | 0 | 0 |
 
-The full stock evaluation scan was started on January 14 (pre-market) but encountered severe API rate limiting:
-- Progress: ~8.1% (566/6970 stocks) before timeout
-- HIGH risk stocks found in sample: 10 (consistent with ~1,450 projected)
-- Scan was terminated to prioritize tracked stock updates and social media analysis
+### Scan Statistics
+- **Duration:** 70 minutes
+- **API Calls:** 13,940
+- **Start Time:** 2026-01-14 11:38:47 UTC
+- **End Time:** 2026-01-14 16:37:01 UTC
 
 ---
 
@@ -361,19 +367,28 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
     "comparisonDate": "2026-01-12",
     "dataSource": "FMP",
     "totalStocksUniverse": 6970,
-    "scanStatus": "partial",
-    "scanNote": "Rate limited - using Jan 12 baseline with tracked stock updates"
+    "scanStatus": "complete",
+    "scanDuration": 70,
+    "apiCalls": 13940
   },
   "riskDistribution": {
-    "jan12Baseline": {
+    "jan12": {
       "high": 1450,
       "medium": 1864,
       "low": 3234,
       "evaluated": 6548
     },
-    "jan13": {
-      "note": "Full scan pending - using baseline",
-      "trackedStocksUpdated": 10
+    "jan14Scan": {
+      "high": 1423,
+      "medium": 1886,
+      "low": 3242,
+      "evaluated": 6551,
+      "skipped": 419
+    },
+    "change": {
+      "high": -27,
+      "medium": 22,
+      "low": 8
     }
   },
   "coordinatedSchemes": {
@@ -476,11 +491,11 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
 
 | File | Path | Description |
 |------|------|-------------|
-| Full Evaluation (Jan 12) | `../fmp-evaluation-2026-01-12.json` | Baseline evaluation data |
-| HIGH Risk (Jan 12) | `../fmp-high-risk-2026-01-12.json` | All HIGH risk stocks |
-| Summary (Jan 12) | `../fmp-summary-2026-01-12.json` | Summary statistics |
+| Full Evaluation (Jan 14) | `../fmp-evaluation-2026-01-14.json` | Complete evaluation data |
+| HIGH Risk (Jan 14) | `../fmp-high-risk-2026-01-14.json` | All 1,423 HIGH risk stocks |
+| Summary (Jan 14) | `../fmp-summary-2026-01-14.json` | Final scan statistics |
+| Full Evaluation (Jan 12) | `../fmp-evaluation-2026-01-12.json` | Previous baseline data |
 | Previous Summary | `./2026-01-12_daily_summary.md` | Previous day analysis |
-| Checkpoint (Jan 14) | `../fmp-checkpoint-2026-01-14.json` | Partial scan checkpoint |
 
 ---
 
@@ -503,4 +518,4 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
 
 *Report generated: January 14, 2026 (pre-market)*
 *ScamDunk Daily Summary System v1.0*
-*Note: Full scan pending due to API rate limiting - tracked stocks updated with fresh data*
+*Full scan complete: 6,551 stocks evaluated, 1,423 HIGH risk identified*
