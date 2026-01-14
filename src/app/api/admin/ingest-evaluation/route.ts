@@ -297,18 +297,24 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // List files in Supabase Storage bucket
+    // List files in Supabase Storage bucket root
     const { data: files, error: storageError } = await supabase.storage
       .from(EVALUATION_BUCKET)
-      .list();
+      .list("", {
+        limit: 100,
+        sortBy: { column: "name", order: "desc" },
+      });
 
     if (storageError) {
       console.error("Supabase storage error:", storageError);
       return NextResponse.json(
-        { error: "Failed to list evaluation files from storage" },
+        { error: `Storage error: ${storageError.message}` },
         { status: 500 }
       );
     }
+
+    // Log files found for debugging
+    console.log("Files found in bucket:", files?.map(f => f.name) || []);
 
     // Extract dates from evaluation filenames
     const availableDates = (files || [])
@@ -328,9 +334,16 @@ export async function GET() {
       availableDates,
       ingestedDates,
       pendingDates: availableDates.filter((d) => !ingestedDates.includes(d)),
+      debug: {
+        filesFound: files?.length || 0,
+        fileNames: files?.map(f => f.name) || [],
+      },
     });
   } catch (error) {
     console.error("List evaluations error:", error);
-    return NextResponse.json({ error: "Failed to list evaluations" }, { status: 500 });
+    return NextResponse.json({
+      error: "Failed to list evaluations",
+      details: String(error)
+    }, { status: 500 });
   }
 }
