@@ -46,7 +46,7 @@ interface EvaluationSummary {
   apiCallsMade?: number;
 }
 
-async function fetchEvaluationFile(filename: string): Promise<EvaluationStock[] | null> {
+async function fetchEvaluationFile(filename: string): Promise<{ data: EvaluationStock[] | null; error?: string }> {
   // Get public URL from Supabase Storage
   const { data: urlData } = supabase.storage
     .from(EVALUATION_BUCKET)
@@ -54,24 +54,48 @@ async function fetchEvaluationFile(filename: string): Promise<EvaluationStock[] 
 
   try {
     const response = await fetch(urlData.publicUrl);
-    if (!response.ok) return null;
-    return await response.json();
-  } catch {
-    return null;
+    if (!response.ok) {
+      return { data: null, error: `HTTP ${response.status}: ${response.statusText}` };
+    }
+
+    // Check content type
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const text = await response.text();
+      return { data: null, error: `Expected JSON but got ${contentType}: ${text.substring(0, 100)}` };
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data)) {
+      return { data: null, error: `Expected array but got ${typeof data}` };
+    }
+
+    return { data };
+  } catch (err) {
+    return { data: null, error: `Fetch error: ${String(err)}` };
   }
 }
 
-async function fetchSummaryFile(filename: string): Promise<EvaluationSummary | null> {
+async function fetchSummaryFile(filename: string): Promise<{ data: EvaluationSummary | null; error?: string }> {
   const { data: urlData } = supabase.storage
     .from(EVALUATION_BUCKET)
     .getPublicUrl(filename);
 
   try {
     const response = await fetch(urlData.publicUrl);
-    if (!response.ok) return null;
-    return await response.json();
+    if (!response.ok) {
+      return { data: null, error: `HTTP ${response.status}` };
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      return { data: null };
+    }
+
+    const data = await response.json();
+    return { data };
   } catch {
-    return null;
+    return { data: null };
   }
 }
 
@@ -93,15 +117,21 @@ export async function POST(request: Request) {
     const evaluationFilename = `fmp-evaluation-${date}.json`;
     const summaryFilename = `fmp-summary-${date}.json`;
 
-    const evaluationData = await fetchEvaluationFile(evaluationFilename);
-    if (!evaluationData) {
+    const evaluationResult = await fetchEvaluationFile(evaluationFilename);
+    if (!evaluationResult.data) {
       return NextResponse.json(
-        { error: `Evaluation file not found for ${date}. Upload it to Supabase Storage first.` },
+        {
+          error: `Evaluation file not found or invalid for ${date}`,
+          details: evaluationResult.error || "Unknown error",
+          hint: "Make sure the file exists in Supabase Storage and is valid JSON"
+        },
         { status: 404 }
       );
     }
 
-    const summaryData = await fetchSummaryFile(summaryFilename);
+    const evaluationData = evaluationResult.data;
+    const summaryResult = await fetchSummaryFile(summaryFilename);
+    const summaryData = summaryResult.data;
 
     const scanDate = new Date(date);
     scanDate.setHours(0, 0, 0, 0);
