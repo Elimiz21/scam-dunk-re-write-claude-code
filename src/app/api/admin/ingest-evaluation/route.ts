@@ -1,12 +1,12 @@
 /**
  * Admin Ingest Evaluation API - Import daily evaluation data into history tables
+ * Fetches data from Supabase Storage
  */
 
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
-import fs from "fs";
-import path from "path";
+import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes for large imports
@@ -46,6 +46,35 @@ interface EvaluationSummary {
   apiCallsMade?: number;
 }
 
+async function fetchEvaluationFile(filename: string): Promise<EvaluationStock[] | null> {
+  // Get public URL from Supabase Storage
+  const { data: urlData } = supabase.storage
+    .from(EVALUATION_BUCKET)
+    .getPublicUrl(filename);
+
+  try {
+    const response = await fetch(urlData.publicUrl);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSummaryFile(filename: string): Promise<EvaluationSummary | null> {
+  const { data: urlData } = supabase.storage
+    .from(EVALUATION_BUCKET)
+    .getPublicUrl(filename);
+
+  try {
+    const response = await fetch(urlData.publicUrl);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getAdminSession();
@@ -60,20 +89,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Date required (YYYY-MM-DD)" }, { status: 400 });
     }
 
-    // Find evaluation files
-    const resultsDir = path.join(process.cwd(), "evaluation", "results");
-    const evaluationFile = path.join(resultsDir, `fmp-evaluation-${date}.json`);
-    const summaryFile = path.join(resultsDir, `fmp-summary-${date}.json`);
+    // Fetch evaluation file from Supabase Storage
+    const evaluationFilename = `fmp-evaluation-${date}.json`;
+    const summaryFilename = `fmp-summary-${date}.json`;
 
-    if (!fs.existsSync(evaluationFile)) {
-      return NextResponse.json({ error: `Evaluation file not found for ${date}` }, { status: 404 });
+    const evaluationData = await fetchEvaluationFile(evaluationFilename);
+    if (!evaluationData) {
+      return NextResponse.json(
+        { error: `Evaluation file not found for ${date}. Upload it to Supabase Storage first.` },
+        { status: 404 }
+      );
     }
 
-    // Parse files
-    const evaluationData: EvaluationStock[] = JSON.parse(fs.readFileSync(evaluationFile, "utf-8"));
-    const summaryData: EvaluationSummary = fs.existsSync(summaryFile)
-      ? JSON.parse(fs.readFileSync(summaryFile, "utf-8"))
-      : null;
+    const summaryData = await fetchSummaryFile(summaryFilename);
 
     const scanDate = new Date(date);
     scanDate.setHours(0, 0, 0, 0);
@@ -269,16 +297,27 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // List available evaluation files
-    const resultsDir = path.join(process.cwd(), "evaluation", "results");
-    const files = fs.readdirSync(resultsDir);
-    const evaluationDates = files
-      .filter((f) => f.startsWith("fmp-evaluation-") && f.endsWith(".json"))
-      .map((f) => f.replace("fmp-evaluation-", "").replace(".json", ""))
+    // List files in Supabase Storage bucket
+    const { data: files, error: storageError } = await supabase.storage
+      .from(EVALUATION_BUCKET)
+      .list();
+
+    if (storageError) {
+      console.error("Supabase storage error:", storageError);
+      return NextResponse.json(
+        { error: "Failed to list evaluation files from storage" },
+        { status: 500 }
+      );
+    }
+
+    // Extract dates from evaluation filenames
+    const availableDates = (files || [])
+      .filter((f) => f.name.startsWith("fmp-evaluation-") && f.name.endsWith(".json"))
+      .map((f) => f.name.replace("fmp-evaluation-", "").replace(".json", ""))
       .sort()
       .reverse();
 
-    // Get already ingested dates
+    // Get already ingested dates from DailyScanSummary
     const ingestedSummaries = await prisma.dailyScanSummary.findMany({
       select: { scanDate: true },
       orderBy: { scanDate: "desc" },
@@ -286,9 +325,9 @@ export async function GET() {
     const ingestedDates = ingestedSummaries.map((s) => s.scanDate.toISOString().split("T")[0]);
 
     return NextResponse.json({
-      availableDates: evaluationDates,
+      availableDates,
       ingestedDates,
-      pendingDates: evaluationDates.filter((d) => !ingestedDates.includes(d)),
+      pendingDates: availableDates.filter((d) => !ingestedDates.includes(d)),
     });
   } catch (error) {
     console.error("List evaluations error:", error);
