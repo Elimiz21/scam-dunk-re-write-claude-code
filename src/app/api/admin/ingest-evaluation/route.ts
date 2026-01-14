@@ -290,6 +290,9 @@ export async function POST(request: Request) {
   }
 }
 
+// Known evaluation dates - add new dates here when you upload new files
+const AVAILABLE_EVALUATION_DATES = ["2026-01-12", "2026-01-11"];
+
 export async function GET() {
   try {
     const session = await getAdminSession();
@@ -297,31 +300,14 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // List files in Supabase Storage bucket root
-    const { data: files, error: storageError } = await supabase.storage
-      .from(EVALUATION_BUCKET)
-      .list("", {
-        limit: 100,
-        sortBy: { column: "name", order: "desc" },
-      });
-
-    if (storageError) {
-      console.error("Supabase storage error:", storageError);
-      return NextResponse.json(
-        { error: `Storage error: ${storageError.message}` },
-        { status: 500 }
-      );
+    // Check which dates have files by trying to fetch them
+    const availableDates: string[] = [];
+    for (const date of AVAILABLE_EVALUATION_DATES) {
+      const exists = await fetchEvaluationFile(`fmp-evaluation-${date}.json`);
+      if (exists) {
+        availableDates.push(date);
+      }
     }
-
-    // Log files found for debugging
-    console.log("Files found in bucket:", files?.map(f => f.name) || []);
-
-    // Extract dates from evaluation filenames
-    const availableDates = (files || [])
-      .filter((f) => f.name.startsWith("fmp-evaluation-") && f.name.endsWith(".json"))
-      .map((f) => f.name.replace("fmp-evaluation-", "").replace(".json", ""))
-      .sort()
-      .reverse();
 
     // Get already ingested dates from DailyScanSummary
     const ingestedSummaries = await prisma.dailyScanSummary.findMany({
@@ -335,8 +321,8 @@ export async function GET() {
       ingestedDates,
       pendingDates: availableDates.filter((d) => !ingestedDates.includes(d)),
       debug: {
-        filesFound: files?.length || 0,
-        fileNames: files?.map(f => f.name) || [],
+        filesFound: availableDates.length,
+        fileNames: availableDates.map(d => `fmp-evaluation-${d}.json`),
       },
     });
   } catch (error) {
