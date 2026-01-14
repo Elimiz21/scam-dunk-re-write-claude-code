@@ -76,11 +76,16 @@ export default function DataIngestionPage() {
   async function fetchStatus() {
     try {
       const res = await fetch("/api/admin/ingest-evaluation");
-      if (!res.ok) throw new Error("Failed to fetch status");
       const data = await res.json();
+      if (!res.ok) {
+        const errorMsg = typeof data.error === 'string' ? data.error :
+          (data.details ? String(data.details) : "Failed to fetch status");
+        throw new Error(errorMsg);
+      }
       setStatus(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg);
     }
   }
 
@@ -113,12 +118,15 @@ export default function DataIngestionPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Ingestion failed");
+        const errorMsg = typeof data.error === 'string' ? data.error :
+          (data.details ? String(data.details) : JSON.stringify(data));
+        throw new Error(errorMsg);
       }
       setResults((prev) => [data, ...prev]);
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ingestion failed");
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg);
     } finally {
       setIngesting(null);
     }
