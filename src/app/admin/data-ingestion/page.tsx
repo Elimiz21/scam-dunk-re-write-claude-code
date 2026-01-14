@@ -15,13 +15,22 @@ import {
   XCircle,
 } from "lucide-react";
 
+interface FileStatus {
+  date: string;
+  hasEvaluation: boolean;
+  hasSummary: boolean;
+}
+
 interface IngestionStatus {
   availableDates: string[];
   ingestedDates: string[];
   pendingDates: string[];
+  fileStatus?: FileStatus[];
   debug?: {
     filesFound: number;
-    fileNames: string[];
+    evaluationFiles: number;
+    summaryFiles: number;
+    allFileNames: string[];
   };
 }
 
@@ -282,31 +291,44 @@ export default function DataIngestionPage() {
               </button>
             </div>
             <div className="divide-y divide-gray-200">
-              {status.pendingDates.sort().reverse().map((date) => (
-                <div key={date} className="px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-yellow-500" />
-                    <span className="font-medium">{date}</span>
+              {status.pendingDates.sort().reverse().map((date) => {
+                const fileInfo = status.fileStatus?.find(f => f.date === date);
+                return (
+                  <div key={date} className="px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-yellow-500" />
+                      <div>
+                        <span className="font-medium">{date}</span>
+                        <div className="flex items-center gap-2 text-xs mt-1">
+                          <span className={fileInfo?.hasEvaluation ? "text-green-600" : "text-red-500"}>
+                            {fileInfo?.hasEvaluation ? "✓" : "✗"} Evaluation
+                          </span>
+                          <span className={fileInfo?.hasSummary ? "text-green-600" : "text-yellow-600"}>
+                            {fileInfo?.hasSummary ? "✓" : "○"} Summary
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => ingestDate(date)}
+                      disabled={!!ingesting}
+                      className="px-4 py-2 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {ingesting === date ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4" />
+                          Import
+                        </>
+                      )}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => ingestDate(date)}
-                    disabled={!!ingesting}
-                    className="px-4 py-2 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {ingesting === date ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        Importing...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4" />
-                        Import
-                      </>
-                    )}
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -369,15 +391,20 @@ export default function DataIngestionPage() {
         {status?.debug && (
           <div className="bg-gray-50 rounded-lg shadow p-4 text-sm">
             <h4 className="font-medium text-gray-700 mb-2">Storage Debug Info</h4>
-            <p className="text-gray-600">Files found in bucket: {status.debug.filesFound}</p>
-            {status.debug.fileNames.length > 0 ? (
+            <p className="text-gray-600">Total files in bucket: {status.debug.filesFound}</p>
+            <p className="text-gray-600">Evaluation files: {status.debug.evaluationFiles}</p>
+            <p className="text-gray-600">Summary files: {status.debug.summaryFiles}</p>
+            {status.debug.allFileNames.length > 0 ? (
               <ul className="mt-2 space-y-1">
-                {status.debug.fileNames.map((name, i) => (
-                  <li key={i} className="text-gray-500 font-mono text-xs">{name}</li>
+                {status.debug.allFileNames.map((name, i) => (
+                  <li key={i} className={`font-mono text-xs ${
+                    name.startsWith('fmp-evaluation-') ? 'text-green-600' :
+                    name.startsWith('fmp-summary-') ? 'text-blue-600' : 'text-gray-400'
+                  }`}>{name}</li>
                 ))}
               </ul>
             ) : (
-              <p className="text-orange-600 mt-2">No files found in the evaluation-data bucket. Make sure files are uploaded to the root of the bucket.</p>
+              <p className="text-orange-600 mt-2">No files found. Either the bucket is empty or RLS policy is missing. Run: CREATE POLICY &quot;Allow public read access to evaluation-data&quot; ON storage.objects FOR SELECT USING (bucket_id = &apos;evaluation-data&apos;);</p>
             )}
           </div>
         )}
