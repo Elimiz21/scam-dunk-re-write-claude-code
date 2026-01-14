@@ -19,6 +19,10 @@ interface IngestionStatus {
   availableDates: string[];
   ingestedDates: string[];
   pendingDates: string[];
+  debug?: {
+    filesFound: number;
+    fileNames: string[];
+  };
 }
 
 interface IngestionResult {
@@ -361,13 +365,30 @@ export default function DataIngestionPage() {
           </div>
         )}
 
+        {/* Debug Info */}
+        {status?.debug && (
+          <div className="bg-gray-50 rounded-lg shadow p-4 text-sm">
+            <h4 className="font-medium text-gray-700 mb-2">Storage Debug Info</h4>
+            <p className="text-gray-600">Files found in bucket: {status.debug.filesFound}</p>
+            {status.debug.fileNames.length > 0 ? (
+              <ul className="mt-2 space-y-1">
+                {status.debug.fileNames.map((name, i) => (
+                  <li key={i} className="text-gray-500 font-mono text-xs">{name}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-orange-600 mt-2">No files found in the evaluation-data bucket. Make sure files are uploaded to the root of the bucket.</p>
+            )}
+          </div>
+        )}
+
         {/* Empty State */}
         {status?.pendingDates.length === 0 && status?.ingestedDates.length === 0 && (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <AlertCircle className="h-12 w-12 mx-auto text-gray-300" />
             <h3 className="mt-4 text-lg font-medium text-gray-900">No Evaluation Data Found</h3>
             <p className="mt-2 text-gray-500">
-              Run a stock evaluation first to generate data for import.
+              Upload evaluation files to Supabase Storage bucket &apos;evaluation-data&apos;.
             </p>
           </div>
         )}
