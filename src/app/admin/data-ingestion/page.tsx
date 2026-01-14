@@ -21,7 +21,8 @@ interface IngestionStatus {
   pendingDates: string[];
   debug?: {
     filesFound: number;
-    fileNames: string[];
+    evaluationFiles: number;
+    allFileNames: string[];
   };
 }
 
@@ -369,15 +370,16 @@ export default function DataIngestionPage() {
         {status?.debug && (
           <div className="bg-gray-50 rounded-lg shadow p-4 text-sm">
             <h4 className="font-medium text-gray-700 mb-2">Storage Debug Info</h4>
-            <p className="text-gray-600">Files found in bucket: {status.debug.filesFound}</p>
-            {status.debug.fileNames.length > 0 ? (
+            <p className="text-gray-600">Total files in bucket: {status.debug.filesFound}</p>
+            <p className="text-gray-600">Evaluation files found: {status.debug.evaluationFiles}</p>
+            {status.debug.allFileNames.length > 0 ? (
               <ul className="mt-2 space-y-1">
-                {status.debug.fileNames.map((name, i) => (
-                  <li key={i} className="text-gray-500 font-mono text-xs">{name}</li>
+                {status.debug.allFileNames.map((name, i) => (
+                  <li key={i} className={`font-mono text-xs ${name.startsWith('fmp-evaluation-') ? 'text-green-600' : 'text-gray-400'}`}>{name}</li>
                 ))}
               </ul>
             ) : (
-              <p className="text-orange-600 mt-2">No files found in the evaluation-data bucket. Make sure files are uploaded to the root of the bucket.</p>
+              <p className="text-orange-600 mt-2">No files found. Either the bucket is empty or RLS policy is missing. Run: CREATE POLICY &quot;Allow public read access to evaluation-data&quot; ON storage.objects FOR SELECT USING (bucket_id = &apos;evaluation-data&apos;);</p>
             )}
           </div>
         )}

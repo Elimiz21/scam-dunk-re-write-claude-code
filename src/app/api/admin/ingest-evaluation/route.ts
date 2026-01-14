@@ -290,9 +290,6 @@ export async function POST(request: Request) {
   }
 }
 
-// Known evaluation dates - add new dates here when you upload new files
-const AVAILABLE_EVALUATION_DATES = ["2026-01-12", "2026-01-11"];
-
 export async function GET() {
   try {
     const session = await getAdminSession();
@@ -300,14 +297,33 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check which dates have files by trying to fetch them
-    const availableDates: string[] = [];
-    for (const date of AVAILABLE_EVALUATION_DATES) {
-      const exists = await fetchEvaluationFile(`fmp-evaluation-${date}.json`);
-      if (exists) {
-        availableDates.push(date);
-      }
+    // List files in Supabase Storage bucket
+    // Requires RLS policy: CREATE POLICY "Allow public read access to evaluation-data" ON storage.objects FOR SELECT USING (bucket_id = 'evaluation-data');
+    const { data: files, error: storageError } = await supabase.storage
+      .from(EVALUATION_BUCKET)
+      .list("", {
+        limit: 100,
+        sortBy: { column: "name", order: "desc" },
+      });
+
+    if (storageError) {
+      console.error("Supabase storage error:", storageError);
+      return NextResponse.json(
+        {
+          error: "Storage listing error - RLS policy may be missing",
+          details: storageError.message,
+          hint: "Run this SQL in Supabase: CREATE POLICY \"Allow public read access to evaluation-data\" ON storage.objects FOR SELECT USING (bucket_id = 'evaluation-data');"
+        },
+        { status: 500 }
+      );
     }
+
+    // Extract dates from evaluation filenames (format: fmp-evaluation-YYYY-MM-DD.json)
+    const availableDates = (files || [])
+      .filter((f) => f.name.startsWith("fmp-evaluation-") && f.name.endsWith(".json"))
+      .map((f) => f.name.replace("fmp-evaluation-", "").replace(".json", ""))
+      .sort()
+      .reverse();
 
     // Get already ingested dates from DailyScanSummary
     const ingestedSummaries = await prisma.dailyScanSummary.findMany({
@@ -321,8 +337,9 @@ export async function GET() {
       ingestedDates,
       pendingDates: availableDates.filter((d) => !ingestedDates.includes(d)),
       debug: {
-        filesFound: availableDates.length,
-        fileNames: availableDates.map(d => `fmp-evaluation-${d}.json`),
+        filesFound: files?.length || 0,
+        evaluationFiles: availableDates.length,
+        allFileNames: files?.map(f => f.name) || [],
       },
     });
   } catch (error) {
