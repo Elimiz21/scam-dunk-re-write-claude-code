@@ -62,3 +62,4 @@ wheels/
 venv/
 ENV/
 evaluation/results/checkpoint-*.json
+.env.local
