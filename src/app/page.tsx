@@ -12,6 +12,8 @@ import { LimitReached } from "@/components/LimitReached";
 import { LoadingStepper } from "@/components/LoadingStepper";
 import { Shield, TrendingUp, AlertTriangle, Zap } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
+import { CryptoRiskResponse } from "@/lib/crypto/types";
+import { CryptoRiskCard } from "@/components/CryptoRiskCard";
 import { getRandomTagline, taglines } from "@/lib/taglines";
 import { useToast } from "@/components/ui/toast";
 import { Step } from "@/components/LoadingStepper";
@@ -27,9 +29,11 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<RiskResponse | null>(null);
+  const [cryptoResult, setCryptoResult] = useState<CryptoRiskResponse | null>(null);
   const [limitReached, setLimitReached] = useState<LimitReachedResponse | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [currentTicker, setCurrentTicker] = useState("");
+  const [currentAssetType, setCurrentAssetType] = useState<AssetType>("stock");
 
   const [steps, setSteps] = useState<Step[]>([
     { label: "Validating ticker symbol", status: "pending" },
@@ -106,26 +110,45 @@ export default function HomePage() {
 
     setError("");
     setResult(null);
+    setCryptoResult(null);
     setLimitReached(null);
     setIsLoading(true);
     setCurrentTicker(data.ticker);
+    setCurrentAssetType(data.assetType);
 
-    // Reset steps with enhanced granular progress
-    const initialSteps: Step[] = [
-      { label: "Validating ticker symbol", status: "loading" },
-      { label: "Fetching market data", status: "pending" },
-      {
-        label: "Running risk analysis",
-        status: "pending",
-        subSteps: [
-          { label: "Analyzing price patterns", status: "pending" },
-          { label: "Checking volume anomalies", status: "pending" },
-          { label: "Scanning for pump-and-dump signals", status: "pending" },
+    // Reset steps with asset-type specific progress
+    const isCrypto = data.assetType === "crypto";
+    const initialSteps: Step[] = isCrypto
+      ? [
+          { label: "Validating symbol", status: "loading" },
+          { label: "Fetching market data from CoinGecko", status: "pending" },
+          {
+            label: "Running risk analysis",
+            status: "pending",
+            subSteps: [
+              { label: "Analyzing price patterns", status: "pending" },
+              { label: "Checking trading volume", status: "pending" },
+              { label: "Scanning for rug pull signals", status: "pending" },
+            ]
+          },
+          { label: "Checking contract security", status: "pending" },
+          { label: "Generating risk report", status: "pending" },
         ]
-      },
-      { label: "Checking regulatory alerts", status: "pending" },
-      { label: "Generating risk report", status: "pending" },
-    ];
+      : [
+          { label: "Validating ticker symbol", status: "loading" },
+          { label: "Fetching market data", status: "pending" },
+          {
+            label: "Running risk analysis",
+            status: "pending",
+            subSteps: [
+              { label: "Analyzing price patterns", status: "pending" },
+              { label: "Checking volume anomalies", status: "pending" },
+              { label: "Scanning for pump-and-dump signals", status: "pending" },
+            ]
+          },
+          { label: "Checking regulatory alerts", status: "pending" },
+          { label: "Generating risk report", status: "pending" },
+        ];
     setSteps(initialSteps);
 
     // Start rotating tips
@@ -228,27 +251,37 @@ export default function HomePage() {
           s[4],
         ]);
 
-        // Step 4: Regulatory alerts
+        // Step 4: Regulatory/Security alerts
         await new Promise((r) => setTimeout(r, 300));
         setSteps((s) => [
           s[0],
           s[1],
           s[2],
-          { ...s[3], status: "complete", detail: "SEC and alert databases checked" },
+          { ...s[3], status: "complete", detail: isCrypto ? "Contract security checked" : "SEC and alert databases checked" },
           { ...s[4], status: "loading" },
         ]);
       };
 
-      const [response] = await Promise.all([
-        fetch("/api/check", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+      // Call appropriate API based on asset type
+      const apiUrl = isCrypto ? "/api/crypto/check" : "/api/check";
+      const requestBody = isCrypto
+        ? {
+            symbol: data.ticker,
+            pitchText: data.pitchText,
+            context: data.context,
+          }
+        : {
             ticker: data.ticker,
             assetType: data.assetType,
             pitchText: data.pitchText,
             context: data.context,
-          }),
+          };
+
+      const [response] = await Promise.all([
+        fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
         }),
         simulateSteps(),
       ]);
@@ -278,7 +311,12 @@ export default function HomePage() {
       } else if (!response.ok) {
         setError(responseData.error || "An error occurred");
       } else {
-        setResult(responseData as RiskResponse);
+        // Store result in appropriate state based on asset type
+        if (isCrypto) {
+          setCryptoResult(responseData as CryptoRiskResponse);
+        } else {
+          setResult(responseData as RiskResponse);
+        }
         setUsage(responseData.usage);
       }
     } catch (err) {
@@ -292,14 +330,21 @@ export default function HomePage() {
 
   const handleNewScan = () => {
     setResult(null);
+    setCryptoResult(null);
     setLimitReached(null);
     setError("");
     setCurrentTicker("");
   };
 
   const handleShare = async () => {
-    if (result) {
-      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${result.riskLevel} RISK (Score: ${result.totalScore})\n\nCheck your stocks for scam red flags at ScamDunk.`;
+    const activeResult = result || cryptoResult;
+    if (activeResult) {
+      const isCrypto = !!cryptoResult;
+      const symbol = isCrypto
+        ? (cryptoResult as CryptoRiskResponse).cryptoSummary.symbol
+        : (result as RiskResponse).stockSummary.ticker;
+      const assetLabel = isCrypto ? "crypto" : "stocks";
+      const shareText = `ScamDunk Analysis: ${symbol} - ${activeResult.riskLevel} RISK (Score: ${activeResult.totalScore})\n\nCheck your ${assetLabel} for scam red flags at ScamDunk.`;
       const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
       // Try native share API first
@@ -360,7 +405,7 @@ export default function HomePage() {
           onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
           usage={usage}
           onShare={handleShare}
-          showShare={!!result}
+          showShare={!!(result || cryptoResult)}
         />
 
         {/* Content Area */}
@@ -397,10 +442,11 @@ export default function HomePage() {
           )}
 
           {/* Results */}
-          {result && !isLoading && (
+          {(result || cryptoResult) && !isLoading && (
             <div className="flex-1 overflow-y-auto p-4 pb-32">
               <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
-                <RiskCard result={result} />
+                {result && <RiskCard result={result} />}
+                {cryptoResult && <CryptoRiskCard result={cryptoResult} />}
                 <div className="flex justify-center gap-3">
                   <Button variant="outline" onClick={handleNewScan}>
                     Check another
@@ -411,7 +457,7 @@ export default function HomePage() {
           )}
 
           {/* Welcome State (no result, not loading) */}
-          {!result && !isLoading && !limitReached && (
+          {!result && !cryptoResult && !isLoading && !limitReached && (
             <div className="flex-1 flex flex-col items-center justify-center p-4 pb-32">
               <div className="text-center mb-8">
                 <div className="flex justify-center mb-4">
@@ -508,7 +554,7 @@ export default function HomePage() {
             <ScanInput
               onSubmit={handleSubmit}
               isLoading={isLoading}
-              disabled={usage?.limitReached && !result}
+              disabled={usage?.limitReached && !result && !cryptoResult}
             />
           </div>
         )}
