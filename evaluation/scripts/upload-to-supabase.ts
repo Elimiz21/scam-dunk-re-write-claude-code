@@ -16,6 +16,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 import { createClient } from '@supabase/supabase-js';
 
 const RESULTS_DIR = path.join(__dirname, '..', 'results');
@@ -30,7 +31,7 @@ const FILE_PATTERNS = [
   { prefix: 'promoted-stocks-', type: 'promoted' },
 ];
 
-function getSupabaseClient() {
+function getSupabaseCredentials() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -40,28 +41,47 @@ function getSupabaseClient() {
     );
   }
 
+  return { supabaseUrl, supabaseKey };
+}
+
+function getSupabaseClient() {
+  const { supabaseUrl, supabaseKey } = getSupabaseCredentials();
   return createClient(supabaseUrl, supabaseKey);
 }
 
 async function uploadFile(filePath: string, fileName: string) {
-  const supabase = getSupabaseClient();
-  const fileContent = fs.readFileSync(filePath);
+  const { supabaseUrl, supabaseKey } = getSupabaseCredentials();
   const contentType = fileName.endsWith('.json') ? 'application/json' : 'text/markdown';
 
   console.log(`  Uploading ${fileName}...`);
 
-  const { error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(fileName, fileContent, {
-      contentType,
-      upsert: true, // Overwrite if exists
-    });
+  // Use curl with -k flag to bypass TLS certificate verification issues
+  // This is needed in some environments with TLS inspection proxies
+  const uploadUrl = `${supabaseUrl}/storage/v1/object/${BUCKET_NAME}/${fileName}`;
 
-  if (error) {
-    throw new Error(`Failed to upload ${fileName}: ${error.message}`);
+  try {
+    const result = execSync(
+      `curl -k -s -X POST "${uploadUrl}" ` +
+      `-H "Authorization: Bearer ${supabaseKey}" ` +
+      `-H "Content-Type: ${contentType}" ` +
+      `-H "x-upsert: true" ` +
+      `--data-binary @"${filePath}"`,
+      { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
+    );
+
+    const response = JSON.parse(result);
+    if (response.error) {
+      throw new Error(response.message || response.error);
+    }
+
+    console.log(`  ✓ Uploaded ${fileName}`);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('JSON')) {
+      // If JSON parse fails, check if it's a curl error
+      throw new Error(`Failed to upload ${fileName}: Network or server error`);
+    }
+    throw error;
   }
-
-  console.log(`  ✓ Uploaded ${fileName}`);
 }
 
 async function uploadDateFiles(date: string) {
