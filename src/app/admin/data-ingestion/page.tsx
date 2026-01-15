@@ -31,6 +31,7 @@ interface FileStatus {
   date: string;
   hasEvaluation: boolean;
   hasSummary: boolean;
+  hasPromoted?: boolean;
 }
 
 interface IngestionStatus {
@@ -42,6 +43,7 @@ interface IngestionStatus {
     filesFound: number;
     evaluationFiles: number;
     summaryFiles: number;
+    promotedFiles: number;
     allFileNames: string[];
   };
 }
@@ -53,6 +55,7 @@ interface IngestionResult {
   stocksUpdated: number;
   snapshotsCreated: number;
   alertsCreated: number;
+  promotedStocksCreated?: number;
   totalProcessed: number;
 }
 
@@ -342,6 +345,9 @@ export default function DataIngestionPage() {
                           <span className={fileInfo?.hasSummary ? "text-green-600" : "text-yellow-600"}>
                             {fileInfo?.hasSummary ? "✓" : "○"} Summary
                           </span>
+                          <span className={fileInfo?.hasPromoted ? "text-purple-600" : "text-gray-400"}>
+                            {fileInfo?.hasPromoted ? "✓" : "○"} Promoted
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -403,7 +409,7 @@ export default function DataIngestionPage() {
                       <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">Failed</span>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm text-gray-600">
                     <div>
                       <span className="text-gray-400">Processed:</span> {result.totalProcessed}
                     </div>
@@ -415,6 +421,9 @@ export default function DataIngestionPage() {
                     </div>
                     <div>
                       <span className="text-gray-400">Alerts:</span> {result.alertsCreated}
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Promoted:</span> {result.promotedStocksCreated || 0}
                     </div>
                   </div>
                 </div>
@@ -430,12 +439,14 @@ export default function DataIngestionPage() {
             <p className="text-gray-600">Total files in bucket: {status.debug.filesFound}</p>
             <p className="text-gray-600">Evaluation files: {status.debug.evaluationFiles}</p>
             <p className="text-gray-600">Summary files: {status.debug.summaryFiles}</p>
+            <p className="text-gray-600">Promoted stocks files: {status.debug.promotedFiles}</p>
             {status.debug.allFileNames.length > 0 ? (
               <ul className="mt-2 space-y-1">
                 {status.debug.allFileNames.map((name, i) => (
                   <li key={i} className={`font-mono text-xs ${
                     name.startsWith('fmp-evaluation-') ? 'text-green-600' :
-                    name.startsWith('fmp-summary-') ? 'text-blue-600' : 'text-gray-400'
+                    name.startsWith('fmp-summary-') ? 'text-blue-600' :
+                    name.startsWith('promoted-stocks-') ? 'text-purple-600' : 'text-gray-400'
                   }`}>{name}</li>
                 ))}
               </ul>
