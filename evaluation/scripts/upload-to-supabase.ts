@@ -43,7 +43,8 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-async function uploadFile(supabase: ReturnType<typeof createClient>, filePath: string, fileName: string) {
+async function uploadFile(filePath: string, fileName: string) {
+  const supabase = getSupabaseClient();
   const fileContent = fs.readFileSync(filePath);
   const contentType = fileName.endsWith('.json') ? 'application/json' : 'text/markdown';
 
@@ -64,7 +65,6 @@ async function uploadFile(supabase: ReturnType<typeof createClient>, filePath: s
 }
 
 async function uploadDateFiles(date: string) {
-  const supabase = getSupabaseClient();
   let uploadCount = 0;
 
   console.log(`\nUploading files for ${date}...`);
@@ -78,7 +78,7 @@ async function uploadDateFiles(date: string) {
       const filePath = path.join(RESULTS_DIR, fileName);
 
       if (fs.existsSync(filePath)) {
-        await uploadFile(supabase, filePath, fileName);
+        await uploadFile(filePath, fileName);
         uploadCount++;
       }
     }
