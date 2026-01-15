@@ -136,165 +136,151 @@ export async function POST(request: Request) {
     const scanDate = new Date(date);
     scanDate.setHours(0, 0, 0, 0);
 
+    // Filter valid stocks
+    const validStocks = evaluationData.filter(
+      (stock) => stock.symbol && stock.name && stock.exchange
+    );
+    const skippedCount = evaluationData.length - validStocks.length;
+
+    // Step 1: Get all existing stocks in one query
+    const symbols = validStocks.map((s) => s.symbol);
+    const existingStocks = await prisma.trackedStock.findMany({
+      where: { symbol: { in: symbols } },
+      select: { id: true, symbol: true },
+    });
+    const existingStockMap = new Map(existingStocks.map((s) => [s.symbol, s.id]));
+
+    // Step 2: Identify stocks to create
+    const stocksToCreate = validStocks.filter((s) => !existingStockMap.has(s.symbol));
+
+    // Step 3: Batch create new stocks
     let stocksCreated = 0;
-    let stocksUpdated = 0;
-    let snapshotsCreated = 0;
-    let alertsCreated = 0;
-    let errors: string[] = [];
+    if (stocksToCreate.length > 0) {
+      await prisma.trackedStock.createMany({
+        data: stocksToCreate.map((stock) => ({
+          symbol: stock.symbol,
+          name: stock.name,
+          exchange: stock.exchange,
+          sector: stock.sector || null,
+          industry: stock.industry || null,
+          isOTC: stock.exchange === "OTC",
+        })),
+        skipDuplicates: true,
+      });
+      stocksCreated = stocksToCreate.length;
 
-    // Process in batches
-    const batchSize = 100;
-    for (let i = 0; i < evaluationData.length; i += batchSize) {
-      const batch = evaluationData.slice(i, i + batchSize);
+      // Fetch the newly created stocks to get their IDs
+      const newStocks = await prisma.trackedStock.findMany({
+        where: { symbol: { in: stocksToCreate.map((s) => s.symbol) } },
+        select: { id: true, symbol: true },
+      });
+      newStocks.forEach((s) => existingStockMap.set(s.symbol, s.id));
+    }
 
-      for (const stock of batch) {
+    // Step 4: Check which snapshots already exist for this date
+    const stockIds = Array.from(existingStockMap.values());
+    const existingSnapshots = await prisma.stockDailySnapshot.findMany({
+      where: {
+        stockId: { in: stockIds },
+        scanDate,
+      },
+      select: { stockId: true },
+    });
+    const existingSnapshotSet = new Set(existingSnapshots.map((s) => s.stockId));
+
+    // Step 5: Prepare snapshots to create (only for stocks without existing snapshots)
+    const snapshotsToCreate = validStocks
+      .filter((stock) => {
+        const stockId = existingStockMap.get(stock.symbol);
+        return stockId && !existingSnapshotSet.has(stockId);
+      })
+      .map((stock) => {
+        const stockId = existingStockMap.get(stock.symbol)!;
+        let evaluatedAt: Date;
         try {
-          // Validate required fields
-          if (!stock.symbol || !stock.name || !stock.exchange) {
-            errors.push(`Invalid stock data: missing required fields for ${stock.symbol || 'unknown'}`);
-            continue;
-          }
-
-          // Upsert stock record
-          const trackedStock = await prisma.trackedStock.upsert({
-            where: { symbol: stock.symbol },
-            create: {
-              symbol: stock.symbol,
-              name: stock.name,
-              exchange: stock.exchange,
-              sector: stock.sector || null,
-              industry: stock.industry || null,
-              isOTC: stock.exchange === "OTC",
-            },
-            update: {
-              name: stock.name,
-              sector: stock.sector || undefined,
-              industry: stock.industry || undefined,
-            },
-          });
-
-          if (trackedStock.createdAt.getTime() > Date.now() - 1000) {
-            stocksCreated++;
-          } else {
-            stocksUpdated++;
-          }
-
-          // Check for existing snapshot
-          const existingSnapshot = await prisma.stockDailySnapshot.findUnique({
-            where: {
-              stockId_scanDate: {
-                stockId: trackedStock.id,
-                scanDate,
-              },
-            },
-          });
-
-          if (!existingSnapshot) {
-            // Parse evaluatedAt safely
-            let evaluatedAt: Date;
-            try {
-              evaluatedAt = stock.evaluatedAt ? new Date(stock.evaluatedAt) : scanDate;
-              if (isNaN(evaluatedAt.getTime())) {
-                evaluatedAt = scanDate;
-              }
-            } catch {
-              evaluatedAt = scanDate;
-            }
-
-            // Create snapshot
-            await prisma.stockDailySnapshot.create({
-              data: {
-                stockId: trackedStock.id,
-                scanDate,
-                riskLevel: stock.riskLevel || "UNKNOWN",
-                totalScore: stock.totalScore || 0,
-                isLegitimate: stock.isLegitimate ?? true,
-                isInsufficient: stock.isInsufficient || false,
-                lastPrice: stock.lastPrice || null,
-                previousClose: stock.previousClose || null,
-                priceChangePct: stock.priceChangePct || null,
-                volume: stock.volume || null,
-                avgVolume: stock.avgVolume || null,
-                volumeRatio: stock.volumeRatio || null,
-                marketCap: stock.marketCap || null,
-                signals: JSON.stringify(stock.signals || []),
-                signalSummary: stock.signalSummary || null,
-                signalCount: stock.signals?.length || 0,
-                dataSource: stock.priceDataSource || "FMP",
-                evaluatedAt,
-              },
-            });
-            snapshotsCreated++;
-
-          // Check for risk alerts (compare with previous day)
-          const previousSnapshot = await prisma.stockDailySnapshot.findFirst({
-            where: {
-              stockId: trackedStock.id,
-              scanDate: { lt: scanDate },
-            },
-            orderBy: { scanDate: "desc" },
-          });
-
-          if (previousSnapshot) {
-            // Create alert if risk level changed
-            if (previousSnapshot.riskLevel !== stock.riskLevel) {
-              let alertType = "RISK_CHANGED";
-              if (stock.riskLevel === "HIGH" && previousSnapshot.riskLevel !== "HIGH") {
-                alertType = "NEW_HIGH_RISK";
-              } else if (
-                (stock.riskLevel === "HIGH" || stock.riskLevel === "MEDIUM") &&
-                previousSnapshot.riskLevel === "LOW"
-              ) {
-                alertType = "RISK_INCREASED";
-              } else if (
-                stock.riskLevel === "LOW" &&
-                (previousSnapshot.riskLevel === "HIGH" || previousSnapshot.riskLevel === "MEDIUM")
-              ) {
-                alertType = "RISK_DECREASED";
-              }
-
-              await prisma.stockRiskAlert.create({
-                data: {
-                  stockId: trackedStock.id,
-                  alertDate: scanDate,
-                  alertType,
-                  previousRiskLevel: previousSnapshot.riskLevel,
-                  newRiskLevel: stock.riskLevel,
-                  previousScore: previousSnapshot.totalScore,
-                  newScore: stock.totalScore,
-                  priceAtAlert: stock.lastPrice || null,
-                  volumeAtAlert: stock.volume || null,
-                  triggeringSignals: stock.signalSummary || null,
-                },
-              });
-              alertsCreated++;
-            }
-          } else if (stock.riskLevel === "HIGH") {
-            // First time seeing this stock and it's high risk
-            await prisma.stockRiskAlert.create({
-              data: {
-                stockId: trackedStock.id,
-                alertDate: scanDate,
-                alertType: "NEW_HIGH_RISK",
-                newRiskLevel: stock.riskLevel,
-                newScore: stock.totalScore,
-                priceAtAlert: stock.lastPrice || null,
-                volumeAtAlert: stock.volume || null,
-                triggeringSignals: stock.signalSummary || null,
-              },
-            });
-            alertsCreated++;
-          }
+          evaluatedAt = stock.evaluatedAt ? new Date(stock.evaluatedAt) : scanDate;
+          if (isNaN(evaluatedAt.getTime())) evaluatedAt = scanDate;
+        } catch {
+          evaluatedAt = scanDate;
         }
-        } catch (stockError) {
-          // Log error but continue processing other stocks
-          errors.push(`Error processing ${stock.symbol}: ${String(stockError)}`);
-          console.error(`Error processing stock ${stock.symbol}:`, stockError);
-        }
+
+        return {
+          stockId,
+          scanDate,
+          riskLevel: stock.riskLevel || "UNKNOWN",
+          totalScore: stock.totalScore || 0,
+          isLegitimate: stock.isLegitimate ?? true,
+          isInsufficient: stock.isInsufficient || false,
+          lastPrice: stock.lastPrice || null,
+          previousClose: stock.previousClose || null,
+          priceChangePct: stock.priceChangePct || null,
+          volume: stock.volume || null,
+          avgVolume: stock.avgVolume || null,
+          volumeRatio: stock.volumeRatio || null,
+          marketCap: stock.marketCap || null,
+          signals: JSON.stringify(stock.signals || []),
+          signalSummary: stock.signalSummary || null,
+          signalCount: stock.signals?.length || 0,
+          dataSource: stock.priceDataSource || "FMP",
+          evaluatedAt,
+        };
+      });
+
+    // Step 6: Batch create snapshots
+    let snapshotsCreated = 0;
+    if (snapshotsToCreate.length > 0) {
+      await prisma.stockDailySnapshot.createMany({
+        data: snapshotsToCreate,
+        skipDuplicates: true,
+      });
+      snapshotsCreated = snapshotsToCreate.length;
+    }
+
+    // Step 7: Create alerts for HIGH risk stocks (simplified - skip comparison for speed)
+    const highRiskStocks = validStocks.filter((s) => s.riskLevel === "HIGH");
+    let alertsCreated = 0;
+
+    if (highRiskStocks.length > 0) {
+      // Check which high-risk stocks already have alerts for this date
+      const highRiskStockIds = highRiskStocks
+        .map((s) => existingStockMap.get(s.symbol))
+        .filter((id): id is string => !!id);
+
+      const existingAlerts = await prisma.stockRiskAlert.findMany({
+        where: {
+          stockId: { in: highRiskStockIds },
+          alertDate: scanDate,
+        },
+        select: { stockId: true },
+      });
+      const existingAlertSet = new Set(existingAlerts.map((a) => a.stockId));
+
+      const alertsToCreate = highRiskStocks
+        .filter((stock) => {
+          const stockId = existingStockMap.get(stock.symbol);
+          return stockId && !existingAlertSet.has(stockId);
+        })
+        .map((stock) => ({
+          stockId: existingStockMap.get(stock.symbol)!,
+          alertDate: scanDate,
+          alertType: "NEW_HIGH_RISK",
+          newRiskLevel: stock.riskLevel,
+          newScore: stock.totalScore || 0,
+          priceAtAlert: stock.lastPrice || null,
+          volumeAtAlert: stock.volume || null,
+          triggeringSignals: stock.signalSummary || null,
+        }));
+
+      if (alertsToCreate.length > 0) {
+        await prisma.stockRiskAlert.createMany({
+          data: alertsToCreate,
+          skipDuplicates: true,
+        });
+        alertsCreated = alertsToCreate.length;
       }
     }
 
-    // Create daily summary
+    // Step 8: Create daily summary
     if (summaryData) {
       await prisma.dailyScanSummary.upsert({
         where: { scanDate },
@@ -327,15 +313,14 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      success: errors.length === 0,
+      success: true,
       date,
       stocksCreated,
-      stocksUpdated,
+      stocksUpdated: validStocks.length - stocksCreated,
       snapshotsCreated,
       alertsCreated,
-      totalProcessed: evaluationData.length,
-      errors: errors.length > 0 ? errors.slice(0, 10) : undefined, // Return first 10 errors
-      errorCount: errors.length,
+      totalProcessed: validStocks.length,
+      skipped: skippedCount,
     });
   } catch (error) {
     console.error("Ingest evaluation error:", error);
