@@ -380,14 +380,89 @@ export default function DataIngestionPage() {
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">Already Ingested</h3>
+              <p className="text-sm text-gray-500 mt-1">Click on a date to re-import if needed</p>
             </div>
             <div className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
-              {status.ingestedDates.map((date) => (
-                <div key={date} className="px-6 py-3 flex items-center gap-3">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <span>{date}</span>
-                </div>
-              ))}
+              {status.ingestedDates.map((date) => {
+                const fileInfo = status.fileStatus?.find(f => f.date === date);
+                return (
+                  <div key={date} className="px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Check className="h-5 w-5 text-green-500" />
+                      <span>{date}</span>
+                    </div>
+                    <button
+                      onClick={() => ingestDate(date)}
+                      disabled={!!ingesting}
+                      className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {ingesting === date ? (
+                        <>
+                          <RefreshCw className="h-3 w-3 animate-spin" />
+                          Re-importing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-3 w-3" />
+                          Re-import
+                        </>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Available Files (not yet ingested, show import buttons) */}
+        {status?.availableDates && status.availableDates.length > 0 && status.pendingDates.length === 0 && status.ingestedDates.length === 0 && (
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Available Files</h3>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {status.availableDates.map((date) => {
+                const fileInfo = status.fileStatus?.find(f => f.date === date);
+                return (
+                  <div key={date} className="px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Database className="h-5 w-5 text-blue-500" />
+                      <div>
+                        <span className="font-medium">{date}</span>
+                        <div className="flex items-center gap-2 text-xs mt-1">
+                          <span className={fileInfo?.hasEvaluation ? "text-green-600" : "text-red-500"}>
+                            {fileInfo?.hasEvaluation ? "✓" : "✗"} Evaluation
+                          </span>
+                          <span className={fileInfo?.hasSummary ? "text-green-600" : "text-yellow-600"}>
+                            {fileInfo?.hasSummary ? "✓" : "○"} Summary
+                          </span>
+                          <span className={fileInfo?.hasPromoted ? "text-purple-600" : "text-gray-400"}>
+                            {fileInfo?.hasPromoted ? "✓" : "○"} Promoted
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => ingestDate(date)}
+                      disabled={!!ingesting}
+                      className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {ingesting === date ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4" />
+                          Import
+                        </>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
