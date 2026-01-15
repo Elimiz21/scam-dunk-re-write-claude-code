@@ -15,6 +15,18 @@ import {
   XCircle,
 } from "lucide-react";
 
+// Helper to safely parse JSON response
+async function safeJsonParse(res: Response): Promise<{ data: unknown; error?: string }> {
+  const text = await res.text();
+  try {
+    const data = JSON.parse(text);
+    return { data };
+  } catch {
+    // If not valid JSON, return the text as error
+    return { data: null, error: text.substring(0, 200) };
+  }
+}
+
 interface FileStatus {
   date: string;
   hasEvaluation: boolean;
@@ -68,15 +80,21 @@ export default function DataIngestionPage() {
     setError("");
     try {
       const res = await fetch("/api/admin/db-status");
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to check database status");
+      const { data, error: parseError } = await safeJsonParse(res);
+
+      if (parseError) {
+        throw new Error(`Server returned invalid response: ${parseError}`);
       }
-      const data = await res.json();
-      setDbStatus(data);
+
+      if (!res.ok) {
+        const errData = data as { error?: string };
+        throw new Error(errData?.error || "Failed to check database status");
+      }
+
+      setDbStatus(data as DbStatus);
 
       // If tables exist, fetch ingestion status
-      if (data.status !== "missing_tables") {
+      if ((data as DbStatus).status !== "missing_tables") {
         await fetchStatus();
       }
     } catch (err) {
@@ -89,13 +107,19 @@ export default function DataIngestionPage() {
   async function fetchStatus() {
     try {
       const res = await fetch("/api/admin/ingest-evaluation");
-      const data = await res.json();
+      const { data, error: parseError } = await safeJsonParse(res);
+
+      if (parseError) {
+        throw new Error(`Server returned invalid response: ${parseError}`);
+      }
+
       if (!res.ok) {
-        const errorMsg = typeof data.error === 'string' ? data.error :
-          (data.details ? String(data.details) : "Failed to fetch status");
+        const errData = data as { error?: string; details?: string };
+        const errorMsg = typeof errData?.error === 'string' ? errData.error :
+          (errData?.details ? String(errData.details) : "Failed to fetch status");
         throw new Error(errorMsg);
       }
-      setStatus(data);
+      setStatus(data as IngestionStatus);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       setError(errorMsg);
@@ -107,9 +131,15 @@ export default function DataIngestionPage() {
     setError("");
     try {
       const res = await fetch("/api/admin/db-status", { method: "POST" });
-      const data = await res.json();
+      const { data, error: parseError } = await safeJsonParse(res);
+
+      if (parseError) {
+        throw new Error(`Server returned invalid response: ${parseError}`);
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create tables");
+        const errData = data as { error?: string };
+        throw new Error(errData?.error || "Failed to create tables");
       }
       // Refresh status
       await checkDbStatus();
@@ -129,13 +159,19 @@ export default function DataIngestionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date }),
       });
-      const data = await res.json();
+      const { data, error: parseError } = await safeJsonParse(res);
+
+      if (parseError) {
+        throw new Error(`Server returned invalid response: ${parseError}`);
+      }
+
       if (!res.ok) {
-        const errorMsg = typeof data.error === 'string' ? data.error :
-          (data.details ? String(data.details) : JSON.stringify(data));
+        const errData = data as { error?: string; details?: string };
+        const errorMsg = typeof errData?.error === 'string' ? errData.error :
+          (errData?.details ? String(errData.details) : JSON.stringify(data));
         throw new Error(errorMsg);
       }
-      setResults((prev) => [data, ...prev]);
+      setResults((prev) => [data as IngestionResult, ...prev]);
       await fetchStatus();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);

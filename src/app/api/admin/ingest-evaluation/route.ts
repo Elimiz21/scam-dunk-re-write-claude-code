@@ -140,6 +140,7 @@ export async function POST(request: Request) {
     let stocksUpdated = 0;
     let snapshotsCreated = 0;
     let alertsCreated = 0;
+    let errors: string[] = [];
 
     // Process in batches
     const batchSize = 100;
@@ -147,65 +148,83 @@ export async function POST(request: Request) {
       const batch = evaluationData.slice(i, i + batchSize);
 
       for (const stock of batch) {
-        // Upsert stock record
-        const trackedStock = await prisma.trackedStock.upsert({
-          where: { symbol: stock.symbol },
-          create: {
-            symbol: stock.symbol,
-            name: stock.name,
-            exchange: stock.exchange,
-            sector: stock.sector || null,
-            industry: stock.industry || null,
-            isOTC: stock.exchange === "OTC",
-          },
-          update: {
-            name: stock.name,
-            sector: stock.sector || undefined,
-            industry: stock.industry || undefined,
-          },
-        });
+        try {
+          // Validate required fields
+          if (!stock.symbol || !stock.name || !stock.exchange) {
+            errors.push(`Invalid stock data: missing required fields for ${stock.symbol || 'unknown'}`);
+            continue;
+          }
 
-        if (trackedStock.createdAt.getTime() > Date.now() - 1000) {
-          stocksCreated++;
-        } else {
-          stocksUpdated++;
-        }
-
-        // Check for existing snapshot
-        const existingSnapshot = await prisma.stockDailySnapshot.findUnique({
-          where: {
-            stockId_scanDate: {
-              stockId: trackedStock.id,
-              scanDate,
+          // Upsert stock record
+          const trackedStock = await prisma.trackedStock.upsert({
+            where: { symbol: stock.symbol },
+            create: {
+              symbol: stock.symbol,
+              name: stock.name,
+              exchange: stock.exchange,
+              sector: stock.sector || null,
+              industry: stock.industry || null,
+              isOTC: stock.exchange === "OTC",
             },
-          },
-        });
-
-        if (!existingSnapshot) {
-          // Create snapshot
-          await prisma.stockDailySnapshot.create({
-            data: {
-              stockId: trackedStock.id,
-              scanDate,
-              riskLevel: stock.riskLevel,
-              totalScore: stock.totalScore,
-              isLegitimate: stock.isLegitimate,
-              isInsufficient: stock.isInsufficient || false,
-              lastPrice: stock.lastPrice || null,
-              previousClose: stock.previousClose || null,
-              priceChangePct: stock.priceChangePct || null,
-              volume: stock.volume || null,
-              avgVolume: stock.avgVolume || null,
-              volumeRatio: stock.volumeRatio || null,
-              marketCap: stock.marketCap || null,
-              signals: JSON.stringify(stock.signals || []),
-              signalSummary: stock.signalSummary || null,
-              signalCount: stock.signals?.length || 0,
-              dataSource: stock.priceDataSource || "FMP",
-              evaluatedAt: new Date(stock.evaluatedAt),
+            update: {
+              name: stock.name,
+              sector: stock.sector || undefined,
+              industry: stock.industry || undefined,
             },
           });
-          snapshotsCreated++;
+
+          if (trackedStock.createdAt.getTime() > Date.now() - 1000) {
+            stocksCreated++;
+          } else {
+            stocksUpdated++;
+          }
+
+          // Check for existing snapshot
+          const existingSnapshot = await prisma.stockDailySnapshot.findUnique({
+            where: {
+              stockId_scanDate: {
+                stockId: trackedStock.id,
+                scanDate,
+              },
+            },
+          });
+
+          if (!existingSnapshot) {
+            // Parse evaluatedAt safely
+            let evaluatedAt: Date;
+            try {
+              evaluatedAt = stock.evaluatedAt ? new Date(stock.evaluatedAt) : scanDate;
+              if (isNaN(evaluatedAt.getTime())) {
+                evaluatedAt = scanDate;
+              }
+            } catch {
+              evaluatedAt = scanDate;
+            }
+
+            // Create snapshot
+            await prisma.stockDailySnapshot.create({
+              data: {
+                stockId: trackedStock.id,
+                scanDate,
+                riskLevel: stock.riskLevel || "UNKNOWN",
+                totalScore: stock.totalScore || 0,
+                isLegitimate: stock.isLegitimate ?? true,
+                isInsufficient: stock.isInsufficient || false,
+                lastPrice: stock.lastPrice || null,
+                previousClose: stock.previousClose || null,
+                priceChangePct: stock.priceChangePct || null,
+                volume: stock.volume || null,
+                avgVolume: stock.avgVolume || null,
+                volumeRatio: stock.volumeRatio || null,
+                marketCap: stock.marketCap || null,
+                signals: JSON.stringify(stock.signals || []),
+                signalSummary: stock.signalSummary || null,
+                signalCount: stock.signals?.length || 0,
+                dataSource: stock.priceDataSource || "FMP",
+                evaluatedAt,
+              },
+            });
+            snapshotsCreated++;
 
           // Check for risk alerts (compare with previous day)
           const previousSnapshot = await prisma.stockDailySnapshot.findFirst({
@@ -267,6 +286,11 @@ export async function POST(request: Request) {
             alertsCreated++;
           }
         }
+        } catch (stockError) {
+          // Log error but continue processing other stocks
+          errors.push(`Error processing ${stock.symbol}: ${String(stockError)}`);
+          console.error(`Error processing stock ${stock.symbol}:`, stockError);
+        }
       }
     }
 
@@ -303,13 +327,15 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      success: true,
+      success: errors.length === 0,
       date,
       stocksCreated,
       stocksUpdated,
       snapshotsCreated,
       alertsCreated,
       totalProcessed: evaluationData.length,
+      errors: errors.length > 0 ? errors.slice(0, 10) : undefined, // Return first 10 errors
+      errorCount: errors.length,
     });
   } catch (error) {
     console.error("Ingest evaluation error:", error);
