@@ -24,13 +24,13 @@
 | **Net HIGH Risk Change** | -27 (1,450 → 1,423) | ↓ Slight decrease |
 | **EVTV Explosion** | +40.2% single day, 270M volume | 🔴 EXTREME |
 | **Promoted Stocks Status** | 10 tracked (1 NEW) | 5 in dump phase, 5 in pump phase |
-| **Making Easy Money Discord** | WENT PRIVATE | 🔴 Critical development |
+| **Making Easy Money Discord** | REOPENED (was private) | 🟡 Now accepting members |
 | **Grandmaster-Obi Comparison** | "The New Roaring Kitty" | Media attention increasing |
 
 ### Headlines
 
 1. **EVTV +40% EXPLOSION** - Envirotech Vehicles surged 40.2% on 270M volume; Grandmaster-Obi alerted at $0.78, now $3.52 (+351%)
-2. **Discord Goes PRIVATE** - Making Easy Money Discord closed due to "massive member surge" - now fully invite-only
+2. **Discord REOPENED** - Making Easy Money Discord reopened after brief private status - now at 17,265 members
 3. **Grandmaster-Obi = "New Roaring Kitty"** - Social media increasingly comparing to GameStop influencer
 4. **DUMP PHASE ACCELERATING** - LVRO (-16.4%), SIDU (-8.8%), DVLT (-9.5%), MNTS (-8.1%) all declining
 5. **ANPA ENTERING DUMP?** - Down 9.7% from $93.02 to $84.01, first red day after massive squeeze
@@ -69,14 +69,15 @@
 
 ## SCHEME-001: Grandmaster-Obi / Making Easy Money Discord
 
-### Critical Update: Discord Now PRIVATE
+### Critical Update: Discord REOPENED
 
-**Breaking Development:** The Making Easy Money Discord server has gone **fully private** as of January 13, 2026.
+**Breaking Development:** The Making Easy Money Discord server has **REOPENED** after briefly going private.
 
-- **Stated Reason:** "Massive surge of new members leaving WallStreetBets"
-- **Membership Before Closure:** ~15,000+ members
-- **Current Status:** Invite-only, no new members accepted
-- **Implication:** Promoter may be consolidating control before regulatory scrutiny increases
+- **Previous Status (Jan 10-12):** Went private, invite-only
+- **Current Status (Jan 13):** OPEN to new members
+- **Current Membership:** 17,265 members
+- **New Stocks Discussed:** HOLO, MLGO, AQST, CLOV
+- **Implication:** Promoter confident enough to resume public recruiting
 
 ### Media Comparison: "The New Roaring Kitty"
 
@@ -166,20 +167,42 @@ MNTS:   [██████████████████████░�
 - Stocktwits EVTV stream: 10,000+ messages today
 - Reddit discussions linking move to "Making Easy Money" server
 
-#### 2. Making Easy Money Discord - Private Status
+#### 2. Making Easy Money Discord - REOPENED
 
 **Timeline:**
 - Jan 10: Discord announced "closing to new members"
-- Jan 13: Discord fully private, invite-only
-- Stated reason: "Massive surge leaving WallStreetBets"
-- Actual implication: Limiting evidence trail
+- Jan 11-12: Discord fully private, invite-only
+- Jan 13: **REOPENED** with 17,265 members (up from ~15,000)
+- New stocks being discussed: **HOLO, MLGO, AQST, CLOV**
 
-**Concern Level:** 🔴 CRITICAL
-- Private servers harder to monitor
-- May indicate awareness of regulatory interest
-- Pattern consistent with pre-enforcement behavior
+**Concern Level:** 🟡 ELEVATED
+- Server reopening indicates promoter confidence
+- New stock mentions could signal upcoming pump targets
+- AQST confirmed in HIGH risk list (3 signals)
 
-#### 3. "New Roaring Kitty" Comparisons
+#### 3. VLN (Valens Semiconductor) - Suspicious Pump
+
+**Breaking:** VLN surged **+65%** on January 13 with "no tangible news"
+
+| Metric | Value |
+|--------|-------|
+| **Price Move** | +65% (single day) |
+| **News Catalyst** | NONE identified |
+| **Social Media** | "Social media-driven enthusiasm" |
+| **Forum Reaction** | Users questioning legitimacy |
+| **Current Assessment** | Potential SCHEME-003 candidate |
+
+**Note:** Not currently linked to Grandmaster-Obi operation but shows classic pump signals.
+
+#### 4. SXTC - Confirmed Manipulation Discussion
+
+**SXTC (China SXT Pharmaceuticals)** experienced extreme volatility:
+
+- **Price Action:** +200% followed by -37%
+- **Forum Discussion:** Users explicitly stating "jumped without any news, that was absolutely manipulation"
+- **Status:** Under investigation as potential SCHEME-003
+
+#### 5. "New Roaring Kitty" Comparisons
 
 Social media increasingly comparing Grandmaster-Obi to Keith Gill:
 
@@ -246,6 +269,65 @@ Social media increasingly comparing Grandmaster-Obi to Keith Gill:
 - [ ] Continue monitoring for social media activity
 - [ ] Check if any link to SCHEME-001 emerges
 - [ ] Update when full scan resumes
+
+---
+
+## SCHEME-003: Unconfirmed - January 13 Social Media Scan Findings
+
+### NEW - Potential Coordinated Pumps (Under Investigation)
+
+These stocks were identified through the January 13/14 social media scan as showing manipulation signals independent of SCHEME-001:
+
+| Symbol | Name | Price Action | Key Evidence | Status |
+|--------|------|--------------|--------------|--------|
+| **VLN** | Valens Semiconductor | +65% (1 day) | "No tangible news", "social media-driven" | 🔴 INVESTIGATING |
+| **SXTC** | China SXT Pharmaceuticals | +200% then -37% | Forum users: "absolutely manipulation" | 🔴 INVESTIGATING |
+| **AQST** | Aquestive Therapeutics | In HIGH risk list | Discussed in Discord, 3 pump signals | 🟡 MONITORING |
+
+### VLN Deep Dive
+
+**Valens Semiconductor (VLN)** is the most suspicious find from the social media scan:
+
+| Metric | Value |
+|--------|-------|
+| **January 13 Move** | +65% single day |
+| **News Catalyst** | NONE identified |
+| **Forum Commentary** | "No tangible news to justify this" |
+| **Social Media** | Heavy retail chatter, no clear source |
+| **In HIGH Risk List** | Yes (7 signals) |
+| **Signals** | SPIKE_7D, VOLUME_EXPLOSION, likely others |
+
+**Assessment:** VLN shows classic pump characteristics - massive price move with no fundamental catalyst. Source of coordination not yet identified. Could be separate Discord/Telegram group.
+
+### SXTC Deep Dive
+
+**China SXT Pharmaceuticals (SXTC)** shows clear manipulation pattern:
+
+| Metric | Value |
+|--------|-------|
+| **Price Pattern** | +200% spike followed by -37% dump |
+| **Forum Discussion** | "jumped without any news, that was absolutely manipulation" |
+| **In HIGH Risk List** | Yes (6 signals) |
+| **Manipulation Evidence** | Forum users openly discussing manipulation |
+
+**Assessment:** SXTC appears to be a completed pump-and-dump cycle. Dump phase may be ongoing.
+
+### Stocks to Watch (Discord Mentions)
+
+The reopened Making Easy Money Discord is discussing these new stocks:
+
+| Symbol | Name | In HIGH Risk? | Signals | Notes |
+|--------|------|---------------|---------|-------|
+| **HOLO** | MicroCloud Hologram | Unknown | TBD | New Discord mention |
+| **MLGO** | MicroAlgo Inc | Unknown | TBD | New Discord mention |
+| **AQST** | Aquestive Therapeutics | ✅ YES | 3 signals | MICROCAP_PRICE, SPIKE_7D, HIGH_VOLATILITY |
+| **CLOV** | Clover Health | Unknown | TBD | Previous meme stock |
+
+**Action Required:**
+- [ ] Deep dive on HOLO, MLGO, CLOV risk profiles
+- [ ] Monitor VLN for continued price action
+- [ ] Track SXTC dump phase completion
+- [ ] Determine if VLN/SXTC have common promotion source
 
 ---
 
@@ -392,14 +474,15 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
     }
   },
   "coordinatedSchemes": {
-    "totalSchemes": 2,
-    "activeSchemes": 2,
+    "totalSchemes": 3,
+    "activeSchemes": 3,
     "schemes": {
       "SCHEME-001": {
         "name": "Grandmaster-Obi / Making Easy Money",
-        "platform": "Discord (PRIVATE) + stock-market-loop.com",
+        "platform": "Discord (REOPENED) + stock-market-loop.com",
         "status": "active",
-        "discordStatus": "PRIVATE",
+        "discordStatus": "REOPENED",
+        "discordMembers": 17265,
         "firstDetected": "2025-12-19",
         "stocksTracked": 10,
         "stocks": {
@@ -422,6 +505,21 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
         "stocks": {
           "underInvestigation": ["AHMA", "AMCI", "ELWS", "MMA", "LYRA"]
         }
+      },
+      "SCHEME-003": {
+        "name": "Unconfirmed - Social Media Scan Findings",
+        "platform": "Unknown - Under Investigation",
+        "status": "investigating",
+        "firstDetected": "2026-01-13",
+        "stocksTracked": 3,
+        "stocks": {
+          "investigating": ["VLN", "SXTC"],
+          "monitoring": ["AQST"]
+        },
+        "evidence": {
+          "VLN": "+65% no news catalyst",
+          "SXTC": "+200% then -37%, forum users claim manipulation"
+        }
       }
     }
   },
@@ -443,9 +541,10 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
   "socialMedia": {
     "platforms": {
       "discord": {
-        "status": "PRIVATE",
+        "status": "REOPENED",
         "server": "Making Easy Money",
-        "previousMembers": "15000+"
+        "currentMembers": 17265,
+        "newStocksDiscussed": ["HOLO", "MLGO", "AQST", "CLOV"]
       },
       "stockMarketLoop": {
         "status": "active",
@@ -472,9 +571,19 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
       "volume": "270M (54x normal)"
     },
     {
-      "event": "Discord goes private",
-      "significance": "Evidence preservation concern",
-      "implication": "Possible regulatory awareness"
+      "event": "Discord REOPENED",
+      "significance": "Server accepting new members again (17,265 total)",
+      "implication": "Promoter confident, new stocks being discussed"
+    },
+    {
+      "event": "VLN +65% suspicious pump",
+      "significance": "No news catalyst, social media driven",
+      "implication": "Potential new scheme (SCHEME-003)"
+    },
+    {
+      "event": "SXTC manipulation suspected",
+      "significance": "+200% then -37%, forum users confirm manipulation",
+      "implication": "Under investigation as SCHEME-003"
     },
     {
       "event": "ANPA first red day",
