@@ -46,6 +46,25 @@ interface EvaluationSummary {
   apiCallsMade?: number;
 }
 
+interface PromotedStockData {
+  symbol: string;
+  name: string;
+  riskScore: number;
+  price: number | null;
+  marketCap: string | null;
+  tier: string;
+  platforms: string[];
+  redFlags: string[];
+  sources: string[];
+  assessment: string | null;
+}
+
+interface PromotedStocksReport {
+  date: string;
+  totalHighRiskStocks: number;
+  promotedStocks: PromotedStockData[];
+}
+
 async function fetchEvaluationFile(filename: string): Promise<{ data: EvaluationStock[] | null; error?: string }> {
   // Get public URL from Supabase Storage
   const { data: urlData } = supabase.storage
@@ -77,6 +96,29 @@ async function fetchEvaluationFile(filename: string): Promise<{ data: Evaluation
 }
 
 async function fetchSummaryFile(filename: string): Promise<{ data: EvaluationSummary | null; error?: string }> {
+  const { data: urlData } = supabase.storage
+    .from(EVALUATION_BUCKET)
+    .getPublicUrl(filename);
+
+  try {
+    const response = await fetch(urlData.publicUrl);
+    if (!response.ok) {
+      return { data: null, error: `HTTP ${response.status}` };
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      return { data: null };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch {
+    return { data: null };
+  }
+}
+
+async function fetchPromotedStocksFile(filename: string): Promise<{ data: PromotedStocksReport | null; error?: string }> {
   const { data: urlData } = supabase.storage
     .from(EVALUATION_BUCKET)
     .getPublicUrl(filename);
@@ -132,6 +174,11 @@ export async function POST(request: Request) {
     const evaluationData = evaluationResult.data;
     const summaryResult = await fetchSummaryFile(summaryFilename);
     const summaryData = summaryResult.data;
+
+    // Also fetch promoted stocks file if available
+    const promotedFilename = `promoted-stocks-${date}.json`;
+    const promotedResult = await fetchPromotedStocksFile(promotedFilename);
+    const promotedData = promotedResult.data;
 
     const scanDate = new Date(date);
     scanDate.setHours(0, 0, 0, 0);
@@ -312,6 +359,61 @@ export async function POST(request: Request) {
       });
     }
 
+    // Step 9: Ingest promoted stocks from social media scan
+    let promotedStocksCreated = 0;
+    if (promotedData && promotedData.promotedStocks?.length > 0) {
+      for (const promoted of promotedData.promotedStocks) {
+        // Parse market cap string to number
+        let marketCapNum: number | null = null;
+        if (promoted.marketCap) {
+          const match = promoted.marketCap.match(/([\d.]+)([BMK])?/i);
+          if (match) {
+            marketCapNum = parseFloat(match[1]);
+            if (match[2]?.toUpperCase() === 'B') marketCapNum *= 1_000_000_000;
+            else if (match[2]?.toUpperCase() === 'M') marketCapNum *= 1_000_000;
+            else if (match[2]?.toUpperCase() === 'K') marketCapNum *= 1_000;
+          }
+        }
+
+        // Create promoted stock record (upsert to avoid duplicates)
+        const platform = promoted.platforms[0] || 'Unknown';
+        try {
+          await prisma.promotedStock.upsert({
+            where: {
+              symbol_addedDate: {
+                symbol: promoted.symbol,
+                addedDate: scanDate,
+              },
+            },
+            create: {
+              symbol: promoted.symbol,
+              addedDate: scanDate,
+              promoterName: promoted.tier === 'HIGH' ? 'Social Media Alert' : 'Risk Flag',
+              promotionPlatform: platform,
+              promotionGroup: promoted.platforms.join(', '),
+              entryPrice: promoted.price || 0,
+              entryMarketCap: marketCapNum,
+              entryRiskScore: promoted.riskScore || 0,
+              evidenceLinks: promoted.sources.join('\n'),
+              outcome: 'MONITORING',
+              isActive: true,
+            },
+            update: {
+              promotionPlatform: platform,
+              promotionGroup: promoted.platforms.join(', '),
+              entryPrice: promoted.price || undefined,
+              entryMarketCap: marketCapNum || undefined,
+              entryRiskScore: promoted.riskScore || undefined,
+              evidenceLinks: promoted.sources.join('\n'),
+            },
+          });
+          promotedStocksCreated++;
+        } catch (e) {
+          console.error(`Failed to create promoted stock ${promoted.symbol}:`, e);
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       date,
@@ -319,6 +421,7 @@ export async function POST(request: Request) {
       stocksUpdated: validStocks.length - stocksCreated,
       snapshotsCreated,
       alertsCreated,
+      promotedStocksCreated,
       totalProcessed: validStocks.length,
       skipped: skippedCount,
     });
@@ -375,9 +478,18 @@ export async function GET() {
         date: f.name.replace("fmp-summary-", "").replace(".json", ""),
       }));
 
+    // Extract dates from promoted stocks files (format: promoted-stocks-YYYY-MM-DD.json)
+    const promotedFiles = (files || [])
+      .filter((f) => f.name.startsWith("promoted-stocks-") && f.name.endsWith(".json"))
+      .map((f) => ({
+        filename: f.name,
+        date: f.name.replace("promoted-stocks-", "").replace(".json", ""),
+      }));
+
     // Get unique dates from evaluation files (required for ingestion)
     const evaluationDates = evaluationFiles.map((f) => f.date);
     const summaryDates = new Set(summaryFiles.map((f) => f.date));
+    const promotedDates = new Set(promotedFiles.map((f) => f.date));
 
     // Build available dates with file status
     const availableDates = evaluationDates
@@ -385,6 +497,7 @@ export async function GET() {
         date,
         hasEvaluation: true,
         hasSummary: summaryDates.has(date),
+        hasPromoted: promotedDates.has(date),
       }))
       .sort((a, b) => b.date.localeCompare(a.date));
 
@@ -406,6 +519,7 @@ export async function GET() {
         filesFound: files?.length || 0,
         evaluationFiles: evaluationFiles.length,
         summaryFiles: summaryFiles.length,
+        promotedFiles: promotedFiles.length,
         allFileNames: files?.map(f => f.name) || [],
       },
     });
