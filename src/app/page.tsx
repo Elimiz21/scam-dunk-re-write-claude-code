@@ -121,7 +121,7 @@ export default function HomePage() {
     const initialSteps: Step[] = isCrypto
       ? [
           { label: "Validating symbol", status: "loading" },
-          { label: "Fetching market data from CoinGecko", status: "pending" },
+          { label: "Retrieving crypto data", status: "pending" },
           {
             label: "Running risk analysis",
             status: "pending",
