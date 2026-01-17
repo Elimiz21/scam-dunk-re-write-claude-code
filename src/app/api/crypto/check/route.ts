@@ -22,6 +22,125 @@ import {
   SUPPORTED_CHAINS,
 } from "@/lib/crypto";
 import { LimitReachedResponse } from "@/lib/types";
+import { config } from "@/lib/config";
+
+// Python AI backend URL
+const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000";
+
+interface AIBackendCryptoResponse {
+  ticker: string;
+  asset_type: string;
+  risk_level: string;
+  risk_probability: number;
+  risk_score: number;
+  rf_probability: number | null;
+  lstm_probability: number | null;
+  anomaly_score: number;
+  signals: Array<{
+    code: string;
+    category: string;
+    description: string;
+    weight: number;
+  }>;
+  crypto_signals?: Array<{
+    code: string;
+    category: string;
+    description: string;
+    weight: number;
+  }>;
+  crypto_risk_probability?: number;
+  features: Record<string, number | null>;
+  explanations: string[];
+  data_available: boolean;
+  analysis_timestamp: string;
+}
+
+/**
+ * Check if Python AI backend is available and healthy
+ */
+async function checkAIBackendHealth(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(`${AI_BACKEND_URL}/health`, {
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.status === "healthy";
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Call Python AI backend for crypto analysis with crypto-calibrated thresholds
+ */
+async function callAIBackendForCrypto(
+  symbol: string,
+  marketData: CryptoMarketData
+): Promise<AIBackendCryptoResponse | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    // Prepare fundamentals for the AI backend
+    const fundamentals = {
+      symbol: symbol,
+      market_cap: marketData.quote?.marketCap || 0,
+      volume_24h: marketData.quote?.totalVolume24h || 0,
+      circulating_supply: marketData.quote?.circulatingSupply || 0,
+      total_supply: marketData.quote?.totalSupply || 0,
+      holder_count: marketData.securityData?.holderCount || 0,
+      top_10_concentration: marketData.securityData?.top10HolderPercent || 0,
+    };
+
+    // Prepare security data if available
+    const securityData = marketData.securityData ? {
+      is_honeypot: marketData.securityData.isHoneypot,
+      is_mintable: marketData.securityData.canMint,
+      hidden_owner: marketData.securityData.hiddenOwner,
+      can_blacklist: marketData.securityData.canBlacklist,
+      buy_tax: marketData.securityData.buyTax,
+      sell_tax: marketData.securityData.sellTax,
+      lp_locked: marketData.securityData.lpLocked,
+      lp_lock_duration_days: marketData.securityData.lpLockDuration || 0,
+      owner_change_balance: marketData.securityData.ownerChangeBalance,
+    } : null;
+
+    const response = await fetch(`${AI_BACKEND_URL}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ticker: symbol,
+        asset_type: "crypto",
+        use_live_data: false, // We already have market data
+        fundamentals,
+        security_data: securityData,
+        days: 30,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error(`AI backend returned ${response.status}`);
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("AI backend unavailable for crypto:", error);
+    return null;
+  }
+}
 
 // Request validation schema
 const cryptoCheckRequestSchema = z.object({
@@ -109,13 +228,55 @@ export async function POST(request: NextRequest) {
     }
 
     // =====================================================
-    // COMPUTE RISK SCORE
+    // TRY AI BACKEND FIRST (uses crypto-calibrated thresholds)
     // =====================================================
-    const scoringResult = await computeCryptoRiskScore({
-      marketData,
-      pitchText: checkRequest.pitchText || "",
-      context,
-    });
+    let scoringResult;
+    let aiBackendUsed = false;
+
+    const aiBackendAvailable = await checkAIBackendHealth();
+    if (aiBackendAvailable) {
+      console.log(`[Crypto] Using AI backend with crypto-calibrated analysis...`);
+      const aiResult = await callAIBackendForCrypto(symbol, marketData);
+
+      if (aiResult) {
+        aiBackendUsed = true;
+        // Convert AI backend response to our scoring result format
+        const aiSignals = [
+          ...(aiResult.signals || []),
+          ...(aiResult.crypto_signals || []),
+        ].map(sig => ({
+          code: sig.code,
+          description: sig.description,
+          weight: sig.weight,
+          category: sig.category as "STRUCTURAL" | "PATTERN" | "CONTRACT" | "LIQUIDITY" | "DISTRIBUTION" | "BEHAVIORAL",
+          severity: sig.weight >= 20 ? "critical" as const : sig.weight >= 10 ? "warning" as const : "info" as const,
+        }));
+
+        scoringResult = {
+          riskLevel: aiResult.risk_level as "LOW" | "MEDIUM" | "HIGH",
+          totalScore: Math.round(aiResult.risk_probability * 20), // Convert to 0-20 scale
+          signals: aiSignals,
+          isLegitimate: aiResult.risk_level === "LOW",
+          aiBackendUsed: true,
+          rfProbability: aiResult.rf_probability,
+          lstmProbability: aiResult.lstm_probability,
+          cryptoRiskProbability: aiResult.crypto_risk_probability,
+        };
+        console.log(`[Crypto] AI backend analysis complete: ${aiResult.risk_level}`);
+      }
+    }
+
+    // =====================================================
+    // FALLBACK: DETERMINISTIC SCORING (if AI backend unavailable)
+    // =====================================================
+    if (!aiBackendUsed) {
+      console.log(`[Crypto] Using deterministic scoring (AI backend unavailable)...`);
+      scoringResult = await computeCryptoRiskScore({
+        marketData,
+        pitchText: checkRequest.pitchText || "",
+        context,
+      });
+    }
 
     // =====================================================
     // BUILD CRYPTO SUMMARY

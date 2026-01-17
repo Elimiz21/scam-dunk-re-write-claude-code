@@ -26,7 +26,9 @@ warnings.filterwarnings('ignore')
 # Import all modules
 from config import (
     RISK_THRESHOLDS, ANOMALY_CONFIG, ENSEMBLE_CONFIG,
-    SEC_FLAGGED_TICKERS, OTC_EXCHANGES, MARKET_THRESHOLDS
+    SEC_FLAGGED_TICKERS, OTC_EXCHANGES, MARKET_THRESHOLDS,
+    CRYPTO_RISK_THRESHOLDS, CRYPTO_ANOMALY_CONFIG, CRYPTO_MARKET_THRESHOLDS,
+    CRYPTO_RISK_SIGNALS, ESTABLISHED_CRYPTOS
 )
 from data_ingestion import (
     create_asset_context, check_sec_flagged_list,
@@ -34,6 +36,10 @@ from data_ingestion import (
 )
 from feature_engineering import (
     engineer_all_features, create_feature_vector, extract_contextual_features
+)
+from crypto_feature_engineering import (
+    engineer_all_crypto_features, create_crypto_feature_vector,
+    extract_crypto_contextual_features, compute_crypto_risk_score
 )
 from anomaly_detection import detect_anomalies, get_anomaly_explanation, AnomalyResult
 from ml_model import ScamDetectorRF
@@ -115,19 +121,23 @@ class ScamDetectionPipeline:
             if save_models:
                 self.lstm_detector.save()
 
-    def calibrate_probability(self, probability: float) -> str:
+    def calibrate_probability(self, probability: float, asset_type: str = 'stock') -> str:
         """
         Map probability to risk level using calibration thresholds.
 
         Args:
             probability: Raw probability (0-1)
+            asset_type: 'stock' or 'crypto' (uses different thresholds)
 
         Returns:
             Risk level string (LOW, MEDIUM, HIGH)
         """
-        if probability < RISK_THRESHOLDS['LOW']:
+        # Use crypto-specific thresholds for crypto assets
+        thresholds = CRYPTO_RISK_THRESHOLDS if asset_type == 'crypto' else RISK_THRESHOLDS
+
+        if probability < thresholds['LOW']:
             return 'LOW'
-        elif probability < RISK_THRESHOLDS['MEDIUM']:
+        elif probability < thresholds['MEDIUM']:
             return 'MEDIUM'
         else:
             return 'HIGH'
@@ -366,15 +376,28 @@ class ScamDetectionPipeline:
         print(f"   SEC Flagged: {sec_flagged}")
         print(f"   Exchange: {fundamentals.get('exchange', 'N/A')}")
 
-        # Step 2: Feature engineering
+        # Step 2: Feature engineering (use crypto-specific for crypto assets)
         print("\n[Step 2] Computing features...")
-        price_data_fe = engineer_all_features(price_data)
-        features, feature_names = create_feature_vector(
-            price_data_fe,
-            fundamentals,
-            context['sec_flagged'],
-            news_flag=news_flag
-        )
+        if asset_type == 'crypto':
+            # Use crypto-specific feature engineering with calibrated thresholds
+            print("   Using CRYPTO-CALIBRATED feature engineering")
+            price_data_fe = engineer_all_crypto_features(price_data)
+            security_data = context.get('security_data')  # From GoPlus API if available
+            features, feature_names = create_crypto_feature_vector(
+                price_data_fe,
+                fundamentals,
+                security_data=security_data,
+                news_flag=news_flag
+            )
+        else:
+            # Use standard stock feature engineering
+            price_data_fe = engineer_all_features(price_data)
+            features, feature_names = create_feature_vector(
+                price_data_fe,
+                fundamentals,
+                context['sec_flagged'],
+                news_flag=news_flag
+            )
         print(f"   Features computed: {len(features)}")
 
         # Step 3: Anomaly detection
@@ -414,13 +437,33 @@ class ScamDetectionPipeline:
         print("\n[Step 6] Combining predictions...")
         is_otc = fundamentals.get('is_otc', False)
         market_cap = fundamentals.get('market_cap', float('inf'))
-        is_micro_cap = market_cap < MARKET_THRESHOLDS['micro_cap']
+
+        # Use crypto-specific thresholds for crypto assets
+        if asset_type == 'crypto':
+            micro_cap_threshold = CRYPTO_MARKET_THRESHOLDS['micro_cap']
+            # For crypto, also compute crypto-specific risk score
+            feature_dict = dict(zip(feature_names, features))
+            crypto_risk_prob, crypto_signals = compute_crypto_risk_score(feature_dict)
+            print(f"   Crypto risk signals detected: {len(crypto_signals)}")
+        else:
+            micro_cap_threshold = MARKET_THRESHOLDS['micro_cap']
+            crypto_risk_prob = None
+            crypto_signals = []
+
+        is_micro_cap = market_cap < micro_cap_threshold
 
         combined_prob = self.combine_predictions(
             rf_prob, lstm_prob, anomaly_result, sec_flagged,
             is_otc=is_otc, is_micro_cap=is_micro_cap
         )
-        risk_level = self.calibrate_probability(combined_prob)
+
+        # For crypto, blend ML prediction with rule-based crypto signals
+        if asset_type == 'crypto' and crypto_risk_prob is not None:
+            # Give 60% weight to crypto-specific rules, 40% to ML
+            combined_prob = 0.4 * combined_prob + 0.6 * crypto_risk_prob
+            print(f"   Crypto rule-based risk: {crypto_risk_prob:.3f}")
+
+        risk_level = self.calibrate_probability(combined_prob, asset_type=asset_type)
         print(f"   Combined probability: {combined_prob:.3f}")
         print(f"   Risk level: {risk_level}")
 
@@ -468,6 +511,18 @@ class ScamDetectionPipeline:
                 'has_news': news_flag,
             }
         }
+
+        # Add crypto-specific signals to report if analyzing crypto
+        if asset_type == 'crypto' and crypto_signals:
+            detailed_report['crypto_signals'] = crypto_signals
+            detailed_report['crypto_risk_probability'] = float(crypto_risk_prob) if crypto_risk_prob else None
+            # Add crypto-specific flags
+            detailed_report['crypto_flags'] = {
+                'is_established': fundamentals.get('symbol', '').upper() in ESTABLISHED_CRYPTOS,
+                'holder_concentration': fundamentals.get('top_10_concentration', 0),
+                'lp_locked': context.get('security_data', {}).get('lp_locked', False) if context.get('security_data') else None,
+                'is_honeypot': context.get('security_data', {}).get('is_honeypot', False) if context.get('security_data') else None,
+            }
 
         # Create final assessment
         assessment = RiskAssessment(
