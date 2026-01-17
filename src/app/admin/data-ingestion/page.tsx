@@ -32,6 +32,7 @@ interface FileStatus {
   hasEvaluation: boolean;
   hasSummary: boolean;
   hasPromoted?: boolean;
+  hasComparison?: boolean;
 }
 
 interface IngestionStatus {
@@ -44,6 +45,7 @@ interface IngestionStatus {
     evaluationFiles: number;
     summaryFiles: number;
     promotedFiles: number;
+    comparisonFiles: number;
     allFileNames: string[];
   };
 }
@@ -348,6 +350,9 @@ export default function DataIngestionPage() {
                           <span className={fileInfo?.hasPromoted ? "text-purple-600" : "text-gray-400"}>
                             {fileInfo?.hasPromoted ? "✓" : "○"} Promoted
                           </span>
+                          <span className={fileInfo?.hasComparison ? "text-orange-600" : "text-gray-400"}>
+                            {fileInfo?.hasComparison ? "✓" : "○"} Comparison
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -440,6 +445,9 @@ export default function DataIngestionPage() {
                           <span className={fileInfo?.hasPromoted ? "text-purple-600" : "text-gray-400"}>
                             {fileInfo?.hasPromoted ? "✓" : "○"} Promoted
                           </span>
+                          <span className={fileInfo?.hasComparison ? "text-orange-600" : "text-gray-400"}>
+                            {fileInfo?.hasComparison ? "✓" : "○"} Comparison
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -515,13 +523,15 @@ export default function DataIngestionPage() {
             <p className="text-gray-600">Evaluation files: {status.debug.evaluationFiles}</p>
             <p className="text-gray-600">Summary files: {status.debug.summaryFiles}</p>
             <p className="text-gray-600">Promoted stocks files: {status.debug.promotedFiles}</p>
+            <p className="text-gray-600">Comparison files: {status.debug.comparisonFiles}</p>
             {status.debug.allFileNames.length > 0 ? (
               <ul className="mt-2 space-y-1">
                 {status.debug.allFileNames.map((name, i) => (
                   <li key={i} className={`font-mono text-xs ${
                     name.startsWith('fmp-evaluation-') ? 'text-green-600' :
                     name.startsWith('fmp-summary-') ? 'text-blue-600' :
-                    name.startsWith('promoted-stocks-') ? 'text-purple-600' : 'text-gray-400'
+                    name.startsWith('promoted-stocks-') ? 'text-purple-600' :
+                    name.startsWith('comparison-') ? 'text-orange-600' : 'text-gray-400'
                   }`}>{name}</li>
                 ))}
               </ul>

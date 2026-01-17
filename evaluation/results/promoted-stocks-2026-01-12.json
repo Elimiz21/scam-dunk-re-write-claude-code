@@ -1,0 +1,187 @@
+{
+  "date": "2026-01-12",
+  "totalHighRiskStocks": 1450,
+  "source": "COMPREHENSIVE_REPORT_January_12_2026.md",
+  "promotedStocks": [
+    {
+      "symbol": "SIDU",
+      "name": "Sidus Space",
+      "riskScore": 15,
+      "price": 5.82,
+      "marketCap": null,
+      "tier": "HIGH",
+      "platforms": ["Discord"],
+      "redFlags": ["Confirmed Discord promotion", "+547% gain from alert", "Grandmaster-Obi network"],
+      "sources": ["Making Easy Money Discord", "stock-market-loop.com"],
+      "assessment": "Confirmed coordinated pump"
+    },
+    {
+      "symbol": "LVRO",
+      "name": "Lavoro Limited",
+      "riskScore": 14,
+      "price": 1.11,
+      "marketCap": "129.0M",
+      "tier": "HIGH",
+      "platforms": ["Discord"],
+      "redFlags": ["Confirmed Discord promotion", "+600% gain", "Pump-and-dump pattern"],
+      "sources": ["Making Easy Money Discord", "stock-market-loop.com"],
+      "assessment": "Confirmed coordinated pump"
+    },
+    {
+      "symbol": "MRNO",
+      "name": "Murano Global Investments",
+      "riskScore": 12,
+      "price": 1.33,
+      "marketCap": "105.5M",
+      "tier": "HIGH",
+      "platforms": ["Discord"],
+      "redFlags": ["Confirmed Discord promotion", "+300% gain"],
+      "sources": ["Making Easy Money Discord"],
+      "assessment": "Confirmed coordinated pump"
+    },
+    {
+      "symbol": "LUCY",
+      "name": "Innovative Eyewear",
+      "riskScore": 14,
+      "price": 1.58,
+      "marketCap": "7.3M",
+      "tier": "HIGH",
+      "platforms": ["Paid Promotion"],
+      "redFlags": ["Paid promotion", "Prior pump-and-dump history"],
+      "sources": [],
+      "assessment": "Known paid promotion target"
+    },
+    {
+      "symbol": "MNTS",
+      "name": "Momentus Inc",
+      "riskScore": 12,
+      "price": 11.98,
+      "marketCap": "6.6M",
+      "tier": "HIGH",
+      "platforms": ["StockTwits"],
+      "redFlags": ["28,366% StockTwits volume spike", "Extreme social media activity"],
+      "sources": ["StockTwits"],
+      "assessment": "Extreme social media volume anomaly"
+    },
+    {
+      "symbol": "GPUS",
+      "name": "Hyperscale Data",
+      "riskScore": 10,
+      "price": null,
+      "marketCap": null,
+      "tier": "HIGH",
+      "platforms": ["Discord"],
+      "redFlags": ["Triple-digit gain reported", "Grandmaster-Obi network"],
+      "sources": ["Making Easy Money Discord"],
+      "assessment": "Reported coordinated pump"
+    },
+    {
+      "symbol": "DVLT",
+      "name": "Datavault AI",
+      "riskScore": 10,
+      "price": null,
+      "marketCap": null,
+      "tier": "HIGH",
+      "platforms": ["Discord"],
+      "redFlags": ["Triple-digit gain reported", "Grandmaster-Obi network"],
+      "sources": ["Making Easy Money Discord"],
+      "assessment": "Reported coordinated pump"
+    },
+    {
+      "symbol": "DRTSW",
+      "name": "Alpha Tau Medical Warrants",
+      "riskScore": 15,
+      "price": 0.61,
+      "marketCap": "52.0M",
+      "tier": "STRUCTURAL",
+      "platforms": [],
+      "redFlags": ["Penny stock", "Micro-cap", "Micro-liquidity"],
+      "sources": [],
+      "assessment": "Structural risk - penny stock"
+    },
+    {
+      "symbol": "CRE",
+      "name": "Cresud",
+      "riskScore": 15,
+      "price": 0.29,
+      "marketCap": "6.5M",
+      "tier": "STRUCTURAL",
+      "platforms": [],
+      "redFlags": ["Penny stock", "Pump-and-dump pattern detected"],
+      "sources": [],
+      "assessment": "Algorithm detected P&D pattern"
+    },
+    {
+      "symbol": "SXTC",
+      "name": "China SXT Pharmaceuticals",
+      "riskScore": 14,
+      "price": 0.14,
+      "marketCap": "15.7M",
+      "tier": "STRUCTURAL",
+      "platforms": [],
+      "redFlags": ["Pump-and-dump pattern", "Volume explosion"],
+      "sources": [],
+      "assessment": "Algorithm detected P&D pattern"
+    },
+    {
+      "symbol": "MTEN",
+      "name": "Mingteng International",
+      "riskScore": 14,
+      "price": 0.11,
+      "marketCap": "721K",
+      "tier": "STRUCTURAL",
+      "platforms": [],
+      "redFlags": ["Pump-and-dump pattern", "Extreme micro-cap"],
+      "sources": [],
+      "assessment": "Extreme micro-cap risk"
+    },
+    {
+      "symbol": "LHSW",
+      "name": null,
+      "riskScore": 14,
+      "price": 0.77,
+      "marketCap": "40.1M",
+      "tier": "STRUCTURAL",
+      "platforms": [],
+      "redFlags": ["Pump-and-dump pattern detected"],
+      "sources": [],
+      "assessment": "Algorithm detected P&D pattern"
+    },
+    {
+      "symbol": "VRME",
+      "name": "VerifyMe",
+      "riskScore": 14,
+      "price": 0.97,
+      "marketCap": "11.9M",
+      "tier": "STRUCTURAL",
+      "platforms": [],
+      "redFlags": ["Pump-and-dump pattern detected"],
+      "sources": [],
+      "assessment": "Algorithm detected P&D pattern"
+    }
+  ],
+  "platformSummary": [
+    {
+      "platform": "Discord",
+      "evidenceFound": "Confirmed coordinated promotions",
+      "notableStocks": ["SIDU", "LVRO", "MRNO", "GPUS", "DVLT"]
+    },
+    {
+      "platform": "StockTwits",
+      "evidenceFound": "Extreme volume spikes",
+      "notableStocks": ["MNTS"]
+    },
+    {
+      "platform": "Reddit",
+      "evidenceFound": "Monitoring r/pennystocks, r/wallstreetbets",
+      "notableStocks": []
+    }
+  ],
+  "networkAlert": {
+    "name": "Grandmaster-Obi / Making Easy Money Discord",
+    "description": "Coordinated stock promotion network operated by former WallStreetBets moderator",
+    "confirmedStocks": ["SIDU", "LVRO", "MRNO", "GPUS", "DVLT"],
+    "website": "stock-market-loop.com",
+    "regulatoryFlags": ["No SEC-required compensation disclosure on promotional website"]
+  }
+}
