@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
       console.log(`Using Python AI backend for ${ticker}`);
 
       // Fetch market data as fallback for stock summary if AI doesn't provide it
-      marketData = await fetchMarketData(ticker);
+      marketData = await fetchMarketData(ticker, checkRequest.assetType);
 
       scoringResult = {
         riskLevel: aiResult.riskLevel as "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT",
@@ -227,8 +227,8 @@ export async function POST(request: NextRequest) {
       // =====================================================
       console.log(`Falling back to TypeScript scoring for ${ticker}`);
 
-      // Fetch market data
-      marketData = await fetchMarketData(ticker);
+      // Fetch market data (pass assetType to use correct API - CoinGecko for crypto)
+      marketData = await fetchMarketData(ticker, checkRequest.assetType);
 
       // Compute risk score using TypeScript
       scoringResult = await computeRiskScore({

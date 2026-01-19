@@ -524,6 +524,21 @@ def create_asset_context(
     Returns:
         Dictionary with all asset context
     """
+    # For crypto with live data, delegate to create_live_asset_context
+    if asset_type == 'crypto' and not use_synthetic:
+        try:
+            logger.info(f"Using live data APIs for crypto {ticker_or_symbol}")
+            return create_live_asset_context(
+                ticker_or_symbol,
+                asset_type='crypto',
+                days=90,
+                news_flag=news_flag
+            )
+        except Exception as e:
+            logger.warning(f"Live crypto data failed for {ticker_or_symbol}: {e}, falling back to synthetic")
+            # Fall back to synthetic data on error
+            use_synthetic = True
+
     sec_check = check_sec_flagged_list(ticker_or_symbol)
 
     if asset_type == 'stock':

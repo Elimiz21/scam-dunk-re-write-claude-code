@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     // Fall back to TypeScript scoring if AI backend unavailable
     console.log("Falling back to TypeScript scoring");
 
-    const marketData = await fetchMarketData(ticker);
+    const marketData = await fetchMarketData(ticker, assetType);
 
     const scoringResult = await computeRiskScore({
       marketData,

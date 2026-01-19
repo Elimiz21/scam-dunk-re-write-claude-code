@@ -19,6 +19,30 @@ import { logApiUsage } from "./admin/metrics";
 // Known OTC exchanges
 const OTC_EXCHANGES = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets", "OTHER_OTC"];
 
+// Known crypto symbols mapped to CoinGecko IDs
+const CRYPTO_ID_MAP: Record<string, string> = {
+  BTC: "bitcoin",
+  ETH: "ethereum",
+  BNB: "binancecoin",
+  SOL: "solana",
+  XRP: "ripple",
+  DOGE: "dogecoin",
+  SHIB: "shiba-inu",
+  ADA: "cardano",
+  AVAX: "avalanche-2",
+  DOT: "polkadot",
+  MATIC: "matic-network",
+  LINK: "chainlink",
+  UNI: "uniswap",
+  ATOM: "cosmos",
+  LTC: "litecoin",
+  TRX: "tron",
+  NEAR: "near",
+  APT: "aptos",
+  FIL: "filecoin",
+  ARB: "arbitrum",
+};
+
 // Simple in-memory cache to reduce API calls
 const cache: Map<string, { data: MarketData; timestamp: number }> = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -26,6 +50,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 // API base URLs
 const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 const ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query";
+const COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3";
 
 // ============================================================================
 // FINANCIAL MODELING PREP (PRIMARY)
@@ -246,6 +271,186 @@ async function fetchPriceHistory(ticker: string): Promise<PriceHistory[]> {
   }
 }
 
+// ============================================================================
+// COINGECKO (CRYPTOCURRENCY)
+// ============================================================================
+
+/**
+ * Check if a ticker is a known cryptocurrency
+ */
+function isCryptoTicker(ticker: string): boolean {
+  return ticker.toUpperCase() in CRYPTO_ID_MAP;
+}
+
+/**
+ * Get CoinGecko ID from ticker symbol
+ */
+function getCoinGeckoId(ticker: string): string | null {
+  return CRYPTO_ID_MAP[ticker.toUpperCase()] || null;
+}
+
+/**
+ * Fetch cryptocurrency quote from CoinGecko
+ */
+async function fetchCoinGeckoQuote(ticker: string): Promise<StockQuote | null> {
+  const coinId = getCoinGeckoId(ticker);
+  if (!coinId) {
+    console.error(`Unknown crypto ticker: ${ticker}`);
+    return null;
+  }
+
+  const url = `${COINGECKO_BASE_URL}/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`CoinGecko API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const marketData = data.market_data;
+
+    if (!marketData) {
+      return null;
+    }
+
+    return {
+      ticker: ticker.toUpperCase(),
+      companyName: data.name || ticker.toUpperCase(),
+      exchange: "CRYPTO",
+      lastPrice: marketData.current_price?.usd || 0,
+      marketCap: marketData.market_cap?.usd || 0,
+      avgVolume30d: marketData.total_volume?.usd || 0,
+      avgDollarVolume30d: marketData.total_volume?.usd || 0,
+    };
+  } catch (error) {
+    console.error("Error fetching CoinGecko quote:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch cryptocurrency price history from CoinGecko
+ */
+async function fetchCoinGeckoPriceHistory(ticker: string): Promise<PriceHistory[]> {
+  const coinId = getCoinGeckoId(ticker);
+  if (!coinId) {
+    return [];
+  }
+
+  const url = `${COINGECKO_BASE_URL}/coins/${coinId}/ohlc?vs_currency=usd&days=90`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`CoinGecko OHLC API error: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+
+    // CoinGecko returns [timestamp, open, high, low, close]
+    const history: PriceHistory[] = data.map(
+      (candle: [number, number, number, number, number]) => ({
+        date: new Date(candle[0]).toISOString().split("T")[0],
+        open: candle[1],
+        high: candle[2],
+        low: candle[3],
+        close: candle[4],
+        volume: 0, // OHLC endpoint doesn't include volume
+      })
+    );
+
+    return history;
+  } catch (error) {
+    console.error("Error fetching CoinGecko price history:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetch market data from CoinGecko for cryptocurrencies
+ */
+async function fetchMarketDataFromCoinGecko(ticker: string): Promise<MarketData> {
+  const apiStartTime = Date.now();
+
+  try {
+    // Fetch quote and price history in parallel
+    const [quote, priceHistory] = await Promise.all([
+      fetchCoinGeckoQuote(ticker),
+      fetchCoinGeckoPriceHistory(ticker),
+    ]);
+
+    if (!quote) {
+      const responseTime = Date.now() - apiStartTime;
+      await logApiUsage({
+        service: "COINGECKO",
+        endpoint: "coins+ohlc",
+        responseTime,
+        statusCode: 404,
+        errorMessage: "No quote data available",
+      });
+      return {
+        quote: null,
+        priceHistory: [],
+        isOTC: true, // Treat crypto as high-risk category
+        dataAvailable: false,
+      };
+    }
+
+    const responseTime = Date.now() - apiStartTime;
+    await logApiUsage({
+      service: "COINGECKO",
+      endpoint: "coins+ohlc",
+      responseTime,
+      statusCode: 200,
+    });
+
+    return {
+      quote,
+      priceHistory,
+      isOTC: true, // Treat crypto as high-risk category (similar to OTC stocks)
+      dataAvailable: true,
+    };
+  } catch (error) {
+    const responseTime = Date.now() - apiStartTime;
+    await logApiUsage({
+      service: "COINGECKO",
+      endpoint: "coins+ohlc",
+      responseTime,
+      statusCode: 500,
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    console.error("Error fetching market data from CoinGecko:", error);
+    return {
+      quote: null,
+      priceHistory: [],
+      isOTC: true,
+      dataAvailable: false,
+    };
+  }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
 /**
  * Calculate 30-day average volume from price history
  */
@@ -259,12 +464,17 @@ function calculateAvgVolume30d(priceHistory: PriceHistory[]): number {
 
 /**
  * Fetch market data for a given ticker
- * Uses FMP as primary source, falls back to Alpha Vantage if FMP fails
+ * Uses FMP as primary source for stocks, CoinGecko for crypto,
+ * falls back to Alpha Vantage if FMP fails
  *
- * @param ticker - Stock ticker symbol (e.g., "AAPL")
+ * @param ticker - Stock ticker symbol (e.g., "AAPL") or crypto symbol (e.g., "BTC")
+ * @param assetType - Optional asset type hint ("stock" or "crypto")
  * @returns MarketData object with quote, price history, and exchange info
  */
-export async function fetchMarketData(ticker: string): Promise<MarketData> {
+export async function fetchMarketData(
+  ticker: string,
+  assetType?: "stock" | "crypto"
+): Promise<MarketData> {
   const normalizedTicker = ticker.toUpperCase().trim();
 
   // Check cache first
@@ -273,7 +483,28 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
     return cached.data;
   }
 
-  // Try FMP first (primary), then Alpha Vantage (fallback)
+  // Determine if this is a crypto ticker
+  const isCrypto = assetType === "crypto" || isCryptoTicker(normalizedTicker);
+
+  // Handle cryptocurrency using CoinGecko
+  if (isCrypto) {
+    console.log(`Fetching crypto data for ${normalizedTicker} from CoinGecko`);
+    const coinGeckoResult = await fetchMarketDataFromCoinGecko(normalizedTicker);
+    if (coinGeckoResult.dataAvailable) {
+      cache.set(normalizedTicker, { data: coinGeckoResult, timestamp: Date.now() });
+      return coinGeckoResult;
+    }
+    // If CoinGecko fails for crypto, return no data (don't try stock APIs)
+    console.error(`CoinGecko failed for crypto ${normalizedTicker}`);
+    return {
+      quote: null,
+      priceHistory: [],
+      isOTC: true,
+      dataAvailable: false,
+    };
+  }
+
+  // For stocks: Try FMP first (primary), then Alpha Vantage (fallback)
   if (config.fmpApiKey) {
     const fmpResult = await fetchMarketDataFromFMP(normalizedTicker);
     if (fmpResult.dataAvailable) {
@@ -291,7 +522,7 @@ export async function fetchMarketData(ticker: string): Promise<MarketData> {
     }
   }
 
-  // No API configured or both failed
+  // No API configured or all sources failed
   console.error("No market data API configured or all sources failed");
   return {
     quote: null,
