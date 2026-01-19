@@ -7,11 +7,18 @@ jobs:
   initialize:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main repo at previous commit (with data)
+      - name: Checkout main repo with full history
         uses: actions/checkout@v4
         with:
-          ref: d5b380c  # Commit before data was removed
-          fetch-depth: 1
+          fetch-depth: 0  # Need full history to access old commits
+
+      - name: Get data files from commit before removal
+        run: |
+          # Checkout the specific commit that still has the data files
+          git checkout d5b380c -- evaluation/results/ || {
+            echo "Could not find data at commit d5b380c, checking available files..."
+            ls -la evaluation/results/ 2>/dev/null || echo "No results directory"
+          }
 
       - name: Setup data repository
         env:
