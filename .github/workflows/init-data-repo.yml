@@ -13,12 +13,17 @@ jobs:
           ref: d5b380c  # Commit before data was removed
           fetch-depth: 1
 
-      - name: Checkout data repository
-        uses: actions/checkout@v4
-        with:
-          repository: Elimiz21/scam-dunk-data
-          token: ${{ secrets.DATA_REPO_TOKEN }}
-          path: data-repo
+      - name: Clone or init data repository
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+        run: |
+          # Try to clone, if empty repo just init
+          git clone https://x-access-token:${DATA_REPO_TOKEN}@github.com/Elimiz21/scam-dunk-data.git data-repo || {
+            mkdir -p data-repo
+            cd data-repo
+            git init
+            git remote add origin https://x-access-token:${DATA_REPO_TOKEN}@github.com/Elimiz21/scam-dunk-data.git
+          }
 
       - name: Create directory structure
         run: |
@@ -75,13 +80,17 @@ jobs:
           EOF
 
       - name: Commit and push to data repo
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
         run: |
           cd data-repo
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add -A
           git commit -m "Initial data import from main repository" || echo "Nothing to commit"
-          git push
+          # Push to main branch (handles empty repo case)
+          git branch -M main
+          git push -u origin main
 
       - name: Summary
         run: |
