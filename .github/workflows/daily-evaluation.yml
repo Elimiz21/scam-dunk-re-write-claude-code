@@ -209,13 +209,43 @@ jobs:
           cd evaluation
           npx ts-node scripts/upload-to-supabase.ts --all
 
-      - name: Commit results to repository
+      - name: Checkout data repository
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: Copy results to data repository
         run: |
+          DATE=$(date +%Y-%m-%d)
+
+          # Ensure directories exist
+          mkdir -p data-repo/evaluation-results data-repo/daily-summaries data-repo/comparison-reports data-repo/promoted-stocks data-repo/social-media-scans
+
+          # Copy evaluation results
+          cp evaluation/results/fmp-evaluation-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
+          cp evaluation/results/fmp-high-risk-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
+
+          # Copy summary
+          cp evaluation/results/fmp-summary-${DATE}.json data-repo/daily-summaries/ 2>/dev/null || true
+
+          # Copy comparison reports
+          cp evaluation/results/comparison-${DATE}.json data-repo/comparison-reports/ 2>/dev/null || true
+
+          # Copy promoted stocks
+          cp evaluation/results/promoted-stocks-${DATE}.json data-repo/promoted-stocks/ 2>/dev/null || true
+
+          # Copy social media scans
+          cp evaluation/results/social-media-scan-*.md data-repo/social-media-scans/ 2>/dev/null || true
+
+      - name: Commit results to data repository
+        run: |
+          cd data-repo
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          # Add all new evaluation results
-          git add evaluation/results/*.json evaluation/results/*.md evaluation/results/**/*.md || true
+          git add -A
 
           # Check if there are changes to commit
           if git diff --staged --quiet; then
@@ -231,9 +261,9 @@ jobs:
         with:
           name: evaluation-results-${{ github.run_number }}
           path: |
-            evaluation/results/fmp-evaluation-*.json
-            evaluation/results/fmp-summary-*.json
-            evaluation/results/fmp-high-risk-*.json
+            data-repo/evaluation-results/fmp-evaluation-*.json
+            data-repo/daily-summaries/fmp-summary-*.json
+            data-repo/evaluation-results/fmp-high-risk-*.json
           retention-days: 30
 
   notify-on-failure:
