@@ -1,0 +1,285 @@
+name: Daily Stock Evaluation
+
+on:
+  # Run daily at 6 AM UTC (1 AM EST, after market close)
+  # Only runs on weekdays; holiday check is done in the job
+  schedule:
+    - cron: '0 6 * * 1-5'  # Monday through Friday only
+
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      upload_only:
+        description: 'Only upload existing results (skip evaluation)'
+        required: false
+        default: 'false'
+        type: boolean
+      force_run:
+        description: 'Force run even on holidays'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  check-trading-day:
+    runs-on: ubuntu-latest
+    outputs:
+      is_trading_day: ${{ steps.check.outputs.is_trading_day }}
+    steps:
+      - name: Check if today is a US market trading day
+        id: check
+        run: |
+          # Get current date in EST/EDT timezone
+          export TZ="America/New_York"
+          TODAY=$(date +%Y-%m-%d)
+          DAY_OF_WEEK=$(date +%u)  # 1=Monday, 7=Sunday
+          MONTH=$(date +%m)
+          DAY=$(date +%d)
+          YEAR=$(date +%Y)
+
+          echo "Today: $TODAY (Day of week: $DAY_OF_WEEK)"
+
+          # Skip weekends (should already be filtered by cron, but double-check)
+          if [ "$DAY_OF_WEEK" -gt 5 ]; then
+            echo "Weekend - not a trading day"
+            echo "is_trading_day=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # US Market Holidays (fixed dates)
+          # New Year's Day - January 1
+          # Juneteenth - June 19
+          # Independence Day - July 4
+          # Christmas - December 25
+
+          FIXED_HOLIDAYS="01-01 06-19 07-04 12-25"
+          MMDD="${MONTH}-${DAY}"
+
+          for holiday in $FIXED_HOLIDAYS; do
+            if [ "$MMDD" = "$holiday" ]; then
+              echo "Fixed holiday ($holiday) - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+
+          # Check for observed holidays (if holiday falls on weekend)
+          # Jan 1 observed on Jan 2 if Jan 1 is Sunday
+          # July 4 observed on July 3 if July 4 is Saturday, July 5 if Sunday
+          # etc.
+
+          # Function to check floating holidays
+          # MLK Day - 3rd Monday of January
+          if [ "$MONTH" = "01" ]; then
+            # Find 3rd Monday: first Monday + 14 days
+            FIRST_DAY_DOW=$(date -d "$YEAR-01-01" +%u)
+            if [ "$FIRST_DAY_DOW" -le 1 ]; then
+              FIRST_MONDAY=$((1 + (1 - FIRST_DAY_DOW)))
+            else
+              FIRST_MONDAY=$((1 + (8 - FIRST_DAY_DOW)))
+            fi
+            THIRD_MONDAY=$((FIRST_MONDAY + 14))
+            if [ "$DAY" = "$THIRD_MONDAY" ] || [ "$DAY" = "0$THIRD_MONDAY" ]; then
+              echo "MLK Day - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Presidents Day - 3rd Monday of February
+          if [ "$MONTH" = "02" ]; then
+            FIRST_DAY_DOW=$(date -d "$YEAR-02-01" +%u)
+            if [ "$FIRST_DAY_DOW" -le 1 ]; then
+              FIRST_MONDAY=$((1 + (1 - FIRST_DAY_DOW)))
+            else
+              FIRST_MONDAY=$((1 + (8 - FIRST_DAY_DOW)))
+            fi
+            THIRD_MONDAY=$((FIRST_MONDAY + 14))
+            if [ "$DAY" -eq "$THIRD_MONDAY" ]; then
+              echo "Presidents Day - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Memorial Day - Last Monday of May
+          if [ "$MONTH" = "05" ]; then
+            LAST_DAY=$(date -d "$YEAR-05-31" +%d)
+            LAST_DAY_DOW=$(date -d "$YEAR-05-31" +%u)
+            if [ "$LAST_DAY_DOW" -ge 1 ]; then
+              LAST_MONDAY=$((31 - (LAST_DAY_DOW - 1)))
+            else
+              LAST_MONDAY=$((31 - 6))
+            fi
+            if [ "$DAY" -eq "$LAST_MONDAY" ]; then
+              echo "Memorial Day - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Labor Day - 1st Monday of September
+          if [ "$MONTH" = "09" ]; then
+            FIRST_DAY_DOW=$(date -d "$YEAR-09-01" +%u)
+            if [ "$FIRST_DAY_DOW" -le 1 ]; then
+              FIRST_MONDAY=$((1 + (1 - FIRST_DAY_DOW)))
+            else
+              FIRST_MONDAY=$((1 + (8 - FIRST_DAY_DOW)))
+            fi
+            if [ "$DAY" -eq "$FIRST_MONDAY" ]; then
+              echo "Labor Day - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Thanksgiving - 4th Thursday of November
+          if [ "$MONTH" = "11" ]; then
+            FIRST_DAY_DOW=$(date -d "$YEAR-11-01" +%u)
+            if [ "$FIRST_DAY_DOW" -le 4 ]; then
+              FIRST_THURSDAY=$((1 + (4 - FIRST_DAY_DOW)))
+            else
+              FIRST_THURSDAY=$((1 + (11 - FIRST_DAY_DOW)))
+            fi
+            FOURTH_THURSDAY=$((FIRST_THURSDAY + 21))
+            if [ "$DAY" -eq "$FOURTH_THURSDAY" ]; then
+              echo "Thanksgiving - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Good Friday - This is complex (Friday before Easter)
+          # For simplicity, we'll hardcode known Good Friday dates for next few years
+          # 2024: March 29, 2025: April 18, 2026: April 3, 2027: March 26
+          GOOD_FRIDAYS="2024-03-29 2025-04-18 2026-04-03 2027-03-26 2028-04-14"
+          for gf in $GOOD_FRIDAYS; do
+            if [ "$TODAY" = "$gf" ]; then
+              echo "Good Friday - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+
+          echo "Today is a trading day!"
+          echo "is_trading_day=true" >> $GITHUB_OUTPUT
+
+  evaluate:
+    needs: check-trading-day
+    if: ${{ needs.check-trading-day.outputs.is_trading_day == 'true' || github.event.inputs.force_run == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours max for full evaluation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install evaluation dependencies
+        run: |
+          cd evaluation
+          npm ci || npm install
+
+      - name: Run FMP Evaluation
+        if: ${{ github.event.inputs.upload_only != 'true' }}
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          cd evaluation
+          npx ts-node scripts/run-evaluation-fmp.ts
+
+      - name: Upload to Supabase (if evaluation was skipped)
+        if: ${{ github.event.inputs.upload_only == 'true' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          cd evaluation
+          npx ts-node scripts/upload-to-supabase.ts --all
+
+      - name: Checkout data repository
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: Copy results to data repository
+        run: |
+          DATE=$(date +%Y-%m-%d)
+
+          # Ensure directories exist
+          mkdir -p data-repo/evaluation-results data-repo/daily-summaries data-repo/comparison-reports data-repo/promoted-stocks data-repo/social-media-scans
+
+          # Copy evaluation results
+          cp evaluation/results/fmp-evaluation-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
+          cp evaluation/results/fmp-high-risk-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
+
+          # Copy summary
+          cp evaluation/results/fmp-summary-${DATE}.json data-repo/daily-summaries/ 2>/dev/null || true
+
+          # Copy comparison reports
+          cp evaluation/results/comparison-${DATE}.json data-repo/comparison-reports/ 2>/dev/null || true
+
+          # Copy promoted stocks
+          cp evaluation/results/promoted-stocks-${DATE}.json data-repo/promoted-stocks/ 2>/dev/null || true
+
+          # Copy social media scans
+          cp evaluation/results/social-media-scan-*.md data-repo/social-media-scans/ 2>/dev/null || true
+
+      - name: Commit results to data repository
+        run: |
+          cd data-repo
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add -A
+
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No new evaluation results to commit"
+          else
+            DATE=$(date +%Y-%m-%d)
+            git commit -m "Add evaluation results for ${DATE}"
+            git push
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-results-${{ github.run_number }}
+          path: |
+            data-repo/evaluation-results/fmp-evaluation-*.json
+            data-repo/daily-summaries/fmp-summary-*.json
+            data-repo/evaluation-results/fmp-high-risk-*.json
+          retention-days: 30
+
+  notify-on-failure:
+    needs: evaluate
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Create issue on failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Daily Evaluation Failed - ${date}`,
+              body: `The daily stock evaluation workflow failed.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\nPlease check the logs and re-run if needed.`,
+              labels: ['bug', 'automation']
+            });

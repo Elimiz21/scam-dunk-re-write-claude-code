@@ -15,8 +15,12 @@
  * - Progress tracking and time estimates
  */
 
-import * as fs from 'fs';
+// Load environment variables from .env.local in project root
+import * as dotenv from 'dotenv';
 import * as path from 'path';
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env.local') });
+
+import * as fs from 'fs';
 import { execSync } from 'child_process';
 
 // Import standalone scoring module

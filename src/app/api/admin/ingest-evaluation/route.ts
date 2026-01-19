@@ -486,18 +486,35 @@ export async function GET() {
         date: f.name.replace("promoted-stocks-", "").replace(".json", ""),
       }));
 
+    // Extract dates from comparison files (format: comparison-YYYY-MM-DD.json)
+    const comparisonFiles = (files || [])
+      .filter((f) => f.name.startsWith("comparison-") && f.name.endsWith(".json"))
+      .map((f) => ({
+        filename: f.name,
+        date: f.name.replace("comparison-", "").replace(".json", ""),
+      }));
+
     // Get unique dates from evaluation files (required for ingestion)
     const evaluationDates = evaluationFiles.map((f) => f.date);
     const summaryDates = new Set(summaryFiles.map((f) => f.date));
     const promotedDates = new Set(promotedFiles.map((f) => f.date));
+    const comparisonDates = new Set(comparisonFiles.map((f) => f.date));
+
+    // Get all unique dates across all file types
+    const allDates = new Set([
+      ...evaluationDates,
+      ...promotedFiles.map(f => f.date),
+      ...comparisonFiles.map(f => f.date),
+    ]);
 
     // Build available dates with file status
-    const availableDates = evaluationDates
+    const availableDates = Array.from(allDates)
       .map((date) => ({
         date,
-        hasEvaluation: true,
+        hasEvaluation: evaluationDates.includes(date),
         hasSummary: summaryDates.has(date),
         hasPromoted: promotedDates.has(date),
+        hasComparison: comparisonDates.has(date),
       }))
       .sort((a, b) => b.date.localeCompare(a.date));
 
@@ -520,6 +537,7 @@ export async function GET() {
         evaluationFiles: evaluationFiles.length,
         summaryFiles: summaryFiles.length,
         promotedFiles: promotedFiles.length,
+        comparisonFiles: comparisonFiles.length,
         allFileNames: files?.map(f => f.name) || [],
       },
     });
