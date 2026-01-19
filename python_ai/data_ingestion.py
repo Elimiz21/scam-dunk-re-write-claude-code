@@ -14,6 +14,29 @@ from typing import Dict, List, Optional, Tuple, Union
 import warnings
 import logging
 
+
+class DataAPIError(Exception):
+    """
+    Exception raised when external data APIs are unavailable.
+    This signals that the scanning system is temporarily offline.
+    """
+    def __init__(self, api_name: str, ticker: str, asset_type: str, original_error: str):
+        self.api_name = api_name
+        self.ticker = ticker
+        self.asset_type = asset_type
+        self.original_error = original_error
+        self.message = f"Data API '{api_name}' is unavailable for {asset_type} {ticker}: {original_error}"
+        super().__init__(self.message)
+
+    def to_dict(self):
+        return {
+            "api_name": self.api_name,
+            "ticker": self.ticker,
+            "asset_type": self.asset_type,
+            "original_error": self.original_error,
+            "message": self.message
+        }
+
 # Import yfinance for real market data
 try:
     import yfinance as yf
@@ -238,8 +261,14 @@ def load_stock_data(
 
     # Use yfinance for real market data
     if not YFINANCE_AVAILABLE:
-        logger.warning("yfinance not available, falling back to synthetic data")
-        return generate_synthetic_stock_data(ticker, days=days)
+        error_msg = "yfinance library not available"
+        logger.error(f"Stock data API FAILED for {ticker}: {error_msg}")
+        raise DataAPIError(
+            api_name="yfinance",
+            ticker=ticker,
+            asset_type="stock",
+            original_error=error_msg
+        )
 
     try:
         logger.info(f"Fetching real market data for {ticker}")
@@ -252,8 +281,14 @@ def load_stock_data(
         hist = stock.history(start=start_date, end=end_date)
 
         if hist.empty:
-            logger.warning(f"No data returned for {ticker}, using synthetic data")
-            return generate_synthetic_stock_data(ticker, days=days)
+            error_msg = f"No data returned for ticker {ticker}"
+            logger.error(f"Stock data API FAILED: {error_msg}")
+            raise DataAPIError(
+                api_name="yfinance",
+                ticker=ticker,
+                asset_type="stock",
+                original_error=error_msg
+            )
 
         # Format to match expected structure
         df = pd.DataFrame({
@@ -273,9 +308,17 @@ def load_stock_data(
         logger.info(f"Fetched {len(df)} days of real data for {ticker}")
         return df
 
+    except DataAPIError:
+        raise  # Re-raise DataAPIError as-is
     except Exception as e:
-        logger.warning(f"Error fetching real data for {ticker}: {e}, using synthetic")
-        return generate_synthetic_stock_data(ticker, days=days)
+        error_msg = str(e)
+        logger.error(f"Stock data API FAILED for {ticker}: {error_msg}")
+        raise DataAPIError(
+            api_name="yfinance",
+            ticker=ticker,
+            asset_type="stock",
+            original_error=error_msg
+        )
 
 
 def load_crypto_data(
@@ -535,9 +578,15 @@ def create_asset_context(
                 news_flag=news_flag
             )
         except Exception as e:
-            logger.warning(f"Live crypto data failed for {ticker_or_symbol}: {e}, falling back to synthetic")
-            # Fall back to synthetic data on error
-            use_synthetic = True
+            error_msg = str(e)
+            logger.error(f"Live crypto data FAILED for {ticker_or_symbol}: {error_msg}")
+            # Raise DataAPIError instead of falling back to synthetic data
+            raise DataAPIError(
+                api_name="CoinGecko",
+                ticker=ticker_or_symbol,
+                asset_type="crypto",
+                original_error=error_msg
+            )
 
     sec_check = check_sec_flagged_list(ticker_or_symbol)
 
