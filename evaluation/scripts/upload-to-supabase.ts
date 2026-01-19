@@ -14,8 +14,12 @@
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY for write access)
  */
 
-import * as fs from 'fs';
+// Load environment variables from .env.local in project root
+import * as dotenv from 'dotenv';
 import * as path from 'path';
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env.local') });
+
+import * as fs from 'fs';
 import { execSync } from 'child_process';
 import { createClient } from '@supabase/supabase-js';
 
