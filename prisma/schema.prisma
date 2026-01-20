@@ -478,3 +478,73 @@ model AuthErrorSummary {
 
   @@index([dateKey])
 }
+
+// ==========================================
+// SCAN MESSAGES MODELS
+// For managing humorous scan loading messages
+// ==========================================
+
+model ScanMessage {
+  id        String   @id @default(cuid())
+  headline  String   // Main message text
+  subtext   String   // Secondary/supporting text
+  order     Int      // Display order (0-based)
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Track which generation batch this came from
+  generationId String?
+  generation   ScanMessageGeneration? @relation(fields: [generationId], references: [id])
+
+  @@index([isActive, order])
+  @@index([generationId])
+}
+
+model ScanMessageHistory {
+  id        String   @id @default(cuid())
+  headline  String
+  subtext   String
+
+  // Why it was archived
+  archiveReason String?  // REPLACED, DISCARDED, MANUAL_REMOVE
+
+  // Original creation data
+  originalCreatedAt DateTime
+  archivedAt        DateTime @default(now())
+
+  // Track which generation it came from
+  generationId String?
+
+  @@index([archivedAt])
+}
+
+model ScanMessageGeneration {
+  id        String   @id @default(cuid())
+
+  // Generation context
+  prompt         String   @db.Text  // The prompt used
+  model          String             // e.g., gpt-4o-mini
+
+  // Results
+  generatedCount Int               // How many were generated
+  acceptedCount  Int   @default(0) // How many were kept
+  discardedCount Int   @default(0) // How many were discarded
+
+  // Feedback for improvement
+  discardedMessages String? @db.Text  // JSON array of discarded messages with reasons
+  feedbackNotes     String? @db.Text  // Additional notes for next generation
+
+  // Token usage
+  tokensUsed    Int?
+  estimatedCost Float?
+
+  createdAt     DateTime @default(now())
+  createdBy     String?  // Admin user ID who triggered generation
+
+  // Relation to messages created from this generation
+  messages      ScanMessage[]
+
+  @@index([createdAt])
+}
