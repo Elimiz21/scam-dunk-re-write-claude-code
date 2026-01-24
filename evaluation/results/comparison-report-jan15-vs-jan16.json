@@ -1,0 +1,4024 @@
+{
+  "reportDate": "2026-01-24T18:39:22.652224Z",
+  "scanDates": [
+    "2026-01-15",
+    "2026-01-16"
+  ],
+  "summary": {
+    "jan15": {
+      "totalEvaluated": 6552,
+      "highRisk": 825,
+      "mediumRisk": 1934,
+      "lowRisk": 3793
+    },
+    "jan16": {
+      "totalEvaluated": 6506,
+      "highRisk": 831,
+      "mediumRisk": 1938,
+      "lowRisk": 3737
+    },
+    "comparison": {
+      "persistentHighRisk": 735,
+      "resolvedFromJan15": 90,
+      "newOnJan16": 96
+    }
+  },
+  "riskSignalFrequency": {
+    "HIGH_VOLATILITY": {
+      "count": 769,
+      "pct": 92.5
+    },
+    "MICROCAP_PRICE": {
+      "count": 728,
+      "pct": 87.6
+    },
+    "MICRO_LIQUIDITY": {
+      "count": 485,
+      "pct": 58.4
+    },
+    "SPIKE_7D": {
+      "count": 307,
+      "pct": 36.9
+    },
+    "SPIKE_THEN_DROP": {
+      "count": 290,
+      "pct": 34.9
+    },
+    "OVERBOUGHT_RSI": {
+      "count": 166,
+      "pct": 20.0
+    },
+    "VOLUME_EXPLOSION": {
+      "count": 90,
+      "pct": 10.8
+    }
+  },
+  "mostSuspicious": {
+    "description": "Stocks with VOLUME_EXPLOSION + SPIKE_THEN_DROP signals, persistent across both dates",
+    "count": 37,
+    "stocks": [
+      {
+        "symbol": "BCARW",
+        "name": "D. Boral ARC Acquisition I Corp. Warrant",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 1.4,
+        "scoreJan15": 11,
+        "scoreJan16": 14,
+        "maxScore": 14,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "EVTV",
+        "name": "Envirotech Vehicles, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 3.55,
+        "scoreJan15": 14,
+        "scoreJan16": 14,
+        "maxScore": 14,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "XAIR",
+        "name": "Beyond Air, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.7,
+        "scoreJan15": 12,
+        "scoreJan16": 13,
+        "maxScore": 13,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "VLN",
+        "name": "Valens Semiconductor Ltd.",
+        "exchange": "NYSE",
+        "sector": "Technology",
+        "lastPrice": 1.99,
+        "scoreJan15": 12,
+        "scoreJan16": 11,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "MTEN",
+        "name": "Mingteng International Corporation Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.0314,
+        "scoreJan15": 12,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "JDZG",
+        "name": "JIADE Limited",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 1.22,
+        "scoreJan15": 9,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "THH",
+        "name": "TryHard Holdings Limited",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.9601,
+        "scoreJan15": 8,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "GP",
+        "name": "GreenPower Motor Company Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 1.08,
+        "scoreJan15": 12,
+        "scoreJan16": 11,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "SXTC",
+        "name": "China SXT Pharmaceuticals, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.095,
+        "scoreJan15": 12,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "SLRX",
+        "name": "Salarius Pharmaceuticals, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.9099,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "ACON",
+        "name": "Aclarion, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 3.79,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "JTAI",
+        "name": "Jet.AI Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.3905,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "XTLB",
+        "name": "XTL Biopharmaceuticals Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.9873,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "ROLR",
+        "name": "High Roller Technologies, Inc.",
+        "exchange": "AMEX",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 16.88,
+        "scoreJan15": 9,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "ACRV",
+        "name": "Acrivon Therapeutics, Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.98,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "BCTX",
+        "name": "BriaCell Therapeutics Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 4.29,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "ATON",
+        "name": "AlphaTON Capital Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.7503,
+        "scoreJan15": 8,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "ALFUW",
+        "name": "Centurion Acquisition Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.2579,
+        "scoreJan15": 7,
+        "scoreJan16": 10,
+        "maxScore": 10,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "CIGL",
+        "name": "Concorde International Group Ltd Class A Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 1.88,
+        "scoreJan15": 10,
+        "scoreJan16": 10,
+        "maxScore": 10,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "BDSX",
+        "name": "Biodesix, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 7.88,
+        "scoreJan15": 6,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "GELS",
+        "name": "Gelteq Limited Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.04,
+        "scoreJan15": 9,
+        "scoreJan16": 8,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "IVP",
+        "name": "Inspire Veterinary Partners, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.0405,
+        "scoreJan15": 5,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "EDBL",
+        "name": "Edible Garden AG Incorporated",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 0.6599,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "YIBO",
+        "name": "Planet Image International Limited Class A Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 1.15,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "FLYX",
+        "name": "flyExclusive, Inc.",
+        "exchange": "AMEX",
+        "sector": "Industrials",
+        "lastPrice": 3.42,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "BEEM",
+        "name": "Beam Global",
+        "exchange": "NASDAQ",
+        "sector": "Energy",
+        "lastPrice": 1.72,
+        "scoreJan15": 5,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "IOTR",
+        "name": "iOThree Limited Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 2.64,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "DGLY",
+        "name": "Digital Ally, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 2.14,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "OPAD",
+        "name": "Offerpad Solutions Inc.",
+        "exchange": "NYSE",
+        "sector": "Real Estate",
+        "lastPrice": 1.36,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "LRHC",
+        "name": "La Rosa Holding Corp. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Real Estate",
+        "lastPrice": 0.56,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "SHPH",
+        "name": "Shuttle Pharmaceuticals Holdings, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.63,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "POLA",
+        "name": "Polar Power, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 1.68,
+        "scoreJan15": 5,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      },
+      {
+        "symbol": "MYSZ",
+        "name": "My Size, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.8654,
+        "scoreJan15": 6,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "IVF",
+        "name": "INVO Fertility, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.8124,
+        "scoreJan15": 6,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "WATT",
+        "name": "Energous Corporation",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 5.5,
+        "scoreJan15": 6,
+        "scoreJan16": 7,
+        "maxScore": 7,
+        "signalsJan16": [
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "ATGL",
+        "name": "Alpha Technology Group Limited",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 21.55,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": true
+      },
+      {
+        "symbol": "SOGP",
+        "name": "Sound Group Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 13.49,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ],
+        "pumpAndDumpBothDates": false
+      }
+    ]
+  },
+  "persistentPumpAndDump": {
+    "description": "Stocks showing pump-and-dump pattern on BOTH Jan 15 and Jan 16",
+    "count": 210,
+    "stocks": [
+      {
+        "symbol": "EVTV",
+        "name": "Envirotech Vehicles, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 3.55,
+        "scoreJan15": 14,
+        "scoreJan16": 14,
+        "maxScore": 14,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "XAIR",
+        "name": "Beyond Air, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.7,
+        "scoreJan15": 12,
+        "scoreJan16": 13,
+        "maxScore": 13,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ICUCW",
+        "name": "SeaStar Medical Holding Corporation",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0236,
+        "scoreJan15": 13,
+        "scoreJan16": 8,
+        "maxScore": 13,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "VLN",
+        "name": "Valens Semiconductor Ltd.",
+        "exchange": "NYSE",
+        "sector": "Technology",
+        "lastPrice": 1.99,
+        "scoreJan15": 12,
+        "scoreJan16": 11,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BNZIW",
+        "name": "Banzai International, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.0139,
+        "scoreJan15": 12,
+        "scoreJan16": 11,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MTEN",
+        "name": "Mingteng International Corporation Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.0314,
+        "scoreJan15": 12,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MNTSW",
+        "name": "Momentus Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.0174,
+        "scoreJan15": 12,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "PMTRW",
+        "name": "Perimeter Acquisition Corp. I Warrant",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.82,
+        "scoreJan15": 12,
+        "scoreJan16": 8,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "OCG",
+        "name": "Oriental Culture Holding Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 1.8,
+        "scoreJan15": 12,
+        "scoreJan16": 10,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "EDBLW",
+        "name": "Edible Garden AG Incorporated",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 0.16,
+        "scoreJan15": 11,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ABVEW",
+        "name": "Above Food Ingredients Inc. Warrants",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 0.5988,
+        "scoreJan15": 12,
+        "scoreJan16": 8,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "THH",
+        "name": "TryHard Holdings Limited",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.9601,
+        "scoreJan15": 8,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "GP",
+        "name": "GreenPower Motor Company Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 1.08,
+        "scoreJan15": 12,
+        "scoreJan16": 11,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ECDA",
+        "name": "ECD Automotive Design, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.016,
+        "scoreJan15": 9,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SXTC",
+        "name": "China SXT Pharmaceuticals, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.095,
+        "scoreJan15": 12,
+        "scoreJan16": 12,
+        "maxScore": 12,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SLRX",
+        "name": "Salarius Pharmaceuticals, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.9099,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BFRIW",
+        "name": "Biofrontera Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0513,
+        "scoreJan15": 8,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ARBEW",
+        "name": "Arbe Robotics Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.1,
+        "scoreJan15": 8,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ACON",
+        "name": "Aclarion, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 3.79,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ALVOW",
+        "name": "Alvotech",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.51,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "RAINW",
+        "name": "Rain Enhancement Technologies Holdco, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.2224,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "INVZW",
+        "name": "Innoviz Technologies Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.0198,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "EVLVW",
+        "name": "Evolv Technologies Holdings, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.1825,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SAIHW",
+        "name": "SAIHEAT Limited",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.0311,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "EUDAW",
+        "name": "EUDA Health Holdings Limited",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0968,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "NXPLW",
+        "name": "NextPlat Corp",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.0826,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "FATBP",
+        "name": "FAT Brands Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 1,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BCTXW",
+        "name": "BriaCell Therapeutics Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0269,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ADSEW",
+        "name": "ADS-TEC Energy PLC",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.9,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SLXNW",
+        "name": "Silexion Therapeutics Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.037,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "JTAI",
+        "name": "Jet.AI Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.3905,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "RMCOW",
+        "name": "Royalty Management Holding Corporation",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.1025,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ZNTL",
+        "name": "Zentalis Pharmaceuticals, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 2.96,
+        "scoreJan15": 11,
+        "scoreJan16": 7,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "FBYDW",
+        "name": "Falcon's Beyond Global, Inc. Warrants",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 1.22,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BNAIW",
+        "name": "Brand Engagement Network, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.0533,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ANGHW",
+        "name": "Anghami Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 0.0178,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "XTLB",
+        "name": "XTL Biopharmaceuticals Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.9873,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "QETAR",
+        "name": "Quetta Acquisition Corporation",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 1.7,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BFRGW",
+        "name": "Bullfrog AI Holdings, Inc. Warrants",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.17,
+        "scoreJan15": 8,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "LUCY",
+        "name": "Innovative Eyewear, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.41,
+        "scoreJan15": 11,
+        "scoreJan16": 6,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "PTIXW",
+        "name": "Protagenic Therapeutics, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.016,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BRLS",
+        "name": "Borealis Foods Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 1.04,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ETHMW",
+        "name": "Dynamix Corporation",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 1.42,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CNEY",
+        "name": "CN ENERGY GROUP INC.",
+        "exchange": "NASDAQ",
+        "sector": "Basic Materials",
+        "lastPrice": 0.5506,
+        "scoreJan15": 8,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ACRV",
+        "name": "Acrivon Therapeutics, Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.98,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MRNO",
+        "name": "Murano Global Investments PLC Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Real Estate",
+        "lastPrice": 1.6,
+        "scoreJan15": 10,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BCTX",
+        "name": "BriaCell Therapeutics Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 4.29,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "RSVRW",
+        "name": "Reservoir Media, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 0.2,
+        "scoreJan15": 11,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ASBPW",
+        "name": "Aspire Biopharma Holdings, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0175,
+        "scoreJan15": 8,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "AEVAW",
+        "name": "Aeva Technologies, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.1549,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ATON",
+        "name": "AlphaTON Capital Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.7503,
+        "scoreJan15": 8,
+        "scoreJan16": 11,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ABPWW",
+        "name": "Abpro Holdings Inc",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0136,
+        "scoreJan15": 11,
+        "scoreJan16": 8,
+        "maxScore": 11,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "AKAN",
+        "name": "Akanda Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.27,
+        "scoreJan15": 10,
+        "scoreJan16": 10,
+        "maxScore": 10,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ELAB",
+        "name": "PMGC Holdings Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 3.18,
+        "scoreJan15": 10,
+        "scoreJan16": 9,
+        "maxScore": 10,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ASBP",
+        "name": "Aspire Biopharma Holdings, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 2.21,
+        "scoreJan15": 10,
+        "scoreJan16": 10,
+        "maxScore": 10,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CIGL",
+        "name": "Concorde International Group Ltd Class A Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 1.88,
+        "scoreJan15": 10,
+        "scoreJan16": 10,
+        "maxScore": 10,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "NVVEW",
+        "name": "Nuvve Holding Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.016299,
+        "scoreJan15": 10,
+        "scoreJan16": 8,
+        "maxScore": 10,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "NVVE",
+        "name": "Nuvve Holding Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 3.26,
+        "scoreJan15": 10,
+        "scoreJan16": 6,
+        "maxScore": 10,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SDOT",
+        "name": "Sadot Group Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 3.44,
+        "scoreJan15": 9,
+        "scoreJan16": 10,
+        "maxScore": 10,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "XTKG",
+        "name": "X3 Holdings Co Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.1376,
+        "scoreJan15": 9,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DRCT",
+        "name": "Direct Digital Holdings, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 1.72,
+        "scoreJan15": 9,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "JCSE",
+        "name": "JE Cleantech Holdings Limited",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 2,
+        "scoreJan15": 9,
+        "scoreJan16": 6,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "OPTX",
+        "name": "Syntec Optics Holdings, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 3.8,
+        "scoreJan15": 6,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "VRAX",
+        "name": "Virax Biolabs Group Limited",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.306,
+        "scoreJan15": 9,
+        "scoreJan16": 6,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "AGRZ",
+        "name": "Agroz Inc. Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Basic Materials",
+        "lastPrice": 0.54,
+        "scoreJan15": 9,
+        "scoreJan16": 6,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MGRX",
+        "name": "Mangoceuticals, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.625,
+        "scoreJan15": 6,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DVLT",
+        "name": "Datavault AI Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.7423,
+        "scoreJan15": 9,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "NCL",
+        "name": "Northann Corp.",
+        "exchange": "AMEX",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.192,
+        "scoreJan15": 9,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SIDU",
+        "name": "Sidus Space, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 3.37,
+        "scoreJan15": 6,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SKYQ",
+        "name": "Sky Quarry Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Energy",
+        "lastPrice": 0.3801,
+        "scoreJan15": 9,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "FBLG",
+        "name": "FibroBiologics, Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.3349,
+        "scoreJan15": 9,
+        "scoreJan16": 6,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CYCN",
+        "name": "Cyclerion Therapeutics, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.36,
+        "scoreJan15": 9,
+        "scoreJan16": 6,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MASK",
+        "name": "3 E Network Technology Group Ltd Class A Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.29,
+        "scoreJan15": 6,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "PAPL",
+        "name": "Pineapple Financial Inc.",
+        "exchange": "AMEX",
+        "sector": "Financial Services",
+        "lastPrice": 1.06,
+        "scoreJan15": 6,
+        "scoreJan16": 9,
+        "maxScore": 9,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "PEPG",
+        "name": "PepGen Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 5.2,
+        "scoreJan15": 9,
+        "scoreJan16": 7,
+        "maxScore": 9,
+        "signalsJan16": [
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SHFSW",
+        "name": "SHF Holdings, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.0354,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "VTYX",
+        "name": "Ventyx Biosciences, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 13.89,
+        "scoreJan15": 8,
+        "scoreJan16": 5,
+        "maxScore": 8,
+        "signalsJan16": [
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "APUS",
+        "name": "Apimeds Pharmaceuticals US, Inc",
+        "exchange": "NYSE",
+        "sector": "Healthcare",
+        "lastPrice": 1.71,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "TOIIW",
+        "name": "The Oncology Institute, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.13,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "EDBL",
+        "name": "Edible Garden AG Incorporated",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 0.6599,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "RNWWW",
+        "name": "ReNew Energy Global plc",
+        "exchange": "NASDAQ",
+        "sector": "Utilities",
+        "lastPrice": 0.0071,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DSYWW",
+        "name": "Big Tree Cloud Holdings Limited Warrants",
+        "exchange": "NASDAQ",
+        "sector": "Unknown",
+        "lastPrice": 0.0271,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "LUCYW",
+        "name": "Innovative Eyewear, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0799,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ZOOZW",
+        "name": "ZOOZ Strategy Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.044,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "FLYX",
+        "name": "flyExclusive, Inc.",
+        "exchange": "AMEX",
+        "sector": "Industrials",
+        "lastPrice": 3.42,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "PFAI",
+        "name": "Pinnacle Food Group Limited Class A Common Shares",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 2.2,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DKI",
+        "name": "DarkIris Inc. Class A Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 0.3494,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ZCMD",
+        "name": "Zhongchao Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.4975,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "AIIOW",
+        "name": "Robo.ai Inc. Warrant 2022-11.11.27 on Robo.ai",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.0616,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BZFDW",
+        "name": "BuzzFeed, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 0.0205,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DRMAW",
+        "name": "Dermata Therapeutics, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.02,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "GDEVW",
+        "name": "GDEV Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.017401,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BCTXZ",
+        "name": "BriaCell Therapeutics Corp. Warrant",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.205,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "NEOVW",
+        "name": "NeoVolta Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 1.31,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ACONW",
+        "name": "Aclarion, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0437,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "HSPTR",
+        "name": "Horizon Space Acquisition II Corp. Right",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.16,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "YHNAR",
+        "name": "YHN Acquisition I Limited Right",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.1201,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ALCYW",
+        "name": "Alchemy Investments Acquisition Corp 1",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.3204,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SVACW",
+        "name": "Spring Valley Acquisition Corp. III Warrants",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.59,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DLXY",
+        "name": "Delixy Holdings Limited Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Energy",
+        "lastPrice": 0.86,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "AEI",
+        "name": "Alset Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Real Estate",
+        "lastPrice": 3.12,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DFLIW",
+        "name": "Dragonfly Energy Holdings Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.080101,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "LIMNW",
+        "name": "Liminatus Pharma, Inc. Warrants",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.033,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "PIIIW",
+        "name": "P3 Health Partners Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0089,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "IOTR",
+        "name": "iOThree Limited Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 2.64,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DGLY",
+        "name": "Digital Ally, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 2.14,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CRE",
+        "name": "Cre8 Enterprise Limited Class A Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.303,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "VFSWW",
+        "name": "VinFast Auto Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.15,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "HPAIW",
+        "name": "Helport AI Limited",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.1625,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ZTEK",
+        "name": "Zentek Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.841,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "OPAD",
+        "name": "Offerpad Solutions Inc.",
+        "exchange": "NYSE",
+        "sector": "Real Estate",
+        "lastPrice": 1.36,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BTBDW",
+        "name": "BT Brands, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.12,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SBFMW",
+        "name": "Sunshine Biopharma, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.1801,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "TOPP",
+        "name": "Toppoint Holdings Inc.",
+        "exchange": "AMEX",
+        "sector": "Industrials",
+        "lastPrice": 0.75,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MNYWW",
+        "name": "MoneyHero Limited Warrants",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 0.048,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "OFAL",
+        "name": "OFA Group",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.432,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "NBY",
+        "name": "NovaBay Pharmaceuticals, Inc.",
+        "exchange": "AMEX",
+        "sector": "Healthcare",
+        "lastPrice": 14.77,
+        "scoreJan15": 8,
+        "scoreJan16": 7,
+        "maxScore": 8,
+        "signalsJan16": [
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "KPLTW",
+        "name": "Katapult Holdings, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.0033,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SRZNW",
+        "name": "Surrozen, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0208,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "KIDZW",
+        "name": "Classover Holdings, Inc. Warrants",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 0.0181,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "LRHC",
+        "name": "La Rosa Holding Corp. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Real Estate",
+        "lastPrice": 0.56,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SHPH",
+        "name": "Shuttle Pharmaceuticals Holdings, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.63,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BCG",
+        "name": "Binah Capital Group, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 2.4,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SABSW",
+        "name": "SAB Biotherapeutics, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0295,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SWAGW",
+        "name": "Stran & Company, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 0.0649,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "UK",
+        "name": "Ucommune International Ltd",
+        "exchange": "NASDAQ",
+        "sector": "Real Estate",
+        "lastPrice": 0.7333,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MYSZ",
+        "name": "My Size, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.8654,
+        "scoreJan15": 6,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "IVF",
+        "name": "INVO Fertility, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.8124,
+        "scoreJan15": 6,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "PBMWW",
+        "name": "Psyence Biomedical Ltd. Warrant",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.0181,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "WLDSW",
+        "name": "Wearable Devices Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 1.5,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "FLDDW",
+        "name": "Fold Holdings, Inc. Warrant 2021-14.02.30 on Fold Holding -A-",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.1525,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ECDAW",
+        "name": "ECD Automotive Design, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.01,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SVREW",
+        "name": "SaverOne 2014 Ltd",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.0144,
+        "scoreJan15": 8,
+        "scoreJan16": 8,
+        "maxScore": 8,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "WATT",
+        "name": "Energous Corporation",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 5.5,
+        "scoreJan15": 6,
+        "scoreJan16": 7,
+        "maxScore": 7,
+        "signalsJan16": [
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "REE",
+        "name": "REE Automotive Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.7389,
+        "scoreJan15": 7,
+        "scoreJan16": 7,
+        "maxScore": 7,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP"
+        ]
+      },
+      {
+        "symbol": "CPHI",
+        "name": "China Pharma Holdings, Inc.",
+        "exchange": "AMEX",
+        "sector": "Healthcare",
+        "lastPrice": 1.25,
+        "scoreJan15": 7,
+        "scoreJan16": 7,
+        "maxScore": 7,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP"
+        ]
+      },
+      {
+        "symbol": "BRLSW",
+        "name": "Borealis Foods Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 0.0525,
+        "scoreJan15": 7,
+        "scoreJan16": 7,
+        "maxScore": 7,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP"
+        ]
+      },
+      {
+        "symbol": "CNTX",
+        "name": "Context Therapeutics Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.44,
+        "scoreJan15": 7,
+        "scoreJan16": 6,
+        "maxScore": 7,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "AFJK",
+        "name": "Aimei Health Technology Co., Ltd",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 55.23,
+        "scoreJan15": 7,
+        "scoreJan16": 7,
+        "maxScore": 7,
+        "signalsJan16": [
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MXC",
+        "name": "Mexco Energy Corporation",
+        "exchange": "AMEX",
+        "sector": "Energy",
+        "lastPrice": 10.1,
+        "scoreJan15": 7,
+        "scoreJan16": 5,
+        "maxScore": 7,
+        "signalsJan16": [
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP"
+        ]
+      },
+      {
+        "symbol": "ASTI",
+        "name": "Ascent Solar Technologies, Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Energy",
+        "lastPrice": 5.07,
+        "scoreJan15": 6,
+        "scoreJan16": 7,
+        "maxScore": 7,
+        "signalsJan16": [
+          "SPIKE_7D",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "IRWD",
+        "name": "Ironwood Pharmaceuticals, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 4.5,
+        "scoreJan15": 7,
+        "scoreJan16": 7,
+        "maxScore": 7,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "TROO",
+        "name": "TROOPS, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 4.03,
+        "scoreJan15": 6,
+        "scoreJan16": 7,
+        "maxScore": 7,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "OVERBOUGHT_RSI",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BNRG",
+        "name": "Brenmiller Energy Ltd",
+        "exchange": "NASDAQ",
+        "sector": "Utilities",
+        "lastPrice": 0.5202,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ASPCU",
+        "name": "A SPAC III Acquisition Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 15.08,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CAPT",
+        "name": "Captivision Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.393,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "NTRB",
+        "name": "Nutriband Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 4.36,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "YMT",
+        "name": "Yimutian Inc. American Depositary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 1.71,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "AIRJ",
+        "name": "AirJoule Technologies Corporation",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 3.37,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "AEHL",
+        "name": "Antelope Enterprise Holdings Limited",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 1.33,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "VNRX",
+        "name": "VolitionRx Limited",
+        "exchange": "AMEX",
+        "sector": "Healthcare",
+        "lastPrice": 0.2932,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "HYFM",
+        "name": "Hydrofarm Holdings Group, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 1.64,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ATGL",
+        "name": "Alpha Technology Group Limited",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 21.55,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "VOLUME_EXPLOSION",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CDLX",
+        "name": "Cardlytics, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 1.2,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SRFM",
+        "name": "Surf Air Mobility Inc.",
+        "exchange": "NYSE",
+        "sector": "Industrials",
+        "lastPrice": 2.75,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "WOK",
+        "name": "WORK Medical Technology Group Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 2.4,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "LHSW",
+        "name": "Lianhe Sowell International Group Ltd Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.7443,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DTCK",
+        "name": "Davis Commodities Limited Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 0.3391,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CBUS",
+        "name": "Cibus, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.9,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "GRDX",
+        "name": "GridAI Technologies Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 3.92,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ILAG",
+        "name": "Intelligent Living Application Group Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 3.69,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "OPTT",
+        "name": "Ocean Power Technologies, Inc.",
+        "exchange": "AMEX",
+        "sector": "Industrials",
+        "lastPrice": 0.4192,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "TSE",
+        "name": "Trinseo PLC",
+        "exchange": "NYSE",
+        "sector": "Basic Materials",
+        "lastPrice": 0.497,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CETX",
+        "name": "Cemtrex, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 2.28,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "FMFC",
+        "name": "Kandal M Venture Limited",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.3328,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ANGH",
+        "name": "Anghami Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 3.58,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MEHA",
+        "name": "Functional Brands, Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.2,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "FAT",
+        "name": "FAT Brands Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 0.3902,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CCHH",
+        "name": "CCH Holdings Ltd Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 0.446,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "PFSA",
+        "name": "Profusa, Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.1025,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "UPC",
+        "name": "Universe Pharmaceuticals Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 4.51,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "NVAWW",
+        "name": "Nova Minerals Limited",
+        "exchange": "NASDAQ",
+        "sector": "Basic Materials",
+        "lastPrice": 42,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "INUV",
+        "name": "Inuvo, Inc.",
+        "exchange": "AMEX",
+        "sector": "Communication Services",
+        "lastPrice": 2.89,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ABVE",
+        "name": "Above Food Ingredients Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 2.02,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CABR",
+        "name": "Caring Brands, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.896,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "LVRO",
+        "name": "Lavoro Limited",
+        "exchange": "NASDAQ",
+        "sector": "Basic Materials",
+        "lastPrice": 1.1,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "FTEL",
+        "name": "Fitell Corporation",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 3.22,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "TMDE",
+        "name": "TMD Energy Limited",
+        "exchange": "AMEX",
+        "sector": "Energy",
+        "lastPrice": 0.7921,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CHOW",
+        "name": "ChowChow Cloud International Ho",
+        "exchange": "AMEX",
+        "sector": "Technology",
+        "lastPrice": 0.7117,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MRKR",
+        "name": "Marker Therapeutics, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 1.81,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "WTO",
+        "name": "UTime Limited",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.752,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ORBS",
+        "name": "Eightco Holdings Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 1.61,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "VVOS",
+        "name": "Vivos Therapeutics, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 2.07,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "BNZI",
+        "name": "Banzai International, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 1.42,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "TDIC",
+        "name": "Dreamland Limited Class A Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 0.1903,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "TDTH",
+        "name": "Trident Digital Tech Holdings Ltd American Depository Shares",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.4102,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "PAVS",
+        "name": "Paranovus Entertainment Technology Ltd.",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Defensive",
+        "lastPrice": 1.93,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CCTG",
+        "name": "CCSC Technology International Holdings Limited Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 1.15,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MENS",
+        "name": "Jyong Biotech Ltd. Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 3.33,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "TOVX",
+        "name": "Theriva Biologics, Inc.",
+        "exchange": "AMEX",
+        "sector": "Healthcare",
+        "lastPrice": 0.1952,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CUE",
+        "name": "Cue Biopharma, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.302,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "DAIC",
+        "name": "CID HoldCo, Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Financial Services",
+        "lastPrice": 0.3965,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "CANF",
+        "name": "Can-Fite BioPharma Ltd.",
+        "exchange": "AMEX",
+        "sector": "Healthcare",
+        "lastPrice": 4,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SOPA",
+        "name": "Society Pass Incorporated",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 2.37,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "STAI",
+        "name": "ScanTech AI Systems Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 2.58,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "GVH",
+        "name": "Globavend Holdings Limited",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 1.29,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "LZMH",
+        "name": "LZ Technology Holdings Limited Class B Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 1.34,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "UAVS",
+        "name": "AgEagle Aerial Systems, Inc.",
+        "exchange": "AMEX",
+        "sector": "Technology",
+        "lastPrice": 1.44,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MIMI",
+        "name": "Mint Incorporation Limited",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 0.3013,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "RPGL",
+        "name": "Republic Power Group Limited Class A Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 0.4001,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "IBIO",
+        "name": "iBio, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 2.2,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SLS",
+        "name": "SELLAS Life Sciences Group, Inc.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 3.98,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "GPUS",
+        "name": "Hyperscale Data, Inc.",
+        "exchange": "NYSE",
+        "sector": "Industrials",
+        "lastPrice": 0.297,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "SHMDW",
+        "name": "SCHMID Group N.V. Warrants",
+        "exchange": "NASDAQ",
+        "sector": "Industrials",
+        "lastPrice": 2.4,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "ULY",
+        "name": "Urgent.ly Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Technology",
+        "lastPrice": 2.42,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "HYFT",
+        "name": "MindWalk Holdings Corp.",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 2.07,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "VSME",
+        "name": "VS Media Holdings Limited Class A Ordinary Shares",
+        "exchange": "NASDAQ",
+        "sector": "Communication Services",
+        "lastPrice": 1.66,
+        "scoreJan15": 6,
+        "scoreJan16": 6,
+        "maxScore": 6,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP",
+          "HIGH_VOLATILITY"
+        ]
+      },
+      {
+        "symbol": "MAMO",
+        "name": "Massimo Group Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Consumer Cyclical",
+        "lastPrice": 3.84,
+        "scoreJan15": 5,
+        "scoreJan16": 5,
+        "maxScore": 5,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP"
+        ]
+      },
+      {
+        "symbol": "AMIX",
+        "name": "Autonomix Medical, Inc. Common Stock",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 0.4734,
+        "scoreJan15": 5,
+        "scoreJan16": 5,
+        "maxScore": 5,
+        "signalsJan16": [
+          "MICROCAP_PRICE",
+          "SPIKE_THEN_DROP"
+        ]
+      },
+      {
+        "symbol": "ADXN",
+        "name": "Addex Therapeutics Ltd",
+        "exchange": "NASDAQ",
+        "sector": "Healthcare",
+        "lastPrice": 8.33,
+        "scoreJan15": 5,
+        "scoreJan16": 5,
+        "maxScore": 5,
+        "signalsJan16": [
+          "MICRO_LIQUIDITY",
+          "SPIKE_THEN_DROP"
+        ]
+      }
+    ]
+  }
+}
