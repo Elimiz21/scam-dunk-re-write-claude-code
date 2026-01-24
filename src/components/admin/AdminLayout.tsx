@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Search,
   Database,
+  MessageSquare,
 } from "lucide-react";
 
 interface AdminSession {
@@ -30,6 +31,7 @@ interface AdminSession {
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
   { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
   { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
   { name: "Stock Lookup", href: "/admin/stock-lookup", icon: Search },

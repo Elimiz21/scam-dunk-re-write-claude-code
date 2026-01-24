@@ -1,7 +1,15 @@
 // Rotating taglines that combine UVP with light, humorous tone
 // These change on every page refresh
+// Note: These can now be managed via Admin > Scan Messages
+// The database will be checked first, then fallback to these defaults
 
-export const taglines = [
+export interface Tagline {
+  headline: string;
+  subtext: string;
+}
+
+// Default taglines (used as fallback if DB is empty or unavailable)
+export const taglines: Tagline[] = [
   {
     headline: "Let's find the scam before it finds you.",
     subtext: "Enter a ticker to check for red flags",
@@ -71,4 +79,40 @@ export function getRandomTagline() {
 
 export function getTaglineByIndex(index: number) {
   return taglines[index % taglines.length];
+}
+
+// Server-side function to get taglines from database
+// Falls back to static taglines if DB is empty or unavailable
+export async function getTaglinesFromDB(): Promise<Tagline[]> {
+  try {
+    // Dynamic import to avoid issues in client-side contexts
+    const { prisma } = await import("@/lib/db");
+
+    const dbMessages = await prisma.scanMessage.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+      select: {
+        headline: true,
+        subtext: true,
+      },
+    });
+
+    if (dbMessages.length > 0) {
+      return dbMessages;
+    }
+
+    // Fallback to static taglines
+    return taglines;
+  } catch (error) {
+    // If DB is unavailable, use static taglines
+    console.error("Failed to fetch taglines from DB, using defaults:", error);
+    return taglines;
+  }
+}
+
+// Get a random tagline, preferring DB data
+export async function getRandomTaglineFromDB(): Promise<Tagline> {
+  const allTaglines = await getTaglinesFromDB();
+  const index = Math.floor(Math.random() * allTaglines.length);
+  return allTaglines[index];
 }
