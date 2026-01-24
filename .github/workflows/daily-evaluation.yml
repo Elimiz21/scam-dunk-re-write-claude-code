@@ -206,14 +206,30 @@ jobs:
           cd evaluation
           npx ts-node scripts/run-evaluation-fmp.ts
 
-      - name: Upload to Supabase (if evaluation was skipped)
-        if: ${{ github.event.inputs.upload_only == 'true' }}
+      - name: Upload to Supabase
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          EVALUATION_DATE: ${{ github.event.inputs.date_override }}
         run: |
+          DATE="${EVALUATION_DATE}"
+          if [ -z "$DATE" ]; then
+            DATE=$(date +%Y-%m-%d)
+          fi
           cd evaluation
-          npx ts-node scripts/upload-to-supabase.ts --all
+          # Upload files for the specific date
+          for file in results/fmp-evaluation-${DATE}.json results/fmp-summary-${DATE}.json results/fmp-high-risk-${DATE}.json results/promoted-stocks-${DATE}.json results/comparison-${DATE}.json; do
+            if [ -f "$file" ]; then
+              FILENAME=$(basename "$file")
+              echo "Uploading $FILENAME to Supabase..."
+              RESPONSE=$(curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
+                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+                -H "Content-Type: application/json" \
+                -H "x-upsert: true" \
+                --data-binary @"$file")
+              echo "  Response: $RESPONSE"
+            fi
+          done
 
       - name: Checkout data repository
         uses: actions/checkout@v4
