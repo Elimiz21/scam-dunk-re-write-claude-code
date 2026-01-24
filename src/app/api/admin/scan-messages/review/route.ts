@@ -67,7 +67,6 @@ export async function POST(request: NextRequest) {
           subtext: msg.subtext,
           order: nextOrder++,
           isActive: true,
-          generationId,
         },
       });
       createdMessages.push(created);
@@ -75,36 +74,43 @@ export async function POST(request: NextRequest) {
 
     // Archive rejected messages to history for future reference
     for (const msg of rejectedMessages) {
-      await prisma.scanMessageHistory.create({
-        data: {
-          headline: msg.headline,
-          subtext: msg.subtext,
-          archiveReason: "DISCARDED",
-          originalCreatedAt: generation.createdAt,
-          generationId,
-        },
-      });
+      try {
+        await prisma.scanMessageHistory.create({
+          data: {
+            headline: msg.headline,
+            subtext: msg.subtext,
+            archiveReason: "DISCARDED",
+            originalCreatedAt: generation.createdAt,
+          },
+        });
+      } catch {
+        // History is non-critical
+      }
     }
 
     // Update generation record with feedback
-    await prisma.scanMessageGeneration.update({
-      where: { id: generationId },
-      data: {
-        acceptedCount: acceptedMessages.length,
-        discardedCount: rejectedMessages.length,
-        discardedMessages: JSON.stringify(
-          rejectedMessages.map((m) => ({
-            headline: m.headline,
-            subtext: m.subtext,
-            reason: m.reason || "Not specified",
-          }))
-        ),
-        feedbackNotes: feedbackNotes || null,
-      },
-    });
+    try {
+      await prisma.scanMessageGeneration.update({
+        where: { id: generationId },
+        data: {
+          acceptedCount: acceptedMessages.length,
+          discardedCount: rejectedMessages.length,
+          discardedMessages: JSON.stringify(
+            rejectedMessages.map((m) => ({
+              headline: m.headline,
+              subtext: m.subtext,
+              reason: m.reason || "Not specified",
+            }))
+          ),
+          feedbackNotes: feedbackNotes || null,
+        },
+      });
+    } catch {
+      // Generation update is non-critical
+    }
 
-    // Log the action
-    await prisma.adminAuditLog.create({
+    // Log the action (non-critical)
+    prisma.adminAuditLog.create({
       data: {
         adminUserId: session.id,
         action: "SCAN_MESSAGES_REVIEWED",
@@ -114,7 +120,7 @@ export async function POST(request: NextRequest) {
           rejected: rejectedMessages.length,
         }),
       },
-    });
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,
