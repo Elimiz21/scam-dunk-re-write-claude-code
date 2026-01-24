@@ -1,0 +1,378 @@
+{
+  "filterDate": "2026-01-24",
+  "totalChecked": 37,
+  "suspiciousCount": 37,
+  "legitimateCount": 0,
+  "results": [
+    {
+      "symbol": "BCARW",
+      "name": "D. Boral ARC Acquisition I Corp. Warrant",
+      "price": 1.4,
+      "score": 14,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "EVTV",
+      "name": "Envirotech Vehicles, Inc.",
+      "price": 3.55,
+      "score": 14,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "XAIR",
+      "name": "Beyond Air, Inc.",
+      "price": 1.7,
+      "score": 13,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "VLN",
+      "name": "Valens Semiconductor Ltd.",
+      "price": 1.99,
+      "score": 12,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "MTEN",
+      "name": "Mingteng International Corporation Inc.",
+      "price": 0.0314,
+      "score": 12,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "JDZG",
+      "name": "JIADE Limited",
+      "price": 1.22,
+      "score": 12,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "THH",
+      "name": "TryHard Holdings Limited",
+      "price": 0.9601,
+      "score": 12,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "GP",
+      "name": "GreenPower Motor Company Inc.",
+      "price": 1.08,
+      "score": 12,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "SXTC",
+      "name": "China SXT Pharmaceuticals, Inc.",
+      "price": 0.095,
+      "score": 12,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "SLRX",
+      "name": "Salarius Pharmaceuticals, Inc.",
+      "price": 0.9099,
+      "score": 11,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "ACON",
+      "name": "Aclarion, Inc.",
+      "price": 3.79,
+      "score": 11,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "JTAI",
+      "name": "Jet.AI Inc.",
+      "price": 0.3905,
+      "score": 11,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "XTLB",
+      "name": "XTL Biopharmaceuticals Ltd.",
+      "price": 0.9873,
+      "score": 11,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "ROLR",
+      "name": "High Roller Technologies, Inc.",
+      "price": 16.88,
+      "score": 11,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "ACRV",
+      "name": "Acrivon Therapeutics, Inc. Common Stock",
+      "price": 1.98,
+      "score": 11,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "BCTX",
+      "name": "BriaCell Therapeutics Corp.",
+      "price": 4.29,
+      "score": 11,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "ATON",
+      "name": "AlphaTON Capital Corp.",
+      "price": 0.7503,
+      "score": 11,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "ALFUW",
+      "name": "Centurion Acquisition Corp.",
+      "price": 0.2579,
+      "score": 10,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "CIGL",
+      "name": "Concorde International Group Ltd Class A Ordinary Shares",
+      "price": 1.88,
+      "score": 10,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "BDSX",
+      "name": "Biodesix, Inc.",
+      "price": 7.88,
+      "score": 9,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "GELS",
+      "name": "Gelteq Limited Ordinary Shares",
+      "price": 1.04,
+      "score": 9,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "IVP",
+      "name": "Inspire Veterinary Partners, Inc.",
+      "price": 0.0405,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "EDBL",
+      "name": "Edible Garden AG Incorporated",
+      "price": 0.6599,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "YIBO",
+      "name": "Planet Image International Limited Class A Ordinary Shares",
+      "price": 1.15,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "FLYX",
+      "name": "flyExclusive, Inc.",
+      "price": 3.42,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "BEEM",
+      "name": "Beam Global",
+      "price": 1.72,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "IOTR",
+      "name": "iOThree Limited Ordinary Shares",
+      "price": 2.64,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "DGLY",
+      "name": "Digital Ally, Inc.",
+      "price": 2.14,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "OPAD",
+      "name": "Offerpad Solutions Inc.",
+      "price": 1.36,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "LRHC",
+      "name": "La Rosa Holding Corp. Common Stock",
+      "price": 0.56,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "SHPH",
+      "name": "Shuttle Pharmaceuticals Holdings, Inc.",
+      "price": 1.63,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "POLA",
+      "name": "Polar Power, Inc.",
+      "price": 1.68,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "MYSZ",
+      "name": "My Size, Inc.",
+      "price": 0.8654,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "IVF",
+      "name": "INVO Fertility, Inc.",
+      "price": 0.8124,
+      "score": 8,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "WATT",
+      "name": "Energous Corporation",
+      "price": 5.5,
+      "score": 7,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "ATGL",
+      "name": "Alpha Technology Group Limited",
+      "price": 21.55,
+      "score": 6,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    },
+    {
+      "symbol": "SOGP",
+      "name": "Sound Group Inc.",
+      "price": 13.49,
+      "score": 6,
+      "status": "SUSPICIOUS",
+      "catalystReason": "",
+      "newsCount": 0,
+      "newsTitles": []
+    }
+  ]
+}
