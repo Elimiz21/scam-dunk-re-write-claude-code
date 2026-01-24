@@ -1,0 +1,4394 @@
+{
+  "analysisDate": "2026-01-24",
+  "method": "OpenAI GPT-4o-mini social media pump pattern analysis",
+  "totalAnalyzed": 497,
+  "highPump": 154,
+  "mediumPump": 169,
+  "lowPump": 174,
+  "results": {
+    "BCARW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "THH": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in a trendy sector, potential for promotion."
+    },
+    "SXTC": {
+      "level": "HIGH_PUMP",
+      "reason": "Chinese shell company with low price, likely to attract pump groups."
+    },
+    "MTEN": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap with buzzword name, fits pump-and-dump profile."
+    },
+    "ECDA": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector, some pump characteristics."
+    },
+    "JDZG": {
+      "level": "HIGH_PUMP",
+      "reason": "Chinese shell company, common target for pump schemes."
+    },
+    "BETRW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, less likely to be pumped."
+    },
+    "EDBLW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer defens sector, potential for promotion."
+    },
+    "MNTSW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced stock in a trendy sector, likely to attract pumps."
+    },
+    "FBYDW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant structure, could be targeted by pump groups."
+    },
+    "EVLVW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, some pump characteristics."
+    },
+    "MRNO": {
+      "level": "LOW_PUMP",
+      "reason": "Real estate company, less likely to be a pump target."
+    },
+    "BRLS": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer defens, potential for promotion."
+    },
+    "RSVRW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in communication sector, some pump characteristics."
+    },
+    "BGLWW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant structure, could attract pump-and-dump activity."
+    },
+    "ARBEW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced technology stock, fits pump-and-dump profile."
+    },
+    "ATON": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, unlikely to be pumped."
+    },
+    "JTAI": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some potential for promotion."
+    },
+    "CNEY": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in basic materials, potential for pump activity."
+    },
+    "BFRGW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced healthcare stock, likely to attract pump groups."
+    },
+    "NXPLW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced technology stock, fits pump-and-dump profile."
+    },
+    "ASBPW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap healthcare stock, likely to be promoted."
+    },
+    "JSPRW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced healthcare stock, common target for pumps."
+    },
+    "BFRIW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced healthcare stock, likely to attract pump groups."
+    },
+    "BNZIW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap technology stock, fits typical pump target profile."
+    },
+    "HUBCZ": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap tech stock with potential buzzword appeal in cybersecurity."
+    },
+    "BCTXW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare sector, warrant structure may attract attention."
+    },
+    "SAIHW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap tech stock likely to be promoted in pump groups."
+    },
+    "PTIXW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare, could attract speculative interest."
+    },
+    "SSEAR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, less likely to be a pump target."
+    },
+    "WENNW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant structure in financial services, may attract some pump interest."
+    },
+    "ROLR": {
+      "level": "LOW_PUMP",
+      "reason": "Established consumer cyclic stock, unlikely to be a pump target."
+    },
+    "CIGL": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not typical for pump-and-dump schemes."
+    },
+    "OCG": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap with buzzword appeal in consumer cyclic sector."
+    },
+    "ALFUW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant structure in financial services, potential for pump interest."
+    },
+    "DVLT": {
+      "level": "HIGH_PUMP",
+      "reason": "Tech stock with AI focus, likely to attract pump group attention."
+    },
+    "IZM": {
+      "level": "LOW_PUMP",
+      "reason": "Established tech company, less likely to be a pump target."
+    },
+    "MGRX": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare, may attract speculative interest."
+    },
+    "ELAB": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in healthcare, unlikely to be a pump target."
+    },
+    "XTKG": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap tech stock, likely to be promoted in pump groups."
+    },
+    "SKYQ": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in energy sector, could attract some pump interest."
+    },
+    "MASK": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap tech stock with potential buzzword appeal."
+    },
+    "RIME": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in tech, may attract speculative interest."
+    },
+    "NCL": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic, potential for pump interest."
+    },
+    "VFSWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap with buzzword appeal in the automotive sector."
+    },
+    "SVREW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap tech stock likely to be promoted in pump groups."
+    },
+    "ADSEW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, less likely to be a pump target."
+    },
+    "BRRWW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant structure in financial services, may attract some pump interest."
+    },
+    "AIRJW": {
+      "level": "LOW_PUMP",
+      "reason": "Established industrials company, unlikely to be a pump target."
+    },
+    "YIBO": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in tech, potential for speculative interest."
+    },
+    "BCG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "FUFUW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap with buzzword name in financial services, likely promoted."
+    },
+    "MVSTW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in trendy industrial sector, potential pump target."
+    },
+    "MGN": {
+      "level": "LOW_PUMP",
+      "reason": "Established business in industrials, less likely to be a pump target."
+    },
+    "ABVEW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer defens, some pump characteristics."
+    },
+    "AIIOW": {
+      "level": "HIGH_PUMP",
+      "reason": "Warrant structure and buzzword name in AI, likely promoted."
+    },
+    "DLXY": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in energy sector, some potential for pump activity."
+    },
+    "HOVRW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap in industrials, likely promoted in pump groups."
+    },
+    "RMSG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in technology, not a typical pump target."
+    },
+    "OFAL": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, some characteristics of a pump target."
+    },
+    "FLDDW": {
+      "level": "HIGH_PUMP",
+      "reason": "Warrant structure and buzzword name in technology, likely promoted."
+    },
+    "ZOOZW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap in industrials, likely to attract pump group interest."
+    },
+    "HPAIW": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name in technology, likely promoted in pump groups."
+    },
+    "CRE": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, some potential for pump activity."
+    },
+    "DKI": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in communication services, some pump characteristics."
+    },
+    "GV": {
+      "level": "LOW_PUMP",
+      "reason": "Established business in consumer defens, less likely to be a pump target."
+    },
+    "IVP": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap in consumer cyclic, likely promoted in pump groups."
+    },
+    "EUDAW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare, some characteristics of a pump target."
+    },
+    "INVZW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer cyclic, not a typical pump target."
+    },
+    "GCLWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Warrant structure and buzzword name in technology, likely promoted."
+    },
+    "WXM": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, some potential for pump activity."
+    },
+    "EDBL": {
+      "level": "LOW_PUMP",
+      "reason": "Established business in consumer defens, less likely to be a pump target."
+    },
+    "MYSZ": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some pump target characteristics."
+    },
+    "RNWWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap in utilities, likely promoted in pump groups."
+    },
+    "TALKW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare, some characteristics of a pump target."
+    },
+    "AMODW": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword technology sector with low price and potential pump target characteristics."
+    },
+    "RAINW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in a niche industrial sector, some potential for promotion."
+    },
+    "DSYWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Unknown company with low price, likely a target for pump-and-dump schemes."
+    },
+    "RMCOW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Financial services sector, low price, and potential for speculative trading."
+    },
+    "MNYWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Warrant structure in a communication sector, typical of pump targets."
+    },
+    "BZFDW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "BuzzFeed is a known entity but low price may attract speculative interest."
+    },
+    "SWAGW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price and communication sector make it a likely pump target."
+    },
+    "ICUCW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Healthcare sector with low price, some potential for promotion."
+    },
+    "KIDZW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced warrant in consumer defense, typical of pump schemes."
+    },
+    "GDEVW": {
+      "level": "HIGH_PUMP",
+      "reason": "Technology sector with low price, likely to attract pump-and-dump interest."
+    },
+    "NCPLW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Financial services with low price, some characteristics of pump targets."
+    },
+    "BNAIW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price in technology sector, likely to be promoted in pump groups."
+    },
+    "ANGHW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Communication sector with low price, some potential for pump activity."
+    },
+    "SHFSW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Financial services with low price, potential for speculative trading."
+    },
+    "SLXNW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Healthcare sector with low price, some characteristics of pump targets."
+    },
+    "PIIIW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price in healthcare, typical of pump-and-dump schemes."
+    },
+    "ECDAW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced consumer cyclic stock, likely to attract pump interest."
+    },
+    "DFSCW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Financial services with low price, some potential for promotion."
+    },
+    "ABPWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price in healthcare sector, likely to be a pump target."
+    },
+    "PBMWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced healthcare warrant, typical of pump-and-dump schemes."
+    },
+    "DRMAW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price in healthcare, likely to attract pump-and-dump activity."
+    },
+    "NVVEW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Consumer cyclic stock with low price, some potential for promotion."
+    },
+    "KPLTW": {
+      "level": "LOW_PUMP",
+      "reason": "Higher price and established company, unlikely to be a pump target."
+    },
+    "ALCYW": {
+      "level": "LOW_PUMP",
+      "reason": "Higher price in financial services, unlikely to attract pump activity."
+    },
+    "ATIIW": {
+      "level": "LOW_PUMP",
+      "reason": "Higher price SPAC, less likely to be involved in pump-and-dump schemes."
+    },
+    "ETHMW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in financial services sector, potential for promotion."
+    },
+    "EVOXW": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC structure with low price, likely to attract pump groups."
+    },
+    "HSPTR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC with space sector hype, typical pump target characteristics."
+    },
+    "LIMNW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant structure in healthcare, some pump potential."
+    },
+    "NOEMW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in financial services, could attract attention."
+    },
+    "PMTRW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant structure in financial services, moderate pump risk."
+    },
+    "QETAR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC in financial services, likely to be promoted."
+    },
+    "SOCAW": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC structure with low price, fits pump target profile."
+    },
+    "SVACW": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC in financial services, likely to attract pump groups."
+    },
+    "YHNAR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC with low price, typical target for pump schemes."
+    },
+    "TOPP": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, some potential for promotion."
+    },
+    "ASTI": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Energy sector stock, could attract speculative interest."
+    },
+    "BRLSW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap in consumer defens, likely to be promoted."
+    },
+    "AFJK": {
+      "level": "LOW_PUMP",
+      "reason": "High price and established business, unlikely to be pumped."
+    },
+    "CPHI": {
+      "level": "HIGH_PUMP",
+      "reason": "Chinese shell company, typical target for pump schemes."
+    },
+    "NVAWW": {
+      "level": "LOW_PUMP",
+      "reason": "Established business in basic materials, low pump risk."
+    },
+    "ATGL": {
+      "level": "LOW_PUMP",
+      "reason": "Established tech company, unlikely to be a pump target."
+    },
+    "ORBS": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some potential for promotion."
+    },
+    "MENS": {
+      "level": "LOW_PUMP",
+      "reason": "Established healthcare business, unlikely to attract pumps."
+    },
+    "LZMH": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, moderate pump potential."
+    },
+    "AIRJ": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, could attract speculative interest."
+    },
+    "YMT": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some pump target characteristics."
+    },
+    "CNTX": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare, potential for promotion."
+    },
+    "HYFT": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare, moderate pump risk."
+    },
+    "ABVE": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer defens, some potential for promotion."
+    },
+    "SHMDW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrants in a niche industrial sector may attract speculative interest."
+    },
+    "SOGP": {
+      "level": "LOW_PUMP",
+      "reason": "Established technology company with a stable business model."
+    },
+    "LVRO": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in the basic materials sector, but lacks strong pump characteristics."
+    },
+    "IBIO": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Healthcare penny stock with potential for speculative trading."
+    },
+    "SOPA": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword-heavy tech stock likely to attract pump group interest."
+    },
+    "CUE": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced healthcare stock with potential for pump-and-dump schemes."
+    },
+    "LHSW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, but not a typical pump target."
+    },
+    "ANGH": {
+      "level": "LOW_PUMP",
+      "reason": "Communication sector stock with a legitimate business presence."
+    },
+    "TDTH": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced tech stock that fits the profile of pump targets."
+    },
+    "CETX": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in tech with some speculative interest but less hype."
+    },
+    "AGRZ": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Basic materials stock with potential for speculative trading."
+    },
+    "FBLG": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced healthcare stock likely to attract pump-and-dump activity."
+    },
+    "TJGC": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in communications, but not a typical pump target."
+    },
+    "DAIC": {
+      "level": "LOW_PUMP",
+      "reason": "Financial services stock with a legitimate business model."
+    },
+    "CABR": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Healthcare stock with some speculative interest but less hype."
+    },
+    "CAPT": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, but lacks strong pump characteristics."
+    },
+    "CCHH": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced consumer defensive stock likely to attract pump interest."
+    },
+    "PFSA": {
+      "level": "HIGH_PUMP",
+      "reason": "Very low-priced healthcare stock with high pump-and-dump potential."
+    },
+    "BNZI": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology with some speculative interest."
+    },
+    "ILAG": {
+      "level": "LOW_PUMP",
+      "reason": "Established industrial company with a legitimate business model."
+    },
+    "MIMI": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced industrial stock likely to attract pump-and-dump schemes."
+    },
+    "DTCK": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced consumer defensive stock with potential for pump activity."
+    },
+    "AEHL": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, but not a typical pump target."
+    },
+    "RPGL": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced tech stock likely to attract pump-and-dump interest."
+    },
+    "TDIC": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced communication stock with strong pump potential."
+    },
+    "JCSE": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in a trendy clean energy sector."
+    },
+    "FMFC": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap with a buzzword name, likely to attract pump groups."
+    },
+    "MEHA": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price and in healthcare, a common pump target sector."
+    },
+    "FTEL": {
+      "level": "LOW_PUMP",
+      "reason": "Higher price point and appears to have a legitimate business model."
+    },
+    "WTO": {
+      "level": "HIGH_PUMP",
+      "reason": "Chinese shell company, typical target for pump schemes."
+    },
+    "GVH": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, some potential for promotion."
+    },
+    "CCTG": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock with a tech focus, could attract some attention."
+    },
+    "VRAX": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price and in healthcare, often targeted by pump groups."
+    },
+    "PAVS": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Consumer defensives can attract attention, but less likely."
+    },
+    "VSME": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name in communication, likely to be promoted."
+    },
+    "VCIG": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, some potential for promotion."
+    },
+    "ASPCU": {
+      "level": "LOW_PUMP",
+      "reason": "SPAC with a higher price, less likely to be a pump target."
+    },
+    "GPUS": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price and in a trendy sector, likely to attract pump groups."
+    },
+    "VNRX": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Healthcare penny stock, some characteristics of pump targets."
+    },
+    "OPTT": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in energy, could attract some promotion."
+    },
+    "CHOW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price and in tech, typical characteristics of pump targets."
+    },
+    "TOVX": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price in healthcare, likely to be promoted."
+    },
+    "TMDE": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in energy, some potential for promotion."
+    },
+    "MAMO": {
+      "level": "LOW_PUMP",
+      "reason": "Higher price point and appears to have a legitimate business model."
+    },
+    "AMIX": {
+      "level": "HIGH_PUMP",
+      "reason": "Low price and in healthcare, often targeted by pump groups."
+    },
+    "PELIR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "RZLVW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a trendy AI sector, some pump characteristics."
+    },
+    "ROMA": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "AISPW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a trendy AI sector, some pump characteristics."
+    },
+    "OMH": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in real estate, not a typical pump target."
+    },
+    "ZDAI": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "CJMB": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "HAO": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in communication services, not a typical pump target."
+    },
+    "BSLKW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap financial services, potential pump target."
+    },
+    "ZJYL": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap healthcare, known pump target characteristics."
+    },
+    "BAERW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in industrials, some pump characteristics."
+    },
+    "OPTXW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in technology sector, some pump characteristics."
+    },
+    "MLECW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap healthcare, potential pump target."
+    },
+    "LOKVW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in financial services, some pump characteristics."
+    },
+    "ALTS": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector, some pump characteristics."
+    },
+    "SATLW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector, some pump characteristics."
+    },
+    "CGTL": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer cyclic, not a typical pump target."
+    },
+    "AACG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer defensives, not a typical pump target."
+    },
+    "JFBR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer cyclic, not a typical pump target."
+    },
+    "PASW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap in industrials, potential pump target."
+    },
+    "ASTLW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap in basic materials, potential pump target."
+    },
+    "CRGOW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "ONMDW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap technology, potential pump target."
+    },
+    "SOWG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer defensives, not a typical pump target."
+    },
+    "SEGG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in communication services, not a typical pump target."
+    },
+    "MKDWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap consumer cyclic, potential pump target."
+    },
+    "KITTW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap in industrials, potential pump target."
+    },
+    "MTEKW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap technology, potential pump target."
+    },
+    "JFBRW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap consumer cyclic, potential pump target."
+    },
+    "VSSYW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap technology, potential pump target."
+    },
+    "LEXXW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap healthcare, potential pump target."
+    },
+    "AUUDW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap technology, potential pump target."
+    },
+    "LTRYW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap consumer cyclic, potential pump target."
+    },
+    "SGN": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap technology, potential pump target."
+    },
+    "AHMA": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer cyclic, not a typical pump target."
+    },
+    "ATLN": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in healthcare, not a typical pump target."
+    },
+    "SAFX": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap in energy, potential pump target."
+    },
+    "NUAIW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in energy sector, some pump characteristics."
+    },
+    "HCMAW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap financial services, potential pump target."
+    },
+    "AFRIW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer defensives, not a typical pump target."
+    },
+    "PMAX": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials sector."
+    },
+    "SBCWW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in a trendy healthcare sector."
+    },
+    "TBLAW": {
+      "level": "LOW_PUMP",
+      "reason": "Established communication company, not a typical pump target."
+    },
+    "PPCB": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare, some pump characteristics."
+    },
+    "PTHL": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in healthcare, not a typical pump target."
+    },
+    "RAY": {
+      "level": "LOW_PUMP",
+      "reason": "Established consumer defensive company, not a typical pump target."
+    },
+    "NAMMW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a basic materials company."
+    },
+    "KWMWW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a communication sector company."
+    },
+    "MRNOW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer cyclic sector, not a typical pump target."
+    },
+    "CCGWW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a technology sector company."
+    },
+    "MSAIW": {
+      "level": "HIGH_PUMP",
+      "reason": "Tech company with potential AI hype characteristics."
+    },
+    "CXAIW": {
+      "level": "HIGH_PUMP",
+      "reason": "Tech company with potential AI hype characteristics."
+    },
+    "HOLOW": {
+      "level": "HIGH_PUMP",
+      "reason": "Tech company with buzzword \"hologram,\" potential pump target."
+    },
+    "CREVW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer cyclic sector, not a typical pump target."
+    },
+    "CHECW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "DTSQR": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "FERAR": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "KFIIR": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "KOYNW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "MBVIW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "NPACW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "ONCHW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "SPEGR": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "DDC": {
+      "level": "LOW_PUMP",
+      "reason": "Established consumer defensive company, not a typical pump target."
+    },
+    "ANPA": {
+      "level": "LOW_PUMP",
+      "reason": "High price, established industrials company, not a typical pump target."
+    },
+    "RILYL": {
+      "level": "LOW_PUMP",
+      "reason": "Established financial services company, not a typical pump target."
+    },
+    "PSTV": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare, some pump characteristics."
+    },
+    "RMCO": {
+      "level": "LOW_PUMP",
+      "reason": "Established financial services company, not a typical pump target."
+    },
+    "UONEK": {
+      "level": "LOW_PUMP",
+      "reason": "Established communication company, not a typical pump target."
+    },
+    "KWM": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "SPHL": {
+      "level": "LOW_PUMP",
+      "reason": "Established consumer cyclic company, not a typical pump target."
+    },
+    "MTVA": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in healthcare, not a typical pump target."
+    },
+    "VWAVW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "YDKG": {
+      "level": "LOW_PUMP",
+      "reason": "Established communication company, not a typical pump target."
+    },
+    "ONFOW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in communication sector, not a typical pump target."
+    },
+    "CCIIW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "GTENW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "IBACR": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "IPEXR": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "LPAAW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant in a financial services sector company."
+    },
+    "ALMS": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in healthcare, not a typical pump target."
+    },
+    "DGNX": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector with some buzz."
+    },
+    "CRML": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in basic materials, not a typical pump target."
+    },
+    "KDKRW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a penny stock in AI sector."
+    },
+    "BGIN": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name in blockchain technology, potential pump target."
+    },
+    "NUAI": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in energy sector with some hype characteristics."
+    },
+    "SPAI": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "LFS": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer defense, not a typical pump target."
+    },
+    "HKIT": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector with some buzz."
+    },
+    "DTCX": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector with some buzz."
+    },
+    "SELX": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced tech stock with potential for pump activity."
+    },
+    "YYAI": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector with some hype."
+    },
+    "EDHL": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced communication stock with potential for pump activity."
+    },
+    "PCLA": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced communication stock with potential for pump activity."
+    },
+    "TNMG": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in communications sector with some buzz."
+    },
+    "SPRC": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced healthcare stock with potential for pump activity."
+    },
+    "AREB": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced consumer cyclic stock with potential for pump activity."
+    },
+    "BLUWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced financial stock with potential for pump activity."
+    },
+    "BSLK": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced financial stock with potential for pump activity."
+    },
+    "CISS": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced industrial stock with potential for pump activity."
+    },
+    "BCARU": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "ORIQW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced financial warrant with potential for pump activity."
+    },
+    "SLAI": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector with some buzz."
+    },
+    "TCGL": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector with some buzz."
+    },
+    "AGIG": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in energy sector with some hype characteristics."
+    },
+    "BRIA": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "JOB": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced industrial stock with potential for pump activity."
+    },
+    "BTDR": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name in technology, potential pump target."
+    },
+    "HBNB": {
+      "level": "LOW_PUMP",
+      "reason": "Real estate company, not a typical pump target."
+    },
+    "AHG": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in financial services with some buzz."
+    },
+    "KYIVW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a penny stock in communications."
+    },
+    "CRESW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a penny stock in industrials."
+    },
+    "AUROW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced technology stock with potential for pump activity."
+    },
+    "RDNW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector with some hype."
+    },
+    "TSSI": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in technology, not a typical pump target."
+    },
+    "ENGNW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a penny stock in healthcare."
+    },
+    "ISPR": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer defense with some buzz."
+    },
+    "SCAG": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced industrial stock with potential for pump activity."
+    },
+    "SLDPW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced industrial stock with potential for pump activity."
+    },
+    "CLSKW": {
+      "level": "HIGH_PUMP",
+      "reason": "Low-priced financial stock with potential for pump activity."
+    },
+    "AURE": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "CHSN": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector, some buzz potential."
+    },
+    "HLP": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in basic materials, not a typical pump target."
+    },
+    "ZEO": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in energy, not a typical pump target."
+    },
+    "EJH": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector, some buzz potential."
+    },
+    "BZAIW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector, potential for buzz."
+    },
+    "DFDVW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some pump characteristics."
+    },
+    "YXT": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some buzz potential."
+    },
+    "HMR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "AENTW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in communication services, not a typical pump target."
+    },
+    "QSIAW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare, some buzz potential."
+    },
+    "LOTWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Warrant in consumer cyclic sector, potential for pump activity."
+    },
+    "OMCC": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "RYOJ": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "CHAI": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name in financial services, potential for pump activity."
+    },
+    "CLIR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "ZBAO": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "FATN": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some buzz potential."
+    },
+    "WYHG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer defensives, not a typical pump target."
+    },
+    "PGYWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Warrant in technology sector, potential for pump activity."
+    },
+    "KMRK": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector, some buzz potential."
+    },
+    "FTFT": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name in technology, potential for pump activity."
+    },
+    "ZGM": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in industrials, some buzz potential."
+    },
+    "WCT": {
+      "level": "HIGH_PUMP",
+      "reason": "Penny stock in technology, potential for pump activity."
+    },
+    "CLPS": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some buzz potential."
+    },
+    "EVGOW": {
+      "level": "HIGH_PUMP",
+      "reason": "Penny stock in consumer cyclic sector, potential for pump activity."
+    },
+    "HUMAW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in healthcare, not a typical pump target."
+    },
+    "RVSN": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "TRSG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "NCT": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "MDCXW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in healthcare, not a typical pump target."
+    },
+    "LIMN": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in healthcare, not a typical pump target."
+    },
+    "VBIX": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some buzz potential."
+    },
+    "WETH": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in real estate, not a typical pump target."
+    },
+    "ECXWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Warrant in consumer cyclic sector, potential for pump activity."
+    },
+    "FCUV": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some buzz potential."
+    },
+    "FEBO": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology, some buzz potential."
+    },
+    "PT": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "FMSTW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in basic materials, not a typical pump target."
+    },
+    "SFHG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "ANY": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "LBGJ": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "LEDS": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "HCAI": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name related to AI, potential pump target."
+    },
+    "WFF": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "BEATW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "NXL": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "TURB": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "BLIN": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "NRSNW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "SRTAW": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name, potential pump target."
+    },
+    "BMGL": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "EEIQ": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "BKYI": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "TIRX": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "IINNW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "CUPR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "TVGNW": {
+      "level": "HIGH_PUMP",
+      "reason": "Known pump target, low price."
+    },
+    "BTCT": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "BTMWW": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name related to crypto, potential pump target."
+    },
+    "YMAT": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "ATER": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "KLTOW": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name, potential pump target."
+    },
+    "SMTK": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "GLE": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "FFAIW": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name related to EV, potential pump target."
+    },
+    "LGCL": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name, potential pump target."
+    },
+    "CAPS": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "YJ": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "DTSS": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "IPDN": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "XXII": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "SNTG": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name, potential pump target."
+    },
+    "XELB": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "SKK": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "NISN": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "GRRRW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "MOBXW": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name, potential pump target."
+    },
+    "GDHG": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name, potential pump target."
+    },
+    "SCAGW": {
+      "level": "HIGH_PUMP",
+      "reason": "Warrant, potential pump target."
+    },
+    "ATXG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "CHNR": {
+      "level": "HIGH_PUMP",
+      "reason": "Chinese shell company with potential pump characteristics."
+    },
+    "CDTG": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "RVSNW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "LIDRW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "VEEAW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "ONFO": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "OUSTZ": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "LXEH": {
+      "level": "HIGH_PUMP",
+      "reason": "Chinese shell company with potential pump characteristics."
+    },
+    "FCHL": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "GMM": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name related to metaverse, potential pump target."
+    },
+    "GFAIW": {
+      "level": "HIGH_PUMP",
+      "reason": "AI-related company, potential pump characteristics."
+    },
+    "PTIX": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "BCGWW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in financial services sector, some pump characteristics."
+    },
+    "ARQQW": {
+      "level": "HIGH_PUMP",
+      "reason": "Quantum technology buzzword, potential pump target."
+    },
+    "GNLN": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "DAICW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a financial services company, some pump characteristics."
+    },
+    "AERTW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "ZEOWW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "TRNR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "FUSEW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a technology company, some pump characteristics."
+    },
+    "DTSTW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "MAPSW": {
+      "level": "HIGH_PUMP",
+      "reason": "Buzzword name related to technology, potential pump target."
+    },
+    "BIAFW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "ABLVW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "WGSWW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "OSRHW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "COCHW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "MYPSW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "SDSTW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "STSSW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "NIXXW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "ORGNW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "NVNIW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a technology company, some pump characteristics."
+    },
+    "COOTW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "MYSEW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "CAPTW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with an industrial company, some pump characteristics."
+    },
+    "KTTAW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "XBPEW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "HUBCW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not a typical pump target."
+    },
+    "BENFW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "GGROW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector, potential for some buzz."
+    },
+    "RELIW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "CYCUW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a technology company, some pump characteristics."
+    },
+    "AREBW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector, could attract attention."
+    },
+    "FGIWW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector, potential for some buzz."
+    },
+    "SWVLW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector, could be subject to pump activity."
+    },
+    "ISPOW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in consumer cyclic sector, potential for some buzz."
+    },
+    "XOSWW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "APLMW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "CDTTW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in healthcare, not a typical pump target."
+    },
+    "AACBR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, known pump target characteristics."
+    },
+    "AFJKR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, associated with a trendy sector, potential pump target."
+    },
+    "AFJKU": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, high price indicates potential for pump activity."
+    },
+    "ALISR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC rights, typical characteristics of pump targets."
+    },
+    "ANSCW": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    "APACR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, typical characteristics of pump targets."
+    },
+    "APADR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC rights, known for pump characteristics."
+    },
+    "APXTW": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    "ASPCR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, typical characteristics of pump targets."
+    },
+    "BDCIW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a financial services company, some pump risk."
+    },
+    "BLZRW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a financial services company, some pump risk."
+    },
+    "BNCWW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a financial services company, some pump risk."
+    },
+    "CAPNR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC rights, typical characteristics of pump targets."
+    },
+    "CHARR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    "CHPGR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, typical characteristics of pump targets."
+    },
+    "COLAR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC rights, known for pump characteristics."
+    },
+    "CRACR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    "CRAQR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, typical characteristics of pump targets."
+    },
+    "CUBWW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a financial services company, some pump risk."
+    },
+    "DMAAR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, typical characteristics of pump targets."
+    },
+    "DMIIR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    "DRDBW": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, known for pump characteristics."
+    },
+    "DYORW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant associated with a financial services company, some pump risk."
+    },
+    "EURKR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    "FGMCR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC rights, typical characteristics of pump targets."
+    },
+    "FSHPR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, known for pump characteristics."
+    },
+    "FVNNR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    "GIGGW": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, typical characteristics of pump targets."
+    },
+    "GIWWR": {
+      "level": "HIGH_PUMP",
+      "reason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    "GSRFR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "HVIIR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "HVMCW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "IPCXR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "IPODW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "KVACW": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap with buzzword name, known pump target."
+    },
+    "LAFAR": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap with buzzword name, known pump target."
+    },
+    "LATAW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in trendy sector, warrant."
+    },
+    "LCCCR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "LKSPR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "LWACW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "MACIW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "MBAVW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "MCGAW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "MKLYR": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "MLACR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "MMTXW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "NMPAR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "NOEMR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "OACCW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "OBAWW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "PACHW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "PCAPW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "PGACR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "PLMKW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "RDAGW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in trendy sector, warrant."
+    },
+    "RTACW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in trendy sector, warrant."
+    },
+    "SIMAW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "SPKLW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "SVCCW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "SZZLR": {
+      "level": "HIGH_PUMP",
+      "reason": "Nano-cap with buzzword name, known pump target."
+    },
+    "TACOU": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "TACOW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "TAVIR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "TDACW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "TDWDR": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "TLNCW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "VCICW": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "XRPNW": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Warrant, penny stock in trendy sector."
+    },
+    "MSC": {
+      "level": "LOW_PUMP",
+      "reason": "Real business, not typical pump target."
+    },
+    "LANV": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in consumer cyclic sector, not a typical pump target."
+    },
+    "MRT": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector with some buzz potential."
+    },
+    "MPU": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in industrials, not a typical pump target."
+    },
+    "KNRX": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in technology sector, potential for some buzz."
+    },
+    "MGLD": {
+      "level": "LOW_PUMP",
+      "reason": "Real business in financial services, not a typical pump target."
+    },
+    "KAPA": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare sector, some potential for buzz."
+    },
+    "MTNB": {
+      "level": "MEDIUM_PUMP",
+      "reason": "Penny stock in healthcare sector, some pump characteristics."
+    }
+  },
+  "highPumpStocks": [
+    {
+      "symbol": "SXTC",
+      "name": "China SXT Pharmaceuticals, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.095,
+      "totalScore": 12,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Chinese shell company with low price, likely to attract pump groups."
+    },
+    {
+      "symbol": "MTEN",
+      "name": "Mingteng International Corporation Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.0314,
+      "totalScore": 12,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap with buzzword name, fits pump-and-dump profile."
+    },
+    {
+      "symbol": "JDZG",
+      "name": "JIADE Limited",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 1.22,
+      "totalScore": 12,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Chinese shell company, common target for pump schemes."
+    },
+    {
+      "symbol": "MNTSW",
+      "name": "Momentus Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.0174,
+      "totalScore": 12,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced stock in a trendy sector, likely to attract pumps."
+    },
+    {
+      "symbol": "ARBEW",
+      "name": "Arbe Robotics Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.1,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced technology stock, fits pump-and-dump profile."
+    },
+    {
+      "symbol": "BFRGW",
+      "name": "Bullfrog AI Holdings, Inc. Warrants",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.17,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced healthcare stock, likely to attract pump groups."
+    },
+    {
+      "symbol": "NXPLW",
+      "name": "NextPlat Corp",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0826,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced technology stock, fits pump-and-dump profile."
+    },
+    {
+      "symbol": "ASBPW",
+      "name": "Aspire Biopharma Holdings, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.0175,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap healthcare stock, likely to be promoted."
+    },
+    {
+      "symbol": "JSPRW",
+      "name": "Jasper Therapeutics, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.0501,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced healthcare stock, common target for pumps."
+    },
+    {
+      "symbol": "BFRIW",
+      "name": "Biofrontera Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.0513,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced healthcare stock, likely to attract pump groups."
+    },
+    {
+      "symbol": "BNZIW",
+      "name": "Banzai International, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0139,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap technology stock, fits typical pump target profile."
+    },
+    {
+      "symbol": "HUBCZ",
+      "name": "HUB Cyber Security Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0082,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap tech stock with potential buzzword appeal in cybersecurity."
+    },
+    {
+      "symbol": "SAIHW",
+      "name": "SAIHEAT Limited",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0311,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap tech stock likely to be promoted in pump groups."
+    },
+    {
+      "symbol": "BSLKW",
+      "name": "Bolt Projects Holdings, Inc.",
+      "exchange": "OTC",
+      "sector": "Financial Services",
+      "lastPrice": 0.009,
+      "totalScore": 11,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "OTC_EXCHANGE",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap financial services, potential pump target."
+    },
+    {
+      "symbol": "OCG",
+      "name": "Oriental Culture Holding Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 1.8,
+      "totalScore": 10,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap with buzzword appeal in consumer cyclic sector."
+    },
+    {
+      "symbol": "ZJYL",
+      "name": "Jin Medical International Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.1525,
+      "totalScore": 10,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap healthcare, known pump target characteristics."
+    },
+    {
+      "symbol": "MLECW",
+      "name": "Moolec Science S.A.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.0101,
+      "totalScore": 10,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap healthcare, potential pump target."
+    },
+    {
+      "symbol": "DVLT",
+      "name": "Datavault AI Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.7423,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Tech stock with AI focus, likely to attract pump group attention."
+    },
+    {
+      "symbol": "XTKG",
+      "name": "X3 Holdings Co Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.1376,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap tech stock, likely to be promoted in pump groups."
+    },
+    {
+      "symbol": "MASK",
+      "name": "3 E Network Technology Group Ltd Class A Ordinary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.29,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap tech stock with potential buzzword appeal."
+    },
+    {
+      "symbol": "PASW",
+      "name": "Ping An Biomedical Co., Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.179,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap in industrials, potential pump target."
+    },
+    {
+      "symbol": "ASTLW",
+      "name": "Algoma Steel Group Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Basic Materials",
+      "lastPrice": 0.147,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap in basic materials, potential pump target."
+    },
+    {
+      "symbol": "ONMDW",
+      "name": "OneMedNet Corporation",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.1356,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap technology, potential pump target."
+    },
+    {
+      "symbol": "MKDWW",
+      "name": "MKDWELL Tech Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.0181,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap consumer cyclic, potential pump target."
+    },
+    {
+      "symbol": "KITTW",
+      "name": "Nauticus Robotics, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.1002,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap in industrials, potential pump target."
+    },
+    {
+      "symbol": "MTEKW",
+      "name": "Maris-Tech Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.171,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap technology, potential pump target."
+    },
+    {
+      "symbol": "JFBRW",
+      "name": "Jeffs' Brands Ltd",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.0259,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap consumer cyclic, potential pump target."
+    },
+    {
+      "symbol": "VSSYW",
+      "name": "Versus Systems Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0124,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap technology, potential pump target."
+    },
+    {
+      "symbol": "LEXXW",
+      "name": "Lexaria Bioscience Corp.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.0012,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap healthcare, potential pump target."
+    },
+    {
+      "symbol": "AUUDW",
+      "name": "Auddia Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0088,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap technology, potential pump target."
+    },
+    {
+      "symbol": "LTRYW",
+      "name": "Lottery.com Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.0123,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap consumer cyclic, potential pump target."
+    },
+    {
+      "symbol": "SGN",
+      "name": "Signing Day Sports, Inc.",
+      "exchange": "AMEX",
+      "sector": "Technology",
+      "lastPrice": 0.1359,
+      "totalScore": 9,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap technology, potential pump target."
+    },
+    {
+      "symbol": "VFSWW",
+      "name": "VinFast Auto Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.15,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap with buzzword appeal in the automotive sector."
+    },
+    {
+      "symbol": "SVREW",
+      "name": "SaverOne 2014 Ltd",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0144,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap tech stock likely to be promoted in pump groups."
+    },
+    {
+      "symbol": "FUFUW",
+      "name": "BitFuFu Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.27,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap with buzzword name in financial services, likely promoted."
+    },
+    {
+      "symbol": "AIIOW",
+      "name": "Robo.ai Inc. Warrant 2022-11.11.27 on Robo.ai",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.0616,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Warrant structure and buzzword name in AI, likely promoted."
+    },
+    {
+      "symbol": "HOVRW",
+      "name": "New Horizon Aircraft Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.37,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap in industrials, likely promoted in pump groups."
+    },
+    {
+      "symbol": "FLDDW",
+      "name": "Fold Holdings, Inc. Warrant 2021-14.02.30 on Fold Holding -A-",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.1525,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Warrant structure and buzzword name in technology, likely promoted."
+    },
+    {
+      "symbol": "ZOOZW",
+      "name": "ZOOZ Strategy Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.044,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap in industrials, likely to attract pump group interest."
+    },
+    {
+      "symbol": "HPAIW",
+      "name": "Helport AI Limited",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.1625,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Buzzword name in technology, likely promoted in pump groups."
+    },
+    {
+      "symbol": "IVP",
+      "name": "Inspire Veterinary Partners, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.0405,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap in consumer cyclic, likely promoted in pump groups."
+    },
+    {
+      "symbol": "GCLWW",
+      "name": "GCL Global Holdings Ltd Warrants",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0366,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Warrant structure and buzzword name in technology, likely promoted."
+    },
+    {
+      "symbol": "RNWWW",
+      "name": "ReNew Energy Global plc",
+      "exchange": "NASDAQ",
+      "sector": "Utilities",
+      "lastPrice": 0.0071,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap in utilities, likely promoted in pump groups."
+    },
+    {
+      "symbol": "AMODW",
+      "name": "Alpha Modus Holdings, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.061999,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Buzzword technology sector with low price and potential pump target characteristics."
+    },
+    {
+      "symbol": "DSYWW",
+      "name": "Big Tree Cloud Holdings Limited Warrants",
+      "exchange": "NASDAQ",
+      "sector": "Unknown",
+      "lastPrice": 0.0271,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Unknown company with low price, likely a target for pump-and-dump schemes."
+    },
+    {
+      "symbol": "MNYWW",
+      "name": "MoneyHero Limited Warrants",
+      "exchange": "NASDAQ",
+      "sector": "Communication Services",
+      "lastPrice": 0.048,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Warrant structure in a communication sector, typical of pump targets."
+    },
+    {
+      "symbol": "SWAGW",
+      "name": "Stran & Company, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Communication Services",
+      "lastPrice": 0.0649,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price and communication sector make it a likely pump target."
+    },
+    {
+      "symbol": "KIDZW",
+      "name": "Classover Holdings, Inc. Warrants",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Defensive",
+      "lastPrice": 0.0181,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced warrant in consumer defense, typical of pump schemes."
+    },
+    {
+      "symbol": "GDEVW",
+      "name": "GDEV Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.017401,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Technology sector with low price, likely to attract pump-and-dump interest."
+    },
+    {
+      "symbol": "BNAIW",
+      "name": "Brand Engagement Network, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0533,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price in technology sector, likely to be promoted in pump groups."
+    },
+    {
+      "symbol": "PIIIW",
+      "name": "P3 Health Partners Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.0089,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price in healthcare, typical of pump-and-dump schemes."
+    },
+    {
+      "symbol": "ECDAW",
+      "name": "ECD Automotive Design, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.01,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced consumer cyclic stock, likely to attract pump interest."
+    },
+    {
+      "symbol": "ABPWW",
+      "name": "Abpro Holdings Inc",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.0136,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price in healthcare sector, likely to be a pump target."
+    },
+    {
+      "symbol": "PBMWW",
+      "name": "Psyence Biomedical Ltd. Warrant",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.0181,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced healthcare warrant, typical of pump-and-dump schemes."
+    },
+    {
+      "symbol": "DRMAW",
+      "name": "Dermata Therapeutics, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.02,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price in healthcare, likely to attract pump-and-dump activity."
+    },
+    {
+      "symbol": "EVOXW",
+      "name": "Evolution Global Acquisition Corp Warrants",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.44,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "SPAC structure with low price, likely to attract pump groups."
+    },
+    {
+      "symbol": "HSPTR",
+      "name": "Horizon Space Acquisition II Corp. Right",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.16,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "SPAC with space sector hype, typical pump target characteristics."
+    },
+    {
+      "symbol": "QETAR",
+      "name": "Quetta Acquisition Corporation",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 1.7,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "SPAC in financial services, likely to be promoted."
+    },
+    {
+      "symbol": "SOCAW",
+      "name": "Solarius Capital Acquisition Corp. Warrant",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.2221,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "SPAC structure with low price, fits pump target profile."
+    },
+    {
+      "symbol": "SVACW",
+      "name": "Spring Valley Acquisition Corp. III Warrants",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.59,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "SPAC in financial services, likely to attract pump groups."
+    },
+    {
+      "symbol": "YHNAR",
+      "name": "YHN Acquisition I Limited Right",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.1201,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "SPAC with low price, typical target for pump schemes."
+    },
+    {
+      "symbol": "SAFX",
+      "name": "XCF Global, Inc. Class A Common Stock",
+      "exchange": "NASDAQ",
+      "sector": "Energy",
+      "lastPrice": 0.1371,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap in energy, potential pump target."
+    },
+    {
+      "symbol": "HCMAW",
+      "name": "HCM Acquisition Corp",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.09,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap financial services, potential pump target."
+    },
+    {
+      "symbol": "MSAIW",
+      "name": "MultiSensor AI Holdings, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0475,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Tech company with potential AI hype characteristics."
+    },
+    {
+      "symbol": "CXAIW",
+      "name": "CXApp Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0258,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Tech company with potential AI hype characteristics."
+    },
+    {
+      "symbol": "HOLOW",
+      "name": "MicroCloud Hologram Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.09,
+      "totalScore": 8,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Tech company with buzzword \"hologram,\" potential pump target."
+    },
+    {
+      "symbol": "BRLSW",
+      "name": "Borealis Foods Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Defensive",
+      "lastPrice": 0.0525,
+      "totalScore": 7,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap in consumer defens, likely to be promoted."
+    },
+    {
+      "symbol": "CPHI",
+      "name": "China Pharma Holdings, Inc.",
+      "exchange": "AMEX",
+      "sector": "Healthcare",
+      "lastPrice": 1.25,
+      "totalScore": 7,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "SPIKE_THEN_DROP"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Chinese shell company, typical target for pump schemes."
+    },
+    {
+      "symbol": "SOPA",
+      "name": "Society Pass Incorporated",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 2.37,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Buzzword-heavy tech stock likely to attract pump group interest."
+    },
+    {
+      "symbol": "CUE",
+      "name": "Cue Biopharma, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.302,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced healthcare stock with potential for pump-and-dump schemes."
+    },
+    {
+      "symbol": "TDTH",
+      "name": "Trident Digital Tech Holdings Ltd American Depository Shares",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.4102,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced tech stock that fits the profile of pump targets."
+    },
+    {
+      "symbol": "FBLG",
+      "name": "FibroBiologics, Inc. Common Stock",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.3349,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced healthcare stock likely to attract pump-and-dump activity."
+    },
+    {
+      "symbol": "CCHH",
+      "name": "CCH Holdings Ltd Ordinary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Defensive",
+      "lastPrice": 0.446,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced consumer defensive stock likely to attract pump interest."
+    },
+    {
+      "symbol": "PFSA",
+      "name": "Profusa, Inc. Common Stock",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.1025,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Very low-priced healthcare stock with high pump-and-dump potential."
+    },
+    {
+      "symbol": "MIMI",
+      "name": "Mint Incorporation Limited",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.3013,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced industrial stock likely to attract pump-and-dump schemes."
+    },
+    {
+      "symbol": "DTCK",
+      "name": "Davis Commodities Limited Ordinary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Defensive",
+      "lastPrice": 0.3391,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced consumer defensive stock with potential for pump activity."
+    },
+    {
+      "symbol": "RPGL",
+      "name": "Republic Power Group Limited Class A Ordinary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.4001,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced tech stock likely to attract pump-and-dump interest."
+    },
+    {
+      "symbol": "TDIC",
+      "name": "Dreamland Limited Class A Ordinary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Communication Services",
+      "lastPrice": 0.1903,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low-priced communication stock with strong pump potential."
+    },
+    {
+      "symbol": "FMFC",
+      "name": "Kandal M Venture Limited",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.3328,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Nano-cap with a buzzword name, likely to attract pump groups."
+    },
+    {
+      "symbol": "MEHA",
+      "name": "Functional Brands, Inc. Common Stock",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.2,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price and in healthcare, a common pump target sector."
+    },
+    {
+      "symbol": "WTO",
+      "name": "UTime Limited",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.752,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Chinese shell company, typical target for pump schemes."
+    },
+    {
+      "symbol": "VRAX",
+      "name": "Virax Biolabs Group Limited",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.306,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price and in healthcare, often targeted by pump groups."
+    },
+    {
+      "symbol": "VSME",
+      "name": "VS Media Holdings Limited Class A Ordinary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Communication Services",
+      "lastPrice": 1.66,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Buzzword name in communication, likely to be promoted."
+    },
+    {
+      "symbol": "GPUS",
+      "name": "Hyperscale Data, Inc.",
+      "exchange": "NYSE",
+      "sector": "Industrials",
+      "lastPrice": 0.297,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price and in a trendy sector, likely to attract pump groups."
+    },
+    {
+      "symbol": "CHOW",
+      "name": "ChowChow Cloud International Ho",
+      "exchange": "AMEX",
+      "sector": "Technology",
+      "lastPrice": 0.7117,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price and in tech, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "TOVX",
+      "name": "Theriva Biologics, Inc.",
+      "exchange": "AMEX",
+      "sector": "Healthcare",
+      "lastPrice": 0.1952,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price in healthcare, likely to be promoted."
+    },
+    {
+      "symbol": "BGIN",
+      "name": "BGIN BLOCKCHAIN Ltd",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 3.53,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "OVERBOUGHT_RSI"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name in blockchain technology, potential pump target."
+    },
+    {
+      "symbol": "SELX",
+      "name": "Semilux International Ltd. Ordinary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.9001,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced tech stock with potential for pump activity."
+    },
+    {
+      "symbol": "EDHL",
+      "name": "Everbright Digital Holding Limited Ordinary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Communication Services",
+      "lastPrice": 0.238,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced communication stock with potential for pump activity."
+    },
+    {
+      "symbol": "PCLA",
+      "name": "PicoCELA Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Communication Services",
+      "lastPrice": 0.222,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced communication stock with potential for pump activity."
+    },
+    {
+      "symbol": "SPRC",
+      "name": "SciSparc Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 1.07,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced healthcare stock with potential for pump activity."
+    },
+    {
+      "symbol": "AREB",
+      "name": "American Rebel Holdings, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.5044,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced consumer cyclic stock with potential for pump activity."
+    },
+    {
+      "symbol": "BLUWW",
+      "name": "Blue Water Acquisition Corp III",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.66,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced financial stock with potential for pump activity."
+    },
+    {
+      "symbol": "BSLK",
+      "name": "Bolt Projects Holdings, Inc.",
+      "exchange": "OTC",
+      "sector": "Financial Services",
+      "lastPrice": 0.2791,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "OTC_EXCHANGE",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced financial stock with potential for pump activity."
+    },
+    {
+      "symbol": "CISS",
+      "name": "C3is Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.1279,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_7D",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced industrial stock with potential for pump activity."
+    },
+    {
+      "symbol": "ORIQW",
+      "name": "Origin Investment Corp I Warrant.",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.24,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced financial warrant with potential for pump activity."
+    },
+    {
+      "symbol": "JOB",
+      "name": "GEE Group, Inc.",
+      "exchange": "AMEX",
+      "sector": "Industrials",
+      "lastPrice": 0.206,
+      "totalScore": 6,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "OVERBOUGHT_RSI"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced industrial stock with potential for pump activity."
+    },
+    {
+      "symbol": "AMIX",
+      "name": "Autonomix Medical, Inc. Common Stock",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.4734,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "SPIKE_THEN_DROP"
+      ],
+      "hasPumpSignal": true,
+      "socialPumpReason": "Low price and in healthcare, often targeted by pump groups."
+    },
+    {
+      "symbol": "BTDR",
+      "name": "Bitdeer Technologies Group",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 15.84,
+      "totalScore": 5,
+      "signals": [
+        "SPIKE_7D",
+        "OVERBOUGHT_RSI"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name in technology, potential pump target."
+    },
+    {
+      "symbol": "AUROW",
+      "name": "Aurora Innovation, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.3784,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced technology stock with potential for pump activity."
+    },
+    {
+      "symbol": "SCAG",
+      "name": "Scage Future American Depositary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 2.53,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced industrial stock with potential for pump activity."
+    },
+    {
+      "symbol": "SLDPW",
+      "name": "Solid Power, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.9165,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced industrial stock with potential for pump activity."
+    },
+    {
+      "symbol": "CLSKW",
+      "name": "CleanSpark, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.4317,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Low-priced financial stock with potential for pump activity."
+    },
+    {
+      "symbol": "LOTWW",
+      "name": "Lotus Technology Inc. Warrants",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.0774,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Warrant in consumer cyclic sector, potential for pump activity."
+    },
+    {
+      "symbol": "CHAI",
+      "name": "Core AI Holdings",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 2.44,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name in financial services, potential for pump activity."
+    },
+    {
+      "symbol": "PGYWW",
+      "name": "Pagaya Technologies Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.355,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Warrant in technology sector, potential for pump activity."
+    },
+    {
+      "symbol": "FTFT",
+      "name": "Future FinTech Group Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 2.67,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name in technology, potential for pump activity."
+    },
+    {
+      "symbol": "WCT",
+      "name": "Wellchange Holdings Company Limited",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.1665,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Penny stock in technology, potential for pump activity."
+    },
+    {
+      "symbol": "EVGOW",
+      "name": "EVgo, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.07,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Penny stock in consumer cyclic sector, potential for pump activity."
+    },
+    {
+      "symbol": "ECXWW",
+      "name": "ECARX Holdings Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.0645,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Warrant in consumer cyclic sector, potential for pump activity."
+    },
+    {
+      "symbol": "HCAI",
+      "name": "Hauchen AI Parking Management Technology Holding Co., Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.335,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name related to AI, potential pump target."
+    },
+    {
+      "symbol": "SRTAW",
+      "name": "Strata Critical Medical, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.17,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name, potential pump target."
+    },
+    {
+      "symbol": "TVGNW",
+      "name": "Tevogen Bio Holdings Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.0447,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Known pump target, low price."
+    },
+    {
+      "symbol": "BTMWW",
+      "name": "Bitcoin Depot Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.12,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name related to crypto, potential pump target."
+    },
+    {
+      "symbol": "KLTOW",
+      "name": "Klotho Neurosciences, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Healthcare",
+      "lastPrice": 0.1018,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name, potential pump target."
+    },
+    {
+      "symbol": "FFAIW",
+      "name": "Faraday Future Intelligent Electric Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 0.0287,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name related to EV, potential pump target."
+    },
+    {
+      "symbol": "LGCL",
+      "name": "Lucas GC Limited Ordinary Shares",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 2.08,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name, potential pump target."
+    },
+    {
+      "symbol": "SNTG",
+      "name": "Sentage Holdings Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 2.16,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name, potential pump target."
+    },
+    {
+      "symbol": "MOBXW",
+      "name": "Mobix Labs, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0749,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name, potential pump target."
+    },
+    {
+      "symbol": "GDHG",
+      "name": "GOLDEN HEAVEN GROUP HOLDINGS LTD.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Cyclical",
+      "lastPrice": 2.06,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name, potential pump target."
+    },
+    {
+      "symbol": "SCAGW",
+      "name": "Scage Future Warrants",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.0689,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Warrant, potential pump target."
+    },
+    {
+      "symbol": "CHNR",
+      "name": "China Natural Resources, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 3.81,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Chinese shell company with potential pump characteristics."
+    },
+    {
+      "symbol": "LXEH",
+      "name": "Lixiang Education Holding Co., Ltd.",
+      "exchange": "NASDAQ",
+      "sector": "Consumer Defensive",
+      "lastPrice": 0.1942,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Chinese shell company with potential pump characteristics."
+    },
+    {
+      "symbol": "GMM",
+      "name": "Global Mofy Metaverse Limited",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 1.43,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name related to metaverse, potential pump target."
+    },
+    {
+      "symbol": "GFAIW",
+      "name": "Guardforce AI Co., Limited",
+      "exchange": "NASDAQ",
+      "sector": "Industrials",
+      "lastPrice": 0.139,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "AI-related company, potential pump characteristics."
+    },
+    {
+      "symbol": "ARQQW",
+      "name": "Arqit Quantum Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.2008,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Quantum technology buzzword, potential pump target."
+    },
+    {
+      "symbol": "MAPSW",
+      "name": "WM Technology, Inc.",
+      "exchange": "NASDAQ",
+      "sector": "Technology",
+      "lastPrice": 0.0073,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Buzzword name related to technology, potential pump target."
+    },
+    {
+      "symbol": "AACBR",
+      "name": "Artius II Acquisition Inc. Rights",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.36659,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, known pump target characteristics."
+    },
+    {
+      "symbol": "AFJKR",
+      "name": "Aimei Health Technology Co., Ltd",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.4103,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, associated with a trendy sector, potential pump target."
+    },
+    {
+      "symbol": "AFJKU",
+      "name": "Aimei Health Technology Co., Ltd Unit",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 64.33,
+      "totalScore": 5,
+      "signals": [
+        "MICRO_LIQUIDITY",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, high price indicates potential for pump activity."
+    },
+    {
+      "symbol": "ALISR",
+      "name": "Calisa Acquisition Corp Right",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.58,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC rights, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "ANSCW",
+      "name": "Agriculture & Natural Solutions Acquisition Corporation",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.3599,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    {
+      "symbol": "APACR",
+      "name": "StoneBridge Acquisition II Corporation Rights",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.1757,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "APADR",
+      "name": "A Paradise Acquisition Corp. Rights",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.25,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC rights, known for pump characteristics."
+    },
+    {
+      "symbol": "APXTW",
+      "name": "Apex Technology Acquisition Corporation",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.28,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    {
+      "symbol": "ASPCR",
+      "name": "A SPAC III Acquisition Corp.",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.1999,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "CAPNR",
+      "name": "Cayson Acquisition Corp Right",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.2095,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC rights, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "CHARR",
+      "name": "Charlton Aria Acquisition Corporation",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.1796,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    {
+      "symbol": "CHPGR",
+      "name": "ChampionsGate Acquisition Corporation Rights",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.1601,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "COLAR",
+      "name": "Columbus Acquisition Corp Rights",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.3711,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC rights, known for pump characteristics."
+    },
+    {
+      "symbol": "CRACR",
+      "name": "Crown Reserve Acquisition Corp. I Rights",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.22,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    {
+      "symbol": "CRAQR",
+      "name": "Cal Redwood Acquisition Corp. Right",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.27,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "DMAAR",
+      "name": "Drugs Made In America Acquisition Corp. Rights",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.16,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "DMIIR",
+      "name": "Drugs Made In America Acquisition II Corp. Right",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.1154,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    {
+      "symbol": "DRDBW",
+      "name": "Roman DBDR Acquisition Corp. II",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.7,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, known for pump characteristics."
+    },
+    {
+      "symbol": "EURKR",
+      "name": "Eureka Acquisition Corp",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.3105,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    {
+      "symbol": "FGMCR",
+      "name": "FG Merger II Corp. Rights",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.5101,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC rights, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "FSHPR",
+      "name": "Flag Ship Acquisition Corporation",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.135,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, known for pump characteristics."
+    },
+    {
+      "symbol": "FVNNR",
+      "name": "Future Vision II Acquisition Corp.",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.14,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    {
+      "symbol": "GIGGW",
+      "name": "GigCapital7 Corp.",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.63,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, typical characteristics of pump targets."
+    },
+    {
+      "symbol": "GIWWR",
+      "name": "GigCapital8 Corp.",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.2713,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
+    },
+    {
+      "symbol": "KVACW",
+      "name": "Keen Vision Acquisition Corporation Warrant",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.0611,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap with buzzword name, known pump target."
+    },
+    {
+      "symbol": "LAFAR",
+      "name": "LaFayette Acquisition Corp. Rights",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.13,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap with buzzword name, known pump target."
+    },
+    {
+      "symbol": "SZZLR",
+      "name": "Sizzle Acquisition Corp. II",
+      "exchange": "NASDAQ",
+      "sector": "Financial Services",
+      "lastPrice": 0.185,
+      "totalScore": 5,
+      "signals": [
+        "MICROCAP_PRICE",
+        "MICRO_LIQUIDITY",
+        "HIGH_VOLATILITY"
+      ],
+      "hasPumpSignal": false,
+      "socialPumpReason": "Nano-cap with buzzword name, known pump target."
+    }
+  ],
+  "note": "Includes both pump-signal stocks (170) and remaining persistent stocks (327)"
+}
