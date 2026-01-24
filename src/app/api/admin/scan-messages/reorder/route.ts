@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
       )
     );
 
-    // Log the action
-    await prisma.adminAuditLog.create({
+    // Log the action (non-critical)
+    prisma.adminAuditLog.create({
       data: {
         adminUserId: session.id,
         action: "SCAN_MESSAGES_REORDERED",
         details: JSON.stringify({ newOrder: messageIds }),
       },
-    });
+    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {

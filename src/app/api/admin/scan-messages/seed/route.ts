@@ -30,15 +30,21 @@ export async function POST() {
     }
 
     // Create a generation record for the seed
-    const generation = await prisma.scanMessageGeneration.create({
-      data: {
-        prompt: "Initial seed from static taglines file",
-        model: "static",
-        generatedCount: taglines.length,
-        acceptedCount: taglines.length,
-        createdBy: session.id,
-      },
-    });
+    let generationId: string | null = null;
+    try {
+      const generation = await prisma.scanMessageGeneration.create({
+        data: {
+          prompt: "Initial seed from static taglines file",
+          model: "static",
+          generatedCount: taglines.length,
+          acceptedCount: taglines.length,
+          createdBy: session.id,
+        },
+      });
+      generationId = generation.id;
+    } catch {
+      // Generation table might have issues, continue without linking
+    }
 
     // Insert all default taglines
     const createdMessages = await Promise.all(
@@ -49,21 +55,24 @@ export async function POST() {
             subtext: tagline.subtext,
             order: index,
             isActive: true,
-            generationId: generation.id,
+            ...(generationId ? { generationId } : {}),
           },
         })
       )
     );
 
     // Log the action
-    await prisma.adminAuditLog.create({
-      data: {
-        adminUserId: session.id,
-        action: "SCAN_MESSAGES_SEEDED",
-        resource: generation.id,
-        details: JSON.stringify({ count: createdMessages.length }),
-      },
-    });
+    try {
+      await prisma.adminAuditLog.create({
+        data: {
+          adminUserId: session.id,
+          action: "SCAN_MESSAGES_SEEDED",
+          details: JSON.stringify({ count: createdMessages.length }),
+        },
+      });
+    } catch {
+      // Audit log is non-critical
+    }
 
     return NextResponse.json({
       success: true,

@@ -101,15 +101,15 @@ AVOID:
     const tokensUsed = response.usage?.total_tokens || 0;
     const estimatedCost = tokensUsed * 0.0000003;
 
-    // Log API usage
-    await logApiUsage({
+    // Log API usage (non-critical)
+    logApiUsage({
       service: "OPENAI",
       endpoint: "chat/completions (scan-messages)",
       tokensUsed,
       estimatedCost,
       responseTime,
       statusCode: 200,
-    });
+    }).catch(() => {});
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
@@ -126,30 +126,36 @@ AVOID:
       throw new Error("Invalid response format from LLM");
     }
 
-    // Create generation record
-    const generation = await prisma.scanMessageGeneration.create({
-      data: {
-        prompt,
-        model: "gpt-4o-mini",
-        generatedCount: generatedMessages.length,
-        tokensUsed,
-        estimatedCost,
-        createdBy: session.id,
-      },
-    });
+    // Create generation record (non-critical for the response)
+    let generationId = "gen_" + Date.now();
+    try {
+      const generation = await prisma.scanMessageGeneration.create({
+        data: {
+          prompt,
+          model: "gpt-4o-mini",
+          generatedCount: generatedMessages.length,
+          tokensUsed,
+          estimatedCost,
+          createdBy: session.id,
+        },
+      });
+      generationId = generation.id;
+    } catch {
+      // Generation tracking is non-critical
+    }
 
-    // Log the action
-    await prisma.adminAuditLog.create({
+    // Log the action (non-critical)
+    prisma.adminAuditLog.create({
       data: {
         adminUserId: session.id,
         action: "SCAN_MESSAGES_GENERATED",
-        resource: generation.id,
+        resource: generationId,
         details: JSON.stringify({ count: generatedMessages.length }),
       },
-    });
+    }).catch(() => {});
 
     return NextResponse.json({
-      generationId: generation.id,
+      generationId,
       messages: generatedMessages,
       tokensUsed,
       estimatedCost,

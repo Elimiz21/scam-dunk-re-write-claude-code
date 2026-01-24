@@ -87,7 +87,6 @@ export async function POST(request: NextRequest) {
         subtext: historyMessage.subtext,
         order: newOrder,
         isActive: true,
-        generationId: historyMessage.generationId,
       },
     });
 
@@ -96,15 +95,15 @@ export async function POST(request: NextRequest) {
       where: { id: historyId },
     });
 
-    // Log the action
-    await prisma.adminAuditLog.create({
+    // Log the action (non-critical)
+    prisma.adminAuditLog.create({
       data: {
         adminUserId: session.id,
         action: "SCAN_MESSAGE_RESTORED",
         resource: restoredMessage.id,
         details: JSON.stringify({ headline: restoredMessage.headline }),
       },
-    });
+    }).catch(() => {});
 
     return NextResponse.json(restoredMessage);
   } catch (error) {
