@@ -19,6 +19,11 @@ on:
         required: false
         default: 'false'
         type: boolean
+      date_override:
+        description: 'Run evaluation for a specific date (YYYY-MM-DD)'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   check-trading-day:
@@ -196,6 +201,7 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          EVALUATION_DATE: ${{ github.event.inputs.date_override }}
         run: |
           cd evaluation
           npx ts-node scripts/run-evaluation-fmp.ts
@@ -218,7 +224,10 @@ jobs:
 
       - name: Copy results to data repository
         run: |
-          DATE=$(date +%Y-%m-%d)
+          DATE="${{ github.event.inputs.date_override }}"
+          if [ -z "$DATE" ]; then
+            DATE=$(date +%Y-%m-%d)
+          fi
 
           # Ensure directories exist
           mkdir -p data-repo/evaluation-results data-repo/daily-summaries data-repo/comparison-reports data-repo/promoted-stocks data-repo/social-media-scans
@@ -251,7 +260,10 @@ jobs:
           if git diff --staged --quiet; then
             echo "No new evaluation results to commit"
           else
-            DATE=$(date +%Y-%m-%d)
+            DATE="${{ github.event.inputs.date_override }}"
+            if [ -z "$DATE" ]; then
+              DATE=$(date +%Y-%m-%d)
+            fi
             git commit -m "Add evaluation results for ${DATE}"
             git push
           fi

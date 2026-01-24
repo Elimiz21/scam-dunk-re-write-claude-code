@@ -262,8 +262,12 @@ function loadStockList(): StockTicker[] {
 // CHECKPOINT MANAGEMENT
 // ============================================================================
 
+function getEvaluationDate(): string {
+  return process.env.EVALUATION_DATE || new Date().toISOString().split('T')[0];
+}
+
 function getCheckpointPath(): string {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getEvaluationDate();
   return path.join(RESULTS_DIR, `fmp-checkpoint-${today}.json`);
 }
 
@@ -446,7 +450,7 @@ async function runEvaluation(): Promise<void> {
   checkpoint.summary.apiCallsMade = apiCallsMade;
 
   // Save results
-  const today = endTime.toISOString().split('T')[0];
+  const today = getEvaluationDate();
   const resultsPath = path.join(RESULTS_DIR, `fmp-evaluation-${today}.json`);
   const summaryPath = path.join(RESULTS_DIR, `fmp-summary-${today}.json`);
 
