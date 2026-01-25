@@ -206,6 +206,18 @@ jobs:
           cd evaluation
           npx ts-node scripts/run-evaluation-fmp.ts
 
+      - name: Run Social Media Scan
+        if: ${{ github.event.inputs.upload_only != 'true' }}
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          EVALUATION_DATE: ${{ github.event.inputs.date_override }}
+        run: |
+          cd evaluation
+          npx ts-node scripts/social-media-scan.ts
+
       - name: Upload to Supabase
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -218,7 +230,7 @@ jobs:
           fi
           cd evaluation
           # Upload files for the specific date
-          for file in results/fmp-evaluation-${DATE}.json results/fmp-summary-${DATE}.json results/fmp-high-risk-${DATE}.json results/promoted-stocks-${DATE}.json results/comparison-${DATE}.json; do
+          for file in results/fmp-evaluation-${DATE}.json results/fmp-summary-${DATE}.json results/fmp-high-risk-${DATE}.json results/promoted-stocks-${DATE}.json results/comparison-${DATE}.json results/social-media-scan-${DATE}.json; do
             if [ -f "$file" ]; then
               FILENAME=$(basename "$file")
               echo "Uploading $FILENAME to Supabase..."
@@ -262,6 +274,7 @@ jobs:
           cp evaluation/results/promoted-stocks-${DATE}.json data-repo/promoted-stocks/ 2>/dev/null || true
 
           # Copy social media scans
+          cp evaluation/results/social-media-scan-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
           cp evaluation/results/social-media-scan-*.md data-repo/social-media-scans/ 2>/dev/null || true
 
       - name: Commit results to data repository
