@@ -19,6 +19,44 @@ export async function GET() {
       orderBy: { order: "asc" },
     });
 
+    // Auto-deduplicate: remove duplicate messages (same headline + subtext)
+    const seen = new Set<string>();
+    const duplicateIds: string[] = [];
+    const uniqueMessages = [];
+
+    for (const msg of messages) {
+      const key = `${msg.headline}|||${msg.subtext}`;
+      if (seen.has(key)) {
+        duplicateIds.push(msg.id);
+      } else {
+        seen.add(key);
+        uniqueMessages.push(msg);
+      }
+    }
+
+    // Delete duplicates in background
+    if (duplicateIds.length > 0) {
+      prisma.scanMessage.deleteMany({
+        where: { id: { in: duplicateIds } },
+      }).then(() => {
+        // Reorder remaining messages
+        return prisma.scanMessage.findMany({
+          where: { isActive: true },
+          orderBy: { order: "asc" },
+        });
+      }).then((remaining) => {
+        // Update order for each
+        return Promise.all(
+          remaining.map((msg, index) =>
+            prisma.scanMessage.update({
+              where: { id: msg.id },
+              data: { order: index },
+            })
+          )
+        );
+      }).catch(() => {});
+    }
+
     // Get the last generation date
     let lastGeneration = null;
     try {
@@ -37,10 +75,11 @@ export async function GET() {
       : null;
 
     return NextResponse.json({
-      messages,
+      messages: uniqueMessages,
       lastGenerationDate: lastGeneration?.createdAt || null,
       daysSinceRegeneration,
-      totalCount: messages.length,
+      totalCount: uniqueMessages.length,
+      duplicatesRemoved: duplicateIds.length,
     });
   } catch (error) {
     console.error("Get scan messages error:", error);
