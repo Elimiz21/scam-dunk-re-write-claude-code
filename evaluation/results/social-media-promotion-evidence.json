@@ -1,0 +1,222 @@
+{
+  "reportDate": "2026-01-25T09:13:25.579332Z",
+  "methodology": "Web search for social media promotion evidence on Reddit, Twitter, StockTwits, Discord",
+  "summary": {
+    "stocksWithEvidence": 6,
+    "stocksWithSuspectedActivity": 10,
+    "totalStocksSearched": 15
+  },
+  "confirmedPromotionEvidence": [
+    {
+      "symbol": "OCG",
+      "name": "Oriental Culture Holding Ltd",
+      "evidence": "STRONG",
+      "findings": [
+        "Reddit users identified OCG as part of suspected pump group with TKAT, JFIN, ZKIN",
+        "YouTuber Matt Kohrs was offered money to promote ZKIN (same pump group)",
+        "Reddit users called TKAT and OCG 'apparently fraud'",
+        "Up 60%+ with 'no real news' - characterized as 'low-float, prior pump behavior'",
+        "1-for-220 reverse split to maintain Nasdaq listing"
+      ],
+      "platforms": [
+        "Reddit r/pennystocks",
+        "YouTube influencer paid promotion offers"
+      ],
+      "sources": [
+        "InvestorPlace",
+        "Memeberg Terminal",
+        "TipRanks"
+      ]
+    },
+    {
+      "symbol": "DVLT",
+      "name": "Datavault AI Inc.",
+      "evidence": "STRONG",
+      "findings": [
+        "Reddit short squeeze movement organized against Wolfpack Research",
+        "Retail traders on Reddit vowing to turn selloff into a short squeeze",
+        "AI+crypto narrative moonshot hype on social media forums",
+        "17 insider sales, 0 purchases in past 6 months (insiders dumping)",
+        "Benzinga: 'AI hype and retail fury remain an explosive mix'"
+      ],
+      "platforms": [
+        "Reddit",
+        "Twitter",
+        "StockTwits"
+      ],
+      "sources": [
+        "Benzinga",
+        "Seeking Alpha",
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "symbol": "MNTS",
+      "name": "Momentus Inc.",
+      "evidence": "STRONG",
+      "findings": [
+        "28,366% jump in retail message volume on StockTwits in 24 hours",
+        "Sentiment flipped from 'bearish' to 'extremely bullish' in one week",
+        "Stock lost 94% in 12 months before sudden 80% surge",
+        "'Space-Defense Hype Ignites Retail Frenzy' - StockTwits headline"
+      ],
+      "platforms": [
+        "StockTwits"
+      ],
+      "sources": [
+        "StockTwits News"
+      ]
+    },
+    {
+      "symbol": "SXTC",
+      "name": "China SXT Pharmaceuticals",
+      "evidence": "MODERATE",
+      "findings": [
+        "Jumped 200% on AI news, then dropped 37.5% next session",
+        "Investing.com forum: 'jumped without any news, that was absolutely manipulation'",
+        "Users noted 'hedge funds stepped in & shorted millions of shares'"
+      ],
+      "platforms": [
+        "Investing.com forums",
+        "StockTwits"
+      ],
+      "sources": [
+        "TipRanks",
+        "Investing.com"
+      ]
+    },
+    {
+      "symbol": "ATON",
+      "name": "AlphaTON Capital Corp.",
+      "evidence": "MODERATE",
+      "findings": [
+        "Filed $420.69M shelf registration (meme number signals retail targeting)",
+        "TON blockchain + Telegram + Claude AI integration hype",
+        "Dropped 64% in one month, then pumps repeatedly on crypto news",
+        "Tiny public issuer positioning for massive capital raise"
+      ],
+      "platforms": [
+        "Crypto Twitter",
+        "Telegram"
+      ],
+      "sources": [
+        "Cointelegraph",
+        "StockTitan"
+      ]
+    },
+    {
+      "symbol": "VFS/VFSWW",
+      "name": "VinFast Auto Ltd.",
+      "evidence": "MODERATE",
+      "findings": [
+        "Famed investor Jim Chanos called it a meme stock",
+        "Wolf Street: 'shares are getting pumped maniacally to ridiculous highs'",
+        "Some noted 'standard stock price manipulation by insiders'",
+        "Surged from $10 to $90, market cap briefly exceeded Ford and GM combined"
+      ],
+      "platforms": [
+        "Twitter",
+        "WallStreetBets (limited)"
+      ],
+      "sources": [
+        "CNBC",
+        "Wolf Street",
+        "Yahoo Finance"
+      ]
+    }
+  ],
+  "suspectedPromotionActivity": [
+    {
+      "symbol": "JDZG",
+      "name": "JIADE Limited",
+      "evidence": "SUSPECTED",
+      "findings": [
+        "Chinese shell company pattern similar to OCG/TKAT group",
+        "Nasdaq compliance issues"
+      ],
+      "platforms": [
+        "Likely same channels as OCG/TKAT"
+      ]
+    },
+    {
+      "symbol": "MTEN",
+      "name": "Mingteng International Corporation",
+      "evidence": "SUSPECTED",
+      "findings": [
+        "Chinese shell pattern",
+        "Nano-cap with buzzword name"
+      ],
+      "platforms": [
+        "Unknown - too small for mainstream tracking"
+      ]
+    },
+    {
+      "symbol": "BCARW",
+      "name": "D. Boral ARC Acquisition I Corp. Warrant",
+      "evidence": "SUSPECTED",
+      "findings": [
+        "SPAC warrant jumped +324% after hours",
+        "Blank check company with no target"
+      ],
+      "platforms": [
+        "Unknown"
+      ]
+    },
+    {
+      "symbol": "THH",
+      "name": "TryHard Holdings Limited",
+      "evidence": "SUSPECTED",
+      "findings": [
+        "Suspicious ticker name targeting retail/gamers",
+        "Pump-and-dump pattern"
+      ],
+      "platforms": [
+        "Unknown"
+      ]
+    }
+  ],
+  "pumpGroupsIdentified": [
+    {
+      "name": "Chinese Penny Stock Coordinated Pump Group",
+      "members": [
+        "OCG",
+        "TKAT",
+        "JFIN",
+        "ZKIN",
+        "YVR"
+      ],
+      "evidence": "Reddit users identified coordinated pumping; YouTuber offered paid promotion for ZKIN",
+      "timeframe": "2021-2026 recurring"
+    },
+    {
+      "name": "DVLT Reddit Short Squeeze Movement",
+      "members": [
+        "DVLT"
+      ],
+      "evidence": "Organized response to Wolfpack Research short report on Reddit",
+      "timeframe": "November 2025"
+    },
+    {
+      "name": "Space/Defense SPAC Retail Hype",
+      "members": [
+        "MNTS",
+        "MNTSW"
+      ],
+      "evidence": "28,366% message volume spike, coordinated StockTwits activity",
+      "timeframe": "January 2026"
+    }
+  ],
+  "promotersIdentified": [
+    {
+      "name": "Matt Kohrs (YouTube)",
+      "type": "YouTube Influencer",
+      "evidence": "Was offered money to promote ZKIN (Chinese penny stock)",
+      "disclosed": "Publicly disclosed the offer but unclear if accepted"
+    }
+  ],
+  "regulatoryContext": [
+    "Nasdaq tightened China listing rules in 2025 due to pump-and-dump concerns",
+    "SEC Q2 2025 enforcement newsletter: scheme left retail investors holding worthless penny stock positions",
+    "Four individuals charged with Telegram pump-and-dump scheme (Australia) - 15 years imprisonment possible"
+  ]
+}

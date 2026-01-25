@@ -1,0 +1,173 @@
+======================================================================
+US STOCKS RISK ANALYSIS REPORT
+Scan Dates: January 15-16, 2026
+Report Generated: 2026-01-24 18:41 UTC
+======================================================================
+
+## EXECUTIVE SUMMARY
+
+Scanned 6970 US stocks using FMP historical price data.
+Evaluated risk using 8 quantitative signals (volatility, price spikes,
+pump-and-dump patterns, volume explosions, penny stock pricing, etc.)
+
+  Jan 15: 6552 evaluated → 825 HIGH risk
+  Jan 16: 6506 evaluated → 831 HIGH risk
+  Persistent (both dates): 735 HIGH risk stocks
+  Pump-and-dump pattern (both dates): 210
+  MOST SUSPICIOUS (vol explosion + P&D, persistent): 37
+
+## RISK DISTRIBUTION
+
+Metric                      Jan 15   Jan 16   Change
+-------------------------------------------------------
+Total Evaluated               6552     6506      -46
+HIGH risk                      825      831       +6
+MEDIUM risk                   1934     1938       +4
+LOW risk                      3793     3737      -56
+
+## SIGNAL FREQUENCY (Jan 16 HIGH risk stocks)
+
+  HIGH_VOLATILITY            769 ( 92.5%) ██████████████████
+  MICROCAP_PRICE             728 ( 87.6%) █████████████████
+  MICRO_LIQUIDITY            485 ( 58.4%) ███████████
+  SPIKE_7D                   307 ( 36.9%) ███████
+  SPIKE_THEN_DROP            290 ( 34.9%) ██████
+  OVERBOUGHT_RSI             166 ( 20.0%) ████
+  VOLUME_EXPLOSION            90 ( 10.8%) ██
+
+## PRICE DISTRIBUTION (HIGH risk, Jan 16)
+
+  Under $1:   427 ( 51.4%) - Extreme penny stocks
+  $1-$5:      301 ( 36.2%) - Penny stocks
+  $5-$10:      35 (  4.2%) - Low-priced
+  Over $10:    68 (  8.2%) - Normal priced
+
+## TOP 37 MOST SUSPICIOUS STOCKS
+
+These stocks show VOLUME EXPLOSION + PUMP-AND-DUMP patterns
+persistently across both scan dates, with NO legitimate news catalysts.
+
+  # Symbol      Price  Score Exchange Name
+--------------------------------------------------------------------------------
+  1 BCARW    $   1.40  14.0  NASDAQ   D. Boral ARC Acquisition I Corp. Wa
+  2 EVTV     $   3.55  14.0  NASDAQ   Envirotech Vehicles, Inc.
+  3 XAIR     $   1.70  13.0  NASDAQ   Beyond Air, Inc.
+  4 VLN      $   1.99  12.0  NYSE     Valens Semiconductor Ltd.
+  5 MTEN     $   0.03  12.0  NASDAQ   Mingteng International Corporation 
+  6 JDZG     $   1.22  12.0  NASDAQ   JIADE Limited
+  7 THH      $   0.96  12.0  NASDAQ   TryHard Holdings Limited
+  8 GP       $   1.08  12.0  NASDAQ   GreenPower Motor Company Inc.
+  9 SXTC     $   0.10  12.0  NASDAQ   China SXT Pharmaceuticals, Inc.
+ 10 SLRX     $   0.91  11.0  NASDAQ   Salarius Pharmaceuticals, Inc.
+ 11 ACON     $   3.79  11.0  NASDAQ   Aclarion, Inc.
+ 12 JTAI     $   0.39  11.0  NASDAQ   Jet.AI Inc.
+ 13 XTLB     $   0.99  11.0  NASDAQ   XTL Biopharmaceuticals Ltd.
+ 14 ROLR     $  16.88  11.0  AMEX     High Roller Technologies, Inc.
+ 15 ACRV     $   1.98  11.0  NASDAQ   Acrivon Therapeutics, Inc. Common S
+ 16 BCTX     $   4.29  11.0  NASDAQ   BriaCell Therapeutics Corp.
+ 17 ATON     $   0.75  11.0  NASDAQ   AlphaTON Capital Corp.
+ 18 ALFUW    $   0.26  10.0  NASDAQ   Centurion Acquisition Corp.
+ 19 CIGL     $   1.88  10.0  NASDAQ   Concorde International Group Ltd Cl
+ 20 BDSX     $   7.88   9.0  NASDAQ   Biodesix, Inc.
+ 21 GELS     $   1.04   9.0  NASDAQ   Gelteq Limited Ordinary Shares
+ 22 IVP      $   0.04   8.0  NASDAQ   Inspire Veterinary Partners, Inc.
+ 23 EDBL     $   0.66   8.0  NASDAQ   Edible Garden AG Incorporated
+ 24 YIBO     $   1.15   8.0  NASDAQ   Planet Image International Limited 
+ 25 FLYX     $   3.42   8.0  AMEX     flyExclusive, Inc.
+ 26 BEEM     $   1.72   8.0  NASDAQ   Beam Global
+ 27 IOTR     $   2.64   8.0  NASDAQ   iOThree Limited Ordinary Shares
+ 28 DGLY     $   2.14   8.0  NASDAQ   Digital Ally, Inc.
+ 29 OPAD     $   1.36   8.0  NYSE     Offerpad Solutions Inc.
+ 30 LRHC     $   0.56   8.0  NASDAQ   La Rosa Holding Corp. Common Stock
+ 31 SHPH     $   1.63   8.0  NASDAQ   Shuttle Pharmaceuticals Holdings, I
+ 32 POLA     $   1.68   8.0  NASDAQ   Polar Power, Inc.
+ 33 MYSZ     $   0.87   8.0  NASDAQ   My Size, Inc.
+ 34 IVF      $   0.81   8.0  NASDAQ   INVO Fertility, Inc.
+ 35 WATT     $   5.50   7.0  NASDAQ   Energous Corporation
+ 36 ATGL     $  21.55   6.0  NASDAQ   Alpha Technology Group Limited
+ 37 SOGP     $  13.49   6.0  NASDAQ   Sound Group Inc.
+
+## PERSISTENT PUMP-AND-DUMP (TOP 50 by score)
+
+Stocks showing pump-and-dump pattern on BOTH Jan 15 and Jan 16:
+
+  # Symbol      Price   J15   J16 Exchange Name
+--------------------------------------------------------------------------------
+  1 EVTV     $   3.55  14.0  14.0 NASDAQ   Envirotech Vehicles, Inc.
+  2 XAIR     $   1.70  12.0  13.0 NASDAQ   Beyond Air, Inc.
+  3 ICUCW    $   0.02  13.0   8.0 NASDAQ   SeaStar Medical Holding Corporation
+  4 VLN      $   1.99  12.0  11.0 NYSE     Valens Semiconductor Ltd.
+  5 BNZIW    $   0.01  12.0  11.0 NASDAQ   Banzai International, Inc.
+  6 MTEN     $   0.03  12.0  12.0 NASDAQ   Mingteng International Corporation 
+  7 MNTSW    $   0.02  12.0  12.0 NASDAQ   Momentus Inc.
+  8 PMTRW    $   0.82  12.0   8.0 NASDAQ   Perimeter Acquisition Corp. I Warra
+  9 OCG      $   1.80  12.0  10.0 NASDAQ   Oriental Culture Holding Ltd.
+ 10 EDBLW    $   0.16  11.0  12.0 NASDAQ   Edible Garden AG Incorporated
+ 11 ABVEW    $   0.60  12.0   8.0 NASDAQ   Above Food Ingredients Inc. Warrant
+ 12 THH      $   0.96   8.0  12.0 NASDAQ   TryHard Holdings Limited
+ 13 GP       $   1.08  12.0  11.0 NASDAQ   GreenPower Motor Company Inc.
+ 14 ECDA     $   0.02   9.0  12.0 NASDAQ   ECD Automotive Design, Inc.
+ 15 SXTC     $   0.10  12.0  12.0 NASDAQ   China SXT Pharmaceuticals, Inc.
+ 16 SLRX     $   0.91  11.0   8.0 NASDAQ   Salarius Pharmaceuticals, Inc.
+ 17 BFRIW    $   0.05   8.0  11.0 NASDAQ   Biofrontera Inc.
+ 18 ARBEW    $   0.10   8.0  11.0 NASDAQ   Arbe Robotics Ltd.
+ 19 ACON     $   3.79  11.0  11.0 NASDAQ   Aclarion, Inc.
+ 20 ALVOW    $   0.51  11.0  11.0 NASDAQ   Alvotech
+ 21 RAINW    $   0.22  11.0   8.0 NASDAQ   Rain Enhancement Technologies Holdc
+ 22 INVZW    $   0.02  11.0   8.0 NASDAQ   Innoviz Technologies Ltd.
+ 23 EVLVW    $   0.18  11.0  11.0 NASDAQ   Evolv Technologies Holdings, Inc.
+ 24 SAIHW    $   0.03  11.0  11.0 NASDAQ   SAIHEAT Limited
+ 25 EUDAW    $   0.10  11.0   8.0 NASDAQ   EUDA Health Holdings Limited
+ 26 NXPLW    $   0.08  11.0  11.0 NASDAQ   NextPlat Corp
+ 27 FATBP    $   1.00  11.0  11.0 NASDAQ   FAT Brands Inc.
+ 28 BCTXW    $   0.03  11.0  11.0 NASDAQ   BriaCell Therapeutics Corp.
+ 29 ADSEW    $   0.90  11.0   8.0 NASDAQ   ADS-TEC Energy PLC
+ 30 SLXNW    $   0.04  11.0   8.0 NASDAQ   Silexion Therapeutics Ltd.
+ 31 JTAI     $   0.39  11.0  11.0 NASDAQ   Jet.AI Inc.
+ 32 RMCOW    $   0.10  11.0   8.0 NASDAQ   Royalty Management Holding Corporat
+ 33 ZNTL     $   2.96  11.0   7.0 NASDAQ   Zentalis Pharmaceuticals, Inc.
+ 34 FBYDW    $   1.22  11.0  11.0 NASDAQ   Falcon's Beyond Global, Inc. Warran
+ 35 BNAIW    $   0.05  11.0   8.0 NASDAQ   Brand Engagement Network, Inc.
+ 36 ANGHW    $   0.02  11.0   8.0 NASDAQ   Anghami Inc.
+ 37 XTLB     $   0.99  11.0  11.0 NASDAQ   XTL Biopharmaceuticals Ltd.
+ 38 QETAR    $   1.70  11.0   8.0 NASDAQ   Quetta Acquisition Corporation
+ 39 BFRGW    $   0.17   8.0  11.0 NASDAQ   Bullfrog AI Holdings, Inc. Warrants
+ 40 LUCY     $   1.41  11.0   6.0 NASDAQ   Innovative Eyewear, Inc.
+ 41 PTIXW    $   0.02  11.0  11.0 NASDAQ   Protagenic Therapeutics, Inc.
+ 42 BRLS     $   1.04  11.0  11.0 NASDAQ   Borealis Foods Inc.
+ 43 ETHMW    $   1.42  11.0   8.0 NASDAQ   Dynamix Corporation
+ 44 CNEY     $   0.55   8.0  11.0 NASDAQ   CN ENERGY GROUP INC.
+ 45 ACRV     $   1.98  11.0  11.0 NASDAQ   Acrivon Therapeutics, Inc. Common S
+ 46 MRNO     $   1.60  10.0  11.0 NASDAQ   Murano Global Investments PLC Ordin
+ 47 BCTX     $   4.29  11.0  11.0 NASDAQ   BriaCell Therapeutics Corp.
+ 48 RSVRW    $   0.20  11.0  11.0 NASDAQ   Reservoir Media, Inc.
+ 49 ASBPW    $   0.02   8.0  11.0 NASDAQ   Aspire Biopharma Holdings, Inc.
+ 50 AEVAW    $   0.15  11.0   8.0 NASDAQ   Aeva Technologies, Inc.
+
+## EXCHANGE BREAKDOWN (HIGH risk)
+
+Exchange       Jan 15   Jan 16
+-----------------------------------
+  NASDAQ          747      748
+  AMEX             41       41
+  NYSE             33       38
+  OTC               4        4
+
+## METHODOLOGY
+
+Risk scoring uses 8 quantitative signals:
+  1. HIGH_VOLATILITY: Daily price volatility > 50%
+  2. MICROCAP_PRICE: Stock price below $5 (penny stock territory)
+  3. MICRO_LIQUIDITY: Daily dollar volume below $500K
+  4. SPIKE_7D: >100% price movement in 7 days
+  5. SPIKE_THEN_DROP: Pump-and-dump pattern (rapid rise + fall)
+  6. OVERBOUGHT_RSI: RSI > 80 (overbought)
+  7. VOLUME_EXPLOSION: Trading volume > 3x normal
+  8. OTC_EXCHANGE: Traded on OTC/Pink Sheets
+
+Stocks scoring >= 5 points are classified as HIGH risk.
+Persistent HIGH risk across multiple dates indicates sustained suspicious activity.
+
+======================================================================
+END OF REPORT
+======================================================================
