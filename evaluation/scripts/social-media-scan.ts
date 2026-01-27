@@ -326,7 +326,9 @@ Respond in JSON format:
 
 // Main scan function
 async function runSocialMediaScan(date?: string): Promise<void> {
-  const targetDate = date || process.env.EVALUATION_DATE || new Date().toISOString().split('T')[0];
+  // Handle empty string from environment variable
+  const envDate = process.env.EVALUATION_DATE;
+  const targetDate = date || (envDate && envDate.trim()) || new Date().toISOString().split('T')[0];
   console.log('='.repeat(70));
   console.log(`SOCIAL MEDIA SCAN FOR HIGH-RISK STOCKS`);
   console.log(`Date: ${targetDate}`);
@@ -465,17 +467,26 @@ async function runSocialMediaScan(date?: string): Promise<void> {
         `-H "Content-Type: application/json" ` +
         `-H "x-upsert: true" ` +
         `--data-binary @"${outputPath}"`,
-        { encoding: 'utf-8' }
+        { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
       );
 
       console.log(`Uploaded ${fileName} to Supabase`);
       console.log(`Response: ${uploadResponse}`);
-    } catch (error) {
-      console.error('Failed to upload to Supabase:', error);
+    } catch (error: any) {
+      console.error('Failed to upload to Supabase:', error?.message || error);
+      // Don't throw - upload failure shouldn't crash the scan
     }
   }
 }
 
 // CLI entry point
 const dateArg = process.argv[2];
-runSocialMediaScan(dateArg).catch(console.error);
+runSocialMediaScan(dateArg)
+  .then(() => {
+    console.log('\nSocial media scan completed successfully.');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('\nSocial media scan failed with error:', error);
+    process.exit(1);
+  });
