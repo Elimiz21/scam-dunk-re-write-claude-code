@@ -5,6 +5,8 @@ import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/db";
 
+export const dynamic = 'force-dynamic';
+
 const updateProfileSchema = z.object({
   name: z.string().optional(),
 });

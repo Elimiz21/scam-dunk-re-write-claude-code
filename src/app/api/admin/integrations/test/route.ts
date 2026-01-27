@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { testIntegration, testAllIntegrations } from "@/lib/admin/integrations";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getAdminSession();

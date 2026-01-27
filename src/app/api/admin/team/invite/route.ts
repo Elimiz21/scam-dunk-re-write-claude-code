@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, createAdminInvite, acceptAdminInvite } from "@/lib/admin/auth";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const inviteSchema = z.object({
   email: z.string().email("Invalid email address"),
   role: z.enum(["ADMIN", "VIEWER"]).default("ADMIN"),
