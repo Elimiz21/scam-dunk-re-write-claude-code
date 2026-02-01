@@ -8,6 +8,8 @@ import { createOwnerAdmin } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const setupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),

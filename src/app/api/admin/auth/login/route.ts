@@ -7,6 +7,8 @@ import { adminLogin } from "@/lib/admin/auth";
 import { z } from "zod";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
+export const dynamic = 'force-dynamic';
+
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),

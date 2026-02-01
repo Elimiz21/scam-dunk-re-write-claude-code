@@ -8,6 +8,8 @@ import { prisma } from "@/lib/db";
 import { createPasswordResetToken, createEmailVerificationToken } from "@/lib/tokens";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getAdminSession();
