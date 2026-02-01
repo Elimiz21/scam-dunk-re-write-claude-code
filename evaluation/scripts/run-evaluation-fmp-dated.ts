@@ -215,7 +215,7 @@ async function fetchStockDataForDate(symbol: string, targetDate: string): Promis
     companyName: profile.companyName,
     exchange: profile.exchange,
     lastPrice: lastDay.close,
-    marketCap: 0, // Will estimate from price if needed
+    marketCap: profile.marketCap || 0,
     avgVolume30d: avgVolume30d,
     avgDollarVolume30d: avgVolume30d * lastDay.close,
     sector: profile.sector,
