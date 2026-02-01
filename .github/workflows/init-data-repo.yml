@@ -1,0 +1,105 @@
+name: Initialize Data Repository
+
+on:
+  workflow_dispatch:
+
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to access old commits
+
+      - name: Get data files from commit before removal
+        run: |
+          # Checkout the specific commit that still has the data files
+          git checkout d5b380c -- evaluation/results/ || {
+            echo "Could not find data at commit d5b380c, checking available files..."
+            ls -la evaluation/results/ 2>/dev/null || echo "No results directory"
+          }
+
+      - name: Setup data repository
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+        run: |
+          mkdir -p data-repo
+          cd data-repo
+          git init
+          git remote add origin https://x-access-token:${DATA_REPO_TOKEN}@github.com/Elimiz21/scam-dunk-data.git
+          # Try to pull if there's existing content, ignore if empty
+          git fetch origin main && git checkout main || echo "Empty repo, starting fresh"
+
+      - name: Create directory structure
+        run: |
+          mkdir -p data-repo/evaluation-results
+          mkdir -p data-repo/daily-summaries
+          mkdir -p data-repo/comparison-reports
+          mkdir -p data-repo/promoted-stocks
+          mkdir -p data-repo/social-media-scans
+          mkdir -p data-repo/reports
+
+      - name: Copy evaluation data
+        run: |
+          # Copy FMP evaluations
+          cp evaluation/results/fmp-evaluation-*.json data-repo/evaluation-results/ 2>/dev/null || true
+          cp evaluation/results/fmp-high-risk-*.json data-repo/evaluation-results/ 2>/dev/null || true
+
+          # Copy summaries
+          cp evaluation/results/fmp-summary-*.json data-repo/daily-summaries/ 2>/dev/null || true
+          cp evaluation/results/daily-summaries/*.md data-repo/daily-summaries/ 2>/dev/null || true
+
+          # Copy comparison reports
+          cp evaluation/results/comparison-*.json data-repo/comparison-reports/ 2>/dev/null || true
+
+          # Copy promoted stocks
+          cp evaluation/results/promoted-stocks-*.json data-repo/promoted-stocks/ 2>/dev/null || true
+
+          # Copy social media scans
+          cp evaluation/results/social-media-scan-*.md data-repo/social-media-scans/ 2>/dev/null || true
+
+          # Copy reports
+          cp evaluation/results/COMPREHENSIVE_REPORT_*.md data-repo/reports/ 2>/dev/null || true
+          cp evaluation/results/PRESS_REPORT_*.md data-repo/reports/ 2>/dev/null || true
+          cp evaluation/results/high-risk-stocks-report-*.md data-repo/reports/ 2>/dev/null || true
+
+      - name: Create README
+        run: |
+          cat > data-repo/README.md << 'EOF'
+          # Scam Dunk - Evaluation Data Repository
+
+          This repository stores evaluation results from the [Scam Dunk](https://github.com/Elimiz21/scam-dunk-re-write-claude-code) stock manipulation detection system.
+
+          ## Structure
+
+          - `evaluation-results/` - Full FMP evaluation results
+          - `daily-summaries/` - Daily summary statistics
+          - `comparison-reports/` - Day-over-day comparisons
+          - `promoted-stocks/` - Detected promoted stocks
+          - `social-media-scans/` - Social media scan reports
+          - `reports/` - Comprehensive analysis reports
+
+          ## Automation
+
+          Updated automatically by GitHub Actions on US market trading days.
+          EOF
+
+      - name: Commit and push to data repo
+        env:
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+        run: |
+          cd data-repo
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          git commit -m "Initial data import from main repository" || echo "Nothing to commit"
+          # Push to main branch (handles empty repo case)
+          git branch -M main
+          git push -u origin main
+
+      - name: Summary
+        run: |
+          echo "✅ Data repository initialized successfully!"
+          echo "Files copied:"
+          find data-repo -type f -name "*.json" -o -name "*.md" | grep -v ".git" | sort
