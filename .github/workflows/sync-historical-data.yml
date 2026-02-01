@@ -1,0 +1,161 @@
+name: Sync Historical Data to Data Repo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore historical result files
+        run: |
+          # The result files were removed from tracking by .gitignore in the merge commit.
+          # Restore them from the last commit that had them (pre-merge on the feature branch).
+          # Try multiple known commits that contained evaluation results.
+          COMMITS="57ecfd4 d5b380c"
+          RESTORED=0
+
+          for COMMIT in $COMMITS; do
+            echo "Checking commit $COMMIT for result files..."
+            FILES=$(git ls-tree -r --name-only "$COMMIT" -- evaluation/results/ 2>/dev/null | grep -v '.gitignore' | grep -v 'README' || true)
+            for f in $FILES; do
+              BASENAME=$(basename "$f")
+              # Only restore if we don't already have it
+              if [ ! -f "evaluation/results/$BASENAME" ]; then
+                git show "$COMMIT:$f" > "evaluation/results/$BASENAME" 2>/dev/null && {
+                  echo "  Restored $BASENAME from $COMMIT"
+                  RESTORED=$((RESTORED + 1))
+                } || true
+              fi
+            done
+          done
+
+          # Also restore subdirectory files
+          for COMMIT in $COMMITS; do
+            for DIR in daily-summaries social-media-scans; do
+              mkdir -p "evaluation/results/$DIR"
+              FILES=$(git ls-tree -r --name-only "$COMMIT" -- "evaluation/results/$DIR/" 2>/dev/null || true)
+              for f in $FILES; do
+                BASENAME=$(basename "$f")
+                if [ ! -f "evaluation/results/$DIR/$BASENAME" ]; then
+                  git show "$COMMIT:$f" > "evaluation/results/$DIR/$BASENAME" 2>/dev/null && {
+                    echo "  Restored $DIR/$BASENAME from $COMMIT"
+                    RESTORED=$((RESTORED + 1))
+                  } || true
+                fi
+              done
+            done
+          done
+
+          echo ""
+          echo "Restored $RESTORED files from git history"
+          echo ""
+          echo "All result files now available:"
+          find evaluation/results -type f -name "*.json" -o -name "*.md" -o -name "*.txt" | grep -v '.gitignore' | sort
+
+      - name: Checkout data repository
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: Create directory structure
+        run: |
+          mkdir -p data-repo/evaluation-results
+          mkdir -p data-repo/daily-summaries
+          mkdir -p data-repo/comparison-reports
+          mkdir -p data-repo/promoted-stocks
+          mkdir -p data-repo/social-media-scans
+          mkdir -p data-repo/reports
+
+      - name: Copy all historical data
+        run: |
+          COPIED=0
+
+          # FMP evaluations and high-risk files
+          for f in evaluation/results/fmp-evaluation-*.json evaluation/results/fmp-high-risk-*.json; do
+            [ -f "$f" ] && cp "$f" data-repo/evaluation-results/ && COPIED=$((COPIED + 1))
+          done
+
+          # OpenAI classification results
+          for f in evaluation/results/filtered-*.json evaluation/results/openai-*.json; do
+            [ -f "$f" ] && cp "$f" data-repo/evaluation-results/ && COPIED=$((COPIED + 1))
+          done
+
+          # Summaries
+          for f in evaluation/results/fmp-summary-*.json; do
+            [ -f "$f" ] && cp "$f" data-repo/daily-summaries/ && COPIED=$((COPIED + 1))
+          done
+          for f in evaluation/results/daily-summaries/*.md; do
+            [ -f "$f" ] && cp "$f" data-repo/daily-summaries/ && COPIED=$((COPIED + 1))
+          done
+
+          # Comparison reports
+          for f in evaluation/results/comparison-*.json; do
+            [ -f "$f" ] && cp "$f" data-repo/comparison-reports/ && COPIED=$((COPIED + 1))
+          done
+
+          # Social media scans
+          for f in evaluation/results/social-media-*.json; do
+            [ -f "$f" ] && cp "$f" data-repo/social-media-scans/ && COPIED=$((COPIED + 1))
+          done
+          for f in evaluation/results/social-media-scans/*.md; do
+            [ -f "$f" ] && cp "$f" data-repo/social-media-scans/ && COPIED=$((COPIED + 1))
+          done
+
+          # Reports
+          for f in evaluation/results/final-analysis-*.txt; do
+            [ -f "$f" ] && cp "$f" data-repo/reports/ && COPIED=$((COPIED + 1))
+          done
+
+          echo ""
+          echo "Copied $COPIED files to data-repo"
+          echo ""
+          echo "Data repo contents:"
+          find data-repo -type f -name "*.json" -o -name "*.md" -o -name "*.txt" | grep -v ".git" | sort
+
+      - name: Commit and push
+        run: |
+          cd data-repo
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "Data repo is already up to date - nothing to push"
+          else
+            CHANGES=$(git diff --staged --stat | tail -1)
+            git commit -m "Sync historical evaluation data from main repo
+
+          $CHANGES"
+            git push
+            echo "Successfully pushed historical data to scam-dunk-data"
+          fi
+
+      - name: Summary
+        run: |
+          echo "=== DATA REPO SUMMARY ==="
+          echo ""
+          echo "Evaluation results:"
+          ls data-repo/evaluation-results/ 2>/dev/null | wc -l
+          echo ""
+          echo "Daily summaries:"
+          ls data-repo/daily-summaries/ 2>/dev/null | wc -l
+          echo ""
+          echo "Comparison reports:"
+          ls data-repo/comparison-reports/ 2>/dev/null | wc -l
+          echo ""
+          echo "Social media scans:"
+          ls data-repo/social-media-scans/ 2>/dev/null | wc -l
+          echo ""
+          echo "Reports:"
+          ls data-repo/reports/ 2>/dev/null | wc -l
