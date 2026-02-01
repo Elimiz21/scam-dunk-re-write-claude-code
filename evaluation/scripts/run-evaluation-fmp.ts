@@ -15,12 +15,19 @@
  * - Progress tracking and time estimates
  */
 
-import * as fs from 'fs';
+// Load environment variables from .env.local in project root
+import * as dotenv from 'dotenv';
 import * as path from 'path';
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env.local') });
+
+import * as fs from 'fs';
 import { execSync } from 'child_process';
 
 // Import standalone scoring module
 import { computeRiskScore, MarketData, PriceHistory, StockQuote, ScoringResult } from './standalone-scorer';
+
+// Import Supabase upload utility (optional - only uploads if env vars are set)
+import { uploadDateFiles } from './upload-to-supabase';
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const RESULTS_DIR = path.join(__dirname, '..', 'results');
@@ -255,8 +262,12 @@ function loadStockList(): StockTicker[] {
 // CHECKPOINT MANAGEMENT
 // ============================================================================
 
+function getEvaluationDate(): string {
+  return process.env.EVALUATION_DATE || new Date().toISOString().split('T')[0];
+}
+
 function getCheckpointPath(): string {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getEvaluationDate();
   return path.join(RESULTS_DIR, `fmp-checkpoint-${today}.json`);
 }
 
@@ -439,7 +450,7 @@ async function runEvaluation(): Promise<void> {
   checkpoint.summary.apiCallsMade = apiCallsMade;
 
   // Save results
-  const today = endTime.toISOString().split('T')[0];
+  const today = getEvaluationDate();
   const resultsPath = path.join(RESULTS_DIR, `fmp-evaluation-${today}.json`);
   const summaryPath = path.join(RESULTS_DIR, `fmp-summary-${today}.json`);
 
@@ -476,6 +487,24 @@ async function runEvaluation(): Promise<void> {
   if (fs.existsSync(checkpointPath)) {
     fs.unlinkSync(checkpointPath);
     console.log('\nCheckpoint file cleaned up.');
+  }
+
+  // Auto-upload to Supabase if credentials are available
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
+    console.log('\n' + '='.repeat(70));
+    console.log('UPLOADING TO SUPABASE STORAGE');
+    console.log('='.repeat(70));
+    try {
+      const uploadCount = await uploadDateFiles(today);
+      console.log(`\n✓ Successfully uploaded ${uploadCount} files to Supabase`);
+    } catch (error) {
+      console.error('\n✗ Failed to upload to Supabase:', error);
+      console.log('  You can manually upload using: npx ts-node scripts/upload-to-supabase.ts ' + today);
+    }
+  } else {
+    console.log('\nNote: Supabase credentials not found. To auto-upload results, set:');
+    console.log('  NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY)');
+    console.log('  Or run manually: npx ts-node scripts/upload-to-supabase.ts ' + today);
   }
 }
 

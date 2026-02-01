@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { getUsageInfo } from "@/lib/usage";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Support both session (web) and JWT (mobile) auth

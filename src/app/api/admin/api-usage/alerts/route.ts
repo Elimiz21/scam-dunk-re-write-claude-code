@@ -7,6 +7,8 @@ import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const alertSchema = z.object({
   service: z.string(),
   alertType: z.enum(["COST_THRESHOLD", "RATE_LIMIT", "ERROR_RATE"]),

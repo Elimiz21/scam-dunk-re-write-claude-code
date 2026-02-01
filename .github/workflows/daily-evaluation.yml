@@ -62,6 +62,10 @@ jobs:
           fi
 
           # US Market Holidays (fixed dates)
+          # New Year's Day - January 1
+          # Juneteenth - June 19
+          # Independence Day - July 4
+          # Christmas - December 25
           FIXED_HOLIDAYS="01-01 06-19 07-04 12-25"
           MMDD="${MONTH}-${DAY}"
 
@@ -152,6 +156,7 @@ jobs:
           fi
 
           # Good Friday - hardcoded for known years
+          # 2024: March 29, 2025: April 18, 2026: April 3, 2027: March 26
           GOOD_FRIDAYS="2024-03-29 2025-04-18 2026-04-03 2027-03-26 2028-04-14"
           for gf in $GOOD_FRIDAYS; do
             if [ "$TODAY" = "$gf" ]; then

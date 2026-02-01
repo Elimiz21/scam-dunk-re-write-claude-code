@@ -26,10 +26,10 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState("");
 
   const handleTurnstileVerify = useCallback((token: string) => {
     setTurnstileToken(token);
@@ -39,6 +39,12 @@ function LoginForm() {
     e.preventDefault();
     setError("");
     setShowVerificationPrompt(false);
+
+    if (!turnstileToken) {
+      setError("Please complete the CAPTCHA verification");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -128,7 +134,7 @@ function LoginForm() {
         <Turnstile onVerify={handleTurnstileVerify} />
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

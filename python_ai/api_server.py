@@ -332,6 +332,22 @@ async def analyze_asset(request: AnalysisRequest):
         )
 
     except Exception as e:
+        # Check if this is a DataAPIError (service unavailable)
+        from data_ingestion import DataAPIError
+        if isinstance(e, DataAPIError):
+            logger.error(f"DATA API UNAVAILABLE for {request.ticker}: {e.api_name} - {e.original_error}")
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error": "service_unavailable",
+                    "message": "The scanning system is currently offline. Please try again later.",
+                    "api_name": e.api_name,
+                    "ticker": e.ticker,
+                    "asset_type": e.asset_type,
+                    "original_error": e.original_error
+                }
+            )
+
         logger.error(f"Analysis failed for {request.ticker}: {e}")
         import traceback
         traceback.print_exc()

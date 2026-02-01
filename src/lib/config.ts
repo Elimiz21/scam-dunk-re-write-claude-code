@@ -5,11 +5,12 @@ export const config = {
   freeChecksPerMonth: parseInt(process.env.FREE_CHECKS_PER_MONTH || "5", 10),
   paidChecksPerMonth: parseInt(process.env.PAID_CHECKS_PER_MONTH || "200", 10),
 
-  // Stripe
-  stripeSecretKey: process.env.STRIPE_SECRET_KEY || "",
-  stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
-  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
-  stripePricePaidPlanId: process.env.STRIPE_PRICE_PAID_PLAN_ID || "",
+  // PayPal
+  paypalClientId: process.env.PAYPAL_CLIENT_ID || "",
+  paypalClientSecret: process.env.PAYPAL_CLIENT_SECRET || "",
+  paypalPlanId: process.env.PAYPAL_PLAN_ID || "",
+  paypalWebhookId: process.env.PAYPAL_WEBHOOK_ID || "",
+  paypalMode: process.env.PAYPAL_MODE || "sandbox",
 
   // OpenAI
   openaiApiKey: process.env.OPENAI_API_KEY || "",

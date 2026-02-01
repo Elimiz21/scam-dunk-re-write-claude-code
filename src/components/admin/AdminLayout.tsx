@@ -15,6 +15,11 @@ import {
   X,
   ChevronRight,
   Bell,
+  TrendingUp,
+  AlertTriangle,
+  Search,
+  Database,
+  MessageSquare,
 } from "lucide-react";
 
 interface AdminSession {
@@ -26,6 +31,11 @@ interface AdminSession {
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
+  { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
+  { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
+  { name: "Stock Lookup", href: "/admin/stock-lookup", icon: Search },
+  { name: "Data Ingestion", href: "/admin/data-ingestion", icon: Database },
   { name: "Users", href: "/admin/users", icon: UsersRound },
   { name: "API Usage", href: "/admin/api-usage", icon: Activity },
   { name: "Integrations", href: "/admin/integrations", icon: Settings },

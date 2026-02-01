@@ -62,3 +62,7 @@ wheels/
 venv/
 ENV/
 evaluation/results/checkpoint-*.json
+.env.local
+
+# Root-level models directory (generated during testing)
+/models/

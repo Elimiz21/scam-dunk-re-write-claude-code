@@ -1,0 +1,12 @@
+# Evaluation results are stored in the scam-dunk-data repository
+# https://github.com/Elimiz21/scam-dunk-data
+
+# Ignore all data files
+*.json
+*.csv
+*.md
+*.png
+
+# But keep this .gitignore and any subdirectory .gitkeep files
+!.gitignore
+!**/.gitkeep

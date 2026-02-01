@@ -7,6 +7,8 @@ import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const feedbackSchema = z.object({
   scanId: z.string(),
   feedbackType: z.enum(["FALSE_POSITIVE", "FALSE_NEGATIVE", "CORRECT"]),

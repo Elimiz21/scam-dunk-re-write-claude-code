@@ -7,6 +7,8 @@ import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { getIntegrations, updateIntegrationConfig, getIntegrationHealthSummary } from "@/lib/admin/integrations";
 import { prisma } from "@/lib/db";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await getAdminSession();

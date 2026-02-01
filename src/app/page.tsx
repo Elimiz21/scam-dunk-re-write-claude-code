@@ -71,21 +71,6 @@ export default function HomePage() {
     }
   };
 
-  const handleUpgrade = async () => {
-    try {
-      const response = await fetch("/api/billing/checkout", {
-        method: "POST",
-      });
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setError(data.error || "Failed to start upgrade process");
-      }
-    } catch (err) {
-      setError("An error occurred. Please try again.");
-    }
-  };
 
   const handleSubmit = async (data: {
     ticker: string;
@@ -373,7 +358,6 @@ export default function HomePage() {
                   plan={limitReached.usage.plan}
                   scansUsed={limitReached.usage.scansUsedThisMonth}
                   scansLimit={limitReached.usage.scansLimitThisMonth}
-                  onUpgrade={handleUpgrade}
                 />
                 <div className="mt-4 text-center">
                   <Button variant="outline" onClick={handleNewScan}>
