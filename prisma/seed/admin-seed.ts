@@ -12,9 +12,9 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 // Initial admin owner credentials
-const ADMIN_EMAIL = "admin@scamdunk.com";
+const ADMIN_EMAIL = "elimizroch@gmail.com";
 const ADMIN_PASSWORD = "AdminPassword123!";
-const ADMIN_NAME = "Admin Owner";
+const ADMIN_NAME = "Eli Mizroch";
 
 // Default integrations to create
 const DEFAULT_INTEGRATIONS = [
