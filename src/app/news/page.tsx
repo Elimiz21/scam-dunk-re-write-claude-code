@@ -97,7 +97,7 @@ export default function NewsPage() {
         }
     }
 
-    const categories = ["all", ...new Set(blogPosts.map((p) => p.category))];
+    const categories = ["all", ...Array.from(new Set(blogPosts.map((p) => p.category)))];
     const filteredPosts =
         selectedCategory === "all"
             ? blogPosts
@@ -167,8 +167,8 @@ export default function NewsPage() {
                                                 key={cat}
                                                 onClick={() => setSelectedCategory(cat)}
                                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === cat
-                                                        ? "bg-primary text-primary-foreground"
-                                                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                                                    ? "bg-primary text-primary-foreground"
+                                                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                                                     }`}
                                             >
                                                 {cat === "all" ? "All Posts" : cat}
