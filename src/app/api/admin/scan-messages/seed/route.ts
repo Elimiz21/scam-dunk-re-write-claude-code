@@ -16,17 +16,27 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if there are already messages in the database
-    const existingCount = await prisma.scanMessage.count();
+    // Get existing messages to avoid duplicates
+    const existingMessages = await prisma.scanMessage.findMany({
+      where: { isActive: true },
+      select: { headline: true, subtext: true },
+    });
+    const existingKeys = new Set(
+      existingMessages.map((m) => `${m.headline}|||${m.subtext}`)
+    );
 
-    if (existingCount > 0) {
-      return NextResponse.json(
-        {
-          error: "Database already has messages. Clear them first if you want to reseed.",
-          existingCount,
-        },
-        { status: 400 }
-      );
+    // Filter out taglines that already exist
+    const newTaglines = taglines.filter(
+      (t) => !existingKeys.has(`${t.headline}|||${t.subtext}`)
+    );
+
+    if (newTaglines.length === 0) {
+      return NextResponse.json({
+        success: true,
+        count: 0,
+        message: "All default messages already exist",
+        skipped: taglines.length,
+      });
     }
 
     // Create a generation record for the seed
@@ -36,8 +46,8 @@ export async function POST() {
         data: {
           prompt: "Initial seed from static taglines file",
           model: "static",
-          generatedCount: taglines.length,
-          acceptedCount: taglines.length,
+          generatedCount: newTaglines.length,
+          acceptedCount: newTaglines.length,
           createdBy: session.id,
         },
       });
@@ -46,14 +56,21 @@ export async function POST() {
       // Generation table might have issues, continue without linking
     }
 
-    // Insert all default taglines
+    // Get current max order
+    const maxOrderMsg = await prisma.scanMessage.findFirst({
+      where: { isActive: true },
+      orderBy: { order: "desc" },
+    });
+    let nextOrder = (maxOrderMsg?.order ?? -1) + 1;
+
+    // Insert only new taglines
     const createdMessages = await Promise.all(
-      taglines.map((tagline, index) =>
+      newTaglines.map((tagline) =>
         prisma.scanMessage.create({
           data: {
             headline: tagline.headline,
             subtext: tagline.subtext,
-            order: index,
+            order: nextOrder++,
             isActive: true,
             ...(generationId ? { generationId } : {}),
           },
@@ -74,10 +91,12 @@ export async function POST() {
       // Audit log is non-critical
     }
 
+    const skippedCount = taglines.length - newTaglines.length;
     return NextResponse.json({
       success: true,
       count: createdMessages.length,
-      message: `Seeded ${createdMessages.length} default messages`,
+      skipped: skippedCount,
+      message: `Seeded ${createdMessages.length} default messages${skippedCount > 0 ? ` (${skippedCount} already existed)` : ""}`,
     });
   } catch (error) {
     console.error("Seed scan messages error:", error);
