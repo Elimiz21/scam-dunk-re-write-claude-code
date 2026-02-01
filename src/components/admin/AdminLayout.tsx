@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Search,
   Database,
+  KeyRound,
 } from "lucide-react";
 
 interface AdminSession {
@@ -39,6 +40,7 @@ const navigation = [
   { name: "Integrations", href: "/admin/integrations", icon: Settings },
   { name: "Model Efficacy", href: "/admin/model-efficacy", icon: Shield },
   { name: "Team", href: "/admin/team", icon: Users },
+  { name: "Settings", href: "/admin/settings", icon: KeyRound },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
