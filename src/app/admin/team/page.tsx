@@ -169,6 +169,25 @@ export default function TeamPage() {
           />
         )}
 
+        {/* Role Legend */}
+        <div className="bg-white rounded-lg shadow px-6 py-4">
+          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Role Permissions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="border border-purple-200 rounded-md p-3 bg-purple-50">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mb-1">OWNER</span>
+              <p className="text-gray-700 mt-1">Full control. Can manage team members, change dashboard structure, and configure all settings. Only one owner per instance.</p>
+            </div>
+            <div className="border border-blue-200 rounded-md p-3 bg-blue-50">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-1">ADMIN</span>
+              <p className="text-gray-700 mt-1">Full usage access. Can use all dashboard features, run scans, view data, and perform lookups. Cannot manage team or change settings.</p>
+            </div>
+            <div className="border border-gray-200 rounded-md p-3 bg-gray-50">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mb-1">VIEWER</span>
+              <p className="text-gray-700 mt-1">Read-only access. Can view all dashboards and data but cannot make any changes or run scans.</p>
+            </div>
+          </div>
+        </div>
+
         {/* Team Members */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -345,9 +364,15 @@ export default function TeamPage() {
                       onChange={(e) => setInviteRole(e.target.value)}
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                     >
-                      <option value="ADMIN">Admin - Full access</option>
+                      <option value="ADMIN">Admin - Full dashboard access</option>
                       <option value="VIEWER">Viewer - Read-only access</option>
                     </select>
+                    <p className="mt-2 text-xs text-gray-500">
+                      <strong>Admin:</strong> Can access and use all dashboard features (scans, lookups, data, etc.) but cannot modify dashboard structure or manage team members.
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      <strong>Viewer:</strong> Can view all dashboards and data in read-only mode.
+                    </p>
                   </div>
                 </div>
               )}
