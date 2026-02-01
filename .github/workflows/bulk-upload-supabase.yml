@@ -1,0 +1,241 @@
+name: Bulk Upload to Supabase
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Supabase secrets
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          MISSING=""
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then MISSING="$MISSING NEXT_PUBLIC_SUPABASE_URL"; fi
+          if [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then MISSING="$MISSING NEXT_PUBLIC_SUPABASE_ANON_KEY"; fi
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing required secrets:$MISSING"
+            echo "Configure these in Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          echo "Supabase secrets are configured"
+          echo "URL: ${NEXT_PUBLIC_SUPABASE_URL:0:30}..."
+
+      - name: Checkout data repository
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: List files to upload
+        run: |
+          echo "=== Files in data repo ==="
+          find data-repo -type f \( -name "*.json" -o -name "*.txt" -o -name "*.md" \) | grep -v ".git" | sort
+          echo ""
+          JSON_COUNT=$(find data-repo -type f -name "*.json" | grep -v ".git" | wc -l)
+          echo "Total JSON files to upload: $JSON_COUNT"
+
+      - name: Create Supabase bucket if needed
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          echo "Checking/creating evaluation-data bucket..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/bucket" \
+            -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"id":"evaluation-data","name":"evaluation-data","public":true}')
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+            echo "Bucket created successfully"
+          elif echo "$BODY" | grep -q "already exists"; then
+            echo "Bucket already exists - OK"
+          else
+            echo "Bucket creation response ($HTTP_CODE): $BODY"
+            echo "Continuing anyway - bucket may already exist with different permissions"
+          fi
+
+      - name: Upload evaluation results to Supabase
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          UPLOADED=0
+          FAILED=0
+          SKIPPED=0
+
+          upload_file() {
+            local FILE_PATH="$1"
+            local FILENAME="$2"
+            local CONTENT_TYPE="$3"
+
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+              "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
+              -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+              -H "Content-Type: ${CONTENT_TYPE}" \
+              -H "x-upsert: true" \
+              --data-binary @"${FILE_PATH}") || true
+
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+              echo "  OK  $FILENAME ($HTTP_CODE)"
+              return 0
+            else
+              echo "  FAIL $FILENAME ($HTTP_CODE): $BODY"
+              return 1
+            fi
+          }
+
+          echo "=== UPLOADING EVALUATION RESULTS ==="
+          echo ""
+
+          # 1. FMP Evaluations (the main evaluation files the dashboard expects)
+          echo "--- Evaluation files ---"
+          for f in data-repo/evaluation-results/fmp-evaluation-*.json; do
+            [ -f "$f" ] || continue
+            BASENAME=$(basename "$f")
+            if upload_file "$f" "$BASENAME" "application/json"; then
+              UPLOADED=$((UPLOADED + 1))
+            else
+              FAILED=$((FAILED + 1))
+            fi
+          done
+
+          # 2. High-risk files
+          echo ""
+          echo "--- High-risk files ---"
+          for f in data-repo/evaluation-results/fmp-high-risk-*.json; do
+            [ -f "$f" ] || continue
+            BASENAME=$(basename "$f")
+            if upload_file "$f" "$BASENAME" "application/json"; then
+              UPLOADED=$((UPLOADED + 1))
+            else
+              FAILED=$((FAILED + 1))
+            fi
+          done
+
+          # 3. Summary files
+          echo ""
+          echo "--- Summary files ---"
+          for f in data-repo/daily-summaries/fmp-summary-*.json; do
+            [ -f "$f" ] || continue
+            BASENAME=$(basename "$f")
+            if upload_file "$f" "$BASENAME" "application/json"; then
+              UPLOADED=$((UPLOADED + 1))
+            else
+              FAILED=$((FAILED + 1))
+            fi
+          done
+
+          # 4. Comparison reports
+          echo ""
+          echo "--- Comparison reports ---"
+          for f in data-repo/comparison-reports/*.json; do
+            [ -f "$f" ] || continue
+            BASENAME=$(basename "$f")
+            if upload_file "$f" "$BASENAME" "application/json"; then
+              UPLOADED=$((UPLOADED + 1))
+            else
+              FAILED=$((FAILED + 1))
+            fi
+          done
+
+          # 5. Promoted stocks
+          echo ""
+          echo "--- Promoted stocks ---"
+          for f in data-repo/promoted-stocks/*.json; do
+            [ -f "$f" ] || continue
+            BASENAME=$(basename "$f")
+            if upload_file "$f" "$BASENAME" "application/json"; then
+              UPLOADED=$((UPLOADED + 1))
+            else
+              FAILED=$((FAILED + 1))
+            fi
+          done
+
+          # 6. Social media scans (JSON only)
+          echo ""
+          echo "--- Social media scans ---"
+          for f in data-repo/social-media-scans/*.json; do
+            [ -f "$f" ] || continue
+            BASENAME=$(basename "$f")
+            if upload_file "$f" "$BASENAME" "application/json"; then
+              UPLOADED=$((UPLOADED + 1))
+            else
+              FAILED=$((FAILED + 1))
+            fi
+          done
+
+          # 7. OpenAI classification results
+          echo ""
+          echo "--- OpenAI classification results ---"
+          for f in data-repo/evaluation-results/filtered-*.json data-repo/evaluation-results/openai-*.json; do
+            [ -f "$f" ] || continue
+            BASENAME=$(basename "$f")
+            if upload_file "$f" "$BASENAME" "application/json"; then
+              UPLOADED=$((UPLOADED + 1))
+            else
+              FAILED=$((FAILED + 1))
+            fi
+          done
+
+          echo ""
+          echo "==============================="
+          echo "UPLOAD SUMMARY"
+          echo "==============================="
+          echo "Uploaded: $UPLOADED"
+          echo "Failed:   $FAILED"
+          echo "==============================="
+
+          if [ "$FAILED" -gt 0 ] && [ "$UPLOADED" -eq 0 ]; then
+            echo "::error::All uploads failed. Check Supabase bucket permissions."
+            echo ""
+            echo "TROUBLESHOOTING:"
+            echo "1. Ensure the 'evaluation-data' bucket exists in Supabase Storage"
+            echo "2. Ensure the bucket is set to 'public'"
+            echo "3. Add this RLS policy in Supabase SQL Editor:"
+            echo "   CREATE POLICY \"Allow public access to evaluation-data\""
+            echo "   ON storage.objects FOR ALL"
+            echo "   USING (bucket_id = 'evaluation-data');"
+            exit 1
+          fi
+
+      - name: Verify uploads
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          echo "=== VERIFYING BUCKET CONTENTS ==="
+          RESPONSE=$(curl -s -X POST \
+            "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/list/evaluation-data" \
+            -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"prefix":"","limit":200,"sortBy":{"column":"name","order":"asc"}}')
+
+          echo "$RESPONSE" | python3 -c "
+          import json, sys
+          try:
+              files = json.load(sys.stdin)
+              if isinstance(files, list):
+                  print(f'Total files in bucket: {len(files)}')
+                  print()
+                  for f in files:
+                      name = f.get('name', '?')
+                      size = f.get('metadata', {}).get('size', 0) if isinstance(f.get('metadata'), dict) else 0
+                      size_kb = size / 1024 if size else 0
+                      print(f'  {name} ({size_kb:.0f} KB)')
+              else:
+                  print(f'Unexpected response: {json.dumps(files, indent=2)[:500]}')
+          except:
+              print(f'Raw response: {sys.stdin.read()[:500]}')
+          "
