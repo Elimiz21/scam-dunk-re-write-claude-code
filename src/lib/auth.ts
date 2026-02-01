@@ -13,6 +13,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { authConfig } from "./auth.config";
+import { logAuthError } from "./auth-error-tracking";
 
 // Custom error class for email not verified
 class EmailNotVerifiedError extends CredentialsSignin {
@@ -55,6 +56,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           console.log("[AUTH] Missing credentials");
+          await logAuthError(
+            { endpoint: "/api/auth/[...nextauth]" },
+            {
+              errorType: "LOGIN_FAILED",
+              errorCode: "INVALID_CREDENTIALS",
+              message: "Missing email or password",
+            }
+          );
           return null;
         }
 
@@ -69,11 +78,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user) {
           console.log("[AUTH] User not found for email:", email);
+          await logAuthError(
+            { email, endpoint: "/api/auth/[...nextauth]" },
+            {
+              errorType: "LOGIN_FAILED",
+              errorCode: "USER_NOT_FOUND",
+              message: "User not found",
+            }
+          );
           return null;
         }
 
         if (!user.hashedPassword) {
           console.log("[AUTH] User has no password set:", email);
+          await logAuthError(
+            { email, userId: user.id, endpoint: "/api/auth/[...nextauth]" },
+            {
+              errorType: "LOGIN_FAILED",
+              errorCode: "INVALID_CREDENTIALS",
+              message: "User has no password set (OAuth account)",
+            }
+          );
           return null;
         }
 
@@ -82,6 +107,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!passwordMatch) {
           console.log("[AUTH] Password mismatch for:", email);
+          await logAuthError(
+            { email, userId: user.id, endpoint: "/api/auth/[...nextauth]" },
+            {
+              errorType: "LOGIN_FAILED",
+              errorCode: "INVALID_CREDENTIALS",
+              message: "Invalid password",
+            }
+          );
           return null;
         }
 
@@ -89,6 +122,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Check if email is verified
         if (!user.emailVerified) {
+          await logAuthError(
+            { email, userId: user.id, endpoint: "/api/auth/[...nextauth]" },
+            {
+              errorType: "LOGIN_FAILED",
+              errorCode: "EMAIL_NOT_VERIFIED",
+              message: "Email not verified",
+            }
+          );
           throw new EmailNotVerifiedError();
         }
 

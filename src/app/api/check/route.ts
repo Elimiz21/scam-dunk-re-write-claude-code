@@ -8,6 +8,7 @@ import { generateNarrative } from "@/lib/narrative";
 import { canUserScan, incrementScanCount } from "@/lib/usage";
 import { logScanHistory } from "@/lib/admin/metrics";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
+import { sendAPIFailureAlert } from "@/lib/email";
 import {
   CheckRequest,
   LimitReachedResponse,
@@ -15,6 +16,22 @@ import {
   StockSummary,
   RiskSignal,
 } from "@/lib/types";
+
+// Custom error for service unavailable
+class ServiceUnavailableError extends Error {
+  apiName: string;
+  ticker: string;
+  assetType: string;
+  originalError: string;
+
+  constructor(apiName: string, ticker: string, assetType: string, originalError: string) {
+    super(`Service unavailable: ${apiName} failed for ${assetType} ${ticker}`);
+    this.apiName = apiName;
+    this.ticker = ticker;
+    this.assetType = assetType;
+    this.originalError = originalError;
+  }
+}
 
 // Python AI backend URL
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "";
@@ -86,6 +103,21 @@ async function callPythonAIBackend(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      // Check for 503 Service Unavailable (data API failure)
+      if (response.status === 503) {
+        const errorData = await response.json().catch(() => ({}));
+        const detail = errorData.detail || {};
+        console.error(`AI backend returned 503 - Service Unavailable:`, detail);
+
+        // Throw ServiceUnavailableError to be handled by the main handler
+        throw new ServiceUnavailableError(
+          detail.api_name || "Unknown API",
+          detail.ticker || ticker,
+          detail.asset_type || assetType,
+          detail.original_error || "Data API unavailable"
+        );
+      }
+
       console.error(`AI backend returned ${response.status}`);
       return { success: false };
     }
@@ -208,7 +240,7 @@ export async function POST(request: NextRequest) {
       console.log(`Using Python AI backend for ${ticker}`);
 
       // Fetch market data as fallback for stock summary if AI doesn't provide it
-      marketData = await fetchMarketData(ticker);
+      marketData = await fetchMarketData(ticker, checkRequest.assetType);
 
       scoringResult = {
         riskLevel: aiResult.riskLevel as "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT",
@@ -227,8 +259,19 @@ export async function POST(request: NextRequest) {
       // =====================================================
       console.log(`Falling back to TypeScript scoring for ${ticker}`);
 
-      // Fetch market data
-      marketData = await fetchMarketData(ticker);
+      // Fetch market data (pass assetType to use correct API - CoinGecko for crypto)
+      marketData = await fetchMarketData(ticker, checkRequest.assetType);
+
+      // Check if market data fetch failed - throw service unavailable error
+      if (!marketData.dataAvailable) {
+        const apiName = checkRequest.assetType === "crypto" ? "CoinGecko" : "FMP/AlphaVantage";
+        throw new ServiceUnavailableError(
+          apiName,
+          ticker,
+          checkRequest.assetType || "stock",
+          "Failed to fetch market data - all data sources unavailable"
+        );
+      }
 
       // Compute risk score using TypeScript
       scoringResult = await computeRiskScore({
@@ -305,6 +348,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error("Check API error:", error);
+
+    // Handle service unavailable errors (data APIs are down)
+    if (error instanceof ServiceUnavailableError) {
+      console.error(`SERVICE UNAVAILABLE - API: ${error.apiName}, Ticker: ${error.ticker}, Type: ${error.assetType}`);
+      console.error(`Original error: ${error.originalError}`);
+
+      // Send email notification to admin (non-blocking)
+      sendAPIFailureAlert(
+        error.apiName,
+        error.ticker,
+        error.originalError,
+        error.assetType
+      ).catch((emailError) => {
+        console.error("Failed to send admin alert email:", emailError);
+      });
+
+      // Return user-friendly offline message
+      return NextResponse.json(
+        {
+          error: "service_unavailable",
+          message: "The scanning system is currently offline. Please try again later.",
+          retryAfter: 60, // Suggest retry after 60 seconds
+        },
+        { status: 503 }
+      );
+    }
 
     // Return more specific error for debugging
     const errorMessage = error instanceof Error ? error.message : "Unknown error";

@@ -5,6 +5,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import { createPasswordResetToken, createEmailVerificationToken } from "@/lib/tokens";
+import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 
 export const dynamic = 'force-dynamic';
 
@@ -186,6 +188,92 @@ export async function PATCH(request: NextRequest) {
         }
         updateData = { name: value };
         logDetails = `Updated user's name to "${value}"`;
+        break;
+
+      case "resetPassword":
+        // Send password reset email to user
+        try {
+          const resetToken = await createPasswordResetToken(user.email);
+          const emailSent = await sendPasswordResetEmail(user.email, resetToken);
+          if (!emailSent) {
+            return NextResponse.json(
+              { error: "Failed to send password reset email" },
+              { status: 500 }
+            );
+          }
+          logDetails = `Sent password reset email to ${user.email}`;
+        } catch (emailError) {
+          console.error("Password reset email error:", emailError);
+          return NextResponse.json(
+            { error: "Failed to send password reset email" },
+            { status: 500 }
+          );
+        }
+        break;
+
+      case "deleteUser":
+        // Delete user and all related data
+        try {
+          // Delete related data first (in order of dependencies)
+          await prisma.emailVerificationToken.deleteMany({ where: { email: user.email } });
+          await prisma.passwordResetToken.deleteMany({ where: { email: user.email } });
+          await prisma.scanUsage.deleteMany({ where: { userId } });
+          await prisma.scanHistory.deleteMany({ where: { userId } });
+          await prisma.session.deleteMany({ where: { userId } });
+          await prisma.account.deleteMany({ where: { userId } });
+          // Finally delete the user
+          await prisma.user.delete({ where: { id: userId } });
+          logDetails = `Deleted user ${user.email} and all related data`;
+
+          // Log and return early since user is deleted
+          await prisma.adminAuditLog.create({
+            data: {
+              adminUserId: session.id,
+              action: "USER_DELETE",
+              resource: userId,
+              details: JSON.stringify({ userEmail: user.email, details: logDetails }),
+            },
+          });
+
+          return NextResponse.json({ success: true, message: logDetails });
+        } catch (deleteError) {
+          console.error("Delete user error:", deleteError);
+          return NextResponse.json(
+            { error: "Failed to delete user" },
+            { status: 500 }
+          );
+        }
+
+      case "resetVerification":
+        // Reset email verification and send new verification email
+        try {
+          // Set emailVerified to null
+          await prisma.user.update({
+            where: { id: userId },
+            data: { emailVerified: null },
+          });
+
+          // Delete any existing verification tokens for this email
+          await prisma.emailVerificationToken.deleteMany({ where: { email: user.email } });
+
+          // Create new verification token and send email
+          const verificationToken = await createEmailVerificationToken(user.email);
+          const emailSent = await sendVerificationEmail(user.email, verificationToken);
+
+          if (!emailSent) {
+            return NextResponse.json(
+              { error: "Failed to send verification email" },
+              { status: 500 }
+            );
+          }
+          logDetails = `Reset verification and sent new verification email to ${user.email}`;
+        } catch (verifyError) {
+          console.error("Reset verification error:", verifyError);
+          return NextResponse.json(
+            { error: "Failed to reset verification" },
+            { status: 500 }
+          );
+        }
         break;
 
       default:

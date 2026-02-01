@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { consumePasswordResetToken } from "@/lib/tokens";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
+import { logAuthError } from "@/lib/auth-error-tracking";
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Token is required"),
@@ -34,6 +35,19 @@ export async function POST(request: NextRequest) {
     const result = await consumePasswordResetToken(token);
 
     if (!result.valid || !result.email) {
+      const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+      await logAuthError(
+        {
+          ipAddress: ip,
+          userAgent: request.headers.get("user-agent") || undefined,
+          endpoint: "/api/auth/reset-password",
+        },
+        {
+          errorType: "PASSWORD_RESET_FAILED",
+          errorCode: "TOKEN_EXPIRED",
+          message: "Invalid or expired reset token",
+        }
+      );
       return NextResponse.json(
         { error: "Invalid or expired reset token" },
         { status: 400 }
@@ -57,6 +71,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Reset password error:", error);
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+    await logAuthError(
+      {
+        ipAddress: ip,
+        userAgent: request.headers.get("user-agent") || undefined,
+        endpoint: "/api/auth/reset-password",
+      },
+      {
+        errorType: "PASSWORD_RESET_FAILED",
+        errorCode: "UNKNOWN_ERROR",
+        message: "Failed to reset password",
+        error: error instanceof Error ? error : undefined,
+      }
+    );
     return NextResponse.json(
       { error: "Failed to reset password" },
       { status: 500 }

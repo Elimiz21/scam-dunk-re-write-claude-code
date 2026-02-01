@@ -413,3 +413,138 @@ model PromotedStock {
   @@index([promoterName])
   @@index([isActive])
 }
+
+// ==========================================
+// AUTH ERROR TRACKING MODELS
+// For monitoring authentication issues
+// ==========================================
+
+model AuthErrorLog {
+  id          String   @id @default(cuid())
+
+  // Error categorization
+  errorType   String   // SIGNUP_FAILED, LOGIN_FAILED, VERIFICATION_FAILED, PASSWORD_RESET_FAILED, EMAIL_SEND_FAILED
+  errorCode   String?  // More specific error code (e.g., EMAIL_NOT_VERIFIED, INVALID_CREDENTIALS, TOKEN_EXPIRED)
+
+  // Context
+  email       String?  // Email involved (if available, partially masked in queries)
+  userId      String?  // User ID if user exists
+  endpoint    String   // API endpoint that generated the error
+
+  // Error details
+  message     String   // User-facing error message
+  details     String?  @db.Text // Technical details (JSON) - internal only
+  stackTrace  String?  @db.Text // Stack trace for debugging
+
+  // Request context
+  ipAddress   String?
+  userAgent   String?  @db.Text
+
+  // Resolution tracking
+  isResolved  Boolean  @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?  // Admin user who resolved
+  resolution  String?  @db.Text // Notes on resolution
+
+  createdAt   DateTime @default(now())
+
+  @@index([errorType])
+  @@index([errorCode])
+  @@index([email])
+  @@index([createdAt])
+  @@index([isResolved])
+}
+
+model AuthErrorSummary {
+  id          String   @id @default(cuid())
+
+  dateKey     String   @unique // Format: YYYY-MM-DD
+
+  // Error counts by type
+  signupErrors        Int @default(0)
+  loginErrors         Int @default(0)
+  verificationErrors  Int @default(0)
+  passwordResetErrors Int @default(0)
+  emailSendErrors     Int @default(0)
+
+  // Top error codes for the day (JSON array)
+  topErrorCodes       String? @db.Text
+
+  // Unique users affected
+  uniqueEmailsAffected Int @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dateKey])
+}
+
+// ==========================================
+// SCAN MESSAGES MODELS
+// For managing humorous scan loading messages
+// ==========================================
+
+model ScanMessage {
+  id        String   @id @default(cuid())
+  headline  String   // Main message text
+  subtext   String   // Secondary/supporting text
+  order     Int      // Display order (0-based)
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Track which generation batch this came from
+  generationId String?
+  generation   ScanMessageGeneration? @relation(fields: [generationId], references: [id])
+
+  @@index([isActive, order])
+  @@index([generationId])
+}
+
+model ScanMessageHistory {
+  id        String   @id @default(cuid())
+  headline  String
+  subtext   String
+
+  // Why it was archived
+  archiveReason String?  // REPLACED, DISCARDED, MANUAL_REMOVE
+
+  // Original creation data
+  originalCreatedAt DateTime
+  archivedAt        DateTime @default(now())
+
+  // Track which generation it came from
+  generationId String?
+
+  @@index([archivedAt])
+}
+
+model ScanMessageGeneration {
+  id        String   @id @default(cuid())
+
+  // Generation context
+  prompt         String   @db.Text  // The prompt used
+  model          String             // e.g., gpt-4o-mini
+
+  // Results
+  generatedCount Int               // How many were generated
+  acceptedCount  Int   @default(0) // How many were kept
+  discardedCount Int   @default(0) // How many were discarded
+
+  // Feedback for improvement
+  discardedMessages String? @db.Text  // JSON array of discarded messages with reasons
+  feedbackNotes     String? @db.Text  // Additional notes for next generation
+
+  // Token usage
+  tokensUsed    Int?
+  estimatedCost Float?
+
+  createdAt     DateTime @default(now())
+  createdBy     String?  // Admin user ID who triggered generation
+
+  // Relation to messages created from this generation
+  messages      ScanMessage[]
+
+  @@index([createdAt])
+}

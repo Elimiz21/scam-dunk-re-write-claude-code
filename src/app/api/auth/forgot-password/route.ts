@@ -5,6 +5,7 @@ import { createPasswordResetToken } from "@/lib/tokens";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { logAuthError } from "@/lib/auth-error-tracking";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -69,12 +70,42 @@ export async function POST(request: NextRequest) {
 
     if (!emailSent) {
       console.error("Failed to send password reset email to:", email);
+      const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+      await logAuthError(
+        {
+          email,
+          userId: user.id,
+          ipAddress: ip,
+          userAgent: request.headers.get("user-agent") || undefined,
+          endpoint: "/api/auth/forgot-password",
+        },
+        {
+          errorType: "EMAIL_SEND_FAILED",
+          errorCode: "RESEND_API_ERROR",
+          message: "Failed to send password reset email",
+          details: { stage: "password-reset" },
+        }
+      );
       // Still return success to prevent email enumeration, but log the failure
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Forgot password error:", error);
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+    await logAuthError(
+      {
+        ipAddress: ip,
+        userAgent: request.headers.get("user-agent") || undefined,
+        endpoint: "/api/auth/forgot-password",
+      },
+      {
+        errorType: "PASSWORD_RESET_FAILED",
+        errorCode: "UNKNOWN_ERROR",
+        message: "Failed to process password reset request",
+        error: error instanceof Error ? error : undefined,
+      }
+    );
     return NextResponse.json(
       { error: "Failed to process request" },
       { status: 500 }

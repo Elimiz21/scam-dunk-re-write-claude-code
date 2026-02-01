@@ -18,6 +18,10 @@ import {
   X,
   Loader2,
   Eye,
+  Key,
+  Trash2,
+  Mail,
+  AlertTriangle,
 } from "lucide-react";
 
 interface User {
@@ -85,6 +89,7 @@ export default function UsersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [editModal, setEditModal] = useState<{ type: string; userId: string; currentValue?: string | number } | null>(null);
   const [editValue, setEditValue] = useState<string | number>("");
+  const [confirmModal, setConfirmModal] = useState<{ type: string; userId: string; userEmail: string } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -277,6 +282,38 @@ export default function UsersPage() {
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Set Scan Count
+                  </button>
+                  <hr className="my-1" />
+                  <button
+                    onClick={() => {
+                      performAction(item.id, "resetPassword");
+                    }}
+                    disabled={actionLoading}
+                    className="flex items-center w-full px-4 py-2 text-sm text-purple-700 hover:bg-gray-100"
+                  >
+                    <Key className="h-4 w-4 mr-2" />
+                    Send Password Reset
+                  </button>
+                  <button
+                    onClick={() => {
+                      performAction(item.id, "resetVerification");
+                    }}
+                    disabled={actionLoading}
+                    className="flex items-center w-full px-4 py-2 text-sm text-indigo-700 hover:bg-gray-100"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Resend Verification
+                  </button>
+                  <hr className="my-1" />
+                  <button
+                    onClick={() => {
+                      setConfirmModal({ type: "deleteUser", userId: item.id, userEmail: item.email });
+                      setMenuOpen(null);
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete User
                   </button>
                 </div>
               </div>
@@ -492,6 +529,40 @@ export default function UsersPage() {
                       Set Scan Count
                     </button>
                   </div>
+
+                  {/* Additional Actions */}
+                  <div className="border-t pt-4 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => performAction(selectedUser.user.id, "resetPassword")}
+                      disabled={actionLoading}
+                      className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      <Key className="h-4 w-4 mr-2" />
+                      Send Password Reset
+                    </button>
+                    <button
+                      onClick={() => performAction(selectedUser.user.id, "resetVerification")}
+                      disabled={actionLoading}
+                      className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Resend Verification
+                    </button>
+                    <button
+                      onClick={() => {
+                        setConfirmModal({
+                          type: "deleteUser",
+                          userId: selectedUser.user.id,
+                          userEmail: selectedUser.user.email,
+                        });
+                      }}
+                      disabled={actionLoading}
+                      className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete User
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -535,6 +606,55 @@ export default function UsersPage() {
                   className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
                 >
                   {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Modal (for delete) */}
+        {confirmModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                </div>
+                <h3 className="ml-3 text-lg font-medium text-gray-900">
+                  {confirmModal.type === "deleteUser" ? "Delete User" : "Confirm Action"}
+                </h3>
+              </div>
+              <div className="mb-4">
+                {confirmModal.type === "deleteUser" && (
+                  <div className="text-sm text-gray-600">
+                    <p className="mb-2">
+                      Are you sure you want to delete the user <strong>{confirmModal.userEmail}</strong>?
+                    </p>
+                    <p className="text-red-600 font-medium">
+                      This action cannot be undone. All user data including scan history, usage records, and account information will be permanently deleted.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setConfirmModal(null)}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    await performAction(confirmModal.userId, confirmModal.type);
+                    setConfirmModal(null);
+                    if (selectedUser?.user.id === confirmModal.userId) {
+                      setSelectedUser(null);
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                >
+                  {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Delete User"}
                 </button>
               </div>
             </div>
