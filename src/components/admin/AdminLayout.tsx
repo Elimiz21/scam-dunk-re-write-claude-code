@@ -20,6 +20,7 @@ import {
   Search,
   Database,
   MessageSquare,
+  Newspaper,
 } from "lucide-react";
 
 interface AdminSession {
@@ -31,6 +32,7 @@ interface AdminSession {
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "News", href: "/admin/news", icon: Newspaper },
   { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
   { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
   { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
@@ -104,9 +106,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Mobile sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out lg:hidden ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex items-center justify-between h-16 px-4 bg-gray-800">
           <span className="text-xl font-bold text-white">ScamDunk Admin</span>
@@ -122,11 +123,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={item.name}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
-                  isActive
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                }`}
+                className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${isActive
+                  ? "bg-indigo-600 text-white"
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  }`}
               >
                 <item.icon className="h-5 w-5 mr-3" />
                 {item.name}
@@ -151,11 +151,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
-                    isActive
-                      ? "bg-indigo-600 text-white"
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${isActive
+                    ? "bg-indigo-600 text-white"
+                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                    }`}
                 >
                   <item.icon className="h-5 w-5 mr-3" />
                   {item.name}
