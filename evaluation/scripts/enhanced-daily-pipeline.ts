@@ -749,13 +749,21 @@ async function runEnhancedPipeline(): Promise<void> {
                 const pyResult = await callPythonAIBackend(stock.symbol);
                 if (pyResult && pyResult.success) {
                     // Use Python AI results (all 4 layers)
+                    // Cast signals to the expected type (Python backend returns compatible structure)
+                    const typedSignals = pyResult.signals.map(s => ({
+                        code: s.code,
+                        category: s.category as 'STRUCTURAL' | 'PATTERN' | 'ALERT' | 'BEHAVIORAL',
+                        weight: s.weight,
+                        description: s.description
+                    }));
                     scoringResult = {
                         riskLevel: pyResult.riskLevel as 'LOW' | 'MEDIUM' | 'HIGH' | 'INSUFFICIENT',
                         totalScore: Math.round(pyResult.riskProbability * 20), // Convert probability to score
-                        signals: pyResult.signals,
+                        signals: typedSignals,
                         isLegitimate: false,
                         isInsufficient: false
                     };
+
                     aiLayers = {
                         layer1_deterministic: aiLayers.layer1_deterministic,
                         layer2_anomaly: pyResult.anomaly_score,
