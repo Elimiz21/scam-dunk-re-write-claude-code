@@ -1,0 +1,560 @@
+{
+  "lastUpdated": "2026-02-02T20:49:31.599Z",
+  "totalSchemes": 10,
+  "activeSchemes": 10,
+  "resolvedSchemes": 0,
+  "confirmedFrauds": 0,
+  "schemes": {
+    "SCH-EVTV-20260202-9ALD": {
+      "schemeId": "SCH-EVTV-20260202-9ALD",
+      "symbol": "EVTV",
+      "name": "Envirotech Vehicles, Inc.",
+      "sector": "Consumer Cyclical",
+      "industry": "Auto - Manufacturers",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 16,
+      "currentRiskScore": 16,
+      "peakPromotionScore": 61,
+      "currentPromotionScore": 61,
+      "priceAtDetection": 3.55,
+      "peakPrice": 3.55,
+      "currentPrice": 3.55,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "YouTube",
+        "Discord",
+        "Telegram"
+      ],
+      "promoterAccounts": [],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on YouTube",
+        "High promotion risk on Discord",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 16 and promotion score 61",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    },
+    "SCH-BCARW-20260202-88CA": {
+      "schemeId": "SCH-BCARW-20260202-88CA",
+      "symbol": "BCARW",
+      "name": "D. Boral ARC Acquisition I Corp. Warrant",
+      "sector": "Financial Services",
+      "industry": "Shell Companies",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 16,
+      "currentRiskScore": 16,
+      "peakPromotionScore": 58,
+      "currentPromotionScore": 58,
+      "priceAtDetection": 1.395,
+      "peakPrice": 1.395,
+      "currentPrice": 1.395,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "Discord",
+        "Telegram"
+      ],
+      "promoterAccounts": [],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on Discord",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 16 and promotion score 58",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    },
+    "SCH-PTHL-20260202-AI2J": {
+      "schemeId": "SCH-PTHL-20260202-AI2J",
+      "symbol": "PTHL",
+      "name": "Pheton Holdings Ltd Class A Ordinary Shares",
+      "sector": "Healthcare",
+      "industry": "Medical - Devices",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 15,
+      "currentRiskScore": 15,
+      "peakPromotionScore": 58,
+      "currentPromotionScore": 58,
+      "priceAtDetection": 0.9023,
+      "peakPrice": 0.9023,
+      "currentPrice": 0.9023,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "Discord",
+        "Telegram"
+      ],
+      "promoterAccounts": [],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on Discord",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 15 and promotion score 58",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    },
+    "SCH-XAIR-20260202-M8NZ": {
+      "schemeId": "SCH-XAIR-20260202-M8NZ",
+      "symbol": "XAIR",
+      "name": "Beyond Air, Inc.",
+      "sector": "Healthcare",
+      "industry": "Medical - Devices",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 15,
+      "currentRiskScore": 15,
+      "peakPromotionScore": 50,
+      "currentPromotionScore": 50,
+      "priceAtDetection": 1.7,
+      "peakPrice": 1.7,
+      "currentPrice": 1.7,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "Telegram"
+      ],
+      "promoterAccounts": [],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 15 and promotion score 50",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    },
+    "SCH-PELIR-20260202-0ENE": {
+      "schemeId": "SCH-PELIR-20260202-0ENE",
+      "symbol": "PELIR",
+      "name": "Pelican Acquisition Corporation Right",
+      "sector": "Financial Services",
+      "industry": "Asset Management",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 15,
+      "currentRiskScore": 15,
+      "peakPromotionScore": 61,
+      "currentPromotionScore": 61,
+      "priceAtDetection": 0.8016,
+      "peakPrice": 0.8016,
+      "currentPrice": 0.8016,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "YouTube",
+        "Discord",
+        "Telegram"
+      ],
+      "promoterAccounts": [],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on YouTube",
+        "High promotion risk on Discord",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 15 and promotion score 61",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    },
+    "SCH-THH-20260202-YD9V": {
+      "schemeId": "SCH-THH-20260202-YD9V",
+      "symbol": "THH",
+      "name": "TryHard Holdings Limited",
+      "sector": "Industrials",
+      "industry": "Specialty Business Services",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 14,
+      "currentRiskScore": 14,
+      "peakPromotionScore": 58,
+      "currentPromotionScore": 58,
+      "priceAtDetection": 0.9601,
+      "peakPrice": 0.9601,
+      "currentPrice": 0.9601,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "Discord",
+        "Telegram"
+      ],
+      "promoterAccounts": [],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on Discord",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 14 and promotion score 58",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    },
+    "SCH-SXTC-20260202-4CVF": {
+      "schemeId": "SCH-SXTC-20260202-4CVF",
+      "symbol": "SXTC",
+      "name": "China SXT Pharmaceuticals, Inc.",
+      "sector": "Healthcare",
+      "industry": "Drug Manufacturers - Specialty & Generic",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 14,
+      "currentRiskScore": 14,
+      "peakPromotionScore": 61,
+      "currentPromotionScore": 61,
+      "priceAtDetection": 0.095,
+      "peakPrice": 0.095,
+      "currentPrice": 0.095,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "YouTube",
+        "Discord",
+        "Telegram"
+      ],
+      "promoterAccounts": [
+        {
+          "platform": "Reddit",
+          "identifier": "Carlene_Trammel",
+          "confidence": "medium",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-02",
+          "postCount": 1
+        }
+      ],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on YouTube",
+        "High promotion risk on Discord",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 14 and promotion score 61",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    },
+    "SCH-MTEN-20260202-KMCM": {
+      "schemeId": "SCH-MTEN-20260202-KMCM",
+      "symbol": "MTEN",
+      "name": "Mingteng International Corporation Inc.",
+      "sector": "Industrials",
+      "industry": "Manufacturing - Metal Fabrication",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 14,
+      "currentRiskScore": 14,
+      "peakPromotionScore": 58,
+      "currentPromotionScore": 58,
+      "priceAtDetection": 0.0314,
+      "peakPrice": 0.0314,
+      "currentPrice": 0.0314,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "Discord",
+        "Telegram"
+      ],
+      "promoterAccounts": [],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on Discord",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 14 and promotion score 58",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    },
+    "SCH-DRTSW-20260202-H1OO": {
+      "schemeId": "SCH-DRTSW-20260202-H1OO",
+      "symbol": "DRTSW",
+      "name": "Alpha Tau Medical Ltd.",
+      "sector": "Healthcare",
+      "industry": "Biotechnology",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 14,
+      "currentRiskScore": 14,
+      "peakPromotionScore": 58,
+      "currentPromotionScore": 58,
+      "priceAtDetection": 0.95,
+      "peakPrice": 0.95,
+      "currentPrice": 0.95,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "Discord",
+        "Telegram"
+      ],
+      "promoterAccounts": [],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "MICRO_LIQUIDITY",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "OVERBOUGHT_RSI",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on Discord",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 14 and promotion score 58",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    },
+    "SCH-JDZG-20260202-18AA": {
+      "schemeId": "SCH-JDZG-20260202-18AA",
+      "symbol": "JDZG",
+      "name": "JIADE Limited",
+      "sector": "Technology",
+      "industry": "Information Technology Services",
+      "firstDetected": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "daysActive": 1,
+      "status": "NEW",
+      "peakRiskScore": 14,
+      "currentRiskScore": 14,
+      "peakPromotionScore": 61,
+      "currentPromotionScore": 61,
+      "priceAtDetection": 1.22,
+      "peakPrice": 1.22,
+      "currentPrice": 1.22,
+      "priceChangeFromDetection": 0,
+      "priceChangeFromPeak": 0,
+      "volumeAtDetection": 0,
+      "peakVolume": 0,
+      "currentVolume": 0,
+      "promotionPlatforms": [
+        "Twitter/X",
+        "YouTube",
+        "Discord",
+        "Telegram"
+      ],
+      "promoterAccounts": [],
+      "signalsDetected": [
+        "MICROCAP_PRICE",
+        "SMALL_MARKET_CAP",
+        "SPIKE_7D",
+        "VOLUME_EXPLOSION",
+        "SPIKE_THEN_DROP",
+        "HIGH_VOLATILITY"
+      ],
+      "coordinationIndicators": [
+        "High promotion risk on Twitter/X",
+        "High promotion risk on YouTube",
+        "High promotion risk on Discord",
+        "High promotion risk on Telegram"
+      ],
+      "timeline": [
+        {
+          "date": "2026-02-02",
+          "event": "Scheme detected",
+          "category": "detection",
+          "details": "Initial detection with risk score 14 and promotion score 61",
+          "significance": "high"
+        }
+      ],
+      "notes": [],
+      "investigationFlags": []
+    }
+  }
+}

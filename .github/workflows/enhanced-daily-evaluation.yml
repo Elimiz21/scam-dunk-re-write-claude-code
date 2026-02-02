@@ -1,0 +1,439 @@
+name: Enhanced Daily Stock Evaluation
+
+on:
+  # Run daily at 6 AM UTC (1 AM EST, after market close)
+  # Only runs on weekdays; holiday check is done in the job
+  schedule:
+    - cron: '0 6 * * 1-5'  # Monday through Friday only
+
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      upload_only:
+        description: 'Only upload existing results (skip evaluation)'
+        required: false
+        default: 'false'
+        type: boolean
+      force_run:
+        description: 'Force run even on holidays'
+        required: false
+        default: 'false'
+        type: boolean
+      date_override:
+        description: 'Run evaluation for a specific date (YYYY-MM-DD)'
+        required: false
+        default: ''
+        type: string
+      test_mode:
+        description: 'Run in test mode (process only 100 stocks)'
+        required: false
+        default: 'false'
+        type: boolean
+      skip_social_scan:
+        description: 'Skip social media scanning phase'
+        required: false
+        default: 'false'
+        type: boolean
+
+# Grant write permissions for issue creation on failure
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  check-trading-day:
+    runs-on: ubuntu-latest
+    outputs:
+      is_trading_day: ${{ steps.check.outputs.is_trading_day }}
+    steps:
+      - name: Check if today is a US market trading day
+        id: check
+        run: |
+          # Get current date in EST/EDT timezone
+          export TZ="America/New_York"
+          TODAY=$(date +%Y-%m-%d)
+          DAY_OF_WEEK=$(date +%u)  # 1=Monday, 7=Sunday
+          MONTH=$(date +%m)
+          DAY=$(date +%d)
+          YEAR=$(date +%Y)
+
+          echo "Today: $TODAY (Day of week: $DAY_OF_WEEK)"
+
+          # Skip weekends (should already be filtered by cron, but double-check)
+          if [ "$DAY_OF_WEEK" -gt 5 ]; then
+            echo "Weekend - not a trading day"
+            echo "is_trading_day=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # US Market Holidays (fixed dates)
+          # New Year's Day - January 1
+          # Juneteenth - June 19
+          # Independence Day - July 4
+          # Christmas - December 25
+          FIXED_HOLIDAYS="01-01 06-19 07-04 12-25"
+          MMDD="${MONTH}-${DAY}"
+
+          for holiday in $FIXED_HOLIDAYS; do
+            if [ "$MMDD" = "$holiday" ]; then
+              echo "Fixed holiday ($holiday) - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+
+          # MLK Day - 3rd Monday of January
+          if [ "$MONTH" = "01" ]; then
+            FIRST_DAY_DOW=$(date -d "$YEAR-01-01" +%u)
+            if [ "$FIRST_DAY_DOW" -le 1 ]; then
+              FIRST_MONDAY=$((1 + (1 - FIRST_DAY_DOW)))
+            else
+              FIRST_MONDAY=$((1 + (8 - FIRST_DAY_DOW)))
+            fi
+            THIRD_MONDAY=$((FIRST_MONDAY + 14))
+            if [ "$DAY" = "$THIRD_MONDAY" ] || [ "$DAY" = "0$THIRD_MONDAY" ]; then
+              echo "MLK Day - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Presidents Day - 3rd Monday of February
+          if [ "$MONTH" = "02" ]; then
+            FIRST_DAY_DOW=$(date -d "$YEAR-02-01" +%u)
+            if [ "$FIRST_DAY_DOW" -le 1 ]; then
+              FIRST_MONDAY=$((1 + (1 - FIRST_DAY_DOW)))
+            else
+              FIRST_MONDAY=$((1 + (8 - FIRST_DAY_DOW)))
+            fi
+            THIRD_MONDAY=$((FIRST_MONDAY + 14))
+            if [ "$DAY" -eq "$THIRD_MONDAY" ]; then
+              echo "Presidents Day - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Memorial Day - Last Monday of May
+          if [ "$MONTH" = "05" ]; then
+            LAST_DAY_DOW=$(date -d "$YEAR-05-31" +%u)
+            if [ "$LAST_DAY_DOW" -ge 1 ]; then
+              LAST_MONDAY=$((31 - (LAST_DAY_DOW - 1)))
+            else
+              LAST_MONDAY=$((31 - 6))
+            fi
+            if [ "$DAY" -eq "$LAST_MONDAY" ]; then
+              echo "Memorial Day - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Labor Day - 1st Monday of September
+          if [ "$MONTH" = "09" ]; then
+            FIRST_DAY_DOW=$(date -d "$YEAR-09-01" +%u)
+            if [ "$FIRST_DAY_DOW" -le 1 ]; then
+              FIRST_MONDAY=$((1 + (1 - FIRST_DAY_DOW)))
+            else
+              FIRST_MONDAY=$((1 + (8 - FIRST_DAY_DOW)))
+            fi
+            if [ "$DAY" -eq "$FIRST_MONDAY" ]; then
+              echo "Labor Day - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Thanksgiving - 4th Thursday of November
+          if [ "$MONTH" = "11" ]; then
+            FIRST_DAY_DOW=$(date -d "$YEAR-11-01" +%u)
+            if [ "$FIRST_DAY_DOW" -le 4 ]; then
+              FIRST_THURSDAY=$((1 + (4 - FIRST_DAY_DOW)))
+            else
+              FIRST_THURSDAY=$((1 + (11 - FIRST_DAY_DOW)))
+            fi
+            FOURTH_THURSDAY=$((FIRST_THURSDAY + 21))
+            if [ "$DAY" -eq "$FOURTH_THURSDAY" ]; then
+              echo "Thanksgiving - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Good Friday - hardcoded for known years
+          # 2024: March 29, 2025: April 18, 2026: April 3, 2027: March 26
+          GOOD_FRIDAYS="2024-03-29 2025-04-18 2026-04-03 2027-03-26 2028-04-14"
+          for gf in $GOOD_FRIDAYS; do
+            if [ "$TODAY" = "$gf" ]; then
+              echo "Good Friday - not a trading day"
+              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+
+          echo "Today is a trading day!"
+          echo "is_trading_day=true" >> $GITHUB_OUTPUT
+
+  enhanced-evaluation:
+    needs: check-trading-day
+    if: ${{ needs.check-trading-day.outputs.is_trading_day == 'true' || github.event.inputs.force_run == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 480  # 8 hours max for comprehensive evaluation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required secrets
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          MISSING=""
+          if [ -z "$FMP_API_KEY" ]; then MISSING="$MISSING FMP_API_KEY"; fi
+          if [ -z "$DATA_REPO_TOKEN" ]; then MISSING="$MISSING DATA_REPO_TOKEN"; fi
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing required secrets:$MISSING"
+            echo "Please configure these in Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::warning::OPENAI_API_KEY not set - social media analysis will use pattern matching only"
+          else
+            echo "OPENAI_API_KEY configured for AI-powered analysis"
+          fi
+          echo "All required secrets are configured"
+
+      - name: Determine evaluation date
+        id: date
+        run: |
+          DATE="${{ github.event.inputs.date_override }}"
+          if [ -z "$DATE" ]; then
+            DATE=$(date +%Y-%m-%d)
+          fi
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+          echo "Evaluation date: $DATE"
+
+      - name: Run Enhanced Daily Pipeline
+        if: ${{ github.event.inputs.upload_only != 'true' }}
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVALUATION_DATE: ${{ steps.date.outputs.date }}
+          TEST_MODE: ${{ github.event.inputs.test_mode }}
+        run: |
+          cd evaluation
+          echo "Starting Enhanced Daily Pipeline for $EVALUATION_DATE..."
+          echo "Test Mode: $TEST_MODE"
+          
+          # Run the enhanced pipeline
+          npx ts-node scripts/enhanced-daily-pipeline.ts
+          
+          echo "Enhanced pipeline complete"
+
+      - name: Generate Scheme Report
+        if: ${{ github.event.inputs.upload_only != 'true' }}
+        env:
+          EVALUATION_DATE: ${{ steps.date.outputs.date }}
+        run: |
+          cd evaluation
+          echo "Generating scheme tracking report..."
+          npx ts-node scripts/scheme-tracker.ts report $EVALUATION_DATE
+          echo "Scheme report generated"
+
+      - name: Upload to Supabase
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          DATE="${{ steps.date.outputs.date }}"
+
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "Warning: Supabase credentials not configured, skipping upload"
+            echo "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY secrets to enable"
+            exit 0
+          fi
+
+          cd evaluation
+          UPLOADED=0
+          
+          # Upload all result files
+          for file in results/*-${DATE}*.json results/*-${DATE}*.md; do
+            if [ -f "$file" ]; then
+              FILENAME=$(basename "$file")
+              echo "Uploading $FILENAME to Supabase..."
+              RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
+                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+                -H "Content-Type: application/json" \
+                -H "x-upsert: true" \
+                --data-binary @"$file") || true
+              HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+              BODY=$(echo "$RESPONSE" | head -n -1)
+              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+                echo "  OK ($HTTP_CODE)"
+                UPLOADED=$((UPLOADED + 1))
+              else
+                echo "  Warning: Upload returned $HTTP_CODE - $BODY"
+              fi
+            fi
+          done
+          
+          # Upload scheme database
+          if [ -f "scheme-database/scheme-database.json" ]; then
+            echo "Uploading scheme database..."
+            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/scheme-database.json" \
+              -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+              -H "Content-Type: application/json" \
+              -H "x-upsert: true" \
+              --data-binary @"scheme-database/scheme-database.json" || true
+            UPLOADED=$((UPLOADED + 1))
+          fi
+          
+          echo "Uploaded $UPLOADED files to Supabase"
+
+      - name: Checkout data repository
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: Copy results to data repository
+        run: |
+          DATE="${{ steps.date.outputs.date }}"
+
+          # Ensure directories exist
+          mkdir -p data-repo/evaluation-results 
+          mkdir -p data-repo/daily-summaries 
+          mkdir -p data-repo/comparison-reports 
+          mkdir -p data-repo/promoted-stocks 
+          mkdir -p data-repo/social-media-scans
+          mkdir -p data-repo/suspicious-stocks
+          mkdir -p data-repo/scheme-tracking
+          mkdir -p data-repo/reports
+
+          # Copy enhanced evaluation results
+          cp evaluation/results/enhanced-evaluation-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
+          cp evaluation/results/enhanced-high-risk-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
+          
+          # Copy legacy format for backwards compatibility
+          cp evaluation/results/fmp-evaluation-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
+          cp evaluation/results/fmp-high-risk-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
+          cp evaluation/results/fmp-summary-${DATE}.json data-repo/daily-summaries/ 2>/dev/null || true
+
+          # Copy suspicious stocks and scheme data
+          cp evaluation/results/suspicious-stocks-${DATE}.json data-repo/suspicious-stocks/ 2>/dev/null || true
+          cp evaluation/results/daily-report-${DATE}.json data-repo/reports/ 2>/dev/null || true
+          
+          # Copy scheme tracking data
+          cp evaluation/scheme-database/scheme-database.json data-repo/scheme-tracking/ 2>/dev/null || true
+          cp evaluation/results/scheme-report-${DATE}.md data-repo/scheme-tracking/ 2>/dev/null || true
+
+          # Copy social media scans
+          cp evaluation/results/social-media-scan-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
+          cp evaluation/results/social-media-scan-*.md data-repo/social-media-scans/ 2>/dev/null || true
+
+          # Copy comparison reports
+          cp evaluation/results/comparison-${DATE}.json data-repo/comparison-reports/ 2>/dev/null || true
+
+          # Copy promoted stocks
+          cp evaluation/results/promoted-stocks-${DATE}.json data-repo/promoted-stocks/ 2>/dev/null || true
+
+          # List what was copied
+          echo "Files in data-repo:"
+          find data-repo -name "*${DATE}*" -type f 2>/dev/null | sort
+
+      - name: Commit results to data repository
+        run: |
+          cd data-repo
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add -A
+
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No new evaluation results to commit"
+          else
+            DATE="${{ steps.date.outputs.date }}"
+            git commit -m "Add enhanced evaluation results for ${DATE}"
+            git push
+            echo "Results pushed to scam-dunk-data repository"
+          fi
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enhanced-evaluation-results-${{ github.run_number }}
+          path: |
+            evaluation/results/*.json
+            evaluation/results/*.md
+            evaluation/scheme-database/*.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Summary
+        run: |
+          DATE="${{ steps.date.outputs.date }}"
+          echo "## Enhanced Daily Evaluation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** ${DATE}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "evaluation/results/daily-report-${DATE}.json" ]; then
+            echo "### Results" >> $GITHUB_STEP_SUMMARY
+            cat evaluation/results/daily-report-${DATE}.json | jq -r '
+              "- **Total Stocks Scanned:** \(.totalStocksScanned)",
+              "- **High Risk (Before Filters):** \(.highRiskBeforeFilters)",
+              "- **Filtered by Market Cap:** \(.filteredByMarketCap)",
+              "- **Filtered by Volume:** \(.filteredByVolume)",
+              "- **Filtered by News:** \(.filteredByNews)",
+              "- **Remaining Suspicious:** \(.remainingSuspicious)",
+              "- **Active Schemes:** \(.activeSchemes)",
+              "- **New Schemes Detected:** \(.newSchemes)",
+              "- **Processing Time:** \(.processingTimeMinutes) minutes"
+            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Unable to parse report" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See artifacts for full results." >> $GITHUB_STEP_SUMMARY
+
+  notify-on-failure:
+    needs: enhanced-evaluation
+    runs-on: ubuntu-latest
+    if: failure()
+    permissions:
+      issues: write
+    steps:
+      - name: Create issue on failure
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            try {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Enhanced Daily Evaluation Failed - ${date}`,
+                body: `The enhanced daily stock evaluation workflow failed.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\nPlease check the logs and re-run if needed.`,
+                labels: ['bug', 'automation']
+              });
+            } catch (error) {
+              console.log(`Could not create issue: ${error.message}`);
+              console.log('Ensure workflow has write permissions: Settings > Actions > General > Workflow permissions');
+            }
