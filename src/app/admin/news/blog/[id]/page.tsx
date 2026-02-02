@@ -222,7 +222,7 @@ export default function AdminBlogEditorPage() {
         text = text.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
 
         // Convert blockquotes
-        text = text.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gis, '\n> $1\n');
+        text = text.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, '\n> $1\n');
 
         // Remove remaining HTML tags
         text = text.replace(/<[^>]+>/g, '');
