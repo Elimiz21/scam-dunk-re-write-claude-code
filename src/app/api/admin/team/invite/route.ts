@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, createAdminInvite, acceptAdminInvite } from "@/lib/admin/auth";
+import { sendInviteEmail } from "@/lib/email";
 import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
@@ -46,10 +47,24 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
     const inviteUrl = `${baseUrl}/admin/login?invite=${result.token}`;
 
+    // Send invitation email
+    let emailSent = false;
+    try {
+      emailSent = await sendInviteEmail(
+        validation.data.email,
+        inviteUrl,
+        validation.data.role,
+        session.name || undefined
+      );
+    } catch (emailError) {
+      console.error("Failed to send invite email:", emailError);
+    }
+
     return NextResponse.json({
       success: true,
       inviteUrl,
       token: result.token,
+      emailSent,
     });
   } catch (error) {
     console.error("Create invite error:", error);

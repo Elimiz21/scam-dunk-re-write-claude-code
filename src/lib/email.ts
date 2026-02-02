@@ -269,6 +269,99 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
 }
 
 /**
+ * Send a team invitation email with a link to accept the invite
+ */
+export async function sendInviteEmail(
+  email: string,
+  inviteUrl: string,
+  role: string,
+  inviterName?: string
+): Promise<boolean> {
+  const config = checkEmailConfiguration();
+  if (config.isTestMode) {
+    console.log(`[EMAIL] Sending invite email (TEST MODE - may fail for non-owner emails)`);
+  }
+
+  const roleDescription = role === 'ADMIN'
+    ? 'full dashboard access (scans, lookups, data)'
+    : 'read-only access to all dashboards and data';
+
+  try {
+    const resend = getResend();
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: "You're invited to join ScamDunk Admin",
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #0070f3; margin: 0;">ScamDunk</h1>
+              <p style="color: #666; margin-top: 5px;">Admin Dashboard</p>
+            </div>
+
+            <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+              <h2 style="margin-top: 0;">You've been invited!</h2>
+              <p>${inviterName ? `<strong>${inviterName}</strong> has` : 'You have been'} invited you to join the ScamDunk admin dashboard as <strong>${role}</strong> with ${roleDescription}.</p>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${inviteUrl}" style="background: #4f46e5; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: 500; display: inline-block;">
+                  Accept Invitation
+                </a>
+              </div>
+
+              <p style="color: #666; font-size: 14px;">
+                Or copy and paste this link into your browser:<br>
+                <a href="${inviteUrl}" style="color: #4f46e5; word-break: break-all;">${inviteUrl}</a>
+              </p>
+            </div>
+
+            <p style="color: #666; font-size: 14px;">
+              This invitation expires in 7 days and can only be used once. If you didn't expect this invitation, you can safely ignore this email.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              ScamDunk - Protecting investors from scams
+            </p>
+          </body>
+        </html>
+      `,
+    });
+
+    if (result.error) {
+      console.error('Resend API error (invite):', result.error);
+      const errorMessage = result.error.message?.toLowerCase() || '';
+      if (errorMessage.includes('can only send') || errorMessage.includes('not verified')) {
+        console.error(
+          '[EMAIL ERROR] Resend domain not verified. When using onboarding@resend.dev, ' +
+          'emails can only be sent to the Resend account owner. ' +
+          'Verify a custom domain at https://resend.com/domains'
+        );
+      }
+      return false;
+    }
+
+    console.log('Invite email sent successfully to:', email, 'ID:', result.data?.id);
+    return true;
+  } catch (error) {
+    console.error('Failed to send invite email:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('API key')) {
+        console.error('[EMAIL ERROR] Invalid or missing RESEND_API_KEY');
+      }
+    }
+    return false;
+  }
+}
+
+/**
  * Send an alert email to the admin when an API failure occurs
  */
 export async function sendAPIFailureAlert(
