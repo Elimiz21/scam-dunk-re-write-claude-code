@@ -20,6 +20,7 @@ import {
   Search,
   Database,
   MessageSquare,
+  KeyRound,
 } from "lucide-react";
 
 interface AdminSession {
