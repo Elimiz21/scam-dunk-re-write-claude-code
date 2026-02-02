@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { ArrowLeft, Save, Trash2, Eye, Upload, Sparkles, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Eye, Upload, Sparkles, Loader2, FileText, AlertCircle } from "lucide-react";
+import mammoth from "mammoth";
 
 interface BlogPost {
     id?: string;
@@ -131,26 +132,114 @@ export default function AdminBlogEditorPage() {
     }
 
     async function processFile(file: File) {
-        // Check file type
-        const validTypes = ['.md', '.txt', '.markdown'];
         const fileName = file.name.toLowerCase();
-        const isValidType = validTypes.some(ext => fileName.endsWith(ext)) || file.type.startsWith('text/');
+        const fileExt = fileName.split('.').pop() || '';
 
-        if (!isValidType) {
-            alert('Please upload a text file (.md, .txt, or .markdown)');
+        // Supported formats
+        const textFormats = ['md', 'txt', 'markdown', 'text', 'rtf'];
+        const htmlFormats = ['html', 'htm'];
+        const docFormats = ['docx'];
+        const allFormats = [...textFormats, ...htmlFormats, ...docFormats];
+
+        const isTextFormat = textFormats.includes(fileExt) || file.type.startsWith('text/');
+        const isHtmlFormat = htmlFormats.includes(fileExt) || file.type === 'text/html';
+        const isDocxFormat = docFormats.includes(fileExt) || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+        if (!isTextFormat && !isHtmlFormat && !isDocxFormat) {
+            alert(`Unsupported file format (.${fileExt}). Supported formats: ${allFormats.join(', ')}`);
             return;
         }
 
+        setAnalyzing(true); // Show loading state while processing
+
         try {
-            const text = await file.text();
+            let text = '';
+
+            if (isDocxFormat) {
+                // Handle .docx files using mammoth
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.convertToHtml({ arrayBuffer });
+                // Convert HTML to simple markdown-like text
+                text = convertHtmlToMarkdown(result.value);
+                if (result.messages.length > 0) {
+                    console.log('Mammoth conversion messages:', result.messages);
+                }
+            } else if (isHtmlFormat) {
+                // Handle HTML files
+                const htmlContent = await file.text();
+                text = convertHtmlToMarkdown(htmlContent);
+            } else {
+                // Handle plain text formats
+                text = await file.text();
+            }
+
             setPost(prev => ({ ...prev, content: text }));
 
             // Auto-analyze the imported content
             await analyzeContent(text);
         } catch (error) {
             console.error("Failed to read file:", error);
-            alert("Failed to read the file");
+            alert("Failed to read the file. Please try a different format.");
+            setAnalyzing(false);
         }
+    }
+
+    function convertHtmlToMarkdown(html: string): string {
+        // Simple HTML to markdown conversion
+        let text = html;
+
+        // Remove script and style tags
+        text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+        text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+
+        // Convert headings
+        text = text.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n# $1\n');
+        text = text.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '\n## $1\n');
+        text = text.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n### $1\n');
+        text = text.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '\n#### $1\n');
+        text = text.replace(/<h5[^>]*>(.*?)<\/h5>/gi, '\n##### $1\n');
+        text = text.replace(/<h6[^>]*>(.*?)<\/h6>/gi, '\n###### $1\n');
+
+        // Convert paragraphs and line breaks
+        text = text.replace(/<p[^>]*>/gi, '\n\n');
+        text = text.replace(/<\/p>/gi, '');
+        text = text.replace(/<br\s*\/?>/gi, '\n');
+
+        // Convert bold and italic
+        text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+        text = text.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
+        text = text.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
+        text = text.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
+
+        // Convert links
+        text = text.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+
+        // Convert lists
+        text = text.replace(/<ul[^>]*>/gi, '\n');
+        text = text.replace(/<\/ul>/gi, '\n');
+        text = text.replace(/<ol[^>]*>/gi, '\n');
+        text = text.replace(/<\/ol>/gi, '\n');
+        text = text.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
+
+        // Convert blockquotes
+        text = text.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gis, '\n> $1\n');
+
+        // Remove remaining HTML tags
+        text = text.replace(/<[^>]+>/g, '');
+
+        // Decode HTML entities
+        text = text.replace(/&nbsp;/g, ' ');
+        text = text.replace(/&amp;/g, '&');
+        text = text.replace(/&lt;/g, '<');
+        text = text.replace(/&gt;/g, '>');
+        text = text.replace(/&quot;/g, '"');
+        text = text.replace(/&#39;/g, "'");
+
+        // Clean up extra whitespace
+        text = text.replace(/\n{3,}/g, '\n\n');
+        text = text.trim();
+
+        return text;
     }
 
     function handleDragOver(e: React.DragEvent) {
@@ -347,8 +436,8 @@ export default function AdminBlogEditorPage() {
                         {/* Import Section - Drop Zone */}
                         <div
                             className={`relative rounded-lg shadow transition-all duration-200 ${isDragging
-                                    ? 'bg-indigo-100 border-2 border-dashed border-indigo-500 scale-[1.02]'
-                                    : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-dashed border-transparent'
+                                ? 'bg-indigo-100 border-2 border-dashed border-indigo-500 scale-[1.02]'
+                                : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-dashed border-transparent'
                                 }`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
@@ -376,7 +465,7 @@ export default function AdminBlogEditorPage() {
                                                 <input
                                                     ref={fileInputRef}
                                                     type="file"
-                                                    accept=".md,.txt,.markdown,text/*"
+                                                    accept=".md,.txt,.markdown,.docx,.html,.htm,.rtf,text/*,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                                     onChange={handleFileImport}
                                                     className="hidden"
                                                     id="file-import"
@@ -401,7 +490,7 @@ export default function AdminBlogEditorPage() {
                                                     {analyzing ? "Analyzing..." : "AI Extract Metadata"}
                                                 </button>
                                                 <span className="text-xs text-gray-500">
-                                                    Supports .md, .txt, .markdown
+                                                    Supports: .docx, .md, .txt, .html, .rtf
                                                 </span>
                                             </div>
                                         )}
