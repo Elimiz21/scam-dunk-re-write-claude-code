@@ -21,6 +21,7 @@ import {
   Database,
   MessageSquare,
   Newspaper,
+  KeyRound,
 } from "lucide-react";
 
 interface AdminSession {
