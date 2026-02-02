@@ -8,12 +8,34 @@ The enhanced pipeline runs through 5 phases:
 
 ### Phase 1: Risk Scoring All Stocks
 - Scans all US-listed stocks using the FMP API
-- Runs 4 AI scanning modules:
-  - **Structural Analysis**: Market cap, price, liquidity, exchange type
-  - **Pattern Detection**: Price spikes, volume explosions, pump-and-dump patterns
-  - **RSI/Volatility Analysis**: Overbought conditions, volatility spikes
-  - **Combined Scoring**: Weighted aggregation of all signals
-- Generates risk scores for each stock (LOW, MEDIUM, HIGH)
+- Runs **4 AI scanning layers** (if Python AI backend is available):
+
+**Layer 1: Deterministic Signal Detection (Rule-Based)**
+- Structural signals: market cap, price level, exchange type, liquidity
+- Pattern signals: price spikes, volume explosions, pump-and-dump patterns
+- Alert signals: SEC regulatory flags
+
+**Layer 2: Statistical Anomaly Detection**
+- Z-score analysis for price and volume deviations
+- Keltner Channel breakout detection
+- Average True Range (ATR) volatility analysis
+- Surge detection metrics (volume surge factor, price change rates)
+
+**Layer 3: Machine Learning Classification (Random Forest)**
+- 31-dimensional feature vector analysis
+- Trained on synthetic scam vs. normal stock patterns
+- ~95% accuracy, ~93% precision
+
+**Layer 4: Deep Learning Sequence Analysis (LSTM)**
+- 30-day time series pattern analysis
+- Captures temporal pump-and-dump signatures
+- Learns accumulation → pump → dump sequences
+
+**Ensemble Prediction:**
+- Combines all 4 layers using weighted averaging
+- Context-aware boosting for SEC flags, OTC + micro-cap combinations
+- Final risk classification: LOW / MEDIUM / HIGH
+
 
 ### Phase 2: Size & Volume Filtering
 High-risk stocks are filtered to remove those not susceptible to manipulation:
@@ -149,7 +171,13 @@ Environment variables:
 ```
 FMP_API_KEY=your-financial-modeling-prep-key
 OPENAI_API_KEY=your-openai-key (for AI-powered analysis)
+AI_BACKEND_URL=https://your-python-ai-backend (for full 4-layer analysis)
 ```
+
+**Note on AI_BACKEND_URL:**
+- If set, the pipeline will call the Python AI backend to run all 4 layers (Deterministic, Anomaly, Random Forest, LSTM)
+- If not set, only Layer 1 (TypeScript deterministic scoring) is used
+- The Python AI backend should be deployed and accessible at the specified URL
 
 Thresholds (configurable in scripts):
 - Market cap filter: $10B
@@ -160,9 +188,9 @@ Thresholds (configurable in scripts):
 ## GitHub Actions Workflow
 
 The `enhanced-daily-evaluation.yml` workflow:
-- Runs at 6 AM UTC (1 AM EST) on weekdays
+- Runs at **11 PM UTC (6 PM EST, 2 hours after market close)** on weekdays
 - Checks for US market holidays
-- Runs full pipeline
+- Runs full pipeline with all 4 AI layers (if AI_BACKEND_URL is configured)
 - Uploads results to Supabase storage
 - Pushes to scam-dunk-data repository
 - Creates issue on failure
@@ -172,3 +200,4 @@ Manual triggers available:
 - `test_mode`: Process only 100 stocks
 - `date_override`: Run for specific date
 - `skip_social_scan`: Skip social media phase
+

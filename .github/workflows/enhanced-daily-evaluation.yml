@@ -1,10 +1,12 @@
 name: Enhanced Daily Stock Evaluation
 
 on:
-  # Run daily at 6 AM UTC (1 AM EST, after market close)
+  # Run daily at 11 PM UTC (6 PM EST, 2 hours after market close at 4 PM)
+  # This allows time for after-hours data to settle and ensures we have complete daily data
   # Only runs on weekdays; holiday check is done in the job
   schedule:
-    - cron: '0 6 * * 1-5'  # Monday through Friday only
+    - cron: '0 23 * * 1-5'  # Monday through Friday at 11 PM UTC
+
 
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
@@ -231,6 +233,7 @@ jobs:
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AI_BACKEND_URL: ${{ secrets.AI_BACKEND_URL }}  # Python AI backend for full 4-layer analysis
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
         run: |
@@ -238,10 +241,18 @@ jobs:
           echo "Starting Enhanced Daily Pipeline for $EVALUATION_DATE..."
           echo "Test Mode: $TEST_MODE"
           
+          # Check if Python AI backend is configured
+          if [ -n "$AI_BACKEND_URL" ]; then
+            echo "Python AI Backend: $AI_BACKEND_URL (full 4-layer analysis)"
+          else
+            echo "Python AI Backend: Not configured (using Layer 1 only)"
+          fi
+          
           # Run the enhanced pipeline
           npx ts-node scripts/enhanced-daily-pipeline.ts
           
           echo "Enhanced pipeline complete"
+
 
       - name: Generate Scheme Report
         if: ${{ github.event.inputs.upload_only != 'true' }}

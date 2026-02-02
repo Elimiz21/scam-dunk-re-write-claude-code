@@ -35,6 +35,7 @@ if (!fs.existsSync(SCHEME_DB_DIR)) fs.mkdirSync(SCHEME_DB_DIR, { recursive: true
 // Configuration
 const FMP_API_KEY = process.env.FMP_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const AI_BACKEND_URL = process.env.AI_BACKEND_URL || '';  // Python AI backend for full 4-layer analysis
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 const FMP_V3_URL = 'https://financialmodelingprep.com/api/v3';
 const FMP_DELAY_MS = 210;
@@ -43,6 +44,9 @@ const FMP_DELAY_MS = 210;
 const MARKET_CAP_THRESHOLD = 10_000_000_000; // $10B - excludes mega/large cap
 const VOLUME_THRESHOLD = 10_000_000; // $10M daily volume - excludes highly liquid stocks
 const TOP_N_MARKET_CAP_EXCLUDE = 100; // Exclude top 100 by market cap
+
+// AI Layer configuration flags
+const USE_PYTHON_AI = !!AI_BACKEND_URL;  // Use full 4-layer AI if backend is available
 
 // Types
 interface EnhancedStockResult {
@@ -65,6 +69,16 @@ interface EnhancedStockResult {
         weight: number;
         description: string;
     }>;
+
+    // AI Layer outputs (from Python AI backend - all 4 layers)
+    aiLayers: {
+        layer1_deterministic: number | null;  // TypeScript standalone-scorer
+        layer2_anomaly: number | null;        // Statistical anomaly detection
+        layer3_rf: number | null;             // Random Forest ML
+        layer4_lstm: number | null;           // LSTM deep learning
+        combined: number | null;              // Ensemble combined probability
+        usedPythonBackend: boolean;           // Whether Python AI was used
+    };
 
     // Filtering status
     isFiltered: boolean;
@@ -203,6 +217,86 @@ function saveSchemeDatabase(db: Map<string, SchemeRecord>): void {
 function generateSchemeId(symbol: string, date: string): string {
     const timestamp = Date.now().toString(36);
     return `SCHEME-${symbol}-${date.replace(/-/g, '')}-${timestamp}`.toUpperCase();
+}
+
+// Python AI Backend Integration - Calls all 4 AI Layers
+// Layer 1: Deterministic Signal Detection (rule-based)
+// Layer 2: Statistical Anomaly Detection (Z-scores, Keltner, ATR)
+// Layer 3: Machine Learning Classification (Random Forest)
+// Layer 4: Deep Learning Sequence Analysis (LSTM)
+interface PythonAIResult {
+    success: boolean;
+    riskLevel: string;
+    riskProbability: number;
+    rf_probability: number | null;         // Layer 3: Random Forest
+    lstm_probability: number | null;       // Layer 4: LSTM
+    anomaly_score: number;                  // Layer 2: Anomaly Detection
+    signals: Array<{
+        code: string;
+        category: string;
+        weight: number;
+        description: string;
+    }>;
+    sec_flagged: boolean;
+    is_otc: boolean;
+    is_micro_cap: boolean;
+    stock_info?: {
+        company_name?: string;
+        exchange?: string;
+        last_price?: number;
+        market_cap?: number;
+        avg_volume?: number;
+    };
+    error?: string;
+}
+
+async function callPythonAIBackend(symbol: string): Promise<PythonAIResult | null> {
+    if (!AI_BACKEND_URL) {
+        return null;
+    }
+
+    try {
+        const cmd = `curl -s --max-time 30 -X POST "${AI_BACKEND_URL}/analyze" ` +
+            `-H "Content-Type: application/json" ` +
+            `-d '{"ticker": "${symbol}", "asset_type": "stock", "use_live_data": true}'`;
+
+        const result = execSync(cmd, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+
+        if (!result) return null;
+
+        const data = JSON.parse(result);
+
+        return {
+            success: true,
+            riskLevel: data.risk_level || 'LOW',
+            riskProbability: data.risk_probability || 0,
+            rf_probability: data.rf_probability || null,
+            lstm_probability: data.lstm_probability || null,
+            anomaly_score: data.anomaly_score || 0,
+            signals: data.signals || [],
+            sec_flagged: data.sec_flagged || false,
+            is_otc: data.is_otc || false,
+            is_micro_cap: data.is_micro_cap || false,
+            stock_info: data.stock_info
+        };
+    } catch (error: any) {
+        // Python backend not available or error
+        return null;
+    }
+}
+
+// Check if Python AI Backend is available
+async function checkPythonAIHealth(): Promise<boolean> {
+    if (!AI_BACKEND_URL) return false;
+
+    try {
+        const result = curlFetch(`${AI_BACKEND_URL}/health`);
+        if (!result) return false;
+        const data = JSON.parse(result);
+        return data.status === 'healthy';
+    } catch {
+        return false;
+    }
 }
 
 // FMP API functions
@@ -601,6 +695,21 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log('PHASE 1: Risk Scoring All Stocks');
     console.log('-'.repeat(50));
 
+    // Check Python AI Backend availability for full 4-layer analysis
+    const pythonAIAvailable = await checkPythonAIHealth();
+    if (pythonAIAvailable) {
+        console.log('✅ Python AI Backend ONLINE - Using ALL 4 AI Layers:');
+        console.log('   Layer 1: Deterministic Signal Detection (rule-based)');
+        console.log('   Layer 2: Statistical Anomaly Detection (Z-scores, Keltner, ATR)');
+        console.log('   Layer 3: Machine Learning Classification (Random Forest)');
+        console.log('   Layer 4: Deep Learning Sequence Analysis (LSTM)');
+    } else {
+        console.log('⚠️  Python AI Backend OFFLINE - Using Layer 1 only (TypeScript scorer)');
+        console.log('   Set AI_BACKEND_URL environment variable to enable full 4-layer analysis');
+    }
+    console.log('');
+
+
     // For testing, limit to first 100 stocks (remove this for production)
     const stocksToProcess = process.env.TEST_MODE === 'true' ? stocks.slice(0, 100) : stocks;
 
@@ -622,7 +731,41 @@ async function runEnhancedPipeline(): Promise<void> {
             }
 
             const extendedQuote = marketData.quote as ExtendedQuote;
-            const scoringResult = computeRiskScore(marketData);
+
+            // Run risk scoring
+            // If Python AI backend is available, use all 4 layers; otherwise use Layer 1 only
+            let scoringResult = computeRiskScore(marketData);  // Layer 1: TypeScript deterministic
+            let aiLayers = {
+                layer1_deterministic: scoringResult.totalScore,
+                layer2_anomaly: null as number | null,
+                layer3_rf: null as number | null,
+                layer4_lstm: null as number | null,
+                combined: null as number | null,
+                usedPythonBackend: false
+            };
+
+            // Try Python AI backend for full 4-layer analysis
+            if (pythonAIAvailable) {
+                const pyResult = await callPythonAIBackend(stock.symbol);
+                if (pyResult && pyResult.success) {
+                    // Use Python AI results (all 4 layers)
+                    scoringResult = {
+                        riskLevel: pyResult.riskLevel as 'LOW' | 'MEDIUM' | 'HIGH' | 'INSUFFICIENT',
+                        totalScore: Math.round(pyResult.riskProbability * 20), // Convert probability to score
+                        signals: pyResult.signals,
+                        isLegitimate: false,
+                        isInsufficient: false
+                    };
+                    aiLayers = {
+                        layer1_deterministic: aiLayers.layer1_deterministic,
+                        layer2_anomaly: pyResult.anomaly_score,
+                        layer3_rf: pyResult.rf_probability,
+                        layer4_lstm: pyResult.lstm_probability,
+                        combined: pyResult.riskProbability,
+                        usedPythonBackend: true
+                    };
+                }
+            }
 
             // Increment risk count
             riskCounts[scoringResult.riskLevel as keyof typeof riskCounts]++;
@@ -640,6 +783,7 @@ async function runEnhancedPipeline(): Promise<void> {
                 riskLevel: scoringResult.riskLevel,
                 totalScore: scoringResult.totalScore,
                 signals: scoringResult.signals,
+                aiLayers: aiLayers,
                 isFiltered: false,
                 filterReason: null,
                 hasLegitimateNews: false,
@@ -661,6 +805,7 @@ async function runEnhancedPipeline(): Promise<void> {
             }
 
             await sleep(FMP_DELAY_MS);
+
 
         } catch (error: any) {
             console.error(`\nError processing ${stock.symbol}:`, error?.message || error);
