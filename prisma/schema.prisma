@@ -88,7 +88,7 @@ model PasswordResetToken {
 model ScanUsage {
   id        String   @id @default(cuid())
   userId    String
-  monthKey  String   // Format: YYYY-MM
+  monthKey  String // Format: YYYY-MM
   scanCount Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,49 +104,49 @@ model ScanUsage {
 // ==========================================
 
 model AdminUser {
-  id             String   @id @default(cuid())
-  email          String   @unique
+  id             String    @id @default(cuid())
+  email          String    @unique
   hashedPassword String
   name           String?
-  role           String   @default("ADMIN") // OWNER, ADMIN, VIEWER
-  isActive       Boolean  @default(true)
+  role           String    @default("ADMIN") // OWNER, ADMIN, VIEWER
+  isActive       Boolean   @default(true)
   lastLoginAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  createdBy      String?  // ID of admin who invited them
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      String? // ID of admin who invited them
 
-  invitesSent    AdminInvite[] @relation("InvitedBy")
-  sessions       AdminSession[]
+  invitesSent AdminInvite[]  @relation("InvitedBy")
+  sessions    AdminSession[]
 
   @@index([email])
 }
 
 model AdminSession {
-  id           String    @id @default(cuid())
-  adminUserId  String
-  token        String    @unique
-  expiresAt    DateTime
-  createdAt    DateTime  @default(now())
-  ipAddress    String?
-  userAgent    String?
+  id          String   @id @default(cuid())
+  adminUserId String
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  ipAddress   String?
+  userAgent   String?
 
-  adminUser    AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([adminUserId])
 }
 
 model AdminInvite {
-  id          String   @id @default(cuid())
-  email       String
-  token       String   @unique
-  role        String   @default("ADMIN") // ADMIN, VIEWER
-  expiresAt   DateTime
-  usedAt      DateTime?
-  createdAt   DateTime @default(now())
-  invitedBy   String
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  role      String    @default("ADMIN") // ADMIN, VIEWER
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  invitedBy String
 
-  inviter     AdminUser @relation("InvitedBy", fields: [invitedBy], references: [id], onDelete: Cascade)
+  inviter AdminUser @relation("InvitedBy", fields: [invitedBy], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([email])
@@ -154,17 +154,17 @@ model AdminInvite {
 
 model ApiUsageLog {
   id            String   @id @default(cuid())
-  service       String   // OPENAI, ALPHA_VANTAGE, STRIPE
+  service       String // OPENAI, ALPHA_VANTAGE, STRIPE
   endpoint      String?
   requestCount  Int      @default(1)
-  tokensUsed    Int?     // For OpenAI
-  estimatedCost Float?   // In USD
-  responseTime  Int?     // In milliseconds
+  tokensUsed    Int? // For OpenAI
+  estimatedCost Float? // In USD
+  responseTime  Int? // In milliseconds
   statusCode    Int?
   errorMessage  String?
-  monthKey      String   // Format: YYYY-MM
-  dayKey        String   // Format: YYYY-MM-DD
-  hourKey       String   // Format: YYYY-MM-DD-HH
+  monthKey      String // Format: YYYY-MM
+  dayKey        String // Format: YYYY-MM-DD
+  hourKey       String // Format: YYYY-MM-DD-HH
   createdAt     DateTime @default(now())
 
   @@index([service, monthKey])
@@ -173,35 +173,35 @@ model ApiUsageLog {
 }
 
 model ApiCostAlert {
-  id             String   @id @default(cuid())
-  service        String   // ALL, OPENAI, ALPHA_VANTAGE, STRIPE
-  alertType      String   // COST_THRESHOLD, RATE_LIMIT, ERROR_RATE
-  threshold      Float    // Threshold value
-  currentValue   Float?   // Current value when alert triggered
-  isActive       Boolean  @default(true)
-  lastTriggered  DateTime?
-  notifyEmail    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String    @id @default(cuid())
+  service       String // ALL, OPENAI, ALPHA_VANTAGE, STRIPE
+  alertType     String // COST_THRESHOLD, RATE_LIMIT, ERROR_RATE
+  threshold     Float // Threshold value
+  currentValue  Float? // Current value when alert triggered
+  isActive      Boolean   @default(true)
+  lastTriggered DateTime?
+  notifyEmail   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([service, isActive])
 }
 
 model IntegrationConfig {
-  id            String   @id @default(cuid())
-  name          String   @unique // OPENAI, ALPHA_VANTAGE, STRIPE, etc.
+  id            String    @id @default(cuid())
+  name          String    @unique // OPENAI, ALPHA_VANTAGE, STRIPE, etc.
   displayName   String
-  category      String   // API, PAYMENT, DATABASE, ANALYTICS
-  isEnabled     Boolean  @default(true)
-  config        String?  @db.Text // JSON config (encrypted sensitive data)
-  apiKeyMasked  String?  // Masked version of API key for display
-  rateLimit     Int?     // Requests per minute
-  monthlyBudget Float?   // Monthly budget in USD
-  status        String   @default("UNKNOWN") // CONNECTED, ERROR, UNKNOWN
+  category      String // API, PAYMENT, DATABASE, ANALYTICS
+  isEnabled     Boolean   @default(true)
+  config        String?   @db.Text // JSON config (encrypted sensitive data)
+  apiKeyMasked  String? // Masked version of API key for display
+  rateLimit     Int? // Requests per minute
+  monthlyBudget Float? // Monthly budget in USD
+  status        String    @default("UNKNOWN") // CONNECTED, ERROR, UNKNOWN
   lastCheckedAt DateTime?
   errorMessage  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([category])
 }
@@ -211,10 +211,10 @@ model ScanHistory {
   userId          String?
   ticker          String
   assetType       String   @default("stock")
-  riskLevel       String   // LOW, MEDIUM, HIGH, INSUFFICIENT
+  riskLevel       String // LOW, MEDIUM, HIGH, INSUFFICIENT
   totalScore      Int
   signalsCount    Int
-  processingTime  Int?     // In milliseconds
+  processingTime  Int? // In milliseconds
   openaiTokens    Int?
   alphaVantageHit Boolean  @default(false)
   isLegitimate    Boolean?
@@ -253,8 +253,8 @@ model ModelMetrics {
 model AdminAuditLog {
   id          String   @id @default(cuid())
   adminUserId String
-  action      String   // LOGIN, LOGOUT, CONFIG_CHANGE, INVITE_SENT, etc.
-  resource    String?  // What was affected
+  action      String // LOGIN, LOGOUT, CONFIG_CHANGE, INVITE_SENT, etc.
+  resource    String? // What was affected
   details     String?  @db.Text // JSON details
   ipAddress   String?
   createdAt   DateTime @default(now())
@@ -270,16 +270,16 @@ model AdminAuditLog {
 // ==========================================
 
 model TrackedStock {
-  id        String   @id @default(cuid())
-  symbol    String   @unique
-  name      String
-  exchange  String   // NASDAQ, NYSE, AMEX, OTC
-  sector    String?
-  industry  String?
-  isOTC     Boolean  @default(false)
+  id       String  @id @default(cuid())
+  symbol   String  @unique
+  name     String
+  exchange String // NASDAQ, NYSE, AMEX, OTC
+  sector   String?
+  industry String?
+  isOTC    Boolean @default(false)
 
-  dailySnapshots     StockDailySnapshot[]
-  riskAlerts         StockRiskAlert[]
+  dailySnapshots StockDailySnapshot[]
+  riskAlerts     StockRiskAlert[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -289,40 +289,40 @@ model TrackedStock {
 }
 
 model StockDailySnapshot {
-  id        String   @id @default(cuid())
-  stockId   String
-  stock     TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  id      String       @id @default(cuid())
+  stockId String
+  stock   TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
-  scanDate  DateTime
+  scanDate DateTime
 
   // Risk Assessment
-  riskLevel       String   // LOW, MEDIUM, HIGH, INSUFFICIENT
-  totalScore      Int
-  isLegitimate    Boolean
-  isInsufficient  Boolean  @default(false)
+  riskLevel      String // LOW, MEDIUM, HIGH, INSUFFICIENT
+  totalScore     Int
+  isLegitimate   Boolean
+  isInsufficient Boolean @default(false)
 
   // Price Data
-  lastPrice       Float?
-  previousClose   Float?
-  priceChangePct  Float?
+  lastPrice      Float?
+  previousClose  Float?
+  priceChangePct Float?
 
   // Volume Data
-  volume          Int?
-  avgVolume       Int?
-  volumeRatio     Float?
+  volume      Int?
+  avgVolume   Int?
+  volumeRatio Float?
 
   // Market Data
-  marketCap       Float?
+  marketCap Float?
 
   // Signals (JSON array)
-  signals         String   @default("[]") @db.Text
-  signalSummary   String?
-  signalCount     Int      @default(0)
+  signals       String  @default("[]") @db.Text
+  signalSummary String?
+  signalCount   Int     @default(0)
 
-  dataSource      String   // FMP, etc.
-  evaluatedAt     DateTime
+  dataSource  String // FMP, etc.
+  evaluatedAt DateTime
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([stockId, scanDate])
   @@index([scanDate])
@@ -331,50 +331,50 @@ model StockDailySnapshot {
 }
 
 model DailyScanSummary {
-  id        String   @id @default(cuid())
-  scanDate  DateTime @unique
+  id       String   @id @default(cuid())
+  scanDate DateTime @unique
 
-  totalStocks       Int
-  evaluated         Int
-  skippedNoData     Int
+  totalStocks   Int
+  evaluated     Int
+  skippedNoData Int
 
   lowRiskCount      Int
   mediumRiskCount   Int
   highRiskCount     Int
   insufficientCount Int
 
-  byExchange        String   @db.Text // JSON
-  bySector          String?  @db.Text // JSON
+  byExchange String  @db.Text // JSON
+  bySector   String? @db.Text // JSON
 
-  scanDurationMins  Int?
-  apiCallsMade      Int?
+  scanDurationMins Int?
+  apiCallsMade     Int?
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([scanDate])
 }
 
 model StockRiskAlert {
-  id        String   @id @default(cuid())
-  stockId   String
-  stock     TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  id      String       @id @default(cuid())
+  stockId String
+  stock   TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
   alertDate DateTime
-  alertType String   // NEW_HIGH_RISK, RISK_INCREASED, RISK_DECREASED, PUMP_DETECTED
+  alertType String // NEW_HIGH_RISK, RISK_INCREASED, RISK_DECREASED, PUMP_DETECTED
 
   previousRiskLevel String?
   newRiskLevel      String
   previousScore     Int?
   newScore          Int
 
-  triggeringSignals String?  @db.Text
+  triggeringSignals String? @db.Text
   priceAtAlert      Float?
   volumeAtAlert     Int?
 
-  isAcknowledged    Boolean  @default(false)
-  notes             String?  @db.Text
+  isAcknowledged Boolean @default(false)
+  notes          String? @db.Text
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([alertDate])
   @@index([alertType])
@@ -382,32 +382,32 @@ model StockRiskAlert {
 }
 
 model PromotedStock {
-  id        String   @id @default(cuid())
-  symbol    String
+  id     String @id @default(cuid())
+  symbol String
 
   addedDate         DateTime
   promoterName      String
-  promotionPlatform String   // Discord, Twitter, Reddit
+  promotionPlatform String // Discord, Twitter, Reddit
   promotionGroup    String?
 
-  entryPrice        Float
-  entryMarketCap    Float?
-  entryRiskScore    Int
+  entryPrice     Float
+  entryMarketCap Float?
+  entryRiskScore Int
 
-  peakPrice         Float?
-  peakDate          DateTime?
-  currentPrice      Float?
-  lastUpdateDate    DateTime?
+  peakPrice      Float?
+  peakDate       DateTime?
+  currentPrice   Float?
+  lastUpdateDate DateTime?
 
-  outcome           String?  // PUMPING, PEAKED, DUMPED, STABLE
-  maxGainPct        Float?
-  currentGainPct    Float?
+  outcome        String? // PUMPING, PEAKED, DUMPED, STABLE
+  maxGainPct     Float?
+  currentGainPct Float?
 
-  evidenceLinks     String?  @db.Text
+  evidenceLinks String? @db.Text
 
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([symbol, addedDate])
   @@index([promoterName])
@@ -420,33 +420,33 @@ model PromotedStock {
 // ==========================================
 
 model AuthErrorLog {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Error categorization
-  errorType   String   // SIGNUP_FAILED, LOGIN_FAILED, VERIFICATION_FAILED, PASSWORD_RESET_FAILED, EMAIL_SEND_FAILED
-  errorCode   String?  // More specific error code (e.g., EMAIL_NOT_VERIFIED, INVALID_CREDENTIALS, TOKEN_EXPIRED)
+  errorType String // SIGNUP_FAILED, LOGIN_FAILED, VERIFICATION_FAILED, PASSWORD_RESET_FAILED, EMAIL_SEND_FAILED
+  errorCode String? // More specific error code (e.g., EMAIL_NOT_VERIFIED, INVALID_CREDENTIALS, TOKEN_EXPIRED)
 
   // Context
-  email       String?  // Email involved (if available, partially masked in queries)
-  userId      String?  // User ID if user exists
-  endpoint    String   // API endpoint that generated the error
+  email    String? // Email involved (if available, partially masked in queries)
+  userId   String? // User ID if user exists
+  endpoint String // API endpoint that generated the error
 
   // Error details
-  message     String   // User-facing error message
-  details     String?  @db.Text // Technical details (JSON) - internal only
-  stackTrace  String?  @db.Text // Stack trace for debugging
+  message    String // User-facing error message
+  details    String? @db.Text // Technical details (JSON) - internal only
+  stackTrace String? @db.Text // Stack trace for debugging
 
   // Request context
-  ipAddress   String?
-  userAgent   String?  @db.Text
+  ipAddress String?
+  userAgent String? @db.Text
 
   // Resolution tracking
-  isResolved  Boolean  @default(false)
-  resolvedAt  DateTime?
-  resolvedBy  String?  // Admin user who resolved
-  resolution  String?  @db.Text // Notes on resolution
+  isResolved Boolean   @default(false)
+  resolvedAt DateTime?
+  resolvedBy String? // Admin user who resolved
+  resolution String?   @db.Text // Notes on resolution
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([errorType])
   @@index([errorCode])
@@ -456,9 +456,9 @@ model AuthErrorLog {
 }
 
 model AuthErrorSummary {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  dateKey     String   @unique // Format: YYYY-MM-DD
+  dateKey String @unique // Format: YYYY-MM-DD
 
   // Error counts by type
   signupErrors        Int @default(0)
@@ -468,13 +468,13 @@ model AuthErrorSummary {
   emailSendErrors     Int @default(0)
 
   // Top error codes for the day (JSON array)
-  topErrorCodes       String? @db.Text
+  topErrorCodes String? @db.Text
 
   // Unique users affected
   uniqueEmailsAffected Int @default(0)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([dateKey])
 }
@@ -485,11 +485,11 @@ model AuthErrorSummary {
 // ==========================================
 
 model ScanMessage {
-  id        String   @id @default(cuid())
-  headline  String   // Main message text
-  subtext   String   // Secondary/supporting text
-  order     Int      // Display order (0-based)
-  isActive  Boolean  @default(true)
+  id       String  @id @default(cuid())
+  headline String // Main message text
+  subtext  String // Secondary/supporting text
+  order    Int // Display order (0-based)
+  isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -503,12 +503,12 @@ model ScanMessage {
 }
 
 model ScanMessageHistory {
-  id        String   @id @default(cuid())
-  headline  String
-  subtext   String
+  id       String @id @default(cuid())
+  headline String
+  subtext  String
 
   // Why it was archived
-  archiveReason String?  // REPLACED, DISCARDED, MANUAL_REMOVE
+  archiveReason String? // REPLACED, DISCARDED, MANUAL_REMOVE
 
   // Original creation data
   originalCreatedAt DateTime
@@ -521,30 +521,30 @@ model ScanMessageHistory {
 }
 
 model ScanMessageGeneration {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Generation context
-  prompt         String   @db.Text  // The prompt used
-  model          String             // e.g., gpt-4o-mini
+  prompt String @db.Text // The prompt used
+  model  String // e.g., gpt-4o-mini
 
   // Results
-  generatedCount Int               // How many were generated
-  acceptedCount  Int   @default(0) // How many were kept
-  discardedCount Int   @default(0) // How many were discarded
+  generatedCount Int // How many were generated
+  acceptedCount  Int @default(0) // How many were kept
+  discardedCount Int @default(0) // How many were discarded
 
   // Feedback for improvement
-  discardedMessages String? @db.Text  // JSON array of discarded messages with reasons
-  feedbackNotes     String? @db.Text  // Additional notes for next generation
+  discardedMessages String? @db.Text // JSON array of discarded messages with reasons
+  feedbackNotes     String? @db.Text // Additional notes for next generation
 
   // Token usage
   tokensUsed    Int?
   estimatedCost Float?
 
-  createdAt     DateTime @default(now())
-  createdBy     String?  // Admin user ID who triggered generation
+  createdAt DateTime @default(now())
+  createdBy String? // Admin user ID who triggered generation
 
   // Relation to messages created from this generation
-  messages      ScanMessage[]
+  messages ScanMessage[]
 
   @@index([createdAt])
 }
