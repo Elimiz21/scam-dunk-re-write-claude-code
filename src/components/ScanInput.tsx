@@ -16,8 +16,10 @@ import {
   Info,
   Image as ImageIcon,
   FileText,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FeatureTooltip } from "@/components/ui/feature-tooltip";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 
@@ -71,6 +73,8 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
     urgencyPressure: false,
     secrecyInsideInfo: false,
   });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -248,6 +252,92 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
     fileInputRef.current?.click();
   };
 
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    // Process dropped files
+    const remainingSlots = MAX_FILES - uploadedFiles.length;
+    if (remainingSlots <= 0) {
+      addToast({
+        type: "warning",
+        title: "Maximum files reached",
+        description: `You can upload up to ${MAX_FILES} files.`,
+      });
+      return;
+    }
+
+    const newFiles: UploadedFile[] = [];
+    const errors: string[] = [];
+
+    Array.from(files).slice(0, remainingSlots).forEach((file) => {
+      // Validate file type
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        errors.push(`${file.name}: Invalid file type. Only images are supported.`);
+        return;
+      }
+
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: File too large. Maximum size is 10MB.`);
+        return;
+      }
+
+      newFiles.push({
+        file,
+        preview: URL.createObjectURL(file),
+        type: "image",
+      });
+    });
+
+    if (errors.length > 0) {
+      addToast({
+        type: "error",
+        title: "Upload error",
+        description: errors[0],
+      });
+    }
+
+    if (newFiles.length > 0) {
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+      setChatAdded(true);
+      addToast({
+        type: "success",
+        title: `${newFiles.length} file${newFiles.length > 1 ? "s" : ""} dropped`,
+        description: "Screenshots will be analyzed for scam patterns.",
+      });
+    }
+  };
+
   const handleContextDone = () => {
     setShowContextFlags(false);
     const count = Object.values(context).filter(Boolean).length;
@@ -278,7 +368,31 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
   const hasChatContent = chatText.trim() || uploadedFiles.length > 0;
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div
+      className="w-full max-w-3xl mx-auto"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center animate-fade-in">
+          <div className="drop-zone drop-zone-active p-12 text-center max-w-md">
+            <div className="mb-4 p-4 rounded-2xl bg-primary/10 w-fit mx-auto">
+              <Upload className="h-12 w-12 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Drop your screenshots here</h3>
+            <p className="text-muted-foreground text-sm">
+              We&apos;ll analyze them for scam red flags
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              PNG, JPG, GIF, WebP - Max 10MB each
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -650,54 +764,86 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
           </div>
 
           {/* Action Icons */}
-          <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (chatAdded && hasChatContent) {
-                  setShowChatInput(true);
-                } else {
-                  setShowChatInput(!showChatInput);
-                }
-              }}
-              className={cn(
-                "gap-1.5 rounded-xl text-xs",
-                (showChatInput || chatAdded) && "text-primary"
-              )}
-              disabled={isLoading || disabled}
-              aria-label="Add chat or message"
-              aria-expanded={showChatInput}
+          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border">
+            {/* Add Chat - Highlighted Feature */}
+            <FeatureTooltip
+              title="Paste Chat Messages"
+              description="Got a suspicious investment tip via WhatsApp, Telegram, or text? Paste it here for AI-powered scam detection."
+              steps={[
+                "Copy the chat from WhatsApp or Telegram",
+                "Click this button to open the text box",
+                "Paste the conversation and click 'Add'",
+              ]}
+              position="top"
             >
-              <MessageSquare className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Add Chat</span>
-              {chatAdded && (
-                <Check className="h-3 w-3 text-green-500" />
-              )}
-            </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (chatAdded && hasChatContent) {
+                    setShowChatInput(true);
+                  } else {
+                    setShowChatInput(!showChatInput);
+                  }
+                }}
+                className={cn(
+                  "gap-1.5 rounded-xl text-xs relative",
+                  "feature-highlight",
+                  (showChatInput || chatAdded) && "text-primary bg-primary/15 border-primary/30"
+                )}
+                disabled={isLoading || disabled}
+                aria-label="Add chat or message"
+                aria-expanded={showChatInput}
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Add Chat</span>
+                <Sparkles className="h-3 w-3 text-blue-500 hidden sm:block" />
+                {chatAdded && (
+                  <Check className="h-3 w-3 text-green-500" />
+                )}
+              </Button>
+            </FeatureTooltip>
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "gap-1.5 rounded-xl text-xs",
-                uploadedFiles.length > 0 && "text-primary"
-              )}
-              onClick={handleUploadClick}
-              disabled={isLoading || disabled || uploadedFiles.length >= MAX_FILES}
-              aria-label="Upload screenshot"
+            {/* Upload Screenshots - Highlighted Feature */}
+            <FeatureTooltip
+              title="Upload Screenshots"
+              description="Have screenshots of suspicious messages? Drag & drop or click to upload them for visual analysis."
+              steps={[
+                "Take a screenshot of the suspicious message",
+                "Drag the image here or click to browse",
+                "Upload up to 5 images (10MB each)",
+              ]}
+              position="top"
             >
-              <Upload className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Upload</span>
-              {uploadedFiles.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px]">
-                  {uploadedFiles.length}
-                </span>
-              )}
-            </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "gap-1.5 rounded-xl text-xs relative",
+                  "feature-highlight",
+                  uploadedFiles.length > 0 && "text-primary bg-primary/15 border-primary/30"
+                )}
+                onClick={handleUploadClick}
+                disabled={isLoading || disabled || uploadedFiles.length >= MAX_FILES}
+                aria-label="Upload screenshot - drag and drop supported"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Upload</span>
+                <Sparkles className="h-3 w-3 text-purple-500 hidden sm:block" />
+                {uploadedFiles.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px]">
+                    {uploadedFiles.length}
+                  </span>
+                )}
+              </Button>
+            </FeatureTooltip>
 
+            {/* Divider */}
+            <div className="h-4 w-px bg-border mx-1" />
+
+            {/* Red Flags - Normal button */}
             <Button
               type="button"
               variant="ghost"
