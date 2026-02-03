@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronDown,
   Bell,
   TrendingUp,
   AlertTriangle,
@@ -22,6 +23,11 @@ import {
   MessageSquare,
   Newspaper,
   KeyRound,
+  FileText,
+  BarChart3,
+  Cog,
+  UserCog,
+  LucideIcon,
 } from "lucide-react";
 
 interface AdminSession {
@@ -31,21 +37,74 @@ interface AdminSession {
   role: string;
 }
 
-const navigation = [
-  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "News", href: "/admin/news", icon: Newspaper },
-  { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
-  { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
-  { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
-  { name: "Stock Lookup", href: "/admin/stock-lookup", icon: Search },
-  { name: "Data Ingestion", href: "/admin/data-ingestion", icon: Database },
-  { name: "Users", href: "/admin/users", icon: UsersRound },
-  { name: "API Usage", href: "/admin/api-usage", icon: Activity },
-  { name: "Integrations", href: "/admin/integrations", icon: Settings },
-  { name: "Model Efficacy", href: "/admin/model-efficacy", icon: Shield },
-  { name: "Team", href: "/admin/team", icon: Users },
-  { name: "Settings", href: "/admin/settings", icon: KeyRound },
+interface NavItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+interface NavCategory {
+  name: string;
+  icon: LucideIcon;
+  items: NavItem[];
+}
+
+// Standalone dashboard item
+const dashboardItem: NavItem = {
+  name: "Dashboard",
+  href: "/admin/dashboard",
+  icon: LayoutDashboard,
+};
+
+// Categorized navigation structure
+const navigationCategories: NavCategory[] = [
+  {
+    name: "Content",
+    icon: FileText,
+    items: [
+      { name: "News", href: "/admin/news", icon: Newspaper },
+      { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
+    ],
+  },
+  {
+    name: "Market Intelligence",
+    icon: BarChart3,
+    items: [
+      { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
+      { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
+      { name: "Stock Lookup", href: "/admin/stock-lookup", icon: Search },
+    ],
+  },
+  {
+    name: "System",
+    icon: Cog,
+    items: [
+      { name: "Data Ingestion", href: "/admin/data-ingestion", icon: Database },
+      { name: "API Usage", href: "/admin/api-usage", icon: Activity },
+      { name: "Integrations", href: "/admin/integrations", icon: Settings },
+      { name: "Model Efficacy", href: "/admin/model-efficacy", icon: Shield },
+    ],
+  },
+  {
+    name: "Administration",
+    icon: UserCog,
+    items: [
+      { name: "Users", href: "/admin/users", icon: UsersRound },
+      { name: "Team", href: "/admin/team", icon: Users },
+      { name: "Settings", href: "/admin/settings", icon: KeyRound },
+    ],
+  },
 ];
+
+// Helper to get category containing a path
+function getCategoryForPath(path: string): string | null {
+  for (const category of navigationCategories) {
+    if (category.items.some(item => path.startsWith(item.href))) {
+      return category.name;
+    }
+  }
+  return null;
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -53,6 +112,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  // Initialize expanded categories based on current path
+  const initializeExpandedCategories = useCallback(() => {
+    const activeCategory = getCategoryForPath(pathname);
+    if (activeCategory) {
+      setExpandedCategories(new Set([activeCategory]));
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    initializeExpandedCategories();
+  }, [initializeExpandedCategories]);
 
   useEffect(() => {
     checkSession();
@@ -82,6 +154,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     } catch (error) {
       console.error("Logout failed:", error);
     }
+  }
+
+  function toggleCategory(categoryName: string) {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryName)) {
+        newSet.delete(categoryName);
+      } else {
+        newSet.add(categoryName);
+      }
+      return newSet;
+    });
+  }
+
+  function isCategoryActive(category: NavCategory): boolean {
+    return category.items.some(item => pathname.startsWith(item.href));
   }
 
   if (loading) {
@@ -117,22 +205,77 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <X className="h-6 w-6" />
           </button>
         </div>
-        <nav className="mt-4 px-2 space-y-1">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
+        <nav className="mt-4 px-2 space-y-1 overflow-y-auto flex-1">
+          {/* Dashboard - standalone item */}
+          <Link
+            href={dashboardItem.href}
+            onClick={() => setSidebarOpen(false)}
+            className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
+              pathname === dashboardItem.href
+                ? "bg-indigo-600 text-white"
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+            }`}
+          >
+            <dashboardItem.icon className="h-5 w-5 mr-3" />
+            {dashboardItem.name}
+          </Link>
+
+          {/* Category divider */}
+          <div className="pt-4 pb-2">
+            <div className="border-t border-gray-700" />
+          </div>
+
+          {/* Categorized navigation */}
+          {navigationCategories.map((category) => {
+            const isExpanded = expandedCategories.has(category.name);
+            const isActive = isCategoryActive(category);
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${isActive
-                  ? "bg-indigo-600 text-white"
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              <div key={category.name} className="space-y-1">
+                <button
+                  onClick={() => toggleCategory(category.name)}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-md transition-colors ${
+                    isActive
+                      ? "bg-gray-800 text-white"
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
                   }`}
-              >
-                <item.icon className="h-5 w-5 mr-3" />
-                {item.name}
-              </Link>
+                >
+                  <div className="flex items-center">
+                    <category.icon className="h-5 w-5 mr-3" />
+                    {category.name}
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform duration-200 ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                <div
+                  className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                    isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <div className="pl-4 space-y-1">
+                    {category.items.map((item) => {
+                      const isItemActive = pathname.startsWith(item.href);
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={() => setSidebarOpen(false)}
+                          className={`flex items-center px-4 py-2.5 text-sm rounded-md transition-colors ${
+                            isItemActive
+                              ? "bg-indigo-600 text-white"
+                              : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                          }`}
+                        >
+                          <item.icon className="h-4 w-4 mr-3" />
+                          {item.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             );
           })}
         </nav>
@@ -146,22 +289,77 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="ml-2 text-xl font-bold text-white">ScamDunk</span>
             <span className="ml-2 text-xs text-gray-400 uppercase">Admin</span>
           </div>
-          <nav className="flex-1 mt-4 px-2 space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
+          <nav className="flex-1 mt-4 px-2 space-y-1 overflow-y-auto">
+            {/* Dashboard - standalone item */}
+            <Link
+              href={dashboardItem.href}
+              className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
+                pathname === dashboardItem.href
+                  ? "bg-indigo-600 text-white"
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+              }`}
+            >
+              <dashboardItem.icon className="h-5 w-5 mr-3" />
+              {dashboardItem.name}
+              {pathname === dashboardItem.href && <ChevronRight className="ml-auto h-4 w-4" />}
+            </Link>
+
+            {/* Category divider */}
+            <div className="pt-4 pb-2">
+              <div className="border-t border-gray-700" />
+            </div>
+
+            {/* Categorized navigation */}
+            {navigationCategories.map((category) => {
+              const isExpanded = expandedCategories.has(category.name);
+              const isActive = isCategoryActive(category);
               return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${isActive
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                <div key={category.name} className="space-y-1">
+                  <button
+                    onClick={() => toggleCategory(category.name)}
+                    className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-md transition-colors ${
+                      isActive
+                        ? "bg-gray-800 text-white"
+                        : "text-gray-300 hover:bg-gray-700 hover:text-white"
                     }`}
-                >
-                  <item.icon className="h-5 w-5 mr-3" />
-                  {item.name}
-                  {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
-                </Link>
+                  >
+                    <div className="flex items-center">
+                      <category.icon className="h-5 w-5 mr-3" />
+                      {category.name}
+                    </div>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  <div
+                    className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                      isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <div className="pl-4 space-y-1">
+                      {category.items.map((item) => {
+                        const isItemActive = pathname.startsWith(item.href);
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            className={`flex items-center px-4 py-2.5 text-sm rounded-md transition-colors ${
+                              isItemActive
+                                ? "bg-indigo-600 text-white"
+                                : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                            }`}
+                          >
+                            <item.icon className="h-4 w-4 mr-3" />
+                            {item.name}
+                            {isItemActive && <ChevronRight className="ml-auto h-4 w-4" />}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </nav>
