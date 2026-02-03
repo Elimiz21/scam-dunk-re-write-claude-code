@@ -43,6 +43,7 @@ interface HighRiskStock {
     industry: string;
     marketCap: number | null;
     lastPrice: number | null;
+    avgDollarVolume?: number | null;  // Daily dollar volume - may not be present in older data
     riskLevel: string;
     totalScore: number;
     signals: Array<{
@@ -100,6 +101,13 @@ async function testEnhancedPipeline(): Promise<void> {
             filtered = true;
             reason = `Large market cap ($${(stock.marketCap / 1_000_000_000).toFixed(1)}B)`;
             filteredByMarketCap++;
+        }
+
+        // Volume filter - only applies if avgDollarVolume data is available
+        if (!filtered && stock.avgDollarVolume && stock.avgDollarVolume > VOLUME_THRESHOLD) {
+            filtered = true;
+            reason = `High daily volume ($${(stock.avgDollarVolume / 1_000_000).toFixed(1)}M)`;
+            filteredByVolume++;
         }
 
         if (!filtered) {
