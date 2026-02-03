@@ -44,6 +44,7 @@ export default function TeamPage() {
   const [inviteRole, setInviteRole] = useState("ADMIN");
   const [inviting, setInviting] = useState(false);
   const [inviteUrl, setInviteUrl] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,7 +81,12 @@ export default function TeamPage() {
       }
 
       setInviteUrl(data.inviteUrl);
-      setSuccess("Invite created successfully!");
+      setEmailSent(data.emailSent || false);
+      setSuccess(
+        data.emailSent
+          ? `Invite email sent to ${inviteEmail}!`
+          : "Invite created! Share the link below with the invitee."
+      );
       fetchTeam();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send invite");
@@ -149,6 +155,7 @@ export default function TeamPage() {
               setShowInviteModal(true);
               setInviteUrl("");
               setInviteEmail("");
+              setEmailSent(false);
             }}
             className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
           >
@@ -323,9 +330,17 @@ export default function TeamPage() {
 
               {inviteUrl ? (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    Share this link with <strong>{inviteEmail}</strong> to complete their registration:
-                  </p>
+                  {emailSent ? (
+                    <div className="bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-800">
+                      <Check className="h-4 w-4 inline mr-2" />
+                      Invite email sent to <strong>{inviteEmail}</strong>. They can also use the link below:
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+                      <Mail className="h-4 w-4 inline mr-2" />
+                      Email could not be sent automatically. Share this link with <strong>{inviteEmail}</strong> manually:
+                    </div>
+                  )}
                   <div className="flex items-center space-x-2">
                     <input
                       type="text"
