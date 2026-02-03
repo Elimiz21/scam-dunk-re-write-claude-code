@@ -26,6 +26,7 @@ import {
   MessageCircleQuestion,
   Scale,
   Newspaper,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -250,6 +251,15 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
               >
                 <MessageCircleQuestion className="h-4 w-4" />
                 Help & FAQ
+              </Button>
+            </Link>
+            <Link href="/contact">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 rounded-xl h-10"
+              >
+                <Mail className="h-4 w-4" />
+                Contact Us
               </Button>
             </Link>
 

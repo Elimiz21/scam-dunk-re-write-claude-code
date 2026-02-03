@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Newspaper,
   KeyRound,
+  Headphones,
 } from "lucide-react";
 
 interface AdminSession {
@@ -33,6 +34,7 @@ interface AdminSession {
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Customer Support", href: "/admin/support", icon: Headphones },
   { name: "News", href: "/admin/news", icon: Newspaper },
   { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
   { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
