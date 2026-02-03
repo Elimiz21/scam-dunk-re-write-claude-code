@@ -145,19 +145,24 @@ interface SchemeRecord {
     name: string;
     firstDetected: string;
     lastSeen: string;
-    status: 'NEW' | 'ONGOING' | 'RESOLVED';
+    status: 'NEW' | 'ONGOING' | 'COOLING' | 'RESOLVED' | 'CONFIRMED_FRAUD';
     peakRiskScore: number;
     currentRiskScore: number;
     promotionPlatforms: string[];
     promoterAccounts: string[];
     priceAtDetection: number;
+    peakPrice: number;
     currentPrice: number;
+    priceChangeFromPeak?: number;
     volumeAtDetection: number;
     notes: string[];
+    resolutionDetails?: string;
     timeline: Array<{
         date: string;
         event: string;
         details: string;
+        category?: 'detection' | 'price_movement' | 'promotion' | 'volume' | 'status_change' | 'note';
+        significance?: 'high' | 'medium' | 'low';
     }>;
 }
 
@@ -956,6 +961,94 @@ async function runEnhancedPipeline(): Promise<void> {
 
     let newSchemes = 0;
     let ongoingSchemes = 0;
+    let coolingSchemes = 0;
+    let resolvedSchemes = 0;
+
+    // STEP 5a: Update stale schemes (not seen for 7+ days) to RESOLVED
+    // and check for COOLING status (price dropped >30% from peak)
+    const symbolsSeenToday = new Set(suspiciousStocks.map(s => s.symbol));
+    const allHighRiskSymbols = new Set(allResults.filter(r => r.riskLevel === 'HIGH').map(r => r.symbol));
+
+    const schemeEntries = Array.from(schemeDB.entries());
+    for (const [schemeId, scheme] of schemeEntries) {
+
+        if (scheme.status === 'RESOLVED' || scheme.status === 'CONFIRMED_FRAUD') {
+            continue; // Skip already resolved schemes
+        }
+
+        const lastSeenDate = new Date(scheme.lastSeen);
+        const today = new Date(evaluationDate);
+        const daysSinceLastSeen = Math.floor((today.getTime() - lastSeenDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Check if scheme should be RESOLVED (not seen for 7+ days and no longer high-risk)
+        if (daysSinceLastSeen >= 7 && !allHighRiskSymbols.has(scheme.symbol)) {
+            scheme.status = 'RESOLVED';
+            scheme.resolutionDetails = `Auto-resolved: No suspicious activity detected for ${daysSinceLastSeen} days`;
+            scheme.timeline.push({
+                date: evaluationDate,
+                event: 'Scheme auto-resolved',
+                details: `No suspicious activity for ${daysSinceLastSeen} days, stock no longer flagged as high-risk`,
+                category: 'status_change',
+                significance: 'high'
+            });
+            resolvedSchemes++;
+            console.log(`  ⚪ Resolved stale scheme: ${schemeId} (${scheme.symbol}) - inactive for ${daysSinceLastSeen} days`);
+            continue;
+        }
+
+        // Check for COOLING status (price dropped >30% from peak) for ONGOING schemes
+        if (scheme.status === 'ONGOING') {
+            // Get current price from today's scan if available
+            const currentResult = allResults.find(r => r.symbol === scheme.symbol);
+            if (currentResult && currentResult.lastPrice && scheme.peakPrice > 0) {
+                const priceChangeFromPeak = ((currentResult.lastPrice - scheme.peakPrice) / scheme.peakPrice) * 100;
+
+                if (priceChangeFromPeak < -30) {
+                    scheme.status = 'COOLING';
+                    scheme.currentPrice = currentResult.lastPrice;
+                    scheme.priceChangeFromPeak = priceChangeFromPeak;
+                    scheme.timeline.push({
+                        date: evaluationDate,
+                        event: 'Status changed to COOLING - Possible dump detected',
+                        details: `Price dropped ${Math.abs(priceChangeFromPeak).toFixed(1)}% from peak ($${scheme.peakPrice.toFixed(2)} → $${currentResult.lastPrice.toFixed(2)})`,
+                        category: 'status_change',
+                        significance: 'high'
+                    });
+                    coolingSchemes++;
+                    console.log(`  🔵 Cooling scheme detected: ${schemeId} (${scheme.symbol}) - price down ${Math.abs(priceChangeFromPeak).toFixed(1)}% from peak`);
+                }
+            }
+        }
+
+        // Check if COOLING schemes should be RESOLVED (price dropped >50% or 14+ days of cooling)
+        if (scheme.status === 'COOLING') {
+            const currentResult = allResults.find(r => r.symbol === scheme.symbol);
+            if (currentResult && currentResult.lastPrice && scheme.peakPrice > 0) {
+                const priceChangeFromPeak = ((currentResult.lastPrice - scheme.peakPrice) / scheme.peakPrice) * 100;
+
+                // Resolve if price is 50%+ below peak (dump complete)
+                if (priceChangeFromPeak < -50) {
+                    scheme.status = 'RESOLVED';
+                    scheme.currentPrice = currentResult.lastPrice;
+                    scheme.resolutionDetails = `Pump-and-dump cycle complete: Price crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}% from peak`;
+                    scheme.timeline.push({
+                        date: evaluationDate,
+                        event: 'Scheme resolved - Dump cycle complete',
+                        details: `Price crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}% from peak, scheme cycle complete`,
+                        category: 'status_change',
+                        significance: 'high'
+                    });
+                    resolvedSchemes++;
+                    console.log(`  ⚫ Resolved dump scheme: ${schemeId} (${scheme.symbol}) - crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}%`);
+                }
+            }
+        }
+    }
+
+    console.log(`\n  Scheme lifecycle updates:`);
+    console.log(`    Cooling (price dropping): ${coolingSchemes}`);
+    console.log(`    Auto-resolved (stale/completed): ${resolvedSchemes}`);
+    console.log('');
 
     for (const result of suspiciousStocks) {
         // Check if this stock is already in scheme database
@@ -974,7 +1067,7 @@ async function runEnhancedPipeline(): Promise<void> {
                 const newPlatforms = result.socialMediaFindings.platforms
                     .filter(p => p.promotionRisk === 'high')
                     .map(p => p.platform);
-                existingScheme.promotionPlatforms = [...new Set([...existingScheme.promotionPlatforms, ...newPlatforms])];
+                existingScheme.promotionPlatforms = Array.from(new Set([...existingScheme.promotionPlatforms, ...newPlatforms]));
             }
 
             existingScheme.timeline.push({
@@ -1007,6 +1100,7 @@ async function runEnhancedPipeline(): Promise<void> {
                     .map(p => p.platform),
                 promoterAccounts: result.socialMediaFindings.potentialPromoters,
                 priceAtDetection: result.lastPrice || 0,
+                peakPrice: result.lastPrice || 0,
                 currentPrice: result.lastPrice || 0,
                 volumeAtDetection: result.avgDailyVolume || 0,
                 notes: [`Initial detection with promotion score ${result.socialMediaFindings.overallPromotionScore}`],
