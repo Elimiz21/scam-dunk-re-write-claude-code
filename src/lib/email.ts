@@ -373,9 +373,43 @@ export async function sendAdminInviteEmail(
  * Support email configuration
  * support@scamdunk.com receives user tickets
  * avim@scamdunk.com is the admin who manages them
+ *
+ * Recipients can be managed via admin dashboard at /admin/support
  */
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@scamdunk.com';
-const ADMIN_SUPPORT_EMAIL = process.env.ADMIN_SUPPORT_EMAIL || 'avim@scamdunk.com';
+const DEFAULT_SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@scamdunk.com';
+const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_SUPPORT_EMAIL || 'avim@scamdunk.com';
+
+// Dynamic import to avoid circular dependency
+async function getSupportEmailRecipients(category?: string): Promise<string[]> {
+  try {
+    // Dynamically import prisma to avoid build issues
+    const { prisma } = await import('@/lib/db');
+
+    const recipients = await prisma.supportEmailRecipient.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { isPrimary: true },
+          { categories: category ? { contains: category } : undefined },
+          { categories: null }, // null means all categories
+        ],
+      },
+    });
+
+    if (recipients.length > 0) {
+      return recipients.map(r => r.email);
+    }
+  } catch (error) {
+    console.error('Failed to fetch email recipients from database:', error);
+  }
+
+  // Fallback to default
+  return [DEFAULT_ADMIN_EMAIL];
+}
+
+// For backwards compatibility
+const SUPPORT_EMAIL = DEFAULT_SUPPORT_EMAIL;
+const ADMIN_SUPPORT_EMAIL = DEFAULT_ADMIN_EMAIL;
 
 /**
  * Send notification to admin when a new support ticket is submitted
@@ -406,10 +440,13 @@ export async function sendSupportTicketNotification(
   const timestamp = new Date().toISOString();
 
   try {
+    // Get all active recipients for this category
+    const recipients = await getSupportEmailRecipients(category);
+
     const resend = getResend();
     const result = await resend.emails.send({
       from: FROM_EMAIL,
-      to: ADMIN_SUPPORT_EMAIL,
+      to: recipients,
       replyTo: email,
       subject: `[Support Ticket] ${subject}`,
       html: `
