@@ -134,3 +134,96 @@
 .transition-smooth {
   @apply transition-all duration-200 ease-out;
 }
+
+/* Feature highlight animations */
+@keyframes subtlePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 59, 130, 246), 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(var(--primary-rgb, 59, 130, 246), 0.15);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+}
+
+.animate-subtle-pulse {
+  animation: subtlePulse 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.animate-gentle-float {
+  animation: gentleFloat 3s ease-in-out infinite;
+}
+
+/* Feature button highlight styles */
+.feature-highlight {
+  @apply relative overflow-hidden;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.08) 0%,
+    hsl(var(--primary) / 0.04) 50%,
+    hsl(var(--primary) / 0.08) 100%
+  );
+  border: 1px solid hsl(var(--primary) / 0.2);
+}
+
+.feature-highlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--primary) / 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.feature-highlight:hover {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.15) 0%,
+    hsl(var(--primary) / 0.08) 50%,
+    hsl(var(--primary) / 0.15) 100%
+  );
+  border-color: hsl(var(--primary) / 0.35);
+}
+
+/* Drag-and-drop zone styles */
+.drop-zone {
+  @apply border-2 border-dashed border-border rounded-2xl transition-all duration-200;
+}
+
+.drop-zone-active {
+  @apply border-primary bg-primary/5 scale-[1.02];
+  box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.25);
+}
+
+/* New badge for highlighting features */
+.feature-new-badge {
+  @apply absolute -top-1 -right-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider;
+  @apply bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full;
+  @apply animate-subtle-pulse;
+}
