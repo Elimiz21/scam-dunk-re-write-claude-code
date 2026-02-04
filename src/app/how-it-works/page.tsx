@@ -266,7 +266,7 @@ export default function HowItWorksPage() {
             </section>
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
               <Link
                 href="/"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
@@ -279,6 +279,12 @@ export default function HowItWorksPage() {
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
               >
                 Read Full Disclaimer
+              </Link>
+              <Link
+                href="/contact"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border text-foreground font-medium hover:bg-secondary/50 transition-colors"
+              >
+                Contact Support
               </Link>
             </div>
           </div>
