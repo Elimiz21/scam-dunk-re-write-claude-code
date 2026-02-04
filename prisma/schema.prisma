@@ -593,3 +593,76 @@ model MediaMention {
   @@index([sourceType])
   @@index([mentionDate])
 }
+
+// ==========================================
+// CUSTOMER SUPPORT MODELS
+// For managing support tickets and user feedback
+// ==========================================
+
+model SupportTicket {
+  id           String   @id @default(cuid())
+
+  // Submitter information
+  name         String
+  email        String
+  userId       String?  // Optional: linked user if logged in
+
+  // Ticket content
+  subject      String
+  message      String   @db.Text
+  category     String   // SUPPORT, FEEDBACK, BUG_REPORT, FEATURE_REQUEST, BILLING, OTHER
+
+  // Ticket management
+  status       String   @default("NEW") // NEW, OPEN, IN_PROGRESS, WAITING_ON_USER, RESOLVED, CLOSED
+  priority     String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+
+  // Assignment
+  assignedTo   String?  // Admin user ID who is handling the ticket
+
+  // Internal notes
+  internalNotes String? @db.Text
+
+  // Timestamps
+  resolvedAt   DateTime?
+  closedAt     DateTime?
+  lastActivityAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Request metadata
+  ipAddress    String?
+  userAgent    String?  @db.Text
+
+  // Relations
+  responses    SupportTicketResponse[]
+
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@index([email])
+  @@index([createdAt])
+  @@index([assignedTo])
+}
+
+model SupportTicketResponse {
+  id           String   @id @default(cuid())
+  ticketId     String
+  ticket       SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  // Response content
+  message      String   @db.Text
+
+  // Who sent the response
+  isFromAdmin  Boolean  @default(true) // true = admin response, false = user follow-up
+  responderId  String?  // Admin user ID if from admin
+  responderName String? // Name of responder
+  responderEmail String? // Email of responder
+
+  // Was this sent via email?
+  emailSent    Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([createdAt])
+}

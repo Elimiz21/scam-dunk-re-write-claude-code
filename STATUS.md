@@ -1,6 +1,6 @@
 # ScamDunk Development Status
 
-## Last Updated: December 30, 2024
+## Last Updated: February 3, 2026
 
 ---
 
@@ -13,6 +13,26 @@ All high and medium priority features have been implemented:
 - Analytics with Vercel Analytics & Speed Insights
 - Turnstile CAPTCHA on signup, login, and forgot-password pages
 - Stripe billing fully configured
+
+---
+
+## Work Completed (February 3, 2026)
+
+### Real Social Media Scanning 📡
+- **Objective**: Replace AI-simulated social media analysis with real data.
+- [x] **New Scanner Engine**: Created `evaluation/scripts/real-social-scanner.ts`
+  - **Reddit**: Fully functional via public API.
+  - **StockTwits**: Implemented (limited by blocking/Cloudflare).
+  - **YouTube**: Implemented (requires API Key).
+- [x] **Pipeline Integration**: Updated `enhanced-daily-pipeline.ts` to use the real scanner.
+- [x] **Scheme Lifecycle Logic**: 
+  - `PUMP_AND_DUMP_ENDED` vs `PUMP_AND_DUMP_ENDED_NO_PROMO` determined by real evidence.
+  - `hadSocialMediaPromotion` flag populated by real scan results.
+- [x] **Documentation**: Created `docs/YOUTUBE_API_SETUP.md`.
+
+### Pending Actions ⏳
+- [ ] **YouTube API Key**: User needs to obtain key and set `YOUTUBE_API_KEY` in `.env.local`.
+- [ ] **Live Testing**: Run pipeline with fresh stock data to verify YouTube results.
 
 ---
 

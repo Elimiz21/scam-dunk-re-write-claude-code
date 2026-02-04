@@ -370,6 +370,284 @@ export async function sendAdminInviteEmail(
 }
 
 /**
+ * Support email configuration
+ * support@scamdan.com receives user tickets
+ * avm@scamdan.com is the admin who manages them
+ */
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@scamdan.com';
+const ADMIN_SUPPORT_EMAIL = process.env.ADMIN_SUPPORT_EMAIL || 'avm@scamdan.com';
+
+/**
+ * Send notification to admin when a new support ticket is submitted
+ */
+export async function sendSupportTicketNotification(
+  ticketId: string,
+  name: string,
+  email: string,
+  subject: string,
+  message: string,
+  category: string
+): Promise<boolean> {
+  const config = checkEmailConfiguration();
+  if (config.isTestMode) {
+    console.log(`[EMAIL] Sending support ticket notification (TEST MODE - may fail for non-owner emails)`);
+  }
+
+  const categoryLabels: Record<string, string> = {
+    SUPPORT: 'Technical Support',
+    FEEDBACK: 'Feedback & Suggestions',
+    BUG_REPORT: 'Bug Report',
+    FEATURE_REQUEST: 'Feature Request',
+    BILLING: 'Billing Question',
+    OTHER: 'Other',
+  };
+
+  const adminDashboardUrl = `${APP_URL}/admin/support`;
+  const timestamp = new Date().toISOString();
+
+  try {
+    const resend = getResend();
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_SUPPORT_EMAIL,
+      replyTo: email,
+      subject: `[Support Ticket] ${subject}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #4f46e5; margin: 0;">ScamDunk Support</h1>
+              <p style="color: #666; margin-top: 5px;">New Support Ticket Received</p>
+            </div>
+
+            <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+              <h2 style="margin-top: 0; color: #1f2937;">${subject}</h2>
+
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold; width: 120px;">Ticket ID:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 13px;">${ticketId}</code></td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">From:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${name} &lt;${email}&gt;</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Category:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${categoryLabels[category] || category}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Submitted:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${timestamp}</td>
+                </tr>
+              </table>
+
+              <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-top: 16px;">
+                <p style="margin: 0; color: #374151; white-space: pre-wrap;">${message}</p>
+              </div>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${adminDashboardUrl}" style="background: #4f46e5; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: 500; display: inline-block;">
+                View in Admin Dashboard
+              </a>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              ScamDunk Support System - Automated Notification
+            </p>
+          </body>
+        </html>
+      `,
+    });
+
+    if (result.error) {
+      console.error('Resend API error (support ticket notification):', result.error);
+      return false;
+    }
+
+    console.log('Support ticket notification sent to admin:', ADMIN_SUPPORT_EMAIL, 'ID:', result.data?.id);
+    return true;
+  } catch (error) {
+    console.error('Failed to send support ticket notification:', error);
+    return false;
+  }
+}
+
+/**
+ * Send confirmation email to user after submitting a support ticket
+ */
+export async function sendSupportTicketConfirmation(
+  ticketId: string,
+  name: string,
+  email: string,
+  subject: string,
+  category: string
+): Promise<boolean> {
+  const config = checkEmailConfiguration();
+  if (config.isTestMode) {
+    console.log(`[EMAIL] Sending support ticket confirmation (TEST MODE - may fail for non-owner emails)`);
+  }
+
+  const categoryLabels: Record<string, string> = {
+    SUPPORT: 'Technical Support',
+    FEEDBACK: 'Feedback & Suggestions',
+    BUG_REPORT: 'Bug Report',
+    FEATURE_REQUEST: 'Feature Request',
+    BILLING: 'Billing Question',
+    OTHER: 'Other',
+  };
+
+  try {
+    const resend = getResend();
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      replyTo: SUPPORT_EMAIL,
+      subject: `We've received your message: ${subject}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #0070f3; margin: 0;">ScamDunk</h1>
+              <p style="color: #666; margin-top: 5px;">Support Request Received</p>
+            </div>
+
+            <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+              <h2 style="margin-top: 0;">Hi ${name},</h2>
+              <p>Thank you for reaching out! We've received your ${categoryLabels[category]?.toLowerCase() || 'message'} and our team will review it shortly.</p>
+
+              <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 20px 0;">
+                <p style="margin: 0 0 8px; font-weight: bold; color: #374151;">Your Ticket Details:</p>
+                <p style="margin: 4px 0; color: #666;"><strong>Ticket ID:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 13px;">${ticketId}</code></p>
+                <p style="margin: 4px 0; color: #666;"><strong>Subject:</strong> ${subject}</p>
+                <p style="margin: 4px 0; color: #666;"><strong>Category:</strong> ${categoryLabels[category] || category}</p>
+              </div>
+
+              <p style="color: #666;">We typically respond within 1-2 business days. If your matter is urgent, please mention it in your original message and we'll prioritize accordingly.</p>
+            </div>
+
+            <p style="color: #666; font-size: 14px;">
+              Need to add more information? Simply reply to this email and it will be added to your ticket.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              ScamDunk - Protecting investors from scams<br>
+              <a href="${APP_URL}" style="color: #0070f3;">scamdunk.com</a>
+            </p>
+          </body>
+        </html>
+      `,
+    });
+
+    if (result.error) {
+      console.error('Resend API error (support confirmation):', result.error);
+      return false;
+    }
+
+    console.log('Support ticket confirmation sent to:', email, 'ID:', result.data?.id);
+    return true;
+  } catch (error) {
+    console.error('Failed to send support ticket confirmation:', error);
+    return false;
+  }
+}
+
+/**
+ * Send response to user when admin replies to a ticket
+ */
+export async function sendSupportTicketResponse(
+  ticketId: string,
+  userName: string,
+  userEmail: string,
+  originalSubject: string,
+  responseMessage: string,
+  responderName: string
+): Promise<boolean> {
+  const config = checkEmailConfiguration();
+  if (config.isTestMode) {
+    console.log(`[EMAIL] Sending support ticket response (TEST MODE - may fail for non-owner emails)`);
+  }
+
+  try {
+    const resend = getResend();
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: userEmail,
+      replyTo: SUPPORT_EMAIL,
+      subject: `Re: ${originalSubject}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #0070f3; margin: 0;">ScamDunk</h1>
+              <p style="color: #666; margin-top: 5px;">Support Team Response</p>
+            </div>
+
+            <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+              <h2 style="margin-top: 0;">Hi ${userName},</h2>
+              <p>We have an update regarding your support request.</p>
+
+              <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 20px 0;">
+                <p style="margin: 0 0 12px; font-size: 13px; color: #666;">
+                  <strong>Ticket ID:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${ticketId}</code>
+                </p>
+                <p style="margin: 0; color: #374151; white-space: pre-wrap;">${responseMessage}</p>
+              </div>
+
+              <p style="color: #666; font-size: 14px; margin-bottom: 0;">
+                <em>— ${responderName}, ScamDunk Support Team</em>
+              </p>
+            </div>
+
+            <p style="color: #666; font-size: 14px;">
+              If you have any further questions, simply reply to this email.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              ScamDunk - Protecting investors from scams<br>
+              <a href="${APP_URL}" style="color: #0070f3;">scamdunk.com</a>
+            </p>
+          </body>
+        </html>
+      `,
+    });
+
+    if (result.error) {
+      console.error('Resend API error (support response):', result.error);
+      return false;
+    }
+
+    console.log('Support ticket response sent to:', userEmail, 'ID:', result.data?.id);
+    return true;
+  } catch (error) {
+    console.error('Failed to send support ticket response:', error);
+    return false;
+  }
+}
+
+/**
  * Send an alert email to the admin when an API failure occurs
  */
 export async function sendAPIFailureAlert(

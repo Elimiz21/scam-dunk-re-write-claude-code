@@ -251,13 +251,13 @@ export default function HelpPage() {
                   Can&apos;t find what you&apos;re looking for? We&apos;re here to help.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <a
-                    href="mailto:support@scamdunk.com"
+                  <Link
+                    href="/contact"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
                   >
                     <Mail className="h-4 w-4" />
-                    Email Support
-                  </a>
+                    Contact Us
+                  </Link>
                   <Link
                     href="/about"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
