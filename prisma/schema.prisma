@@ -681,3 +681,46 @@ model SupportEmailRecipient {
   @@index([isActive])
   @@index([isPrimary])
 }
+
+// ==========================================
+// REGULATORY DATABASE FOR FLAGGED STOCKS
+// Updated nightly from SEC, FINRA, and exchange sources
+// ==========================================
+
+model RegulatoryFlag {
+  id           String   @id @default(cuid())
+  ticker       String
+  source       String   // SEC, FINRA, NYSE, NASDAQ, OTC
+  flagType     String   // TRADING_SUSPENSION, ENFORCEMENT_ACTION, DELISTING_WARNING, FRAUD_ALERT, PUMP_DUMP_WARNING
+  title        String?
+  description  String?  @db.Text
+  flagDate     DateTime // When the flag was issued
+  expiryDate   DateTime? // When the flag expires (if applicable)
+  sourceUrl    String?  @db.Text // URL to original source
+  isActive     Boolean  @default(true)
+  severity     String   @default("HIGH") // LOW, MEDIUM, HIGH, CRITICAL
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([ticker, source, flagType, flagDate])
+  @@index([ticker])
+  @@index([source])
+  @@index([isActive])
+  @@index([flagDate])
+}
+
+model RegulatoryDatabaseSync {
+  id           String   @id @default(cuid())
+  source       String   // SEC, FINRA, NYSE, NASDAQ, OTC
+  lastSyncAt   DateTime
+  recordsAdded Int      @default(0)
+  recordsUpdated Int    @default(0)
+  status       String   @default("SUCCESS") // SUCCESS, FAILED, PARTIAL
+  errorMessage String?  @db.Text
+
+  createdAt    DateTime @default(now())
+
+  @@index([source])
+  @@index([lastSyncAt])
+}

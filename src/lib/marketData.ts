@@ -708,24 +708,31 @@ async function fetchMarketDataFromAlphaVantage(ticker: string): Promise<MarketDa
 /**
  * Check if a stock is on any regulatory alert/suspension list
  *
- * This checks the SEC's trading suspension list via their RSS feed.
- * Note: This is a simplified implementation. For production, consider:
- * - Caching the suspension list and refreshing periodically
- * - Checking multiple sources (SEC, FINRA, OTC Markets)
+ * This now checks against our local database that is updated nightly
+ * from multiple sources: SEC, FINRA, NYSE, NASDAQ, OTC Markets.
+ *
+ * Also falls back to live SEC RSS feed check if database is empty.
  *
  * @param ticker - Stock ticker symbol
- * @returns true if the stock is on an alert list
+ * @returns Object with flag status and detailed information
  */
 export async function checkAlertList(ticker: string): Promise<boolean> {
   const normalizedTicker = ticker.toUpperCase().trim();
 
   try {
-    // Fetch SEC trading suspensions RSS feed
+    // First, check our local regulatory database
+    const { checkRegulatoryDatabase } = await import('@/lib/regulatoryDatabase');
+    const regulatoryCheck = await checkRegulatoryDatabase(normalizedTicker);
+
+    if (regulatoryCheck.isFlagged) {
+      return true;
+    }
+
+    // Fallback: Check SEC RSS feed directly for real-time data
     const response = await fetch("https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom");
     const text = await response.text();
 
     // Simple check if ticker appears in recent suspension notices
-    // This is a basic implementation - the SEC RSS contains trading suspension orders
     if (text.toUpperCase().includes(normalizedTicker)) {
       return true;
     }
@@ -735,6 +742,40 @@ export async function checkAlertList(ticker: string): Promise<boolean> {
     // If we can't check the alert list, return false (don't block the analysis)
     console.error("Error checking alert list:", error);
     return false;
+  }
+}
+
+/**
+ * Enhanced regulatory check with detailed flag information
+ * Use this for detailed reporting to users
+ */
+export async function checkRegulatoryFlags(ticker: string): Promise<{
+  isFlagged: boolean;
+  flags: Array<{
+    source: string;
+    flagType: string;
+    title: string | null;
+    description: string | null;
+    flagDate: Date;
+    severity: string;
+    sourceUrl: string | null;
+  }>;
+  highestSeverity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
+  sources: string[];
+}> {
+  const normalizedTicker = ticker.toUpperCase().trim();
+
+  try {
+    const { checkRegulatoryDatabase } = await import('@/lib/regulatoryDatabase');
+    return await checkRegulatoryDatabase(normalizedTicker);
+  } catch (error) {
+    console.error("Error checking regulatory flags:", error);
+    return {
+      isFlagged: false,
+      flags: [],
+      highestSeverity: null,
+      sources: [],
+    };
   }
 }
 
