@@ -482,11 +482,11 @@ export default function ContactPage() {
                     Prefer email?
                   </p>
                   <a
-                    href="mailto:support@scamdan.com"
+                    href="mailto:support@scamdunk.com"
                     className="text-primary font-medium hover:underline flex items-center gap-2"
                   >
                     <Mail className="h-4 w-4" />
-                    support@scamdan.com
+                    support@scamdunk.com
                   </a>
                 </div>
               </div>
