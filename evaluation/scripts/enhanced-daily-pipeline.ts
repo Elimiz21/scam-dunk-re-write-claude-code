@@ -23,6 +23,8 @@ import { execSync } from 'child_process';
 
 // Import scoring modules
 import { computeRiskScore, MarketData, PriceHistory, StockQuote, ScoringResult } from './standalone-scorer';
+import { performRealSocialScan, ComprehensiveScanResult } from './real-social-scanner';
+
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const RESULTS_DIR = path.join(__dirname, '..', 'results');
@@ -101,17 +103,7 @@ interface EnhancedStockResult {
 
     // Social media scan (only for remaining high-risk stocks)
     socialMediaScanned: boolean;
-    socialMediaFindings: {
-        platforms: Array<{
-            platform: string;
-            activityLevel: string;
-            promotionRisk: string;
-            details: string;
-        }>;
-        overallPromotionScore: number;
-        potentialPromoters: string[];
-        coordinationIndicators: string[];
-    } | null;
+    socialMediaFindings?: ComprehensiveScanResult | null;
 
     // Scheme tracking
     schemeId: string | null;
@@ -145,11 +137,21 @@ interface SchemeRecord {
     name: string;
     firstDetected: string;
     lastSeen: string;
-    status: 'NEW' | 'ONGOING' | 'COOLING' | 'RESOLVED' | 'CONFIRMED_FRAUD';
+    // Status flow: NEW → ONGOING → COOLING → (PUMP_AND_DUMP_ENDED | PUMP_AND_DUMP_ENDED_NO_PROMO | NO_SCAM_DETECTED)
+    // CONFIRMED_FRAUD is for manually verified cases
+    status:
+    | 'NEW'                          // Just detected, day 1
+    | 'ONGOING'                       // Active for 2+ days
+    | 'COOLING'                       // Price dropping from peak (dump phase)
+    | 'PUMP_AND_DUMP_ENDED'           // Full cycle detected WITH social media promotion
+    | 'PUMP_AND_DUMP_ENDED_NO_PROMO'  // Full cycle detected WITHOUT social media proof
+    | 'NO_SCAM_DETECTED'              // Went inactive without showing full P&D pattern
+    | 'CONFIRMED_FRAUD';              // Manually verified as fraud
     peakRiskScore: number;
     currentRiskScore: number;
     promotionPlatforms: string[];
     promoterAccounts: string[];
+    hadSocialMediaPromotion: boolean;     // Whether we found real social media promotion
     priceAtDetection: number;
     peakPrice: number;
     currentPrice: number;
@@ -537,127 +539,7 @@ Respond in JSON format:
     }
 }
 
-// Comprehensive social media scan
-async function scanSocialMedia(
-    symbol: string,
-    name: string,
-    marketCap: number,
-    signals: any[]
-): Promise<{
-    platforms: Array<{
-        platform: string;
-        activityLevel: string;
-        promotionRisk: string;
-        details: string;
-    }>;
-    overallPromotionScore: number;
-    potentialPromoters: string[];
-    coordinationIndicators: string[];
-} | null> {
-    if (!OPENAI_API_KEY) return null;
 
-    const OpenAI = require('openai');
-    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-    const signalsText = signals.map(s => `- ${s.description}`).join('\n');
-    const marketCapStr = marketCap ? `$${(marketCap / 1_000_000).toFixed(1)}M` : 'Unknown';
-
-    const prompt = `You are a stock manipulation investigator analyzing ${symbol} (${name}).
-
-COMPANY PROFILE:
-- Market Cap: ${marketCapStr}
-- Risk signals detected: ${signals.length}
-
-SUSPICIOUS SIGNALS:
-${signalsText}
-
-Analyze the likelihood of social media promotion/manipulation across these platforms:
-
-1. REDDIT
-   - Subreddits: r/wallstreetbets, r/pennystocks, r/Shortsqueeze, r/stocks, r/RobinhoodPennyStocks
-   - Look for: DD posts, rocket emojis, "next GME/AMC" claims, coordinated upvoting
-
-2. DISCORD
-   - Trading servers, pump group channels, "stock alert" servers
-   - Look for: Coordinated buy signals, alert notifications, VIP channels
-
-3. TWITTER/X
-   - Cashtag activity ($${symbol}), stock promoter accounts, fintwit influencers
-   - Look for: Paid promotions, sudden hashtag trends, bot activity
-
-4. YOUTUBE
-   - Stock tip channels, "10x gains" videos, penny stock analysis
-   - Look for: Undisclosed sponsorships, clickbait thumbnails, subscriber counts
-
-5. STOCKTWITS
-   - Message volume spikes, sentiment manipulation, coordinated posting
-   - Look for: Unusual bullish sentiment, new account activity
-
-6. TIKTOK
-   - Stock tip videos, "financial advice" creators
-   - Look for: Viral stock picks, undisclosed promotions
-
-7. FACEBOOK/INSTAGRAM
-   - Investment groups, trading communities
-   - Look for: Private group promotions, influencer posts
-
-8. TELEGRAM
-   - Pump groups, trading signals channels
-   - Look for: Coordinated buy signals, membership fees
-
-Based on the stock profile and signals, provide a realistic assessment of likely promotion activity.
-
-Respond in JSON format:
-{
-  "platforms": [
-    {
-      "platform": "Platform Name",
-      "activityLevel": "high/medium/low/none",
-      "promotionRisk": "high/medium/low",
-      "details": "Specific expected activity",
-      "typicalPosts": "Example of likely promotional content",
-      "redFlags": ["red flag 1", "red flag 2"]
-    }
-  ],
-  "overallPromotionScore": 1-100,
-  "potentialPromoterProfiles": [
-    "Type 1: Description of likely promoter type",
-    "Type 2: Another promoter type"
-  ],
-  "coordinationIndicators": [
-    "Indicator 1",
-    "Indicator 2"
-  ],
-  "manipulationLikelihood": "high/medium/low",
-  "recommendedMonitoring": ["Specific platform/account to watch"]
-}`;
-
-    try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: prompt }],
-            response_format: { type: 'json_object' },
-            max_tokens: 1500
-        });
-
-        const result = JSON.parse(response.choices[0].message.content || '{}');
-
-        return {
-            platforms: (result.platforms || []).map((p: any) => ({
-                platform: p.platform,
-                activityLevel: p.activityLevel || 'unknown',
-                promotionRisk: p.promotionRisk || 'unknown',
-                details: p.details || p.typicalPosts || ''
-            })),
-            overallPromotionScore: result.overallPromotionScore || 0,
-            potentialPromoters: result.potentialPromoterProfiles || [],
-            coordinationIndicators: result.coordinationIndicators || []
-        };
-    } catch (error: any) {
-        console.log(`  Error scanning social media for ${symbol}:`, error?.message || error);
-        return null;
-    }
-}
 
 // Main pipeline execution
 async function runEnhancedPipeline(): Promise<void> {
@@ -932,11 +814,10 @@ async function runEnhancedPipeline(): Promise<void> {
         const result = afterNewsFilter[i];
         console.log(`[${i + 1}/${afterNewsFilter.length}] Scanning social media for ${result.symbol}...`);
 
-        const socialFindings = await scanSocialMedia(
+        const socialFindings = await performRealSocialScan(
             result.symbol,
             result.name,
-            result.marketCap || 0,
-            result.signals
+            result.marketCap || 0
         );
 
         result.socialMediaScanned = true;
@@ -963,41 +844,49 @@ async function runEnhancedPipeline(): Promise<void> {
     let ongoingSchemes = 0;
     let coolingSchemes = 0;
     let resolvedSchemes = 0;
+    let noScamSchemes = 0;
 
-    // STEP 5a: Update stale schemes (not seen for 7+ days) to RESOLVED
-    // and check for COOLING status (price dropped >30% from peak)
+    // STEP 5a: Update stale schemes (not seen for 7+ days) and check for lifecycle transitions
+    // New status labels:
+    // - PUMP_AND_DUMP_ENDED: Saw full P&D cycle WITH social media promotion
+    // - PUMP_AND_DUMP_ENDED_NO_PROMO: Saw full P&D cycle WITHOUT social media evidence
+    // - NO_SCAM_DETECTED: Went inactive without showing full P&D pattern
     const symbolsSeenToday = new Set(suspiciousStocks.map(s => s.symbol));
     const allHighRiskSymbols = new Set(allResults.filter(r => r.riskLevel === 'HIGH').map(r => r.symbol));
 
     const schemeEntries = Array.from(schemeDB.entries());
     for (const [schemeId, scheme] of schemeEntries) {
 
-        if (scheme.status === 'RESOLVED' || scheme.status === 'CONFIRMED_FRAUD') {
-            continue; // Skip already resolved schemes
+        // Skip already resolved schemes
+        if (['PUMP_AND_DUMP_ENDED', 'PUMP_AND_DUMP_ENDED_NO_PROMO', 'NO_SCAM_DETECTED', 'CONFIRMED_FRAUD'].includes(scheme.status)) {
+            continue;
         }
 
         const lastSeenDate = new Date(scheme.lastSeen);
         const today = new Date(evaluationDate);
         const daysSinceLastSeen = Math.floor((today.getTime() - lastSeenDate.getTime()) / (1000 * 60 * 60 * 24));
+        const daysActive = Math.floor((today.getTime() - new Date(scheme.firstDetected).getTime()) / (1000 * 60 * 60 * 24));
 
-        // Check if scheme should be RESOLVED (not seen for 7+ days and no longer high-risk)
-        if (daysSinceLastSeen >= 7 && !allHighRiskSymbols.has(scheme.symbol)) {
-            scheme.status = 'RESOLVED';
-            scheme.resolutionDetails = `Auto-resolved: No suspicious activity detected for ${daysSinceLastSeen} days`;
+        // Check if scheme should be marked as NO_SCAM_DETECTED (not seen for 7+ days, never showed full P&D pattern)
+        // This is for stocks that looked suspicious but never developed into actual schemes
+        if (daysSinceLastSeen >= 7 && !allHighRiskSymbols.has(scheme.symbol) && scheme.status !== 'COOLING') {
+            scheme.status = 'NO_SCAM_DETECTED';
+            scheme.resolutionDetails = `No pump-and-dump pattern detected after ${daysActive || 1} days of monitoring. Stock activity normalized.`;
             scheme.timeline.push({
                 date: evaluationDate,
-                event: 'Scheme auto-resolved',
-                details: `No suspicious activity for ${daysSinceLastSeen} days, stock no longer flagged as high-risk`,
+                event: 'No scam detected - closing investigation',
+                details: `Monitored for ${daysActive || 1} days, inactive for ${daysSinceLastSeen} days. No full pump-and-dump pattern observed.`,
                 category: 'status_change',
                 significance: 'high'
             });
-            resolvedSchemes++;
-            console.log(`  ⚪ Resolved stale scheme: ${schemeId} (${scheme.symbol}) - inactive for ${daysSinceLastSeen} days`);
+            noScamSchemes++;
+            console.log(`  ⚪ NO SCAM DETECTED: ${schemeId} (${scheme.symbol}) - never showed full P&D pattern`);
             continue;
         }
 
         // Check for COOLING status (price dropped >30% from peak) for ONGOING schemes
         if (scheme.status === 'ONGOING') {
+
             // Get current price from today's scan if available
             const currentResult = allResults.find(r => r.symbol === scheme.symbol);
             if (currentResult && currentResult.lastPrice && scheme.peakPrice > 0) {
@@ -1020,26 +909,30 @@ async function runEnhancedPipeline(): Promise<void> {
             }
         }
 
-        // Check if COOLING schemes should be RESOLVED (price dropped >50% or 14+ days of cooling)
+        // Check if COOLING schemes should be marked as PUMP_AND_DUMP_ENDED (price dropped >50%)
         if (scheme.status === 'COOLING') {
             const currentResult = allResults.find(r => r.symbol === scheme.symbol);
             if (currentResult && currentResult.lastPrice && scheme.peakPrice > 0) {
                 const priceChangeFromPeak = ((currentResult.lastPrice - scheme.peakPrice) / scheme.peakPrice) * 100;
 
-                // Resolve if price is 50%+ below peak (dump complete)
+                // Mark as PUMP_AND_DUMP_ENDED if price is 50%+ below peak (dump complete)
                 if (priceChangeFromPeak < -50) {
-                    scheme.status = 'RESOLVED';
+                    // Determine status based on whether social media promotion was detected
+                    const hadSocialPromo = scheme.hadSocialMediaPromotion || scheme.promotionPlatforms.length > 0;
+                    scheme.status = hadSocialPromo ? 'PUMP_AND_DUMP_ENDED' : 'PUMP_AND_DUMP_ENDED_NO_PROMO';
                     scheme.currentPrice = currentResult.lastPrice;
-                    scheme.resolutionDetails = `Pump-and-dump cycle complete: Price crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}% from peak`;
+                    scheme.resolutionDetails = hadSocialPromo
+                        ? `PUMP & DUMP CONFIRMED: Price crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}% from peak. Social media promotion detected on: ${scheme.promotionPlatforms.join(', ')}`
+                        : `PUMP & DUMP CYCLE DETECTED: Price crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}% from peak. No social media promotion evidence found.`;
                     scheme.timeline.push({
                         date: evaluationDate,
-                        event: 'Scheme resolved - Dump cycle complete',
-                        details: `Price crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}% from peak, scheme cycle complete`,
+                        event: hadSocialPromo ? 'PUMP & DUMP ENDED - With social promotion' : 'PUMP & DUMP ENDED - No social evidence',
+                        details: `Price crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}% from peak ($${scheme.peakPrice.toFixed(2)} → $${currentResult.lastPrice.toFixed(2)})`,
                         category: 'status_change',
                         significance: 'high'
                     });
                     resolvedSchemes++;
-                    console.log(`  ⚫ Resolved dump scheme: ${schemeId} (${scheme.symbol}) - crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}%`);
+                    console.log(`  ⚫ PUMP & DUMP ENDED: ${schemeId} (${scheme.symbol}) - crashed ${Math.abs(priceChangeFromPeak).toFixed(1)}% | Social promo: ${hadSocialPromo ? 'YES' : 'NO'}`);
                 }
             }
         }
@@ -1047,13 +940,15 @@ async function runEnhancedPipeline(): Promise<void> {
 
     console.log(`\n  Scheme lifecycle updates:`);
     console.log(`    Cooling (price dropping): ${coolingSchemes}`);
-    console.log(`    Auto-resolved (stale/completed): ${resolvedSchemes}`);
+    console.log(`    Pump & Dump Ended: ${resolvedSchemes}`);
+    console.log(`    No Scam Detected: ${noScamSchemes}`);
     console.log('');
 
     for (const result of suspiciousStocks) {
-        // Check if this stock is already in scheme database
+        // Check if this stock is already in scheme database (only check active schemes)
+        const activeStatuses = ['NEW', 'ONGOING', 'COOLING'];
         const existingScheme = Array.from(schemeDB.values()).find(
-            s => s.symbol === result.symbol && s.status !== 'RESOLVED'
+            s => s.symbol === result.symbol && activeStatuses.includes(s.status)
         );
 
         if (existingScheme) {
@@ -1098,7 +993,10 @@ async function runEnhancedPipeline(): Promise<void> {
                 promotionPlatforms: result.socialMediaFindings.platforms
                     .filter(p => p.promotionRisk === 'high')
                     .map(p => p.platform),
-                promoterAccounts: result.socialMediaFindings.potentialPromoters,
+                promoterAccounts: result.socialMediaFindings.potentialPromoters.map(p => `${p.username} (${p.platform})`),
+                // Track whether we have REAL social media evidence (not AI predictions)
+                hadSocialMediaPromotion: result.socialMediaFindings.platforms
+                    .some(p => p.promotionRisk === 'high' && p.dataSource === 'real'),
                 priceAtDetection: result.lastPrice || 0,
                 peakPrice: result.lastPrice || 0,
                 currentPrice: result.lastPrice || 0,
@@ -1206,8 +1104,8 @@ async function runEnhancedPipeline(): Promise<void> {
             if (s.schemeId) {
                 console.log(`   Scheme ID: ${s.schemeId} (${s.schemeStatus})`);
             }
-            if (s.socialMediaFindings?.coordinationIndicators.length) {
-                console.log(`   Red Flags: ${s.socialMediaFindings.coordinationIndicators.slice(0, 3).join(', ')}`);
+            if (s.socialMediaFindings?.summary) {
+                console.log(`   Summary: ${s.socialMediaFindings.summary}`);
             }
         });
     }
