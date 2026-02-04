@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
-import { getAdminSession } from '@/lib/admin-auth';
+import { getAdminSession } from '@/lib/admin/auth';
 
 const recipientSchema = z.object({
   email: z.string().email('Invalid email address'),
