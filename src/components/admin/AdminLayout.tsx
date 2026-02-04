@@ -27,6 +27,7 @@ import {
   BarChart3,
   Cog,
   UserCog,
+  Headphones,
   LucideIcon,
 } from "lucide-react";
 
@@ -58,6 +59,13 @@ const dashboardItem: NavItem = {
 
 // Categorized navigation structure
 const navigationCategories: NavCategory[] = [
+  {
+    name: "Support",
+    icon: Headphones,
+    items: [
+      { name: "Customer Support", href: "/admin/support", icon: Headphones },
+    ],
+  },
   {
     name: "Content",
     icon: FileText,
