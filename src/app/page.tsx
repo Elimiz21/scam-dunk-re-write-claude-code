@@ -23,7 +23,7 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const { addToast } = useToast();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<RiskResponse | null>(null);
