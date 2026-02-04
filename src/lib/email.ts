@@ -371,11 +371,11 @@ export async function sendAdminInviteEmail(
 
 /**
  * Support email configuration
- * support@scamdan.com receives user tickets
- * avm@scamdan.com is the admin who manages them
+ * support@scamdunk.com receives user tickets
+ * avim@scamdunk.com is the admin who manages them
  */
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@scamdan.com';
-const ADMIN_SUPPORT_EMAIL = process.env.ADMIN_SUPPORT_EMAIL || 'avm@scamdan.com';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@scamdunk.com';
+const ADMIN_SUPPORT_EMAIL = process.env.ADMIN_SUPPORT_EMAIL || 'avim@scamdunk.com';
 
 /**
  * Send notification to admin when a new support ticket is submitted
