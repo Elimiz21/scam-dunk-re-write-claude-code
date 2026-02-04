@@ -254,14 +254,26 @@ export default function ContactPage() {
 
             {/* Contact Form */}
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Form */}
+              {/* Form Section */}
               <div className="lg:col-span-2">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Category Selection */}
-                  <div>
-                    <label className="block text-sm font-medium mb-3">
-                      What can we help you with? <span className="text-destructive">*</span>
-                    </label>
+                {/* Form Container with distinct styling */}
+                <div className="p-6 rounded-2xl bg-card border-2 border-primary/20 shadow-sm">
+                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
+                    <div className="p-2 rounded-xl bg-primary/10">
+                      <Send className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-lg">Submit Your Request</h2>
+                      <p className="text-sm text-muted-foreground">Fill out the form below and we&apos;ll get back to you</p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Category Selection */}
+                    <div>
+                      <label className="block text-sm font-medium mb-3">
+                        What can we help you with? <span className="text-destructive">*</span>
+                      </label>
                     <div className="grid sm:grid-cols-2 gap-3">
                       {categories.map((category) => (
                         <button
@@ -396,62 +408,79 @@ export default function ContactPage() {
                     </p>
                   </div>
 
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full sm:w-auto px-8 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-5 w-5" />
-                        Send Message
-                      </>
-                    )}
-                  </button>
-                </form>
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto px-8 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-5 w-5" />
+                          Send Message
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
               </div>
 
-              {/* Sidebar Info */}
-              <div className="space-y-6">
-                {/* Response Time */}
-                <div className="p-5 rounded-xl bg-card border border-border">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
-                      <Clock className="h-5 w-5 text-blue-500" />
-                    </div>
-                    <h3 className="font-semibold">Response Time</h3>
+              {/* Information Sidebar */}
+              <div className="space-y-4">
+                {/* Information Header */}
+                <div className="p-4 rounded-2xl bg-secondary/30 border border-border/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Information</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
+                    Helpful details about contacting our support team
+                  </p>
+                </div>
+
+                {/* Response Time */}
+                <div className="p-5 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                      <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100">Response Time</h3>
+                  </div>
+                  <p className="text-sm text-blue-800/80 dark:text-blue-200/80">
                     We typically respond within 1-2 business days. Urgent issues are prioritized.
                   </p>
                 </div>
 
                 {/* Privacy Note */}
-                <div className="p-5 rounded-xl bg-card border border-border">
+                <div className="p-5 rounded-xl bg-green-50/50 dark:bg-green-950/30 border border-green-200/50 dark:border-green-800/50">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950">
-                      <Shield className="h-5 w-5 text-green-500" />
+                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
+                      <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
                     </div>
-                    <h3 className="font-semibold">Your Privacy</h3>
+                    <h3 className="font-semibold text-green-900 dark:text-green-100">Your Privacy</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-green-800/80 dark:text-green-200/80">
                     Your information is secure and will only be used to respond to your inquiry.
                   </p>
                 </div>
 
                 {/* Quick Links */}
-                <div className="p-5 rounded-xl bg-card border border-border">
-                  <h3 className="font-semibold mb-3">Quick Links</h3>
+                <div className="p-5 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200/50 dark:border-purple-800/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+                      <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <h3 className="font-semibold text-purple-900 dark:text-purple-100">Quick Links</h3>
+                  </div>
                   <div className="space-y-2">
                     <Link
                       href="/help"
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                      className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 transition-colors"
                     >
                       <HelpCircle className="h-4 w-4" />
                       Help & FAQ
@@ -459,7 +488,7 @@ export default function ContactPage() {
                     </Link>
                     <Link
                       href="/how-it-works"
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                      className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 transition-colors"
                     >
                       <MessageSquare className="h-4 w-4" />
                       How It Works
@@ -467,7 +496,7 @@ export default function ContactPage() {
                     </Link>
                     <Link
                       href="/about"
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                      className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 transition-colors"
                     >
                       <Mail className="h-4 w-4" />
                       About Us
@@ -477,16 +506,22 @@ export default function ContactPage() {
                 </div>
 
                 {/* Direct Email */}
-                <div className="p-5 rounded-xl bg-secondary/50 border border-border">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Prefer email?
+                <div className="p-5 rounded-xl bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/50">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900">
+                      <Mail className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <h3 className="font-semibold text-orange-900 dark:text-orange-100">Direct Email</h3>
+                  </div>
+                  <p className="text-sm text-orange-800/80 dark:text-orange-200/80 mb-2">
+                    Prefer to email us directly?
                   </p>
                   <a
-                    href="mailto:support@scamdan.com"
-                    className="text-primary font-medium hover:underline flex items-center gap-2"
+                    href="mailto:support@scamdunk.com"
+                    className="text-orange-700 dark:text-orange-300 font-medium hover:underline flex items-center gap-2"
                   >
                     <Mail className="h-4 w-4" />
-                    support@scamdan.com
+                    support@scamdunk.com
                   </a>
                 </div>
               </div>
