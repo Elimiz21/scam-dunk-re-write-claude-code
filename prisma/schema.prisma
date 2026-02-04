@@ -666,3 +666,18 @@ model SupportTicketResponse {
   @@index([ticketId])
   @@index([createdAt])
 }
+
+model SupportEmailRecipient {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  isActive     Boolean  @default(true)
+  isPrimary    Boolean  @default(false) // Primary recipient receives all tickets
+  categories   String?  // JSON array of categories this recipient handles, null = all
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?  // Admin who added this recipient
+
+  @@index([isActive])
+  @@index([isPrimary])
+}
