@@ -127,9 +127,9 @@ async function fetchHighRiskStocksFromDB(date: string): Promise<HighRiskStock[]>
             .from('StockDailySnapshot')
             .select('*')
             .eq('riskLevel', 'HIGH')
-            .gte('createdAt', `${date}T00:00:00`)
-            .lt('createdAt', `${date}T23:59:59`)
-            .order('riskScore', { ascending: false })
+            .gte('scanDate', `${date}T00:00:00`)
+            .lt('scanDate', `${date}T23:59:59`)
+            .order('totalScore', { ascending: false })
             .range(offset, offset + pageSize - 1);
 
         if (error) {
@@ -155,20 +155,21 @@ async function fetchHighRiskStocksFromDB(date: string): Promise<HighRiskStock[]>
     console.log(`Found ${allData.length} HIGH risk stocks in database`);
 
     // Map database fields to our interface
+    // Schema: stockId, totalScore, riskLevel, marketCap, lastPrice, avgVolume, signals, evaluatedAt, scanDate
     return allData.map((row: any) => ({
-        symbol: row.symbol,
-        name: row.companyName || row.symbol,
-        exchange: row.exchange || 'Unknown',
-        sector: row.sector,
-        industry: row.industry,
+        symbol: row.stockId,
+        name: row.stockId, // No companyName in table, use stockId
+        exchange: 'Unknown', // Not in table
+        sector: undefined,
+        industry: undefined,
         marketCap: row.marketCap,
         lastPrice: row.lastPrice,
         avgDailyVolume: row.avgVolume,
         avgDollarVolume: row.avgVolume && row.lastPrice ? row.avgVolume * row.lastPrice : null,
         riskLevel: row.riskLevel,
-        totalScore: row.riskScore,
-        signals: row.signals || [],
-        evaluatedAt: row.createdAt
+        totalScore: row.totalScore,
+        signals: typeof row.signals === 'string' ? JSON.parse(row.signals) : (row.signals || []),
+        evaluatedAt: row.evaluatedAt || row.scanDate
     }));
 }
 
