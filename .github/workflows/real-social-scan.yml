@@ -1,0 +1,160 @@
+name: Real Social Media Scan
+
+# Runs ACTUAL social media scans using Reddit, StockTwits, and YouTube APIs
+# NO AI predictions - only real data from actual API calls
+
+on:
+  workflow_dispatch:
+    inputs:
+      stocks:
+        description: 'Comma-separated stock symbols (e.g., NUWE,QNCX,MSGY)'
+        required: false
+        default: 'NUWE,QNCX,MSGY,MDCXW,TIRX,YJ,KXIN,XHLD,ECDA,DAICW,CAPTW,BNAIW,BATL,VGAS,MRNO,MOBBW,PIII,SQFTP,LSH,WLDSW'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  real-social-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Show configuration
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          echo "=========================================="
+          echo "REAL SOCIAL MEDIA SCANNER"
+          echo "=========================================="
+          echo ""
+          echo "This scan uses ACTUAL API data:"
+          echo "  - Reddit: Public JSON API (no key needed)"
+          echo "  - StockTwits: Public API (no key needed)"
+          echo "  - YouTube: Data API v3"
+          echo ""
+          echo "API Key Status:"
+          if [ -n "$YOUTUBE_API_KEY" ]; then
+            echo "  YouTube: ✓ Configured"
+          else
+            echo "  YouTube: ✗ Not configured (will skip YouTube scans)"
+            echo "  To enable: Add YOUTUBE_API_KEY secret"
+          fi
+          echo ""
+          echo "Stocks to scan: ${{ github.event.inputs.stocks }}"
+
+      - name: Run Real Social Media Scan
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          STOCKS: ${{ github.event.inputs.stocks }}
+        run: |
+          cd evaluation
+          npx ts-node scripts/scan-specific-stocks.ts
+
+      - name: Upload to Supabase
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "Supabase not configured, skipping upload"
+            exit 0
+          fi
+
+          DATE=$(date +%Y-%m-%d)
+          cd evaluation
+
+          for file in results/real-social-scan-*.json results/real-social-scan-*.md; do
+            if [ -f "$file" ]; then
+              FILENAME=$(basename "$file")
+              echo "Uploading $FILENAME..."
+              curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
+                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+                -H "Content-Type: application/json" \
+                -H "x-upsert: true" \
+                --data-binary @"$file" || echo "Upload failed for $file"
+            fi
+          done
+
+      - name: Checkout data repository
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: Copy results to data repository
+        run: |
+          mkdir -p data-repo/social-media-scans
+          cp evaluation/results/real-social-scan-*.json data-repo/social-media-scans/ 2>/dev/null || true
+          cp evaluation/results/real-social-scan-*.md data-repo/social-media-scans/ 2>/dev/null || true
+
+          echo "Files copied:"
+          ls -la data-repo/social-media-scans/
+
+      - name: Commit results
+        run: |
+          cd data-repo
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            DATE=$(date +%Y-%m-%d)
+            git commit -m "Add real social media scan results - ${DATE}"
+            git push
+            echo "Results pushed to scam-dunk-data repository"
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-social-scan-results
+          path: |
+            evaluation/results/real-social-scan-*.json
+            evaluation/results/real-social-scan-*.md
+          retention-days: 30
+
+      - name: Summary
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          echo "## Real Social Media Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "evaluation/results/real-social-scan-${DATE}.json" ]; then
+            cat evaluation/results/real-social-scan-${DATE}.json | jq -r '
+              "### Summary",
+              "- **Stocks Scanned:** \(.totalScanned)",
+              "- **Total Real Mentions:** \(.totalMentions)",
+              "- **With Promotional Evidence:** \(.withEvidence)",
+              "- **High Risk:** \(.highRisk)",
+              "- **Medium Risk:** \(.mediumRisk)",
+              ""
+            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Unable to parse results"
+
+            echo "### Results by Stock" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Symbol | Score | Mentions | Risk | Evidence |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|----------|------|----------|" >> $GITHUB_STEP_SUMMARY
+
+            cat evaluation/results/real-social-scan-${DATE}.json | jq -r '
+              .results | sort_by(-.overallPromotionScore) | .[] |
+              "| \(.symbol) | \(.overallPromotionScore) | \(.platforms | map(.mentionsFound) | add) | \(.riskLevel) | \(if .hasRealSocialEvidence then "YES" else "No" end) |"
+            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+          fi
