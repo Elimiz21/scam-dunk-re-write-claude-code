@@ -116,29 +116,46 @@ async function fetchHighRiskStocksFromDB(date: string): Promise<HighRiskStock[]>
 
     const supabase = getSupabaseClient();
 
-    // Query the risk_snapshots table for HIGH risk stocks on the given date
-    const { data, error } = await supabase
-        .from('risk_snapshots')
-        .select('*')
-        .eq('risk_level', 'HIGH')
-        .gte('snapshot_date', `${date}T00:00:00`)
-        .lt('snapshot_date', `${date}T23:59:59`)
-        .order('total_score', { ascending: false });
+    // Supabase has a default limit of 1000 rows - we need to paginate to get all records
+    const allData: any[] = [];
+    const pageSize = 1000;
+    let offset = 0;
+    let hasMore = true;
 
-    if (error) {
-        console.error('Error fetching from Supabase:', error);
-        throw error;
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from('risk_snapshots')
+            .select('*')
+            .eq('risk_level', 'HIGH')
+            .gte('snapshot_date', `${date}T00:00:00`)
+            .lt('snapshot_date', `${date}T23:59:59`)
+            .order('total_score', { ascending: false })
+            .range(offset, offset + pageSize - 1);
+
+        if (error) {
+            console.error('Error fetching from Supabase:', error);
+            throw error;
+        }
+
+        if (data && data.length > 0) {
+            allData.push(...data);
+            console.log(`  Fetched ${data.length} records (total: ${allData.length})...`);
+            offset += pageSize;
+            hasMore = data.length === pageSize; // If we got a full page, there might be more
+        } else {
+            hasMore = false;
+        }
     }
 
-    if (!data || data.length === 0) {
+    if (allData.length === 0) {
         console.log('No HIGH risk stocks found in database. Trying storage bucket...');
         return await fetchHighRiskStocksFromStorage(date);
     }
 
-    console.log(`Found ${data.length} HIGH risk stocks in database`);
+    console.log(`Found ${allData.length} HIGH risk stocks in database`);
 
     // Map database fields to our interface
-    return data.map((row: any) => ({
+    return allData.map((row: any) => ({
         symbol: row.symbol,
         name: row.company_name || row.symbol,
         exchange: row.exchange || 'Unknown',
