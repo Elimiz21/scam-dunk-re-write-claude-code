@@ -124,12 +124,12 @@ async function fetchHighRiskStocksFromDB(date: string): Promise<HighRiskStock[]>
 
     while (hasMore) {
         const { data, error } = await supabase
-            .from('risk_snapshots')
+            .from('StockDailySnapshot')
             .select('*')
-            .eq('risk_level', 'HIGH')
-            .gte('snapshot_date', `${date}T00:00:00`)
-            .lt('snapshot_date', `${date}T23:59:59`)
-            .order('total_score', { ascending: false })
+            .eq('riskLevel', 'HIGH')
+            .gte('createdAt', `${date}T00:00:00`)
+            .lt('createdAt', `${date}T23:59:59`)
+            .order('riskScore', { ascending: false })
             .range(offset, offset + pageSize - 1);
 
         if (error) {
@@ -157,18 +157,18 @@ async function fetchHighRiskStocksFromDB(date: string): Promise<HighRiskStock[]>
     // Map database fields to our interface
     return allData.map((row: any) => ({
         symbol: row.symbol,
-        name: row.company_name || row.symbol,
+        name: row.companyName || row.symbol,
         exchange: row.exchange || 'Unknown',
         sector: row.sector,
         industry: row.industry,
-        marketCap: row.market_cap,
-        lastPrice: row.last_price,
-        avgDailyVolume: row.avg_volume,
-        avgDollarVolume: row.avg_volume && row.last_price ? row.avg_volume * row.last_price : null,
-        riskLevel: row.risk_level,
-        totalScore: row.total_score,
+        marketCap: row.marketCap,
+        lastPrice: row.lastPrice,
+        avgDailyVolume: row.avgVolume,
+        avgDollarVolume: row.avgVolume && row.lastPrice ? row.avgVolume * row.lastPrice : null,
+        riskLevel: row.riskLevel,
+        totalScore: row.riskScore,
         signals: row.signals || [],
-        evaluatedAt: row.snapshot_date
+        evaluatedAt: row.createdAt
     }));
 }
 
