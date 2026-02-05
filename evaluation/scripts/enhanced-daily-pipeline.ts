@@ -39,7 +39,7 @@ const FMP_API_KEY = process.env.FMP_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL || '';  // Python AI backend for full 4-layer analysis
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
-const FMP_V3_URL = 'https://financialmodelingprep.com/api/v3';
+// Note: Legacy v3 endpoints deprecated Aug 31, 2025 - now using stable API
 const FMP_DELAY_MS = 210;
 
 // Thresholds for filtering
@@ -385,11 +385,13 @@ async function fetchStockNews(symbol: string): Promise<any[]> {
     if (!FMP_API_KEY) return [];
 
     try {
-        const url = `${FMP_V3_URL}/stock_news?tickers=${symbol}&limit=15&apikey=${FMP_API_KEY}`;
+        // Using stable API (v3 deprecated Aug 31, 2025)
+        const url = `${FMP_BASE_URL}/news/stock?symbols=${symbol}&limit=15&apikey=${FMP_API_KEY}`;
         const response = curlFetch(url);
         if (!response) return [];
         const news = JSON.parse(response);
-        return news || [];
+        // FMP API can return error objects like {"Error Message": "..."} - ensure we always return an array
+        return Array.isArray(news) ? news : [];
     } catch {
         return [];
     }
@@ -397,12 +399,19 @@ async function fetchStockNews(symbol: string): Promise<any[]> {
 
 // Fetch SEC filings
 async function fetchSECFilings(symbol: string): Promise<any[]> {
+    if (!FMP_API_KEY) return [];
+
     try {
-        const url = `${FMP_V3_URL}/sec_filings/${symbol}?limit=10&apikey=${FMP_API_KEY}`;
+        // Using stable API (v3 deprecated Aug 31, 2025)
+        // Get filings from last 90 days
+        const toDate = new Date().toISOString().split('T')[0];
+        const fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const url = `${FMP_BASE_URL}/sec-filings-search/symbol?symbol=${symbol}&from=${fromDate}&to=${toDate}&limit=10&apikey=${FMP_API_KEY}`;
         const response = curlFetch(url);
         if (!response) return [];
         const filings = JSON.parse(response);
-        return filings || [];
+        // FMP API can return error objects - ensure we always return an array
+        return Array.isArray(filings) ? filings : [];
     } catch {
         return [];
     }
@@ -410,12 +419,16 @@ async function fetchSECFilings(symbol: string): Promise<any[]> {
 
 // Fetch press releases
 async function fetchPressReleases(symbol: string): Promise<any[]> {
+    if (!FMP_API_KEY) return [];
+
     try {
-        const url = `${FMP_V3_URL}/press-releases/${symbol}?limit=10&apikey=${FMP_API_KEY}`;
+        // Using stable API (v3 deprecated Aug 31, 2025)
+        const url = `${FMP_BASE_URL}/news/press-releases?symbols=${symbol}&limit=10&apikey=${FMP_API_KEY}`;
         const response = curlFetch(url);
         if (!response) return [];
         const releases = JSON.parse(response);
-        return releases || [];
+        // FMP API can return error objects - ensure we always return an array
+        return Array.isArray(releases) ? releases : [];
     } catch {
         return [];
     }
@@ -455,27 +468,33 @@ async function analyzeNewsLegitimacy(
         return { hasLegitimateNews: false, analysis: 'OpenAI API key not configured' };
     }
 
+    // Ensure all inputs are arrays (defensive check)
+    const safeNews = Array.isArray(news) ? news : [];
+    const safeFilings = Array.isArray(secFilings) ? secFilings : [];
+    const safeReleases = Array.isArray(pressReleases) ? pressReleases : [];
+    const safeSignals = Array.isArray(signals) ? signals : [];
+
     // If no news or filings, quick return
-    if (news.length === 0 && secFilings.length === 0 && pressReleases.length === 0) {
+    if (safeNews.length === 0 && safeFilings.length === 0 && safeReleases.length === 0) {
         return { hasLegitimateNews: false, analysis: 'No recent news, SEC filings, or press releases found.' };
     }
 
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
-    const newsText = news.slice(0, 5).map((n: any) =>
-        `[${n.publishedDate}] ${n.title}: ${n.text?.substring(0, 200)}...`
+    const newsText = safeNews.slice(0, 5).map((n: any) =>
+        `[${n?.publishedDate || 'N/A'}] ${n?.title || 'N/A'}: ${n?.text?.substring(0, 200) || ''}...`
     ).join('\n\n');
 
-    const filingsText = secFilings.slice(0, 5).map((f: any) =>
-        `[${f.fillingDate || f.date}] ${f.type}: ${f.link || 'N/A'}`
+    const filingsText = safeFilings.slice(0, 5).map((f: any) =>
+        `[${f?.fillingDate || f?.date || 'N/A'}] ${f?.type || 'N/A'}: ${f?.link || 'N/A'}`
     ).join('\n');
 
-    const releasesText = pressReleases.slice(0, 3).map((p: any) =>
-        `[${p.date}] ${p.title}`
+    const releasesText = safeReleases.slice(0, 3).map((p: any) =>
+        `[${p?.date || 'N/A'}] ${p?.title || 'N/A'}`
     ).join('\n');
 
-    const signalsText = signals.map(s => s.description).join('; ');
+    const signalsText = safeSignals.map(s => s?.description || '').join('; ');
 
     const prompt = `Analyze whether the following news, SEC filings, and press releases provide a LEGITIMATE explanation for unusual trading activity in ${symbol} (${name}).
 
@@ -752,28 +771,31 @@ async function runEnhancedPipeline(): Promise<void> {
         const result = afterSizeFilter[i];
         console.log(`[${i + 1}/${afterSizeFilter.length}] Analyzing ${result.symbol}...`);
 
-        // Fetch news and filings
-        const news = await fetchStockNews(result.symbol);
+        // Fetch news and filings (with defensive array checks)
+        const newsRaw = await fetchStockNews(result.symbol);
+        const news = Array.isArray(newsRaw) ? newsRaw : [];
         await sleep(300);
 
-        const secFilings = await fetchSECFilings(result.symbol);
+        const secFilingsRaw = await fetchSECFilings(result.symbol);
+        const secFilings = Array.isArray(secFilingsRaw) ? secFilingsRaw : [];
         await sleep(300);
 
-        const pressReleases = await fetchPressReleases(result.symbol);
+        const pressReleasesRaw = await fetchPressReleases(result.symbol);
+        const pressReleases = Array.isArray(pressReleasesRaw) ? pressReleasesRaw : [];
         await sleep(300);
 
         // Store news data
         result.recentNews = news.slice(0, 5).map((n: any) => ({
-            title: n.title,
-            date: n.publishedDate,
-            source: n.site,
-            url: n.url
+            title: n?.title || '',
+            date: n?.publishedDate || '',
+            source: n?.site || '',
+            url: n?.url || ''
         }));
 
         result.secFilings = secFilings.slice(0, 5).map((f: any) => ({
-            type: f.type,
-            date: f.fillingDate || f.date,
-            url: f.finalLink || f.link
+            type: f?.type || '',
+            date: f?.fillingDate || f?.date || '',
+            url: f?.finalLink || f?.link || ''
         }));
 
         // Analyze legitimacy
