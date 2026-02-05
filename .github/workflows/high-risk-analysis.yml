@@ -1,0 +1,202 @@
+name: High-Risk Stock Analysis
+
+# Analyzes stocks flagged by ScamDunk as HIGH risk for pump-and-dump manipulation
+# Fetches live price data from FMP API and generates detailed report
+
+on:
+  workflow_dispatch:
+    inputs:
+      notify_on_complete:
+        description: 'Send email notification when complete'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate FMP API Key
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+        run: |
+          if [ -z "$FMP_API_KEY" ]; then
+            echo "::error::FMP_API_KEY secret is not configured"
+            echo "Please add FMP_API_KEY to repository secrets"
+            exit 1
+          fi
+          echo "FMP API key configured ✓"
+
+      - name: Run High-Risk Stock Analysis
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+        run: |
+          echo "=========================================="
+          echo "HIGH-RISK STOCK MANIPULATION ANALYSIS"
+          echo "=========================================="
+          echo ""
+          echo "Fetching live price data from FMP API..."
+          echo ""
+
+          cd evaluation
+          npx ts-node scripts/high-risk-stock-analysis.ts
+
+      - name: Upload to Supabase
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "Supabase not configured, skipping upload"
+            exit 0
+          fi
+
+          DATE=$(date +%Y-%m-%d)
+          cd evaluation
+
+          for file in results/high-risk-analysis-*.json results/high-risk-analysis-*.md; do
+            if [ -f "$file" ]; then
+              FILENAME=$(basename "$file")
+              echo "Uploading $FILENAME..."
+              curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
+                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+                -H "Content-Type: application/json" \
+                -H "x-upsert: true" \
+                --data-binary @"$file" && echo " ✓" || echo " (failed)"
+            fi
+          done
+
+      - name: Checkout data repository
+        continue-on-error: true
+        id: checkout-data
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: Copy results to data repository
+        if: steps.checkout-data.outcome == 'success'
+        run: |
+          mkdir -p data-repo/reports/high-risk-analysis
+          cp evaluation/results/high-risk-analysis-*.json data-repo/reports/high-risk-analysis/ 2>/dev/null || true
+          cp evaluation/results/high-risk-analysis-*.md data-repo/reports/high-risk-analysis/ 2>/dev/null || true
+
+          echo "Files copied:"
+          ls -la data-repo/reports/high-risk-analysis/
+
+      - name: Commit results to data repository
+        if: steps.checkout-data.outcome == 'success'
+        run: |
+          cd data-repo
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            DATE=$(date +%Y-%m-%d)
+            git commit -m "Add high-risk stock analysis report - ${DATE}"
+            git push
+            echo "Results pushed to scam-dunk-data repository"
+          fi
+
+      - name: Skip data repo notice
+        if: steps.checkout-data.outcome != 'success'
+        run: |
+          echo "::notice::Skipping data repository push - DATA_REPO_TOKEN not configured or invalid"
+          echo "Results are still available as artifacts"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: high-risk-analysis-report
+          path: |
+            evaluation/results/high-risk-analysis-*.json
+            evaluation/results/high-risk-analysis-*.md
+          retention-days: 90
+
+      - name: Generate Summary
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          echo "## High-Risk Stock Analysis Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** ${DATE}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "evaluation/results/high-risk-analysis-${DATE}.json" ]; then
+            echo "### Summary Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            cat evaluation/results/high-risk-analysis-${DATE}.json | jq -r '
+              "- **Stocks Analyzed:** \(.stocksAnalyzed) of \(.stocksConfigured)",
+              "- **Avg Days to Peak:** \(.summary.avgDaysToPeak | floor)",
+              "- **Avg Gain to Peak:** +\(.summary.avgGainToPeak | floor)%",
+              "- **Avg Peak-to-Trough Decline:** \(.summary.avgPeakToTroughDecline | floor)%",
+              "- **Avg Current vs Day 1:** \(if .summary.avgCurrentVsDay1 >= 0 then "+" else "" end)\(.summary.avgCurrentVsDay1 | floor)%",
+              "- **Day 1 Losers:** \(.summary.day1Losers)",
+              "- **Day 1 Winners:** \(.summary.day1Winners)"
+            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Unable to parse summary" >> $GITHUB_STEP_SUMMARY
+
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Individual Stock Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Symbol | Risk | Peak Gain | Decline | Current vs Day 1 | Outcome |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|------|-----------|---------|------------------|---------|" >> $GITHUB_STEP_SUMMARY
+
+            cat evaluation/results/high-risk-analysis-${DATE}.json | jq -r '
+              .analyses | sort_by(-.gainToPeak) | .[] |
+              "| \(.symbol) | \(.riskScore) | +\(.gainToPeak | floor)% | \(.peakToTroughDecline | floor)% | \(if .currentVsDay1 >= 0 then "+" else "" end)\(.currentVsDay1 | floor)% | \(.day1Outcome) |"
+            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📥 Download the full report from the **Artifacts** section below." >> $GITHUB_STEP_SUMMARY
+
+      - name: Send completion email
+        if: ${{ github.event.inputs.notify_on_complete == 'true' }}
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          if [ -z "$RESEND_API_KEY" ]; then
+            echo "RESEND_API_KEY not set, skipping email"
+            exit 0
+          fi
+
+          DATE=$(date +%Y-%m-%d)
+          WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Get summary stats
+          STOCKS_ANALYZED=$(cat evaluation/results/high-risk-analysis-${DATE}.json | jq '.stocksAnalyzed' 2>/dev/null || echo "?")
+          AVG_GAIN=$(cat evaluation/results/high-risk-analysis-${DATE}.json | jq '.summary.avgGainToPeak | floor' 2>/dev/null || echo "?")
+          AVG_DECLINE=$(cat evaluation/results/high-risk-analysis-${DATE}.json | jq '.summary.avgPeakToTroughDecline | floor' 2>/dev/null || echo "?")
+          LOSERS=$(cat evaluation/results/high-risk-analysis-${DATE}.json | jq '.summary.day1Losers' 2>/dev/null || echo "?")
+
+          curl -s -X POST "https://api.resend.com/emails" \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"from\": \"ScamDunk Alerts <noreply@scamdunk.com>\",
+              \"to\": [\"elimizroch@gmail.com\"],
+              \"subject\": \"📊 High-Risk Stock Analysis Complete - ${DATE}\",
+              \"html\": \"<h2>High-Risk Stock Analysis Report</h2><p><strong>Stocks Analyzed:</strong> ${STOCKS_ANALYZED}</p><p><strong>Avg Gain to Peak:</strong> +${AVG_GAIN}%</p><p><strong>Avg Peak-to-Trough Decline:</strong> ${AVG_DECLINE}%</p><p><strong>Day 1 Investors with Losses:</strong> ${LOSERS}</p><p><a href='${WORKFLOW_URL}'>View Full Report</a></p>\"
+            }" && echo "Completion email sent"
