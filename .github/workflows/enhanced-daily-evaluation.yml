@@ -202,6 +202,7 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
           MISSING=""
           if [ -z "$FMP_API_KEY" ]; then MISSING="$MISSING FMP_API_KEY"; fi
@@ -215,6 +216,11 @@ jobs:
             echo "::warning::OPENAI_API_KEY not set - social media analysis will use pattern matching only"
           else
             echo "OPENAI_API_KEY configured for AI-powered analysis"
+          fi
+          if [ -z "$YOUTUBE_API_KEY" ]; then
+            echo "::warning::YOUTUBE_API_KEY not set - YouTube scanning will be skipped"
+          else
+            echo "YOUTUBE_API_KEY configured for YouTube scanning"
           fi
           echo "All required secrets are configured"
 
@@ -234,18 +240,26 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AI_BACKEND_URL: ${{ secrets.AI_BACKEND_URL }}  # Python AI backend for full 4-layer analysis
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}  # For YouTube social media scanning
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
         run: |
           cd evaluation
           echo "Starting Enhanced Daily Pipeline for $EVALUATION_DATE..."
           echo "Test Mode: $TEST_MODE"
-          
+
           # Check if Python AI backend is configured
           if [ -n "$AI_BACKEND_URL" ]; then
             echo "Python AI Backend: $AI_BACKEND_URL (full 4-layer analysis)"
           else
             echo "Python AI Backend: Not configured (using Layer 1 only)"
+          fi
+
+          # Check if YouTube API is configured
+          if [ -n "$YOUTUBE_API_KEY" ]; then
+            echo "YouTube API: Configured for social media scanning"
+          else
+            echo "YouTube API: Not configured (YouTube scanning will be skipped)"
           fi
           
           # Run the enhanced pipeline
