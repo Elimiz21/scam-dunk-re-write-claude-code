@@ -91,6 +91,8 @@ jobs:
           done
 
       - name: Checkout data repository
+        continue-on-error: true
+        id: checkout-data
         uses: actions/checkout@v4
         with:
           repository: Elimiz21/scam-dunk-data
@@ -98,6 +100,7 @@ jobs:
           path: data-repo
 
       - name: Copy results to data repository
+        if: steps.checkout-data.outcome == 'success'
         run: |
           mkdir -p data-repo/social-media-scans
           cp evaluation/results/real-social-scan-*.json data-repo/social-media-scans/ 2>/dev/null || true
@@ -107,6 +110,7 @@ jobs:
           ls -la data-repo/social-media-scans/
 
       - name: Commit results
+        if: steps.checkout-data.outcome == 'success'
         run: |
           cd data-repo
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -121,6 +125,12 @@ jobs:
             git push
             echo "Results pushed to scam-dunk-data repository"
           fi
+
+      - name: Skip data repo notice
+        if: steps.checkout-data.outcome != 'success'
+        run: |
+          echo "::notice::Skipping data repository push - DATA_REPO_TOKEN not configured or invalid"
+          echo "Results are still available as artifacts"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
