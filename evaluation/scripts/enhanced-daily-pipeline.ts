@@ -39,7 +39,7 @@ const FMP_API_KEY = process.env.FMP_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL || '';  // Python AI backend for full 4-layer analysis
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
-const FMP_V3_URL = 'https://financialmodelingprep.com/api/v3';
+// Note: Legacy v3 endpoints deprecated Aug 31, 2025 - now using stable API
 const FMP_DELAY_MS = 210;
 
 // Thresholds for filtering
@@ -385,7 +385,8 @@ async function fetchStockNews(symbol: string): Promise<any[]> {
     if (!FMP_API_KEY) return [];
 
     try {
-        const url = `${FMP_V3_URL}/stock_news?tickers=${symbol}&limit=15&apikey=${FMP_API_KEY}`;
+        // Using stable API (v3 deprecated Aug 31, 2025)
+        const url = `${FMP_BASE_URL}/news/stock?symbols=${symbol}&limit=15&apikey=${FMP_API_KEY}`;
         const response = curlFetch(url);
         if (!response) return [];
         const news = JSON.parse(response);
@@ -401,7 +402,11 @@ async function fetchSECFilings(symbol: string): Promise<any[]> {
     if (!FMP_API_KEY) return [];
 
     try {
-        const url = `${FMP_V3_URL}/sec_filings/${symbol}?limit=10&apikey=${FMP_API_KEY}`;
+        // Using stable API (v3 deprecated Aug 31, 2025)
+        // Get filings from last 90 days
+        const toDate = new Date().toISOString().split('T')[0];
+        const fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const url = `${FMP_BASE_URL}/sec-filings-search/symbol?symbol=${symbol}&from=${fromDate}&to=${toDate}&limit=10&apikey=${FMP_API_KEY}`;
         const response = curlFetch(url);
         if (!response) return [];
         const filings = JSON.parse(response);
@@ -417,7 +422,8 @@ async function fetchPressReleases(symbol: string): Promise<any[]> {
     if (!FMP_API_KEY) return [];
 
     try {
-        const url = `${FMP_V3_URL}/press-releases/${symbol}?limit=10&apikey=${FMP_API_KEY}`;
+        // Using stable API (v3 deprecated Aug 31, 2025)
+        const url = `${FMP_BASE_URL}/news/press-releases?symbols=${symbol}&limit=10&apikey=${FMP_API_KEY}`;
         const response = curlFetch(url);
         if (!response) return [];
         const releases = JSON.parse(response);
