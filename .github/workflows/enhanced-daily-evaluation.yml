@@ -202,6 +202,7 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
           MISSING=""
           if [ -z "$FMP_API_KEY" ]; then MISSING="$MISSING FMP_API_KEY"; fi
@@ -215,6 +216,11 @@ jobs:
             echo "::warning::OPENAI_API_KEY not set - social media analysis will use pattern matching only"
           else
             echo "OPENAI_API_KEY configured for AI-powered analysis"
+          fi
+          if [ -z "$YOUTUBE_API_KEY" ]; then
+            echo "::warning::YOUTUBE_API_KEY not set - YouTube scanning will be skipped"
+          else
+            echo "YOUTUBE_API_KEY configured for video analysis"
           fi
           echo "All required secrets are configured"
 
@@ -233,6 +239,7 @@ jobs:
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           AI_BACKEND_URL: ${{ secrets.AI_BACKEND_URL }}  # Python AI backend for full 4-layer analysis
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}

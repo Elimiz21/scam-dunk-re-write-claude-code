@@ -150,7 +150,14 @@ interface SchemeRecord {
     peakRiskScore: number;
     currentRiskScore: number;
     promotionPlatforms: string[];
-    promoterAccounts: string[];
+    promoterAccounts: Array<{
+        platform: string;
+        identifier: string;
+        firstSeen: string;
+        lastSeen: string;
+        postCount: number;
+        confidence: 'high' | 'medium' | 'low';
+    }>;
     hadSocialMediaPromotion: boolean;     // Whether we found real social media promotion
     priceAtDetection: number;
     peakPrice: number;
@@ -993,7 +1000,14 @@ async function runEnhancedPipeline(): Promise<void> {
                 promotionPlatforms: result.socialMediaFindings.platforms
                     .filter(p => p.promotionRisk === 'high')
                     .map(p => p.platform),
-                promoterAccounts: result.socialMediaFindings.potentialPromoters.map(p => `${p.username} (${p.platform})`),
+                promoterAccounts: result.socialMediaFindings.potentialPromoters.map(p => ({
+                    platform: p.platform,
+                    identifier: p.username,
+                    firstSeen: evaluationDate,
+                    lastSeen: evaluationDate,
+                    postCount: p.postCount,
+                    confidence: p.confidence
+                })),
                 // Track whether we have REAL social media evidence (not AI predictions)
                 hadSocialMediaPromotion: result.socialMediaFindings.platforms
                     .some(p => p.promotionRisk === 'high' && p.dataSource === 'real'),
