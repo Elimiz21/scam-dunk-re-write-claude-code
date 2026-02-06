@@ -683,6 +683,30 @@ model SupportEmailRecipient {
 }
 
 // ==========================================
+// EMAIL DELIVERY LOG
+// Tracks all email sends for monitoring and debugging
+// ==========================================
+
+model EmailLog {
+  id              String   @id @default(cuid())
+  recipientEmail  String
+  subject         String
+  emailType       String   // TEST, CUSTOM, TICKET_NOTIFICATION, TICKET_CONFIRMATION, TICKET_RESPONSE, VERIFICATION, PASSWORD_RESET, ADMIN_INVITE, API_ALERT
+  status          String   // SENT, FAILED, SKIPPED
+  fromEmail       String?
+  resendId        String?  // Resend API message ID
+  errorMessage    String?  @db.Text
+  relatedTicketId String?  // Link to support ticket if applicable
+  createdAt       DateTime @default(now())
+
+  @@index([emailType])
+  @@index([status])
+  @@index([recipientEmail])
+  @@index([createdAt])
+  @@index([relatedTicketId])
+}
+
+// ==========================================
 // REGULATORY DATABASE FOR FLAGGED STOCKS
 // Updated nightly from SEC, FINRA, and exchange sources
 // ==========================================
