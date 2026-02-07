@@ -101,6 +101,14 @@ export default function ContactPage() {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [emailCopied, setEmailCopied] = useState(false);
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText("support@scamdunk.com").then(() => {
+      setEmailCopied(true);
+      setTimeout(() => setEmailCopied(false), 2000);
+    });
+  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -516,13 +524,23 @@ export default function ContactPage() {
                   <p className="text-sm text-orange-800/80 dark:text-orange-200/80 mb-2">
                     Prefer to email us directly?
                   </p>
-                  <a
-                    href="mailto:support@scamdunk.com"
-                    className="text-orange-700 dark:text-orange-300 font-medium hover:underline flex items-center gap-2"
+                  <button
+                    onClick={handleCopyEmail}
+                    className="text-orange-700 dark:text-orange-300 font-medium hover:underline flex items-center gap-2 transition-colors"
+                    title="Copy email address"
                   >
-                    <Mail className="h-4 w-4" />
-                    support@scamdunk.com
-                  </a>
+                    {emailCopied ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-green-600">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4" />
+                        support@scamdunk.com
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
