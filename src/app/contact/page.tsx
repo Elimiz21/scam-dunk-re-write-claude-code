@@ -268,7 +268,7 @@ export default function ContactPage() {
                     </div>
                   </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  <form id="contact-form" onSubmit={handleSubmit} className="space-y-6">
                     {/* Category Selection */}
                     <div>
                       <label className="block text-sm font-medium mb-3">
@@ -511,10 +511,10 @@ export default function ContactPage() {
                     <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900">
                       <Mail className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                     </div>
-                    <h3 className="font-semibold text-orange-900 dark:text-orange-100">Direct Email</h3>
+                    <h3 className="font-semibold text-orange-900 dark:text-orange-100">Email Support</h3>
                   </div>
                   <p className="text-sm text-orange-800/80 dark:text-orange-200/80 mb-2">
-                    Prefer to email us directly?
+                    Send us an email at:
                   </p>
                   <a
                     href="mailto:support@scamdunk.com"
@@ -523,6 +523,20 @@ export default function ContactPage() {
                     <Mail className="h-4 w-4" />
                     support@scamdunk.com
                   </a>
+                  <p className="text-xs text-orange-600/60 dark:text-orange-400/60 mt-2">
+                    Or use the form for faster routing and tracking.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById("contact-form")?.scrollIntoView({ behavior: "smooth" });
+                      document.getElementById("name")?.focus({ preventScroll: true });
+                    }}
+                    className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 text-sm font-medium hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Go to Form
+                  </button>
                 </div>
               </div>
             </div>
