@@ -48,8 +48,8 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
             <div className="h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm shadow-primary/20 group-hover:shadow-md group-hover:shadow-primary/30 transition-all duration-200">
               <Shield className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
             </div>
-            <span className="font-bold text-lg hidden sm:inline tracking-tight">
-              Scam<span className="gradient-brand-text">Dunk</span>
+            <span className="font-display text-lg hidden sm:inline tracking-tight italic">
+              Scam<span className="gradient-brand-text not-italic font-sans font-bold">Dunk</span>
             </span>
           </Link>
         </div>

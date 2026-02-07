@@ -377,8 +377,8 @@ export default function HomePage() {
                     <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
                     <span className="text-sm font-semibold text-primary">Scanning</span>
                   </div>
-                  <h2 className="text-title mb-1">
-                    Analyzing <span className="gradient-brand-text">{currentTicker.toUpperCase()}</span>
+                  <h2 className="font-display text-title mb-1 italic">
+                    Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">{currentTicker.toUpperCase()}</span>
                   </h2>
                   <p className="text-sm text-muted-foreground">Running multi-layer risk detection</p>
                 </div>
@@ -419,10 +419,10 @@ export default function HomePage() {
                 </div>
 
                 {/* Headline */}
-                <h1 className="text-hero-sm sm:text-hero mb-3 max-w-lg mx-auto">
+                <h1 className="font-display text-hero-sm sm:text-hero mb-4 max-w-xl mx-auto italic">
                   {tagline.headline}
                 </h1>
-                <p className="text-subtitle text-muted-foreground max-w-md mx-auto leading-relaxed">
+                <p className="text-subtitle text-muted-foreground max-w-md mx-auto">
                   {tagline.subtext}
                 </p>
               </div>

@@ -4,30 +4,31 @@
 
 @layer base {
   :root {
-    /* Light Mode - Warm, confident, modern fintech */
-    --background: 0 0% 99%;
-    --foreground: 230 25% 10%;
+    /* Light Mode — Warm Guardian palette */
+    --background: 40 33% 98%;
+    --foreground: 24 10% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 230 25% 10%;
+    --card-foreground: 24 10% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 230 25% 10%;
-    --primary: 252 56% 57%;
+    --popover-foreground: 24 10% 10%;
+    --primary: 12 76% 56%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 230 25% 10%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 230 10% 44%;
-    --accent: 180 65% 46%;
+    --secondary: 40 18% 95%;
+    --secondary-foreground: 24 10% 10%;
+    --muted: 40 12% 93%;
+    --muted-foreground: 24 5% 45%;
+    --accent: 172 50% 38%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 252 56% 57%;
+    --border: 40 12% 89%;
+    --input: 40 12% 89%;
+    --ring: 12 76% 56%;
     --radius: 0.75rem;
-    /* Brand colors */
-    --brand-gradient-from: 252 56% 57%;
-    --brand-gradient-to: 190 90% 50%;
+    /* Brand */
+    --brand-gradient-from: 12 76% 56%;
+    --brand-gradient-to: 172 50% 38%;
+    --brand-mid: 36 90% 52%;
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
@@ -35,29 +36,30 @@
   }
 
   .dark {
-    /* Dark Mode - Rich, immersive, Robinhood-inspired */
-    --background: 230 20% 7%;
-    --foreground: 0 0% 96%;
-    --card: 230 18% 10%;
-    --card-foreground: 0 0% 96%;
-    --popover: 230 18% 10%;
-    --popover-foreground: 0 0% 96%;
-    --primary: 252 56% 63%;
+    /* Dark Mode — Deep warm tones */
+    --background: 24 12% 7%;
+    --foreground: 40 12% 92%;
+    --card: 24 10% 10%;
+    --card-foreground: 40 12% 92%;
+    --popover: 24 10% 10%;
+    --popover-foreground: 40 12% 92%;
+    --primary: 12 80% 62%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 230 16% 15%;
-    --secondary-foreground: 0 0% 96%;
-    --muted: 230 16% 15%;
-    --muted-foreground: 230 10% 56%;
-    --accent: 180 65% 50%;
+    --secondary: 24 8% 14%;
+    --secondary-foreground: 40 12% 92%;
+    --muted: 24 6% 16%;
+    --muted-foreground: 24 5% 55%;
+    --accent: 172 50% 45%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 230 16% 18%;
-    --input: 230 16% 18%;
-    --ring: 252 56% 63%;
-    /* Brand colors */
-    --brand-gradient-from: 252 56% 63%;
-    --brand-gradient-to: 180 80% 55%;
+    --border: 24 8% 17%;
+    --input: 24 8% 17%;
+    --ring: 12 80% 62%;
+    /* Brand */
+    --brand-gradient-from: 12 80% 62%;
+    --brand-gradient-to: 172 50% 50%;
+    --brand-mid: 36 90% 58%;
     --success: 160 84% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 55%;
@@ -79,15 +81,12 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar {
     width: 5px;
   }
-
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted));
     border-radius: 3px;
@@ -95,60 +94,90 @@
 }
 
 /* ============================================
-   BRAND GRADIENTS
+   BRAND GRADIENTS — Coral → Amber → Teal
    ============================================ */
 
 .gradient-brand {
-  background: linear-gradient(135deg, hsl(var(--brand-gradient-from)), hsl(var(--brand-gradient-to)));
+  background: linear-gradient(
+    135deg,
+    hsl(var(--brand-gradient-from)) 0%,
+    hsl(var(--brand-mid)) 50%,
+    hsl(var(--brand-gradient-to)) 100%
+  );
 }
 
 .gradient-brand-subtle {
-  background: linear-gradient(135deg, hsl(var(--brand-gradient-from) / 0.1), hsl(var(--brand-gradient-to) / 0.1));
+  background: linear-gradient(
+    135deg,
+    hsl(var(--brand-gradient-from) / 0.08) 0%,
+    hsl(var(--brand-mid) / 0.06) 50%,
+    hsl(var(--brand-gradient-to) / 0.08) 100%
+  );
 }
 
 .gradient-brand-text {
-  background: linear-gradient(135deg, hsl(var(--brand-gradient-from)), hsl(var(--brand-gradient-to)));
+  background: linear-gradient(
+    135deg,
+    hsl(var(--brand-gradient-from)) 0%,
+    hsl(var(--brand-mid)) 45%,
+    hsl(var(--brand-gradient-to)) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
+/* Hero background — warm mesh with subtle dot grid */
 .gradient-mesh {
+  position: relative;
   background:
-    radial-gradient(ellipse at 20% 50%, hsl(var(--brand-gradient-from) / 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, hsl(var(--brand-gradient-to) / 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, hsl(252 56% 57% / 0.06) 0%, transparent 50%);
+    radial-gradient(ellipse at 25% 40%, hsl(var(--brand-gradient-from) / 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 25%, hsl(var(--brand-gradient-to) / 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 75%, hsl(var(--brand-mid) / 0.06) 0%, transparent 50%);
+}
+
+.gradient-mesh::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, hsl(var(--foreground) / 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
 }
 
 .dark .gradient-mesh {
   background:
-    radial-gradient(ellipse at 20% 50%, hsl(var(--brand-gradient-from) / 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, hsl(var(--brand-gradient-to) / 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, hsl(252 56% 57% / 0.04) 0%, transparent 50%);
+    radial-gradient(ellipse at 25% 40%, hsl(var(--brand-gradient-from) / 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 25%, hsl(var(--brand-gradient-to) / 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 75%, hsl(var(--brand-mid) / 0.03) 0%, transparent 50%);
+}
+
+.dark .gradient-mesh::before {
+  background-image: radial-gradient(circle, hsl(var(--foreground) / 0.025) 1px, transparent 1px);
 }
 
 /* ============================================
-   RISK LEVEL GRADIENTS
+   RISK LEVEL GLOWS
    ============================================ */
 
 .risk-glow-low {
-  box-shadow: 0 0 20px -4px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 24px -4px rgba(16, 185, 129, 0.3);
 }
 
 .risk-glow-medium {
-  box-shadow: 0 0 20px -4px rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 24px -4px rgba(245, 158, 11, 0.3);
 }
 
 .risk-glow-high {
-  box-shadow: 0 0 20px -4px rgba(239, 68, 68, 0.35);
+  box-shadow: 0 0 24px -4px rgba(239, 68, 68, 0.3);
 }
 
 /* ============================================
-   ANIMATIONS
+   ANIMATIONS — Spring easing for natural motion
    ============================================ */
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -168,18 +197,18 @@
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
+  from { opacity: 0; transform: translateX(16px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes subtlePulse {
   0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
-  50% { box-shadow: 0 0 0 6px hsl(var(--primary) / 0.12); }
+  50% { box-shadow: 0 0 0 8px hsl(var(--primary) / 0.1); }
 }
 
 @keyframes shimmer {
@@ -189,7 +218,7 @@
 
 @keyframes gentleFloat {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-3px); }
+  50% { transform: translateY(-4px); }
 }
 
 @keyframes gradientShift {
@@ -207,28 +236,29 @@
   100% { transform: translateX(-50%); }
 }
 
+/* Spring easing: cubic-bezier(0.16, 1, 0.3, 1) — natural deceleration */
 .animate-fade-in {
-  animation: fadeIn 0.35s ease-out;
+  animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-fade-in-scale {
-  animation: fadeInScale 0.3s ease-out;
+  animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-slide-in {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-slide-out {
-  animation: slideOut 0.3s ease-out;
+  animation: slideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-slide-in-right {
-  animation: slideInRight 0.35s ease-out;
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .animate-slide-up {
-  animation: slideUp 0.4s ease-out;
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-subtle-pulse {
@@ -239,7 +269,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    hsl(var(--primary) / 0.06) 50%,
+    hsl(var(--primary) / 0.05) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -247,7 +277,7 @@
 }
 
 .animate-gentle-float {
-  animation: gentleFloat 3s ease-in-out infinite;
+  animation: gentleFloat 3.5s ease-in-out infinite;
 }
 
 .animate-gradient-shift {
@@ -262,6 +292,12 @@
 .animate-ticker {
   animation: ticker 30s linear infinite;
 }
+
+/* Stagger delay utilities */
+.delay-1 { animation-delay: 0.1s; animation-fill-mode: both; }
+.delay-2 { animation-delay: 0.2s; animation-fill-mode: both; }
+.delay-3 { animation-delay: 0.3s; animation-fill-mode: both; }
+.delay-4 { animation-delay: 0.4s; animation-fill-mode: both; }
 
 /* ============================================
    FOCUS & ACCESSIBILITY
@@ -293,20 +329,20 @@
   @apply rounded-2xl border border-border bg-card;
   box-shadow:
     0 1px 3px 0 rgb(0 0 0 / 0.04),
-    0 4px 16px -2px rgb(0 0 0 / 0.06);
+    0 6px 24px -4px rgb(0 0 0 / 0.06);
 }
 
 .dark .input-bar {
   box-shadow:
     0 1px 3px 0 rgb(0 0 0 / 0.2),
-    0 4px 16px -2px rgb(0 0 0 / 0.3);
+    0 6px 24px -4px rgb(0 0 0 / 0.3);
 }
 
 .input-bar:focus-within {
-  border-color: hsl(var(--primary) / 0.5);
+  border-color: hsl(var(--primary) / 0.4);
   box-shadow:
     0 1px 3px 0 rgb(0 0 0 / 0.04),
-    0 4px 16px -2px rgb(0 0 0 / 0.06),
+    0 6px 24px -4px rgb(0 0 0 / 0.06),
     0 0 0 3px hsl(var(--primary) / 0.08);
 }
 
@@ -326,11 +362,11 @@
   @apply relative overflow-hidden;
   background: linear-gradient(
     135deg,
-    hsl(var(--primary) / 0.08) 0%,
-    hsl(var(--primary) / 0.04) 50%,
-    hsl(var(--accent) / 0.06) 100%
+    hsl(var(--primary) / 0.07) 0%,
+    hsl(var(--primary) / 0.03) 50%,
+    hsl(var(--accent) / 0.05) 100%
   );
-  border: 1px solid hsl(var(--primary) / 0.15);
+  border: 1px solid hsl(var(--primary) / 0.12);
 }
 
 .feature-highlight::before {
@@ -340,7 +376,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    hsl(var(--primary) / 0.06) 50%,
+    hsl(var(--primary) / 0.05) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -351,11 +387,11 @@
 .feature-highlight:hover {
   background: linear-gradient(
     135deg,
-    hsl(var(--primary) / 0.14) 0%,
-    hsl(var(--primary) / 0.08) 50%,
-    hsl(var(--accent) / 0.10) 100%
+    hsl(var(--primary) / 0.12) 0%,
+    hsl(var(--primary) / 0.06) 50%,
+    hsl(var(--accent) / 0.08) 100%
   );
-  border-color: hsl(var(--primary) / 0.3);
+  border-color: hsl(var(--primary) / 0.25);
 }
 
 /* ============================================
@@ -389,29 +425,29 @@
 .card-elevated {
   @apply bg-card rounded-2xl border border-border;
   box-shadow:
-    0 1px 2px 0 rgb(0 0 0 / 0.03),
-    0 2px 8px -1px rgb(0 0 0 / 0.05),
-    0 8px 24px -4px rgb(0 0 0 / 0.04);
+    0 0 0 1px rgb(0 0 0 / 0.02),
+    0 1px 2px rgb(0 0 0 / 0.03),
+    0 8px 32px -8px rgb(0 0 0 / 0.06);
 }
 
 .dark .card-elevated {
   box-shadow:
-    0 1px 2px 0 rgb(0 0 0 / 0.15),
-    0 2px 8px -1px rgb(0 0 0 / 0.2),
-    0 8px 24px -4px rgb(0 0 0 / 0.15);
+    0 0 0 1px rgb(255 255 255 / 0.02),
+    0 1px 2px rgb(0 0 0 / 0.15),
+    0 8px 32px -8px rgb(0 0 0 / 0.2);
 }
 
 .card-interactive {
-  @apply card-elevated transition-all duration-200;
+  @apply card-elevated transition-all duration-300;
 }
 
 .card-interactive:hover {
-  @apply border-primary/20;
+  @apply border-primary/15;
   box-shadow:
-    0 1px 2px 0 rgb(0 0 0 / 0.03),
+    0 0 0 1px rgb(0 0 0 / 0.02),
     0 4px 12px -2px rgb(0 0 0 / 0.06),
-    0 12px 32px -4px rgb(0 0 0 / 0.06);
-  transform: translateY(-1px);
+    0 16px 48px -8px rgb(0 0 0 / 0.08);
+  transform: translateY(-2px);
 }
 
 /* ============================================
