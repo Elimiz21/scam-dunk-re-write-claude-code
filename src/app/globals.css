@@ -4,48 +4,60 @@
 
 @layer base {
   :root {
+    /* Light Mode — Revolut Clean */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 230 25% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 230 25% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.75rem;
+    --popover-foreground: 230 25% 9%;
+    --primary: 220 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 14% 96%;
+    --secondary-foreground: 230 25% 9%;
+    --muted: 225 14% 96%;
+    --muted-foreground: 225 8% 48%;
+    --accent: 220 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 225 14% 92%;
+    --input: 225 14% 92%;
+    --ring: 220 100% 50%;
+    --radius: 0.625rem;
+    /* Status */
+    --success: 160 100% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 100% 50%;
+    --warning-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 220 13% 10%;
-    --foreground: 0 0% 95%;
-    --card: 220 13% 13%;
-    --card-foreground: 0 0% 95%;
-    --popover: 220 13% 13%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 220 13% 10%;
-    --secondary: 220 13% 18%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 220 13% 18%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 220 13% 18%;
-    --accent-foreground: 0 0% 95%;
-    --destructive: 0 62.8% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 20%;
-    --input: 220 13% 20%;
-    --ring: 220 13% 50%;
+    /* Dark Mode — Revolut Deep */
+    --background: 230 20% 6%;
+    --foreground: 0 0% 96%;
+    --card: 230 18% 9%;
+    --card-foreground: 0 0% 96%;
+    --popover: 230 18% 9%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 220 100% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 230 15% 13%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 230 12% 15%;
+    --muted-foreground: 225 8% 52%;
+    --accent: 220 100% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 230 15% 15%;
+    --input: 230 15% 15%;
+    --ring: 220 100% 55%;
+    /* Status */
+    --success: 160 100% 48%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 100% 55%;
+    --warning-foreground: 0 0% 100%;
   }
 }
 
@@ -54,7 +66,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
 
@@ -63,25 +75,30 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
-
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted));
-    border-radius: 3px;
+    border-radius: 2px;
   }
 }
 
-/* Apple-style animations */
+/* ============================================
+   ANIMATIONS — Revolut-style: Crisp, minimal motion
+   ============================================ */
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes slideIn {
@@ -94,55 +111,19 @@
   to { transform: translateX(-100%); }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out;
-}
-
-.animate-slide-out {
-  animation: slideOut 0.3s ease-out;
-}
-
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(100%); }
+  from { opacity: 0; transform: translateX(12px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-.animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out;
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Focus ring for accessibility */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
-}
-
-/* Glassmorphism effects */
-.glass {
-  @apply backdrop-blur-xl bg-card/80;
-}
-
-/* Input bar styling */
-.input-bar {
-  @apply rounded-3xl border border-border bg-card shadow-lg;
-}
-
-/* Smooth transitions */
-.transition-smooth {
-  @apply transition-all duration-200 ease-out;
-}
-
-/* Feature highlight animations */
 @keyframes subtlePulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 59, 130, 246), 0);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(var(--primary-rgb, 59, 130, 246), 0.15);
-  }
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  50% { box-shadow: 0 0 0 6px hsl(var(--primary) / 0.08); }
 }
 
 @keyframes shimmer {
@@ -152,18 +133,43 @@
 
 @keyframes gentleFloat {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-2px); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Revolut uses crisp, fast easing */
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-slide-out {
+  animation: slideOut 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
 .animate-subtle-pulse {
-  animation: subtlePulse 2s ease-in-out infinite;
+  animation: subtlePulse 2.5s ease-in-out infinite;
 }
 
 .animate-shimmer {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
+    hsl(var(--primary) / 0.04) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -174,16 +180,91 @@
   animation: gentleFloat 3s ease-in-out infinite;
 }
 
-/* Feature button highlight styles */
+/* Stagger delay utilities */
+.delay-1 { animation-delay: 0.06s; animation-fill-mode: both; }
+.delay-2 { animation-delay: 0.12s; animation-fill-mode: both; }
+.delay-3 { animation-delay: 0.18s; animation-fill-mode: both; }
+.delay-4 { animation-delay: 0.24s; animation-fill-mode: both; }
+
+/* ============================================
+   BRAND — Solid blue, no gradients (Revolut style)
+   ============================================ */
+
+.gradient-brand {
+  background: hsl(var(--primary));
+}
+
+.gradient-brand-subtle {
+  background: hsl(var(--primary) / 0.06);
+}
+
+.gradient-brand-text {
+  color: hsl(var(--primary));
+}
+
+/* ============================================
+   FOCUS & ACCESSIBILITY
+   ============================================ */
+
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* ============================================
+   GLASS EFFECTS — Minimal, clean
+   ============================================ */
+
+.glass {
+  @apply backdrop-blur-xl;
+  background: hsl(var(--card) / 0.8);
+}
+
+.glass-strong {
+  @apply backdrop-blur-2xl;
+  background: hsl(var(--card) / 0.9);
+}
+
+/* ============================================
+   INPUT BAR
+   ============================================ */
+
+.input-bar {
+  @apply rounded-2xl border border-border bg-card;
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.03),
+    0 4px 16px -4px rgb(0 0 0 / 0.04);
+}
+
+.dark .input-bar {
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.2),
+    0 4px 16px -4px rgb(0 0 0 / 0.3);
+}
+
+.input-bar:focus-within {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.03),
+    0 4px 16px -4px rgb(0 0 0 / 0.04),
+    0 0 0 3px hsl(var(--primary) / 0.1);
+}
+
+/* ============================================
+   SMOOTH TRANSITIONS
+   ============================================ */
+
+.transition-smooth {
+  @apply transition-all duration-150 ease-out;
+}
+
+/* ============================================
+   FEATURE HIGHLIGHTS
+   ============================================ */
+
 .feature-highlight {
   @apply relative overflow-hidden;
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.08) 0%,
-    hsl(var(--primary) / 0.04) 50%,
-    hsl(var(--primary) / 0.08) 100%
-  );
-  border: 1px solid hsl(var(--primary) / 0.2);
+  background: hsl(var(--primary) / 0.04);
+  border: 1px solid hsl(var(--primary) / 0.1);
 }
 
 .feature-highlight::before {
@@ -193,7 +274,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    hsl(var(--primary) / 0.08) 50%,
+    hsl(var(--primary) / 0.03) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -202,28 +283,106 @@
 }
 
 .feature-highlight:hover {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.15) 0%,
-    hsl(var(--primary) / 0.08) 50%,
-    hsl(var(--primary) / 0.15) 100%
-  );
-  border-color: hsl(var(--primary) / 0.35);
+  background: hsl(var(--primary) / 0.08);
+  border-color: hsl(var(--primary) / 0.2);
 }
 
-/* Drag-and-drop zone styles */
+/* ============================================
+   DRAG & DROP ZONE
+   ============================================ */
+
 .drop-zone {
-  @apply border-2 border-dashed border-border rounded-2xl transition-all duration-200;
+  @apply border-2 border-dashed border-border rounded-xl transition-all duration-150;
 }
 
 .drop-zone-active {
-  @apply border-primary bg-primary/5 scale-[1.02];
-  box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.25);
+  @apply border-primary bg-primary/5;
+  box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.15);
 }
 
-/* New badge for highlighting features */
+/* ============================================
+   NEW FEATURE BADGE
+   ============================================ */
+
 .feature-new-badge {
   @apply absolute -top-1 -right-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider;
-  @apply bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full;
+  @apply bg-primary text-white rounded-full;
   @apply animate-subtle-pulse;
+}
+
+/* ============================================
+   CARD VARIANTS — Clean, minimal shadows
+   ============================================ */
+
+.card-elevated {
+  @apply bg-card rounded-xl border border-border;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.02),
+    0 4px 16px -4px rgb(0 0 0 / 0.04);
+}
+
+.dark .card-elevated {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.15),
+    0 4px 16px -4px rgb(0 0 0 / 0.2);
+}
+
+.card-interactive {
+  @apply card-elevated transition-all duration-150;
+}
+
+.card-interactive:hover {
+  @apply border-primary/15;
+  box-shadow:
+    0 2px 8px -2px rgb(0 0 0 / 0.05),
+    0 12px 32px -8px rgb(0 0 0 / 0.06);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   RISK CARD BORDERS
+   ============================================ */
+
+.risk-border-low {
+  border-left: 3px solid #00D68F;
+}
+
+.risk-border-medium {
+  border-left: 3px solid #FFB020;
+}
+
+.risk-border-high {
+  border-left: 3px solid #FF4757;
+}
+
+.risk-border-insufficient {
+  border-left: 3px solid #6B7280;
+}
+
+/* ============================================
+   RISK LEVEL GLOWS
+   ============================================ */
+
+.risk-glow-low {
+  box-shadow: 0 0 20px -4px rgba(0, 214, 143, 0.25);
+}
+
+.risk-glow-medium {
+  box-shadow: 0 0 20px -4px rgba(255, 176, 32, 0.25);
+}
+
+.risk-glow-high {
+  box-shadow: 0 0 20px -4px rgba(255, 71, 87, 0.25);
+}
+
+/* ============================================
+   STAT COUNTER
+   ============================================ */
+
+.stat-value {
+  @apply text-3xl sm:text-4xl font-bold tracking-tight;
+}
+
+.stat-label {
+  @apply text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider;
 }

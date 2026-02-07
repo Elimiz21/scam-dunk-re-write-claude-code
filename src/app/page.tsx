@@ -371,10 +371,17 @@ export default function HomePage() {
           {/* Loading State */}
           {isLoading && (
             <div className="flex-1 flex items-center justify-center p-4">
-              <div className="max-w-md w-full text-center">
-                <h2 className="text-xl font-semibold mb-6">
-                  Analyzing {currentTicker}...
-                </h2>
+              <div className="max-w-lg w-full animate-fade-in">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/8 border border-primary/15 mb-4">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                    <span className="text-xs font-semibold text-primary">Scanning</span>
+                  </div>
+                  <h2 className="font-display text-title mb-1">
+                    Analyzing <span className="text-primary">{currentTicker.toUpperCase()}</span>
+                  </h2>
+                  <p className="text-sm text-muted-foreground">Running multi-layer risk detection</p>
+                </div>
                 <LoadingStepper steps={steps} currentTip={currentTip} />
               </div>
             </div>
@@ -397,23 +404,29 @@ export default function HomePage() {
           {/* Welcome State (no result, not loading) */}
           {!result && !isLoading && !limitReached && (
             <div className="flex-1 flex flex-col items-center justify-center p-4 pb-32">
-              <div className="text-center mb-8">
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 rounded-2xl bg-secondary">
-                    <Shield className="h-12 w-12 text-primary" />
+              <div className="text-center mb-8 max-w-lg mx-auto">
+                {/* Icon */}
+                <div className="flex justify-center mb-5">
+                  <div className="relative">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/8 flex items-center justify-center">
+                      <Shield className="h-7 w-7 text-primary" strokeWidth={2} />
+                    </div>
                   </div>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+
+                {/* Headline */}
+                <h1 className="font-display text-hero-sm sm:text-hero mb-3 max-w-xl mx-auto">
                   {tagline.headline}
                 </h1>
-                <p className="text-muted-foreground max-w-md mx-auto">
+                <p className="text-subtitle text-muted-foreground max-w-md mx-auto">
                   {tagline.subtext}
                 </p>
               </div>
 
               {/* Error message */}
               {error && (
-                <div className="mb-6 p-4 rounded-xl bg-destructive/10 text-destructive text-sm max-w-md text-center">
+                <div className="mb-6 p-3.5 rounded-xl bg-destructive/8 border border-destructive/15 text-destructive text-sm max-w-md text-center animate-fade-in">
+                  <AlertTriangle className="h-4 w-4 inline mr-2" />
                   {error}
                 </div>
               )}
@@ -421,35 +434,35 @@ export default function HomePage() {
               {/* Quick Examples for non-logged in users */}
               {!session && status !== "loading" && (
                 <div className="mb-8">
-                  <p className="text-sm text-muted-foreground text-center mb-4">
-                    Quick examples to try:
+                  <p className="text-xs text-muted-foreground text-center mb-3 uppercase tracking-widest font-semibold">
+                    Try an example
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-full"
                       onClick={() => handleSubmit({ ticker: "AAPL", assetType: "stock" })}
                     >
-                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <TrendingUp className="h-3 w-3 mr-1.5" />
                       AAPL
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-full"
                       onClick={() => handleSubmit({ ticker: "TSLA", assetType: "stock" })}
                     >
-                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <TrendingUp className="h-3 w-3 mr-1.5" />
                       TSLA
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-full"
                       onClick={() => handleSubmit({ ticker: "BTC", assetType: "crypto" })}
                     >
-                      <Zap className="h-3 w-3 mr-1" />
+                      <Zap className="h-3 w-3 mr-1.5" />
                       BTC
                     </Button>
                   </div>
@@ -458,25 +471,31 @@ export default function HomePage() {
 
               {/* Features */}
               {!session && status !== "loading" && (
-                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mt-4">
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <TrendingUp className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-                    <h3 className="font-medium text-sm mb-1">Market Analysis</h3>
-                    <p className="text-xs text-muted-foreground">
+                <div className="grid sm:grid-cols-3 gap-3 max-w-2xl mx-auto mt-4">
+                  <div className="p-5 rounded-xl bg-card border border-border text-center hover:border-primary/15 transition-smooth">
+                    <div className="h-10 w-10 rounded-lg bg-primary/8 flex items-center justify-center mx-auto mb-3">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">Market Analysis</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       Price, volume, and market cap signals
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-                    <h3 className="font-medium text-sm mb-1">Red Flag Detection</h3>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="p-5 rounded-xl bg-card border border-border text-center hover:border-primary/15 transition-smooth">
+                    <div className="h-10 w-10 rounded-lg bg-amber-500/8 flex items-center justify-center mx-auto mb-3">
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">Red Flag Detection</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       Pump-and-dump patterns identified
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <Shield className="h-6 w-6 mx-auto mb-2 text-green-500" />
-                    <h3 className="font-medium text-sm mb-1">AI-Powered</h3>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="p-5 rounded-xl bg-card border border-border text-center hover:border-primary/15 transition-smooth">
+                    <div className="h-10 w-10 rounded-lg bg-emerald-500/8 flex items-center justify-center mx-auto mb-3">
+                      <Shield className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">AI-Powered</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       Smart analysis with suggestions
                     </p>
                   </div>
