@@ -13,6 +13,21 @@ import { validateEmailConfig, sendTestEmail, sendCustomEmail } from '@/lib/email
 
 export const dynamic = 'force-dynamic';
 
+/** Safely query emailLog - returns empty if table doesn't exist yet */
+async function safeEmailLogQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    // Table doesn't exist yet (migration not run)
+    if (message.includes('EmailLog') || message.includes('email_log') || message.includes('does not exist') || message.includes('P2021')) {
+      console.warn('[EMAIL MGMT] EmailLog table not found - run "npx prisma db push" to create it');
+      return fallback;
+    }
+    throw error;
+  }
+}
+
 // GET - Full email management overview
 export async function GET(request: NextRequest) {
   try {
@@ -54,13 +69,19 @@ export async function GET(request: NextRequest) {
       }
 
       const [logs, total] = await Promise.all([
-        prisma.emailLog.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          skip: (page - 1) * limit,
-          take: limit,
-        }),
-        prisma.emailLog.count({ where }),
+        safeEmailLogQuery(
+          () => prisma.emailLog.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            skip: (page - 1) * limit,
+            take: limit,
+          }),
+          []
+        ),
+        safeEmailLogQuery(
+          () => prisma.emailLog.count({ where }),
+          0
+        ),
       ]);
 
       return NextResponse.json({
@@ -80,10 +101,13 @@ export async function GET(request: NextRequest) {
       prisma.supportEmailRecipient.findMany({
         orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
       }),
-      prisma.emailLog.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }),
+      safeEmailLogQuery(
+        () => prisma.emailLog.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        }),
+        []
+      ),
       getEmailLogStats(),
     ]);
 
@@ -191,29 +215,37 @@ export async function POST(request: NextRequest) {
 }
 
 async function getEmailLogStats() {
-  const now = new Date();
-  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  const [
-    totalSent,
-    totalFailed,
-    sent24h,
-    failed24h,
-    sent7d,
-    failed7d,
-  ] = await Promise.all([
-    prisma.emailLog.count({ where: { status: 'SENT' } }),
-    prisma.emailLog.count({ where: { status: 'FAILED' } }),
-    prisma.emailLog.count({ where: { status: 'SENT', createdAt: { gte: last24h } } }),
-    prisma.emailLog.count({ where: { status: 'FAILED', createdAt: { gte: last24h } } }),
-    prisma.emailLog.count({ where: { status: 'SENT', createdAt: { gte: last7d } } }),
-    prisma.emailLog.count({ where: { status: 'FAILED', createdAt: { gte: last7d } } }),
-  ]);
-
-  return {
-    total: { sent: totalSent, failed: totalFailed },
-    last24h: { sent: sent24h, failed: failed24h },
-    last7d: { sent: sent7d, failed: failed7d },
+  const defaultStats = {
+    total: { sent: 0, failed: 0 },
+    last24h: { sent: 0, failed: 0 },
+    last7d: { sent: 0, failed: 0 },
   };
+
+  return safeEmailLogQuery(async () => {
+    const now = new Date();
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalSent,
+      totalFailed,
+      sent24h,
+      failed24h,
+      sent7d,
+      failed7d,
+    ] = await Promise.all([
+      prisma.emailLog.count({ where: { status: 'SENT' } }),
+      prisma.emailLog.count({ where: { status: 'FAILED' } }),
+      prisma.emailLog.count({ where: { status: 'SENT', createdAt: { gte: last24h } } }),
+      prisma.emailLog.count({ where: { status: 'FAILED', createdAt: { gte: last24h } } }),
+      prisma.emailLog.count({ where: { status: 'SENT', createdAt: { gte: last7d } } }),
+      prisma.emailLog.count({ where: { status: 'FAILED', createdAt: { gte: last7d } } }),
+    ]);
+
+    return {
+      total: { sent: totalSent, failed: totalFailed },
+      last24h: { sent: sent24h, failed: failed24h },
+      last7d: { sent: sent7d, failed: failed7d },
+    };
+  }, defaultStats);
 }
