@@ -87,9 +87,9 @@ function AuthErrorContent() {
                     </Button>
                     <p className="text-sm text-muted-foreground text-center">
                         Need help?{" "}
-                        <Link href="mailto:support@scamdunk.com" className="text-primary hover:underline">
+                        <a href="mailto:support@scamdunk.com" className="text-primary hover:underline">
                             Contact support
-                        </Link>
+                        </a>
                     </p>
                 </CardFooter>
             </Card>
