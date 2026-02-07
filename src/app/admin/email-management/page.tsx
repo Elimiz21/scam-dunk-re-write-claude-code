@@ -101,7 +101,7 @@ const STATUS_STYLES: Record<string, string> = {
   SKIPPED: "bg-yellow-100 text-yellow-800",
 };
 
-type TabId = "config" | "recipients" | "compose" | "logs";
+type TabId = "config" | "recipients" | "compose" | "logs" | "inbound";
 
 // ============ Component ============
 
@@ -432,6 +432,7 @@ export default function EmailManagementPage() {
     { id: "recipients", label: "Email Recipients", icon: <Users className="h-4 w-4" /> },
     { id: "compose", label: "Compose Email", icon: <Send className="h-4 w-4" /> },
     { id: "logs", label: "Email Logs", icon: <FileText className="h-4 w-4" /> },
+    { id: "inbound", label: "Inbound Email", icon: <Mail className="h-4 w-4" /> },
   ];
 
   // ============ Render ============
@@ -1169,6 +1170,111 @@ export default function EmailManagementPage() {
                   )}
                 </>
               )}
+            </div>
+          )}
+
+          {/* ==================== Inbound Email Tab ==================== */}
+          {activeTab === "inbound" && (
+            <div className="p-6 space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Inbound Email Setup</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Configure <code className="bg-gray-100 px-1 rounded text-gray-800">support@scamdunk.com</code> to
+                  automatically create support tickets when users email directly
+                </p>
+              </div>
+
+              {/* How it works */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                <h3 className="font-medium text-blue-900 mb-2">How It Works</h3>
+                <p className="text-sm text-blue-800 mb-3">
+                  When someone emails <strong>support@scamdunk.com</strong>, the email gets forwarded to your
+                  webhook endpoint. The system automatically:
+                </p>
+                <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1 ml-2">
+                  <li>Creates a support ticket from the email content</li>
+                  <li>Auto-detects the category (billing, bug, feedback, etc.)</li>
+                  <li>Routes notifications to the correct recipients based on category</li>
+                  <li>Sends a confirmation email back to the sender</li>
+                  <li>The ticket appears in Customer Support for your team to manage</li>
+                </ol>
+              </div>
+
+              {/* Webhook URL */}
+              <div className="bg-gray-50 rounded-lg p-5">
+                <h3 className="font-medium text-gray-900 mb-3">Webhook Endpoint</h3>
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md p-3">
+                  <code className="flex-1 text-sm text-gray-700 break-all">
+                    {typeof window !== "undefined" ? window.location.origin : "https://yourdomain.com"}/api/inbound-email
+                  </code>
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/api/inbound-email`;
+                      navigator.clipboard.writeText(url);
+                      setSuccess("Webhook URL copied to clipboard");
+                    }}
+                    className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 whitespace-nowrap"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Use this URL in your email forwarding service or Resend inbound configuration.
+                </p>
+              </div>
+
+              {/* Setup Steps */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-gray-900">Setup Instructions</h3>
+
+                {/* Option 1: Resend */}
+                <div className="border border-gray-200 rounded-lg p-5">
+                  <h4 className="font-medium text-gray-800 mb-3">Option 1: Resend Inbound (Recommended)</h4>
+                  <ol className="list-decimal list-inside text-sm text-gray-600 space-y-2 ml-2">
+                    <li>Go to <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">resend.com/domains</a> and verify <code className="bg-gray-100 px-1 rounded">scamdunk.com</code></li>
+                    <li>Add the required MX record to your DNS to route inbound mail through Resend</li>
+                    <li>In Resend, configure an inbound webhook pointing to the URL above</li>
+                    <li>Set <code className="bg-gray-100 px-1 rounded">INBOUND_EMAIL_WEBHOOK_SECRET</code> in your Vercel environment variables for security</li>
+                    <li>Emails to <code className="bg-gray-100 px-1 rounded">support@scamdunk.com</code> will now auto-create tickets</li>
+                  </ol>
+                </div>
+
+                {/* Option 2: Email forwarding */}
+                <div className="border border-gray-200 rounded-lg p-5">
+                  <h4 className="font-medium text-gray-800 mb-3">Option 2: Email Forwarding Service</h4>
+                  <ol className="list-decimal list-inside text-sm text-gray-600 space-y-2 ml-2">
+                    <li>Set up <code className="bg-gray-100 px-1 rounded">support@scamdunk.com</code> with any email provider (Google Workspace, Zoho, etc.)</li>
+                    <li>Use a service like Zapier, Make, or Pipedream to forward incoming emails as JSON to the webhook URL</li>
+                    <li>The webhook expects this JSON format:</li>
+                  </ol>
+                  <pre className="mt-3 bg-gray-900 text-gray-100 rounded-md p-4 text-xs overflow-x-auto">
+{`POST /api/inbound-email
+Content-Type: application/json
+Authorization: Bearer YOUR_WEBHOOK_SECRET
+
+{
+  "from": "John Doe <john@example.com>",
+  "subject": "I need help with my account",
+  "text": "The plain text body of the email...",
+  "html": "<p>Optional HTML body</p>"
+}`}
+                  </pre>
+                </div>
+
+                {/* Security */}
+                <div className="border border-amber-200 bg-amber-50 rounded-lg p-5">
+                  <h4 className="font-medium text-amber-900 mb-2 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Security
+                  </h4>
+                  <p className="text-sm text-amber-800">
+                    Set <code className="bg-amber-100 px-1 rounded">INBOUND_EMAIL_WEBHOOK_SECRET</code> in your
+                    Vercel environment variables to prevent unauthorized ticket creation.
+                    The webhook will verify this secret via the <code className="bg-amber-100 px-1 rounded">Authorization: Bearer</code> header
+                    or <code className="bg-amber-100 px-1 rounded">x-webhook-secret</code> header.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
