@@ -69,9 +69,9 @@ export function Footer() {
             <h4 className="font-semibold mb-3 text-sm">Contact</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="mailto:support@scamdunk.com" className="hover:text-primary transition-colors">
-                  support@scamdunk.com
-                </a>
+                <Link href="/contact" className="hover:text-primary transition-colors">
+                  Contact Support
+                </Link>
               </li>
               <li>
                 <a href="mailto:privacy@scamdunk.com" className="hover:text-primary transition-colors">
