@@ -49,11 +49,11 @@ interface SidebarProps {
 function getRiskIcon(riskLevel: string) {
   switch (riskLevel) {
     case "LOW":
-      return <CheckCircle className="h-3 w-3 text-green-500" />;
+      return <CheckCircle className="h-3 w-3 text-emerald-400" />;
     case "MEDIUM":
-      return <AlertCircle className="h-3 w-3 text-yellow-500" />;
+      return <AlertCircle className="h-3 w-3 text-amber-400" />;
     case "HIGH":
-      return <AlertTriangle className="h-3 w-3 text-red-500" />;
+      return <AlertTriangle className="h-3 w-3 text-red-400" />;
     default:
       return <HelpIcon className="h-3 w-3 text-gray-500" />;
   }
@@ -62,13 +62,13 @@ function getRiskIcon(riskLevel: string) {
 function getRiskColor(riskLevel: string) {
   switch (riskLevel) {
     case "LOW":
-      return "text-green-600 dark:text-green-400";
+      return "text-emerald-500 dark:text-emerald-400";
     case "MEDIUM":
-      return "text-yellow-600 dark:text-yellow-400";
+      return "text-amber-500 dark:text-amber-400";
     case "HIGH":
-      return "text-red-600 dark:text-red-400";
+      return "text-red-500 dark:text-red-400";
     default:
-      return "text-gray-600 dark:text-gray-400";
+      return "text-gray-500 dark:text-gray-400";
   }
 }
 
@@ -118,7 +118,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={onToggle}
         />
       )}
@@ -126,7 +126,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 h-full bg-card border-r border-border z-50 flex flex-col transition-all duration-300 ease-out",
+          "fixed top-0 left-0 h-full bg-card border-r border-border z-50 flex flex-col transition-all duration-250 ease-out",
           isOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full lg:w-0"
         )}
       >
@@ -134,14 +134,18 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             <Link href="/" className="flex items-center gap-2">
-              <Shield className="h-6 w-6 text-primary" />
-              <span className="font-semibold">ScamDunk</span>
+              <div className="h-7 w-7 rounded-md gradient-brand flex items-center justify-center">
+                <Shield className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
+              </div>
+              <span className="font-mono text-sm font-bold tracking-tight">
+                SCAM<span className="gradient-brand-text">DUNK</span>
+              </span>
             </Link>
             <Button
               variant="ghost"
               size="icon"
               onClick={onToggle}
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-md"
               aria-label="Close sidebar"
             >
               <PanelLeftClose className="h-4 w-4" />
@@ -152,56 +156,55 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
           <div className="p-3">
             <Button
               onClick={onNewScan}
-              className="w-full justify-start gap-2 rounded-xl"
+              className="w-full justify-start gap-2 rounded-md font-mono text-xs"
               variant="outline"
             >
               <Plus className="h-4 w-4" />
-              New Scan
+              NEW SCAN
             </Button>
           </div>
 
           {/* Navigation - Recent Scans */}
           <nav className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 flex items-center gap-2">
+            <p className="text-[10px] font-bold font-mono text-primary/60 px-3 py-2 flex items-center gap-2 uppercase tracking-widest">
               <History className="h-3 w-3" />
-              Recent Scans
+              // RECENT
             </p>
 
             {!session ? (
               <div className="text-sm text-muted-foreground px-3 py-2">
-                <Link href="/login" className="text-primary hover:underline">
-                  Log in
+                <Link href="/login" className="text-primary hover:underline font-mono text-xs">
+                  LOG IN
                 </Link>{" "}
                 to see scan history
               </div>
             ) : isLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
               </div>
             ) : recentScans.length === 0 ? (
-              <div className="text-sm text-muted-foreground px-3 py-2">
+              <div className="text-sm text-muted-foreground px-3 py-2 font-mono text-xs">
                 No recent scans
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {recentScans.map((scan) => (
                   <button
                     key={scan.id}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-secondary transition-colors text-left"
                     onClick={() => {
-                      // Could implement "re-run scan" or "view details" here
                       onToggle();
                     }}
                   >
                     {getRiskIcon(scan.riskLevel)}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{scan.ticker}</span>
-                        <span className={cn("text-xs", getRiskColor(scan.riskLevel))}>
+                        <span className="font-mono font-bold text-sm">{scan.ticker}</span>
+                        <span className={cn("text-xs font-mono", getRiskColor(scan.riskLevel))}>
                           {scan.riskLevel}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground font-mono">
                         {formatDate(scan.createdAt)}
                       </p>
                     </div>
@@ -212,15 +215,15 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
           </nav>
 
           {/* Bottom Menu */}
-          <div className="border-t border-border p-3 space-y-1">
+          <div className="border-t border-border p-3 space-y-0.5">
             {/* Information Section */}
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2">
-              Information
+            <p className="text-[10px] font-bold font-mono text-primary/60 px-3 py-2 uppercase tracking-widest">
+              // INFO
             </p>
             <Link href="/about">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-md h-9 text-sm"
               >
                 <Info className="h-4 w-4" />
                 About
@@ -229,7 +232,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/news">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-md h-9 text-sm"
               >
                 <Newspaper className="h-4 w-4" />
                 News
@@ -238,7 +241,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/how-it-works">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-md h-9 text-sm"
               >
                 <HelpCircle className="h-4 w-4" />
                 How It Works
@@ -247,7 +250,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/help">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-md h-9 text-sm"
               >
                 <MessageCircleQuestion className="h-4 w-4" />
                 Help & FAQ
@@ -256,7 +259,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/contact">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-md h-9 text-sm"
               >
                 <Mail className="h-4 w-4" />
                 Contact Us
@@ -264,13 +267,13 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             </Link>
 
             {/* Legal Section */}
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-2">
-              Legal
+            <p className="text-[10px] font-bold font-mono text-primary/60 px-3 py-2 mt-2 uppercase tracking-widest">
+              // LEGAL
             </p>
             <Link href="/disclaimer">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-md h-9 text-sm"
               >
                 <FileText className="h-4 w-4" />
                 Disclaimer
@@ -279,7 +282,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/privacy">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-md h-9 text-sm"
               >
                 <Shield className="h-4 w-4" />
                 Privacy Policy
@@ -288,7 +291,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/terms">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-md h-9 text-sm"
               >
                 <Scale className="h-4 w-4" />
                 Terms of Service
@@ -296,13 +299,13 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             </Link>
 
             {/* Account Section */}
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-2">
-              Account
+            <p className="text-[10px] font-bold font-mono text-primary/60 px-3 py-2 mt-2 uppercase tracking-widest">
+              // ACCOUNT
             </p>
             <Link href="/account">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-md h-9 text-sm"
               >
                 <Settings className="h-4 w-4" />
                 Settings
@@ -312,21 +315,21 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             {session && (
               <div className="pt-2 border-t border-border mt-2">
                 <div className="flex items-center gap-3 px-3 py-2">
-                  <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-                    <User className="h-4 w-4" />
+                  <div className="h-7 w-7 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
+                    <User className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
+                    <p className="text-sm font-semibold truncate">
                       {session.user?.name || session.user?.email}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-xs text-muted-foreground truncate font-mono">
                       {session.user?.email}
                     </p>
                   </div>
                 </div>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start gap-2 rounded-xl h-10 text-destructive hover:text-destructive"
+                  className="w-full justify-start gap-2 rounded-md h-9 text-sm text-destructive hover:text-destructive"
                   onClick={() => signOut({ callbackUrl: "/" })}
                 >
                   <LogOut className="h-4 w-4" />
@@ -347,10 +350,10 @@ export function SidebarToggle({ onClick }: { onClick: () => void }) {
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className="h-10 w-10 rounded-xl"
+      className="h-9 w-9 rounded-md"
       aria-label="Open sidebar"
     >
-      <PanelLeft className="h-5 w-5" />
+      <PanelLeft className="h-4 w-4" />
     </Button>
   );
 }

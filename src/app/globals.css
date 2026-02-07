@@ -4,48 +4,60 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Light Mode — Cyber Pulse (secondary mode) */
+    --background: 180 4% 97%;
+    --foreground: 200 15% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 200 15% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.75rem;
+    --popover-foreground: 200 15% 8%;
+    --primary: 78 85% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 200 6% 93%;
+    --secondary-foreground: 200 15% 8%;
+    --muted: 200 6% 93%;
+    --muted-foreground: 200 5% 45%;
+    --accent: 175 80% 35%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 200 6% 88%;
+    --input: 200 6% 88%;
+    --ring: 78 85% 38%;
+    --radius: 0.5rem;
+    /* Status */
+    --success: 155 100% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 40 100% 50%;
+    --warning-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 220 13% 10%;
-    --foreground: 0 0% 95%;
-    --card: 220 13% 13%;
-    --card-foreground: 0 0% 95%;
-    --popover: 220 13% 13%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 220 13% 10%;
-    --secondary: 220 13% 18%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 220 13% 18%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 220 13% 18%;
-    --accent-foreground: 0 0% 95%;
-    --destructive: 0 62.8% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 20%;
-    --input: 220 13% 20%;
-    --ring: 220 13% 50%;
+    /* Dark Mode — Cyber Pulse (primary mode) */
+    --background: 220 20% 4%;
+    --foreground: 0 0% 92%;
+    --card: 220 16% 7%;
+    --card-foreground: 0 0% 92%;
+    --popover: 220 16% 7%;
+    --popover-foreground: 0 0% 92%;
+    --primary: 78 100% 50%;
+    --primary-foreground: 220 20% 4%;
+    --secondary: 220 12% 11%;
+    --secondary-foreground: 0 0% 92%;
+    --muted: 220 10% 13%;
+    --muted-foreground: 220 5% 50%;
+    --accent: 175 100% 45%;
+    --accent-foreground: 220 20% 4%;
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 12% 12%;
+    --input: 220 12% 12%;
+    --ring: 78 100% 50%;
+    /* Status */
+    --success: 155 100% 45%;
+    --success-foreground: 220 20% 4%;
+    --warning: 40 100% 55%;
+    --warning-foreground: 220 20% 4%;
   }
 }
 
@@ -54,7 +66,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
 
@@ -63,25 +75,75 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
-
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted));
-    border-radius: 3px;
+    background-color: hsl(var(--primary) / 0.3);
+    border-radius: 2px;
   }
 }
 
-/* Apple-style animations */
+/* ============================================
+   BRAND — Neon glow, terminal aesthetic
+   ============================================ */
+
+.gradient-brand {
+  background: hsl(var(--primary));
+  box-shadow: 0 0 20px -4px hsl(var(--primary) / 0.4);
+}
+
+.gradient-brand-subtle {
+  background: hsl(var(--primary) / 0.08);
+  border: 1px solid hsl(var(--primary) / 0.15);
+}
+
+.gradient-brand-text {
+  color: hsl(var(--primary));
+  text-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+}
+
+.dark .gradient-brand-text {
+  text-shadow: 0 0 30px hsl(var(--primary) / 0.6);
+}
+
+/* Scan grid pattern */
+.scan-grid {
+  position: relative;
+}
+
+.scan-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(hsl(var(--primary) / 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--primary) / 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+.dark .scan-grid::before {
+  background-image:
+    linear-gradient(hsl(var(--primary) / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--primary) / 0.04) 1px, transparent 1px);
+}
+
+/* ============================================
+   ANIMATIONS — Sharp, digital, high-energy
+   ============================================ */
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes slideIn {
@@ -94,55 +156,24 @@
   to { transform: translateX(-100%); }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out;
-}
-
-.animate-slide-out {
-  animation: slideOut 0.3s ease-out;
-}
-
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(100%); }
+  from { opacity: 0; transform: translateX(12px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-.animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out;
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Focus ring for accessibility */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
-}
-
-/* Glassmorphism effects */
-.glass {
-  @apply backdrop-blur-xl bg-card/80;
-}
-
-/* Input bar styling */
-.input-bar {
-  @apply rounded-3xl border border-border bg-card shadow-lg;
-}
-
-/* Smooth transitions */
-.transition-smooth {
-  @apply transition-all duration-200 ease-out;
-}
-
-/* Feature highlight animations */
 @keyframes subtlePulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 59, 130, 246), 0);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(var(--primary-rgb, 59, 130, 246), 0.15);
-  }
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  50% { box-shadow: 0 0 0 8px hsl(var(--primary) / 0.1); }
+}
+
+@keyframes neonPulse {
+  0%, 100% { box-shadow: 0 0 8px hsl(var(--primary) / 0.2); }
+  50% { box-shadow: 0 0 24px hsl(var(--primary) / 0.4); }
 }
 
 @keyframes shimmer {
@@ -152,18 +183,58 @@
 
 @keyframes gentleFloat {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-2px); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes scanLine {
+  0% { top: -2px; opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes terminalBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Sharp, digital easing */
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-out {
+  animation: slideOut 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-subtle-pulse {
-  animation: subtlePulse 2s ease-in-out infinite;
+  animation: subtlePulse 2.5s ease-in-out infinite;
+}
+
+.animate-neon-pulse {
+  animation: neonPulse 2s ease-in-out infinite;
 }
 
 .animate-shimmer {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
+    hsl(var(--primary) / 0.06) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -174,16 +245,76 @@
   animation: gentleFloat 3s ease-in-out infinite;
 }
 
-/* Feature button highlight styles */
+.animate-terminal-blink {
+  animation: terminalBlink 1s step-end infinite;
+}
+
+/* Stagger delay utilities */
+.delay-1 { animation-delay: 0.08s; animation-fill-mode: both; }
+.delay-2 { animation-delay: 0.16s; animation-fill-mode: both; }
+.delay-3 { animation-delay: 0.24s; animation-fill-mode: both; }
+.delay-4 { animation-delay: 0.32s; animation-fill-mode: both; }
+
+/* ============================================
+   FOCUS & ACCESSIBILITY
+   ============================================ */
+
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* ============================================
+   GLASS EFFECTS — Dark, with neon tint
+   ============================================ */
+
+.glass {
+  @apply backdrop-blur-xl;
+  background: hsl(var(--card) / 0.8);
+}
+
+.glass-strong {
+  @apply backdrop-blur-2xl;
+  background: hsl(var(--card) / 0.9);
+}
+
+/* ============================================
+   INPUT BAR
+   ============================================ */
+
+.input-bar {
+  @apply rounded-xl border border-border bg-card;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.1);
+}
+
+.dark .input-bar {
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.3),
+    inset 0 0 0 1px rgb(255 255 255 / 0.03);
+}
+
+.input-bar:focus-within {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow:
+    0 0 0 3px hsl(var(--primary) / 0.1),
+    0 0 20px -4px hsl(var(--primary) / 0.2);
+}
+
+/* ============================================
+   SMOOTH TRANSITIONS
+   ============================================ */
+
+.transition-smooth {
+  @apply transition-all duration-150 ease-out;
+}
+
+/* ============================================
+   FEATURE HIGHLIGHTS — Neon-edged
+   ============================================ */
+
 .feature-highlight {
   @apply relative overflow-hidden;
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.08) 0%,
-    hsl(var(--primary) / 0.04) 50%,
-    hsl(var(--primary) / 0.08) 100%
-  );
-  border: 1px solid hsl(var(--primary) / 0.2);
+  background: hsl(var(--primary) / 0.04);
+  border: 1px solid hsl(var(--primary) / 0.12);
 }
 
 .feature-highlight::before {
@@ -193,7 +324,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    hsl(var(--primary) / 0.08) 50%,
+    hsl(var(--primary) / 0.05) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -202,28 +333,114 @@
 }
 
 .feature-highlight:hover {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.15) 0%,
-    hsl(var(--primary) / 0.08) 50%,
-    hsl(var(--primary) / 0.15) 100%
-  );
-  border-color: hsl(var(--primary) / 0.35);
+  background: hsl(var(--primary) / 0.08);
+  border-color: hsl(var(--primary) / 0.25);
+  box-shadow: 0 0 16px -4px hsl(var(--primary) / 0.2);
 }
 
-/* Drag-and-drop zone styles */
+/* ============================================
+   DRAG & DROP ZONE
+   ============================================ */
+
 .drop-zone {
-  @apply border-2 border-dashed border-border rounded-2xl transition-all duration-200;
+  @apply border-2 border-dashed border-border rounded-lg transition-all duration-150;
 }
 
 .drop-zone-active {
-  @apply border-primary bg-primary/5 scale-[1.02];
-  box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.25);
+  @apply border-primary bg-primary/5;
+  box-shadow: 0 0 24px -4px hsl(var(--primary) / 0.3);
 }
 
-/* New badge for highlighting features */
+/* ============================================
+   NEW FEATURE BADGE
+   ============================================ */
+
 .feature-new-badge {
-  @apply absolute -top-1 -right-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider;
-  @apply bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full;
-  @apply animate-subtle-pulse;
+  @apply absolute -top-1 -right-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider font-mono;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  @apply rounded-md;
+  @apply animate-neon-pulse;
+}
+
+/* ============================================
+   CARD VARIANTS — Dark, sharp, with neon accents
+   ============================================ */
+
+.card-elevated {
+  @apply bg-card rounded-lg border border-border;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+.dark .card-elevated {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.3),
+    inset 0 0 0 1px rgb(255 255 255 / 0.02);
+}
+
+.card-interactive {
+  @apply card-elevated transition-all duration-150;
+}
+
+.card-interactive:hover {
+  border-color: hsl(var(--primary) / 0.3);
+  box-shadow: 0 0 20px -4px hsl(var(--primary) / 0.15);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   RISK CARD BORDERS — Neon risk indicators
+   ============================================ */
+
+.risk-border-low {
+  border-left: 3px solid #00FF88;
+}
+
+.risk-border-medium {
+  border-left: 3px solid #FFB800;
+}
+
+.risk-border-high {
+  border-left: 3px solid #FF3B3B;
+}
+
+.risk-border-insufficient {
+  border-left: 3px solid #555555;
+}
+
+/* ============================================
+   RISK LEVEL GLOWS — Neon glow effects
+   ============================================ */
+
+.risk-glow-low {
+  box-shadow: 0 0 24px -4px rgba(0, 255, 136, 0.3);
+}
+
+.risk-glow-medium {
+  box-shadow: 0 0 24px -4px rgba(255, 184, 0, 0.3);
+}
+
+.risk-glow-high {
+  box-shadow: 0 0 24px -4px rgba(255, 59, 59, 0.3);
+}
+
+/* ============================================
+   STAT COUNTER — Monospace numbers
+   ============================================ */
+
+.stat-value {
+  @apply text-3xl sm:text-4xl font-bold tracking-tight font-mono;
+}
+
+.stat-label {
+  @apply text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider font-mono;
+}
+
+/* ============================================
+   TERMINAL CURSOR
+   ============================================ */
+
+.terminal-cursor::after {
+  content: '|';
+  @apply animate-terminal-blink text-primary ml-0.5;
 }
