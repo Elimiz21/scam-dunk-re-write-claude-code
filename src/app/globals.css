@@ -4,48 +4,64 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Light Mode - Warm, confident, modern fintech */
+    --background: 0 0% 99%;
+    --foreground: 230 25% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 230 25% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --popover-foreground: 230 25% 10%;
+    --primary: 252 56% 57%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 230 25% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 230 10% 44%;
+    --accent: 180 65% 46%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 252 56% 57%;
     --radius: 0.75rem;
+    /* Brand colors */
+    --brand-gradient-from: 252 56% 57%;
+    --brand-gradient-to: 190 90% 50%;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 220 13% 10%;
-    --foreground: 0 0% 95%;
-    --card: 220 13% 13%;
-    --card-foreground: 0 0% 95%;
-    --popover: 220 13% 13%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 220 13% 10%;
-    --secondary: 220 13% 18%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 220 13% 18%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 220 13% 18%;
-    --accent-foreground: 0 0% 95%;
-    --destructive: 0 62.8% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 20%;
-    --input: 220 13% 20%;
-    --ring: 220 13% 50%;
+    /* Dark Mode - Rich, immersive, Robinhood-inspired */
+    --background: 230 20% 7%;
+    --foreground: 0 0% 96%;
+    --card: 230 18% 10%;
+    --card-foreground: 0 0% 96%;
+    --popover: 230 18% 10%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 252 56% 63%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 230 16% 15%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 230 16% 15%;
+    --muted-foreground: 230 10% 56%;
+    --accent: 180 65% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 230 16% 18%;
+    --input: 230 16% 18%;
+    --ring: 252 56% 63%;
+    /* Brand colors */
+    --brand-gradient-from: 252 56% 63%;
+    --brand-gradient-to: 180 80% 55%;
+    --success: 160 84% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
   }
 }
 
@@ -54,7 +70,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
 
@@ -65,7 +81,7 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+    width: 5px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -78,10 +94,67 @@
   }
 }
 
-/* Apple-style animations */
+/* ============================================
+   BRAND GRADIENTS
+   ============================================ */
+
+.gradient-brand {
+  background: linear-gradient(135deg, hsl(var(--brand-gradient-from)), hsl(var(--brand-gradient-to)));
+}
+
+.gradient-brand-subtle {
+  background: linear-gradient(135deg, hsl(var(--brand-gradient-from) / 0.1), hsl(var(--brand-gradient-to) / 0.1));
+}
+
+.gradient-brand-text {
+  background: linear-gradient(135deg, hsl(var(--brand-gradient-from)), hsl(var(--brand-gradient-to)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-mesh {
+  background:
+    radial-gradient(ellipse at 20% 50%, hsl(var(--brand-gradient-from) / 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, hsl(var(--brand-gradient-to) / 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, hsl(252 56% 57% / 0.06) 0%, transparent 50%);
+}
+
+.dark .gradient-mesh {
+  background:
+    radial-gradient(ellipse at 20% 50%, hsl(var(--brand-gradient-from) / 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, hsl(var(--brand-gradient-to) / 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, hsl(252 56% 57% / 0.04) 0%, transparent 50%);
+}
+
+/* ============================================
+   RISK LEVEL GRADIENTS
+   ============================================ */
+
+.risk-glow-low {
+  box-shadow: 0 0 20px -4px rgba(16, 185, 129, 0.35);
+}
+
+.risk-glow-medium {
+  box-shadow: 0 0 20px -4px rgba(245, 158, 11, 0.35);
+}
+
+.risk-glow-high {
+  box-shadow: 0 0 20px -4px rgba(239, 68, 68, 0.35);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes slideIn {
@@ -94,8 +167,52 @@
   to { transform: translateX(-100%); }
 }
 
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes subtlePulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  50% { box-shadow: 0 0 0 6px hsl(var(--primary) / 0.12); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.35s ease-out;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.3s ease-out;
 }
 
 .animate-slide-in {
@@ -106,64 +223,23 @@
   animation: slideOut 0.3s ease-out;
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(100%); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
 .animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out;
+  animation: slideInRight 0.35s ease-out;
 }
 
-/* Focus ring for accessibility */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
-}
-
-/* Glassmorphism effects */
-.glass {
-  @apply backdrop-blur-xl bg-card/80;
-}
-
-/* Input bar styling */
-.input-bar {
-  @apply rounded-3xl border border-border bg-card shadow-lg;
-}
-
-/* Smooth transitions */
-.transition-smooth {
-  @apply transition-all duration-200 ease-out;
-}
-
-/* Feature highlight animations */
-@keyframes subtlePulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 59, 130, 246), 0);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(var(--primary-rgb, 59, 130, 246), 0.15);
-  }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes gentleFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-2px); }
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
 }
 
 .animate-subtle-pulse {
-  animation: subtlePulse 2s ease-in-out infinite;
+  animation: subtlePulse 2.5s ease-in-out infinite;
 }
 
 .animate-shimmer {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
+    hsl(var(--primary) / 0.06) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -174,16 +250,87 @@
   animation: gentleFloat 3s ease-in-out infinite;
 }
 
-/* Feature button highlight styles */
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+.animate-ticker {
+  animation: ticker 30s linear infinite;
+}
+
+/* ============================================
+   FOCUS & ACCESSIBILITY
+   ============================================ */
+
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* ============================================
+   GLASS EFFECTS
+   ============================================ */
+
+.glass {
+  @apply backdrop-blur-xl;
+  background: hsl(var(--card) / 0.7);
+}
+
+.glass-strong {
+  @apply backdrop-blur-2xl;
+  background: hsl(var(--card) / 0.85);
+}
+
+/* ============================================
+   INPUT BAR
+   ============================================ */
+
+.input-bar {
+  @apply rounded-2xl border border-border bg-card;
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 0.04),
+    0 4px 16px -2px rgb(0 0 0 / 0.06);
+}
+
+.dark .input-bar {
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 0.2),
+    0 4px 16px -2px rgb(0 0 0 / 0.3);
+}
+
+.input-bar:focus-within {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 0.04),
+    0 4px 16px -2px rgb(0 0 0 / 0.06),
+    0 0 0 3px hsl(var(--primary) / 0.08);
+}
+
+/* ============================================
+   SMOOTH TRANSITIONS
+   ============================================ */
+
+.transition-smooth {
+  @apply transition-all duration-200 ease-out;
+}
+
+/* ============================================
+   FEATURE HIGHLIGHTS
+   ============================================ */
+
 .feature-highlight {
   @apply relative overflow-hidden;
   background: linear-gradient(
     135deg,
     hsl(var(--primary) / 0.08) 0%,
     hsl(var(--primary) / 0.04) 50%,
-    hsl(var(--primary) / 0.08) 100%
+    hsl(var(--accent) / 0.06) 100%
   );
-  border: 1px solid hsl(var(--primary) / 0.2);
+  border: 1px solid hsl(var(--primary) / 0.15);
 }
 
 .feature-highlight::before {
@@ -193,7 +340,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    hsl(var(--primary) / 0.08) 50%,
+    hsl(var(--primary) / 0.06) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -204,26 +351,97 @@
 .feature-highlight:hover {
   background: linear-gradient(
     135deg,
-    hsl(var(--primary) / 0.15) 0%,
+    hsl(var(--primary) / 0.14) 0%,
     hsl(var(--primary) / 0.08) 50%,
-    hsl(var(--primary) / 0.15) 100%
+    hsl(var(--accent) / 0.10) 100%
   );
-  border-color: hsl(var(--primary) / 0.35);
+  border-color: hsl(var(--primary) / 0.3);
 }
 
-/* Drag-and-drop zone styles */
+/* ============================================
+   DRAG & DROP ZONE
+   ============================================ */
+
 .drop-zone {
   @apply border-2 border-dashed border-border rounded-2xl transition-all duration-200;
 }
 
 .drop-zone-active {
-  @apply border-primary bg-primary/5 scale-[1.02];
-  box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.25);
+  @apply border-primary bg-primary/5 scale-[1.01];
+  box-shadow: 0 0 24px -4px hsl(var(--primary) / 0.2);
 }
 
-/* New badge for highlighting features */
+/* ============================================
+   NEW FEATURE BADGE
+   ============================================ */
+
 .feature-new-badge {
   @apply absolute -top-1 -right-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider;
-  @apply bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full;
+  @apply text-white rounded-full;
+  background: linear-gradient(135deg, hsl(var(--brand-gradient-from)), hsl(var(--brand-gradient-to)));
   @apply animate-subtle-pulse;
+}
+
+/* ============================================
+   CARD VARIANTS
+   ============================================ */
+
+.card-elevated {
+  @apply bg-card rounded-2xl border border-border;
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.03),
+    0 2px 8px -1px rgb(0 0 0 / 0.05),
+    0 8px 24px -4px rgb(0 0 0 / 0.04);
+}
+
+.dark .card-elevated {
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.15),
+    0 2px 8px -1px rgb(0 0 0 / 0.2),
+    0 8px 24px -4px rgb(0 0 0 / 0.15);
+}
+
+.card-interactive {
+  @apply card-elevated transition-all duration-200;
+}
+
+.card-interactive:hover {
+  @apply border-primary/20;
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.03),
+    0 4px 12px -2px rgb(0 0 0 / 0.06),
+    0 12px 32px -4px rgb(0 0 0 / 0.06);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   RISK CARD BORDERS
+   ============================================ */
+
+.risk-border-low {
+  border-left: 3px solid #10b981;
+}
+
+.risk-border-medium {
+  border-left: 3px solid #f59e0b;
+}
+
+.risk-border-high {
+  border-left: 3px solid #ef4444;
+}
+
+.risk-border-insufficient {
+  border-left: 3px solid #6b7280;
+}
+
+/* ============================================
+   STAT COUNTER
+   ============================================ */
+
+.stat-value {
+  @apply text-3xl sm:text-4xl font-bold tracking-tight;
+}
+
+.stat-label {
+  @apply text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider;
 }

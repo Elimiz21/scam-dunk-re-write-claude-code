@@ -12,9 +12,7 @@ import {
   HelpCircle,
   LogOut,
   Plus,
-  Search,
   User,
-  CreditCard,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
@@ -27,6 +25,7 @@ import {
   Scale,
   Newspaper,
   Mail,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -49,26 +48,39 @@ interface SidebarProps {
 function getRiskIcon(riskLevel: string) {
   switch (riskLevel) {
     case "LOW":
-      return <CheckCircle className="h-3 w-3 text-green-500" />;
+      return <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />;
     case "MEDIUM":
-      return <AlertCircle className="h-3 w-3 text-yellow-500" />;
+      return <AlertCircle className="h-3.5 w-3.5 text-amber-500" />;
     case "HIGH":
-      return <AlertTriangle className="h-3 w-3 text-red-500" />;
+      return <AlertTriangle className="h-3.5 w-3.5 text-red-500" />;
     default:
-      return <HelpIcon className="h-3 w-3 text-gray-500" />;
+      return <HelpIcon className="h-3.5 w-3.5 text-gray-400" />;
   }
 }
 
 function getRiskColor(riskLevel: string) {
   switch (riskLevel) {
     case "LOW":
-      return "text-green-600 dark:text-green-400";
+      return "text-emerald-600 dark:text-emerald-400";
     case "MEDIUM":
-      return "text-yellow-600 dark:text-yellow-400";
+      return "text-amber-600 dark:text-amber-400";
     case "HIGH":
       return "text-red-600 dark:text-red-400";
     default:
-      return "text-gray-600 dark:text-gray-400";
+      return "text-gray-500 dark:text-gray-400";
+  }
+}
+
+function getRiskBg(riskLevel: string) {
+  switch (riskLevel) {
+    case "LOW":
+      return "bg-emerald-500/8";
+    case "MEDIUM":
+      return "bg-amber-500/8";
+    case "HIGH":
+      return "bg-red-500/8";
+    default:
+      return "bg-gray-500/8";
   }
 }
 
@@ -118,7 +130,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
           onClick={onToggle}
         />
       )}
@@ -127,21 +139,25 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
       <aside
         className={cn(
           "fixed top-0 left-0 h-full bg-card border-r border-border z-50 flex flex-col transition-all duration-300 ease-out",
-          isOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full lg:w-0"
+          isOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full lg:w-0"
         )}
       >
         <div className={cn("flex flex-col h-full", !isOpen && "invisible")}>
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <Link href="/" className="flex items-center gap-2">
-              <Shield className="h-6 w-6 text-primary" />
-              <span className="font-semibold">ScamDunk</span>
+          <div className="flex items-center justify-between p-4 border-b border-border/50">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg gradient-brand flex items-center justify-center">
+                <Shield className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+              </div>
+              <span className="font-bold tracking-tight">
+                Scam<span className="gradient-brand-text">Dunk</span>
+              </span>
             </Link>
             <Button
               variant="ghost"
               size="icon"
               onClick={onToggle}
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
               aria-label="Close sidebar"
             >
               <PanelLeftClose className="h-4 w-4" />
@@ -152,56 +168,57 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
           <div className="p-3">
             <Button
               onClick={onNewScan}
-              className="w-full justify-start gap-2 rounded-xl"
-              variant="outline"
+              className="w-full justify-center gap-2 rounded-xl"
+              variant="brand"
+              size="default"
             >
-              <Plus className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" />
               New Scan
             </Button>
           </div>
 
-          {/* Navigation - Recent Scans */}
-          <nav className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 flex items-center gap-2">
-              <History className="h-3 w-3" />
+          {/* Recent Scans */}
+          <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 pb-3">
+            <p className="text-[11px] font-bold text-muted-foreground/70 px-2 py-2.5 uppercase tracking-widest">
               Recent Scans
             </p>
 
             {!session ? (
-              <div className="text-sm text-muted-foreground px-3 py-2">
-                <Link href="/login" className="text-primary hover:underline">
+              <div className="text-sm text-muted-foreground px-2 py-3">
+                <Link href="/login" className="text-primary hover:underline font-medium">
                   Log in
                 </Link>{" "}
                 to see scan history
               </div>
             ) : isLoading ? (
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : recentScans.length === 0 ? (
-              <div className="text-sm text-muted-foreground px-3 py-2">
+              <div className="text-sm text-muted-foreground/60 px-2 py-3">
                 No recent scans
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {recentScans.map((scan) => (
                   <button
                     key={scan.id}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary transition-colors text-left"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl hover:bg-secondary transition-all duration-150 text-left group"
                     onClick={() => {
-                      // Could implement "re-run scan" or "view details" here
                       onToggle();
                     }}
                   >
-                    {getRiskIcon(scan.riskLevel)}
+                    <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0", getRiskBg(scan.riskLevel))}>
+                      {getRiskIcon(scan.riskLevel)}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{scan.ticker}</span>
-                        <span className={cn("text-xs", getRiskColor(scan.riskLevel))}>
+                        <span className="font-semibold text-sm">{scan.ticker}</span>
+                        <span className={cn("text-[10px] font-bold uppercase tracking-wider", getRiskColor(scan.riskLevel))}>
                           {scan.riskLevel}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground/60">
                         {formatDate(scan.createdAt)}
                       </p>
                     </div>
@@ -211,127 +228,76 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             )}
           </nav>
 
-          {/* Bottom Menu */}
-          <div className="border-t border-border p-3 space-y-1">
-            {/* Information Section */}
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2">
-              Information
+          {/* Bottom Navigation */}
+          <div className="border-t border-border/50 p-3 space-y-0.5">
+            <p className="text-[11px] font-bold text-muted-foreground/70 px-2 py-1.5 uppercase tracking-widest">
+              Navigation
             </p>
-            <Link href="/about">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <Info className="h-4 w-4" />
-                About
-              </Button>
-            </Link>
-            <Link href="/news">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <Newspaper className="h-4 w-4" />
-                News
-              </Button>
-            </Link>
-            <Link href="/how-it-works">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <HelpCircle className="h-4 w-4" />
-                How It Works
-              </Button>
-            </Link>
-            <Link href="/help">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <MessageCircleQuestion className="h-4 w-4" />
-                Help & FAQ
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <Mail className="h-4 w-4" />
-                Contact Us
-              </Button>
-            </Link>
 
-            {/* Legal Section */}
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-2">
-              Legal
-            </p>
-            <Link href="/disclaimer">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <FileText className="h-4 w-4" />
-                Disclaimer
-              </Button>
-            </Link>
-            <Link href="/privacy">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <Shield className="h-4 w-4" />
-                Privacy Policy
-              </Button>
-            </Link>
-            <Link href="/terms">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <Scale className="h-4 w-4" />
-                Terms of Service
-              </Button>
-            </Link>
+            {[
+              { href: "/about", icon: Info, label: "About" },
+              { href: "/news", icon: Newspaper, label: "News" },
+              { href: "/how-it-works", icon: HelpCircle, label: "How It Works" },
+              { href: "/help", icon: MessageCircleQuestion, label: "Help & FAQ" },
+              { href: "/contact", icon: Mail, label: "Contact" },
+            ].map(({ href, icon: Icon, label }) => (
+              <Link key={href} href={href}>
+                <button className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
+              </Link>
+            ))}
 
-            {/* Account Section */}
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-2">
-              Account
-            </p>
-            <Link href="/account">
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Button>
-            </Link>
+            <div className="pt-2 mt-2 border-t border-border/50 space-y-0.5">
+              <p className="text-[11px] font-bold text-muted-foreground/70 px-2 py-1.5 uppercase tracking-widest">
+                Legal
+              </p>
+              {[
+                { href: "/disclaimer", icon: FileText, label: "Disclaimer" },
+                { href: "/privacy", icon: Shield, label: "Privacy" },
+                { href: "/terms", icon: Scale, label: "Terms" },
+              ].map(({ href, icon: Icon, label }) => (
+                <Link key={href} href={href}>
+                  <button className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </button>
+                </Link>
+              ))}
+            </div>
 
             {session && (
-              <div className="pt-2 border-t border-border mt-2">
-                <div className="flex items-center gap-3 px-3 py-2">
-                  <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-                    <User className="h-4 w-4" />
+              <div className="pt-3 mt-2 border-t border-border/50">
+                <div className="flex items-center gap-3 px-2.5 py-2.5">
+                  <div className="h-8 w-8 rounded-xl gradient-brand-subtle flex items-center justify-center border border-primary/10">
+                    <User className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
+                    <p className="text-sm font-semibold truncate">
                       {session.user?.name || session.user?.email}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-[11px] text-muted-foreground truncate">
                       {session.user?.email}
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-2 rounded-xl h-10 text-destructive hover:text-destructive"
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign out
-                </Button>
+
+                <div className="flex gap-1 mt-1">
+                  <Link href="/account" className="flex-1">
+                    <button className="flex items-center justify-center gap-1.5 w-full px-2.5 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
+                      <Settings className="h-3.5 w-3.5" />
+                      Settings
+                    </button>
+                  </Link>
+                  <button
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-destructive hover:bg-destructive/10 transition-all duration-150"
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    Sign out
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -347,10 +313,10 @@ export function SidebarToggle({ onClick }: { onClick: () => void }) {
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className="h-10 w-10 rounded-xl"
+      className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
       aria-label="Open sidebar"
     >
-      <PanelLeft className="h-5 w-5" />
+      <PanelLeft className="h-4.5 w-4.5" />
     </Button>
   );
 }

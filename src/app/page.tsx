@@ -10,7 +10,7 @@ import { ScanInput } from "@/components/ScanInput";
 import { RiskCard } from "@/components/RiskCard";
 import { LimitReached } from "@/components/LimitReached";
 import { LoadingStepper } from "@/components/LoadingStepper";
-import { Shield, TrendingUp, AlertTriangle, Zap } from "lucide-react";
+import { Shield, TrendingUp, AlertTriangle, Zap, Sparkles, ArrowRight, BarChart3, Eye, Brain } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
 import { getRandomTagline, taglines } from "@/lib/taglines";
 import { useToast } from "@/components/ui/toast";
@@ -371,10 +371,17 @@ export default function HomePage() {
           {/* Loading State */}
           {isLoading && (
             <div className="flex-1 flex items-center justify-center p-4">
-              <div className="max-w-md w-full text-center">
-                <h2 className="text-xl font-semibold mb-6">
-                  Analyzing {currentTicker}...
-                </h2>
+              <div className="max-w-lg w-full animate-fade-in">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                    <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
+                    <span className="text-sm font-semibold text-primary">Scanning</span>
+                  </div>
+                  <h2 className="text-title mb-1">
+                    Analyzing <span className="gradient-brand-text">{currentTicker.toUpperCase()}</span>
+                  </h2>
+                  <p className="text-sm text-muted-foreground">Running multi-layer risk detection</p>
+                </div>
                 <LoadingStepper steps={steps} currentTip={currentTip} />
               </div>
             </div>
@@ -383,10 +390,11 @@ export default function HomePage() {
           {/* Results */}
           {result && !isLoading && (
             <div className="flex-1 overflow-y-auto p-4 pb-32">
-              <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+              <div className="max-w-3xl mx-auto space-y-6 animate-slide-up">
                 <RiskCard result={result} />
                 <div className="flex justify-center gap-3">
-                  <Button variant="outline" onClick={handleNewScan}>
+                  <Button variant="outline" onClick={handleNewScan} className="gap-2">
+                    <Sparkles className="h-4 w-4" />
                     Check another
                   </Button>
                 </div>
@@ -396,61 +404,73 @@ export default function HomePage() {
 
           {/* Welcome State (no result, not loading) */}
           {!result && !isLoading && !limitReached && (
-            <div className="flex-1 flex flex-col items-center justify-center p-4 pb-32">
-              <div className="text-center mb-8">
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 rounded-2xl bg-secondary">
-                    <Shield className="h-12 w-12 text-primary" />
+            <div className="flex-1 flex flex-col items-center justify-center p-4 pb-32 gradient-mesh">
+              <div className="text-center mb-10 animate-fade-in">
+                {/* Brand icon */}
+                <div className="flex justify-center mb-6">
+                  <div className="relative">
+                    <div className="h-16 w-16 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/25 animate-gentle-float">
+                      <Shield className="h-8 w-8 text-white" strokeWidth={2} />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                      <Eye className="h-2.5 w-2.5 text-white" />
+                    </div>
                   </div>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+
+                {/* Headline */}
+                <h1 className="text-hero-sm sm:text-hero mb-3 max-w-lg mx-auto">
                   {tagline.headline}
                 </h1>
-                <p className="text-muted-foreground max-w-md mx-auto">
+                <p className="text-subtitle text-muted-foreground max-w-md mx-auto leading-relaxed">
                   {tagline.subtext}
                 </p>
               </div>
 
               {/* Error message */}
               {error && (
-                <div className="mb-6 p-4 rounded-xl bg-destructive/10 text-destructive text-sm max-w-md text-center">
+                <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-sm max-w-md text-center animate-fade-in">
+                  <AlertTriangle className="h-4 w-4 inline mr-2" />
                   {error}
                 </div>
               )}
 
               {/* Quick Examples for non-logged in users */}
               {!session && status !== "loading" && (
-                <div className="mb-8">
-                  <p className="text-sm text-muted-foreground text-center mb-4">
-                    Quick examples to try:
+                <div className="mb-10 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+                  <p className="text-xs font-semibold text-muted-foreground text-center mb-3 uppercase tracking-wider">
+                    Try it out
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
                       onClick={() => handleSubmit({ ticker: "AAPL", assetType: "stock" })}
                     >
-                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
                       AAPL
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
                       onClick={() => handleSubmit({ ticker: "TSLA", assetType: "stock" })}
                     >
-                      <TrendingUp className="h-3 w-3 mr-1" />
+                      <TrendingUp className="h-3.5 w-3.5 text-blue-500" />
                       TSLA
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
                       onClick={() => handleSubmit({ ticker: "BTC", assetType: "crypto" })}
                     >
-                      <Zap className="h-3 w-3 mr-1" />
+                      <Zap className="h-3.5 w-3.5 text-amber-500" />
                       BTC
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
                     </Button>
                   </div>
                 </div>
@@ -458,25 +478,31 @@ export default function HomePage() {
 
               {/* Features */}
               {!session && status !== "loading" && (
-                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mt-4">
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <TrendingUp className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-                    <h3 className="font-medium text-sm mb-1">Market Analysis</h3>
-                    <p className="text-xs text-muted-foreground">
+                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: "0.2s" }}>
+                  <div className="card-interactive p-5 text-center group">
+                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
+                      <BarChart3 className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">Market Analysis</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       Price, volume, and market cap signals
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-                    <h3 className="font-medium text-sm mb-1">Red Flag Detection</h3>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="card-interactive p-5 text-center group">
+                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">Red Flag Detection</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       Pump-and-dump patterns identified
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <Shield className="h-6 w-6 mx-auto mb-2 text-green-500" />
-                    <h3 className="font-medium text-sm mb-1">AI-Powered</h3>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="card-interactive p-5 text-center group">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
+                      <Brain className="h-5 w-5 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">AI-Powered</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       Smart analysis with suggestions
                     </p>
                   </div>
@@ -488,7 +514,7 @@ export default function HomePage() {
 
         {/* Bottom Input Bar */}
         {!isLoading && !limitReached && (
-          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background to-transparent pt-8 pb-4 px-4">
+          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-10 pb-5 px-4">
             <ScanInput
               onSubmit={handleSubmit}
               isLoading={isLoading}
