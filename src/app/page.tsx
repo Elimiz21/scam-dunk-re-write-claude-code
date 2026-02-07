@@ -399,14 +399,14 @@ export default function HomePage() {
             <div className="flex-1 flex flex-col items-center justify-center p-4 pb-32">
               <div className="text-center mb-8">
                 <div className="flex justify-center mb-4">
-                  <div className="p-4 rounded-2xl bg-secondary">
+                  <div className="p-4 rounded-full bg-primary/10">
                     <Shield className="h-12 w-12 text-primary" />
                   </div>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+                <h1 className="font-display italic text-hero-sm sm:text-hero mb-3">
                   {tagline.headline}
                 </h1>
-                <p className="text-muted-foreground max-w-md mx-auto">
+                <p className="text-muted-foreground max-w-md mx-auto text-subtitle">
                   {tagline.subtext}
                 </p>
               </div>
@@ -428,7 +428,7 @@ export default function HomePage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-full"
                       onClick={() => handleSubmit({ ticker: "AAPL", assetType: "stock" })}
                     >
                       <TrendingUp className="h-3 w-3 mr-1" />
@@ -437,7 +437,7 @@ export default function HomePage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-full"
                       onClick={() => handleSubmit({ ticker: "TSLA", assetType: "stock" })}
                     >
                       <TrendingUp className="h-3 w-3 mr-1" />
@@ -446,7 +446,7 @@ export default function HomePage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-full"
                       onClick={() => handleSubmit({ ticker: "BTC", assetType: "crypto" })}
                     >
                       <Zap className="h-3 w-3 mr-1" />
@@ -459,22 +459,28 @@ export default function HomePage() {
               {/* Features */}
               {!session && status !== "loading" && (
                 <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mt-4">
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <TrendingUp className="h-6 w-6 mx-auto mb-2 text-blue-500" />
+                  <div className="p-5 rounded-2xl bg-card border border-border/50 text-center">
+                    <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-3">
+                      <TrendingUp className="h-5 w-5 text-blue-500" />
+                    </div>
                     <h3 className="font-medium text-sm mb-1">Market Analysis</h3>
                     <p className="text-xs text-muted-foreground">
                       Price, volume, and market cap signals
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-orange-500" />
+                  <div className="p-5 rounded-2xl bg-card border border-border/50 text-center">
+                    <div className="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center mx-auto mb-3">
+                      <AlertTriangle className="h-5 w-5 text-orange-500" />
+                    </div>
                     <h3 className="font-medium text-sm mb-1">Red Flag Detection</h3>
                     <p className="text-xs text-muted-foreground">
                       Pump-and-dump patterns identified
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <Shield className="h-6 w-6 mx-auto mb-2 text-green-500" />
+                  <div className="p-5 rounded-2xl bg-card border border-border/50 text-center">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                      <Shield className="h-5 w-5 text-primary" />
+                    </div>
                     <h3 className="font-medium text-sm mb-1">AI-Powered</h3>
                     <p className="text-xs text-muted-foreground">
                       Smart analysis with suggestions

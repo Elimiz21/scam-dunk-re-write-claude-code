@@ -135,7 +135,10 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
           <div className="flex items-center justify-between p-4 border-b border-border">
             <Link href="/" className="flex items-center gap-2">
               <Shield className="h-6 w-6 text-primary" />
-              <span className="font-semibold">ScamDunk</span>
+              <span>
+                <span className="font-display italic text-lg">Scam</span>
+                <span className="font-display italic text-lg text-primary">Dunk</span>
+              </span>
             </Link>
             <Button
               variant="ghost"
@@ -152,7 +155,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
           <div className="p-3">
             <Button
               onClick={onNewScan}
-              className="w-full justify-start gap-2 rounded-xl"
+              className="w-full justify-start gap-2 rounded-full"
               variant="outline"
             >
               <Plus className="h-4 w-4" />
@@ -162,7 +165,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
 
           {/* Navigation - Recent Scans */}
           <nav className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 flex items-center gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 py-2 flex items-center gap-2">
               <History className="h-3 w-3" />
               Recent Scans
             </p>
@@ -214,13 +217,13 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
           {/* Bottom Menu */}
           <div className="border-t border-border p-3 space-y-1">
             {/* Information Section */}
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 py-2">
               Information
             </p>
             <Link href="/about">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-full h-10"
               >
                 <Info className="h-4 w-4" />
                 About
@@ -229,7 +232,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/news">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-full h-10"
               >
                 <Newspaper className="h-4 w-4" />
                 News
@@ -238,7 +241,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/how-it-works">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-full h-10"
               >
                 <HelpCircle className="h-4 w-4" />
                 How It Works
@@ -247,7 +250,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/help">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-full h-10"
               >
                 <MessageCircleQuestion className="h-4 w-4" />
                 Help & FAQ
@@ -256,7 +259,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/contact">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-full h-10"
               >
                 <Mail className="h-4 w-4" />
                 Contact Us
@@ -264,13 +267,13 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             </Link>
 
             {/* Legal Section */}
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 py-2 mt-2">
               Legal
             </p>
             <Link href="/disclaimer">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-full h-10"
               >
                 <FileText className="h-4 w-4" />
                 Disclaimer
@@ -279,7 +282,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/privacy">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-full h-10"
               >
                 <Shield className="h-4 w-4" />
                 Privacy Policy
@@ -288,7 +291,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             <Link href="/terms">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-full h-10"
               >
                 <Scale className="h-4 w-4" />
                 Terms of Service
@@ -296,13 +299,13 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             </Link>
 
             {/* Account Section */}
-            <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 py-2 mt-2">
               Account
             </p>
             <Link href="/account">
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 rounded-xl h-10"
+                className="w-full justify-start gap-2 rounded-full h-10"
               >
                 <Settings className="h-4 w-4" />
                 Settings
@@ -326,7 +329,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                 </div>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start gap-2 rounded-xl h-10 text-destructive hover:text-destructive"
+                  className="w-full justify-start gap-2 rounded-full h-10 text-destructive hover:text-destructive"
                   onClick={() => signOut({ callbackUrl: "/" })}
                 >
                   <LogOut className="h-4 w-4" />
@@ -347,7 +350,7 @@ export function SidebarToggle({ onClick }: { onClick: () => void }) {
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className="h-10 w-10 rounded-xl"
+      className="h-10 w-10 rounded-full"
       aria-label="Open sidebar"
     >
       <PanelLeft className="h-5 w-5" />

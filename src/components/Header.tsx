@@ -41,14 +41,17 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
           <SidebarToggle onClick={onSidebarToggle} />
           <Link href="/" className="flex items-center gap-2 ml-2">
             <Shield className="h-5 w-5 text-primary" />
-            <span className="font-semibold hidden sm:inline">ScamDunk</span>
+            <span className="hidden sm:inline">
+              <span className="font-display italic text-lg">Scam</span>
+              <span className="font-display italic text-lg text-primary">Dunk</span>
+            </span>
           </Link>
         </div>
 
         {/* Center - Usage indicator */}
         {usage && (
           <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="px-2 py-1 rounded-lg bg-secondary text-xs font-medium">
+            <span className="px-3 py-1 rounded-full bg-secondary text-xs font-medium">
               {usage.plan}
             </span>
             <span>
@@ -64,7 +67,7 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 rounded-xl"
+              className="h-10 w-10 rounded-full"
               aria-label="About"
             >
               <Info className="h-5 w-5" />
@@ -80,7 +83,7 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
               variant="ghost"
               size="sm"
               onClick={onShare}
-              className="gap-2 rounded-xl"
+              className="gap-2 rounded-full"
             >
               <Share2 className="h-4 w-4" />
               <span className="hidden sm:inline">Share</span>
@@ -94,7 +97,7 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-secondary transition-smooth"
+                className="flex items-center gap-2 p-2 rounded-full hover:bg-secondary transition-smooth"
               >
                 <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
                   <User className="h-4 w-4" />
@@ -187,12 +190,12 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
           ) : (
             <div className="flex items-center gap-2">
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="rounded-xl">
+                <Button variant="ghost" size="sm" className="rounded-full px-5">
                   Log in
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button size="sm" className="rounded-xl">
+                <Button size="sm" className="rounded-full px-5">
                   Sign up
                 </Button>
               </Link>
