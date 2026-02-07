@@ -385,26 +385,243 @@ async function getSupportEmailRecipients(category?: string): Promise<string[]> {
     // Dynamically import prisma to avoid build issues
     const { prisma } = await import('@/lib/db');
 
-    const recipients = await prisma.supportEmailRecipient.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { isPrimary: true },
-          { categories: category ? { contains: category } : undefined },
-          { categories: null }, // null means all categories
-        ],
-      },
+    // First get all active recipients
+    const allRecipients = await prisma.supportEmailRecipient.findMany({
+      where: { isActive: true },
     });
 
-    if (recipients.length > 0) {
-      return recipients.map(r => r.email);
+    if (allRecipients.length === 0) {
+      console.warn('[EMAIL] No active email recipients configured, using default fallback');
+      return [DEFAULT_ADMIN_EMAIL];
+    }
+
+    // Filter recipients based on category routing
+    const matchedRecipients = allRecipients.filter(r => {
+      // Primary recipients always receive all tickets
+      if (r.isPrimary) return true;
+
+      // Recipients with null/empty categories receive all tickets
+      if (!r.categories) return true;
+
+      // Check if this recipient handles the given category
+      if (category) {
+        try {
+          const recipientCategories: string[] = JSON.parse(r.categories);
+          return Array.isArray(recipientCategories) && recipientCategories.includes(category);
+        } catch {
+          // If JSON parsing fails, try simple string match as fallback
+          return r.categories.includes(category);
+        }
+      }
+
+      return true;
+    });
+
+    if (matchedRecipients.length > 0) {
+      const emails = matchedRecipients.map(r => r.email);
+      console.log(`[EMAIL] Routing to ${emails.length} recipient(s) for category "${category || 'ALL'}":`, emails);
+      return emails;
+    }
+
+    // If no category-specific match, fall back to primary recipients
+    const primaryRecipients = allRecipients.filter(r => r.isPrimary);
+    if (primaryRecipients.length > 0) {
+      return primaryRecipients.map(r => r.email);
     }
   } catch (error) {
     console.error('Failed to fetch email recipients from database:', error);
   }
 
   // Fallback to default
+  console.warn('[EMAIL] Using default fallback email:', DEFAULT_ADMIN_EMAIL);
   return [DEFAULT_ADMIN_EMAIL];
+}
+
+/**
+ * Log an email send attempt to the database for tracking
+ */
+async function logEmailSend(data: {
+  recipientEmail: string;
+  subject: string;
+  emailType: string;
+  status: 'SENT' | 'FAILED' | 'SKIPPED';
+  resendId?: string;
+  errorMessage?: string;
+  relatedTicketId?: string;
+}): Promise<void> {
+  try {
+    const { prisma } = await import('@/lib/db');
+    await prisma.emailLog.create({
+      data: {
+        recipientEmail: data.recipientEmail,
+        subject: data.subject,
+        emailType: data.emailType,
+        status: data.status,
+        resendId: data.resendId || null,
+        errorMessage: data.errorMessage || null,
+        relatedTicketId: data.relatedTicketId || null,
+        fromEmail: FROM_EMAIL,
+      },
+    });
+  } catch (error) {
+    // Don't let logging failures break email sending
+    console.error('[EMAIL LOG] Failed to log email send:', error);
+  }
+}
+
+/**
+ * Send a test email to verify configuration is working
+ */
+export async function sendTestEmail(toEmail: string): Promise<{ success: boolean; message: string; resendId?: string }> {
+  const config = checkEmailConfiguration();
+
+  try {
+    const resend = getResend();
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject: 'ScamDunk Email Configuration Test',
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #4f46e5; margin: 0;">ScamDunk</h1>
+              <p style="color: #666; margin-top: 5px;">Email Configuration Test</p>
+            </div>
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+              <h2 style="margin-top: 0; color: #166534;">Email is working!</h2>
+              <p>This is a test email from your ScamDunk admin dashboard. If you're reading this, your email configuration is correct.</p>
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold;">From:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7;">${FROM_EMAIL}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold;">Test Mode:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7;">${config.isTestMode ? 'Yes (limited delivery)' : 'No (production)'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold;">Timestamp:</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7;">${new Date().toISOString()}</td>
+                </tr>
+              </table>
+            </div>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="color: #999; font-size: 12px; text-align: center;">ScamDunk Admin - Email Test</p>
+          </body>
+        </html>
+      `,
+    });
+
+    if (result.error) {
+      await logEmailSend({
+        recipientEmail: toEmail,
+        subject: 'Email Configuration Test',
+        emailType: 'TEST',
+        status: 'FAILED',
+        errorMessage: result.error.message,
+      });
+      return { success: false, message: `Resend error: ${result.error.message}` };
+    }
+
+    await logEmailSend({
+      recipientEmail: toEmail,
+      subject: 'Email Configuration Test',
+      emailType: 'TEST',
+      status: 'SENT',
+      resendId: result.data?.id,
+    });
+
+    return { success: true, message: 'Test email sent successfully', resendId: result.data?.id };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    await logEmailSend({
+      recipientEmail: toEmail,
+      subject: 'Email Configuration Test',
+      emailType: 'TEST',
+      status: 'FAILED',
+      errorMessage: msg,
+    });
+    return { success: false, message: msg };
+  }
+}
+
+/**
+ * Send a custom email from the admin dashboard
+ */
+export async function sendCustomEmail(
+  toEmail: string,
+  subject: string,
+  messageBody: string,
+  replyTo?: string
+): Promise<{ success: boolean; message: string; resendId?: string }> {
+  try {
+    const resend = getResend();
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: toEmail,
+      replyTo: replyTo || SUPPORT_EMAIL,
+      subject,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #4f46e5; margin: 0;">ScamDunk</h1>
+            </div>
+            <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
+              <div style="color: #374151; white-space: pre-wrap;">${messageBody}</div>
+            </div>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              ScamDunk - Protecting investors from scams<br>
+              <a href="${APP_URL}" style="color: #0070f3;">scamdunk.com</a>
+            </p>
+          </body>
+        </html>
+      `,
+    });
+
+    if (result.error) {
+      await logEmailSend({
+        recipientEmail: toEmail,
+        subject,
+        emailType: 'CUSTOM',
+        status: 'FAILED',
+        errorMessage: result.error.message,
+      });
+      return { success: false, message: `Resend error: ${result.error.message}` };
+    }
+
+    await logEmailSend({
+      recipientEmail: toEmail,
+      subject,
+      emailType: 'CUSTOM',
+      status: 'SENT',
+      resendId: result.data?.id,
+    });
+
+    return { success: true, message: 'Email sent successfully', resendId: result.data?.id };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    await logEmailSend({
+      recipientEmail: toEmail,
+      subject,
+      emailType: 'CUSTOM',
+      status: 'FAILED',
+      errorMessage: msg,
+    });
+    return { success: false, message: msg };
+  }
 }
 
 // For backwards compatibility
@@ -507,10 +724,30 @@ export async function sendSupportTicketNotification(
 
     if (result.error) {
       console.error('Resend API error (support ticket notification):', result.error);
+      for (const recipient of recipients) {
+        await logEmailSend({
+          recipientEmail: recipient,
+          subject: `[Support Ticket] ${subject}`,
+          emailType: 'TICKET_NOTIFICATION',
+          status: 'FAILED',
+          errorMessage: result.error.message,
+          relatedTicketId: ticketId,
+        });
+      }
       return false;
     }
 
-    console.log('Support ticket notification sent to admin:', ADMIN_SUPPORT_EMAIL, 'ID:', result.data?.id);
+    console.log('Support ticket notification sent to:', recipients.join(', '), 'ID:', result.data?.id);
+    for (const recipient of recipients) {
+      await logEmailSend({
+        recipientEmail: recipient,
+        subject: `[Support Ticket] ${subject}`,
+        emailType: 'TICKET_NOTIFICATION',
+        status: 'SENT',
+        resendId: result.data?.id,
+        relatedTicketId: ticketId,
+      });
+    }
     return true;
   } catch (error) {
     console.error('Failed to send support ticket notification:', error);
@@ -593,10 +830,26 @@ export async function sendSupportTicketConfirmation(
 
     if (result.error) {
       console.error('Resend API error (support confirmation):', result.error);
+      await logEmailSend({
+        recipientEmail: email,
+        subject: `We've received your message: ${subject}`,
+        emailType: 'TICKET_CONFIRMATION',
+        status: 'FAILED',
+        errorMessage: result.error.message,
+        relatedTicketId: ticketId,
+      });
       return false;
     }
 
     console.log('Support ticket confirmation sent to:', email, 'ID:', result.data?.id);
+    await logEmailSend({
+      recipientEmail: email,
+      subject: `We've received your message: ${subject}`,
+      emailType: 'TICKET_CONFIRMATION',
+      status: 'SENT',
+      resendId: result.data?.id,
+      relatedTicketId: ticketId,
+    });
     return true;
   } catch (error) {
     console.error('Failed to send support ticket confirmation:', error);
@@ -673,10 +926,26 @@ export async function sendSupportTicketResponse(
 
     if (result.error) {
       console.error('Resend API error (support response):', result.error);
+      await logEmailSend({
+        recipientEmail: userEmail,
+        subject: `Re: ${originalSubject}`,
+        emailType: 'TICKET_RESPONSE',
+        status: 'FAILED',
+        errorMessage: result.error.message,
+        relatedTicketId: ticketId,
+      });
       return false;
     }
 
     console.log('Support ticket response sent to:', userEmail, 'ID:', result.data?.id);
+    await logEmailSend({
+      recipientEmail: userEmail,
+      subject: `Re: ${originalSubject}`,
+      emailType: 'TICKET_RESPONSE',
+      status: 'SENT',
+      resendId: result.data?.id,
+      relatedTicketId: ticketId,
+    });
     return true;
   } catch (error) {
     console.error('Failed to send support ticket response:', error);

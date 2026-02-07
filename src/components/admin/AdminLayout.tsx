@@ -28,6 +28,7 @@ import {
   Cog,
   UserCog,
   Headphones,
+  Mail,
   LucideIcon,
 } from "lucide-react";
 
@@ -64,6 +65,7 @@ const navigationCategories: NavCategory[] = [
     icon: Headphones,
     items: [
       { name: "Customer Support", href: "/admin/support", icon: Headphones },
+      { name: "Email Management", href: "/admin/email-management", icon: Mail },
     ],
   },
   {
