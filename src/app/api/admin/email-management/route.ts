@@ -13,18 +13,21 @@ import { validateEmailConfig, sendTestEmail, sendCustomEmail } from '@/lib/email
 
 export const dynamic = 'force-dynamic';
 
-/** Safely query emailLog - returns empty if table doesn't exist yet */
+/** Safely query emailLog - returns fallback if table doesn't exist or any DB error occurs */
 async function safeEmailLogQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
-    return await fn();
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    // Table doesn't exist yet (migration not run)
-    if (message.includes('EmailLog') || message.includes('email_log') || message.includes('does not exist') || message.includes('P2021')) {
-      console.warn('[EMAIL MGMT] EmailLog table not found - run "npx prisma db push" to create it');
+    // Check if emailLog exists on the prisma client (may not if schema wasn't regenerated)
+    if (!prisma.emailLog) {
+      console.warn('[EMAIL MGMT] emailLog model not available on Prisma client - regenerate client');
       return fallback;
     }
-    throw error;
+    return await fn();
+  } catch (error: unknown) {
+    // Catch ALL errors from emailLog queries - the table may not exist,
+    // the model may not be generated, or the column structure may differ
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn('[EMAIL MGMT] emailLog query failed (table may not exist yet):', message);
+    return fallback;
   }
 }
 
@@ -96,20 +99,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Default: overview with everything
-    const [config, recipients, recentLogs, logStats] = await Promise.all([
-      Promise.resolve(validateEmailConfig()),
-      prisma.supportEmailRecipient.findMany({
+    // Each query is individually wrapped so one failure doesn't break the whole page
+    const config = validateEmailConfig();
+
+    let recipients: unknown[] = [];
+    try {
+      recipients = await prisma.supportEmailRecipient.findMany({
         orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+      });
+    } catch (err) {
+      console.error('[EMAIL MGMT] Failed to load recipients:', err);
+    }
+
+    const recentLogs = await safeEmailLogQuery(
+      () => prisma.emailLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
       }),
-      safeEmailLogQuery(
-        () => prisma.emailLog.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        }),
-        []
-      ),
-      getEmailLogStats(),
-    ]);
+      []
+    );
+
+    const logStats = await getEmailLogStats();
 
     return NextResponse.json({
       config,
