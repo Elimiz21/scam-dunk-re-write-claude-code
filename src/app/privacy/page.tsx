@@ -34,11 +34,11 @@ export default function PrivacyPolicyPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary rounded-2xl mb-6">
-                <Shield className="h-8 w-8 text-primary" />
+            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+                <Shield className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 Privacy Policy
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -48,8 +48,8 @@ export default function PrivacyPolicyPage() {
             </div>
 
             {/* Introduction */}
-            <section className="mb-8">
-              <div className="p-5 rounded-xl bg-card border border-border">
+            <section className="mb-8 animate-slide-up">
+              <div className="p-5 rounded-xl card-elevated">
                 <p className="text-sm text-muted-foreground">
                   ScamDunk (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy. This policy
                   explains how we collect, use, disclose, and safeguard your information when you use our
@@ -59,32 +59,32 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* Information We Collect */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Database className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-slide-up delay-1">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Database className="h-4 w-4 text-white" /></span>
                 Information We Collect
               </h2>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">Account Information</h3>
                   <p className="text-sm text-muted-foreground">
                     Email address, name (optional), encrypted password, and account creation date.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">Usage Information</h3>
                   <p className="text-sm text-muted-foreground">
                     Stock tickers searched, pitch text submitted (optional), scan results, timestamps, and monthly usage counts.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">Payment Information</h3>
                   <p className="text-sm text-muted-foreground">
                     Stripe customer ID and subscription status. We do NOT store credit card numbers—all payment processing is handled by Stripe.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">Technical Information</h3>
                   <p className="text-sm text-muted-foreground">
                     IP address, browser type, device information, and session cookies for authentication.
@@ -94,13 +94,13 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* How We Use Information */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Eye className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in delay-2">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Eye className="h-4 w-4 text-white" /></span>
                 How We Use Your Information
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border">
+              <div className="p-5 rounded-xl card-elevated">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <span className="text-green-500">✓</span>
@@ -131,14 +131,14 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* Data Sharing */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in delay-3">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Users className="h-4 w-4 text-white" /></span>
                 How We Share Information
               </h2>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">Service Providers</h3>
                   <p className="text-sm text-muted-foreground">
                     We share data with trusted partners: Stripe (payments), OpenAI (AI analysis),
@@ -157,13 +157,13 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* Data Security */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Lock className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in delay-4">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Lock className="h-4 w-4 text-white" /></span>
                 Data Security
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border">
+              <div className="p-5 rounded-xl card-elevated">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <Lock className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -189,10 +189,10 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* Data Retention */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Data Retention</h2>
+            <section className="mb-8 animate-fade-in delay-5">
+              <h2 className="text-xl font-semibold mb-4 font-display italic">Data Retention</h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border">
+              <div className="p-5 rounded-xl card-elevated">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li><strong>Account data:</strong> Until you delete your account</li>
                   <li><strong>Scan history:</strong> 12 months</li>
@@ -203,14 +203,14 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* Your Rights */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Shield className="h-4 w-4 text-white" /></span>
                 Your Privacy Rights
               </h2>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">All Users Can:</h3>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li>• Access and download your data</li>
@@ -219,14 +219,14 @@ export default function PrivacyPolicyPage() {
                     <li>• Withdraw consent</li>
                   </ul>
                 </div>
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">California Residents (CCPA)</h3>
                   <p className="text-sm text-muted-foreground">
                     Additional rights to know what data we collect, opt out of sales (we don&apos;t sell data),
                     and non-discrimination for exercising privacy rights.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">EU/EEA Residents (GDPR)</h3>
                   <p className="text-sm text-muted-foreground">
                     Additional rights to data portability, restrict processing, object to processing,
@@ -237,23 +237,23 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* Cookies */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Globe className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Globe className="h-4 w-4 text-white" /></span>
                 Cookies
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
                 <p className="mb-3">We use essential cookies for authentication and session management.</p>
                 <p>We do NOT use advertising cookies or third-party tracking.</p>
               </div>
             </section>
 
             {/* Children */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Children&apos;s Privacy</h2>
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 font-display italic">Children&apos;s Privacy</h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
                 <p>
                   ScamDunk is not intended for users under 18. We do not knowingly collect data from children.
                 </p>
@@ -261,13 +261,13 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* Changes */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Bell className="h-4 w-4 text-white" /></span>
                 Policy Changes
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
                 <p>
                   We may update this policy. We&apos;ll notify you of material changes by posting the new policy
                   and updating the date. For significant changes, we may also send email notification.
@@ -276,13 +276,13 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* Contact */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Trash2 className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Trash2 className="h-4 w-4 text-white" /></span>
                 Contact & Data Requests
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border">
+              <div className="p-5 rounded-xl card-elevated">
                 <p className="text-sm text-muted-foreground mb-2">
                   To exercise privacy rights or ask questions:
                 </p>
@@ -299,16 +299,16 @@ export default function PrivacyPolicyPage() {
             </section>
 
             {/* Links */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
               <Link
                 href="/terms"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
               >
                 Terms of Service
               </Link>
               <Link
                 href="/disclaimer"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
               >
                 Disclaimer
               </Link>

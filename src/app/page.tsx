@@ -404,8 +404,8 @@ export default function HomePage() {
 
           {/* Welcome State (no result, not loading) */}
           {!result && !isLoading && !limitReached && (
-            <div className="flex-1 flex flex-col items-center justify-center p-4 pb-32 gradient-mesh">
-              <div className="text-center mb-10 animate-fade-in">
+            <div className="flex-1 flex flex-col items-center p-4 pb-8 gradient-mesh overflow-y-auto">
+              <div className="text-center mb-8 mt-8 sm:mt-16 animate-fade-in">
                 {/* Brand icon */}
                 <div className="flex justify-center mb-6">
                   <div className="relative">
@@ -435,9 +435,51 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Quick Examples for non-logged in users */}
+              {/* Scan Input — moved up into main flow */}
+              <div className="w-full max-w-3xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+                <ScanInput
+                  onSubmit={handleSubmit}
+                  isLoading={isLoading}
+                  disabled={usage?.limitReached && !result}
+                />
+              </div>
+
+              {/* Features */}
               {!session && status !== "loading" && (
-                <div className="mb-10 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.15s" }}>
+                  <div className="card-interactive p-5 text-center group">
+                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
+                      <BarChart3 className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">Market Analysis</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Price, volume, and market cap signals
+                    </p>
+                  </div>
+                  <div className="card-interactive p-5 text-center group">
+                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">Red Flag Detection</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Pump-and-dump patterns identified
+                    </p>
+                  </div>
+                  <div className="card-interactive p-5 text-center group">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
+                      <Brain className="h-5 w-5 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1">AI-Powered</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Smart analysis with suggestions
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Try It Out — moved to bottom */}
+              {!session && status !== "loading" && (
+                <div className="mb-8 animate-fade-in" style={{ animationDelay: "0.25s" }}>
                   <p className="text-xs font-semibold text-muted-foreground text-center mb-3 uppercase tracking-wider">
                     Try it out
                   </p>
@@ -475,45 +517,12 @@ export default function HomePage() {
                   </div>
                 </div>
               )}
-
-              {/* Features */}
-              {!session && status !== "loading" && (
-                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: "0.2s" }}>
-                  <div className="card-interactive p-5 text-center group">
-                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
-                      <BarChart3 className="h-5 w-5 text-blue-500" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Market Analysis</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Price, volume, and market cap signals
-                    </p>
-                  </div>
-                  <div className="card-interactive p-5 text-center group">
-                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Red Flag Detection</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Pump-and-dump patterns identified
-                    </p>
-                  </div>
-                  <div className="card-interactive p-5 text-center group">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
-                      <Brain className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">AI-Powered</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Smart analysis with suggestions
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </main>
 
-        {/* Bottom Input Bar */}
-        {!isLoading && !limitReached && (
+        {/* Bottom Input Bar — only shown when there's a result or logged in (not on welcome) */}
+        {!isLoading && !limitReached && (result || session) && (
           <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-10 pb-5 px-4">
             <ScanInput
               onSubmit={handleSubmit}

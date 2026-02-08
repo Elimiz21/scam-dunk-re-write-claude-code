@@ -136,10 +136,10 @@ export default function NewsPage() {
 
                 <main className="flex-1 px-4 py-8 max-w-7xl mx-auto w-full">
                     {/* Hero Section */}
-                    <div className="text-center mb-12">
-                        <h1 className="text-4xl font-bold mb-4">News & Updates</h1>
+                    <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
+                        <h1 className="text-4xl font-bold mb-4 font-display italic">News & Updates</h1>
                         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                            Stay informed with the latest from Scam Dunk. Read our blog for security tips,
+                            Stay informed with the latest from <span className="font-display italic">ScamDunk</span>. Read our blog for security tips,
                             product updates, and see what others are saying about us.
                         </p>
                     </div>
@@ -151,11 +151,11 @@ export default function NewsPage() {
                     ) : (
                         <div className="space-y-16">
                             {/* Blog Section */}
-                            <section>
+                            <section className="animate-slide-up">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                                        <FileText className="h-6 w-6 text-primary" />
-                                        Scam Dunk Blog
+                                    <h2 className="text-2xl font-bold flex items-center gap-2 font-display italic">
+                                        <span className="inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-full"><FileText className="h-5 w-5 text-white" /></span>
+                                        <span className="font-display italic">ScamDunk</span> Blog
                                     </h2>
                                 </div>
 
@@ -178,7 +178,7 @@ export default function NewsPage() {
                                 )}
 
                                 {filteredPosts.length === 0 ? (
-                                    <div className="text-center py-12 bg-card rounded-xl border border-border">
+                                    <div className="text-center py-12 card-elevated rounded-xl">
                                         <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                         <p className="text-muted-foreground">No blog posts yet. Check back soon!</p>
                                     </div>
@@ -188,7 +188,7 @@ export default function NewsPage() {
                                             <Link
                                                 key={post.id}
                                                 href={`/news/${post.slug}`}
-                                                className="group bg-card rounded-xl border border-border overflow-hidden hover:border-primary transition-colors"
+                                                className="group card-interactive rounded-xl overflow-hidden"
                                             >
                                                 {post.coverImage && (
                                                     <div className="aspect-video w-full overflow-hidden">
@@ -234,16 +234,16 @@ export default function NewsPage() {
                             </section>
 
                             {/* Media Mentions Section */}
-                            <section>
+                            <section className="animate-slide-up delay-1">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                                        <Star className="h-6 w-6 text-yellow-500" />
-                                        Scam Dunk in the News
+                                    <h2 className="text-2xl font-bold flex items-center gap-2 font-display italic">
+                                        <span className="inline-flex items-center justify-center w-10 h-10 bg-yellow-500 rounded-full"><Star className="h-5 w-5 text-white" /></span>
+                                        <span className="font-display italic">ScamDunk</span> in the News
                                     </h2>
                                 </div>
 
                                 {mediaMentions.length === 0 ? (
-                                    <div className="text-center py-12 bg-card rounded-xl border border-border">
+                                    <div className="text-center py-12 card-elevated rounded-xl">
                                         <Newspaper className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                                         <p className="text-muted-foreground">No media mentions yet. Stay tuned!</p>
                                     </div>
@@ -319,7 +319,7 @@ export default function NewsPage() {
                                                 {regularMentions.map((mention) => (
                                                     <div
                                                         key={mention.id}
-                                                        className="bg-card rounded-xl border border-border p-5 hover:border-primary transition-colors"
+                                                        className="card-interactive rounded-xl p-5"
                                                     >
                                                         <div className="flex items-center gap-3 mb-3">
                                                             {mention.logoUrl ? (
