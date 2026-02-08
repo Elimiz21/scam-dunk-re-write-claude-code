@@ -13,6 +13,9 @@ import { LoadingStepper } from "@/components/LoadingStepper";
 import { Shield, TrendingUp, AlertTriangle, Zap, Sparkles, ArrowRight, BarChart3, Eye, Brain } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
 import { getRandomTagline, taglines } from "@/lib/taglines";
+import { LandingOptionA } from "@/components/landing/LandingOptionA";
+import { LandingOptionB } from "@/components/landing/LandingOptionB";
+import { LandingOptionC } from "@/components/landing/LandingOptionC";
 import { useToast } from "@/components/ui/toast";
 import { Step } from "@/components/LoadingStepper";
 
@@ -48,6 +51,9 @@ export default function HomePage() {
   ]);
   const [currentTip, setCurrentTip] = useState<string>("");
   const [tipIndex, setTipIndex] = useState(0);
+
+  // Landing page variant for review (A, B, or C)
+  const [landingVariant, setLandingVariant] = useState<"A" | "B" | "C">("A");
 
   // Get random tagline on mount (changes on refresh)
   const [tagline] = useState(() => getRandomTagline());
@@ -404,120 +410,98 @@ export default function HomePage() {
 
           {/* Welcome State (no result, not loading) */}
           {!result && !isLoading && !limitReached && (
-            <div className="flex-1 flex flex-col items-center p-4 pb-8 gradient-mesh overflow-y-auto">
-              <div className="text-center mb-8 mt-8 sm:mt-16 animate-fade-in">
-                {/* Brand icon */}
-                <div className="flex justify-center mb-6">
-                  <div className="relative">
-                    <div className="h-16 w-16 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/25 animate-gentle-float">
-                      <Shield className="h-8 w-8 text-white" strokeWidth={2} />
+            <>
+              {/* Logged-in users: simple welcome with ScanInput */}
+              {session ? (
+                <div className="flex-1 flex flex-col items-center p-4 pb-8 gradient-mesh overflow-y-auto">
+                  <div className="text-center mb-8 mt-8 sm:mt-16 animate-fade-in">
+                    <div className="flex justify-center mb-6">
+                      <div className="relative">
+                        <div className="h-16 w-16 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/25 animate-gentle-float">
+                          <Shield className="h-8 w-8 text-white" strokeWidth={2} />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                          <Eye className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
-                      <Eye className="h-2.5 w-2.5 text-white" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Headline */}
-                <h1 className="font-display text-hero-sm sm:text-hero mb-4 max-w-xl mx-auto italic">
-                  {tagline.headline}
-                </h1>
-                <p className="text-subtitle text-muted-foreground max-w-md mx-auto">
-                  {tagline.subtext}
-                </p>
-              </div>
-
-              {/* Error message */}
-              {error && (
-                <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-sm max-w-md text-center animate-fade-in">
-                  <AlertTriangle className="h-4 w-4 inline mr-2" />
-                  {error}
-                </div>
-              )}
-
-              {/* Scan Input — moved up into main flow */}
-              <div className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in" style={{ animationDelay: "0.05s" }}>
-                <ScanInput
-                  onSubmit={handleSubmit}
-                  isLoading={isLoading}
-                  disabled={usage?.limitReached && !result}
-                />
-              </div>
-
-              {/* Features */}
-              {!session && status !== "loading" && (
-                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.15s" }}>
-                  <div className="card-interactive p-5 text-center group">
-                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
-                      <BarChart3 className="h-5 w-5 text-blue-500" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Market Analysis</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Price, volume, and market cap signals
+                    <h1 className="font-display text-hero-sm sm:text-hero mb-4 max-w-xl mx-auto italic">
+                      {tagline.headline}
+                    </h1>
+                    <p className="text-subtitle text-muted-foreground max-w-md mx-auto">
+                      {tagline.subtext}
                     </p>
                   </div>
-                  <div className="card-interactive p-5 text-center group">
-                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Red Flag Detection</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Pump-and-dump patterns identified
-                    </p>
-                  </div>
-                  <div className="card-interactive p-5 text-center group">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
-                      <Brain className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">AI-Powered</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Smart analysis with suggestions
-                    </p>
-                  </div>
-                </div>
-              )}
 
-              {/* Try It Out — moved to bottom */}
-              {!session && status !== "loading" && (
-                <div className="mb-8 animate-fade-in" style={{ animationDelay: "0.25s" }}>
-                  <p className="text-xs font-semibold text-muted-foreground text-center mb-3 uppercase tracking-wider">
-                    Try it out
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
-                      onClick={() => handleSubmit({ ticker: "AAPL", assetType: "stock" })}
-                    >
-                      <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                      AAPL
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
-                      onClick={() => handleSubmit({ ticker: "TSLA", assetType: "stock" })}
-                    >
-                      <TrendingUp className="h-3.5 w-3.5 text-blue-500" />
-                      TSLA
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
-                      onClick={() => handleSubmit({ ticker: "BTC", assetType: "crypto" })}
-                    >
-                      <Zap className="h-3.5 w-3.5 text-amber-500" />
-                      BTC
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    </Button>
+                  {error && (
+                    <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-sm max-w-md text-center animate-fade-in">
+                      <AlertTriangle className="h-4 w-4 inline mr-2" />
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+                    <ScanInput
+                      onSubmit={handleSubmit}
+                      isLoading={isLoading}
+                      disabled={usage?.limitReached && !result}
+                    />
                   </div>
                 </div>
-              )}
-            </div>
+              ) : status !== "loading" ? (
+                /* Non-logged-in users: Full landing page with variant toggle */
+                <div className="flex-1 flex flex-col">
+                  {/* Review Toggle — Remove this after choosing a design */}
+                  <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border px-4 py-2">
+                    <div className="max-w-4xl mx-auto flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Landing Page Review
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {(["A", "B", "C"] as const).map((variant) => (
+                          <button
+                            key={variant}
+                            onClick={() => setLandingVariant(variant)}
+                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-smooth ${
+                              landingVariant === variant
+                                ? "gradient-brand text-white"
+                                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                            }`}
+                          >
+                            Option {variant}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {landingVariant === "A" && (
+                    <LandingOptionA
+                      onSubmit={handleSubmit}
+                      isLoading={isLoading}
+                      disabled={usage?.limitReached && !result}
+                      error={error}
+                    />
+                  )}
+                  {landingVariant === "B" && (
+                    <LandingOptionB
+                      onSubmit={handleSubmit}
+                      isLoading={isLoading}
+                      disabled={usage?.limitReached && !result}
+                      error={error}
+                    />
+                  )}
+                  {landingVariant === "C" && (
+                    <LandingOptionC
+                      onSubmit={handleSubmit}
+                      isLoading={isLoading}
+                      disabled={usage?.limitReached && !result}
+                      error={error}
+                    />
+                  )}
+                </div>
+              ) : null}
+            </>
           )}
         </main>
 
