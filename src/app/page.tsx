@@ -389,7 +389,7 @@ export default function HomePage() {
 
           {/* Results */}
           {result && !isLoading && (
-            <div className="flex-1 overflow-y-auto p-4 pb-32">
+            <div className="flex-1 overflow-y-auto p-4 pb-8">
               <div className="max-w-3xl mx-auto space-y-6 animate-slide-up">
                 <RiskCard result={result} />
                 <div className="flex justify-center gap-3">
@@ -436,7 +436,7 @@ export default function HomePage() {
               )}
 
               {/* Scan Input — moved up into main flow */}
-              <div className="w-full max-w-3xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+              <div className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in" style={{ animationDelay: "0.05s" }}>
                 <ScanInput
                   onSubmit={handleSubmit}
                   isLoading={isLoading}
@@ -521,16 +521,6 @@ export default function HomePage() {
           )}
         </main>
 
-        {/* Bottom Input Bar — only shown when there's a result or logged in (not on welcome) */}
-        {!isLoading && !limitReached && (result || session) && (
-          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-10 pb-5 px-4">
-            <ScanInput
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              disabled={usage?.limitReached && !result}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
