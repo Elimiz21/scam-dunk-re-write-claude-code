@@ -99,13 +99,13 @@ export function Footer() {
             © {new Date().getFullYear()} ScamDunk. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <Link href="/terms" className="hover:text-primary transition-colors">
+            <Link href="/terms" className="hover:text-primary transition-smooth">
               Terms
             </Link>
-            <Link href="/privacy" className="hover:text-primary transition-colors">
+            <Link href="/privacy" className="hover:text-primary transition-smooth">
               Privacy
             </Link>
-            <Link href="/disclaimer" className="hover:text-primary transition-colors">
+            <Link href="/disclaimer" className="hover:text-primary transition-smooth">
               Disclaimer
             </Link>
           </div>
