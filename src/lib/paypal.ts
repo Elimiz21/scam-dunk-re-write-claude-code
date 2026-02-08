@@ -13,6 +13,7 @@
 
 import { prisma } from "./db";
 import { config } from "./config";
+import { logApiUsage } from "@/lib/admin/metrics";
 
 const PAYPAL_API_BASE =
   process.env.PAYPAL_MODE === "live"
@@ -31,6 +32,7 @@ async function getAccessToken(): Promise<string> {
   }
 
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const startTime = Date.now();
 
   const response = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
     method: "POST",
@@ -39,6 +41,14 @@ async function getAccessToken(): Promise<string> {
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: "grant_type=client_credentials",
+  });
+
+  await logApiUsage({
+    service: "PAYPAL",
+    endpoint: "/v1/oauth2/token",
+    responseTime: Date.now() - startTime,
+    statusCode: response.status,
+    errorMessage: response.ok ? undefined : "Failed to get PayPal access token",
   });
 
   if (!response.ok) {
@@ -81,6 +91,7 @@ export async function verifyWebhookSignature(
 ): Promise<boolean> {
   try {
     const accessToken = await getAccessToken();
+    const startTime = Date.now();
 
     const verificationData = {
       auth_algo: headers["paypal-auth-algo"],
@@ -104,6 +115,14 @@ export async function verifyWebhookSignature(
       }
     );
 
+    await logApiUsage({
+      service: "PAYPAL",
+      endpoint: "/v1/notifications/verify-webhook-signature",
+      responseTime: Date.now() - startTime,
+      statusCode: response.status,
+      errorMessage: response.ok ? undefined : "PayPal webhook verification failed",
+    });
+
     if (!response.ok) {
       console.error("PayPal webhook verification failed:", await response.text());
       return false;
@@ -123,6 +142,7 @@ export async function verifyWebhookSignature(
 export async function getSubscriptionDetails(subscriptionId: string) {
   try {
     const accessToken = await getAccessToken();
+    const startTime = Date.now();
 
     const response = await fetch(
       `${PAYPAL_API_BASE}/v1/billing/subscriptions/${subscriptionId}`,
@@ -134,6 +154,14 @@ export async function getSubscriptionDetails(subscriptionId: string) {
         },
       }
     );
+
+    await logApiUsage({
+      service: "PAYPAL",
+      endpoint: "/v1/billing/subscriptions/{id}",
+      responseTime: Date.now() - startTime,
+      statusCode: response.status,
+      errorMessage: response.ok ? undefined : "Failed to get subscription details",
+    });
 
     if (!response.ok) {
       throw new Error("Failed to get subscription details");
