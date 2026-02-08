@@ -40,6 +40,10 @@ interface IngestionStatus {
   ingestedDates: string[];
   pendingDates: string[];
   fileStatus?: FileStatus[];
+  lastIngestion?: {
+    createdAt: string;
+    details: string | null;
+  } | null;
   debug?: {
     filesFound: number;
     evaluationFiles: number;
@@ -67,6 +71,14 @@ interface DbStatus {
   message: string;
 }
 
+interface BackfillResult {
+  success: boolean;
+  totalScanHistory: number;
+  modelMetricsDays: number;
+  scanUsageEntries: number;
+  lastUpdated: string;
+}
+
 export default function DataIngestionPage() {
   const [status, setStatus] = useState<IngestionStatus | null>(null);
   const [dbStatus, setDbStatus] = useState<DbStatus | null>(null);
@@ -74,6 +86,8 @@ export default function DataIngestionPage() {
   const [ingesting, setIngesting] = useState<string | null>(null);
   const [creatingTables, setCreatingTables] = useState(false);
   const [results, setResults] = useState<IngestionResult[]>([]);
+  const [backfillResult, setBackfillResult] = useState<BackfillResult | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -193,6 +207,49 @@ export default function DataIngestionPage() {
       await ingestDate(date);
     }
   }
+
+  async function runBackfill() {
+    setBackfilling(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/backfill", { method: "POST" });
+      const { data, error: parseError } = await safeJsonParse(res);
+
+      if (parseError) {
+        throw new Error(`Server returned invalid response: ${parseError}`);
+      }
+
+      if (!res.ok) {
+        const errData = data as { error?: string; details?: string };
+        const errorMsg = typeof errData?.error === "string"
+          ? errData.error
+          : (errData?.details ? String(errData.details) : "Failed to backfill metrics");
+        throw new Error(errorMsg);
+      }
+
+      setBackfillResult(data as BackfillResult);
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to backfill metrics");
+    } finally {
+      setBackfilling(false);
+    }
+  }
+
+  const lastIngestionDetails = (() => {
+    if (!status?.lastIngestion?.details) return null;
+    try {
+      return JSON.parse(status.lastIngestion.details) as {
+        status?: string;
+        date?: string;
+        errorType?: string;
+        error?: string;
+        durationMs?: number;
+      };
+    } catch {
+      return null;
+    }
+  })();
 
   if (loading) {
     return (
@@ -316,6 +373,85 @@ export default function DataIngestionPage() {
           </div>
         </div>
         )}
+
+        {(status?.lastIngestion || backfillResult) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {status?.lastIngestion && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">Last Ingestion Status</h3>
+                  <span className="text-xs text-gray-500">
+                    {new Date(status.lastIngestion.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-3 text-sm text-gray-700 space-y-1">
+                  <div>
+                    Status:{" "}
+                    <span className={`font-medium ${
+                      lastIngestionDetails?.status === "SUCCESS" ? "text-green-600" : "text-red-600"
+                    }`}>
+                      {lastIngestionDetails?.status || "Unknown"}
+                    </span>
+                  </div>
+                  {lastIngestionDetails?.date && (
+                    <div>Date: <span className="font-medium">{lastIngestionDetails.date}</span></div>
+                  )}
+                  {lastIngestionDetails?.error && (
+                    <div className="text-red-600">
+                      Error: {lastIngestionDetails.errorType ? `${lastIngestionDetails.errorType} - ` : ""}{lastIngestionDetails.error}
+                    </div>
+                  )}
+                  {lastIngestionDetails?.durationMs !== undefined && (
+                    <div>Duration: {Math.round(lastIngestionDetails.durationMs)}ms</div>
+                  )}
+                </div>
+              </div>
+            )}
+            {backfillResult && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">Last Backfill</h3>
+                  <span className="text-xs text-gray-500">
+                    {new Date(backfillResult.lastUpdated).toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-3 text-sm text-gray-700 space-y-1">
+                  <div>Total Scan History: <span className="font-medium">{backfillResult.totalScanHistory}</span></div>
+                  <div>Model Metrics Days: <span className="font-medium">{backfillResult.modelMetricsDays}</span></div>
+                  <div>Scan Usage Entries: <span className="font-medium">{backfillResult.scanUsageEntries}</span></div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Backfill Metrics</h3>
+              <p className="text-sm text-gray-500">
+                Rebuild ModelMetrics and ScanUsage from ScanHistory for live data consistency.
+              </p>
+            </div>
+            <button
+              onClick={runBackfill}
+              disabled={backfilling}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {backfilling ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Backfilling...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Run Backfill
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Pending Imports */}
         {status?.pendingDates && status.pendingDates.length > 0 && (

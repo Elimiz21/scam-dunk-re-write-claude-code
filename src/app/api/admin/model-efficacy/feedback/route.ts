@@ -51,14 +51,16 @@ export async function POST(request: NextRequest) {
 
     // Update daily metrics
     if (feedbackType === "FALSE_POSITIVE") {
-      await prisma.modelMetrics.updateMany({
+      await prisma.modelMetrics.upsert({
         where: { dateKey },
-        data: { falsePositives: { increment: 1 } },
+        create: { dateKey, falsePositives: 1 },
+        update: { falsePositives: { increment: 1 } },
       });
     } else if (feedbackType === "FALSE_NEGATIVE") {
-      await prisma.modelMetrics.updateMany({
+      await prisma.modelMetrics.upsert({
         where: { dateKey },
-        data: { falseNegatives: { increment: 1 } },
+        create: { dateKey, falseNegatives: 1 },
+        update: { falseNegatives: { increment: 1 } },
       });
     }
 

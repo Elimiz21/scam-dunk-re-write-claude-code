@@ -461,6 +461,23 @@ export async function checkAndTriggerAlerts() {
           },
         });
         currentValue = count;
+      } else if (alert.alertType === "ERROR_RATE") {
+        const hourAgo = new Date();
+        hourAgo.setHours(hourAgo.getHours() - 1);
+        const whereFilter = {
+          service: alert.service === "ALL" ? undefined : alert.service,
+          createdAt: { gte: hourAgo },
+        };
+        const [totalRequests, errorRequests] = await Promise.all([
+          prisma.apiUsageLog.count({ where: whereFilter }),
+          prisma.apiUsageLog.count({
+            where: {
+              ...whereFilter,
+              OR: [{ errorMessage: { not: null } }, { statusCode: { gte: 400 } }],
+            },
+          }),
+        ]);
+        currentValue = totalRequests > 0 ? (errorRequests / totalRequests) * 100 : 0;
       }
 
       if (currentValue >= alert.threshold) {
@@ -480,4 +497,154 @@ export async function checkAndTriggerAlerts() {
     console.error("Failed to check alerts:", error);
     return [];
   }
+}
+
+/**
+ * Backfill ModelMetrics and ScanUsage from ScanHistory
+ */
+export async function backfillAdminMetrics() {
+  const scanHistory = await prisma.scanHistory.findMany({
+    select: {
+      userId: true,
+      ticker: true,
+      riskLevel: true,
+      totalScore: true,
+      processingTime: true,
+      isLegitimate: true,
+      createdAt: true,
+    },
+  });
+
+  const dailyMap = new Map<
+    string,
+    {
+      totalScans: number;
+      lowRiskCount: number;
+      mediumRiskCount: number;
+      highRiskCount: number;
+      insufficientCount: number;
+      legitDetected: number;
+      processingTimeSum: number;
+      processingTimeCount: number;
+      scoreSum: number;
+      scoreCount: number;
+      uniqueTickers: Set<string>;
+      uniqueUsers: Set<string>;
+    }
+  >();
+
+  const usageMap = new Map<string, { userId: string; monthKey: string; scanCount: number }>();
+
+  for (const scan of scanHistory) {
+    const dateKey = scan.createdAt.toISOString().split("T")[0];
+    const monthKey = `${scan.createdAt.getFullYear()}-${String(scan.createdAt.getMonth() + 1).padStart(2, "0")}`;
+
+    if (!dailyMap.has(dateKey)) {
+      dailyMap.set(dateKey, {
+        totalScans: 0,
+        lowRiskCount: 0,
+        mediumRiskCount: 0,
+        highRiskCount: 0,
+        insufficientCount: 0,
+        legitDetected: 0,
+        processingTimeSum: 0,
+        processingTimeCount: 0,
+        scoreSum: 0,
+        scoreCount: 0,
+        uniqueTickers: new Set(),
+        uniqueUsers: new Set(),
+      });
+    }
+
+    const daily = dailyMap.get(dateKey)!;
+    daily.totalScans += 1;
+    if (scan.riskLevel === "LOW") daily.lowRiskCount += 1;
+    if (scan.riskLevel === "MEDIUM") daily.mediumRiskCount += 1;
+    if (scan.riskLevel === "HIGH") daily.highRiskCount += 1;
+    if (scan.riskLevel === "INSUFFICIENT") daily.insufficientCount += 1;
+    if (scan.isLegitimate === true) daily.legitDetected += 1;
+    if (scan.processingTime) {
+      daily.processingTimeSum += scan.processingTime;
+      daily.processingTimeCount += 1;
+    }
+    daily.scoreSum += scan.totalScore;
+    daily.scoreCount += 1;
+    daily.uniqueTickers.add(scan.ticker);
+    if (scan.userId) daily.uniqueUsers.add(scan.userId);
+
+    if (scan.userId) {
+      const usageKey = `${scan.userId}-${monthKey}`;
+      const existing = usageMap.get(usageKey);
+      if (existing) {
+        existing.scanCount += 1;
+      } else {
+        usageMap.set(usageKey, { userId: scan.userId, monthKey, scanCount: 1 });
+      }
+    }
+  }
+
+  const dailyEntries = Array.from(dailyMap.entries());
+  const usageEntries = Array.from(usageMap.values());
+
+  await prisma.$transaction(async (tx) => {
+    for (const [dateKey, daily] of dailyEntries) {
+      const avgProcessingTime =
+        daily.processingTimeCount > 0 ? daily.processingTimeSum / daily.processingTimeCount : null;
+      const avgScore = daily.scoreCount > 0 ? daily.scoreSum / daily.scoreCount : null;
+
+      await tx.modelMetrics.upsert({
+        where: { dateKey },
+        create: {
+          dateKey,
+          totalScans: daily.totalScans,
+          lowRiskCount: daily.lowRiskCount,
+          mediumRiskCount: daily.mediumRiskCount,
+          highRiskCount: daily.highRiskCount,
+          insufficientCount: daily.insufficientCount,
+          legitDetected: daily.legitDetected,
+          avgProcessingTime,
+          avgScore,
+          uniqueTickers: daily.uniqueTickers.size,
+          uniqueUsers: daily.uniqueUsers.size,
+        },
+        update: {
+          totalScans: daily.totalScans,
+          lowRiskCount: daily.lowRiskCount,
+          mediumRiskCount: daily.mediumRiskCount,
+          highRiskCount: daily.highRiskCount,
+          insufficientCount: daily.insufficientCount,
+          legitDetected: daily.legitDetected,
+          avgProcessingTime,
+          avgScore,
+          uniqueTickers: daily.uniqueTickers.size,
+          uniqueUsers: daily.uniqueUsers.size,
+        },
+      });
+    }
+
+    for (const usage of usageEntries) {
+      await tx.scanUsage.upsert({
+        where: {
+          userId_monthKey: {
+            userId: usage.userId,
+            monthKey: usage.monthKey,
+          },
+        },
+        create: {
+          userId: usage.userId,
+          monthKey: usage.monthKey,
+          scanCount: usage.scanCount,
+        },
+        update: {
+          scanCount: usage.scanCount,
+        },
+      });
+    }
+  });
+
+  return {
+    totalScanHistory: scanHistory.length,
+    modelMetricsDays: dailyEntries.length,
+    scanUsageEntries: usageEntries.length,
+  };
 }

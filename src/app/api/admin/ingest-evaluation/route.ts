@@ -34,6 +34,8 @@ interface EvaluationStock {
   priceDataSource?: string;
 }
 
+type IngestionErrorType = "MISSING_FILE" | "BAD_JSON" | "INVALID_SUPABASE_CONFIG" | "FETCH_ERROR";
+
 interface EvaluationSummary {
   totalStocks: number;
   evaluated: number;
@@ -65,40 +67,87 @@ interface PromotedStocksReport {
   promotedStocks: PromotedStockData[];
 }
 
-async function fetchEvaluationFile(filename: string): Promise<{ data: EvaluationStock[] | null; error?: string }> {
+async function fetchEvaluationFile(
+  filename: string
+): Promise<{ data: EvaluationStock[] | null; error?: string; errorType?: IngestionErrorType }> {
   // Get public URL from Supabase Storage
-  const { data: urlData } = supabase.storage
-    .from(EVALUATION_BUCKET)
-    .getPublicUrl(filename);
+  let urlData: { publicUrl: string };
+  try {
+    ({ data: urlData } = supabase.storage
+      .from(EVALUATION_BUCKET)
+      .getPublicUrl(filename));
+  } catch (error) {
+    return {
+      data: null,
+      errorType: "INVALID_SUPABASE_CONFIG",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 
   try {
     const response = await fetch(urlData.publicUrl);
     if (!response.ok) {
-      return { data: null, error: `HTTP ${response.status}: ${response.statusText}` };
+      return {
+        data: null,
+        errorType: response.status === 404 ? "MISSING_FILE" : "FETCH_ERROR",
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      };
     }
 
     // Check content type
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) {
       const text = await response.text();
-      return { data: null, error: `Expected JSON but got ${contentType}: ${text.substring(0, 100)}` };
+      return {
+        data: null,
+        errorType: "BAD_JSON",
+        error: `Expected JSON but got ${contentType}: ${text.substring(0, 100)}`,
+      };
     }
 
-    const data = await response.json();
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch (error) {
+      return {
+        data: null,
+        errorType: "BAD_JSON",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
     if (!Array.isArray(data)) {
-      return { data: null, error: `Expected array but got ${typeof data}` };
+      return {
+        data: null,
+        errorType: "BAD_JSON",
+        error: `Expected array but got ${typeof data}`,
+      };
     }
 
-    return { data };
+    return { data: data as EvaluationStock[] };
   } catch (err) {
-    return { data: null, error: `Fetch error: ${String(err)}` };
+    return {
+      data: null,
+      errorType: "FETCH_ERROR",
+      error: `Fetch error: ${String(err)}`,
+    };
   }
 }
 
-async function fetchSummaryFile(filename: string): Promise<{ data: EvaluationSummary | null; error?: string }> {
-  const { data: urlData } = supabase.storage
-    .from(EVALUATION_BUCKET)
-    .getPublicUrl(filename);
+async function fetchSummaryFile(
+  filename: string
+): Promise<{ data: EvaluationSummary | null; error?: string; errorType?: IngestionErrorType }> {
+  let urlData: { publicUrl: string };
+  try {
+    ({ data: urlData } = supabase.storage
+      .from(EVALUATION_BUCKET)
+      .getPublicUrl(filename));
+  } catch (error) {
+    return {
+      data: null,
+      errorType: "INVALID_SUPABASE_CONFIG",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 
   try {
     const response = await fetch(urlData.publicUrl);
@@ -108,20 +157,31 @@ async function fetchSummaryFile(filename: string): Promise<{ data: EvaluationSum
 
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) {
-      return { data: null };
+      return { data: null, errorType: "BAD_JSON", error: `Expected JSON but got ${contentType}` };
     }
 
     const data = await response.json();
     return { data };
-  } catch {
-    return { data: null };
+  } catch (error) {
+    return { data: null, errorType: "BAD_JSON", error: String(error) };
   }
 }
 
-async function fetchPromotedStocksFile(filename: string): Promise<{ data: PromotedStocksReport | null; error?: string }> {
-  const { data: urlData } = supabase.storage
-    .from(EVALUATION_BUCKET)
-    .getPublicUrl(filename);
+async function fetchPromotedStocksFile(
+  filename: string
+): Promise<{ data: PromotedStocksReport | null; error?: string; errorType?: IngestionErrorType }> {
+  let urlData: { publicUrl: string };
+  try {
+    ({ data: urlData } = supabase.storage
+      .from(EVALUATION_BUCKET)
+      .getPublicUrl(filename));
+  } catch (error) {
+    return {
+      data: null,
+      errorType: "INVALID_SUPABASE_CONFIG",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 
   try {
     const response = await fetch(urlData.publicUrl);
@@ -131,22 +191,25 @@ async function fetchPromotedStocksFile(filename: string): Promise<{ data: Promot
 
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) {
-      return { data: null };
+      return { data: null, errorType: "BAD_JSON", error: `Expected JSON but got ${contentType}` };
     }
 
     const data = await response.json();
     return { data };
-  } catch {
-    return { data: null };
+  } catch (error) {
+    return { data: null, errorType: "BAD_JSON", error: String(error) };
   }
 }
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
+  let sessionId: string | null = null;
   try {
     const session = await getAdminSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    sessionId = session.id;
 
     const body = await request.json();
     const { date } = body; // Format: YYYY-MM-DD
@@ -161,13 +224,42 @@ export async function POST(request: Request) {
 
     const evaluationResult = await fetchEvaluationFile(evaluationFilename);
     if (!evaluationResult.data) {
+      const statusCode =
+        evaluationResult.errorType === "INVALID_SUPABASE_CONFIG"
+          ? 500
+          : evaluationResult.errorType === "BAD_JSON"
+            ? 400
+            : 404;
+      if (sessionId) {
+        await prisma.adminAuditLog.create({
+          data: {
+            adminUserId: sessionId,
+            action: "INGEST_EVALUATION",
+            details: JSON.stringify({
+              date,
+              status: "FAILED",
+              errorType: evaluationResult.errorType,
+              error: evaluationResult.error || "Unknown error",
+              durationMs: Date.now() - startTime,
+            }),
+          },
+        });
+      }
       return NextResponse.json(
         {
-          error: `Evaluation file not found or invalid for ${date}`,
+          error:
+            evaluationResult.errorType === "INVALID_SUPABASE_CONFIG"
+              ? "Invalid Supabase configuration"
+              : evaluationResult.errorType === "BAD_JSON"
+                ? "Evaluation file contains invalid JSON"
+                : evaluationResult.errorType === "MISSING_FILE"
+                  ? "Evaluation file missing"
+                  : `Evaluation file not found or invalid for ${date}`,
           details: evaluationResult.error || "Unknown error",
+          errorType: evaluationResult.errorType,
           hint: "Make sure the file exists in Supabase Storage and is valid JSON"
         },
-        { status: 404 }
+        { status: statusCode }
       );
     }
 
@@ -414,6 +506,27 @@ export async function POST(request: Request) {
       }
     }
 
+    if (sessionId) {
+      await prisma.adminAuditLog.create({
+        data: {
+          adminUserId: sessionId,
+          action: "INGEST_EVALUATION",
+          details: JSON.stringify({
+            date,
+            status: "SUCCESS",
+            stocksCreated,
+            stocksUpdated: validStocks.length - stocksCreated,
+            snapshotsCreated,
+            alertsCreated,
+            promotedStocksCreated,
+            totalProcessed: validStocks.length,
+            skipped: skippedCount,
+            durationMs: Date.now() - startTime,
+          }),
+        },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       date,
@@ -427,6 +540,23 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Ingest evaluation error:", error);
+    if (sessionId) {
+      try {
+        await prisma.adminAuditLog.create({
+          data: {
+            adminUserId: sessionId,
+            action: "INGEST_EVALUATION",
+            details: JSON.stringify({
+              status: "FAILED",
+              error: error instanceof Error ? error.message : String(error),
+              durationMs: Date.now() - startTime,
+            }),
+          },
+        });
+      } catch (logError) {
+        console.error("Failed to log ingestion error:", logError);
+      }
+    }
     return NextResponse.json(
       { error: "Failed to ingest evaluation data", details: String(error) },
       { status: 500 }
@@ -443,12 +573,27 @@ export async function GET() {
 
     // List files in Supabase Storage bucket
     // Requires RLS policy: CREATE POLICY "Allow public read access to evaluation-data" ON storage.objects FOR SELECT USING (bucket_id = 'evaluation-data');
-    const { data: files, error: storageError } = await supabase.storage
-      .from(EVALUATION_BUCKET)
-      .list("", {
-        limit: 100,
-        sortBy: { column: "name", order: "desc" },
-      });
+    let files: { name: string }[] | null = null;
+    let storageError: { message: string } | null = null;
+    try {
+      const storageResult = await supabase.storage
+        .from(EVALUATION_BUCKET)
+        .list("", {
+          limit: 100,
+          sortBy: { column: "name", order: "desc" },
+        });
+      files = storageResult.data;
+      storageError = storageResult.error;
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Invalid Supabase configuration",
+          details: error instanceof Error ? error.message : String(error),
+          errorType: "INVALID_SUPABASE_CONFIG",
+        },
+        { status: 500 }
+      );
+    }
 
     if (storageError) {
       console.error("Supabase storage error:", storageError);
@@ -456,6 +601,7 @@ export async function GET() {
         {
           error: "Storage listing error - RLS policy may be missing",
           details: storageError.message,
+          errorType: "FETCH_ERROR",
           hint: "Run this SQL in Supabase: CREATE POLICY \"Allow public read access to evaluation-data\" ON storage.objects FOR SELECT USING (bucket_id = 'evaluation-data');"
         },
         { status: 500 }
@@ -525,6 +671,12 @@ export async function GET() {
     });
     const ingestedDates = ingestedSummaries.map((s) => s.scanDate.toISOString().split("T")[0]);
 
+    const lastIngestion = await prisma.adminAuditLog.findFirst({
+      where: { action: "INGEST_EVALUATION" },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true, details: true },
+    });
+
     return NextResponse.json({
       availableDates: availableDates.map((d) => d.date),
       ingestedDates,
@@ -532,6 +684,12 @@ export async function GET() {
         .filter((d) => !ingestedDates.includes(d.date))
         .map((d) => d.date),
       fileStatus: availableDates,
+      lastIngestion: lastIngestion
+        ? {
+            createdAt: lastIngestion.createdAt,
+            details: lastIngestion.details,
+          }
+        : null,
       debug: {
         filesFound: files?.length || 0,
         evaluationFiles: evaluationFiles.length,

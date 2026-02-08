@@ -17,7 +17,10 @@ export async function GET() {
 
     const metrics = await getDashboardMetrics();
 
-    return NextResponse.json(metrics);
+    return NextResponse.json({
+      ...metrics,
+      lastUpdated: new Date().toISOString(),
+    });
   } catch (error) {
     console.error("Dashboard metrics error:", error);
     return NextResponse.json(

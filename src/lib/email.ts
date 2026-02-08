@@ -7,10 +7,13 @@
  */
 
 import { Resend } from 'resend';
+import { logApiUsage } from "@/lib/admin/metrics";
 
 // Lazy initialization to avoid build-time errors when API key is not set
 let resendInstance: Resend | null = null;
 let configWarningsLogged = false;
+
+type ResendSendOptions = Parameters<Resend["emails"]["send"]>[0];
 
 function getResend(): Resend {
   if (!resendInstance) {
@@ -20,6 +23,22 @@ function getResend(): Resend {
     resendInstance = new Resend(process.env.RESEND_API_KEY);
   }
   return resendInstance;
+}
+
+async function sendResendEmail(payload: ResendSendOptions, emailType: string) {
+  const resend = getResend();
+  const startTime = Date.now();
+  const result = await resend.emails.send(payload);
+
+  await logApiUsage({
+    service: "RESEND",
+    endpoint: emailType,
+    responseTime: Date.now() - startTime,
+    statusCode: result.error ? 500 : 200,
+    errorMessage: result.error?.message,
+  });
+
+  return result;
 }
 
 // Use Resend's test email if no verified domain is configured
@@ -106,8 +125,7 @@ export async function sendVerificationEmail(email: string, token: string): Promi
   }
 
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
+    const result = await sendResendEmail({
       from: FROM_EMAIL,
       to: email,
       subject: 'Verify your ScamDunk account',
@@ -152,7 +170,7 @@ export async function sendVerificationEmail(email: string, token: string): Promi
           </body>
         </html>
       `,
-    });
+    }, "EMAIL_VERIFICATION");
 
     if (result.error) {
       console.error('Resend API error (verification):', result.error);
@@ -192,8 +210,7 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
   }
 
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
+    const result = await sendResendEmail({
       from: FROM_EMAIL,
       to: email,
       subject: 'Reset your ScamDunk password',
@@ -238,7 +255,7 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
           </body>
         </html>
       `,
-    });
+    }, "PASSWORD_RESET");
 
     if (result.error) {
       console.error('Resend API error (password reset):', result.error);
@@ -286,8 +303,7 @@ export async function sendAdminInviteEmail(
   const inviterDisplay = inviterName || 'The team owner';
 
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
+    const result = await sendResendEmail({
       from: FROM_EMAIL,
       to: email,
       subject: `You're invited to the ScamDunk Admin Dashboard`,
@@ -341,7 +357,7 @@ export async function sendAdminInviteEmail(
           </body>
         </html>
       `,
-    });
+    }, "ADMIN_INVITE");
 
     if (result.error) {
       console.error('Resend API error (admin invite):', result.error);
@@ -476,8 +492,7 @@ export async function sendTestEmail(toEmail: string): Promise<{ success: boolean
   const config = checkEmailConfiguration();
 
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
+    const result = await sendResendEmail({
       from: FROM_EMAIL,
       to: toEmail,
       subject: 'ScamDunk Email Configuration Test',
@@ -516,7 +531,7 @@ export async function sendTestEmail(toEmail: string): Promise<{ success: boolean
           </body>
         </html>
       `,
-    });
+    }, "TEST");
 
     if (result.error) {
       await logEmailSend({
@@ -561,8 +576,7 @@ export async function sendCustomEmail(
   replyTo?: string
 ): Promise<{ success: boolean; message: string; resendId?: string }> {
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
+    const result = await sendResendEmail({
       from: FROM_EMAIL,
       to: toEmail,
       replyTo: replyTo || SUPPORT_EMAIL,
@@ -589,7 +603,7 @@ export async function sendCustomEmail(
           </body>
         </html>
       `,
-    });
+    }, "CUSTOM");
 
     if (result.error) {
       await logEmailSend({
@@ -660,8 +674,7 @@ export async function sendSupportTicketNotification(
     // Get all active recipients for this category
     const recipients = await getSupportEmailRecipients(category);
 
-    const resend = getResend();
-    const result = await resend.emails.send({
+    const result = await sendResendEmail({
       from: FROM_EMAIL,
       to: recipients,
       replyTo: email,
@@ -720,7 +733,7 @@ export async function sendSupportTicketNotification(
           </body>
         </html>
       `,
-    });
+    }, "TICKET_NOTIFICATION");
 
     if (result.error) {
       console.error('Resend API error (support ticket notification):', result.error);
@@ -780,8 +793,7 @@ export async function sendSupportTicketConfirmation(
   };
 
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
+    const result = await sendResendEmail({
       from: FROM_EMAIL,
       to: email,
       replyTo: SUPPORT_EMAIL,
@@ -826,7 +838,7 @@ export async function sendSupportTicketConfirmation(
           </body>
         </html>
       `,
-    });
+    }, "TICKET_CONFIRMATION");
 
     if (result.error) {
       console.error('Resend API error (support confirmation):', result.error);
@@ -874,8 +886,7 @@ export async function sendSupportTicketResponse(
   }
 
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
+    const result = await sendResendEmail({
       from: FROM_EMAIL,
       to: userEmail,
       replyTo: SUPPORT_EMAIL,
@@ -922,7 +933,7 @@ export async function sendSupportTicketResponse(
           </body>
         </html>
       `,
-    });
+    }, "TICKET_RESPONSE");
 
     if (result.error) {
       console.error('Resend API error (support response):', result.error);
@@ -972,8 +983,7 @@ export async function sendAPIFailureAlert(
   const timestamp = new Date().toISOString();
 
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
+    const result = await sendResendEmail({
       from: FROM_EMAIL,
       to: adminEmail,
       subject: `[ALERT] ScamDunk API Failure: ${apiName}`,
@@ -1031,7 +1041,7 @@ export async function sendAPIFailureAlert(
           </body>
         </html>
       `,
-    });
+    }, "API_FAILURE_ALERT");
 
     if (result.error) {
       console.error('Resend API error (admin alert):', result.error);
