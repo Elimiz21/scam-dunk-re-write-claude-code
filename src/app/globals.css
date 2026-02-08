@@ -176,6 +176,19 @@
    ANIMATIONS — Spring easing for natural motion
    ============================================ */
 
+/* Admin layout: force dark text on all form elements regardless of theme */
+.admin-layout input:not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]),
+.admin-layout textarea,
+.admin-layout select {
+  color: rgb(17 24 39); /* gray-900 */
+}
+
+.admin-layout input::placeholder,
+.admin-layout textarea::placeholder {
+  color: rgb(156 163 175); /* gray-400 */
+}
+
+/* Apple-style animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
