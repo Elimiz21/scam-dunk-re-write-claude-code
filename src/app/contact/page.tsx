@@ -206,11 +206,11 @@ export default function ContactPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary rounded-2xl mb-6">
-                <Mail className="h-8 w-8 text-primary" />
+            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+                <Mail className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">Contact Us</h1>
+              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">Contact Us</h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Have a question, suggestion, or need help? We&apos;re here for you.
                 Our team typically responds within 1-2 business days.
@@ -261,17 +261,17 @@ export default function ContactPage() {
             )}
 
             {/* Contact Form */}
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div className="grid lg:grid-cols-3 gap-8 animate-slide-up">
               {/* Form Section */}
               <div className="lg:col-span-2">
                 {/* Form Container with distinct styling */}
-                <div className="p-6 rounded-2xl bg-card border-2 border-primary/20 shadow-sm">
+                <div className="p-6 rounded-2xl card-elevated border-2 border-primary/20">
                   <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
-                    <div className="p-2 rounded-xl bg-primary/10">
-                      <Send className="h-5 w-5 text-primary" />
+                    <div className="p-2 rounded-xl gradient-brand">
+                      <Send className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h2 className="font-semibold text-lg">Submit Your Request</h2>
+                      <h2 className="font-semibold text-lg font-display italic">Submit Your Request</h2>
                       <p className="text-sm text-muted-foreground">Fill out the form below and we&apos;ll get back to you</p>
                     </div>
                   </div>
@@ -420,7 +420,7 @@ export default function ContactPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full sm:w-auto px-8 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-8 py-3 rounded-full gradient-brand text-white font-medium hover:opacity-90 transition-smooth disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-glow-sm"
                     >
                       {isSubmitting ? (
                         <>
@@ -439,9 +439,9 @@ export default function ContactPage() {
               </div>
 
               {/* Information Sidebar */}
-              <div className="space-y-4">
+              <div className="space-y-4 animate-slide-up delay-1">
                 {/* Information Header */}
-                <div className="p-4 rounded-2xl bg-secondary/30 border border-border/50">
+                <div className="p-4 rounded-2xl glass border border-border/50">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertCircle className="h-5 w-5 text-muted-foreground" />
                     <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Information</h3>

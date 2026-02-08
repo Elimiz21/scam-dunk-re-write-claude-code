@@ -32,23 +32,23 @@ export default function DisclaimerPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-destructive/20 rounded-2xl mb-6">
-                <AlertTriangle className="h-8 w-8 text-destructive" />
+            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+                <AlertTriangle className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 Disclaimer & Limitations
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Please read carefully before using ScamDunk. Understanding our limitations
+                Please read carefully before using <span className="font-display italic">ScamDunk</span>. Understanding our limitations
                 is essential for using this tool responsibly.
               </p>
             </div>
 
             {/* Critical Warning */}
-            <section className="mb-8">
+            <section className="mb-8 animate-slide-up">
               <div className="p-6 rounded-xl bg-destructive/10 border-2 border-destructive/50">
-                <h2 className="text-xl font-semibold mb-3 flex items-center gap-2 text-destructive">
+                <h2 className="text-xl font-semibold mb-3 flex items-center gap-2 text-destructive font-display italic">
                   <ShieldAlert className="h-5 w-5" />
                   Critical Disclaimer
                 </h2>
@@ -67,13 +67,13 @@ export default function DisclaimerPage() {
             </section>
 
             {/* What We Don't Check */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-destructive" />
+            <section className="mb-8 animate-slide-up delay-1">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 bg-destructive rounded-full"><XCircle className="h-4 w-4 text-white" /></span>
                 What Our Scans Do NOT Check
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border">
+              <div className="p-5 rounded-xl card-elevated">
                 <p className="text-sm text-muted-foreground mb-4">
                   Our analysis has significant limitations. We <strong>cannot detect or verify</strong>:
                 </p>
@@ -131,9 +131,9 @@ export default function DisclaimerPage() {
             </section>
 
             {/* Potential Errors */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <FileWarning className="h-5 w-5 text-yellow-500" />
+            <section className="mb-8 animate-slide-up delay-2">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 bg-yellow-500 rounded-full"><FileWarning className="h-4 w-4 text-white" /></span>
                 We Can Make Mistakes
               </h2>
 
@@ -163,10 +163,10 @@ export default function DisclaimerPage() {
             </section>
 
             {/* Coverage Limitations */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Geographic & Asset Limitations</h2>
+            <section className="mb-8 animate-fade-in delay-3">
+              <h2 className="text-xl font-semibold mb-4 font-display italic">Geographic & Asset Limitations</h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border">
+              <div className="p-5 rounded-xl card-elevated">
                 <ul className="space-y-3 text-sm text-muted-foreground">
                   <li className="flex items-start gap-3">
                     <AlertTriangle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -185,13 +185,13 @@ export default function DisclaimerPage() {
             </section>
 
             {/* No Professional Relationship */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Scale className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in delay-4">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Scale className="h-4 w-4 text-white" /></span>
                 No Professional Relationship
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border space-y-3 text-sm text-muted-foreground">
+              <div className="p-5 rounded-xl card-elevated space-y-3 text-sm text-muted-foreground">
                 <p><strong>No Fiduciary Duty:</strong> ScamDunk does not owe you any fiduciary duty.</p>
                 <p><strong>No Attorney-Client Relationship:</strong> Nothing creates legal advice or representation.</p>
                 <p><strong>No Investment Advisory:</strong> We are not registered investment advisors.</p>
@@ -214,10 +214,10 @@ export default function DisclaimerPage() {
             </section>
 
             {/* Limitation of Liability */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Limitation of Liability</h2>
+            <section className="mb-8 animate-fade-in delay-5">
+              <h2 className="text-xl font-semibold mb-4 font-display italic">Limitation of Liability</h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border text-sm text-muted-foreground space-y-3">
+              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground space-y-3">
                 <p>
                   TO THE MAXIMUM EXTENT PERMITTED BY LAW, SCAMDUNK SHALL NOT BE LIABLE FOR ANY DIRECT,
                   INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THIS SERVICE.
@@ -244,17 +244,17 @@ export default function DisclaimerPage() {
             </section>
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
               <Link
                 href="/"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full gradient-brand text-white font-medium hover:opacity-90 transition-smooth shadow-glow-sm"
               >
                 I Understand, Start Scanning
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/privacy"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
               >
                 Privacy Policy
               </Link>

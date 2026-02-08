@@ -4,48 +4,66 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Light Mode — Warm Guardian palette */
+    --background: 40 33% 98%;
+    --foreground: 24 10% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 24 10% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --popover-foreground: 24 10% 10%;
+    --primary: 12 76% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 18% 95%;
+    --secondary-foreground: 24 10% 10%;
+    --muted: 40 12% 93%;
+    --muted-foreground: 24 5% 45%;
+    --accent: 172 50% 38%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 40 12% 89%;
+    --input: 40 12% 89%;
+    --ring: 12 76% 56%;
     --radius: 0.75rem;
+    /* Brand */
+    --brand-gradient-from: 12 76% 56%;
+    --brand-gradient-to: 172 50% 38%;
+    --brand-mid: 36 90% 52%;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 220 13% 10%;
-    --foreground: 0 0% 95%;
-    --card: 220 13% 13%;
-    --card-foreground: 0 0% 95%;
-    --popover: 220 13% 13%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 220 13% 10%;
-    --secondary: 220 13% 18%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 220 13% 18%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 220 13% 18%;
-    --accent-foreground: 0 0% 95%;
-    --destructive: 0 62.8% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 20%;
-    --input: 220 13% 20%;
-    --ring: 220 13% 50%;
+    /* Dark Mode — Deep warm tones */
+    --background: 24 12% 7%;
+    --foreground: 40 12% 92%;
+    --card: 24 10% 10%;
+    --card-foreground: 40 12% 92%;
+    --popover: 24 10% 10%;
+    --popover-foreground: 40 12% 92%;
+    --primary: 12 80% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 24 8% 14%;
+    --secondary-foreground: 40 12% 92%;
+    --muted: 24 6% 16%;
+    --muted-foreground: 24 5% 55%;
+    --accent: 172 50% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 24 8% 17%;
+    --input: 24 8% 17%;
+    --ring: 12 80% 62%;
+    /* Brand */
+    --brand-gradient-from: 12 80% 62%;
+    --brand-gradient-to: 172 50% 50%;
+    --brand-mid: 36 90% 58%;
+    --success: 160 84% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
   }
 }
 
@@ -54,7 +72,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
 
@@ -63,20 +81,100 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+    width: 5px;
   }
-
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted));
     border-radius: 3px;
   }
 }
+
+/* ============================================
+   BRAND GRADIENTS — Coral → Amber → Teal
+   ============================================ */
+
+.gradient-brand {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--brand-gradient-from)) 0%,
+    hsl(var(--brand-mid)) 50%,
+    hsl(var(--brand-gradient-to)) 100%
+  );
+}
+
+.gradient-brand-subtle {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--brand-gradient-from) / 0.08) 0%,
+    hsl(var(--brand-mid) / 0.06) 50%,
+    hsl(var(--brand-gradient-to) / 0.08) 100%
+  );
+}
+
+.gradient-brand-text {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--brand-gradient-from)) 0%,
+    hsl(var(--brand-mid)) 45%,
+    hsl(var(--brand-gradient-to)) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hero background — warm mesh with subtle dot grid */
+.gradient-mesh {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 25% 40%, hsl(var(--brand-gradient-from) / 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 25%, hsl(var(--brand-gradient-to) / 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 75%, hsl(var(--brand-mid) / 0.06) 0%, transparent 50%);
+}
+
+.gradient-mesh::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, hsl(var(--foreground) / 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+.dark .gradient-mesh {
+  background:
+    radial-gradient(ellipse at 25% 40%, hsl(var(--brand-gradient-from) / 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 25%, hsl(var(--brand-gradient-to) / 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 75%, hsl(var(--brand-mid) / 0.03) 0%, transparent 50%);
+}
+
+.dark .gradient-mesh::before {
+  background-image: radial-gradient(circle, hsl(var(--foreground) / 0.025) 1px, transparent 1px);
+}
+
+/* ============================================
+   RISK LEVEL GLOWS
+   ============================================ */
+
+.risk-glow-low {
+  box-shadow: 0 0 24px -4px rgba(16, 185, 129, 0.3);
+}
+
+.risk-glow-medium {
+  box-shadow: 0 0 24px -4px rgba(245, 158, 11, 0.3);
+}
+
+.risk-glow-high {
+  box-shadow: 0 0 24px -4px rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================
+   ANIMATIONS — Spring easing for natural motion
+   ============================================ */
 
 /* Admin layout: force dark text on all form elements regardless of theme */
 .admin-layout input:not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]),
@@ -92,8 +190,13 @@
 
 /* Apple-style animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes slideIn {
@@ -106,55 +209,19 @@
   to { transform: translateX(-100%); }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out;
-}
-
-.animate-slide-out {
-  animation: slideOut 0.3s ease-out;
-}
-
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(100%); }
+  from { opacity: 0; transform: translateX(16px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-.animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out;
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Focus ring for accessibility */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
-}
-
-/* Glassmorphism effects */
-.glass {
-  @apply backdrop-blur-xl bg-card/80;
-}
-
-/* Input bar styling */
-.input-bar {
-  @apply rounded-3xl border border-border bg-card shadow-lg;
-}
-
-/* Smooth transitions */
-.transition-smooth {
-  @apply transition-all duration-200 ease-out;
-}
-
-/* Feature highlight animations */
 @keyframes subtlePulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 59, 130, 246), 0);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(var(--primary-rgb, 59, 130, 246), 0.15);
-  }
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  50% { box-shadow: 0 0 0 8px hsl(var(--primary) / 0.1); }
 }
 
 @keyframes shimmer {
@@ -164,18 +231,58 @@
 
 @keyframes gentleFloat {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-2px); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Spring easing: cubic-bezier(0.16, 1, 0.3, 1) — natural deceleration */
+.animate-fade-in {
+  animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-out {
+  animation: slideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-subtle-pulse {
-  animation: subtlePulse 2s ease-in-out infinite;
+  animation: subtlePulse 2.5s ease-in-out infinite;
 }
 
 .animate-shimmer {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
+    hsl(var(--primary) / 0.05) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -183,19 +290,96 @@
 }
 
 .animate-gentle-float {
-  animation: gentleFloat 3s ease-in-out infinite;
+  animation: gentleFloat 3.5s ease-in-out infinite;
 }
 
-/* Feature button highlight styles */
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+.animate-ticker {
+  animation: ticker 30s linear infinite;
+}
+
+/* Stagger delay utilities */
+.delay-1 { animation-delay: 0.1s; animation-fill-mode: both; }
+.delay-2 { animation-delay: 0.2s; animation-fill-mode: both; }
+.delay-3 { animation-delay: 0.3s; animation-fill-mode: both; }
+.delay-4 { animation-delay: 0.4s; animation-fill-mode: both; }
+
+/* ============================================
+   FOCUS & ACCESSIBILITY
+   ============================================ */
+
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* ============================================
+   GLASS EFFECTS
+   ============================================ */
+
+.glass {
+  @apply backdrop-blur-xl;
+  background: hsl(var(--card) / 0.7);
+}
+
+.glass-strong {
+  @apply backdrop-blur-2xl;
+  background: hsl(var(--card) / 0.85);
+}
+
+/* ============================================
+   INPUT BAR
+   ============================================ */
+
+.input-bar {
+  @apply rounded-2xl border border-border bg-card;
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 0.04),
+    0 6px 24px -4px rgb(0 0 0 / 0.06);
+}
+
+.dark .input-bar {
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 0.2),
+    0 6px 24px -4px rgb(0 0 0 / 0.3);
+}
+
+.input-bar:focus-within {
+  border-color: hsl(var(--primary) / 0.4);
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 0.04),
+    0 6px 24px -4px rgb(0 0 0 / 0.06),
+    0 0 0 3px hsl(var(--primary) / 0.08);
+}
+
+/* ============================================
+   SMOOTH TRANSITIONS
+   ============================================ */
+
+.transition-smooth {
+  @apply transition-all duration-200 ease-out;
+}
+
+/* ============================================
+   FEATURE HIGHLIGHTS
+   ============================================ */
+
 .feature-highlight {
   @apply relative overflow-hidden;
   background: linear-gradient(
     135deg,
-    hsl(var(--primary) / 0.08) 0%,
-    hsl(var(--primary) / 0.04) 50%,
-    hsl(var(--primary) / 0.08) 100%
+    hsl(var(--primary) / 0.07) 0%,
+    hsl(var(--primary) / 0.03) 50%,
+    hsl(var(--accent) / 0.05) 100%
   );
-  border: 1px solid hsl(var(--primary) / 0.2);
+  border: 1px solid hsl(var(--primary) / 0.12);
 }
 
 .feature-highlight::before {
@@ -205,7 +389,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    hsl(var(--primary) / 0.08) 50%,
+    hsl(var(--primary) / 0.05) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -216,26 +400,97 @@
 .feature-highlight:hover {
   background: linear-gradient(
     135deg,
-    hsl(var(--primary) / 0.15) 0%,
-    hsl(var(--primary) / 0.08) 50%,
-    hsl(var(--primary) / 0.15) 100%
+    hsl(var(--primary) / 0.12) 0%,
+    hsl(var(--primary) / 0.06) 50%,
+    hsl(var(--accent) / 0.08) 100%
   );
-  border-color: hsl(var(--primary) / 0.35);
+  border-color: hsl(var(--primary) / 0.25);
 }
 
-/* Drag-and-drop zone styles */
+/* ============================================
+   DRAG & DROP ZONE
+   ============================================ */
+
 .drop-zone {
   @apply border-2 border-dashed border-border rounded-2xl transition-all duration-200;
 }
 
 .drop-zone-active {
-  @apply border-primary bg-primary/5 scale-[1.02];
-  box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.25);
+  @apply border-primary bg-primary/5 scale-[1.01];
+  box-shadow: 0 0 24px -4px hsl(var(--primary) / 0.2);
 }
 
-/* New badge for highlighting features */
+/* ============================================
+   NEW FEATURE BADGE
+   ============================================ */
+
 .feature-new-badge {
   @apply absolute -top-1 -right-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider;
-  @apply bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full;
+  @apply text-white rounded-full;
+  background: linear-gradient(135deg, hsl(var(--brand-gradient-from)), hsl(var(--brand-gradient-to)));
   @apply animate-subtle-pulse;
+}
+
+/* ============================================
+   CARD VARIANTS
+   ============================================ */
+
+.card-elevated {
+  @apply bg-card rounded-2xl border border-border;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.02),
+    0 1px 2px rgb(0 0 0 / 0.03),
+    0 8px 32px -8px rgb(0 0 0 / 0.06);
+}
+
+.dark .card-elevated {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.02),
+    0 1px 2px rgb(0 0 0 / 0.15),
+    0 8px 32px -8px rgb(0 0 0 / 0.2);
+}
+
+.card-interactive {
+  @apply card-elevated transition-all duration-300;
+}
+
+.card-interactive:hover {
+  @apply border-primary/15;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.02),
+    0 4px 12px -2px rgb(0 0 0 / 0.06),
+    0 16px 48px -8px rgb(0 0 0 / 0.08);
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   RISK CARD BORDERS
+   ============================================ */
+
+.risk-border-low {
+  border-left: 3px solid #10b981;
+}
+
+.risk-border-medium {
+  border-left: 3px solid #f59e0b;
+}
+
+.risk-border-high {
+  border-left: 3px solid #ef4444;
+}
+
+.risk-border-insufficient {
+  border-left: 3px solid #6b7280;
+}
+
+/* ============================================
+   STAT COUNTER
+   ============================================ */
+
+.stat-value {
+  @apply text-3xl sm:text-4xl font-bold tracking-tight;
+}
+
+.stat-label {
+  @apply text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider;
 }

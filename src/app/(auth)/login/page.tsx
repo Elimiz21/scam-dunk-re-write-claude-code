@@ -157,14 +157,16 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
-      <Card className="w-full max-w-md border-border bg-card">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
+      <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
         <CardHeader className="text-center">
           <Link href="/" className="flex items-center justify-center gap-2 mb-4">
-            <Shield className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">ScamDunk</span>
+            <div className="inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-xl shadow-glow-sm">
+              <Shield className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold font-display italic">ScamDunk</span>
           </Link>
-          <CardTitle>Welcome back</CardTitle>
+          <CardTitle className="font-display italic">Welcome back</CardTitle>
           <CardDescription>
             Log in to check stocks for red flags
           </CardDescription>

@@ -235,7 +235,7 @@ function AccountContent() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-            <span className="text-xl sm:text-2xl font-bold">ScamDunk</span>
+            <span className="text-xl sm:text-2xl font-bold font-display italic">ScamDunk</span>
           </Link>
           <nav className="flex items-center gap-2 sm:gap-4">
             <Link href="/">
@@ -254,7 +254,7 @@ function AccountContent() {
 
       <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">Account Settings</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display italic">Account Settings</h1>
 
           {/* Success/Canceled alerts */}
           <Suspense fallback={null}>
@@ -559,10 +559,10 @@ function AccountContent() {
 
           {/* Upgrade CTA for free users */}
           {usage?.plan === "FREE" && (
-            <Card className="border-primary bg-primary/5">
+            <Card className="border-primary gradient-brand-subtle">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
+                <CardTitle className="flex items-center gap-2 font-display italic">
+                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Zap className="h-4 w-4 text-white" /></span>
                   Upgrade to Pro
                 </CardTitle>
               </CardHeader>

@@ -83,15 +83,15 @@ export default function SignupPage() {
   // Success state - show verification email sent message
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
-        <Card className="w-full max-w-md border-border bg-card">
+      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
+        <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <Mail className="h-8 w-8 text-primary" />
+              <div className="p-3 rounded-full gradient-brand shadow-glow-sm">
+                <Mail className="h-8 w-8 text-white" />
               </div>
             </div>
-            <CardTitle className="text-2xl">Check your email</CardTitle>
+            <CardTitle className="text-2xl font-display italic">Check your email</CardTitle>
             <CardDescription className="text-base mt-2">
               We&apos;ve sent a verification link to <strong>{email}</strong>
             </CardDescription>
@@ -123,14 +123,16 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
-      <Card className="w-full max-w-md border-border bg-card">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
+      <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
         <CardHeader className="text-center">
           <Link href="/" className="flex items-center justify-center gap-2 mb-4">
-            <Shield className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">ScamDunk</span>
+            <div className="inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-xl shadow-glow-sm">
+              <Shield className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold font-display italic">ScamDunk</span>
           </Link>
-          <CardTitle>Create your account</CardTitle>
+          <CardTitle className="font-display italic">Create your account</CardTitle>
           <CardDescription>
             Start checking stocks for red flags - 5 free checks per month
           </CardDescription>

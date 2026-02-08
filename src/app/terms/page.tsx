@@ -34,23 +34,23 @@ export default function TermsOfServicePage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary rounded-2xl mb-6">
-                <FileText className="h-8 w-8 text-primary" />
+            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+                <FileText className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 Terms of Service
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Please read these terms carefully before using ScamDunk.
+                Please read these terms carefully before using <span className="font-display italic">ScamDunk</span>.
               </p>
               <p className="text-sm text-muted-foreground mt-2">Last Updated: December 2024</p>
             </div>
 
             {/* Agreement */}
-            <section className="mb-8">
+            <section className="mb-8 animate-slide-up">
               <div className="p-5 rounded-xl bg-primary/10 border border-primary/20">
-                <h2 className="font-semibold mb-2">Agreement to Terms</h2>
+                <h2 className="font-semibold mb-2 font-display italic">Agreement to Terms</h2>
                 <p className="text-sm text-muted-foreground">
                   By accessing or using ScamDunk, you agree to these Terms of Service. If you disagree,
                   you may not use the Service.
@@ -59,13 +59,13 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Service Description */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-slide-up delay-1">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Shield className="h-4 w-4 text-white" /></span>
                 Service Description
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
                 <p className="mb-3">
                   ScamDunk is a stock analysis tool that helps identify potential red flags and
                   manipulation patterns in publicly traded securities.
@@ -78,10 +78,10 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Eligibility */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Eligibility</h2>
+            <section className="mb-8 animate-slide-up delay-2">
+              <h2 className="text-xl font-semibold mb-4 font-display italic">Eligibility</h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border">
+              <div className="p-5 rounded-xl card-elevated">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -104,26 +104,26 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Subscription Terms */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in delay-3">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><CreditCard className="h-4 w-4 text-white" /></span>
                 Subscription & Payment
               </h2>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">Free Plan</h3>
                   <p className="text-sm text-muted-foreground">
                     5 scans per month, resets on the first of each month. No credit card required.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">Paid Plan</h3>
                   <p className="text-sm text-muted-foreground">
                     200 scans per month, billed monthly via Stripe. Prices subject to change with 30 days notice.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">Billing & Refunds</h3>
                   <p className="text-sm text-muted-foreground">
                     Subscriptions auto-renew. Cancel anytime; access continues until end of billing period.
@@ -134,13 +134,13 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Acceptable Use */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
+            <section className="mb-8 animate-fade-in delay-4">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 bg-green-500 rounded-full"><CheckCircle className="h-4 w-4 text-white" /></span>
                 Acceptable Use
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border">
+              <div className="p-5 rounded-xl card-elevated">
                 <p className="text-sm text-muted-foreground mb-3">You agree NOT to:</p>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
@@ -172,9 +172,9 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Disclaimers */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
+            <section className="mb-8 animate-fade-in delay-5">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 bg-destructive rounded-full"><AlertTriangle className="h-4 w-4 text-white" /></span>
                 Disclaimers
               </h2>
 
@@ -193,13 +193,13 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Limitation of Liability */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Scale className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Scale className="h-4 w-4 text-white" /></span>
                 Limitation of Liability
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
                 <p className="mb-3">
                   TO THE MAXIMUM EXTENT PERMITTED BY LAW, SCAMDUNK SHALL NOT BE LIABLE FOR ANY INDIRECT,
                   INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS OR
@@ -213,10 +213,10 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Indemnification */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Indemnification</h2>
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 font-display italic">Indemnification</h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
                 <p>
                   You agree to defend, indemnify, and hold harmless ScamDunk from any claims, damages, or
                   expenses arising from your violation of these Terms or your use of the Service.
@@ -225,10 +225,10 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Governing Law */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Governing Law</h2>
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 font-display italic">Governing Law</h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
                 <p className="mb-3">
                   <strong>Governing Law:</strong> These Terms are governed by the laws of Delaware, United States.
                 </p>
@@ -240,13 +240,13 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Modifications */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <RefreshCw className="h-5 w-5 text-primary" />
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><RefreshCw className="h-4 w-4 text-white" /></span>
                 Service Modifications
               </h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
                 <p>
                   We may modify, suspend, or discontinue the Service at any time. We may also modify these
                   Terms; continued use constitutes acceptance of changes.
@@ -255,10 +255,10 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Contact */}
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Contact</h2>
+            <section className="mb-8 animate-fade-in">
+              <h2 className="text-xl font-semibold mb-4 font-display italic">Contact</h2>
 
-              <div className="p-5 rounded-xl bg-card border border-border">
+              <div className="p-5 rounded-xl card-elevated">
                 <p className="text-sm text-muted-foreground mb-2">Questions about these Terms:</p>
                 <p className="text-sm">
                   <strong>Email:</strong>{" "}
@@ -270,16 +270,16 @@ export default function TermsOfServicePage() {
             </section>
 
             {/* Links */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
               <Link
                 href="/privacy"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
               >
                 Privacy Policy
               </Link>
               <Link
                 href="/disclaimer"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
               >
                 Disclaimer
               </Link>

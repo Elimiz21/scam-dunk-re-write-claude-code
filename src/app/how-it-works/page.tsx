@@ -37,12 +37,12 @@ export default function HowItWorksPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary rounded-2xl mb-6">
-                <Brain className="h-8 w-8 text-primary" />
+            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+                <Brain className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
-                How ScamDunk Works
+              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
+                How <span className="font-display italic">ScamDunk</span> Works
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Our multi-step analysis helps identify potential stock manipulation patterns
@@ -51,9 +51,9 @@ export default function HowItWorksPage() {
             </div>
 
             {/* Analysis Pipeline */}
-            <section className="mb-12">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <Zap className="h-5 w-5 text-primary" />
+            <section className="mb-12 animate-slide-up">
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Zap className="h-4 w-4 text-white" /></span>
                 The Analysis Process
               </h2>
 
@@ -96,8 +96,8 @@ export default function HowItWorksPage() {
                     icon: AlertTriangle,
                   },
                 ].map((item) => (
-                  <div key={item.step} className="flex gap-4 p-4 rounded-xl bg-card border border-border">
-                    <div className="flex-shrink-0 w-10 h-10 bg-primary text-primary-foreground rounded-xl flex items-center justify-center font-semibold">
+                  <div key={item.step} className="flex gap-4 p-4 rounded-xl card-interactive">
+                    <div className="flex-shrink-0 w-10 h-10 gradient-brand text-white rounded-xl flex items-center justify-center font-semibold">
                       {item.step}
                     </div>
                     <div className="flex-grow">
@@ -113,14 +113,14 @@ export default function HowItWorksPage() {
             </section>
 
             {/* Signal Categories */}
-            <section className="mb-12">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
+            <section className="mb-12 animate-slide-up delay-1">
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><BarChart3 className="h-4 w-4 text-white" /></span>
                 What We Analyze
               </h2>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-5 rounded-xl bg-card border border-border">
+                <div className="p-5 rounded-xl card-interactive">
                   <div className="flex items-center gap-2 mb-3">
                     <Database className="h-5 w-5 text-blue-500" />
                     <h3 className="font-medium">Structural Factors</h3>
@@ -136,7 +136,7 @@ export default function HowItWorksPage() {
                   </ul>
                 </div>
 
-                <div className="p-5 rounded-xl bg-card border border-border">
+                <div className="p-5 rounded-xl card-interactive">
                   <div className="flex items-center gap-2 mb-3">
                     <TrendingUp className="h-5 w-5 text-green-500" />
                     <h3 className="font-medium">Price & Volume Patterns</h3>
@@ -152,7 +152,7 @@ export default function HowItWorksPage() {
                   </ul>
                 </div>
 
-                <div className="p-5 rounded-xl bg-card border border-border">
+                <div className="p-5 rounded-xl card-interactive">
                   <div className="flex items-center gap-2 mb-3">
                     <AlertTriangle className="h-5 w-5 text-red-500" />
                     <h3 className="font-medium">Regulatory Alerts</h3>
@@ -167,7 +167,7 @@ export default function HowItWorksPage() {
                   </ul>
                 </div>
 
-                <div className="p-5 rounded-xl bg-card border border-border">
+                <div className="p-5 rounded-xl card-interactive">
                   <div className="flex items-center gap-2 mb-3">
                     <Search className="h-5 w-5 text-purple-500" />
                     <h3 className="font-medium">Behavioral Indicators</h3>
@@ -186,14 +186,14 @@ export default function HowItWorksPage() {
             </section>
 
             {/* Risk Levels */}
-            <section className="mb-12">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
+            <section className="mb-12 animate-slide-up delay-2">
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Shield className="h-4 w-4 text-white" /></span>
                 Understanding Risk Levels
               </h2>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 risk-glow-high">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-3 h-3 rounded-full bg-red-500" />
                     <h3 className="font-medium text-red-600 dark:text-red-400">HIGH Risk</h3>
@@ -204,7 +204,7 @@ export default function HowItWorksPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 risk-glow-medium">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-3 h-3 rounded-full bg-yellow-500" />
                     <h3 className="font-medium text-yellow-600 dark:text-yellow-400">MEDIUM Risk</h3>
@@ -215,7 +215,7 @@ export default function HowItWorksPage() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 risk-glow-low">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-3 h-3 rounded-full bg-green-500" />
                     <h3 className="font-medium text-green-600 dark:text-green-400">LOW Risk</h3>
@@ -229,9 +229,9 @@ export default function HowItWorksPage() {
             </section>
 
             {/* Important Limitations */}
-            <section className="mb-12">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
+            <section className="mb-12 animate-slide-up delay-3">
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
+                <span className="inline-flex items-center justify-center w-8 h-8 bg-destructive rounded-full"><AlertTriangle className="h-4 w-4 text-white" /></span>
                 Important Limitations
               </h2>
 
@@ -266,23 +266,23 @@ export default function HowItWorksPage() {
             </section>
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap animate-fade-in delay-4">
               <Link
                 href="/"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full gradient-brand text-white font-medium hover:opacity-90 transition-smooth shadow-glow-sm"
               >
                 Try a Scan
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/disclaimer"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
               >
                 Read Full Disclaimer
               </Link>
               <Link
                 href="/contact"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border text-foreground font-medium hover:bg-secondary/50 transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-border text-foreground font-medium hover:bg-secondary/50 transition-smooth"
               >
                 Contact Support
               </Link>

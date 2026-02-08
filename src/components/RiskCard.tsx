@@ -21,6 +21,8 @@ import {
   Users,
   Lightbulb,
   Info,
+  Shield,
+  BarChart3,
 } from "lucide-react";
 import { formatNumber, formatPrice } from "@/lib/utils";
 
@@ -44,37 +46,60 @@ function getRiskBadgeVariant(
 }
 
 function getRiskIcon(level: RiskLevel) {
+  const iconClasses = "h-5 w-5";
   switch (level) {
     case "LOW":
-      return <CheckCircle className="h-5 w-5 text-green-600" />;
+      return <CheckCircle className={`${iconClasses} text-emerald-500`} />;
     case "MEDIUM":
-      return <AlertCircle className="h-5 w-5 text-yellow-600" />;
+      return <AlertCircle className={`${iconClasses} text-amber-500`} />;
     case "HIGH":
-      return <AlertTriangle className="h-5 w-5 text-red-600" />;
+      return <AlertTriangle className={`${iconClasses} text-red-500`} />;
     case "INSUFFICIENT":
-      return <HelpCircle className="h-5 w-5 text-gray-600" />;
+      return <HelpCircle className={`${iconClasses} text-gray-400`} />;
+  }
+}
+
+function getRiskBorderClass(level: RiskLevel) {
+  switch (level) {
+    case "LOW":
+      return "risk-border-low";
+    case "MEDIUM":
+      return "risk-border-medium";
+    case "HIGH":
+      return "risk-border-high";
+    case "INSUFFICIENT":
+      return "risk-border-insufficient";
+  }
+}
+
+function getRiskGlowClass(level: RiskLevel) {
+  switch (level) {
+    case "LOW":
+      return "risk-glow-low";
+    case "MEDIUM":
+      return "risk-glow-medium";
+    case "HIGH":
+      return "risk-glow-high";
+    default:
+      return "";
   }
 }
 
 /**
  * Technical term patterns and their associated glossary definitions
- * These patterns are matched against flag descriptions to add inline tooltips
  */
 const TECHNICAL_TERM_PATTERNS = [
-  // Structural terms
   { pattern: /penny stock/i, glossary: STRUCTURAL_SIGNAL_TERMS.pennyStock },
   { pattern: /market cap/i, glossary: STRUCTURAL_SIGNAL_TERMS.smallMarketCap },
   { pattern: /liquidity/i, glossary: STRUCTURAL_SIGNAL_TERMS.microLiquidity },
   { pattern: /OTC market/i, glossary: STRUCTURAL_SIGNAL_TERMS.otcMarket },
   { pattern: /OTC/i, glossary: STRUCTURAL_SIGNAL_TERMS.otcMarket },
   { pattern: /over-the-counter/i, glossary: STRUCTURAL_SIGNAL_TERMS.otcMarket },
-  // Pattern terms
   { pattern: /price spike/i, glossary: PATTERN_SIGNAL_TERMS.priceSpike },
   { pattern: /volume explosion/i, glossary: PATTERN_SIGNAL_TERMS.volumeExplosion },
   { pattern: /pump.?and.?dump/i, glossary: PATTERN_SIGNAL_TERMS.pumpAndDump },
   { pattern: /pump pattern/i, glossary: PATTERN_SIGNAL_TERMS.pumpAndDump },
   { pattern: /spike.+drop/i, glossary: PATTERN_SIGNAL_TERMS.spikeThenDrop },
-  // Anomaly terms
   { pattern: /price anomaly/i, glossary: ANOMALY_SIGNAL_TERMS.priceAnomaly },
   { pattern: /volume anomaly/i, glossary: ANOMALY_SIGNAL_TERMS.volumeAnomaly },
   { pattern: /RSI/i, glossary: ANOMALY_SIGNAL_TERMS.rsi },
@@ -82,7 +107,6 @@ const TECHNICAL_TERM_PATTERNS = [
   { pattern: /volatility/i, glossary: ANOMALY_SIGNAL_TERMS.volatility },
   { pattern: /extreme surge/i, glossary: ANOMALY_SIGNAL_TERMS.extremeSurge },
   { pattern: /statistically/i, glossary: ANOMALY_SIGNAL_TERMS.zScore },
-  // Behavioral terms
   { pattern: /unsolicited/i, glossary: BEHAVIORAL_SIGNAL_TERMS.unsolicited },
   { pattern: /guaranteed return/i, glossary: BEHAVIORAL_SIGNAL_TERMS.promisedReturns },
   { pattern: /promise.+return/i, glossary: BEHAVIORAL_SIGNAL_TERMS.promisedReturns },
@@ -94,10 +118,6 @@ const TECHNICAL_TERM_PATTERNS = [
   { pattern: /percentage gain/i, glossary: BEHAVIORAL_SIGNAL_TERMS.specificReturnClaim },
 ];
 
-/**
- * Find the first matching technical term in a flag description
- * Returns the glossary term if found, null otherwise
- */
 function findTechnicalTerm(text: string): { term: string; definition: string } | null {
   for (const { pattern, glossary } of TECHNICAL_TERM_PATTERNS) {
     if (pattern.test(text)) {
@@ -107,9 +127,6 @@ function findTechnicalTerm(text: string): { term: string; definition: string } |
   return null;
 }
 
-/**
- * Renders a flag item with an optional technical term tooltip
- */
 function FlagItem({
   flag,
   isPositive,
@@ -122,18 +139,18 @@ function FlagItem({
   const technicalTerm = findTechnicalTerm(flag);
 
   const iconClasses = {
-    green: "text-green-500",
-    orange: "text-orange-500",
+    green: "text-emerald-500",
+    orange: "text-amber-500",
     red: "text-red-500",
-    blue: "text-blue-500",
+    blue: "text-primary",
   };
 
   const IconComponent = isPositive ? CheckCircle : iconColor === "red" ? AlertCircle : AlertTriangle;
 
   return (
-    <li className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
+    <li className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed">
       <IconComponent
-        className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${iconClasses[iconColor]} mt-0.5 flex-shrink-0`}
+        className={`h-4 w-4 ${iconClasses[iconColor]} mt-0.5 flex-shrink-0`}
       />
       <span className="inline-flex items-start flex-wrap">
         {flag}
@@ -149,85 +166,87 @@ export function RiskCard({ result }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
 
   return (
-    <Card className="w-full">
+    <Card className={`w-full card-elevated overflow-hidden ${getRiskBorderClass(riskLevel)}`}>
       {/* Header with Risk Level */}
       <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            {getRiskIcon(riskLevel)}
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={getRiskBadgeVariant(riskLevel)} className="text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {getRiskIcon(riskLevel)}
+              <Badge variant={getRiskBadgeVariant(riskLevel)} className="text-xs">
                 {riskLevel} RISK
               </Badge>
-              <span className="text-sm text-muted-foreground inline-flex items-center">
-                Score: {totalScore}
+              <span className="text-sm text-muted-foreground inline-flex items-center gap-1 font-medium">
+                Score: <span className="font-bold text-foreground">{totalScore}</span>
                 <InfoTooltip
                   term={RISK_LEVEL_TERMS.riskScore.term}
                   definition={RISK_LEVEL_TERMS.riskScore.definition}
                 />
               </span>
             </div>
+            <p className="text-sm sm:text-base leading-relaxed text-foreground/90">
+              {narrative.header}
+            </p>
           </div>
-          <div className="sm:text-right">
-            <p className="font-semibold">{stockSummary.ticker}</p>
+          <div className="sm:text-right flex-shrink-0">
+            <p className="font-bold text-lg gradient-brand-text">{stockSummary.ticker}</p>
             <p className="text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
               {stockSummary.companyName}
             </p>
           </div>
         </div>
-        <p className="mt-4 text-sm sm:text-base">{narrative.header}</p>
       </CardHeader>
 
-      <CardContent className="space-y-5 sm:space-y-6">
-        {/* Stock Summary */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-secondary rounded-lg">
+      <CardContent className="space-y-6">
+        {/* Stock Summary Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-secondary/50 rounded-xl border border-border/50">
           <div>
-            <p className="text-xs text-muted-foreground inline-flex items-center">
+            <p className="text-xs text-muted-foreground font-medium inline-flex items-center gap-0.5 mb-1">
               Exchange
               <InfoTooltip
                 term={STOCK_SUMMARY_TERMS.exchange.term}
                 definition={STOCK_SUMMARY_TERMS.exchange.definition}
               />
             </p>
-            <p className="font-medium">{stockSummary.exchange || "N/A"}</p>
+            <p className="font-semibold text-sm">{stockSummary.exchange || "N/A"}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground inline-flex items-center">
+            <p className="text-xs text-muted-foreground font-medium inline-flex items-center gap-0.5 mb-1">
               Price
               <InfoTooltip
                 term={STOCK_SUMMARY_TERMS.lastPrice.term}
                 definition={STOCK_SUMMARY_TERMS.lastPrice.definition}
               />
             </p>
-            <p className="font-medium">
+            <p className="font-semibold text-sm">
               {stockSummary.lastPrice
                 ? formatPrice(stockSummary.lastPrice)
                 : "N/A"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground inline-flex items-center">
+            <p className="text-xs text-muted-foreground font-medium inline-flex items-center gap-0.5 mb-1">
               Market Cap
               <InfoTooltip
                 term={STOCK_SUMMARY_TERMS.marketCap.term}
                 definition={STOCK_SUMMARY_TERMS.marketCap.definition}
               />
             </p>
-            <p className="font-medium">
+            <p className="font-semibold text-sm">
               {stockSummary.marketCap
                 ? formatNumber(stockSummary.marketCap)
                 : "N/A"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground inline-flex items-center">
+            <p className="text-xs text-muted-foreground font-medium inline-flex items-center gap-0.5 mb-1">
               Avg. Volume
               <InfoTooltip
                 term={STOCK_SUMMARY_TERMS.avgVolume.term}
                 definition={STOCK_SUMMARY_TERMS.avgVolume.definition}
               />
             </p>
-            <p className="font-medium">
+            <p className="font-semibold text-sm">
               {stockSummary.avgDollarVolume30d
                 ? formatNumber(stockSummary.avgDollarVolume30d)
                 : "N/A"}
@@ -237,12 +256,14 @@ export function RiskCard({ result }: RiskCardProps) {
 
         {/* Stock & Market Red Flags */}
         {narrative.stockRedFlags.length > 0 && (
-          <div>
-            <h3 className="flex items-center gap-2 font-semibold text-sm sm:text-base mb-2 sm:mb-3">
-              <TrendingUp className="h-4 w-4 text-orange-500 flex-shrink-0" />
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2.5 font-semibold text-sm">
+              <div className="h-7 w-7 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                <BarChart3 className="h-3.5 w-3.5 text-amber-500" />
+              </div>
               Stock & Market Behavior
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5 ml-9">
               {narrative.stockRedFlags.map((flag, index) => {
                 const isPositive = flag.toLowerCase().includes("no concerning") ||
                                    flag.toLowerCase().includes("no red flags") ||
@@ -262,12 +283,14 @@ export function RiskCard({ result }: RiskCardProps) {
 
         {/* Behavioral Red Flags */}
         {narrative.behaviorRedFlags.length > 0 && (
-          <div>
-            <h3 className="flex items-center gap-2 font-semibold text-sm sm:text-base mb-2 sm:mb-3">
-              <Users className="h-4 w-4 text-red-500 flex-shrink-0" />
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2.5 font-semibold text-sm">
+              <div className="h-7 w-7 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                <Users className="h-3.5 w-3.5 text-red-500" />
+              </div>
               Pitch & Behavior Patterns
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5 ml-9">
               {narrative.behaviorRedFlags.map((flag, index) => {
                 const isPositive = flag.toLowerCase().includes("no behavioral") ||
                                    flag.toLowerCase().includes("no red flags") ||
@@ -287,18 +310,20 @@ export function RiskCard({ result }: RiskCardProps) {
 
         {/* Suggestions */}
         {narrative.suggestions.length > 0 && (
-          <div>
-            <h3 className="flex items-center gap-2 font-semibold text-sm sm:text-base mb-2 sm:mb-3">
-              <Lightbulb className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2.5 font-semibold text-sm">
+              <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Lightbulb className="h-3.5 w-3.5 text-primary" />
+              </div>
               What You Can Do Now
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5 ml-9">
               {narrative.suggestions.map((suggestion, index) => (
                 <li
                   key={index}
-                  className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground"
+                  className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed"
                 >
-                  <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                   {suggestion}
                 </li>
               ))}
@@ -307,10 +332,10 @@ export function RiskCard({ result }: RiskCardProps) {
         )}
 
         {/* Disclaimers */}
-        <div className="pt-4 border-t">
-          <div className="flex items-start gap-2">
-            <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-muted-foreground space-y-1">
+        <div className="pt-5 border-t border-border/50">
+          <div className="flex items-start gap-2.5">
+            <Info className="h-4 w-4 text-muted-foreground/60 mt-0.5 flex-shrink-0" />
+            <div className="text-xs text-muted-foreground/70 space-y-1 leading-relaxed">
               {narrative.disclaimers.map((disclaimer, index) => (
                 <p key={index}>{disclaimer}</p>
               ))}

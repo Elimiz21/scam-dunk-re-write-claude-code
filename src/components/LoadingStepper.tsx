@@ -33,53 +33,67 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
   };
 
   const hasSubSteps = (step: Step) => step.subSteps && step.subSteps.length > 0;
+  const completedCount = steps.filter(s => s.status === "complete").length;
+  const progressPercent = (completedCount / steps.length) * 100;
 
   return (
-    <div className="space-y-4">
-      {/* Progress steps */}
-      <div className="space-y-3">
+    <div className="space-y-6">
+      {/* Overall progress bar */}
+      <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full gradient-brand transition-all duration-700 ease-out"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+
+      {/* Steps */}
+      <div className="space-y-2">
         {steps.map((step, index) => (
           <div key={index} className="space-y-1">
             <div
               className={cn(
-                "flex items-center gap-3",
-                hasSubSteps(step) && "cursor-pointer"
+                "flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200",
+                step.status === "loading" && "bg-primary/5",
+                hasSubSteps(step) && "cursor-pointer hover:bg-secondary/80"
               )}
               onClick={() => hasSubSteps(step) && toggleStep(index)}
             >
+              {/* Step indicator */}
               <div
                 className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors",
-                  step.status === "complete" && "bg-green-500 border-green-500",
-                  step.status === "loading" && "border-primary bg-primary/10",
-                  step.status === "pending" && "border-muted-foreground/30"
+                  "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-300",
+                  step.status === "complete" && "bg-emerald-500 shadow-sm shadow-emerald-500/25",
+                  step.status === "loading" && "gradient-brand shadow-sm shadow-primary/25",
+                  step.status === "pending" && "bg-secondary border border-border"
                 )}
               >
                 {step.status === "complete" ? (
-                  <Check className="h-4 w-4 text-white" />
+                  <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
                 ) : step.status === "loading" ? (
-                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
                 ) : (
-                  <span className="text-sm text-muted-foreground/50">{index + 1}</span>
+                  <span className="text-xs font-medium text-muted-foreground">{index + 1}</span>
                 )}
               </div>
+
+              {/* Label */}
               <div className="flex-1 flex items-center gap-2">
                 <span
                   className={cn(
-                    "text-sm transition-colors",
-                    step.status === "complete" && "text-green-600",
-                    step.status === "loading" && "text-primary font-medium",
+                    "text-sm transition-colors duration-200",
+                    step.status === "complete" && "text-emerald-600 dark:text-emerald-400 font-medium",
+                    step.status === "loading" && "text-foreground font-semibold",
                     step.status === "pending" && "text-muted-foreground/50"
                   )}
                 >
                   {step.label}
                 </span>
                 {hasSubSteps(step) && (
-                  <span className="text-muted-foreground/50">
+                  <span className="text-muted-foreground/40">
                     {expandedSteps.has(index) ? (
-                      <ChevronDown className="h-4 w-4" />
+                      <ChevronDown className="h-3.5 w-3.5" />
                     ) : (
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-3.5 w-3.5" />
                     )}
                   </span>
                 )}
@@ -88,35 +102,35 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
 
             {/* Step detail */}
             {step.detail && step.status !== "pending" && (
-              <div className="ml-11 text-xs text-muted-foreground animate-fade-in">
+              <div className="ml-12 text-xs text-muted-foreground animate-fade-in">
                 {step.detail}
               </div>
             )}
 
-            {/* Sub-steps (expandable) */}
+            {/* Sub-steps */}
             {hasSubSteps(step) && (step.status === "loading" || expandedSteps.has(index)) && (
-              <div className="ml-11 mt-2 space-y-1.5 animate-fade-in">
+              <div className="ml-12 mt-1 space-y-1 animate-fade-in">
                 {step.subSteps!.map((subStep, subIndex) => (
-                  <div key={subIndex} className="flex items-center gap-2">
+                  <div key={subIndex} className="flex items-center gap-2.5 py-1">
                     <div
                       className={cn(
-                        "flex h-4 w-4 items-center justify-center rounded-full border",
-                        subStep.status === "complete" && "bg-green-500 border-green-500",
-                        subStep.status === "loading" && "border-primary",
-                        subStep.status === "pending" && "border-muted-foreground/30"
+                        "flex h-5 w-5 items-center justify-center rounded-md transition-all duration-200",
+                        subStep.status === "complete" && "bg-emerald-500",
+                        subStep.status === "loading" && "gradient-brand",
+                        subStep.status === "pending" && "bg-secondary border border-border/50"
                       )}
                     >
                       {subStep.status === "complete" ? (
-                        <Check className="h-2.5 w-2.5 text-white" />
+                        <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
                       ) : subStep.status === "loading" ? (
-                        <Loader2 className="h-2.5 w-2.5 text-primary animate-spin" />
+                        <Loader2 className="h-2.5 w-2.5 text-white animate-spin" />
                       ) : null}
                     </div>
                     <span
                       className={cn(
                         "text-xs",
-                        subStep.status === "complete" && "text-green-600",
-                        subStep.status === "loading" && "text-primary",
+                        subStep.status === "complete" && "text-emerald-600 dark:text-emerald-400",
+                        subStep.status === "loading" && "text-foreground font-medium",
                         subStep.status === "pending" && "text-muted-foreground/40"
                       )}
                     >
@@ -130,10 +144,10 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
         ))}
       </div>
 
-      {/* Rotating humorous tip */}
+      {/* Rotating tip */}
       {currentTip && (
-        <div className="mt-6 p-3 rounded-lg bg-muted/50 border border-border/50 animate-fade-in">
-          <p className="text-sm text-muted-foreground italic text-center">
+        <div className="p-4 rounded-xl gradient-brand-subtle border border-primary/10 animate-fade-in">
+          <p className="text-sm text-muted-foreground text-center leading-relaxed">
             {currentTip}
           </p>
         </div>

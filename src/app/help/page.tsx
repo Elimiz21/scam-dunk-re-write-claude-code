@@ -15,7 +15,8 @@ import {
   Shield,
   TrendingUp,
   CreditCard,
-  AlertTriangle
+  AlertTriangle,
+  ArrowRight
 } from "lucide-react";
 
 interface FAQItem {
@@ -161,15 +162,15 @@ export default function HelpPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary rounded-2xl mb-6">
-                <HelpCircle className="h-8 w-8 text-primary" />
+            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+                <HelpCircle className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 Help & FAQ
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Find answers to common questions about using ScamDunk.
+                Find answers to common questions about using <span className="font-display italic">ScamDunk</span>.
               </p>
             </div>
 
@@ -204,11 +205,11 @@ export default function HelpPage() {
             </div>
 
             {/* FAQ List */}
-            <div className="space-y-3 mb-12">
+            <div className="space-y-3 mb-12 animate-slide-up">
               {filteredFAQs.map((faq, index) => (
                 <div
                   key={index}
-                  className="rounded-xl bg-card border border-border overflow-hidden"
+                  className="rounded-xl card-interactive overflow-hidden"
                 >
                   <button
                     onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
@@ -243,26 +244,28 @@ export default function HelpPage() {
             </div>
 
             {/* Still Need Help */}
-            <section className="mb-8">
-              <div className="p-6 rounded-xl bg-card border border-border text-center">
-                <MessageCircle className="h-8 w-8 text-primary mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">Still Need Help?</h2>
+            <section className="mb-8 animate-slide-up delay-1">
+              <div className="p-6 rounded-xl card-elevated text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 gradient-brand rounded-full mb-4">
+                  <MessageCircle className="h-6 w-6 text-white" />
+                </div>
+                <h2 className="text-xl font-semibold mb-2 font-display italic">Still Need Help?</h2>
                 <p className="text-muted-foreground mb-4">
                   Can&apos;t find what you&apos;re looking for? We&apos;re here to help.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Link
                     href="/contact"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full gradient-brand text-white font-medium hover:opacity-90 transition-smooth shadow-glow-sm"
                   >
                     <Mail className="h-4 w-4" />
                     Contact Us
                   </Link>
                   <Link
                     href="/about"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
                   >
-                    Learn About ScamDunk
+                    Learn About <span className="font-display italic ml-1">ScamDunk</span>
                     <ExternalLink className="h-4 w-4" />
                   </Link>
                 </div>
@@ -270,20 +273,29 @@ export default function HelpPage() {
             </section>
 
             {/* Quick Links */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">Quick Links</h2>
+            <section className="animate-fade-in delay-2">
+              <h2 className="text-lg font-semibold mb-4 font-display italic">Quick Links</h2>
               <div className="grid sm:grid-cols-3 gap-3">
-                <Link href="/how-it-works" className="p-4 rounded-xl bg-card border border-border hover:border-primary transition-colors group">
-                  <h3 className="font-medium mb-1 group-hover:text-primary transition-colors">How It Works</h3>
-                  <p className="text-sm text-muted-foreground">Detailed methodology</p>
+                <Link href="/how-it-works" className="p-4 rounded-xl card-interactive group flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">How It Works</h3>
+                    <p className="text-sm text-muted-foreground">Detailed methodology</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
                 </Link>
-                <Link href="/disclaimer" className="p-4 rounded-xl bg-card border border-border hover:border-primary transition-colors group">
-                  <h3 className="font-medium mb-1 group-hover:text-primary transition-colors">Disclaimer</h3>
-                  <p className="text-sm text-muted-foreground">Limitations & warnings</p>
+                <Link href="/disclaimer" className="p-4 rounded-xl card-interactive group flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">Disclaimer</h3>
+                    <p className="text-sm text-muted-foreground">Limitations & warnings</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
                 </Link>
-                <Link href="/account" className="p-4 rounded-xl bg-card border border-border hover:border-primary transition-colors group">
-                  <h3 className="font-medium mb-1 group-hover:text-primary transition-colors">Account Settings</h3>
-                  <p className="text-sm text-muted-foreground">Manage your account</p>
+                <Link href="/account" className="p-4 rounded-xl card-interactive group flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">Account Settings</h3>
+                    <p className="text-sm text-muted-foreground">Manage your account</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
                 </Link>
               </div>
             </section>
