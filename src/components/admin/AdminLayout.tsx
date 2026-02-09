@@ -29,6 +29,7 @@ import {
   UserCog,
   Headphones,
   Mail,
+  Home,
   LucideIcon,
 } from "lucide-react";
 
@@ -72,6 +73,7 @@ const navigationCategories: NavCategory[] = [
     name: "Content",
     icon: FileText,
     items: [
+      { name: "Homepage", href: "/admin/homepage", icon: Home },
       { name: "News", href: "/admin/news", icon: Newspaper },
       { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
     ],

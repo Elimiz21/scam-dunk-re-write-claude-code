@@ -13,6 +13,7 @@ import { LoadingStepper } from "@/components/LoadingStepper";
 import { Shield, TrendingUp, AlertTriangle, Zap, Sparkles, ArrowRight, BarChart3, Eye, Brain } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
 import { getRandomTagline, taglines } from "@/lib/taglines";
+import { LandingOptionA } from "@/components/landing/LandingOptionA";
 import { useToast } from "@/components/ui/toast";
 import { Step } from "@/components/LoadingStepper";
 
@@ -23,7 +24,13 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const { addToast } = useToast();
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Sidebar defaults closed for non-logged-in users (landing page)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Open sidebar once session is confirmed
+  useEffect(() => {
+    if (session) setSidebarOpen(true);
+  }, [session]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<RiskResponse | null>(null);
@@ -48,6 +55,23 @@ export default function HomePage() {
   ]);
   const [currentTip, setCurrentTip] = useState<string>("");
   const [tipIndex, setTipIndex] = useState(0);
+
+  // Homepage hero content from admin DB
+  const [heroContent, setHeroContent] = useState<{ headline?: string; subheadline?: string }>({});
+
+  // Fetch landing page hero content
+  useEffect(() => {
+    if (!session) {
+      fetch("/api/homepage")
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.isDefault) {
+            setHeroContent({ headline: data.headline, subheadline: data.subheadline });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [session]);
 
   // Get random tagline on mount (changes on refresh)
   const [tagline] = useState(() => getRandomTagline());
@@ -404,120 +428,55 @@ export default function HomePage() {
 
           {/* Welcome State (no result, not loading) */}
           {!result && !isLoading && !limitReached && (
-            <div className="flex-1 flex flex-col items-center p-4 pb-8 gradient-mesh overflow-y-auto">
-              <div className="text-center mb-8 mt-8 sm:mt-16 animate-fade-in">
-                {/* Brand icon */}
-                <div className="flex justify-center mb-6">
-                  <div className="relative">
-                    <div className="h-16 w-16 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/25 animate-gentle-float">
-                      <Shield className="h-8 w-8 text-white" strokeWidth={2} />
+            <>
+              {/* Logged-in users: simple welcome with ScanInput */}
+              {session ? (
+                <div className="flex-1 flex flex-col items-center p-4 pb-8 gradient-mesh overflow-y-auto">
+                  <div className="text-center mb-8 mt-8 sm:mt-16 animate-fade-in">
+                    <div className="flex justify-center mb-6">
+                      <div className="relative">
+                        <div className="h-16 w-16 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/25 animate-gentle-float">
+                          <Shield className="h-8 w-8 text-white" strokeWidth={2} />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                          <Eye className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
-                      <Eye className="h-2.5 w-2.5 text-white" />
+                    <h1 className="font-display text-hero-sm sm:text-hero mb-4 max-w-xl mx-auto italic">
+                      {tagline.headline}
+                    </h1>
+                    <p className="text-subtitle text-muted-foreground max-w-md mx-auto">
+                      {tagline.subtext}
+                    </p>
+                  </div>
+
+                  {error && (
+                    <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-sm max-w-md text-center animate-fade-in">
+                      <AlertTriangle className="h-4 w-4 inline mr-2" />
+                      {error}
                     </div>
+                  )}
+
+                  <div className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+                    <ScanInput
+                      onSubmit={handleSubmit}
+                      isLoading={isLoading}
+                      disabled={usage?.limitReached && !result}
+                    />
                   </div>
                 </div>
-
-                {/* Headline */}
-                <h1 className="font-display text-hero-sm sm:text-hero mb-4 max-w-xl mx-auto italic">
-                  {tagline.headline}
-                </h1>
-                <p className="text-subtitle text-muted-foreground max-w-md mx-auto">
-                  {tagline.subtext}
-                </p>
-              </div>
-
-              {/* Error message */}
-              {error && (
-                <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-sm max-w-md text-center animate-fade-in">
-                  <AlertTriangle className="h-4 w-4 inline mr-2" />
-                  {error}
-                </div>
-              )}
-
-              {/* Scan Input — moved up into main flow */}
-              <div className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in" style={{ animationDelay: "0.05s" }}>
-                <ScanInput
+              ) : status !== "loading" ? (
+                <LandingOptionA
                   onSubmit={handleSubmit}
                   isLoading={isLoading}
                   disabled={usage?.limitReached && !result}
+                  error={error}
+                  headline={heroContent.headline}
+                  subheadline={heroContent.subheadline}
                 />
-              </div>
-
-              {/* Features */}
-              {!session && status !== "loading" && (
-                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.15s" }}>
-                  <div className="card-interactive p-5 text-center group">
-                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
-                      <BarChart3 className="h-5 w-5 text-blue-500" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Market Analysis</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Price, volume, and market cap signals
-                    </p>
-                  </div>
-                  <div className="card-interactive p-5 text-center group">
-                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Red Flag Detection</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Pump-and-dump patterns identified
-                    </p>
-                  </div>
-                  <div className="card-interactive p-5 text-center group">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-200">
-                      <Brain className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">AI-Powered</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Smart analysis with suggestions
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Try It Out — moved to bottom */}
-              {!session && status !== "loading" && (
-                <div className="mb-8 animate-fade-in" style={{ animationDelay: "0.25s" }}>
-                  <p className="text-xs font-semibold text-muted-foreground text-center mb-3 uppercase tracking-wider">
-                    Try it out
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
-                      onClick={() => handleSubmit({ ticker: "AAPL", assetType: "stock" })}
-                    >
-                      <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                      AAPL
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
-                      onClick={() => handleSubmit({ ticker: "TSLA", assetType: "stock" })}
-                    >
-                      <TrendingUp className="h-3.5 w-3.5 text-blue-500" />
-                      TSLA
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
-                      onClick={() => handleSubmit({ ticker: "BTC", assetType: "crypto" })}
-                    >
-                      <Zap className="h-3.5 w-3.5 text-amber-500" />
-                      BTC
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
+              ) : null}
+            </>
           )}
         </main>
 
