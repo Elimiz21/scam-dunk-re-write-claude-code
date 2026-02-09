@@ -66,5 +66,14 @@ export default async function NewsPage() {
     }),
   ]);
 
-  return <NewsClient blogPosts={blogPosts} mediaMentions={mediaMentions} />;
+  const serializedPosts = blogPosts.map((post) => ({
+    ...post,
+    publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+  }));
+  const serializedMentions = mediaMentions.map((mention) => ({
+    ...mention,
+    mentionDate: mention.mentionDate ? mention.mentionDate.toISOString() : null,
+  }));
+
+  return <NewsClient blogPosts={serializedPosts} mediaMentions={serializedMentions} />;
 }

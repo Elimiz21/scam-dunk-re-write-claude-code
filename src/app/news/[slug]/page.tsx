@@ -82,5 +82,11 @@ export default async function BlogPostPage({ params }: { params: PageParams }) {
     notFound();
   }
 
-  return <BlogPostClient post={post} />;
+  const serializedPost = {
+    ...post,
+    publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+    updatedAt: post.updatedAt.toISOString(),
+  };
+
+  return <BlogPostClient post={serializedPost} />;
 }
