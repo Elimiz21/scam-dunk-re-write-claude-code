@@ -64,7 +64,7 @@ export default function DashboardPage() {
         <div className="animate-pulse space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white rounded-lg shadow h-32" />
+              <div key={i} className="bg-card rounded-2xl border border-border h-32" />
             ))}
           </div>
         </div>
@@ -104,12 +104,12 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Overview of Scam Dunk application metrics
+            <h1 className="text-2xl font-bold font-display italic text-foreground">Dashboard</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Overview of <span className="font-display italic">ScamDunk</span> application metrics
             </p>
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-muted-foreground">
             Last Updated: {new Date(metrics.lastUpdated).toLocaleString()}
           </div>
         </div>
@@ -188,17 +188,17 @@ export default function DashboardPage() {
 
         {/* User Breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">User Plan Breakdown</h3>
+          <div className="bg-card rounded-2xl shadow-sm p-6 border border-border">
+            <h3 className="text-lg font-medium font-display italic text-foreground mb-4">User Plan Breakdown</h3>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Free Users</span>
+                  <span className="text-muted-foreground">Free Users</span>
                   <span className="font-medium">{metrics.freeUsers}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-secondary rounded-full h-3">
                   <div
-                    className="bg-gray-500 h-3 rounded-full"
+                    className="bg-muted-foreground h-3 rounded-full"
                     style={{
                       width: `${(metrics.freeUsers / Math.max(metrics.totalUsers, 1)) * 100}%`,
                     }}
@@ -207,12 +207,12 @@ export default function DashboardPage() {
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Paid Users</span>
+                  <span className="text-muted-foreground">Paid Users</span>
                   <span className="font-medium">{metrics.paidUsers}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-secondary rounded-full h-3">
                   <div
-                    className="bg-indigo-500 h-3 rounded-full"
+                    className="bg-primary h-3 rounded-full"
                     style={{
                       width: `${(metrics.paidUsers / Math.max(metrics.totalUsers, 1)) * 100}%`,
                     }}
@@ -220,35 +220,35 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="pt-2 border-t">
-                <p className="text-sm text-gray-500">
-                  Conversion Rate: <span className="font-medium text-indigo-600">{conversionRate}%</span>
+                <p className="text-sm text-muted-foreground">
+                  Conversion Rate: <span className="font-medium text-primary">{conversionRate}%</span>
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Risk Detection Summary</h3>
+          <div className="bg-card rounded-2xl shadow-sm p-6 border border-border">
+            <h3 className="text-lg font-medium font-display italic text-foreground mb-4">Risk Detection Summary</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-green-50 rounded-lg p-4">
+              <div className="bg-emerald-500/10 rounded-2xl p-4">
                 <div className="flex items-center">
                   <div className="h-3 w-3 bg-green-500 rounded-full mr-2" />
-                  <span className="text-sm font-medium text-green-700">Low Risk</span>
+                  <span className="text-sm font-medium text-emerald-700">Low Risk</span>
                 </div>
-                <p className="mt-2 text-2xl font-bold text-green-900">
+                <p className="mt-2 text-2xl font-bold text-emerald-900">
                   {metrics.riskDistribution.low}
                 </p>
               </div>
-              <div className="bg-yellow-50 rounded-lg p-4">
+              <div className="bg-amber-500/10 rounded-2xl p-4">
                 <div className="flex items-center">
                   <div className="h-3 w-3 bg-yellow-500 rounded-full mr-2" />
-                  <span className="text-sm font-medium text-yellow-700">Medium Risk</span>
+                  <span className="text-sm font-medium text-amber-700">Medium Risk</span>
                 </div>
-                <p className="mt-2 text-2xl font-bold text-yellow-900">
+                <p className="mt-2 text-2xl font-bold text-amber-900">
                   {metrics.riskDistribution.medium}
                 </p>
               </div>
-              <div className="bg-red-50 rounded-lg p-4">
+              <div className="bg-red-500/10 rounded-2xl p-4">
                 <div className="flex items-center">
                   <AlertTriangle className="h-3 w-3 text-red-500 mr-2" />
                   <span className="text-sm font-medium text-red-700">High Risk</span>
@@ -257,12 +257,12 @@ export default function DashboardPage() {
                   {metrics.riskDistribution.high}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-secondary rounded-2xl p-4">
                 <div className="flex items-center">
-                  <div className="h-3 w-3 bg-gray-500 rounded-full mr-2" />
-                  <span className="text-sm font-medium text-gray-700">Insufficient</span>
+                  <div className="h-3 w-3 bg-muted-foreground rounded-full mr-2" />
+                  <span className="text-sm font-medium text-foreground">Insufficient</span>
                 </div>
-                <p className="mt-2 text-2xl font-bold text-gray-900">
+                <p className="mt-2 text-2xl font-bold text-foreground">
                   {metrics.riskDistribution.insufficient}
                 </p>
               </div>

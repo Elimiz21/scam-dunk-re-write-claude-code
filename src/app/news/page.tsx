@@ -15,6 +15,7 @@ import {
     Newspaper,
     Users,
     MessageCircle,
+    Eye,
 } from "lucide-react";
 
 interface BlogPost {
@@ -137,6 +138,12 @@ export default function NewsPage() {
                 <main className="flex-1 px-4 py-8 max-w-7xl mx-auto w-full">
                     {/* Hero Section */}
                     <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
+                        <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+                            <Newspaper className="h-8 w-8 text-white" />
+                            <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                                <Eye className="h-2.5 w-2.5 text-white" />
+                            </div>
+                        </div>
                         <h1 className="text-4xl font-bold mb-4 font-display italic">News & Updates</h1>
                         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                             Stay informed with the latest from <span className="font-display italic">ScamDunk</span>. Read our blog for security tips,
@@ -154,7 +161,7 @@ export default function NewsPage() {
                             <section className="animate-slide-up">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-2xl font-bold flex items-center gap-2 font-display italic">
-                                        <span className="inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-full"><FileText className="h-5 w-5 text-white" /></span>
+                                        <span className="inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-2xl"><FileText className="h-5 w-5 text-white" /></span>
                                         <span className="font-display italic">ScamDunk</span> Blog
                                     </h2>
                                 </div>
@@ -237,7 +244,7 @@ export default function NewsPage() {
                             <section className="animate-slide-up delay-1">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-2xl font-bold flex items-center gap-2 font-display italic">
-                                        <span className="inline-flex items-center justify-center w-10 h-10 bg-yellow-500 rounded-full"><Star className="h-5 w-5 text-white" /></span>
+                                        <span className="inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-2xl"><Star className="h-5 w-5 text-white" /></span>
                                         <span className="font-display italic">ScamDunk</span> in the News
                                     </h2>
                                 </div>

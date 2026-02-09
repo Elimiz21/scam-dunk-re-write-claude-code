@@ -35,8 +35,11 @@ export default function PrivacyPolicyPage() {
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
             <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
                 <Shield className="h-8 w-8 text-white" />
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                  <Eye className="h-2.5 w-2.5 text-white" />
+                </div>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 Privacy Policy
@@ -61,7 +64,7 @@ export default function PrivacyPolicyPage() {
             {/* Information We Collect */}
             <section className="mb-8 animate-slide-up delay-1">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Database className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Database className="h-4 w-4 text-white" /></span>
                 Information We Collect
               </h2>
 
@@ -96,7 +99,7 @@ export default function PrivacyPolicyPage() {
             {/* How We Use Information */}
             <section className="mb-8 animate-fade-in delay-2">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Eye className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Eye className="h-4 w-4 text-white" /></span>
                 How We Use Your Information
               </h2>
 
@@ -133,7 +136,7 @@ export default function PrivacyPolicyPage() {
             {/* Data Sharing */}
             <section className="mb-8 animate-fade-in delay-3">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Users className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Users className="h-4 w-4 text-white" /></span>
                 How We Share Information
               </h2>
 
@@ -159,7 +162,7 @@ export default function PrivacyPolicyPage() {
             {/* Data Security */}
             <section className="mb-8 animate-fade-in delay-4">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Lock className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Lock className="h-4 w-4 text-white" /></span>
                 Data Security
               </h2>
 
@@ -205,7 +208,7 @@ export default function PrivacyPolicyPage() {
             {/* Your Rights */}
             <section className="mb-8 animate-fade-in">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Shield className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Shield className="h-4 w-4 text-white" /></span>
                 Your Privacy Rights
               </h2>
 
@@ -239,7 +242,7 @@ export default function PrivacyPolicyPage() {
             {/* Cookies */}
             <section className="mb-8 animate-fade-in">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Globe className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Globe className="h-4 w-4 text-white" /></span>
                 Cookies
               </h2>
 
@@ -263,7 +266,7 @@ export default function PrivacyPolicyPage() {
             {/* Changes */}
             <section className="mb-8 animate-fade-in">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Bell className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Bell className="h-4 w-4 text-white" /></span>
                 Policy Changes
               </h2>
 
@@ -278,7 +281,7 @@ export default function PrivacyPolicyPage() {
             {/* Contact */}
             <section className="mb-8 animate-fade-in">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Trash2 className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Trash2 className="h-4 w-4 text-white" /></span>
                 Contact & Data Requests
               </h2>
 

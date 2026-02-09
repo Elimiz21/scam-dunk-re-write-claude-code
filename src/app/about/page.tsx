@@ -14,7 +14,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  ArrowRight
+  ArrowRight,
+  Eye
 } from "lucide-react";
 
 export default function AboutPage() {
@@ -37,8 +38,11 @@ export default function AboutPage() {
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
             <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
                 <Shield className="h-8 w-8 text-white" />
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                  <Eye className="h-2.5 w-2.5 text-white" />
+                </div>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 About <span className="font-display italic">ScamDunk</span>
@@ -53,7 +57,7 @@ export default function AboutPage() {
             <section className="mb-12 animate-slide-up">
               <div className="p-6 rounded-xl card-elevated">
                 <h2 className="text-xl font-semibold mb-3 flex items-center gap-2 font-display italic">
-                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Shield className="h-4 w-4 text-white" /></span>
+                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Shield className="h-4 w-4 text-white" /></span>
                   Our Mission
                 </h2>
                 <p className="text-muted-foreground">
@@ -68,7 +72,7 @@ export default function AboutPage() {
             {/* How Scans Work */}
             <section className="mb-12 animate-slide-up delay-1">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><BarChart3 className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><BarChart3 className="h-4 w-4 text-white" /></span>
                 How Our Scans Work
               </h2>
 
@@ -113,7 +117,7 @@ export default function AboutPage() {
             {/* Coverage Section */}
             <section className="mb-12 animate-slide-up delay-2">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Globe className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Globe className="h-4 w-4 text-white" /></span>
                 Coverage
               </h2>
 
@@ -173,7 +177,7 @@ export default function AboutPage() {
             {/* Results Explanation */}
             <section className="mb-12 animate-slide-up delay-3">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><AlertTriangle className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><AlertTriangle className="h-4 w-4 text-white" /></span>
                 Understanding Results
               </h2>
 
@@ -204,7 +208,7 @@ export default function AboutPage() {
             {/* Data Sources */}
             <section className="mb-12 animate-fade-in delay-4">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Database className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Database className="h-4 w-4 text-white" /></span>
                 Our Data Sources
               </h2>
 

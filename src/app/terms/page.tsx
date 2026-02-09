@@ -12,7 +12,8 @@ import {
   CreditCard,
   XCircle,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from "lucide-react";
 
 export default function TermsOfServicePage() {
@@ -35,8 +36,11 @@ export default function TermsOfServicePage() {
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
             <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
                 <FileText className="h-8 w-8 text-white" />
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                  <Eye className="h-2.5 w-2.5 text-white" />
+                </div>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 Terms of Service
@@ -61,7 +65,7 @@ export default function TermsOfServicePage() {
             {/* Service Description */}
             <section className="mb-8 animate-slide-up delay-1">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Shield className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Shield className="h-4 w-4 text-white" /></span>
                 Service Description
               </h2>
 
@@ -106,7 +110,7 @@ export default function TermsOfServicePage() {
             {/* Subscription Terms */}
             <section className="mb-8 animate-fade-in delay-3">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><CreditCard className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><CreditCard className="h-4 w-4 text-white" /></span>
                 Subscription & Payment
               </h2>
 
@@ -136,7 +140,7 @@ export default function TermsOfServicePage() {
             {/* Acceptable Use */}
             <section className="mb-8 animate-fade-in delay-4">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 bg-green-500 rounded-full"><CheckCircle className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><CheckCircle className="h-4 w-4 text-white" /></span>
                 Acceptable Use
               </h2>
 
@@ -174,7 +178,7 @@ export default function TermsOfServicePage() {
             {/* Disclaimers */}
             <section className="mb-8 animate-fade-in delay-5">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 bg-destructive rounded-full"><AlertTriangle className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><AlertTriangle className="h-4 w-4 text-white" /></span>
                 Disclaimers
               </h2>
 
@@ -195,7 +199,7 @@ export default function TermsOfServicePage() {
             {/* Limitation of Liability */}
             <section className="mb-8 animate-fade-in">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Scale className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Scale className="h-4 w-4 text-white" /></span>
                 Limitation of Liability
               </h2>
 
@@ -242,7 +246,7 @@ export default function TermsOfServicePage() {
             {/* Modifications */}
             <section className="mb-8 animate-fade-in">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><RefreshCw className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><RefreshCw className="h-4 w-4 text-white" /></span>
                 Service Modifications
               </h2>
 

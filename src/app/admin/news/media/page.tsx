@@ -132,20 +132,20 @@ export default function AdminMediaListPage() {
                     <div className="flex items-center">
                         <Link
                             href="/admin/news"
-                            className="mr-4 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                            className="mr-4 p-2 text-muted-foreground hover:text-muted-foreground rounded-2xl hover:bg-secondary"
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Media Mentions</h1>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <h1 className="text-2xl font-bold text-foreground">Media Mentions</h1>
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Track press coverage and community shoutouts
                             </p>
                         </div>
                     </div>
                     <Link
                         href="/admin/news/media/new"
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-2xl hover:bg-purple-700 transition-colors"
                     >
                         <Plus className="h-4 w-4 mr-2" />
                         New Mention
@@ -153,22 +153,22 @@ export default function AdminMediaListPage() {
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white rounded-lg shadow p-4">
+                <div className="bg-card rounded-2xl shadow p-4">
                     <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                             <input
                                 type="text"
                                 placeholder="Search mentions..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                className="w-full pl-10 pr-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                             />
                         </div>
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            className="px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         >
                             <option value="all">All Types</option>
                             <option value="NEWS_OUTLET">News Outlets</option>
@@ -179,13 +179,13 @@ export default function AdminMediaListPage() {
                 </div>
 
                 {/* Mentions Table */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="bg-card rounded-2xl shadow overflow-hidden">
                     {loading ? (
                         <div className="p-8 text-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
                         </div>
                     ) : filteredMentions.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">
+                        <div className="p-8 text-center text-muted-foreground">
                             <p>No media mentions found</p>
                             <Link
                                 href="/admin/news/media/new"
@@ -196,37 +196,37 @@ export default function AdminMediaListPage() {
                             </Link>
                         </div>
                     ) : (
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-border">
+                            <thead className="bg-secondary/50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Title / Source
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Type
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Date
                                     </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-card divide-y divide-border">
                                 {filteredMentions.map((mention) => (
-                                    <tr key={mention.id} className="hover:bg-gray-50">
+                                    <tr key={mention.id} className="hover:bg-secondary">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
                                                 {mention.isFeatured && (
                                                     <Star className="h-4 w-4 text-yellow-500 mr-2 fill-yellow-500" />
                                                 )}
                                                 <div>
-                                                    <p className="font-medium text-gray-900">{mention.title}</p>
-                                                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                    <p className="font-medium text-foreground">{mention.title}</p>
+                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                         <span>{mention.source}</span>
                                                         {mention.sourceUrl && (
                                                             <a
@@ -244,7 +244,7 @@ export default function AdminMediaListPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span
-                                                className={`px-2 py-1 text-xs font-medium rounded-full ${SOURCE_TYPE_COLORS[mention.sourceType] || "bg-gray-100 text-gray-800"
+                                                className={`px-2 py-1 text-xs font-medium rounded-full ${SOURCE_TYPE_COLORS[mention.sourceType] || "bg-secondary text-foreground"
                                                     }`}
                                             >
                                                 {SOURCE_TYPE_LABELS[mention.sourceType] || mention.sourceType}
@@ -270,7 +270,7 @@ export default function AdminMediaListPage() {
                                                 )}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                        <td className="px-6 py-4 text-sm text-muted-foreground">
                                             {mention.mentionDate
                                                 ? formatDate(mention.mentionDate)
                                                 : formatDate(mention.createdAt)}
@@ -278,9 +278,9 @@ export default function AdminMediaListPage() {
                                         <td className="px-6 py-4 text-right space-x-2">
                                             <button
                                                 onClick={() => toggleFeatured(mention.id, mention.isFeatured)}
-                                                className={`inline-flex items-center p-1.5 rounded-lg ${mention.isFeatured
+                                                className={`inline-flex items-center p-1.5 rounded-2xl ${mention.isFeatured
                                                         ? "text-yellow-500 hover:bg-yellow-50"
-                                                        : "text-gray-400 hover:text-yellow-500 hover:bg-yellow-50"
+                                                        : "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-50"
                                                     }`}
                                                 title={mention.isFeatured ? "Remove from featured" : "Add to featured"}
                                             >
@@ -288,7 +288,7 @@ export default function AdminMediaListPage() {
                                             </button>
                                             <button
                                                 onClick={() => togglePublish(mention.id, mention.isPublished)}
-                                                className="inline-flex items-center p-1.5 text-gray-400 hover:text-purple-600 rounded-lg hover:bg-purple-50"
+                                                className="inline-flex items-center p-1.5 text-muted-foreground hover:text-purple-600 rounded-2xl hover:bg-purple-50"
                                                 title={mention.isPublished ? "Unpublish" : "Publish"}
                                             >
                                                 {mention.isPublished ? (
@@ -299,14 +299,14 @@ export default function AdminMediaListPage() {
                                             </button>
                                             <Link
                                                 href={`/admin/news/media/${mention.id}`}
-                                                className="inline-flex items-center p-1.5 text-gray-400 hover:text-purple-600 rounded-lg hover:bg-purple-50"
+                                                className="inline-flex items-center p-1.5 text-muted-foreground hover:text-purple-600 rounded-2xl hover:bg-purple-50"
                                                 title="Edit"
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </Link>
                                             <button
                                                 onClick={() => deleteMention(mention.id)}
-                                                className="inline-flex items-center p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"
+                                                className="inline-flex items-center p-1.5 text-muted-foreground hover:text-red-600 rounded-2xl hover:bg-red-50"
                                                 title="Delete"
                                             >
                                                 <Trash2 className="h-4 w-4" />
