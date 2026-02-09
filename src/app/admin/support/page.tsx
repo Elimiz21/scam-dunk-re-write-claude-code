@@ -105,7 +105,7 @@ const categoryLabels: Record<string, { label: string; icon: React.ReactNode; col
   BUG_REPORT: { label: "Bug Report", icon: <Bug className="h-4 w-4" />, color: "text-red-600" },
   FEATURE_REQUEST: { label: "Feature Request", icon: <MessageSquare className="h-4 w-4" />, color: "text-purple-600" },
   BILLING: { label: "Billing", icon: <CreditCard className="h-4 w-4" />, color: "text-green-600" },
-  OTHER: { label: "Other", icon: <Mail className="h-4 w-4" />, color: "text-gray-600" },
+  OTHER: { label: "Other", icon: <Mail className="h-4 w-4" />, color: "text-muted-foreground" },
 };
 
 const statusColors: Record<string, string> = {
@@ -114,11 +114,11 @@ const statusColors: Record<string, string> = {
   IN_PROGRESS: "bg-purple-100 text-purple-800",
   WAITING_ON_USER: "bg-orange-100 text-orange-800",
   RESOLVED: "bg-green-100 text-green-800",
-  CLOSED: "bg-gray-100 text-gray-800",
+  CLOSED: "bg-secondary text-foreground",
 };
 
 const priorityColors: Record<string, string> = {
-  LOW: "bg-gray-100 text-gray-800",
+  LOW: "bg-secondary text-foreground",
   NORMAL: "bg-blue-100 text-blue-800",
   HIGH: "bg-orange-100 text-orange-800",
   URGENT: "bg-red-100 text-red-800",
@@ -249,7 +249,7 @@ export default function SupportPage() {
 
   function getStatusBadge(status: string) {
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status] || "bg-gray-100 text-gray-800"}`}>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status] || "bg-secondary text-foreground"}`}>
         {status.replace(/_/g, " ")}
       </span>
     );
@@ -258,7 +258,7 @@ export default function SupportPage() {
   function getPriorityBadge(priority: string) {
     const Icon = priority === "URGENT" ? AlertTriangle : priority === "HIGH" ? ArrowUp : priority === "LOW" ? ArrowDown : null;
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityColors[priority] || "bg-gray-100 text-gray-800"}`}>
+      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityColors[priority] || "bg-secondary text-foreground"}`}>
         {Icon && <Icon className="h-3 w-3" />}
         {priority}
       </span>
@@ -266,7 +266,7 @@ export default function SupportPage() {
   }
 
   function getCategoryBadge(category: string) {
-    const cat = categoryLabels[category] || { label: category, icon: <Mail className="h-4 w-4" />, color: "text-gray-600" };
+    const cat = categoryLabels[category] || { label: category, icon: <Mail className="h-4 w-4" />, color: "text-muted-foreground" };
     return (
       <span className={`inline-flex items-center gap-1 text-sm ${cat.color}`}>
         {cat.icon}
@@ -296,8 +296,8 @@ export default function SupportPage() {
       header: "Ticket",
       render: (item: Ticket) => (
         <div className="max-w-xs">
-          <p className="font-medium text-gray-900 truncate">{item.subject}</p>
-          <p className="text-sm text-gray-500 truncate">{item.name} &lt;{item.email}&gt;</p>
+          <p className="font-medium text-foreground truncate">{item.subject}</p>
+          <p className="text-sm text-muted-foreground truncate">{item.name} &lt;{item.email}&gt;</p>
         </div>
       ),
     },
@@ -320,14 +320,14 @@ export default function SupportPage() {
       key: "responseCount",
       header: "Replies",
       render: (item: Ticket) => (
-        <span className="text-gray-600">{item.responseCount}</span>
+        <span className="text-muted-foreground">{item.responseCount}</span>
       ),
     },
     {
       key: "createdAt",
       header: "Created",
       render: (item: Ticket) => (
-        <span className="text-gray-500 text-sm">{formatDate(item.createdAt)}</span>
+        <span className="text-muted-foreground text-sm">{formatDate(item.createdAt)}</span>
       ),
     },
     {
@@ -337,7 +337,7 @@ export default function SupportPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => fetchTicketDetails(item.id)}
-            className="p-1 text-gray-400 hover:text-indigo-600 rounded"
+            className="p-1 text-muted-foreground hover:text-primary rounded"
             title="View details"
           >
             <Eye className="h-4 w-4" />
@@ -345,21 +345,21 @@ export default function SupportPage() {
           <div className="relative">
             <button
               onClick={() => setMenuOpen(menuOpen === item.id ? null : item.id)}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded"
+              className="p-1 text-muted-foreground hover:text-muted-foreground rounded"
             >
               <MoreVertical className="h-4 w-4" />
             </button>
             {menuOpen === item.id && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-10">
                 <div className="py-1">
-                  <div className="px-4 py-2 text-xs text-gray-500 uppercase">Status</div>
+                  <div className="px-4 py-2 text-xs text-muted-foreground uppercase">Status</div>
                   {["NEW", "OPEN", "IN_PROGRESS", "WAITING_ON_USER", "RESOLVED", "CLOSED"].map((status) => (
                     <button
                       key={status}
                       onClick={() => performAction(item.id, "updateStatus", status)}
                       disabled={actionLoading || item.status === status}
-                      className={`flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 ${
-                        item.status === status ? "text-gray-400" : "text-gray-700"
+                      className={`flex items-center w-full px-4 py-2 text-sm hover:bg-secondary ${
+                        item.status === status ? "text-muted-foreground" : "text-foreground"
                       }`}
                     >
                       {status.replace(/_/g, " ")}
@@ -367,14 +367,14 @@ export default function SupportPage() {
                     </button>
                   ))}
                   <hr className="my-1" />
-                  <div className="px-4 py-2 text-xs text-gray-500 uppercase">Priority</div>
+                  <div className="px-4 py-2 text-xs text-muted-foreground uppercase">Priority</div>
                   {["LOW", "NORMAL", "HIGH", "URGENT"].map((priority) => (
                     <button
                       key={priority}
                       onClick={() => performAction(item.id, "updatePriority", priority)}
                       disabled={actionLoading || item.priority === priority}
-                      className={`flex items-center w-full px-4 py-2 text-sm hover:bg-gray-100 ${
-                        item.priority === priority ? "text-gray-400" : "text-gray-700"
+                      className={`flex items-center w-full px-4 py-2 text-sm hover:bg-secondary ${
+                        item.priority === priority ? "text-muted-foreground" : "text-foreground"
                       }`}
                     >
                       {priority}
@@ -396,14 +396,14 @@ export default function SupportPage() {
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Customer Support</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">Customer Support</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Manage support tickets and user feedback
             </p>
           </div>
           <button
             onClick={() => fetchTickets()}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground bg-card border border-border rounded-md hover:bg-secondary"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -445,28 +445,28 @@ export default function SupportPage() {
         {/* Category Stats */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg border p-4">
+            <div className="bg-card rounded-2xl border p-4">
               <div className="flex items-center gap-2 text-blue-600 mb-1">
                 <HelpCircle className="h-4 w-4" />
                 <span className="text-sm font-medium">Support</span>
               </div>
               <p className="text-2xl font-bold">{stats.byCategory.support}</p>
             </div>
-            <div className="bg-white rounded-lg border p-4">
+            <div className="bg-card rounded-2xl border p-4">
               <div className="flex items-center gap-2 text-yellow-600 mb-1">
                 <Lightbulb className="h-4 w-4" />
                 <span className="text-sm font-medium">Feedback</span>
               </div>
               <p className="text-2xl font-bold">{stats.byCategory.feedback}</p>
             </div>
-            <div className="bg-white rounded-lg border p-4">
+            <div className="bg-card rounded-2xl border p-4">
               <div className="flex items-center gap-2 text-red-600 mb-1">
                 <Bug className="h-4 w-4" />
                 <span className="text-sm font-medium">Bug Reports</span>
               </div>
               <p className="text-2xl font-bold">{stats.byCategory.bugReport}</p>
             </div>
-            <div className="bg-white rounded-lg border p-4">
+            <div className="bg-card rounded-2xl border p-4">
               <div className="flex items-center gap-2 text-purple-600 mb-1">
                 <MessageSquare className="h-4 w-4" />
                 <span className="text-sm font-medium">Feature Requests</span>
@@ -479,20 +479,20 @@ export default function SupportPage() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search by email, name, subject, or ticket ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-md focus:ring-primary focus:border-primary/50"
             />
           </div>
           <div className="flex gap-2">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="border border-border rounded-md px-3 py-2 text-sm"
             >
               <option value="">All Status</option>
               <option value="NEW">New</option>
@@ -505,7 +505,7 @@ export default function SupportPage() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="border border-border rounded-md px-3 py-2 text-sm"
             >
               <option value="">All Categories</option>
               <option value="SUPPORT">Technical Support</option>
@@ -518,7 +518,7 @@ export default function SupportPage() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="border border-border rounded-md px-3 py-2 text-sm"
             >
               <option value="">All Priorities</option>
               <option value="LOW">Low</option>
@@ -544,20 +544,20 @@ export default function SupportPage() {
         {/* Ticket Details Modal */}
         {selectedTicket && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+            <div className="bg-card rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="sticky top-0 bg-card border-b px-6 py-4 flex justify-between items-center">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Ticket Details</h3>
-                  <p className="text-sm text-gray-500 font-mono">{selectedTicket.ticket.id}</p>
+                  <h3 className="text-lg font-medium text-foreground">Ticket Details</h3>
+                  <p className="text-sm text-muted-foreground font-mono">{selectedTicket.ticket.id}</p>
                 </div>
-                <button onClick={() => setSelectedTicket(null)} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => setSelectedTicket(null)} className="text-muted-foreground hover:text-muted-foreground">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               {loadingTicket ? (
                 <div className="p-6 flex justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto">
@@ -566,17 +566,17 @@ export default function SupportPage() {
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div>
-                          <p className="text-sm text-gray-500">Subject</p>
+                          <p className="text-sm text-muted-foreground">Subject</p>
                           <p className="font-medium text-lg">{selectedTicket.ticket.subject}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm text-gray-500">From</p>
+                            <p className="text-sm text-muted-foreground">From</p>
                             <p className="font-medium">{selectedTicket.ticket.name}</p>
-                            <p className="text-sm text-gray-600">{selectedTicket.ticket.email}</p>
+                            <p className="text-sm text-muted-foreground">{selectedTicket.ticket.email}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Created</p>
+                            <p className="text-sm text-muted-foreground">Created</p>
                             <p className="font-medium">{new Date(selectedTicket.ticket.createdAt).toLocaleString()}</p>
                           </div>
                         </div>
@@ -588,7 +588,7 @@ export default function SupportPage() {
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <p className="text-sm text-gray-500 mb-2">Quick Actions</p>
+                          <p className="text-sm text-muted-foreground mb-2">Quick Actions</p>
                           <div className="flex flex-wrap gap-2">
                             {selectedTicket.ticket.status !== "RESOLVED" && (
                               <button
@@ -624,7 +624,7 @@ export default function SupportPage() {
                         </div>
                         {selectedTicket.ticket.assignedAdmin && (
                           <div>
-                            <p className="text-sm text-gray-500">Assigned To</p>
+                            <p className="text-sm text-muted-foreground">Assigned To</p>
                             <p className="font-medium">
                               {selectedTicket.ticket.assignedAdmin.name || selectedTicket.ticket.assignedAdmin.email}
                             </p>
@@ -635,32 +635,32 @@ export default function SupportPage() {
 
                     {/* Original Message */}
                     <div className="border-t pt-4">
-                      <p className="text-sm text-gray-500 mb-2">Original Message</p>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-gray-700 whitespace-pre-wrap">{selectedTicket.ticket.message}</p>
+                      <p className="text-sm text-muted-foreground mb-2">Original Message</p>
+                      <div className="bg-secondary/50 rounded-2xl p-4">
+                        <p className="text-foreground whitespace-pre-wrap">{selectedTicket.ticket.message}</p>
                       </div>
                     </div>
 
                     {/* Conversation Thread */}
                     {selectedTicket.ticket.responses.length > 0 && (
                       <div className="border-t pt-4">
-                        <p className="text-sm text-gray-500 mb-3">Conversation ({selectedTicket.ticket.responses.length} replies)</p>
+                        <p className="text-sm text-muted-foreground mb-3">Conversation ({selectedTicket.ticket.responses.length} replies)</p>
                         <div className="space-y-4">
                           {selectedTicket.ticket.responses.map((response) => (
                             <div
                               key={response.id}
-                              className={`p-4 rounded-lg ${
-                                response.isFromAdmin ? "bg-indigo-50 ml-4" : "bg-gray-50 mr-4"
+                              className={`p-4 rounded-2xl ${
+                                response.isFromAdmin ? "bg-primary/5 ml-4" : "bg-secondary/50 mr-4"
                               }`}
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <div className="flex items-center gap-2">
                                   {response.isFromAdmin ? (
-                                    <span className="text-sm font-medium text-indigo-700">
+                                    <span className="text-sm font-medium text-primary">
                                       {response.responderName || "Support Team"}
                                     </span>
                                   ) : (
-                                    <span className="text-sm font-medium text-gray-700">
+                                    <span className="text-sm font-medium text-foreground">
                                       {selectedTicket.ticket.name}
                                     </span>
                                   )}
@@ -671,11 +671,11 @@ export default function SupportPage() {
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-muted-foreground">
                                   {new Date(response.createdAt).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="text-gray-700 whitespace-pre-wrap">{response.message}</p>
+                              <p className="text-foreground whitespace-pre-wrap">{response.message}</p>
                             </div>
                           ))}
                         </div>
@@ -684,28 +684,28 @@ export default function SupportPage() {
 
                     {/* Reply Form */}
                     <div className="border-t pt-4">
-                      <p className="text-sm text-gray-500 mb-2">Send a Reply</p>
+                      <p className="text-sm text-muted-foreground mb-2">Send a Reply</p>
                       <textarea
                         value={responseText}
                         onChange={(e) => setResponseText(e.target.value)}
                         rows={4}
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full border border-border rounded-2xl p-3 focus:ring-primary focus:border-primary/50"
                         placeholder="Type your response..."
                       />
                       <div className="flex items-center justify-between mt-3">
-                        <label className="flex items-center gap-2 text-sm text-gray-600">
+                        <label className="flex items-center gap-2 text-sm text-muted-foreground">
                           <input
                             type="checkbox"
                             checked={sendEmail}
                             onChange={(e) => setSendEmail(e.target.checked)}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            className="rounded border-border text-primary focus:ring-primary"
                           />
                           Send email notification to user
                         </label>
                         <button
                           onClick={() => sendResponse(selectedTicket.ticket.id)}
                           disabled={actionLoading || !responseText.trim()}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                          className="inline-flex items-center gap-2 px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
                         >
                           {actionLoading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -720,9 +720,9 @@ export default function SupportPage() {
                     {/* Internal Notes */}
                     {selectedTicket.ticket.internalNotes && (
                       <div className="border-t pt-4">
-                        <p className="text-sm text-gray-500 mb-2">Internal Notes</p>
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                          <p className="text-gray-700 whitespace-pre-wrap text-sm">{selectedTicket.ticket.internalNotes}</p>
+                        <p className="text-sm text-muted-foreground mb-2">Internal Notes</p>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
+                          <p className="text-foreground whitespace-pre-wrap text-sm">{selectedTicket.ticket.internalNotes}</p>
                         </div>
                       </div>
                     )}

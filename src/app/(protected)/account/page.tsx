@@ -562,7 +562,7 @@ function AccountContent() {
             <Card className="border-primary gradient-brand-subtle">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display italic">
-                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Zap className="h-4 w-4 text-white" /></span>
+                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Zap className="h-4 w-4 text-white" /></span>
                   Upgrade to Pro
                 </CardTitle>
               </CardHeader>

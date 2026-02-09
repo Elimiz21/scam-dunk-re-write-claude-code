@@ -46,8 +46,8 @@ export default function AdminNewsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">News Management</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">News Management</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Manage blog posts and media mentions
             </p>
           </div>
@@ -56,17 +56,17 @@ export default function AdminNewsPage() {
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Blog Posts Card */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-2xl shadow p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
-                <div className="p-3 bg-indigo-100 rounded-lg">
-                  <FileText className="h-6 w-6 text-indigo-600" />
+                <div className="p-3 bg-primary/10 rounded-2xl">
+                  <FileText className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="ml-4 text-lg font-semibold text-gray-900">Blog Posts</h2>
+                <h2 className="ml-4 text-lg font-semibold text-foreground">Blog Posts</h2>
               </div>
               <Link
                 href="/admin/news/blog/new"
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary bg-primary/5 rounded-md hover:bg-primary/10 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 New Post
@@ -74,34 +74,34 @@ export default function AdminNewsPage() {
             </div>
             {loading ? (
               <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-4 bg-secondary rounded w-1/2"></div>
+                <div className="h-4 bg-secondary rounded w-1/3"></div>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-foreground">
                     {stats?.blogPosts.total || 0}
                   </p>
-                  <p className="text-sm text-gray-500">Total</p>
+                  <p className="text-sm text-muted-foreground">Total</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-green-600">
                     {stats?.blogPosts.published || 0}
                   </p>
-                  <p className="text-sm text-gray-500">Published</p>
+                  <p className="text-sm text-muted-foreground">Published</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-yellow-600">
                     {stats?.blogPosts.drafts || 0}
                   </p>
-                  <p className="text-sm text-gray-500">Drafts</p>
+                  <p className="text-sm text-muted-foreground">Drafts</p>
                 </div>
               </div>
             )}
             <Link
               href="/admin/news/blog"
-              className="mt-4 inline-flex items-center text-sm text-indigo-600 hover:text-indigo-700"
+              className="mt-4 inline-flex items-center text-sm text-primary hover:text-primary/80"
             >
               Manage Blog Posts
               <ArrowRight className="ml-1 h-4 w-4" />
@@ -109,13 +109,13 @@ export default function AdminNewsPage() {
           </div>
 
           {/* Media Mentions Card */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-2xl shadow p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
-                <div className="p-3 bg-purple-100 rounded-lg">
+                <div className="p-3 bg-purple-100 rounded-2xl">
                   <Megaphone className="h-6 w-6 text-purple-600" />
                 </div>
-                <h2 className="ml-4 text-lg font-semibold text-gray-900">Media Mentions</h2>
+                <h2 className="ml-4 text-lg font-semibold text-foreground">Media Mentions</h2>
               </div>
               <Link
                 href="/admin/news/media/new"
@@ -127,28 +127,28 @@ export default function AdminNewsPage() {
             </div>
             {loading ? (
               <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-4 bg-secondary rounded w-1/2"></div>
+                <div className="h-4 bg-secondary rounded w-1/3"></div>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-foreground">
                     {stats?.mediaMentions.total || 0}
                   </p>
-                  <p className="text-sm text-gray-500">Total</p>
+                  <p className="text-sm text-muted-foreground">Total</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-green-600">
                     {stats?.mediaMentions.published || 0}
                   </p>
-                  <p className="text-sm text-gray-500">Published</p>
+                  <p className="text-sm text-muted-foreground">Published</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-yellow-600">
                     {stats?.mediaMentions.featured || 0}
                   </p>
-                  <p className="text-sm text-gray-500">Featured</p>
+                  <p className="text-sm text-muted-foreground">Featured</p>
                 </div>
               </div>
             )}
@@ -163,36 +163,36 @@ export default function AdminNewsPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="bg-card rounded-2xl shadow p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
               href="/admin/news/blog/new"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors"
+              className="flex items-center p-4 border border-border rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-colors"
             >
-              <FileText className="h-5 w-5 text-indigo-600 mr-3" />
-              <span className="font-medium text-gray-900">Write New Blog Post</span>
+              <FileText className="h-5 w-5 text-primary mr-3" />
+              <span className="font-medium text-foreground">Write New Blog Post</span>
             </Link>
             <Link
               href="/admin/news/media/new"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
+              className="flex items-center p-4 border border-border rounded-2xl hover:border-purple-500 hover:bg-purple-50 transition-colors"
             >
               <Megaphone className="h-5 w-5 text-purple-600 mr-3" />
-              <span className="font-medium text-gray-900">Add Media Mention</span>
+              <span className="font-medium text-foreground">Add Media Mention</span>
             </Link>
             <Link
               href="/admin/news/blog"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-gray-500 hover:bg-gray-50 transition-colors"
+              className="flex items-center p-4 border border-border rounded-2xl hover:border-border hover:bg-secondary transition-colors"
             >
-              <FileText className="h-5 w-5 text-gray-600 mr-3" />
-              <span className="font-medium text-gray-900">View All Posts</span>
+              <FileText className="h-5 w-5 text-muted-foreground mr-3" />
+              <span className="font-medium text-foreground">View All Posts</span>
             </Link>
             <Link
               href="/admin/news/media"
-              className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-gray-500 hover:bg-gray-50 transition-colors"
+              className="flex items-center p-4 border border-border rounded-2xl hover:border-border hover:bg-secondary transition-colors"
             >
-              <Megaphone className="h-5 w-5 text-gray-600 mr-3" />
-              <span className="font-medium text-gray-900">View All Mentions</span>
+              <Megaphone className="h-5 w-5 text-muted-foreground mr-3" />
+              <span className="font-medium text-foreground">View All Mentions</span>
             </Link>
           </div>
         </div>

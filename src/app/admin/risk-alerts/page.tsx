@@ -47,7 +47,7 @@ const riskLevelColors: Record<string, string> = {
   LOW: "text-green-600",
   MEDIUM: "text-yellow-600",
   HIGH: "text-red-600",
-  INSUFFICIENT: "text-gray-400",
+  INSUFFICIENT: "text-muted-foreground",
 };
 
 export default function RiskAlertsPage() {
@@ -99,7 +99,7 @@ export default function RiskAlertsPage() {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-6">
-          <div className="bg-white rounded-lg shadow h-64" />
+          <div className="bg-card rounded-2xl shadow h-64" />
         </div>
       </AdminLayout>
     );
@@ -119,8 +119,8 @@ export default function RiskAlertsPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Risk Alerts</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">Risk Alerts</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Monitor stocks crossing risk thresholds
             </p>
           </div>
@@ -134,16 +134,16 @@ export default function RiskAlertsPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-card rounded-2xl shadow p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Filters:</span>
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Filters:</span>
             </div>
             <select
               value={days}
               onChange={(e) => setDays(parseInt(e.target.value))}
-              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+              className="px-3 py-1.5 border border-border rounded-md text-sm"
             >
               <option value={7}>Last 7 days</option>
               <option value={14}>Last 14 days</option>
@@ -152,7 +152,7 @@ export default function RiskAlertsPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+              className="px-3 py-1.5 border border-border rounded-md text-sm"
             >
               <option value="">All Types</option>
               <option value="NEW_HIGH_RISK">New High Risk</option>
@@ -160,12 +160,12 @@ export default function RiskAlertsPage() {
               <option value="RISK_DECREASED">Risk Decreased</option>
               <option value="PUMP_DETECTED">Pump Detected</option>
             </select>
-            <label className="flex items-center gap-2 text-sm text-gray-600">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input
                 type="checkbox"
                 checked={showAcknowledged}
                 onChange={(e) => setShowAcknowledged(e.target.checked)}
-                className="rounded border-gray-300"
+                className="rounded border-border"
               />
               Show acknowledged
             </label>
@@ -178,7 +178,7 @@ export default function RiskAlertsPage() {
             {Object.entries(alertTypeLabels).map(([type, { label, color }]) => (
               <div
                 key={type}
-                className={`p-4 rounded-lg ${color.replace('text-', 'bg-').split(' ')[0]} bg-opacity-50`}
+                className={`p-4 rounded-2xl ${color.replace('text-', 'bg-').split(' ')[0]} bg-opacity-50`}
               >
                 <div className="text-2xl font-bold">{data.countsByType[type] || 0}</div>
                 <div className="text-sm">{label}</div>
@@ -188,26 +188,26 @@ export default function RiskAlertsPage() {
         )}
 
         {/* Alerts Table */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-card rounded-2xl shadow">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-secondary/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alert Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk Change</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Symbol</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Alert Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Risk Change</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Score</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Price</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Action</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {!data || data.alerts.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
-                      <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                    <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
+                      <Bell className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                       No alerts found. Run daily evaluations to generate alerts.
                     </td>
                   </tr>
@@ -215,7 +215,7 @@ export default function RiskAlertsPage() {
                   data.alerts.map((alert) => (
                     <tr
                       key={alert.id}
-                      className={`hover:bg-gray-50 ${!alert.isAcknowledged ? "bg-yellow-50" : ""}`}
+                      className={`hover:bg-secondary/50 ${!alert.isAcknowledged ? "bg-yellow-50" : ""}`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         {alert.isAcknowledged ? (
@@ -226,15 +226,15 @@ export default function RiskAlertsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="font-medium text-indigo-600">{alert.symbol}</div>
-                          <div className="text-xs text-gray-500 truncate max-w-[150px]">
+                          <div className="font-medium text-primary">{alert.symbol}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[150px]">
                             {alert.stockName}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs font-medium rounded ${
-                          alertTypeLabels[alert.alertType]?.color || "bg-gray-100 text-gray-800"
+                          alertTypeLabels[alert.alertType]?.color || "bg-secondary text-foreground"
                         }`}>
                           {alertTypeLabels[alert.alertType]?.label || alert.alertType}
                         </span>
@@ -246,7 +246,7 @@ export default function RiskAlertsPage() {
                               <span className={riskLevelColors[alert.previousRiskLevel]}>
                                 {alert.previousRiskLevel}
                               </span>
-                              <span className="text-gray-400">→</span>
+                              <span className="text-muted-foreground">→</span>
                             </>
                           )}
                           <span className={riskLevelColors[alert.newRiskLevel]}>
@@ -256,21 +256,21 @@ export default function RiskAlertsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {alert.previousScore !== null && (
-                          <span className="text-gray-400">{alert.previousScore} → </span>
+                          <span className="text-muted-foreground">{alert.previousScore} → </span>
                         )}
                         <span className="font-medium">{alert.newScore}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         {alert.priceAtAlert ? `$${alert.priceAtAlert.toFixed(2)}` : "-"}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                         {new Date(alert.alertDate).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {!alert.isAcknowledged && (
                           <button
                             onClick={() => acknowledgeAlert(alert.id)}
-                            className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                            className="text-primary hover:text-primary/80 text-sm font-medium"
                           >
                             Acknowledge
                           </button>

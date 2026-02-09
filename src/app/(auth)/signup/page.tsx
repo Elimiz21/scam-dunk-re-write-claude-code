@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Loader2, Mail } from "lucide-react";
+import { Shield, Loader2, Mail, Eye } from "lucide-react";
 import { Turnstile } from "@/components/turnstile";
 
 export default function SignupPage() {
@@ -127,8 +127,11 @@ export default function SignupPage() {
       <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
         <CardHeader className="text-center">
           <Link href="/" className="flex items-center justify-center gap-2 mb-4">
-            <div className="inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-xl shadow-glow-sm">
+            <div className="relative inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-xl shadow-glow-sm">
               <Shield className="h-5 w-5 text-white" />
+              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
+                <Eye className="h-2 w-2 text-white" />
+              </div>
             </div>
             <span className="text-2xl font-bold font-display italic">ScamDunk</span>
           </Link>

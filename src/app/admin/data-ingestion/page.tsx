@@ -255,7 +255,7 @@ export default function DataIngestionPage() {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-6">
-          <div className="bg-white rounded-lg shadow h-64" />
+          <div className="bg-card rounded-2xl shadow h-64" />
         </div>
       </AdminLayout>
     );
@@ -267,14 +267,14 @@ export default function DataIngestionPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Data Ingestion</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">Data Ingestion</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Import daily evaluation data into the history database
             </p>
           </div>
           <button
             onClick={checkDbStatus}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 px-4 py-2 text-muted-foreground hover:text-foreground"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -285,7 +285,7 @@ export default function DataIngestionPage() {
 
         {/* Database Status */}
         {dbStatus && (
-          <div className={`bg-white rounded-lg shadow p-6 border-l-4 ${
+          <div className={`bg-card rounded-2xl shadow p-6 border-l-4 ${
             dbStatus.status === "ready" ? "border-green-500" :
             dbStatus.status === "empty" ? "border-yellow-500" : "border-red-500"
           }`}>
@@ -296,15 +296,15 @@ export default function DataIngestionPage() {
                   dbStatus.status === "empty" ? "text-yellow-500" : "text-red-500"
                 }`} />
                 <div>
-                  <h3 className="font-medium text-gray-900">Database Status</h3>
-                  <p className="text-sm text-gray-500">{dbStatus.message}</p>
+                  <h3 className="font-medium text-foreground">Database Status</h3>
+                  <p className="text-sm text-muted-foreground">{dbStatus.message}</p>
                 </div>
               </div>
               {dbStatus.status === "missing_tables" && (
                 <button
                   onClick={createTables}
                   disabled={creatingTables}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
                 >
                   {creatingTables ? (
                     <>
@@ -329,10 +329,10 @@ export default function DataIngestionPage() {
                   ) : (
                     <XCircle className="h-4 w-4 text-red-500" />
                   )}
-                  <span className={info.exists ? "text-gray-700" : "text-red-600"}>
+                  <span className={info.exists ? "text-foreground" : "text-red-600"}>
                     {name}
                     {info.exists && info.count !== undefined && (
-                      <span className="text-gray-400 ml-1">({info.count})</span>
+                      <span className="text-muted-foreground ml-1">({info.count})</span>
                     )}
                   </span>
                 </div>
@@ -344,29 +344,29 @@ export default function DataIngestionPage() {
         {/* Status Cards - only show if tables exist */}
         {dbStatus?.status !== "missing_tables" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-2xl shadow p-6">
             <div className="flex items-center">
               <Database className="h-8 w-8 text-blue-500" />
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Available Evaluations</p>
+                <p className="text-sm text-muted-foreground">Available Evaluations</p>
                 <p className="text-2xl font-bold">{status?.availableDates.length || 0}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-2xl shadow p-6">
             <div className="flex items-center">
               <Check className="h-8 w-8 text-green-500" />
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Already Ingested</p>
+                <p className="text-sm text-muted-foreground">Already Ingested</p>
                 <p className="text-2xl font-bold">{status?.ingestedDates.length || 0}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-2xl shadow p-6">
             <div className="flex items-center">
               <Clock className="h-8 w-8 text-yellow-500" />
               <div className="ml-4">
-                <p className="text-sm text-gray-500">Pending Import</p>
+                <p className="text-sm text-muted-foreground">Pending Import</p>
                 <p className="text-2xl font-bold">{status?.pendingDates.length || 0}</p>
               </div>
             </div>
@@ -377,14 +377,14 @@ export default function DataIngestionPage() {
         {(status?.lastIngestion || backfillResult) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {status?.lastIngestion && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-card rounded-2xl shadow p-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900">Last Ingestion Status</h3>
-                  <span className="text-xs text-gray-500">
+                  <h3 className="text-lg font-medium text-foreground">Last Ingestion Status</h3>
+                  <span className="text-xs text-muted-foreground">
                     {new Date(status.lastIngestion.createdAt).toLocaleString()}
                   </span>
                 </div>
-                <div className="mt-3 text-sm text-gray-700 space-y-1">
+                <div className="mt-3 text-sm text-foreground space-y-1">
                   <div>
                     Status:{" "}
                     <span className={`font-medium ${
@@ -408,14 +408,14 @@ export default function DataIngestionPage() {
               </div>
             )}
             {backfillResult && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-card rounded-2xl shadow p-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900">Last Backfill</h3>
-                  <span className="text-xs text-gray-500">
+                  <h3 className="text-lg font-medium text-foreground">Last Backfill</h3>
+                  <span className="text-xs text-muted-foreground">
                     {new Date(backfillResult.lastUpdated).toLocaleString()}
                   </span>
                 </div>
-                <div className="mt-3 text-sm text-gray-700 space-y-1">
+                <div className="mt-3 text-sm text-foreground space-y-1">
                   <div>Total Scan History: <span className="font-medium">{backfillResult.totalScanHistory}</span></div>
                   <div>Model Metrics Days: <span className="font-medium">{backfillResult.modelMetricsDays}</span></div>
                   <div>Scan Usage Entries: <span className="font-medium">{backfillResult.scanUsageEntries}</span></div>
@@ -425,18 +425,18 @@ export default function DataIngestionPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-2xl shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Backfill Metrics</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="text-lg font-medium text-foreground">Backfill Metrics</h3>
+              <p className="text-sm text-muted-foreground">
                 Rebuild ModelMetrics and ScanUsage from ScanHistory for live data consistency.
               </p>
             </div>
             <button
               onClick={runBackfill}
               disabled={backfilling}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
             >
               {backfilling ? (
                 <>
@@ -455,19 +455,19 @@ export default function DataIngestionPage() {
 
         {/* Pending Imports */}
         {status?.pendingDates && status.pendingDates.length > 0 && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Pending Imports</h3>
+          <div className="bg-card rounded-2xl shadow">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+              <h3 className="text-lg font-medium text-foreground">Pending Imports</h3>
               <button
                 onClick={ingestAll}
                 disabled={!!ingesting}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
               >
                 <Upload className="h-4 w-4" />
                 Import All ({status.pendingDates.length})
               </button>
             </div>
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-border">
               {status.pendingDates.sort().reverse().map((date) => {
                 const fileInfo = status.fileStatus?.find(f => f.date === date);
                 return (
@@ -483,10 +483,10 @@ export default function DataIngestionPage() {
                           <span className={fileInfo?.hasSummary ? "text-green-600" : "text-yellow-600"}>
                             {fileInfo?.hasSummary ? "✓" : "○"} Summary
                           </span>
-                          <span className={fileInfo?.hasPromoted ? "text-purple-600" : "text-gray-400"}>
+                          <span className={fileInfo?.hasPromoted ? "text-purple-600" : "text-muted-foreground"}>
                             {fileInfo?.hasPromoted ? "✓" : "○"} Promoted
                           </span>
-                          <span className={fileInfo?.hasComparison ? "text-orange-600" : "text-gray-400"}>
+                          <span className={fileInfo?.hasComparison ? "text-orange-600" : "text-muted-foreground"}>
                             {fileInfo?.hasComparison ? "✓" : "○"} Comparison
                           </span>
                         </div>
@@ -495,7 +495,7 @@ export default function DataIngestionPage() {
                     <button
                       onClick={() => ingestDate(date)}
                       disabled={!!ingesting}
-                      className="px-4 py-2 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 disabled:opacity-50 flex items-center gap-2"
+                      className="px-4 py-2 text-sm bg-primary/10 text-primary rounded-xl hover:bg-primary/15 disabled:opacity-50 flex items-center gap-2"
                     >
                       {ingesting === date ? (
                         <>
@@ -518,12 +518,12 @@ export default function DataIngestionPage() {
 
         {/* Already Ingested */}
         {status?.ingestedDates && status.ingestedDates.length > 0 && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Already Ingested</h3>
-              <p className="text-sm text-gray-500 mt-1">Click on a date to re-import if needed</p>
+          <div className="bg-card rounded-2xl shadow">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-medium text-foreground">Already Ingested</h3>
+              <p className="text-sm text-muted-foreground mt-1">Click on a date to re-import if needed</p>
             </div>
-            <div className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
+            <div className="divide-y divide-border max-h-64 overflow-y-auto">
               {status.ingestedDates.map((date) => {
                 const fileInfo = status.fileStatus?.find(f => f.date === date);
                 return (
@@ -535,7 +535,7 @@ export default function DataIngestionPage() {
                     <button
                       onClick={() => ingestDate(date)}
                       disabled={!!ingesting}
-                      className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50 flex items-center gap-1"
+                      className="px-3 py-1 text-xs bg-secondary text-muted-foreground rounded hover:bg-secondary disabled:opacity-50 flex items-center gap-1"
                     >
                       {ingesting === date ? (
                         <>
@@ -558,11 +558,11 @@ export default function DataIngestionPage() {
 
         {/* Available Files (not yet ingested, show import buttons) */}
         {status?.availableDates && status.availableDates.length > 0 && status.pendingDates.length === 0 && status.ingestedDates.length === 0 && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Available Files</h3>
+          <div className="bg-card rounded-2xl shadow">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-medium text-foreground">Available Files</h3>
             </div>
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-border">
               {status.availableDates.map((date) => {
                 const fileInfo = status.fileStatus?.find(f => f.date === date);
                 return (
@@ -578,10 +578,10 @@ export default function DataIngestionPage() {
                           <span className={fileInfo?.hasSummary ? "text-green-600" : "text-yellow-600"}>
                             {fileInfo?.hasSummary ? "✓" : "○"} Summary
                           </span>
-                          <span className={fileInfo?.hasPromoted ? "text-purple-600" : "text-gray-400"}>
+                          <span className={fileInfo?.hasPromoted ? "text-purple-600" : "text-muted-foreground"}>
                             {fileInfo?.hasPromoted ? "✓" : "○"} Promoted
                           </span>
-                          <span className={fileInfo?.hasComparison ? "text-orange-600" : "text-gray-400"}>
+                          <span className={fileInfo?.hasComparison ? "text-orange-600" : "text-muted-foreground"}>
                             {fileInfo?.hasComparison ? "✓" : "○"} Comparison
                           </span>
                         </div>
@@ -590,7 +590,7 @@ export default function DataIngestionPage() {
                     <button
                       onClick={() => ingestDate(date)}
                       disabled={!!ingesting}
-                      className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                      className="px-4 py-2 text-sm gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
                     >
                       {ingesting === date ? (
                         <>
@@ -613,11 +613,11 @@ export default function DataIngestionPage() {
 
         {/* Recent Results */}
         {results.length > 0 && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Import Results</h3>
+          <div className="bg-card rounded-2xl shadow">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-medium text-foreground">Import Results</h3>
             </div>
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-border">
               {results.map((result, idx) => (
                 <div key={idx} className="px-6 py-4">
                   <div className="flex items-center justify-between mb-2">
@@ -628,21 +628,21 @@ export default function DataIngestionPage() {
                       <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">Failed</span>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm text-gray-600">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm text-muted-foreground">
                     <div>
-                      <span className="text-gray-400">Processed:</span> {result.totalProcessed}
+                      <span className="text-muted-foreground">Processed:</span> {result.totalProcessed}
                     </div>
                     <div>
-                      <span className="text-gray-400">Snapshots:</span> {result.snapshotsCreated}
+                      <span className="text-muted-foreground">Snapshots:</span> {result.snapshotsCreated}
                     </div>
                     <div>
-                      <span className="text-gray-400">Stocks:</span> {result.stocksCreated} new
+                      <span className="text-muted-foreground">Stocks:</span> {result.stocksCreated} new
                     </div>
                     <div>
-                      <span className="text-gray-400">Alerts:</span> {result.alertsCreated}
+                      <span className="text-muted-foreground">Alerts:</span> {result.alertsCreated}
                     </div>
                     <div>
-                      <span className="text-gray-400">Promoted:</span> {result.promotedStocksCreated || 0}
+                      <span className="text-muted-foreground">Promoted:</span> {result.promotedStocksCreated || 0}
                     </div>
                   </div>
                 </div>
@@ -653,13 +653,13 @@ export default function DataIngestionPage() {
 
         {/* Debug Info */}
         {status?.debug && (
-          <div className="bg-gray-50 rounded-lg shadow p-4 text-sm">
-            <h4 className="font-medium text-gray-700 mb-2">Storage Debug Info</h4>
-            <p className="text-gray-600">Total files in bucket: {status.debug.filesFound}</p>
-            <p className="text-gray-600">Evaluation files: {status.debug.evaluationFiles}</p>
-            <p className="text-gray-600">Summary files: {status.debug.summaryFiles}</p>
-            <p className="text-gray-600">Promoted stocks files: {status.debug.promotedFiles}</p>
-            <p className="text-gray-600">Comparison files: {status.debug.comparisonFiles}</p>
+          <div className="bg-secondary/50 rounded-2xl shadow p-4 text-sm">
+            <h4 className="font-medium text-foreground mb-2">Storage Debug Info</h4>
+            <p className="text-muted-foreground">Total files in bucket: {status.debug.filesFound}</p>
+            <p className="text-muted-foreground">Evaluation files: {status.debug.evaluationFiles}</p>
+            <p className="text-muted-foreground">Summary files: {status.debug.summaryFiles}</p>
+            <p className="text-muted-foreground">Promoted stocks files: {status.debug.promotedFiles}</p>
+            <p className="text-muted-foreground">Comparison files: {status.debug.comparisonFiles}</p>
             {status.debug.allFileNames.length > 0 ? (
               <ul className="mt-2 space-y-1">
                 {status.debug.allFileNames.map((name, i) => (
@@ -667,7 +667,7 @@ export default function DataIngestionPage() {
                     name.startsWith('fmp-evaluation-') ? 'text-green-600' :
                     name.startsWith('fmp-summary-') ? 'text-blue-600' :
                     name.startsWith('promoted-stocks-') ? 'text-purple-600' :
-                    name.startsWith('comparison-') ? 'text-orange-600' : 'text-gray-400'
+                    name.startsWith('comparison-') ? 'text-orange-600' : 'text-muted-foreground'
                   }`}>{name}</li>
                 ))}
               </ul>
@@ -679,10 +679,10 @@ export default function DataIngestionPage() {
 
         {/* Empty State */}
         {status?.pendingDates.length === 0 && status?.ingestedDates.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <AlertCircle className="h-12 w-12 mx-auto text-gray-300" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No Evaluation Data Found</h3>
-            <p className="mt-2 text-gray-500">
+          <div className="bg-card rounded-2xl shadow p-12 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-medium text-foreground">No Evaluation Data Found</h3>
+            <p className="mt-2 text-muted-foreground">
               Upload evaluation files to Supabase Storage bucket &apos;evaluation-data&apos;.
             </p>
           </div>

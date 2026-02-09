@@ -364,7 +364,7 @@ export default function AdminBlogEditorPage() {
         return (
             <AdminLayout>
                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                 </div>
             </AdminLayout>
         );
@@ -378,15 +378,15 @@ export default function AdminBlogEditorPage() {
                     <div className="flex items-center">
                         <Link
                             href="/admin/news/blog"
-                            className="mr-4 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                            className="mr-4 p-2 text-muted-foreground hover:text-muted-foreground rounded-2xl hover:bg-secondary"
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">
+                            <h1 className="text-2xl font-bold text-foreground">
                                 {isNew ? "New Blog Post" : "Edit Blog Post"}
                             </h1>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 {isNew ? "Create a new blog post" : "Update your blog post"}
                             </p>
                         </div>
@@ -395,7 +395,7 @@ export default function AdminBlogEditorPage() {
                         {!isNew && (
                             <button
                                 onClick={handleDelete}
-                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-2xl hover:bg-red-100 transition-colors"
                             >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -404,7 +404,7 @@ export default function AdminBlogEditorPage() {
                         <button
                             onClick={() => handleSave(false)}
                             disabled={saving}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-secondary rounded-2xl hover:bg-secondary transition-colors disabled:opacity-50"
                         >
                             <Save className="h-4 w-4 mr-2" />
                             Save Draft
@@ -412,7 +412,7 @@ export default function AdminBlogEditorPage() {
                         <button
                             onClick={() => handleSave(true)}
                             disabled={saving}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white gradient-brand rounded-2xl hover:opacity-90 transition-colors disabled:opacity-50"
                         >
                             {post.isPublished ? (
                                 <>
@@ -435,9 +435,9 @@ export default function AdminBlogEditorPage() {
                     <div className="lg:col-span-2 space-y-6">
                         {/* Import Section - Drop Zone */}
                         <div
-                            className={`relative rounded-lg shadow transition-all duration-200 ${isDragging
-                                ? 'bg-indigo-100 border-2 border-dashed border-indigo-500 scale-[1.02]'
-                                : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-dashed border-transparent'
+                            className={`relative rounded-2xl shadow transition-all duration-200 ${isDragging
+                                ? 'bg-primary/10 border-2 border-dashed border-primary/50 scale-[1.02]'
+                                : 'bg-gradient-to-r from-primary/5 to-purple-50 border-2 border-dashed border-transparent'
                                 }`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
@@ -445,16 +445,16 @@ export default function AdminBlogEditorPage() {
                         >
                             <div className="p-6">
                                 <div className="flex items-start gap-4">
-                                    <div className={`flex-shrink-0 p-3 rounded-xl transition-colors ${isDragging ? 'bg-indigo-200' : 'bg-white/50'
+                                    <div className={`flex-shrink-0 p-3 rounded-xl transition-colors ${isDragging ? 'bg-primary/15' : 'bg-card/50'
                                         }`}>
-                                        <FileText className={`h-8 w-8 ${isDragging ? 'text-indigo-600' : 'text-indigo-500'
+                                        <FileText className={`h-8 w-8 ${isDragging ? 'text-primary' : 'text-primary'
                                             }`} />
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="text-base font-semibold text-gray-900 mb-1">
+                                        <h3 className="text-base font-semibold text-foreground mb-1">
                                             {isDragging ? '📄 Drop your file here!' : 'Import Blog Post'}
                                         </h3>
-                                        <p className="text-sm text-gray-600 mb-4">
+                                        <p className="text-sm text-muted-foreground mb-4">
                                             {isDragging
                                                 ? 'Release to import the file'
                                                 : 'Drag & drop a file here, or click to browse. You can drag files from Google Drive, Dropbox, or any folder. AI will extract the title, description, and suggest a visual.'
@@ -472,7 +472,7 @@ export default function AdminBlogEditorPage() {
                                                 />
                                                 <button
                                                     onClick={() => fileInputRef.current?.click()}
-                                                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-lg hover:bg-indigo-50 transition-colors shadow-sm"
+                                                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary bg-card border border-primary/30 rounded-2xl hover:bg-primary/5 transition-colors shadow-sm"
                                                 >
                                                     <Upload className="h-4 w-4 mr-2" />
                                                     Browse Files
@@ -480,7 +480,7 @@ export default function AdminBlogEditorPage() {
                                                 <button
                                                     onClick={() => analyzeContent()}
                                                     disabled={analyzing || !post.content.trim()}
-                                                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors disabled:opacity-50 shadow-sm"
+                                                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-purple-700 bg-card border border-purple-300 rounded-2xl hover:bg-purple-50 transition-colors disabled:opacity-50 shadow-sm"
                                                 >
                                                     {analyzing ? (
                                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -489,7 +489,7 @@ export default function AdminBlogEditorPage() {
                                                     )}
                                                     {analyzing ? "Analyzing..." : "AI Extract Metadata"}
                                                 </button>
-                                                <span className="text-xs text-gray-500">
+                                                <span className="text-xs text-muted-foreground">
                                                     Supports: .docx, .md, .txt, .html, .rtf
                                                 </span>
                                             </div>
@@ -499,56 +499,56 @@ export default function AdminBlogEditorPage() {
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-card rounded-2xl shadow p-6">
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Title *
                                     </label>
                                     <input
                                         type="text"
                                         value={post.title}
                                         onChange={(e) => handleTitleChange(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50"
                                         placeholder="Enter post title"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Slug
                                     </label>
                                     <div className="flex items-center">
-                                        <span className="text-gray-500 mr-2">/news/</span>
+                                        <span className="text-muted-foreground mr-2">/news/</span>
                                         <input
                                             type="text"
                                             value={post.slug}
                                             onChange={(e) => setPost({ ...post, slug: e.target.value })}
-                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            className="flex-1 px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50"
                                             placeholder="post-url-slug"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Excerpt
                                     </label>
                                     <textarea
                                         value={post.excerpt}
                                         onChange={(e) => setPost({ ...post, excerpt: e.target.value })}
                                         rows={2}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50"
                                         placeholder="Brief summary of the post (shown in previews)"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Content * (Markdown supported)
                                     </label>
                                     <textarea
                                         value={post.content}
                                         onChange={(e) => setPost({ ...post, content: e.target.value })}
                                         rows={15}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono text-sm"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50 font-mono text-sm"
                                         placeholder="Write your blog post content here..."
                                     />
                                 </div>
@@ -559,42 +559,42 @@ export default function AdminBlogEditorPage() {
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Status */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-sm font-medium text-gray-900 mb-4">Status</h3>
+                        <div className="bg-card rounded-2xl shadow p-6">
+                            <h3 className="text-sm font-medium text-foreground mb-4">Status</h3>
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-600">
+                                <span className="text-sm text-muted-foreground">
                                     {post.isPublished ? "Published" : "Draft"}
                                 </span>
                                 <button
                                     onClick={() => setPost({ ...post, isPublished: !post.isPublished })}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${post.isPublished ? "bg-indigo-600" : "bg-gray-200"
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${post.isPublished ? "gradient-brand" : "bg-secondary"
                                         }`}
                                 >
                                     <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${post.isPublished ? "translate-x-6" : "translate-x-1"
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${post.isPublished ? "translate-x-6" : "translate-x-1"
                                             }`}
                                     />
                                 </button>
                             </div>
                             {post.publishedAt && (
-                                <p className="mt-2 text-xs text-gray-500">
+                                <p className="mt-2 text-xs text-muted-foreground">
                                     Published: {new Date(post.publishedAt).toLocaleDateString()}
                                 </p>
                             )}
                         </div>
 
                         {/* Metadata */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-sm font-medium text-gray-900 mb-4">Metadata</h3>
+                        <div className="bg-card rounded-2xl shadow p-6">
+                            <h3 className="text-sm font-medium text-foreground mb-4">Metadata</h3>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Author
                                     </label>
                                     <select
                                         value={post.author}
                                         onChange={(e) => setPost({ ...post, author: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                        className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50 text-sm"
                                     >
                                         {teamMembers.map((member) => (
                                             <option key={member.id} value={member.name}>
@@ -605,13 +605,13 @@ export default function AdminBlogEditorPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Category
                                     </label>
                                     <select
                                         value={post.category}
                                         onChange={(e) => setPost({ ...post, category: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                        className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50 text-sm"
                                     >
                                         {CATEGORIES.map((cat) => (
                                             <option key={cat} value={cat}>
@@ -621,14 +621,14 @@ export default function AdminBlogEditorPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Tags
                                     </label>
                                     <input
                                         type="text"
                                         value={post.tags}
                                         onChange={(e) => setPost({ ...post, tags: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                        className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50 text-sm"
                                         placeholder="scam, security, tips (comma-separated)"
                                     />
                                 </div>
@@ -636,21 +636,21 @@ export default function AdminBlogEditorPage() {
                         </div>
 
                         {/* Featured Image */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-sm font-medium text-gray-900 mb-4">Cover Image</h3>
+                        <div className="bg-card rounded-2xl shadow p-6">
+                            <h3 className="text-sm font-medium text-foreground mb-4">Cover Image</h3>
                             <div>
                                 <input
                                     type="url"
                                     value={post.coverImage}
                                     onChange={(e) => setPost({ ...post, coverImage: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                    className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50 text-sm"
                                     placeholder="https://example.com/image.jpg"
                                 />
                                 {post.coverImage && (
                                     <img
                                         src={post.coverImage}
                                         alt="Cover preview"
-                                        className="mt-3 w-full h-32 object-cover rounded-lg"
+                                        className="mt-3 w-full h-32 object-cover rounded-2xl"
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).style.display = "none";
                                         }}
@@ -659,7 +659,7 @@ export default function AdminBlogEditorPage() {
                             </div>
                             {/* AI Visual Suggestion */}
                             {visualSuggestion && (
-                                <div className="mt-4 p-3 bg-purple-50 rounded-lg">
+                                <div className="mt-4 p-3 bg-purple-50 rounded-2xl">
                                     <div className="flex items-start gap-2">
                                         <Sparkles className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
                                         <div>

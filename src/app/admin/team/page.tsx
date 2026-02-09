@@ -126,7 +126,7 @@ export default function TeamPage() {
     const colors: Record<string, string> = {
       OWNER: "bg-purple-100 text-purple-800",
       ADMIN: "bg-blue-100 text-blue-800",
-      VIEWER: "bg-gray-100 text-gray-800",
+      VIEWER: "bg-secondary text-foreground",
     };
     return (
       <span
@@ -145,8 +145,8 @@ export default function TeamPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">Team Management</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Manage admin users and invitations
             </p>
           </div>
@@ -157,7 +157,7 @@ export default function TeamPage() {
               setInviteEmail("");
               setEmailSent(false);
             }}
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            className="inline-flex items-center px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90"
           >
             <UserPlus className="h-4 w-4 mr-2" />
             Invite User
@@ -177,47 +177,47 @@ export default function TeamPage() {
         )}
 
         {/* Role Legend */}
-        <div className="bg-white rounded-lg shadow px-6 py-4">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Role Permissions</h3>
+        <div className="bg-card rounded-2xl shadow px-6 py-4">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">Role Permissions</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div className="border border-purple-200 rounded-md p-3 bg-purple-50">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mb-1">OWNER</span>
-              <p className="text-gray-700 mt-1">Full control. Can manage team members, change dashboard structure, and configure all settings. Only one owner per instance.</p>
+              <p className="text-foreground mt-1">Full control. Can manage team members, change dashboard structure, and configure all settings. Only one owner per instance.</p>
             </div>
             <div className="border border-blue-200 rounded-md p-3 bg-blue-50">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-1">ADMIN</span>
-              <p className="text-gray-700 mt-1">Full usage access. Can use all dashboard features, run scans, view data, and perform lookups. Cannot manage team or change settings.</p>
+              <p className="text-foreground mt-1">Full usage access. Can use all dashboard features, run scans, view data, and perform lookups. Cannot manage team or change settings.</p>
             </div>
-            <div className="border border-gray-200 rounded-md p-3 bg-gray-50">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mb-1">VIEWER</span>
-              <p className="text-gray-700 mt-1">Read-only access. Can view all dashboards and data but cannot make any changes or run scans.</p>
+            <div className="border border-border rounded-md p-3 bg-secondary/50">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-foreground mb-1">VIEWER</span>
+              <p className="text-foreground mt-1">Read-only access. Can view all dashboards and data but cannot make any changes or run scans.</p>
             </div>
           </div>
         </div>
 
         {/* Team Members */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Team Members</h2>
+        <div className="bg-card rounded-2xl shadow">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-lg font-medium text-foreground">Team Members</h2>
           </div>
           {loading ? (
             <div className="p-6 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
             </div>
           ) : (
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-border">
               {members.map((member) => (
                 <li key={member.id} className="px-6 py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-gray-600 font-medium">
+                      <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
+                        <span className="text-muted-foreground font-medium">
                           {(member.name || member.email)[0].toUpperCase()}
                         </span>
                       </div>
                       <div className="ml-4">
                         <div className="flex items-center">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-foreground">
                             {member.name || "No name"}
                           </p>
                           {!member.isActive && (
@@ -226,12 +226,12 @@ export default function TeamPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500">{member.email}</p>
+                        <p className="text-sm text-muted-foreground">{member.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
                       {getRoleBadge(member.role)}
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground">
                         {member.lastLoginAt
                           ? `Last login: ${new Date(member.lastLoginAt).toLocaleDateString()}`
                           : "Never logged in"}
@@ -240,24 +240,24 @@ export default function TeamPage() {
                         <div className="relative">
                           <button
                             onClick={() => setMenuOpen(menuOpen === member.id ? null : member.id)}
-                            className="p-1 rounded hover:bg-gray-100"
+                            className="p-1 rounded hover:bg-secondary"
                           >
-                            <MoreVertical className="h-5 w-5 text-gray-400" />
+                            <MoreVertical className="h-5 w-5 text-muted-foreground" />
                           </button>
                           {menuOpen === member.id && (
-                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-10">
                               <div className="py-1">
                                 {member.isActive ? (
                                   <button
                                     onClick={() => updateMember(member.id, "deactivate")}
-                                    className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-gray-100"
+                                    className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-secondary"
                                   >
                                     Deactivate
                                   </button>
                                 ) : (
                                   <button
                                     onClick={() => updateMember(member.id, "activate")}
-                                    className="block w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-gray-100"
+                                    className="block w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-secondary"
                                   >
                                     Activate
                                   </button>
@@ -270,7 +270,7 @@ export default function TeamPage() {
                                       member.role === "ADMIN" ? "VIEWER" : "ADMIN"
                                     )
                                   }
-                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary"
                                 >
                                   Change to {member.role === "ADMIN" ? "Viewer" : "Admin"}
                                 </button>
@@ -289,19 +289,19 @@ export default function TeamPage() {
 
         {/* Pending Invites */}
         {pendingInvites.length > 0 && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Pending Invitations</h2>
+          <div className="bg-card rounded-2xl shadow">
+            <div className="px-6 py-4 border-b border-border">
+              <h2 className="text-lg font-medium text-foreground">Pending Invitations</h2>
             </div>
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-border">
               {pendingInvites.map((invite) => (
                 <li key={invite.id} className="px-6 py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <Mail className="h-5 w-5 text-gray-400 mr-3" />
+                      <Mail className="h-5 w-5 text-muted-foreground mr-3" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{invite.email}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm font-medium text-foreground">{invite.email}</p>
+                        <p className="text-xs text-muted-foreground">
                           Expires: {new Date(invite.expiresAt).toLocaleDateString()}
                         </p>
                       </div>
@@ -323,8 +323,8 @@ export default function TeamPage() {
         {/* Invite Modal */}
         {showInviteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-md">
+              <h3 className="text-lg font-medium text-foreground mb-4">
                 {inviteUrl ? "Invite Created" : "Invite New Admin"}
               </h3>
 
@@ -346,11 +346,11 @@ export default function TeamPage() {
                       type="text"
                       value={inviteUrl}
                       readOnly
-                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm bg-gray-50"
+                      className="flex-1 border border-border rounded-md px-3 py-2 text-sm bg-secondary/50"
                     />
                     <button
                       onClick={() => copyToClipboard(inviteUrl)}
-                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded"
+                      className="p-2 text-primary hover:bg-primary/5 rounded"
                     >
                       <Copy className="h-5 w-5" />
                     </button>
@@ -363,29 +363,29 @@ export default function TeamPage() {
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                    <label className="block text-sm font-medium text-foreground">Email Address</label>
                     <input
                       type="email"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-border rounded-md px-3 py-2"
                       placeholder="user@example.com"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Role</label>
+                    <label className="block text-sm font-medium text-foreground">Role</label>
                     <select
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-border rounded-md px-3 py-2"
                     >
                       <option value="ADMIN">Admin - Full dashboard access</option>
                       <option value="VIEWER">Viewer - Read-only access</option>
                     </select>
-                    <p className="mt-2 text-xs text-gray-500">
+                    <p className="mt-2 text-xs text-muted-foreground">
                       <strong>Admin:</strong> Can access and use all dashboard features (scans, lookups, data, etc.) but cannot modify dashboard structure or manage team members.
                     </p>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       <strong>Viewer:</strong> Can view all dashboards and data in read-only mode.
                     </p>
                   </div>
@@ -395,7 +395,7 @@ export default function TeamPage() {
               <div className="mt-6 flex justify-end space-x-3">
                 <button
                   onClick={() => setShowInviteModal(false)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 text-foreground border border-border rounded-md hover:bg-secondary"
                 >
                   {inviteUrl ? "Close" : "Cancel"}
                 </button>
@@ -403,7 +403,7 @@ export default function TeamPage() {
                   <button
                     onClick={sendInvite}
                     disabled={inviting || !inviteEmail}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                    className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
                   >
                     {inviting ? (
                       <Loader2 className="h-5 w-5 animate-spin" />

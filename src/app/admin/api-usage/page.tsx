@@ -177,8 +177,8 @@ export default function ApiUsagePage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">API Usage & Costs</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">API Usage & Costs</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Monitor API usage, costs, and set up alerts
             </p>
           </div>
@@ -186,7 +186,7 @@ export default function ApiUsagePage() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as "day" | "week" | "month")}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="border border-border rounded-md px-3 py-2 text-sm"
             >
               <option value="day">Today</option>
               <option value="week">This Week</option>
@@ -212,7 +212,7 @@ export default function ApiUsagePage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white rounded-lg shadow h-32 animate-pulse" />
+              <div key={i} className="bg-card rounded-2xl shadow h-32 animate-pulse" />
             ))}
           </div>
         ) : data ? (
@@ -246,17 +246,17 @@ export default function ApiUsagePage() {
 
             {/* Usage by Service */}
             <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Usage by Service</h2>
+              <h2 className="text-lg font-medium text-foreground mb-4">Usage by Service</h2>
               <DataTable columns={serviceColumns} data={data.usageByService} />
             </div>
 
             {/* Alerts Section */}
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-gray-900">Cost Alerts</h2>
+                <h2 className="text-lg font-medium text-foreground">Cost Alerts</h2>
                 <button
                   onClick={() => setShowAddAlert(true)}
-                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                  className="inline-flex items-center px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Alert
@@ -266,15 +266,15 @@ export default function ApiUsagePage() {
               {/* Add Alert Modal */}
               {showAddAlert && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                  <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Create Alert</h3>
+                  <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-md">
+                    <h3 className="text-lg font-medium text-foreground mb-4">Create Alert</h3>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Service</label>
+                        <label className="block text-sm font-medium text-foreground">Service</label>
                         <select
                           value={newAlert.service}
                           onChange={(e) => setNewAlert({ ...newAlert, service: e.target.value })}
-                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                          className="mt-1 block w-full border border-border rounded-md px-3 py-2"
                         >
                           <option value="ALL">All Services</option>
                           <option value="OPENAI">OpenAI</option>
@@ -283,11 +283,11 @@ export default function ApiUsagePage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Alert Type</label>
+                        <label className="block text-sm font-medium text-foreground">Alert Type</label>
                         <select
                           value={newAlert.alertType}
                           onChange={(e) => setNewAlert({ ...newAlert, alertType: e.target.value })}
-                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                          className="mt-1 block w-full border border-border rounded-md px-3 py-2"
                         >
                           <option value="COST_THRESHOLD">Cost Threshold</option>
                           <option value="RATE_LIMIT">Rate Limit (per hour)</option>
@@ -295,7 +295,7 @@ export default function ApiUsagePage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-foreground">
                           Threshold {newAlert.alertType === "COST_THRESHOLD" ? "(USD)" : ""}
                         </label>
                         <input
@@ -304,21 +304,21 @@ export default function ApiUsagePage() {
                           onChange={(e) =>
                             setNewAlert({ ...newAlert, threshold: parseFloat(e.target.value) })
                           }
-                          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                          className="mt-1 block w-full border border-border rounded-md px-3 py-2"
                         />
                       </div>
                     </div>
                     <div className="mt-6 flex justify-end space-x-3">
                       <button
                         onClick={() => setShowAddAlert(false)}
-                        className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                        className="px-4 py-2 text-foreground border border-border rounded-md hover:bg-secondary"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleAddAlert}
                         disabled={savingAlert}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                        className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
                       >
                         {savingAlert ? (
                           <Loader2 className="h-5 w-5 animate-spin" />

@@ -175,7 +175,7 @@ export default function UsersPage() {
         PAID
       </span>
     ) : (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-foreground">
         FREE
       </span>
     );
@@ -186,7 +186,7 @@ export default function UsersPage() {
       LOW: "bg-green-100 text-green-800",
       MEDIUM: "bg-yellow-100 text-yellow-800",
       HIGH: "bg-red-100 text-red-800",
-      INSUFFICIENT: "bg-gray-100 text-gray-800",
+      INSUFFICIENT: "bg-secondary text-foreground",
     };
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colors[level] || colors.INSUFFICIENT}`}>
@@ -201,8 +201,8 @@ export default function UsersPage() {
       header: "User",
       render: (item: User) => (
         <div>
-          <p className="font-medium text-gray-900">{item.email}</p>
-          {item.name && <p className="text-sm text-gray-500">{item.name}</p>}
+          <p className="font-medium text-foreground">{item.email}</p>
+          {item.name && <p className="text-sm text-muted-foreground">{item.name}</p>}
         </div>
       ),
     },
@@ -215,7 +215,7 @@ export default function UsersPage() {
       key: "scansThisMonth",
       header: "Scans (Month)",
       render: (item: User) => (
-        <span className="text-gray-900">{item.scansThisMonth}</span>
+        <span className="text-foreground">{item.scansThisMonth}</span>
       ),
     },
     {
@@ -230,7 +230,7 @@ export default function UsersPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => fetchUserDetails(item.id)}
-            className="p-1 text-gray-400 hover:text-indigo-600 rounded"
+            className="p-1 text-muted-foreground hover:text-primary rounded"
             title="View details"
           >
             <Eye className="h-4 w-4" />
@@ -238,18 +238,18 @@ export default function UsersPage() {
           <div className="relative">
             <button
               onClick={() => setMenuOpen(menuOpen === item.id ? null : item.id)}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded"
+              className="p-1 text-muted-foreground hover:text-muted-foreground rounded"
             >
               <MoreVertical className="h-4 w-4" />
             </button>
             {menuOpen === item.id && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-10">
                 <div className="py-1">
                   {item.plan === "FREE" ? (
                     <button
                       onClick={() => performAction(item.id, "upgradeToPaid")}
                       disabled={actionLoading}
-                      className="flex items-center w-full px-4 py-2 text-sm text-green-700 hover:bg-gray-100"
+                      className="flex items-center w-full px-4 py-2 text-sm text-green-700 hover:bg-secondary"
                     >
                       <ArrowUpCircle className="h-4 w-4 mr-2" />
                       Upgrade to Paid
@@ -258,7 +258,7 @@ export default function UsersPage() {
                     <button
                       onClick={() => performAction(item.id, "downgradeToFree")}
                       disabled={actionLoading}
-                      className="flex items-center w-full px-4 py-2 text-sm text-orange-700 hover:bg-gray-100"
+                      className="flex items-center w-full px-4 py-2 text-sm text-orange-700 hover:bg-secondary"
                     >
                       <ArrowDownCircle className="h-4 w-4 mr-2" />
                       Downgrade to Free
@@ -267,7 +267,7 @@ export default function UsersPage() {
                   <button
                     onClick={() => performAction(item.id, "resetScans")}
                     disabled={actionLoading}
-                    className="flex items-center w-full px-4 py-2 text-sm text-blue-700 hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2 text-sm text-blue-700 hover:bg-secondary"
                   >
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Reset Monthly Scans
@@ -278,7 +278,7 @@ export default function UsersPage() {
                       setEditValue(item.scansThisMonth);
                       setMenuOpen(null);
                     }}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2 text-sm text-foreground hover:bg-secondary"
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Set Scan Count
@@ -289,7 +289,7 @@ export default function UsersPage() {
                       performAction(item.id, "resetPassword");
                     }}
                     disabled={actionLoading}
-                    className="flex items-center w-full px-4 py-2 text-sm text-purple-700 hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2 text-sm text-purple-700 hover:bg-secondary"
                   >
                     <Key className="h-4 w-4 mr-2" />
                     Send Password Reset
@@ -299,7 +299,7 @@ export default function UsersPage() {
                       performAction(item.id, "resetVerification");
                     }}
                     disabled={actionLoading}
-                    className="flex items-center w-full px-4 py-2 text-sm text-indigo-700 hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2 text-sm text-primary hover:bg-secondary"
                   >
                     <Mail className="h-4 w-4 mr-2" />
                     Resend Verification
@@ -329,8 +329,8 @@ export default function UsersPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">Users</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage application users and their subscriptions
           </p>
         </div>
@@ -355,19 +355,19 @@ export default function UsersPage() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search by email or name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-md focus:ring-primary focus:border-primary/50"
             />
           </div>
           <select
             value={planFilter}
             onChange={(e) => setPlanFilter(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2"
+            className="border border-border rounded-md px-3 py-2"
           >
             <option value="">All Plans</option>
             <option value="FREE">Free</option>
@@ -390,41 +390,41 @@ export default function UsersPage() {
         {/* User Details Modal */}
         {selectedUser && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">User Details</h3>
-                <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-gray-600">
+            <div className="bg-card rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-card border-b px-6 py-4 flex justify-between items-center">
+                <h3 className="text-lg font-medium text-foreground">User Details</h3>
+                <button onClick={() => setSelectedUser(null)} className="text-muted-foreground hover:text-muted-foreground">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               {loadingUser ? (
                 <div className="p-6 flex justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
                 <div className="p-6 space-y-6">
                   {/* User Info */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="text-sm text-muted-foreground">Email</p>
                       <p className="font-medium">{selectedUser.user.email}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Name</p>
+                      <p className="text-sm text-muted-foreground">Name</p>
                       <p className="font-medium">{selectedUser.user.name || "Not set"}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Plan</p>
+                      <p className="text-sm text-muted-foreground">Plan</p>
                       <p>{getPlanBadge(selectedUser.user.plan)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Joined</p>
+                      <p className="text-sm text-muted-foreground">Joined</p>
                       <p className="font-medium">{new Date(selectedUser.user.createdAt).toLocaleDateString()}</p>
                     </div>
                     {selectedUser.user.billingCustomerId && (
                       <div className="col-span-2">
-                        <p className="text-sm text-gray-500">Stripe Customer ID</p>
+                        <p className="text-sm text-muted-foreground">Stripe Customer ID</p>
                         <p className="font-mono text-sm">{selectedUser.user.billingCustomerId}</p>
                       </div>
                     )}
@@ -432,32 +432,32 @@ export default function UsersPage() {
 
                   {/* Usage Stats */}
                   <div className="border-t pt-4">
-                    <h4 className="font-medium text-gray-900 mb-3">Usage Statistics</h4>
+                    <h4 className="font-medium text-foreground mb-3">Usage Statistics</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm text-gray-500">This Month</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                      <div className="bg-secondary/50 rounded-2xl p-3">
+                        <p className="text-sm text-muted-foreground">This Month</p>
+                        <p className="text-2xl font-bold text-foreground">
                           {selectedUser.usage.currentMonth.scansUsed}
-                          <span className="text-sm font-normal text-gray-500">
+                          <span className="text-sm font-normal text-muted-foreground">
                             /{selectedUser.usage.currentMonth.scanLimit}
                           </span>
                         </p>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm text-gray-500">Remaining</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                      <div className="bg-secondary/50 rounded-2xl p-3">
+                        <p className="text-sm text-muted-foreground">Remaining</p>
+                        <p className="text-2xl font-bold text-foreground">
                           {selectedUser.usage.currentMonth.remaining}
                         </p>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm text-gray-500">All Time</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                      <div className="bg-secondary/50 rounded-2xl p-3">
+                        <p className="text-sm text-muted-foreground">All Time</p>
+                        <p className="text-2xl font-bold text-foreground">
                           {selectedUser.usage.totalAllTime}
                         </p>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-sm text-gray-500">Avg/Month</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                      <div className="bg-secondary/50 rounded-2xl p-3">
+                        <p className="text-sm text-muted-foreground">Avg/Month</p>
+                        <p className="text-2xl font-bold text-foreground">
                           {selectedUser.usage.avgPerMonth}
                         </p>
                       </div>
@@ -467,7 +467,7 @@ export default function UsersPage() {
                   {/* Recent Scans */}
                   {selectedUser.recentScans.length > 0 && (
                     <div className="border-t pt-4">
-                      <h4 className="font-medium text-gray-900 mb-3">Recent Scans</h4>
+                      <h4 className="font-medium text-foreground mb-3">Recent Scans</h4>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {selectedUser.recentScans.slice(0, 10).map((scan) => (
                           <div key={scan.id} className="flex items-center justify-between py-2 border-b">
@@ -475,7 +475,7 @@ export default function UsersPage() {
                               <span className="font-mono font-medium">{scan.ticker}</span>
                               {getRiskBadge(scan.riskLevel)}
                             </div>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted-foreground">
                               {new Date(scan.createdAt).toLocaleDateString()}
                             </span>
                           </div>
@@ -523,7 +523,7 @@ export default function UsersPage() {
                         setEditValue(selectedUser.usage.currentMonth.scansUsed);
                       }}
                       disabled={actionLoading}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                      className="inline-flex items-center px-4 py-2 border border-border text-foreground rounded-md hover:bg-secondary disabled:opacity-50"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Set Scan Count
@@ -543,7 +543,7 @@ export default function UsersPage() {
                     <button
                       onClick={() => performAction(selectedUser.user.id, "resetVerification")}
                       disabled={actionLoading}
-                      className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                      className="inline-flex items-center px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
                     >
                       <Mail className="h-4 w-4 mr-2" />
                       Resend Verification
@@ -572,13 +572,13 @@ export default function UsersPage() {
         {/* Edit Modal */}
         {editModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-md">
+              <h3 className="text-lg font-medium text-foreground mb-4">
                 {editModal.type === "setScans" ? "Set Scan Count" : "Edit Value"}
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-foreground">
                     {editModal.type === "setScans" ? "Monthly Scan Count" : "Value"}
                   </label>
                   <input
@@ -586,9 +586,9 @@ export default function UsersPage() {
                     min="0"
                     value={editValue}
                     onChange={(e) => setEditValue(parseInt(e.target.value) || 0)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="mt-1 block w-full border border-border rounded-md px-3 py-2"
                   />
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Current value: {editModal.currentValue}
                   </p>
                 </div>
@@ -596,14 +596,14 @@ export default function UsersPage() {
               <div className="mt-6 flex justify-end space-x-3">
                 <button
                   onClick={() => setEditModal(null)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 text-foreground border border-border rounded-md hover:bg-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => performAction(editModal.userId, editModal.type, editValue)}
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                  className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
                 >
                   {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Save"}
                 </button>
@@ -615,18 +615,18 @@ export default function UsersPage() {
         {/* Confirmation Modal (for delete) */}
         {confirmModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-md">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                   <AlertTriangle className="h-5 w-5 text-red-600" />
                 </div>
-                <h3 className="ml-3 text-lg font-medium text-gray-900">
+                <h3 className="ml-3 text-lg font-medium text-foreground">
                   {confirmModal.type === "deleteUser" ? "Delete User" : "Confirm Action"}
                 </h3>
               </div>
               <div className="mb-4">
                 {confirmModal.type === "deleteUser" && (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     <p className="mb-2">
                       Are you sure you want to delete the user <strong>{confirmModal.userEmail}</strong>?
                     </p>
@@ -639,7 +639,7 @@ export default function UsersPage() {
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setConfirmModal(null)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 text-foreground border border-border rounded-md hover:bg-secondary"
                 >
                   Cancel
                 </button>

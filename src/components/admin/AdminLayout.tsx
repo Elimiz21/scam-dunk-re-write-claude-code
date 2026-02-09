@@ -16,6 +16,7 @@ import {
   ChevronRight,
   ChevronDown,
   Bell,
+  Eye,
   TrendingUp,
   AlertTriangle,
   Search,
@@ -29,6 +30,7 @@ import {
   UserCog,
   Headphones,
   Mail,
+  Home,
   LucideIcon,
 } from "lucide-react";
 
@@ -72,6 +74,7 @@ const navigationCategories: NavCategory[] = [
     name: "Content",
     icon: FileText,
     items: [
+      { name: "Landing Page", href: "/admin/homepage", icon: Home },
       { name: "News", href: "/admin/news", icon: Newspaper },
       { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
     ],
@@ -184,8 +187,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -195,23 +198,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="admin-layout min-h-screen bg-gray-100 text-gray-900">
+    <div className="admin-layout min-h-screen bg-background text-foreground">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Mobile sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
-        <div className="flex items-center justify-between h-16 px-4 bg-gray-800">
-          <span className="text-xl font-bold text-white">ScamDunk Admin</span>
-          <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-white">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-border">
+          <span className="text-xl font-bold text-foreground">ScamDunk Admin</span>
+          <button onClick={() => setSidebarOpen(false)} className="text-muted-foreground hover:text-foreground">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -222,8 +225,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             onClick={() => setSidebarOpen(false)}
             className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
               pathname === dashboardItem.href
-                ? "bg-indigo-600 text-white"
-                : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                ? "gradient-brand text-white"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >
             <dashboardItem.icon className="h-5 w-5 mr-3" />
@@ -232,7 +235,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* Category divider */}
           <div className="pt-4 pb-2">
-            <div className="border-t border-gray-700" />
+            <div className="border-t border-border" />
           </div>
 
           {/* Categorized navigation */}
@@ -245,8 +248,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   onClick={() => toggleCategory(category.name)}
                   className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-md transition-colors ${
                     isActive
-                      ? "bg-gray-800 text-white"
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
                 >
                   <div className="flex items-center">
@@ -274,8 +277,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           onClick={() => setSidebarOpen(false)}
                           className={`flex items-center px-4 py-2.5 text-sm rounded-md transition-colors ${
                             isItemActive
-                              ? "bg-indigo-600 text-white"
-                              : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                              ? "gradient-brand text-white"
+                              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                           }`}
                         >
                           <item.icon className="h-4 w-4 mr-3" />
@@ -293,11 +296,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-gray-900 overflow-y-auto">
-          <div className="flex items-center h-16 px-4 bg-gray-800">
-            <Shield className="h-8 w-8 text-indigo-500" />
-            <span className="ml-2 text-xl font-bold text-white">ScamDunk</span>
-            <span className="ml-2 text-xs text-gray-400 uppercase">Admin</span>
+        <div className="flex flex-col flex-grow bg-card border-r border-border overflow-y-auto">
+          <div className="flex items-center h-16 px-4 border-b border-border/50">
+            <div className="relative h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm">
+              <Shield className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
+              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
+                <Eye className="h-2 w-2 text-white" />
+              </div>
+            </div>
+            <span className="ml-2 font-display tracking-tight italic text-foreground">
+              Scam<span className="gradient-brand-text not-italic font-sans font-bold">Dunk</span>
+            </span>
+            <span className="ml-2 text-xs text-muted-foreground uppercase font-semibold tracking-wider">Admin</span>
           </div>
           <nav className="flex-1 mt-4 px-2 space-y-1 overflow-y-auto">
             {/* Dashboard - standalone item */}
@@ -305,8 +315,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               href={dashboardItem.href}
               className={`flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
                 pathname === dashboardItem.href
-                  ? "bg-indigo-600 text-white"
-                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                  ? "gradient-brand text-white"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
               <dashboardItem.icon className="h-5 w-5 mr-3" />
@@ -316,7 +326,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             {/* Category divider */}
             <div className="pt-4 pb-2">
-              <div className="border-t border-gray-700" />
+              <div className="border-t border-border" />
             </div>
 
             {/* Categorized navigation */}
@@ -329,8 +339,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     onClick={() => toggleCategory(category.name)}
                     className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-md transition-colors ${
                       isActive
-                        ? "bg-gray-800 text-white"
-                        : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                        ? "bg-secondary text-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     }`}
                   >
                     <div className="flex items-center">
@@ -357,8 +367,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             href={item.href}
                             className={`flex items-center px-4 py-2.5 text-sm rounded-md transition-colors ${
                               isItemActive
-                                ? "bg-indigo-600 text-white"
-                                : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                                ? "gradient-brand text-white"
+                                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                             }`}
                           >
                             <item.icon className="h-4 w-4 mr-3" />
@@ -373,25 +383,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               );
             })}
           </nav>
-          <div className="p-4 border-t border-gray-700">
+          <div className="p-4 border-t border-border">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full gradient-brand flex items-center justify-center">
                   <span className="text-white font-medium">
                     {session.email[0].toUpperCase()}
                   </span>
                 </div>
               </div>
               <div className="ml-3 flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
+                <p className="text-sm font-medium text-foreground truncate">
                   {session.name || session.email}
                 </p>
-                <p className="text-xs text-gray-400 uppercase">{session.role}</p>
+                <p className="text-xs text-muted-foreground uppercase">{session.role}</p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="mt-4 w-full flex items-center justify-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-md transition-colors"
+              className="mt-4 w-full flex items-center justify-center px-4 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground rounded-md transition-colors"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign out
@@ -403,15 +413,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-30 h-16 bg-white border-b border-gray-200 flex items-center px-4 lg:px-8">
+        <div className="sticky top-0 z-30 h-16 bg-background/80 backdrop-blur-lg border-b border-border/50 flex items-center px-4 lg:px-8">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-gray-500 hover:text-gray-700"
+            className="lg:hidden text-muted-foreground hover:text-foreground"
           >
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex-1 flex items-center justify-end">
-            <button className="p-2 text-gray-400 hover:text-gray-500 relative">
+            <button className="p-2 text-muted-foreground hover:text-foreground relative">
               <Bell className="h-6 w-6" />
             </button>
           </div>
