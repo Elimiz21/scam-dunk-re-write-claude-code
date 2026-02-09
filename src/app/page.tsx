@@ -14,8 +14,6 @@ import { Shield, TrendingUp, AlertTriangle, Zap, Sparkles, ArrowRight, BarChart3
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
 import { getRandomTagline, taglines } from "@/lib/taglines";
 import { LandingOptionA } from "@/components/landing/LandingOptionA";
-import { LandingOptionB } from "@/components/landing/LandingOptionB";
-import { LandingOptionC } from "@/components/landing/LandingOptionC";
 import { useToast } from "@/components/ui/toast";
 import { Step } from "@/components/LoadingStepper";
 
@@ -57,9 +55,6 @@ export default function HomePage() {
   ]);
   const [currentTip, setCurrentTip] = useState<string>("");
   const [tipIndex, setTipIndex] = useState(0);
-
-  // Landing page variant for review (A, B, or C)
-  const [landingVariant, setLandingVariant] = useState<"A" | "B" | "C">("A");
 
   // Homepage hero content from admin DB
   const [heroContent, setHeroContent] = useState<{ headline?: string; subheadline?: string }>({});
@@ -472,59 +467,14 @@ export default function HomePage() {
                   </div>
                 </div>
               ) : status !== "loading" ? (
-                /* Non-logged-in users: Full landing page with variant toggle */
-                <div className="flex-1 flex flex-col">
-                  {/* Review Toggle — Remove this after choosing a design */}
-                  <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border px-4 py-2">
-                    <div className="max-w-4xl mx-auto flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Landing Page Review
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {(["A", "B", "C"] as const).map((variant) => (
-                          <button
-                            key={variant}
-                            onClick={() => setLandingVariant(variant)}
-                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-smooth ${
-                              landingVariant === variant
-                                ? "gradient-brand text-white"
-                                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                            }`}
-                          >
-                            Option {variant}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {landingVariant === "A" && (
-                    <LandingOptionA
-                      onSubmit={handleSubmit}
-                      isLoading={isLoading}
-                      disabled={usage?.limitReached && !result}
-                      error={error}
-                      headline={heroContent.headline}
-                      subheadline={heroContent.subheadline}
-                    />
-                  )}
-                  {landingVariant === "B" && (
-                    <LandingOptionB
-                      onSubmit={handleSubmit}
-                      isLoading={isLoading}
-                      disabled={usage?.limitReached && !result}
-                      error={error}
-                    />
-                  )}
-                  {landingVariant === "C" && (
-                    <LandingOptionC
-                      onSubmit={handleSubmit}
-                      isLoading={isLoading}
-                      disabled={usage?.limitReached && !result}
-                      error={error}
-                    />
-                  )}
-                </div>
+                <LandingOptionA
+                  onSubmit={handleSubmit}
+                  isLoading={isLoading}
+                  disabled={usage?.limitReached && !result}
+                  error={error}
+                  headline={heroContent.headline}
+                  subheadline={heroContent.subheadline}
+                />
               ) : null}
             </>
           )}
