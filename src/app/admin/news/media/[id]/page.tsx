@@ -150,15 +150,15 @@ export default function AdminMediaEditorPage() {
                     <div className="flex items-center">
                         <Link
                             href="/admin/news/media"
-                            className="mr-4 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                            className="mr-4 p-2 text-muted-foreground hover:text-muted-foreground rounded-2xl hover:bg-secondary"
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">
+                            <h1 className="text-2xl font-bold text-foreground">
                                 {isNew ? "New Media Mention" : "Edit Media Mention"}
                             </h1>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 {isNew ? "Add a new media mention" : "Update media mention details"}
                             </p>
                         </div>
@@ -167,7 +167,7 @@ export default function AdminMediaEditorPage() {
                         {!isNew && (
                             <button
                                 onClick={handleDelete}
-                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-2xl hover:bg-red-100 transition-colors"
                             >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -176,7 +176,7 @@ export default function AdminMediaEditorPage() {
                         <button
                             onClick={() => handleSave(false)}
                             disabled={saving}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-secondary rounded-2xl hover:bg-secondary transition-colors disabled:opacity-50"
                         >
                             <Save className="h-4 w-4 mr-2" />
                             Save Draft
@@ -184,7 +184,7 @@ export default function AdminMediaEditorPage() {
                         <button
                             onClick={() => handleSave(true)}
                             disabled={saving}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-2xl hover:bg-purple-700 transition-colors disabled:opacity-50"
                         >
                             {mention.isPublished ? (
                                 <>
@@ -205,41 +205,41 @@ export default function AdminMediaEditorPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white rounded-lg shadow p-6">
+                        <div className="bg-card rounded-2xl shadow p-6">
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Title *
                                     </label>
                                     <input
                                         type="text"
                                         value={mention.title}
                                         onChange={(e) => setMention({ ...mention, title: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         placeholder="e.g., ScamDunk Featured in TechCrunch"
                                     />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block text-sm font-medium text-foreground mb-1">
                                             Source *
                                         </label>
                                         <input
                                             type="text"
                                             value={mention.source}
                                             onChange={(e) => setMention({ ...mention, source: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                             placeholder="e.g., TechCrunch, @user123"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block text-sm font-medium text-foreground mb-1">
                                             Source Type
                                         </label>
                                         <select
                                             value={mention.sourceType}
                                             onChange={(e) => setMention({ ...mention, sourceType: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         >
                                             {SOURCE_TYPES.map((type) => (
                                                 <option key={type.value} value={type.value}>
@@ -250,38 +250,38 @@ export default function AdminMediaEditorPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Source URL
                                     </label>
                                     <input
                                         type="url"
                                         value={mention.sourceUrl}
                                         onChange={(e) => setMention({ ...mention, sourceUrl: e.target.value })}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         placeholder="https://example.com/article"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Description
                                     </label>
                                     <textarea
                                         value={mention.description}
                                         onChange={(e) => setMention({ ...mention, description: e.target.value })}
                                         rows={3}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         placeholder="Brief description of what the mention is about"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Quote Text
                                     </label>
                                     <textarea
                                         value={mention.quoteText}
                                         onChange={(e) => setMention({ ...mention, quoteText: e.target.value })}
                                         rows={2}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         placeholder="Featured quote from the mention (if applicable)"
                                     />
                                 </div>
@@ -292,16 +292,16 @@ export default function AdminMediaEditorPage() {
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Status */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-sm font-medium text-gray-900 mb-4">Status</h3>
+                        <div className="bg-card rounded-2xl shadow p-6">
+                            <h3 className="text-sm font-medium text-foreground mb-4">Status</h3>
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm text-gray-600">
+                                    <span className="text-sm text-muted-foreground">
                                         {mention.isPublished ? "Published" : "Draft"}
                                     </span>
                                     <button
                                         onClick={() => setMention({ ...mention, isPublished: !mention.isPublished })}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${mention.isPublished ? "bg-purple-600" : "bg-gray-200"
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${mention.isPublished ? "bg-purple-600" : "bg-secondary"
                                             }`}
                                     >
                                         <span
@@ -312,12 +312,12 @@ export default function AdminMediaEditorPage() {
                                 </div>
                                 <div className="flex items-center justify-between border-t pt-4">
                                     <div className="flex items-center">
-                                        <Star className={`h-4 w-4 mr-2 ${mention.isFeatured ? "text-yellow-500 fill-yellow-500" : "text-gray-400"}`} />
-                                        <span className="text-sm text-gray-600">Featured</span>
+                                        <Star className={`h-4 w-4 mr-2 ${mention.isFeatured ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"}`} />
+                                        <span className="text-sm text-muted-foreground">Featured</span>
                                     </div>
                                     <button
                                         onClick={() => setMention({ ...mention, isFeatured: !mention.isFeatured })}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${mention.isFeatured ? "bg-yellow-500" : "bg-gray-200"
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${mention.isFeatured ? "bg-yellow-500" : "bg-secondary"
                                             }`}
                                     >
                                         <span
@@ -330,36 +330,36 @@ export default function AdminMediaEditorPage() {
                         </div>
 
                         {/* Metadata */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h3 className="text-sm font-medium text-gray-900 mb-4">Details</h3>
+                        <div className="bg-card rounded-2xl shadow p-6">
+                            <h3 className="text-sm font-medium text-foreground mb-4">Details</h3>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Mention Date
                                     </label>
                                     <input
                                         type="date"
                                         value={mention.mentionDate}
                                         onChange={(e) => setMention({ ...mention, mentionDate: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                                        className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Logo URL
                                     </label>
                                     <input
                                         type="url"
                                         value={mention.logoUrl}
                                         onChange={(e) => setMention({ ...mention, logoUrl: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                                        className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                                         placeholder="https://example.com/logo.png"
                                     />
                                     {mention.logoUrl && (
                                         <img
                                             src={mention.logoUrl}
                                             alt="Logo preview"
-                                            className="mt-3 w-24 h-24 object-contain rounded-lg border"
+                                            className="mt-3 w-24 h-24 object-contain rounded-2xl border"
                                             onError={(e) => {
                                                 (e.target as HTMLImageElement).style.display = "none";
                                             }}

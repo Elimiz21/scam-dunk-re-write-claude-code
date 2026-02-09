@@ -120,7 +120,7 @@ export default function IntegrationsPage() {
       case "ERROR":
         return <XCircle className="h-5 w-5 text-red-500" />;
       default:
-        return <AlertCircle className="h-5 w-5 text-gray-400" />;
+        return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
     }
   }
 
@@ -131,7 +131,7 @@ export default function IntegrationsPage() {
       case "ERROR":
         return "bg-red-100 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-secondary text-foreground";
     }
   }
 
@@ -151,15 +151,15 @@ export default function IntegrationsPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Integrations</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">Integrations</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Manage and monitor API integrations
             </p>
           </div>
           <button
             onClick={testAllIntegrations}
             disabled={testing !== null}
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
           >
             {testing === "ALL" ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -176,28 +176,28 @@ export default function IntegrationsPage() {
 
         {/* Health Summary */}
         {healthSummary && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Connection Health</h2>
+          <div className="bg-card rounded-2xl shadow p-6">
+            <h2 className="text-lg font-medium text-foreground mb-4">Connection Health</h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center">
-                <p className="text-3xl font-bold text-gray-900">{healthSummary.total}</p>
-                <p className="text-sm text-gray-500">Total</p>
+                <p className="text-3xl font-bold text-foreground">{healthSummary.total}</p>
+                <p className="text-sm text-muted-foreground">Total</p>
               </div>
               <div className="text-center">
                 <p className="text-3xl font-bold text-green-600">{healthSummary.connected}</p>
-                <p className="text-sm text-gray-500">Connected</p>
+                <p className="text-sm text-muted-foreground">Connected</p>
               </div>
               <div className="text-center">
                 <p className="text-3xl font-bold text-red-600">{healthSummary.errors}</p>
-                <p className="text-sm text-gray-500">Errors</p>
+                <p className="text-sm text-muted-foreground">Errors</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-gray-400">{healthSummary.unknown}</p>
-                <p className="text-sm text-gray-500">Unknown</p>
+                <p className="text-3xl font-bold text-muted-foreground">{healthSummary.unknown}</p>
+                <p className="text-sm text-muted-foreground">Unknown</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-gray-400">{healthSummary.disabled}</p>
-                <p className="text-sm text-gray-500">Disabled</p>
+                <p className="text-3xl font-bold text-muted-foreground">{healthSummary.disabled}</p>
+                <p className="text-sm text-muted-foreground">Disabled</p>
               </div>
             </div>
           </div>
@@ -207,20 +207,20 @@ export default function IntegrationsPage() {
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-lg shadow h-40 animate-pulse" />
+              <div key={i} className="bg-card rounded-2xl shadow h-40 animate-pulse" />
             ))}
           </div>
         ) : (
           Object.entries(groupedIntegrations).map(([category, items]) => (
             <div key={category} className="space-y-4">
-              <h2 className="text-lg font-medium text-gray-900 capitalize">
+              <h2 className="text-lg font-medium text-foreground capitalize">
                 {category.toLowerCase()} Integrations
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {items.map((integration) => (
                   <div
                     key={integration.id}
-                    className={`bg-white rounded-lg shadow p-6 ${
+                    className={`bg-card rounded-2xl shadow p-6 ${
                       !integration.isEnabled ? "opacity-60" : ""
                     }`}
                   >
@@ -228,10 +228,10 @@ export default function IntegrationsPage() {
                       <div className="flex items-center">
                         {getStatusIcon(integration.status)}
                         <div className="ml-3">
-                          <h3 className="text-lg font-medium text-gray-900">
+                          <h3 className="text-lg font-medium text-foreground">
                             {integration.displayName}
                           </h3>
-                          <p className="text-sm text-gray-500">{integration.description}</p>
+                          <p className="text-sm text-muted-foreground">{integration.description}</p>
                         </div>
                       </div>
                       <span
@@ -245,15 +245,15 @@ export default function IntegrationsPage() {
 
                     <div className="mt-4 space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">API Key</span>
-                        <span className="font-mono text-gray-700">
+                        <span className="text-muted-foreground">API Key</span>
+                        <span className="font-mono text-foreground">
                           {integration.apiKeyMasked || "Not configured"}
                         </span>
                       </div>
                       {integration.rateLimit && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Rate Limit</span>
-                          <span className="text-gray-700">{integration.rateLimit}/min</span>
+                          <span className="text-muted-foreground">Rate Limit</span>
+                          <span className="text-foreground">{integration.rateLimit}/min</span>
                         </div>
                       )}
                       {integration.errorMessage && (
@@ -268,7 +268,7 @@ export default function IntegrationsPage() {
                         <button
                           onClick={() => testIntegration(integration.name)}
                           disabled={testing !== null}
-                          className="inline-flex items-center px-3 py-1 text-sm text-indigo-600 hover:text-indigo-800"
+                          className="inline-flex items-center px-3 py-1 text-sm text-primary hover:text-primary/80"
                         >
                           {testing === integration.name ? (
                             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -279,7 +279,7 @@ export default function IntegrationsPage() {
                         </button>
                         <button
                           onClick={() => setEditingIntegration(integration)}
-                          className="inline-flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                          className="inline-flex items-center px-3 py-1 text-sm text-muted-foreground hover:text-foreground"
                         >
                           <Settings className="h-4 w-4 mr-1" />
                           Configure
@@ -290,7 +290,7 @@ export default function IntegrationsPage() {
                           href={integration.documentation}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
+                          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
                         >
                           Docs
                           <ExternalLink className="h-3 w-3 ml-1" />
@@ -307,19 +307,19 @@ export default function IntegrationsPage() {
         {/* Edit Modal */}
         {editingIntegration && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-md">
+              <h3 className="text-lg font-medium text-foreground mb-4">
                 Configure {editingIntegration.displayName}
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Enabled</span>
+                  <span className="text-sm font-medium text-foreground">Enabled</span>
                   <button
                     onClick={() =>
                       updateIntegration({ isEnabled: !editingIntegration.isEnabled })
                     }
                     className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                      editingIntegration.isEnabled ? "bg-indigo-600" : "bg-gray-200"
+                      editingIntegration.isEnabled ? "gradient-brand" : "bg-secondary"
                     }`}
                   >
                     <span
@@ -330,7 +330,7 @@ export default function IntegrationsPage() {
                   </button>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-foreground">
                     Monthly Budget (USD)
                   </label>
                   <input
@@ -342,12 +342,12 @@ export default function IntegrationsPage() {
                         monthlyBudget: parseFloat(e.target.value) || null,
                       })
                     }
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="mt-1 block w-full border border-border rounded-md px-3 py-2"
                     placeholder="No limit"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-foreground">
                     Rate Limit (requests/min)
                   </label>
                   <input
@@ -359,17 +359,17 @@ export default function IntegrationsPage() {
                         rateLimit: parseInt(e.target.value) || null,
                       })
                     }
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="mt-1 block w-full border border-border rounded-md px-3 py-2"
                   />
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Note: To update API keys, modify the environment variables directly.
                 </p>
               </div>
               <div className="mt-6 flex justify-end space-x-3">
                 <button
                   onClick={() => setEditingIntegration(null)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 text-foreground border border-border rounded-md hover:bg-secondary"
                 >
                   Cancel
                 </button>
@@ -380,7 +380,7 @@ export default function IntegrationsPage() {
                       rateLimit: editingIntegration.rateLimit,
                     })
                   }
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                  className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90"
                 >
                   Save Changes
                 </button>

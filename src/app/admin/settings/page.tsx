@@ -137,25 +137,25 @@ export default function SettingsPage() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage your admin account settings
           </p>
         </div>
 
         {/* Current Account Info */}
         {session && (
-          <div className="bg-white rounded-lg shadow px-6 py-4">
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Current Account</h2>
+          <div className="bg-card rounded-2xl shadow px-6 py-4">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Current Account</h2>
             <div className="mt-2 flex items-center space-x-4">
-              <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-full gradient-brand flex items-center justify-center">
                 <span className="text-white font-medium">
                   {session.email[0].toUpperCase()}
                 </span>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">{session.name || "No name set"}</p>
-                <p className="text-sm text-gray-500">{session.email}</p>
+                <p className="text-sm font-medium text-foreground">{session.name || "No name set"}</p>
+                <p className="text-sm text-muted-foreground">{session.email}</p>
               </div>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                 {session.role}
@@ -166,15 +166,15 @@ export default function SettingsPage() {
 
         {/* Change Email Section - Owner Only */}
         {isOwner && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="bg-card rounded-2xl shadow">
+            <div className="px-6 py-4 border-b border-border">
               <div className="flex items-center">
-                <Mail className="h-5 w-5 text-gray-400 mr-2" />
-                <h2 className="text-lg font-medium text-gray-900">
+                <Mail className="h-5 w-5 text-muted-foreground mr-2" />
+                <h2 className="text-lg font-medium text-foreground">
                   Change Login Email
                 </h2>
               </div>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Update the email address you use to log in
               </p>
             </div>
@@ -196,7 +196,7 @@ export default function SettingsPage() {
               <div>
                 <label
                   htmlFor="newEmail"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-foreground"
                 >
                   New Email Address
                 </label>
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                     required
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                     placeholder="newemail@example.com"
                   />
                 </div>
@@ -216,7 +216,7 @@ export default function SettingsPage() {
               <div>
                 <label
                   htmlFor="emailPassword"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-foreground"
                 >
                   Current Password (to confirm)
                 </label>
@@ -227,13 +227,13 @@ export default function SettingsPage() {
                     required
                     value={emailPassword}
                     onChange={(e) => setEmailPassword(e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
+                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
                     placeholder="Enter your current password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowEmailPassword(!showEmailPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-muted-foreground"
                   >
                     {showEmailPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -248,7 +248,7 @@ export default function SettingsPage() {
                 <button
                   type="submit"
                   disabled={emailLoading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white gradient-brand hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {emailLoading ? (
                     <>
@@ -265,15 +265,15 @@ export default function SettingsPage() {
         )}
 
         {/* Change Password Section */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-card rounded-2xl shadow">
+          <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center">
-              <KeyRound className="h-5 w-5 text-gray-400 mr-2" />
-              <h2 className="text-lg font-medium text-gray-900">
+              <KeyRound className="h-5 w-5 text-muted-foreground mr-2" />
+              <h2 className="text-lg font-medium text-foreground">
                 Change Password
               </h2>
             </div>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               Update your admin account password
             </p>
           </div>
@@ -296,7 +296,7 @@ export default function SettingsPage() {
             <div>
               <label
                 htmlFor="currentPassword"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
               >
                 Current Password
               </label>
@@ -307,13 +307,13 @@ export default function SettingsPage() {
                   required
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
                   placeholder="Enter current password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrent(!showCurrent)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-muted-foreground"
                 >
                   {showCurrent ? (
                     <EyeOff className="h-4 w-4" />
@@ -328,7 +328,7 @@ export default function SettingsPage() {
             <div>
               <label
                 htmlFor="newPassword"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
               >
                 New Password
               </label>
@@ -340,13 +340,13 @@ export default function SettingsPage() {
                   minLength={8}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
                   placeholder="Minimum 8 characters"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNew(!showNew)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-muted-foreground"
                 >
                   {showNew ? (
                     <EyeOff className="h-4 w-4" />
@@ -361,7 +361,7 @@ export default function SettingsPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
               >
                 Confirm New Password
               </label>
@@ -373,13 +373,13 @@ export default function SettingsPage() {
                   minLength={8}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
                   placeholder="Re-enter new password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-muted-foreground"
                 >
                   {showConfirm ? (
                     <EyeOff className="h-4 w-4" />
@@ -394,7 +394,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={pwLoading}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white gradient-brand hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {pwLoading ? (
                   <>

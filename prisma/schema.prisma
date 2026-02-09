@@ -748,3 +748,21 @@ model RegulatoryDatabaseSync {
   @@index([source])
   @@index([lastSyncAt])
 }
+
+// ==========================================
+// HOMEPAGE CONTENT MANAGEMENT
+// For managing landing page hero headline, subheadline, etc.
+// ==========================================
+
+model HomepageHero {
+  id           String   @id @default(cuid())
+  headline     String   @db.Text  // Main hero headline
+  subheadline  String   @db.Text  // Secondary description text
+  isActive     Boolean  @default(false) // Only one should be active at a time
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?  // Admin user ID
+
+  @@index([isActive])
+  @@index([createdAt])
+}

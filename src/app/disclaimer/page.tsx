@@ -10,7 +10,8 @@ import {
   ShieldAlert,
   Scale,
   FileWarning,
-  ArrowRight
+  ArrowRight,
+  Eye
 } from "lucide-react";
 
 export default function DisclaimerPage() {
@@ -33,8 +34,11 @@ export default function DisclaimerPage() {
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
             <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
                 <AlertTriangle className="h-8 w-8 text-white" />
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                  <Eye className="h-2.5 w-2.5 text-white" />
+                </div>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 Disclaimer & Limitations
@@ -69,7 +73,7 @@ export default function DisclaimerPage() {
             {/* What We Don't Check */}
             <section className="mb-8 animate-slide-up delay-1">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 bg-destructive rounded-full"><XCircle className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><XCircle className="h-4 w-4 text-white" /></span>
                 What Our Scans Do NOT Check
               </h2>
 
@@ -133,7 +137,7 @@ export default function DisclaimerPage() {
             {/* Potential Errors */}
             <section className="mb-8 animate-slide-up delay-2">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 bg-yellow-500 rounded-full"><FileWarning className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><FileWarning className="h-4 w-4 text-white" /></span>
                 We Can Make Mistakes
               </h2>
 
@@ -187,7 +191,7 @@ export default function DisclaimerPage() {
             {/* No Professional Relationship */}
             <section className="mb-8 animate-fade-in delay-4">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Scale className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Scale className="h-4 w-4 text-white" /></span>
                 No Professional Relationship
               </h2>
 

@@ -16,6 +16,7 @@ import {
   Info,
   FileText,
   Zap,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarToggle } from "./Sidebar";
@@ -45,8 +46,11 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
         <div className="flex items-center gap-3">
           <SidebarToggle onClick={onSidebarToggle} />
           <Link href="/" className="flex items-center gap-2.5 ml-1 group">
-            <div className="h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm shadow-primary/20 group-hover:shadow-md group-hover:shadow-primary/30 transition-all duration-200">
+            <div className="relative h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm shadow-primary/20 group-hover:shadow-md group-hover:shadow-primary/30 transition-all duration-200">
               <Shield className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
+              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
+                <Eye className="h-2 w-2 text-white" />
+              </div>
             </div>
             <span className="font-display text-lg hidden sm:inline tracking-tight italic">
               Scam<span className="gradient-brand-text not-italic font-sans font-bold">Dunk</span>

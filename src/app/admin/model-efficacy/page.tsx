@@ -122,7 +122,7 @@ export default function ModelEfficacyPage() {
       LOW: "bg-green-100 text-green-800",
       MEDIUM: "bg-yellow-100 text-yellow-800",
       HIGH: "bg-red-100 text-red-800",
-      INSUFFICIENT: "bg-gray-100 text-gray-800",
+      INSUFFICIENT: "bg-secondary text-foreground",
     };
     return (
       <span
@@ -218,15 +218,15 @@ export default function ModelEfficacyPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Model Efficacy</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">Model Efficacy</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Monitor and improve scam detection accuracy
             </p>
           </div>
           <select
             value={days}
             onChange={(e) => setDays(parseInt(e.target.value))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="border border-border rounded-md px-3 py-2 text-sm"
           >
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>
@@ -242,7 +242,7 @@ export default function ModelEfficacyPage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white rounded-lg shadow h-32 animate-pulse" />
+              <div key={i} className="bg-card rounded-2xl shadow h-32 animate-pulse" />
             ))}
           </div>
         ) : metrics ? (
@@ -276,14 +276,14 @@ export default function ModelEfficacyPage() {
 
             {/* Accuracy Card */}
             {metrics.accuracy !== null && (
-              <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-card rounded-2xl shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Model Accuracy</h3>
-                    <p className="text-sm text-gray-500">Based on manual feedback</p>
+                    <h3 className="text-lg font-medium text-foreground">Model Accuracy</h3>
+                    <p className="text-sm text-muted-foreground">Based on manual feedback</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-4xl font-bold text-indigo-600">
+                    <p className="text-4xl font-bold text-primary">
                       {metrics.accuracy.toFixed(1)}%
                     </p>
                     <div className="mt-2 flex space-x-4 text-sm">
@@ -316,16 +316,16 @@ export default function ModelEfficacyPage() {
             </div>
 
             {/* Top Tickers */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Most Scanned Tickers</h3>
+            <div className="bg-card rounded-2xl shadow p-6">
+              <h3 className="text-lg font-medium text-foreground mb-4">Most Scanned Tickers</h3>
               <div className="flex flex-wrap gap-2">
                 {metrics.topTickers.map((ticker) => (
                   <span
                     key={ticker.ticker}
-                    className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm"
+                    className="inline-flex items-center px-3 py-1 rounded-full bg-secondary text-sm"
                   >
                     <span className="font-mono font-medium">{ticker.ticker}</span>
-                    <span className="ml-2 text-gray-500">{ticker.count}</span>
+                    <span className="ml-2 text-muted-foreground">{ticker.count}</span>
                   </span>
                 ))}
               </div>
@@ -334,11 +334,11 @@ export default function ModelEfficacyPage() {
             {/* Recent Scans for Review */}
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Recent Scans</h3>
+                <h3 className="text-lg font-medium text-foreground">Recent Scans</h3>
                 <select
                   value={filterRisk}
                   onChange={(e) => setFilterRisk(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="border border-border rounded-md px-3 py-2 text-sm"
                 >
                   <option value="">All Risk Levels</option>
                   <option value="LOW">Low Risk</option>
