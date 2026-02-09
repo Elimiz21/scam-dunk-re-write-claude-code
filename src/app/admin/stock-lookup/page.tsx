@@ -73,7 +73,7 @@ const riskLevelColors: Record<string, string> = {
   LOW: "bg-green-100 text-green-800",
   MEDIUM: "bg-yellow-100 text-yellow-800",
   HIGH: "bg-red-100 text-red-800",
-  INSUFFICIENT: "bg-gray-100 text-gray-800",
+  INSUFFICIENT: "bg-secondary text-foreground",
 };
 
 export default function StockLookupPage() {
@@ -145,17 +145,17 @@ export default function StockLookupPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Stock Lookup</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">Stock Lookup</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Search and analyze historical risk data for tracked stocks
           </p>
         </div>
 
         {/* Search */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-2xl shadow p-6">
           <div className="flex gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <input
                 type="text"
                 value={query}
@@ -169,22 +169,22 @@ export default function StockLookupPage() {
                   }
                 }}
                 placeholder="Search by symbol or company name..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-md focus:ring-primary focus:border-primary/50"
               />
               {/* Search Results Dropdown */}
               {searchResults.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
                   {searchResults.map((result) => (
                     <button
                       key={result.symbol}
                       onClick={() => lookupStock(result.symbol)}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 flex justify-between items-center"
+                      className="w-full px-4 py-2 text-left hover:bg-secondary flex justify-between items-center"
                     >
                       <div>
-                        <span className="font-medium text-indigo-600">{result.symbol}</span>
-                        <span className="ml-2 text-sm text-gray-600">{result.name}</span>
+                        <span className="font-medium text-primary">{result.symbol}</span>
+                        <span className="ml-2 text-sm text-muted-foreground">{result.name}</span>
                       </div>
-                      <span className="text-xs text-gray-400">{result.exchange}</span>
+                      <span className="text-xs text-muted-foreground">{result.exchange}</span>
                     </button>
                   ))}
                 </div>
@@ -193,7 +193,7 @@ export default function StockLookupPage() {
             <select
               value={days}
               onChange={(e) => setDays(parseInt(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-md"
+              className="px-4 py-2 border border-border rounded-md"
             >
               <option value={30}>30 days</option>
               <option value={90}>90 days</option>
@@ -203,7 +203,7 @@ export default function StockLookupPage() {
             <button
               onClick={() => query.trim() && lookupStock(query.trim().toUpperCase())}
               disabled={loading || !query.trim()}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+              className="px-6 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
             >
               {loading ? "Loading..." : "Lookup"}
             </button>
@@ -216,19 +216,19 @@ export default function StockLookupPage() {
         {stockData && (
           <>
             {/* Stock Header */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-card rounded-2xl shadow p-6">
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-bold text-gray-900">{stockData.stock.symbol}</h2>
+                    <h2 className="text-2xl font-bold text-foreground">{stockData.stock.symbol}</h2>
                     {stockData.stock.isOTC && (
                       <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-800 rounded">OTC</span>
                     )}
-                    <span className="text-sm text-gray-500">{stockData.stock.exchange}</span>
+                    <span className="text-sm text-muted-foreground">{stockData.stock.exchange}</span>
                   </div>
-                  <p className="text-gray-600 mt-1">{stockData.stock.name}</p>
+                  <p className="text-muted-foreground mt-1">{stockData.stock.name}</p>
                   {stockData.stock.sector && (
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {stockData.stock.sector} {stockData.stock.industry && `• ${stockData.stock.industry}`}
                     </p>
                   )}
@@ -248,8 +248,8 @@ export default function StockLookupPage() {
               {/* Current Stats */}
               {stockData.current && (
                 <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center text-gray-500 text-sm">
+                  <div className="bg-secondary/50 rounded-2xl p-3">
+                    <div className="flex items-center text-muted-foreground text-sm">
                       <DollarSign className="h-4 w-4 mr-1" />
                       Price
                     </div>
@@ -262,8 +262,8 @@ export default function StockLookupPage() {
                       </div>
                     )}
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center text-gray-500 text-sm">
+                  <div className="bg-secondary/50 rounded-2xl p-3">
+                    <div className="flex items-center text-muted-foreground text-sm">
                       <BarChart3 className="h-4 w-4 mr-1" />
                       Volume
                     </div>
@@ -271,20 +271,20 @@ export default function StockLookupPage() {
                       {stockData.current.volume ? stockData.current.volume.toLocaleString() : "-"}
                     </div>
                     {stockData.current.volumeRatio !== null && (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         {stockData.current.volumeRatio.toFixed(1)}x avg
                       </div>
                     )}
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center text-gray-500 text-sm">
+                  <div className="bg-secondary/50 rounded-2xl p-3">
+                    <div className="flex items-center text-muted-foreground text-sm">
                       <AlertTriangle className="h-4 w-4 mr-1" />
                       Signals
                     </div>
                     <div className="mt-1 font-semibold">{stockData.current.signalCount}</div>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center text-gray-500 text-sm">
+                  <div className="bg-secondary/50 rounded-2xl p-3">
+                    <div className="flex items-center text-muted-foreground text-sm">
                       <Calendar className="h-4 w-4 mr-1" />
                       Last Scan
                     </div>
@@ -292,8 +292,8 @@ export default function StockLookupPage() {
                       {new Date(stockData.current.scanDate).toLocaleDateString()}
                     </div>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center text-gray-500 text-sm">
+                  <div className="bg-secondary/50 rounded-2xl p-3">
+                    <div className="flex items-center text-muted-foreground text-sm">
                       <Activity className="h-4 w-4 mr-1" />
                       Days Tracked
                     </div>
@@ -333,13 +333,13 @@ export default function StockLookupPage() {
             </div>
 
             {/* Risk Distribution */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Risk Level Distribution</h3>
+            <div className="bg-card rounded-2xl shadow p-6">
+              <h3 className="text-lg font-medium text-foreground mb-4">Risk Level Distribution</h3>
               <div className="flex gap-4">
                 {Object.entries(stockData.riskCounts).map(([level, count]) => (
                   <div
                     key={level}
-                    className={`flex-1 p-4 rounded-lg ${riskLevelColors[level]} bg-opacity-50`}
+                    className={`flex-1 p-4 rounded-2xl ${riskLevelColors[level]} bg-opacity-50`}
                   >
                     <div className="text-2xl font-bold">{count}</div>
                     <div className="text-sm">{level} days</div>
@@ -350,20 +350,20 @@ export default function StockLookupPage() {
 
             {/* Recent Alerts */}
             {stockData.alerts.length > 0 && (
-              <div className="bg-white rounded-lg shadow">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">Recent Alerts</h3>
+              <div className="bg-card rounded-2xl shadow">
+                <div className="px-6 py-4 border-b border-border">
+                  <h3 className="text-lg font-medium text-foreground">Recent Alerts</h3>
                 </div>
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-border">
                   {stockData.alerts.map((alert, idx) => (
                     <div key={idx} className="px-6 py-4 flex items-center justify-between">
                       <div>
                         <span className="font-medium">{alert.alertType.replace(/_/g, " ")}</span>
-                        <span className="text-gray-500 ml-2">
+                        <span className="text-muted-foreground ml-2">
                           {alert.previousRiskLevel} → {alert.newRiskLevel}
                         </span>
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground">
                         {new Date(alert.alertDate).toLocaleDateString()}
                       </div>
                     </div>
@@ -374,8 +374,8 @@ export default function StockLookupPage() {
 
             {/* Signals */}
             {stockData.current && stockData.current.signals !== "[]" && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Current Signals</h3>
+              <div className="bg-card rounded-2xl shadow p-6">
+                <h3 className="text-lg font-medium text-foreground mb-4">Current Signals</h3>
                 <div className="flex flex-wrap gap-2">
                   {JSON.parse(stockData.current.signals).map((signal: { code: string; category: string; weight: number }, idx: number) => (
                     <span
@@ -383,7 +383,7 @@ export default function StockLookupPage() {
                       className={`px-3 py-1 rounded-full text-sm ${
                         signal.weight >= 20 ? "bg-red-100 text-red-800" :
                         signal.weight >= 10 ? "bg-yellow-100 text-yellow-800" :
-                        "bg-gray-100 text-gray-800"
+                        "bg-secondary text-foreground"
                       }`}
                     >
                       {signal.code} ({signal.weight})
@@ -397,10 +397,10 @@ export default function StockLookupPage() {
 
         {/* Empty State */}
         {!stockData && !loading && !error && (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <Search className="h-12 w-12 mx-auto text-gray-300" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">Search for a Stock</h3>
-            <p className="mt-2 text-gray-500">
+          <div className="bg-card rounded-2xl shadow p-12 text-center">
+            <Search className="h-12 w-12 mx-auto text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-medium text-foreground">Search for a Stock</h3>
+            <p className="mt-2 text-muted-foreground">
               Enter a stock symbol or company name to view historical risk analysis
             </p>
           </div>

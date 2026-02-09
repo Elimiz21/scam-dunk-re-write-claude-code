@@ -16,7 +16,8 @@ import {
   TrendingUp,
   CreditCard,
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  Eye
 } from "lucide-react";
 
 interface FAQItem {
@@ -163,8 +164,11 @@ export default function HelpPage() {
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
             <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
                 <HelpCircle className="h-8 w-8 text-white" />
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                  <Eye className="h-2.5 w-2.5 text-white" />
+                </div>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 Help & FAQ
@@ -246,7 +250,7 @@ export default function HelpPage() {
             {/* Still Need Help */}
             <section className="mb-8 animate-slide-up delay-1">
               <div className="p-6 rounded-xl card-elevated text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 gradient-brand rounded-full mb-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 gradient-brand rounded-2xl mb-4">
                   <MessageCircle className="h-6 w-6 text-white" />
                 </div>
                 <h2 className="text-xl font-semibold mb-2 font-display italic">Still Need Help?</h2>

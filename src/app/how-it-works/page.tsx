@@ -15,7 +15,8 @@ import {
   Search,
   CheckCircle,
   XCircle,
-  ArrowRight
+  ArrowRight,
+  Eye
 } from "lucide-react";
 
 export default function HowItWorksPage() {
@@ -38,8 +39,11 @@ export default function HowItWorksPage() {
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
             <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
+              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
                 <Brain className="h-8 w-8 text-white" />
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                  <Eye className="h-2.5 w-2.5 text-white" />
+                </div>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
                 How <span className="font-display italic">ScamDunk</span> Works
@@ -53,7 +57,7 @@ export default function HowItWorksPage() {
             {/* Analysis Pipeline */}
             <section className="mb-12 animate-slide-up">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Zap className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Zap className="h-4 w-4 text-white" /></span>
                 The Analysis Process
               </h2>
 
@@ -115,7 +119,7 @@ export default function HowItWorksPage() {
             {/* Signal Categories */}
             <section className="mb-12 animate-slide-up delay-1">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><BarChart3 className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><BarChart3 className="h-4 w-4 text-white" /></span>
                 What We Analyze
               </h2>
 
@@ -188,7 +192,7 @@ export default function HowItWorksPage() {
             {/* Risk Levels */}
             <section className="mb-12 animate-slide-up delay-2">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-full"><Shield className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Shield className="h-4 w-4 text-white" /></span>
                 Understanding Risk Levels
               </h2>
 
@@ -231,7 +235,7 @@ export default function HowItWorksPage() {
             {/* Important Limitations */}
             <section className="mb-12 animate-slide-up delay-3">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 bg-destructive rounded-full"><AlertTriangle className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><AlertTriangle className="h-4 w-4 text-white" /></span>
                 Important Limitations
               </h2>
 

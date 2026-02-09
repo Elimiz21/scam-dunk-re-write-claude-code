@@ -441,7 +441,7 @@ export default function EmailManagementPage() {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </AdminLayout>
     );
@@ -453,14 +453,14 @@ export default function EmailManagementPage() {
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Email Management</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">Email Management</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Configure email routing, manage recipients, send emails, and monitor delivery
             </p>
           </div>
           <button
             onClick={loadOverview}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground bg-card border border-border rounded-md hover:bg-secondary"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -503,7 +503,7 @@ export default function EmailManagementPage() {
 
         {/* Config Warnings */}
         {config?.isTestMode && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
               <div>
@@ -523,7 +523,7 @@ export default function EmailManagementPage() {
         )}
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-border">
           <nav className="flex -mb-px space-x-8">
             {tabs.map((tab) => (
               <button
@@ -531,8 +531,8 @@ export default function EmailManagementPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-primary/50 text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                 }`}
               >
                 {tab.icon}
@@ -543,11 +543,11 @@ export default function EmailManagementPage() {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-white rounded-lg border shadow-sm">
+        <div className="bg-card rounded-2xl border shadow-sm">
           {/* ==================== Config Tab ==================== */}
           {activeTab === "config" && (
             <div className="p-6 space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">Email Configuration</h2>
+              <h2 className="text-lg font-semibold text-foreground">Email Configuration</h2>
 
               {/* Status */}
               <div className="grid md:grid-cols-2 gap-6">
@@ -559,17 +559,17 @@ export default function EmailManagementPage() {
                     </span>
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="bg-secondary/50 rounded-2xl p-4 space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">From Address:</span>
-                      <code className="text-sm bg-gray-100 px-2 py-0.5 rounded">{config?.fromEmail}</code>
+                      <span className="text-sm text-muted-foreground">From Address:</span>
+                      <code className="text-sm bg-secondary px-2 py-0.5 rounded">{config?.fromEmail}</code>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">App URL:</span>
-                      <code className="text-sm bg-gray-100 px-2 py-0.5 rounded">{config?.appUrl}</code>
+                      <span className="text-sm text-muted-foreground">App URL:</span>
+                      <code className="text-sm bg-secondary px-2 py-0.5 rounded">{config?.appUrl}</code>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Mode:</span>
+                      <span className="text-sm text-muted-foreground">Mode:</span>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         config?.isTestMode ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800"
                       }`}>
@@ -580,12 +580,12 @@ export default function EmailManagementPage() {
                 </div>
 
                 {/* Test Email */}
-                <div className="bg-indigo-50 rounded-lg p-4">
-                  <h3 className="font-medium text-indigo-900 mb-3 flex items-center gap-2">
+                <div className="bg-primary/5 rounded-2xl p-4">
+                  <h3 className="font-medium text-primary mb-3 flex items-center gap-2">
                     <TestTube className="h-4 w-4" />
                     Send Test Email
                   </h3>
-                  <p className="text-sm text-indigo-700 mb-3">
+                  <p className="text-sm text-primary mb-3">
                     Verify your email configuration by sending a test email.
                   </p>
                   <div className="flex gap-2">
@@ -594,12 +594,12 @@ export default function EmailManagementPage() {
                       value={testEmail}
                       onChange={(e) => setTestEmail(e.target.value)}
                       placeholder="test@example.com"
-                      className="flex-1 px-3 py-2 border border-indigo-200 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                      className="flex-1 px-3 py-2 border border-primary/20 rounded-md text-sm focus:ring-primary focus:border-primary/50"
                     />
                     <button
                       onClick={handleSendTestEmail}
                       disabled={testSending || !testEmail}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 px-4 py-2 gradient-brand text-white text-sm rounded-md hover:opacity-90 disabled:opacity-50"
                     >
                       {testSending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -615,7 +615,7 @@ export default function EmailManagementPage() {
               {/* Warnings & Errors */}
               {config?.warnings && config.warnings.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-gray-700">Warnings</h3>
+                  <h3 className="text-sm font-medium text-foreground">Warnings</h3>
                   {config.warnings.map((w, i) => (
                     <div key={i} className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 p-3 rounded">
                       <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -627,7 +627,7 @@ export default function EmailManagementPage() {
 
               {config?.errors && config.errors.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-gray-700">Errors</h3>
+                  <h3 className="text-sm font-medium text-foreground">Errors</h3>
                   {config.errors.map((e, i) => (
                     <div key={i} className="flex items-start gap-2 text-sm text-red-700 bg-red-50 p-3 rounded">
                       <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -639,8 +639,8 @@ export default function EmailManagementPage() {
 
               {/* Routing Explanation */}
               <div className="border-t pt-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">How Email Routing Works</h3>
-                <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 space-y-2">
+                <h3 className="text-sm font-medium text-foreground mb-3">How Email Routing Works</h3>
+                <div className="bg-secondary/50 rounded-2xl p-4 text-sm text-muted-foreground space-y-2">
                   <p>When a support ticket is submitted via the Contact Us form:</p>
                   <ol className="list-decimal list-inside space-y-1 ml-2">
                     <li><strong>Primary recipients</strong> always receive notifications for all ticket categories</li>
@@ -659,14 +659,14 @@ export default function EmailManagementPage() {
             <div className="p-6 space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Email Recipients</h2>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <h2 className="text-lg font-semibold text-foreground">Email Recipients</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
                     Manage who receives support ticket notifications and which categories they handle
                   </p>
                 </div>
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700"
+                  className="inline-flex items-center gap-2 px-4 py-2 gradient-brand text-white text-sm rounded-md hover:opacity-90"
                 >
                   <Plus className="h-4 w-4" />
                   Add Recipient
@@ -675,26 +675,26 @@ export default function EmailManagementPage() {
 
               {/* Add Form */}
               {showAddForm && (
-                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 space-y-4">
-                  <h3 className="font-medium text-indigo-900">Add New Recipient</h3>
+                <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 space-y-4">
+                  <h3 className="font-medium text-primary">Add New Recipient</h3>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                      <label className="block text-sm font-medium text-foreground mb-1">Email *</label>
                       <input
                         type="email"
                         value={addForm.email}
                         onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm"
                         placeholder="admin@example.com"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Name (optional)</label>
+                      <label className="block text-sm font-medium text-foreground mb-1">Name (optional)</label>
                       <input
                         type="text"
                         value={addForm.name}
                         onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm"
                         placeholder="John Doe"
                       />
                     </div>
@@ -705,7 +705,7 @@ export default function EmailManagementPage() {
                         type="checkbox"
                         checked={addForm.isPrimary}
                         onChange={(e) => setAddForm({ ...addForm, isPrimary: e.target.checked })}
-                        className="rounded border-gray-300 text-indigo-600"
+                        className="rounded border-border text-primary"
                       />
                       Primary recipient (receives all categories)
                     </label>
@@ -714,14 +714,14 @@ export default function EmailManagementPage() {
                         type="checkbox"
                         checked={addForm.isActive}
                         onChange={(e) => setAddForm({ ...addForm, isActive: e.target.checked })}
-                        className="rounded border-gray-300 text-indigo-600"
+                        className="rounded border-border text-primary"
                       />
                       Active
                     </label>
                   </div>
                   {!addForm.isPrimary && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Category Routing (leave empty for all)</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">Category Routing (leave empty for all)</label>
                       <div className="flex flex-wrap gap-2">
                         {CATEGORIES.map((cat) => (
                           <button
@@ -735,8 +735,8 @@ export default function EmailManagementPage() {
                             }
                             className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
                               addForm.categories.includes(cat.id)
-                                ? "bg-indigo-100 border-indigo-300 text-indigo-800"
-                                : "bg-white border-gray-300 text-gray-600 hover:border-indigo-300"
+                                ? "bg-primary/10 border-primary/30 text-primary"
+                                : "bg-card border-border text-muted-foreground hover:border-primary/30"
                             }`}
                           >
                             {cat.label}
@@ -749,7 +749,7 @@ export default function EmailManagementPage() {
                     <button
                       onClick={addRecipient}
                       disabled={recipientActionLoading || !addForm.email}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 px-4 py-2 gradient-brand text-white text-sm rounded-md hover:opacity-90 disabled:opacity-50"
                     >
                       {recipientActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                       Add
@@ -759,7 +759,7 @@ export default function EmailManagementPage() {
                         setShowAddForm(false);
                         setAddForm({ email: "", name: "", isActive: true, isPrimary: false, categories: [] });
                       }}
-                      className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      className="px-4 py-2 text-sm text-muted-foreground bg-card border border-border rounded-md hover:bg-secondary"
                     >
                       Cancel
                     </button>
@@ -769,8 +769,8 @@ export default function EmailManagementPage() {
 
               {/* Recipients List */}
               {recipients.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Mail className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <div className="text-center py-12 text-muted-foreground">
+                  <Mail className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="font-medium">No email recipients configured</p>
                   <p className="text-sm mt-1">Add recipients to start routing support ticket notifications</p>
                 </div>
@@ -779,8 +779,8 @@ export default function EmailManagementPage() {
                   {recipients.map((r) => (
                     <div
                       key={r.id}
-                      className={`border rounded-lg p-4 transition-colors ${
-                        r.isActive ? "bg-white border-gray-200" : "bg-gray-50 border-gray-200 opacity-60"
+                      className={`border rounded-2xl p-4 transition-colors ${
+                        r.isActive ? "bg-card border-border" : "bg-secondary/50 border-border opacity-60"
                       }`}
                     >
                       {editingRecipient === r.id ? (
@@ -788,21 +788,21 @@ export default function EmailManagementPage() {
                         <div className="space-y-4">
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                              <label className="block text-sm font-medium text-foreground mb-1">Email</label>
                               <input
                                 type="email"
                                 value={editForm.email}
                                 onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                className="w-full px-3 py-2 border border-border rounded-md text-sm"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                              <label className="block text-sm font-medium text-foreground mb-1">Name</label>
                               <input
                                 type="text"
                                 value={editForm.name}
                                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                className="w-full px-3 py-2 border border-border rounded-md text-sm"
                               />
                             </div>
                           </div>
@@ -812,7 +812,7 @@ export default function EmailManagementPage() {
                                 type="checkbox"
                                 checked={editForm.isPrimary}
                                 onChange={(e) => setEditForm({ ...editForm, isPrimary: e.target.checked })}
-                                className="rounded border-gray-300 text-indigo-600"
+                                className="rounded border-border text-primary"
                               />
                               Primary
                             </label>
@@ -821,14 +821,14 @@ export default function EmailManagementPage() {
                                 type="checkbox"
                                 checked={editForm.isActive}
                                 onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
-                                className="rounded border-gray-300 text-indigo-600"
+                                className="rounded border-border text-primary"
                               />
                               Active
                             </label>
                           </div>
                           {!editForm.isPrimary && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">Categories</label>
+                              <label className="block text-sm font-medium text-foreground mb-2">Categories</label>
                               <div className="flex flex-wrap gap-2">
                                 {CATEGORIES.map((cat) => (
                                   <button
@@ -842,8 +842,8 @@ export default function EmailManagementPage() {
                                     }
                                     className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
                                       editForm.categories.includes(cat.id)
-                                        ? "bg-indigo-100 border-indigo-300 text-indigo-800"
-                                        : "bg-white border-gray-300 text-gray-600 hover:border-indigo-300"
+                                        ? "bg-primary/10 border-primary/30 text-primary"
+                                        : "bg-card border-border text-muted-foreground hover:border-primary/30"
                                     }`}
                                   >
                                     {cat.label}
@@ -863,7 +863,7 @@ export default function EmailManagementPage() {
                             </button>
                             <button
                               onClick={() => setEditingRecipient(null)}
-                              className="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                              className="px-3 py-1.5 text-sm text-muted-foreground border border-border rounded-md hover:bg-secondary"
                             >
                               Cancel
                             </button>
@@ -875,7 +875,7 @@ export default function EmailManagementPage() {
                           <div className="flex items-center gap-4">
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-900">{r.email}</span>
+                                <span className="font-medium text-foreground">{r.email}</span>
                                 {r.isPrimary && (
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                     <Star className="h-3 w-3" />
@@ -883,12 +883,12 @@ export default function EmailManagementPage() {
                                   </span>
                                 )}
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  r.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+                                  r.isActive ? "bg-green-100 text-green-800" : "bg-secondary text-muted-foreground"
                                 }`}>
                                   {r.isActive ? "Active" : "Inactive"}
                                 </span>
                               </div>
-                              {r.name && <p className="text-sm text-gray-500">{r.name}</p>}
+                              {r.name && <p className="text-sm text-muted-foreground">{r.name}</p>}
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {parseCategories(r.categories).length > 0 ? (
                                   parseCategories(r.categories).map((cat) => {
@@ -903,7 +903,7 @@ export default function EmailManagementPage() {
                                     );
                                   })
                                 ) : (
-                                  <span className="text-xs text-gray-400">All categories</span>
+                                  <span className="text-xs text-muted-foreground">All categories</span>
                                 )}
                               </div>
                             </div>
@@ -912,14 +912,14 @@ export default function EmailManagementPage() {
                             <button
                               onClick={() => toggleRecipientActive(r)}
                               disabled={recipientActionLoading}
-                              className="p-2 text-gray-400 hover:text-gray-600 rounded"
+                              className="p-2 text-muted-foreground hover:text-muted-foreground rounded"
                               title={r.isActive ? "Deactivate" : "Activate"}
                             >
                               {r.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5" />}
                             </button>
                             <button
                               onClick={() => startEditRecipient(r)}
-                              className="p-2 text-gray-400 hover:text-indigo-600 rounded"
+                              className="p-2 text-muted-foreground hover:text-primary rounded"
                               title="Edit"
                             >
                               <Edit3 className="h-4 w-4" />
@@ -927,7 +927,7 @@ export default function EmailManagementPage() {
                             <button
                               onClick={() => deleteRecipient(r.id)}
                               disabled={recipientActionLoading}
-                              className="p-2 text-gray-400 hover:text-red-600 rounded"
+                              className="p-2 text-muted-foreground hover:text-red-600 rounded"
                               title="Remove"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -946,63 +946,63 @@ export default function EmailManagementPage() {
           {activeTab === "compose" && (
             <div className="p-6 space-y-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Compose Email</h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <h2 className="text-lg font-semibold text-foreground">Compose Email</h2>
+                <p className="text-sm text-muted-foreground mt-1">
                   Send an email directly from the admin dashboard using your configured email service
                 </p>
               </div>
 
               <form onSubmit={handleComposeSubmit} className="space-y-4 max-w-2xl">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">To *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">To *</label>
                   <input
                     type="email"
                     value={composeForm.to}
                     onChange={(e) => setComposeForm({ ...composeForm, to: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-primary focus:border-primary/50"
                     placeholder="recipient@example.com"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Subject *</label>
                   <input
                     type="text"
                     value={composeForm.subject}
                     onChange={(e) => setComposeForm({ ...composeForm, subject: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-primary focus:border-primary/50"
                     placeholder="Email subject"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Reply-To (optional)</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Reply-To (optional)</label>
                   <input
                     type="email"
                     value={composeForm.replyTo}
                     onChange={(e) => setComposeForm({ ...composeForm, replyTo: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-primary focus:border-primary/50"
                     placeholder="reply-to@example.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Message *</label>
                   <textarea
                     value={composeForm.message}
                     onChange={(e) => setComposeForm({ ...composeForm, message: e.target.value })}
                     rows={8}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-primary focus:border-primary/50"
                     placeholder="Your email message..."
                     required
                   />
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     The message will be wrapped in a branded ScamDunk email template.
                   </p>
                 </div>
                 <button
                   type="submit"
                   disabled={composeSending || !composeForm.to || !composeForm.subject || !composeForm.message}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 gradient-brand text-white text-sm font-medium rounded-md hover:opacity-90 disabled:opacity-50"
                 >
                   {composeSending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -1019,8 +1019,8 @@ export default function EmailManagementPage() {
           {activeTab === "logs" && (
             <div className="p-6 space-y-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Email Delivery Log</h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <h2 className="text-lg font-semibold text-foreground">Email Delivery Log</h2>
+                <p className="text-sm text-muted-foreground mt-1">
                   Track all emails sent from the system and monitor delivery status
                 </p>
               </div>
@@ -1028,7 +1028,7 @@ export default function EmailManagementPage() {
               {/* Filters */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
                     type="text"
                     value={logSearch}
@@ -1037,7 +1037,7 @@ export default function EmailManagementPage() {
                       setLogPagination((p) => ({ ...p, page: 1 }));
                     }}
                     placeholder="Search by email or subject..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full pl-10 pr-4 py-2 border border-border rounded-md text-sm"
                   />
                 </div>
                 <select
@@ -1046,7 +1046,7 @@ export default function EmailManagementPage() {
                     setLogTypeFilter(e.target.value);
                     setLogPagination((p) => ({ ...p, page: 1 }));
                   }}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="border border-border rounded-md px-3 py-2 text-sm"
                 >
                   <option value="">All Types</option>
                   {Object.entries(EMAIL_TYPE_LABELS).map(([key, label]) => (
@@ -1059,7 +1059,7 @@ export default function EmailManagementPage() {
                     setLogStatusFilter(e.target.value);
                     setLogPagination((p) => ({ ...p, page: 1 }));
                   }}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="border border-border rounded-md px-3 py-2 text-sm"
                 >
                   <option value="">All Status</option>
                   <option value="SENT">Sent</option>
@@ -1071,33 +1071,33 @@ export default function EmailManagementPage() {
               {/* Logs Table */}
               {logsLoading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : logs.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="font-medium">No email logs found</p>
                   <p className="text-sm mt-1">Email delivery logs will appear here once emails are sent</p>
                 </div>
               ) : (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-border">
+                      <thead className="bg-secondary/50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recipient</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Type</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Recipient</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Subject</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Details</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="bg-card divide-y divide-border">
                         {logs.map((log) => (
-                          <tr key={log.id} className="hover:bg-gray-50">
+                          <tr key={log.id} className="hover:bg-secondary">
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[log.status] || "bg-gray-100 text-gray-800"}`}>
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[log.status] || "bg-secondary text-foreground"}`}>
                                 {log.status === "SENT" && <CheckCircle className="h-3 w-3" />}
                                 {log.status === "FAILED" && <XCircle className="h-3 w-3" />}
                                 {log.status === "SKIPPED" && <Clock className="h-3 w-3" />}
@@ -1105,20 +1105,20 @@ export default function EmailManagementPage() {
                               </span>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className="text-sm text-gray-600">
+                              <span className="text-sm text-muted-foreground">
                                 {EMAIL_TYPE_LABELS[log.emailType] || log.emailType}
                               </span>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className="text-sm text-gray-900">{log.recipientEmail}</span>
+                              <span className="text-sm text-foreground">{log.recipientEmail}</span>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="text-sm text-gray-600 truncate block max-w-xs">
+                              <span className="text-sm text-muted-foreground truncate block max-w-xs">
                                 {log.subject}
                               </span>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className="text-sm text-gray-500" title={formatDate(log.createdAt)}>
+                              <span className="text-sm text-muted-foreground" title={formatDate(log.createdAt)}>
                                 {formatRelativeDate(log.createdAt)}
                               </span>
                             </td>
@@ -1128,11 +1128,11 @@ export default function EmailManagementPage() {
                                   {log.errorMessage.substring(0, 50)}...
                                 </span>
                               ) : log.resendId ? (
-                                <span className="text-xs text-gray-400 font-mono" title={log.resendId}>
+                                <span className="text-xs text-muted-foreground font-mono" title={log.resendId}>
                                   {log.resendId.substring(0, 12)}...
                                 </span>
                               ) : (
-                                <span className="text-xs text-gray-400">-</span>
+                                <span className="text-xs text-muted-foreground">-</span>
                               )}
                             </td>
                           </tr>
@@ -1144,7 +1144,7 @@ export default function EmailManagementPage() {
                   {/* Pagination */}
                   {logPagination.pages > 1 && (
                     <div className="flex items-center justify-between border-t pt-4">
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Showing {(logPagination.page - 1) * 25 + 1} to{" "}
                         {Math.min(logPagination.page * 25, logPagination.total)} of {logPagination.total}
                       </p>
@@ -1152,7 +1152,7 @@ export default function EmailManagementPage() {
                         <button
                           onClick={() => setLogPagination((p) => ({ ...p, page: p.page - 1 }))}
                           disabled={logPagination.page <= 1}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-border rounded-md hover:bg-secondary disabled:opacity-50"
                         >
                           <ChevronLeft className="h-4 w-4" />
                           Previous
@@ -1160,7 +1160,7 @@ export default function EmailManagementPage() {
                         <button
                           onClick={() => setLogPagination((p) => ({ ...p, page: p.page + 1 }))}
                           disabled={logPagination.page >= logPagination.pages}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-border rounded-md hover:bg-secondary disabled:opacity-50"
                         >
                           Next
                           <ChevronRight className="h-4 w-4" />
@@ -1177,15 +1177,15 @@ export default function EmailManagementPage() {
           {activeTab === "inbound" && (
             <div className="p-6 space-y-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Inbound Email Setup</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Configure <code className="bg-gray-100 px-1 rounded text-gray-800">support@scamdunk.com</code> to
+                <h2 className="text-lg font-semibold text-foreground">Inbound Email Setup</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Configure <code className="bg-secondary px-1 rounded text-foreground">support@scamdunk.com</code> to
                   automatically create support tickets when users email directly
                 </p>
               </div>
 
               {/* How it works */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
                 <h3 className="font-medium text-blue-900 mb-2">How It Works</h3>
                 <p className="text-sm text-blue-800 mb-3">
                   When someone emails <strong>support@scamdunk.com</strong>, the email gets forwarded to your
@@ -1201,10 +1201,10 @@ export default function EmailManagementPage() {
               </div>
 
               {/* Webhook URL */}
-              <div className="bg-gray-50 rounded-lg p-5">
-                <h3 className="font-medium text-gray-900 mb-3">Webhook Endpoint</h3>
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md p-3">
-                  <code className="flex-1 text-sm text-gray-700 break-all">
+              <div className="bg-secondary/50 rounded-2xl p-5">
+                <h3 className="font-medium text-foreground mb-3">Webhook Endpoint</h3>
+                <div className="flex items-center gap-2 bg-card border border-border rounded-md p-3">
+                  <code className="flex-1 text-sm text-foreground break-all">
                     {typeof window !== "undefined" ? window.location.origin : "https://yourdomain.com"}/api/inbound-email
                   </code>
                   <button
@@ -1213,41 +1213,41 @@ export default function EmailManagementPage() {
                       navigator.clipboard.writeText(url);
                       setSuccess("Webhook URL copied to clipboard");
                     }}
-                    className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 whitespace-nowrap"
+                    className="px-3 py-1.5 text-xs bg-secondary hover:bg-secondary rounded border border-border whitespace-nowrap"
                   >
                     Copy
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   Use this URL in your email forwarding service or Resend inbound configuration.
                 </p>
               </div>
 
               {/* Setup Steps */}
               <div className="space-y-4">
-                <h3 className="font-medium text-gray-900">Setup Instructions</h3>
+                <h3 className="font-medium text-foreground">Setup Instructions</h3>
 
                 {/* Option 1: Resend */}
-                <div className="border border-gray-200 rounded-lg p-5">
-                  <h4 className="font-medium text-gray-800 mb-3">Option 1: Resend Inbound (Recommended)</h4>
-                  <ol className="list-decimal list-inside text-sm text-gray-600 space-y-2 ml-2">
-                    <li>Go to <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">resend.com/domains</a> and verify <code className="bg-gray-100 px-1 rounded">scamdunk.com</code></li>
+                <div className="border border-border rounded-2xl p-5">
+                  <h4 className="font-medium text-foreground mb-3">Option 1: Resend Inbound (Recommended)</h4>
+                  <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 ml-2">
+                    <li>Go to <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-primary underline">resend.com/domains</a> and verify <code className="bg-secondary px-1 rounded">scamdunk.com</code></li>
                     <li>Add the required MX record to your DNS to route inbound mail through Resend</li>
                     <li>In Resend, configure an inbound webhook pointing to the URL above</li>
-                    <li>Set <code className="bg-gray-100 px-1 rounded">INBOUND_EMAIL_WEBHOOK_SECRET</code> in your Vercel environment variables for security</li>
-                    <li>Emails to <code className="bg-gray-100 px-1 rounded">support@scamdunk.com</code> will now auto-create tickets</li>
+                    <li>Set <code className="bg-secondary px-1 rounded">INBOUND_EMAIL_WEBHOOK_SECRET</code> in your Vercel environment variables for security</li>
+                    <li>Emails to <code className="bg-secondary px-1 rounded">support@scamdunk.com</code> will now auto-create tickets</li>
                   </ol>
                 </div>
 
                 {/* Option 2: Email forwarding */}
-                <div className="border border-gray-200 rounded-lg p-5">
-                  <h4 className="font-medium text-gray-800 mb-3">Option 2: Email Forwarding Service</h4>
-                  <ol className="list-decimal list-inside text-sm text-gray-600 space-y-2 ml-2">
-                    <li>Set up <code className="bg-gray-100 px-1 rounded">support@scamdunk.com</code> with any email provider (Google Workspace, Zoho, etc.)</li>
+                <div className="border border-border rounded-2xl p-5">
+                  <h4 className="font-medium text-foreground mb-3">Option 2: Email Forwarding Service</h4>
+                  <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 ml-2">
+                    <li>Set up <code className="bg-secondary px-1 rounded">support@scamdunk.com</code> with any email provider (Google Workspace, Zoho, etc.)</li>
                     <li>Use a service like Zapier, Make, or Pipedream to forward incoming emails as JSON to the webhook URL</li>
                     <li>The webhook expects this JSON format:</li>
                   </ol>
-                  <pre className="mt-3 bg-gray-900 text-gray-100 rounded-md p-4 text-xs overflow-x-auto">
+                  <pre className="mt-3 bg-foreground/90 text-background rounded-md p-4 text-xs overflow-x-auto">
 {`POST /api/inbound-email
 Content-Type: application/json
 Authorization: Bearer YOUR_WEBHOOK_SECRET
@@ -1262,7 +1262,7 @@ Authorization: Bearer YOUR_WEBHOOK_SECRET
                 </div>
 
                 {/* Security */}
-                <div className="border border-amber-200 bg-amber-50 rounded-lg p-5">
+                <div className="border border-amber-200 bg-amber-50 rounded-2xl p-5">
                   <h4 className="font-medium text-amber-900 mb-2 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
                     Security

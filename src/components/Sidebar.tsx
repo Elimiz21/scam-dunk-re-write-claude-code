@@ -26,6 +26,7 @@ import {
   Newspaper,
   Mail,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -146,8 +147,11 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border/50">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-lg gradient-brand flex items-center justify-center">
+              <div className="relative h-7 w-7 rounded-lg gradient-brand flex items-center justify-center">
                 <Shield className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
+                  <Eye className="h-1.5 w-1.5 text-white" />
+                </div>
               </div>
               <span className="font-display tracking-tight italic">
                 Scam<span className="gradient-brand-text not-italic font-sans font-bold">Dunk</span>

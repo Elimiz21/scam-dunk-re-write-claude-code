@@ -12,31 +12,31 @@ interface AlertBannerProps {
 const typeConfig = {
   error: {
     icon: AlertCircle,
-    bgColor: "bg-red-50",
-    borderColor: "border-red-400",
-    textColor: "text-red-800",
-    iconColor: "text-red-400",
+    bgColor: "bg-destructive/10",
+    borderColor: "border-destructive/30",
+    textColor: "text-destructive",
+    iconColor: "text-destructive",
   },
   warning: {
     icon: AlertTriangle,
-    bgColor: "bg-yellow-50",
-    borderColor: "border-yellow-400",
-    textColor: "text-yellow-800",
-    iconColor: "text-yellow-400",
+    bgColor: "bg-amber-500/10",
+    borderColor: "border-amber-500/30",
+    textColor: "text-amber-700 dark:text-amber-400",
+    iconColor: "text-amber-500",
   },
   success: {
     icon: CheckCircle,
-    bgColor: "bg-green-50",
-    borderColor: "border-green-400",
-    textColor: "text-green-800",
-    iconColor: "text-green-400",
+    bgColor: "bg-emerald-500/10",
+    borderColor: "border-emerald-500/30",
+    textColor: "text-emerald-700 dark:text-emerald-400",
+    iconColor: "text-emerald-500",
   },
   info: {
     icon: Info,
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-400",
-    textColor: "text-blue-800",
-    iconColor: "text-blue-400",
+    bgColor: "bg-primary/10",
+    borderColor: "border-primary/30",
+    textColor: "text-primary",
+    iconColor: "text-primary",
   },
 };
 
@@ -45,20 +45,20 @@ export default function AlertBanner({ type, title, message, onDismiss }: AlertBa
   const Icon = config.icon;
 
   return (
-    <div className={`rounded-md ${config.bgColor} border ${config.borderColor} p-4`}>
+    <div className={`rounded-2xl ${config.bgColor} border ${config.borderColor} p-4`}>
       <div className="flex">
         <div className="flex-shrink-0">
           <Icon className={`h-5 w-5 ${config.iconColor}`} />
         </div>
         <div className="ml-3 flex-1">
           <p className={`text-sm font-medium ${config.textColor}`}>{title}</p>
-          {message && <p className={`mt-1 text-sm ${config.textColor} opacity-90`}>{message}</p>}
+          {message && <p className={`mt-1 text-sm ${config.textColor} opacity-80`}>{message}</p>}
         </div>
         {onDismiss && (
           <div className="ml-auto pl-3">
             <button
               onClick={onDismiss}
-              className={`inline-flex ${config.textColor} hover:opacity-70`}
+              className={`inline-flex ${config.textColor} hover:opacity-70 transition-opacity`}
             >
               <X className="h-5 w-5" />
             </button>

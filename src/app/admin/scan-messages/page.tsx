@@ -346,10 +346,10 @@ export default function ScanMessagesPage() {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/4" />
+          <div className="h-8 bg-secondary rounded w-1/4" />
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-20 bg-gray-200 rounded" />
+              <div key={i} className="h-20 bg-secondary rounded" />
             ))}
           </div>
         </div>
@@ -363,11 +363,11 @@ export default function ScanMessagesPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <MessageSquare className="h-6 w-6 text-indigo-600" />
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <MessageSquare className="h-6 w-6 text-primary" />
               Scan Messages
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               Manage the rotating messages shown during scans
             </p>
           </div>
@@ -375,7 +375,7 @@ export default function ScanMessagesPage() {
           {/* Days since regeneration badge */}
           {daysSinceRegeneration !== null && (
             <div
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-2xl ${
                 daysSinceRegeneration > 30
                   ? "bg-red-100 text-red-800"
                   : daysSinceRegeneration > 14
@@ -405,7 +405,7 @@ export default function ScanMessagesPage() {
         <div className="flex gap-3">
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-2xl hover:bg-secondary transition-colors"
           >
             <Plus className="h-4 w-4" />
             Add Message
@@ -413,7 +413,7 @@ export default function ScanMessagesPage() {
           <button
             onClick={handleGenerateMessages}
             disabled={generating}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-4 py-2 gradient-brand text-white rounded-2xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {generating ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -424,7 +424,7 @@ export default function ScanMessagesPage() {
           </button>
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-2xl hover:bg-secondary transition-colors"
           >
             <History className="h-4 w-4" />
             {showHistory ? "Hide" : "Show"} History
@@ -434,11 +434,11 @@ export default function ScanMessagesPage() {
 
         {/* Add New Message Form */}
         {showAddForm && (
-          <div className="bg-white rounded-lg shadow p-6 border-2 border-indigo-200">
+          <div className="bg-card rounded-2xl shadow p-6 border-2 border-primary/20">
             <h3 className="text-lg font-medium mb-4">Add New Message</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Headline
                 </label>
                 <input
@@ -446,13 +446,13 @@ export default function ScanMessagesPage() {
                   value={newHeadline}
                   onChange={(e) => setNewHeadline(e.target.value)}
                   placeholder="e.g., Let's find the scam before it finds you."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={100}
                 />
-                <p className="mt-1 text-xs text-gray-500">{newHeadline.length}/100 characters</p>
+                <p className="mt-1 text-xs text-muted-foreground">{newHeadline.length}/100 characters</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Subtext
                 </label>
                 <input
@@ -460,16 +460,16 @@ export default function ScanMessagesPage() {
                   value={newSubtext}
                   onChange={(e) => setNewSubtext(e.target.value)}
                   placeholder="e.g., Enter a ticker to check for red flags"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={80}
                 />
-                <p className="mt-1 text-xs text-gray-500">{newSubtext.length}/80 characters</p>
+                <p className="mt-1 text-xs text-muted-foreground">{newSubtext.length}/80 characters</p>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleAddMessage}
                   disabled={!newHeadline.trim() || !newSubtext.trim()}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 gradient-brand text-white rounded-2xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Add Message
                 </button>
@@ -479,7 +479,7 @@ export default function ScanMessagesPage() {
                     setNewHeadline("");
                     setNewSubtext("");
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 border border-border rounded-2xl hover:bg-secondary transition-colors"
                 >
                   Cancel
                 </button>
@@ -490,34 +490,34 @@ export default function ScanMessagesPage() {
 
         {/* AI Generation Review Panel */}
         {showReviewPanel && generatedMessages.length > 0 && (
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg shadow-lg p-6 border-2 border-indigo-300">
+          <div className="bg-gradient-to-r from-primary/5 to-purple-50 rounded-2xl shadow-lg p-6 border-2 border-primary/30">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-indigo-600" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 Review Generated Messages
               </h3>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 {generatedMessages.filter((m) => m.accepted).length} of {generatedMessages.length} selected
               </span>
             </div>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               Click to toggle selection. Rejected messages will be used as feedback for future generations.
             </p>
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {generatedMessages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
                     msg.accepted
-                      ? "bg-white border-green-300 hover:border-green-400"
-                      : "bg-gray-50 border-red-200 hover:border-red-300"
+                      ? "bg-card border-green-300 hover:border-green-400"
+                      : "bg-secondary/50 border-red-200 hover:border-red-300"
                   }`}
                   onClick={() => handleToggleAccept(index)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{msg.headline}</p>
-                      <p className="text-sm text-gray-600 mt-1">{msg.subtext}</p>
+                      <p className="font-medium text-foreground">{msg.headline}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{msg.subtext}</p>
                     </div>
                     <div
                       className={`ml-4 p-2 rounded-full ${
@@ -534,7 +534,7 @@ export default function ScanMessagesPage() {
                         value={msg.reason || ""}
                         onChange={(e) => handleSetRejectionReason(index, e.target.value)}
                         placeholder="Why was this rejected? (optional, helps improve future generations)"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm border border-border rounded-2xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       />
                     </div>
                   )}
@@ -544,7 +544,7 @@ export default function ScanMessagesPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSubmitReview}
-                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="px-6 py-2 gradient-brand text-white rounded-2xl hover:opacity-90 transition-colors"
               >
                 Save Selected ({generatedMessages.filter((m) => m.accepted).length})
               </button>
@@ -554,7 +554,7 @@ export default function ScanMessagesPage() {
                   setGeneratedMessages([]);
                   setGenerationId(null);
                 }}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-2 border border-border rounded-2xl hover:bg-secondary transition-colors"
               >
                 Cancel
               </button>
@@ -563,25 +563,25 @@ export default function ScanMessagesPage() {
         )}
 
         {/* Active Messages List */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
+        <div className="bg-card rounded-2xl shadow">
+          <div className="px-6 py-4 border-b border-border">
+            <h3 className="text-lg font-medium text-foreground">
               Active Messages ({messages.length})
             </h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Drag and drop to reorder. These messages rotate during scans.
             </p>
           </div>
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-border">
             {messages.length === 0 ? (
               <div className="p-8 text-center">
-                <p className="text-gray-500 mb-4">
+                <p className="text-muted-foreground mb-4">
                   No messages yet. Add some, generate with AI, or seed with defaults.
                 </p>
                 <button
                   onClick={handleSeedDefaults}
                   disabled={seeding}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors mx-auto"
+                  className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-secondary disabled:opacity-50 transition-colors mx-auto"
                 >
                   <Database className="h-4 w-4" />
                   {seeding ? "Loading..." : "Load Default Messages"}
@@ -597,14 +597,14 @@ export default function ScanMessagesPage() {
                   onDrop={(e) => handleDrop(e, message.id)}
                   className={`p-4 flex items-center gap-4 transition-colors ${
                     draggedId === message.id
-                      ? "bg-indigo-50 opacity-50"
-                      : "hover:bg-gray-50"
+                      ? "bg-primary/5 opacity-50"
+                      : "hover:bg-secondary"
                   }`}
                 >
-                  <div className="cursor-grab text-gray-400 hover:text-gray-600">
+                  <div className="cursor-grab text-muted-foreground hover:text-muted-foreground">
                     <GripVertical className="h-5 w-5" />
                   </div>
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-medium">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">
                     {message.order + 1}
                   </div>
 
@@ -614,13 +614,13 @@ export default function ScanMessagesPage() {
                         type="text"
                         value={editHeadline}
                         onChange={(e) => setEditHeadline(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                       <input
                         type="text"
                         value={editSubtext}
                         onChange={(e) => setEditSubtext(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                       <div className="flex gap-2">
                         <button
@@ -631,7 +631,7 @@ export default function ScanMessagesPage() {
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                          className="px-3 py-1 border border-border rounded hover:bg-secondary"
                         >
                           Cancel
                         </button>
@@ -640,22 +640,22 @@ export default function ScanMessagesPage() {
                   ) : (
                     <>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">
+                        <p className="font-medium text-foreground truncate">
                           {message.headline}
                         </p>
-                        <p className="text-sm text-gray-500 truncate">{message.subtext}</p>
+                        <p className="text-sm text-muted-foreground truncate">{message.subtext}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => startEditing(message)}
-                          className="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
+                          className="p-2 text-muted-foreground hover:text-primary transition-colors"
                           title="Edit"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteMessage(message.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                          className="p-2 text-muted-foreground hover:text-red-600 transition-colors"
                           title="Remove"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -671,28 +671,28 @@ export default function ScanMessagesPage() {
 
         {/* History Panel */}
         {showHistory && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-                <History className="h-5 w-5 text-gray-500" />
+          <div className="bg-card rounded-2xl shadow">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-medium text-foreground flex items-center gap-2">
+                <History className="h-5 w-5 text-muted-foreground" />
                 Message History ({historyMessages.length})
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Previously removed or rejected messages. Click restore to bring one back.
               </p>
             </div>
-            <div className="divide-y divide-gray-200 max-h-[400px] overflow-y-auto">
+            <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
               {historyMessages.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-8 text-center text-muted-foreground">
                   No historical messages yet.
                 </div>
               ) : (
                 historyMessages.map((message) => (
                   <div key={message.id} className="p-4 flex items-center gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-700">{message.headline}</p>
-                      <p className="text-sm text-gray-500">{message.subtext}</p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="font-medium text-foreground">{message.headline}</p>
+                      <p className="text-sm text-muted-foreground">{message.subtext}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         {message.archiveReason === "DISCARDED"
                           ? "Rejected during review"
                           : message.archiveReason === "MANUAL_REMOVE"
@@ -703,7 +703,7 @@ export default function ScanMessagesPage() {
                     </div>
                     <button
                       onClick={() => handleRestoreMessage(message.id)}
-                      className="flex items-center gap-1 px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-1 px-3 py-1 text-sm border border-border rounded-2xl hover:bg-secondary transition-colors"
                     >
                       <Undo2 className="h-3 w-3" />
                       Restore
@@ -716,7 +716,7 @@ export default function ScanMessagesPage() {
         )}
 
         {/* Info panel */}
-        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
           <h4 className="font-medium text-blue-900 mb-2">How this works</h4>
           <ul className="text-sm text-blue-800 space-y-1">
             <li>

@@ -12,21 +12,21 @@ interface ChartCardProps {
   color?: string;
 }
 
-export default function ChartCard({ title, data, type = "bar", color = "#6366f1" }: ChartCardProps) {
+export default function ChartCard({ title, data, type = "bar", color = "hsl(var(--primary))" }: ChartCardProps) {
   const maxValue = Math.max(...data.map((d) => d.value), 1);
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">{title}</h3>
+    <div className="bg-card rounded-2xl border border-border shadow-sm p-6">
+      <h3 className="text-lg font-semibold text-foreground mb-4 font-display italic">{title}</h3>
       <div className="space-y-3">
         {type === "bar" ? (
           data.map((item, index) => (
             <div key={index}>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">{item.label}</span>
-                <span className="font-medium text-gray-900">{item.value.toLocaleString()}</span>
+                <span className="text-muted-foreground">{item.label}</span>
+                <span className="font-medium text-foreground">{item.value.toLocaleString()}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-secondary rounded-full h-2">
                 <div
                   className="h-2 rounded-full transition-all duration-500"
                   style={{
@@ -49,7 +49,7 @@ export default function ChartCard({ title, data, type = "bar", color = "#6366f1"
                     backgroundColor: color,
                   }}
                 />
-                <span className="text-xs text-gray-500 mt-2 truncate w-full text-center">
+                <span className="text-xs text-muted-foreground mt-2 truncate w-full text-center">
                   {item.label}
                 </span>
               </div>
