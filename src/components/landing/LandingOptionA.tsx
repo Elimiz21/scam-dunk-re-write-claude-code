@@ -70,7 +70,15 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline,
 
           {/* Main Headline — dynamic from admin */}
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-6 animate-fade-in italic leading-tight">
-            {heroHeadline}
+            {headline ? (
+              heroHeadline
+            ) : (
+              <>
+                Don&apos;t invest blind.{" "}
+                <span className="gradient-brand-text not-italic">Detect scams</span>{" "}
+                before they cost you.
+              </>
+            )}
           </h1>
 
           {/* Subheadline — dynamic from admin */}
