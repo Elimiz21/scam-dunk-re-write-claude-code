@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { ScanInput } from "@/components/ScanInput";
-import { Button } from "@/components/ui/button";
 import {
   Shield,
   TrendingUp,
@@ -36,9 +35,16 @@ interface LandingOptionAProps {
   isLoading: boolean;
   disabled?: boolean;
   error?: string;
+  headline?: string;
+  subheadline?: string;
 }
 
-export function LandingOptionA({ onSubmit, isLoading, disabled, error }: LandingOptionAProps) {
+const DEFAULT_HEADLINE = "Don\u2019t invest blind. Detect scams before they cost you.";
+const DEFAULT_SUBHEADLINE = "Enter any stock or crypto ticker and get an instant risk analysis. We scan for pump-and-dump patterns, manipulation signals, and regulatory red flags in seconds.";
+
+export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline, subheadline }: LandingOptionAProps) {
+  const heroHeadline = headline || DEFAULT_HEADLINE;
+  const heroSubheadline = subheadline || DEFAULT_SUBHEADLINE;
   // Animated step cycling for "How ScamDunk Protects You"
   const [activeStep, setActiveStep] = useState(0);
 
@@ -62,20 +68,14 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
             </span>
           </div>
 
-          {/* Main Headline */}
+          {/* Main Headline — dynamic from admin */}
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-6 animate-fade-in italic leading-tight">
-            Don&apos;t invest blind.{" "}
-            <span className="gradient-brand-text not-italic">
-              Detect scams
-            </span>{" "}
-            before they cost you.
+            {heroHeadline}
           </h1>
 
-          {/* Subheadline */}
+          {/* Subheadline — dynamic from admin */}
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-            Enter any stock or crypto ticker and get an instant risk analysis.
-            We scan for pump-and-dump patterns, manipulation signals, and
-            regulatory red flags in seconds.
+            {heroSubheadline}
           </p>
 
           {/* Error message */}
@@ -106,40 +106,8 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
             </div>
           </div>
 
-          {/* Quick Try Buttons */}
-          <div className="flex items-center justify-center gap-3 mb-6 animate-fade-in" style={{ animationDelay: "0.25s" }}>
-            <span className="text-xs text-muted-foreground">Try it free:</span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
-              onClick={() => onSubmit({ ticker: "AAPL", assetType: "stock" })}
-            >
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-              AAPL
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
-              onClick={() => onSubmit({ ticker: "TSLA", assetType: "stock" })}
-            >
-              <TrendingUp className="h-3.5 w-3.5 text-blue-500" />
-              TSLA
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full gap-1.5 px-4 hover:border-primary/30 hover:bg-primary/5"
-              onClick={() => onSubmit({ ticker: "BTC", assetType: "crypto" })}
-            >
-              <Zap className="h-3.5 w-3.5 text-amber-500" />
-              BTC
-            </Button>
-          </div>
-
           {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: "0.3s" }}>
+          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: "0.25s" }}>
             <div className="flex items-center gap-1.5">
               <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
               <span>Free to use</span>
@@ -349,8 +317,11 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
       {/* Final CTA */}
       <section className="py-20 px-4 text-center">
         <div className="max-w-2xl mx-auto">
-          <div className="inline-flex items-center justify-center w-14 h-14 gradient-brand rounded-2xl mb-6 shadow-lg shadow-primary/25">
+          <div className="relative inline-flex items-center justify-center w-14 h-14 gradient-brand rounded-2xl mb-6 shadow-lg shadow-primary/25">
             <Shield className="h-7 w-7 text-white" />
+            <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+              <Eye className="h-2.5 w-2.5 text-white" />
+            </div>
           </div>
           <h2 className="font-display text-2xl sm:text-3xl font-bold mb-4 italic">
             Ready to protect your investments?

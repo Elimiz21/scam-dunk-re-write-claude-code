@@ -61,6 +61,23 @@ export default function HomePage() {
   // Landing page variant for review (A, B, or C)
   const [landingVariant, setLandingVariant] = useState<"A" | "B" | "C">("A");
 
+  // Homepage hero content from admin DB
+  const [heroContent, setHeroContent] = useState<{ headline?: string; subheadline?: string }>({});
+
+  // Fetch landing page hero content
+  useEffect(() => {
+    if (!session) {
+      fetch("/api/homepage")
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.isDefault) {
+            setHeroContent({ headline: data.headline, subheadline: data.subheadline });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [session]);
+
   // Get random tagline on mount (changes on refresh)
   const [tagline] = useState(() => getRandomTagline());
 
@@ -487,6 +504,8 @@ export default function HomePage() {
                       isLoading={isLoading}
                       disabled={usage?.limitReached && !result}
                       error={error}
+                      headline={heroContent.headline}
+                      subheadline={heroContent.subheadline}
                     />
                   )}
                   {landingVariant === "B" && (
