@@ -76,6 +76,55 @@ export default async function NewsPage() {
   }));
 
   return <NewsClient blogPosts={serializedPosts} mediaMentions={serializedMentions} />;
+};
+
+export default async function NewsPage() {
+  const [blogPosts, mediaMentions] = await Promise.all([
+    prisma.blogPost.findMany({
+      where: { isPublished: true },
+      orderBy: { publishedAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        coverImage: true,
+        author: true,
+        category: true,
+        tags: true,
+        publishedAt: true,
+      },
+    }),
+    prisma.mediaMention.findMany({
+      where: { isPublished: true },
+      orderBy: [{ isFeatured: "desc" }, { mentionDate: "desc" }],
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        source: true,
+        sourceType: true,
+        sourceUrl: true,
+        logoUrl: true,
+        description: true,
+        quoteText: true,
+        mentionDate: true,
+        isFeatured: true,
+      },
+    }),
+  ]);
+
+  const serializedPosts = blogPosts.map((post) => ({
+    ...post,
+    publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+  }));
+  const serializedMentions = mediaMentions.map((mention) => ({
+    ...mention,
+    mentionDate: mention.mentionDate ? mention.mentionDate.toISOString() : null,
+  }));
+
+  return <NewsClient blogPosts={serializedPosts} mediaMentions={serializedMentions} />;
 "use client";
 
 import { useState, useEffect } from "react";

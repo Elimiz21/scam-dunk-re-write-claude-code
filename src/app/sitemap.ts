@@ -29,6 +29,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
+    if (!process.env.DATABASE_URL) {
+      console.warn("Skipping blog sitemap entries because DATABASE_URL is not set.");
+      return staticRoutes;
+    }
+
+    const { prisma } = await import("@/lib/db");
     const posts = await prisma.blogPost.findMany({
       where: { isPublished: true },
       select: { slug: true, publishedAt: true, updatedAt: true },
