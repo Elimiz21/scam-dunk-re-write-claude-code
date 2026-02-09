@@ -1,8 +1,6 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ScamDunk Admin",
-  description: "Admin dashboard for ScamDunk application",
   robots: {
     index: false,
     follow: false,
@@ -13,7 +11,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AdminRootLayout({
+export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;

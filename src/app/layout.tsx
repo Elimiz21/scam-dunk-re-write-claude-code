@@ -19,10 +19,38 @@ const playfairDisplay = Playfair_Display({
   display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
+
 export const metadata: Metadata = {
   title: "ScamDunk - Detect Stock Scam Red Flags",
   description:
     "Help retail investors quickly see scam-like red flags in stock pitches they receive.",
+  metadataBase: new URL(siteUrl),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    title: "ScamDunk - Detect Stock Scam Red Flags",
+    description:
+      "Help retail investors quickly see scam-like red flags in stock pitches they receive.",
+    siteName: "ScamDunk",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ScamDunk - Detect Stock Scam Red Flags",
+    description:
+      "Help retail investors quickly see scam-like red flags in stock pitches they receive.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
 export default function RootLayout({
