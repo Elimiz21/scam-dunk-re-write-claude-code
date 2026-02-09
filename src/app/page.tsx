@@ -26,7 +26,13 @@ export default function HomePage() {
   const { data: session, status } = useSession();
   const { addToast } = useToast();
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Sidebar defaults closed for non-logged-in users (landing page)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Open sidebar once session is confirmed
+  useEffect(() => {
+    if (session) setSidebarOpen(true);
+  }, [session]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<RiskResponse | null>(null);

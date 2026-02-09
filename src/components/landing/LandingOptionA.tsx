@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { ScanInput } from "@/components/ScanInput";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,9 @@ import {
   Eye,
   CheckCircle,
   Lock,
-  Users,
+  Search,
+  ChevronRight,
+  Database,
 } from "lucide-react";
 import Link from "next/link";
 import { AssetType } from "@/lib/types";
@@ -36,16 +39,26 @@ interface LandingOptionAProps {
 }
 
 export function LandingOptionA({ onSubmit, isLoading, disabled, error }: LandingOptionAProps) {
+  // Animated step cycling for "How ScamDunk Protects You"
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep((prev) => (prev + 1) % 3);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="flex-1 flex flex-col overflow-y-auto">
       {/* Hero Section — Full viewport, centered */}
       <section className="min-h-[85vh] flex flex-col items-center justify-center px-4 gradient-mesh relative">
         <div className="max-w-3xl mx-auto text-center">
-          {/* Trust Badge */}
+          {/* Trust Badge — Updated */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 animate-fade-in">
-            <Shield className="h-4 w-4 text-primary" />
+            <BarChart3 className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-primary">
-              Trusted by 10,000+ investors
+              Over 30,000 scans performed
             </span>
           </div>
 
@@ -73,17 +86,28 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
             </div>
           )}
 
-          {/* ScanInput — THE Primary CTA */}
-          <div className="w-full max-w-3xl mx-auto mb-8 animate-fade-in" style={{ animationDelay: "0.15s" }}>
-            <ScanInput
-              onSubmit={onSubmit}
-              isLoading={isLoading}
-              disabled={disabled}
-            />
+          {/* ScanInput — Bold, highlighted, animated primary CTA */}
+          <div
+            className="w-full max-w-3xl mx-auto mb-8 animate-slide-up relative"
+            style={{ animationDelay: "0.15s" }}
+          >
+            {/* Glowing border effect */}
+            <div className="absolute -inset-1 rounded-3xl gradient-brand opacity-20 blur-lg animate-pulse" />
+            <div className="relative p-5 rounded-2xl bg-card border-2 border-primary/30 shadow-xl shadow-primary/10">
+              <p className="text-sm font-semibold text-foreground mb-3 flex items-center justify-center gap-2">
+                <Search className="h-4 w-4 text-primary" />
+                Enter a stock or crypto ticker to scan
+              </p>
+              <ScanInput
+                onSubmit={onSubmit}
+                isLoading={isLoading}
+                disabled={disabled}
+              />
+            </div>
           </div>
 
           {/* Quick Try Buttons */}
-          <div className="flex items-center justify-center gap-3 mb-6 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+          <div className="flex items-center justify-center gap-3 mb-6 animate-fade-in" style={{ animationDelay: "0.25s" }}>
             <span className="text-xs text-muted-foreground">Try it free:</span>
             <Button
               variant="outline"
@@ -115,7 +139,7 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: "0.25s" }}>
+          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: "0.3s" }}>
             <div className="flex items-center gap-1.5">
               <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
               <span>Free to use</span>
@@ -138,7 +162,7 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
           {[
             { value: "$68B+", label: "Investment fraud losses in 2024", icon: AlertTriangle },
             { value: "300%", label: "Rise in crypto scams since 2020", icon: TrendingUp },
-            { value: "10K+", label: "Stocks & crypto scanned", icon: BarChart3 },
+            { value: "30K+", label: "Scans performed", icon: BarChart3 },
             { value: "<15s", label: "Average scan time", icon: Zap },
           ].map((stat) => (
             <div key={stat.label} className="animate-fade-in">
@@ -150,10 +174,10 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
         </div>
       </section>
 
-      {/* How It Works — 3 Steps */}
+      {/* How It Works — 3 Steps with animated indicator from Option B */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h2 className="font-display text-2xl sm:text-3xl font-bold mb-3 italic">
               How <span className="font-display italic">ScamDunk</span> Protects You
             </h2>
@@ -162,6 +186,38 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
             </p>
           </div>
 
+          {/* Animated step indicator from Option B */}
+          <div className="flex items-center justify-center gap-3 mb-10">
+            {[
+              { icon: Search, label: "Enter ticker" },
+              { icon: Brain, label: "AI analysis" },
+              { icon: Shield, label: "Risk report" },
+            ].map((step, i) => (
+              <div key={step.label} className="flex items-center gap-2">
+                <div
+                  className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-500 ${
+                    i === activeStep
+                      ? "gradient-brand text-white scale-110 shadow-lg shadow-primary/25"
+                      : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  <step.icon className="h-5 w-5" />
+                </div>
+                <span
+                  className={`text-sm font-medium transition-colors duration-300 ${
+                    i === activeStep ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {step.label}
+                </span>
+                {i < 2 && (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground mx-2" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Step cards */}
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               {
@@ -191,10 +247,14 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
                 color: "text-emerald-500",
                 bg: "bg-emerald-500/10",
               },
-            ].map((item) => (
+            ].map((item, i) => (
               <div
                 key={item.step}
-                className="card-interactive p-6 text-center group"
+                className={`card-interactive p-6 text-center group transition-all duration-500 ${
+                  i === activeStep
+                    ? "ring-2 ring-primary/30 shadow-lg scale-[1.02]"
+                    : ""
+                }`}
               >
                 <div className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-widest">
                   Step {item.step}
@@ -214,55 +274,72 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error }: Landing
         </div>
       </section>
 
-      {/* What We Detect */}
+      {/* Six Layers of Protection — From Option B */}
       <section className="py-16 px-4 gradient-brand-subtle">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-display text-2xl sm:text-3xl font-bold mb-3 italic">
-              What We Scan For
+              Six layers of protection
             </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto">
-              Our multi-layer analysis catches what manual research often misses.
+            <p className="text-muted-foreground">
+              Every scan runs through our complete analysis pipeline.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
               {
+                icon: Database,
+                title: "Market Data Check",
+                desc: "Real-time price, volume, market cap, and exchange verification.",
+                color: "text-blue-500",
+                borderColor: "border-blue-500/20",
+              },
+              {
                 icon: TrendingUp,
-                title: "Pump-and-Dump Patterns",
-                desc: "Detect sudden price spikes followed by crashes — the hallmark of manipulation schemes.",
+                title: "Pattern Detection",
+                desc: "Algorithmic scan for pump-and-dump signatures and price manipulation.",
                 color: "text-emerald-500",
+                borderColor: "border-emerald-500/20",
               },
               {
                 icon: BarChart3,
-                title: "Volume Anomalies",
-                desc: "Flag unusual trading volume that may indicate coordinated buying or selling activity.",
-                color: "text-blue-500",
+                title: "Volume Analysis",
+                desc: "Detect abnormal trading volume that signals coordinated activity.",
+                color: "text-purple-500",
+                borderColor: "border-purple-500/20",
               },
               {
                 icon: AlertTriangle,
-                title: "Regulatory Red Flags",
-                desc: "Cross-reference SEC suspensions, enforcement actions, and known problem securities.",
+                title: "Regulatory Alerts",
+                desc: "Cross-check SEC suspensions, enforcement actions, and warnings.",
                 color: "text-red-500",
+                borderColor: "border-red-500/20",
               },
               {
                 icon: Eye,
-                title: "Promotional Language Analysis",
-                desc: "AI-powered detection of pressure tactics, guaranteed returns, and insider info claims.",
-                color: "text-purple-500",
+                title: "Behavioral Analysis",
+                desc: "AI reads promotional text for pressure tactics and false promises.",
+                color: "text-amber-500",
+                borderColor: "border-amber-500/20",
+              },
+              {
+                icon: Brain,
+                title: "Risk Scoring",
+                desc: "All signals combined into a clear HIGH, MEDIUM, or LOW rating.",
+                color: "text-primary",
+                borderColor: "border-primary/20",
               },
             ].map((item) => (
-              <div key={item.title} className="card-elevated p-5 flex items-start gap-4">
-                <div className="h-10 w-10 rounded-xl bg-card border border-border flex items-center justify-center flex-shrink-0">
-                  <item.icon className={`h-5 w-5 ${item.color}`} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {item.desc}
-                  </p>
-                </div>
+              <div
+                key={item.title}
+                className={`card-elevated p-5 border-l-4 ${item.borderColor} hover:translate-y-[-2px] transition-all duration-300`}
+              >
+                <item.icon className={`h-5 w-5 ${item.color} mb-3`} />
+                <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {item.desc}
+                </p>
               </div>
             ))}
           </div>
