@@ -330,6 +330,8 @@ jobs:
           echo "Uploaded $UPLOADED files to Supabase"
 
       - name: Checkout data repository
+        continue-on-error: true
+        id: checkout-data
         uses: actions/checkout@v4
         with:
           repository: Elimiz21/scam-dunk-data
@@ -337,6 +339,7 @@ jobs:
           path: data-repo
 
       - name: Copy results to data repository
+        if: steps.checkout-data.outcome == 'success'
         run: |
           DATE="${{ steps.date.outputs.date }}"
 
@@ -381,7 +384,14 @@ jobs:
           echo "Files in data-repo:"
           find data-repo -name "*${DATE}*" -type f 2>/dev/null | sort
 
+      - name: Skip data repo notice
+        if: steps.checkout-data.outcome != 'success'
+        run: |
+          echo "::warning::Skipping data repository push - DATA_REPO_TOKEN may be expired or invalid"
+          echo "Results are still saved as artifacts. Please update the DATA_REPO_TOKEN secret."
+
       - name: Commit results to data repository
+        if: steps.checkout-data.outcome == 'success'
         run: |
           cd data-repo
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
