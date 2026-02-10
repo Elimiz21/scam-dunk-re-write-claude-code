@@ -186,7 +186,7 @@ export default function ApiUsagePage() {
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value as "day" | "week" | "month")}
-              className="border border-border rounded-md px-3 py-2 text-sm"
+              className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
             >
               <option value="day">Today</option>
               <option value="week">This Week</option>
@@ -274,7 +274,7 @@ export default function ApiUsagePage() {
                         <select
                           value={newAlert.service}
                           onChange={(e) => setNewAlert({ ...newAlert, service: e.target.value })}
-                          className="mt-1 block w-full border border-border rounded-md px-3 py-2"
+                          className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                         >
                           <option value="ALL">All Services</option>
                           <option value="OPENAI">OpenAI</option>
@@ -287,7 +287,7 @@ export default function ApiUsagePage() {
                         <select
                           value={newAlert.alertType}
                           onChange={(e) => setNewAlert({ ...newAlert, alertType: e.target.value })}
-                          className="mt-1 block w-full border border-border rounded-md px-3 py-2"
+                          className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                         >
                           <option value="COST_THRESHOLD">Cost Threshold</option>
                           <option value="RATE_LIMIT">Rate Limit (per hour)</option>
@@ -304,7 +304,7 @@ export default function ApiUsagePage() {
                           onChange={(e) =>
                             setNewAlert({ ...newAlert, threshold: parseFloat(e.target.value) })
                           }
-                          className="mt-1 block w-full border border-border rounded-md px-3 py-2"
+                          className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                         />
                       </div>
                     </div>

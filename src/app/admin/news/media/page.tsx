@@ -162,13 +162,13 @@ export default function AdminMediaListPage() {
                                 placeholder="Search mentions..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                className="w-full pl-10 pr-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                             />
                         </div>
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            className="px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         >
                             <option value="all">All Types</option>
                             <option value="NEWS_OUTLET">News Outlets</option>

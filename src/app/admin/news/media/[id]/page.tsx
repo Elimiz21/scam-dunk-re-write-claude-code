@@ -215,7 +215,7 @@ export default function AdminMediaEditorPage() {
                                         type="text"
                                         value={mention.title}
                                         onChange={(e) => setMention({ ...mention, title: e.target.value })}
-                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         placeholder="e.g., ScamDunk Featured in TechCrunch"
                                     />
                                 </div>
@@ -228,7 +228,7 @@ export default function AdminMediaEditorPage() {
                                             type="text"
                                             value={mention.source}
                                             onChange={(e) => setMention({ ...mention, source: e.target.value })}
-                                            className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            className="w-full px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                             placeholder="e.g., TechCrunch, @user123"
                                         />
                                     </div>
@@ -239,7 +239,7 @@ export default function AdminMediaEditorPage() {
                                         <select
                                             value={mention.sourceType}
                                             onChange={(e) => setMention({ ...mention, sourceType: e.target.value })}
-                                            className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            className="w-full px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         >
                                             {SOURCE_TYPES.map((type) => (
                                                 <option key={type.value} value={type.value}>
@@ -257,7 +257,7 @@ export default function AdminMediaEditorPage() {
                                         type="url"
                                         value={mention.sourceUrl}
                                         onChange={(e) => setMention({ ...mention, sourceUrl: e.target.value })}
-                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         placeholder="https://example.com/article"
                                     />
                                 </div>
@@ -269,7 +269,7 @@ export default function AdminMediaEditorPage() {
                                         value={mention.description}
                                         onChange={(e) => setMention({ ...mention, description: e.target.value })}
                                         rows={3}
-                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         placeholder="Brief description of what the mention is about"
                                     />
                                 </div>
@@ -281,7 +281,7 @@ export default function AdminMediaEditorPage() {
                                         value={mention.quoteText}
                                         onChange={(e) => setMention({ ...mention, quoteText: e.target.value })}
                                         rows={2}
-                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                         placeholder="Featured quote from the mention (if applicable)"
                                     />
                                 </div>

@@ -346,7 +346,7 @@ export default function TeamPage() {
                       type="text"
                       value={inviteUrl}
                       readOnly
-                      className="flex-1 border border-border rounded-md px-3 py-2 text-sm bg-secondary/50"
+                      className="flex-1 border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
                     />
                     <button
                       onClick={() => copyToClipboard(inviteUrl)}
@@ -368,7 +368,7 @@ export default function TeamPage() {
                       type="email"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
-                      className="mt-1 block w-full border border-border rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground placeholder:text-muted-foreground"
                       placeholder="user@example.com"
                     />
                   </div>
@@ -377,7 +377,7 @@ export default function TeamPage() {
                     <select
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value)}
-                      className="mt-1 block w-full border border-border rounded-md px-3 py-2"
+                      className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground placeholder:text-muted-foreground"
                     >
                       <option value="ADMIN">Admin - Full dashboard access</option>
                       <option value="VIEWER">Viewer - Read-only access</option>

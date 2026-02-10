@@ -169,7 +169,7 @@ export default function StockLookupPage() {
                   }
                 }}
                 placeholder="Search by symbol or company name..."
-                className="w-full pl-10 pr-4 py-2 border border-border rounded-md focus:ring-primary focus:border-primary/50"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:ring-primary focus:border-primary/50"
               />
               {/* Search Results Dropdown */}
               {searchResults.length > 0 && (
@@ -193,7 +193,7 @@ export default function StockLookupPage() {
             <select
               value={days}
               onChange={(e) => setDays(parseInt(e.target.value))}
-              className="px-4 py-2 border border-border rounded-md"
+              className="px-4 py-2 border border-border rounded-md bg-card text-foreground"
             >
               <option value={30}>30 days</option>
               <option value={90}>90 days</option>

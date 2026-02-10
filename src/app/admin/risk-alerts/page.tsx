@@ -143,7 +143,7 @@ export default function RiskAlertsPage() {
             <select
               value={days}
               onChange={(e) => setDays(parseInt(e.target.value))}
-              className="px-3 py-1.5 border border-border rounded-md text-sm"
+              className="px-3 py-1.5 border border-border rounded-md text-sm bg-card text-foreground"
             >
               <option value={7}>Last 7 days</option>
               <option value={14}>Last 14 days</option>
@@ -152,7 +152,7 @@ export default function RiskAlertsPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-1.5 border border-border rounded-md text-sm"
+              className="px-3 py-1.5 border border-border rounded-md text-sm bg-card text-foreground"
             >
               <option value="">All Types</option>
               <option value="NEW_HIGH_RISK">New High Risk</option>

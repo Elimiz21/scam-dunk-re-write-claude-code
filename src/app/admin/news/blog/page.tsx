@@ -139,13 +139,13 @@ export default function AdminBlogListPage() {
                                 placeholder="Search posts..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50"
+                                className="w-full pl-10 pr-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-primary/50"
                             />
                         </div>
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-                            className="px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50"
+                            className="px-4 py-2 border border-border rounded-2xl bg-card text-foreground focus:ring-2 focus:ring-primary focus:border-primary/50"
                         >
                             <option value="all">All Posts</option>
                             <option value="published">Published</option>

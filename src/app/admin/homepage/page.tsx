@@ -343,7 +343,7 @@ export default function HomepagePage() {
                   value={newHeadline}
                   onChange={(e) => setNewHeadline(e.target.value)}
                   placeholder='e.g., Don&apos;t invest blind. Detect scams before they cost you.'
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={120}
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -358,7 +358,7 @@ export default function HomepagePage() {
                   value={newSubheadline}
                   onChange={(e) => setNewSubheadline(e.target.value)}
                   placeholder="e.g., Enter any stock or crypto ticker and get an instant risk analysis..."
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                   rows={3}
                   maxLength={200}
                 />
@@ -504,7 +504,7 @@ export default function HomepagePage() {
                           type="text"
                           value={editHeadline}
                           onChange={(e) => setEditHeadline(e.target.value)}
-                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                          className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                           maxLength={120}
                         />
                       </div>
@@ -515,7 +515,7 @@ export default function HomepagePage() {
                         <textarea
                           value={editSubheadline}
                           onChange={(e) => setEditSubheadline(e.target.value)}
-                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                          className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                           rows={2}
                           maxLength={200}
                         />
