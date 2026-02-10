@@ -1,0 +1,14 @@
+ScamDunk
+https://scamdunk.com
+
+Purpose: ScamDunk helps retail investors identify potential scam-like red flags in stock pitches.
+
+Preferred content:
+- Marketing, product, and FAQ content from the main site.
+- Legal and policy pages: /privacy, /terms, /disclaimer.
+
+Avoid indexing:
+- Authentication pages and user-specific dashboards.
+- Admin-only or internal preview pages.
+
+Contact: info@scamdunk.com
