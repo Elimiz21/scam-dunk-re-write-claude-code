@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
 import BlogPostClient from "../post-client";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
@@ -11,6 +10,12 @@ type PageParams = { slug: string };
 
 export async function generateStaticParams(): Promise<PageParams[]> {
   try {
+    if (!process.env.DATABASE_URL) {
+      console.warn("Skipping blog static params because DATABASE_URL is not set.");
+      return [];
+    }
+
+    const { prisma } = await import("@/lib/db");
     const posts = await prisma.blogPost.findMany({
       where: { isPublished: true },
       select: { slug: true },
@@ -27,16 +32,37 @@ export async function generateMetadata({
 }: {
   params: PageParams;
 }): Promise<Metadata> {
-  const post = await prisma.blogPost.findFirst({
-    where: { slug: params.slug, isPublished: true },
-    select: {
-      title: true,
-      excerpt: true,
-      coverImage: true,
-      publishedAt: true,
-      updatedAt: true,
-    },
-  });
+  if (!process.env.DATABASE_URL) {
+    return {
+      title: "ScamDunk Blog | ScamDunk",
+      description: "Read the latest ScamDunk news and updates.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const { prisma } = await import("@/lib/db");
+  let post: {
+    title: string;
+    excerpt: string | null;
+    coverImage: string | null;
+    publishedAt: Date | null;
+    updatedAt: Date;
+  } | null = null;
+
+  try {
+    post = await prisma.blogPost.findFirst({
+      where: { slug: params.slug, isPublished: true },
+      select: {
+        title: true,
+        excerpt: true,
+        coverImage: true,
+        publishedAt: true,
+        updatedAt: true,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to load blog metadata:", error);
+  }
 
   if (!post) {
     return {
@@ -74,9 +100,34 @@ export async function generateMetadata({
 }
 
 export default async function BlogPostPage({ params }: { params: PageParams }) {
-  const post = await prisma.blogPost.findFirst({
-    where: { slug: params.slug, isPublished: true },
-  });
+  if (!process.env.DATABASE_URL) {
+    notFound();
+  }
+
+  const { prisma } = await import("@/lib/db");
+  let post: {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    category: string;
+    slug: string;
+    title: string;
+    excerpt: string | null;
+    content: string;
+    coverImage: string | null;
+    author: string;
+    tags: string | null;
+    isPublished: boolean;
+    publishedAt: Date | null;
+  } | null = null;
+
+  try {
+    post = await prisma.blogPost.findFirst({
+      where: { slug: params.slug, isPublished: true },
+    });
+  } catch (error) {
+    console.error("Failed to load blog post:", error);
+  }
 
   if (!post) {
     notFound();
