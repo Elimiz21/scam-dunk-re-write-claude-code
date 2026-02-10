@@ -1,0 +1,228 @@
+name: Backfill Data Repo from Artifacts
+
+# One-time workflow to recover evaluation results from failed runs
+# that produced artifacts but couldn't push to the data repo.
+# Run this after regenerating DATA_REPO_TOKEN.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Show what would be pushed without actually pushing'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download artifacts from recent failed runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=========================================="
+          echo "BACKFILL: Recovering results from artifacts"
+          echo "=========================================="
+
+          mkdir -p recovered-results
+
+          # List recent runs of the Enhanced Daily Stock Evaluation workflow
+          RUNS=$(gh run list \
+            --workflow="enhanced-daily-evaluation.yml" \
+            --limit=20 \
+            --json databaseId,conclusion,startedAt,displayTitle \
+            --jq '.[] | "\(.databaseId) \(.conclusion) \(.startedAt) \(.displayTitle)"')
+
+          echo "Recent workflow runs:"
+          echo "$RUNS"
+          echo ""
+
+          # Download artifacts from each run
+          DOWNLOADED=0
+          while IFS= read -r line; do
+            RUN_ID=$(echo "$line" | awk '{print $1}')
+            CONCLUSION=$(echo "$line" | awk '{print $2}')
+            STARTED=$(echo "$line" | awk '{print $3}')
+
+            echo "---"
+            echo "Run $RUN_ID ($CONCLUSION) started $STARTED"
+
+            # Try to download the artifact
+            ARTIFACT_DIR="recovered-results/run-${RUN_ID}"
+            mkdir -p "$ARTIFACT_DIR"
+
+            if gh run download "$RUN_ID" --dir "$ARTIFACT_DIR" 2>/dev/null; then
+              echo "  Downloaded artifacts for run $RUN_ID"
+              DOWNLOADED=$((DOWNLOADED + 1))
+            else
+              echo "  No downloadable artifacts for run $RUN_ID (may have expired)"
+              rmdir "$ARTIFACT_DIR" 2>/dev/null || true
+            fi
+          done <<< "$RUNS"
+
+          echo ""
+          echo "Downloaded artifacts from $DOWNLOADED runs"
+
+          # Show what we recovered
+          echo ""
+          echo "Recovered files:"
+          find recovered-results -type f -name "*.json" -o -name "*.md" | sort
+
+      - name: Checkout data repository
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: Organize and copy results
+        run: |
+          # Ensure all target directories exist
+          mkdir -p data-repo/evaluation-results
+          mkdir -p data-repo/daily-summaries
+          mkdir -p data-repo/comparison-reports
+          mkdir -p data-repo/promoted-stocks
+          mkdir -p data-repo/social-media-scans
+          mkdir -p data-repo/suspicious-stocks
+          mkdir -p data-repo/scheme-tracking
+          mkdir -p data-repo/reports
+
+          COPIED=0
+
+          # Process each recovered artifact directory
+          for run_dir in recovered-results/run-*/; do
+            [ -d "$run_dir" ] || continue
+            echo "Processing $run_dir ..."
+
+            # Find all result files (they may be nested in subdirectories)
+            while IFS= read -r file; do
+              FILENAME=$(basename "$file")
+
+              # Route files to the correct directory based on naming pattern
+              case "$FILENAME" in
+                enhanced-evaluation-*.json)
+                  cp -n "$file" data-repo/evaluation-results/ && COPIED=$((COPIED + 1)) && echo "  -> evaluation-results/$FILENAME"
+                  ;;
+                enhanced-high-risk-*.json)
+                  cp -n "$file" data-repo/evaluation-results/ && COPIED=$((COPIED + 1)) && echo "  -> evaluation-results/$FILENAME"
+                  ;;
+                fmp-evaluation-*.json)
+                  cp -n "$file" data-repo/evaluation-results/ && COPIED=$((COPIED + 1)) && echo "  -> evaluation-results/$FILENAME"
+                  ;;
+                fmp-high-risk-*.json)
+                  cp -n "$file" data-repo/evaluation-results/ && COPIED=$((COPIED + 1)) && echo "  -> evaluation-results/$FILENAME"
+                  ;;
+                fmp-summary-*.json)
+                  cp -n "$file" data-repo/daily-summaries/ && COPIED=$((COPIED + 1)) && echo "  -> daily-summaries/$FILENAME"
+                  ;;
+                suspicious-stocks-*.json)
+                  cp -n "$file" data-repo/suspicious-stocks/ && COPIED=$((COPIED + 1)) && echo "  -> suspicious-stocks/$FILENAME"
+                  ;;
+                daily-report-*.json)
+                  cp -n "$file" data-repo/reports/ && COPIED=$((COPIED + 1)) && echo "  -> reports/$FILENAME"
+                  ;;
+                scheme-database.json)
+                  cp "$file" data-repo/scheme-tracking/ && COPIED=$((COPIED + 1)) && echo "  -> scheme-tracking/$FILENAME"
+                  ;;
+                scheme-report-*.md)
+                  cp -n "$file" data-repo/scheme-tracking/ && COPIED=$((COPIED + 1)) && echo "  -> scheme-tracking/$FILENAME"
+                  ;;
+                social-media-scan-*.json)
+                  cp -n "$file" data-repo/social-media-scans/ && COPIED=$((COPIED + 1)) && echo "  -> social-media-scans/$FILENAME"
+                  ;;
+                social-media-scan-*.md)
+                  cp -n "$file" data-repo/social-media-scans/ && COPIED=$((COPIED + 1)) && echo "  -> social-media-scans/$FILENAME"
+                  ;;
+                comparison-*.json)
+                  cp -n "$file" data-repo/comparison-reports/ && COPIED=$((COPIED + 1)) && echo "  -> comparison-reports/$FILENAME"
+                  ;;
+                promoted-stocks-*.json)
+                  cp -n "$file" data-repo/promoted-stocks/ && COPIED=$((COPIED + 1)) && echo "  -> promoted-stocks/$FILENAME"
+                  ;;
+                active-schemes.json)
+                  cp "$file" data-repo/scheme-tracking/ && COPIED=$((COPIED + 1)) && echo "  -> scheme-tracking/$FILENAME"
+                  ;;
+                *)
+                  echo "  (skipped) $FILENAME"
+                  ;;
+              esac
+            done < <(find "$run_dir" -type f \( -name "*.json" -o -name "*.md" \))
+          done
+
+          echo ""
+          echo "Total files copied: $COPIED"
+
+          # Show what dates we recovered
+          echo ""
+          echo "Dates recovered:"
+          find data-repo -type f -name "*.json" -o -name "*.md" | grep -oP '\d{4}-\d{2}-\d{2}' | sort -u
+
+      - name: Show diff (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          cd data-repo
+          git add -A
+          echo "Files that would be committed:"
+          git diff --staged --stat
+          echo ""
+          echo "DRY RUN - no changes committed"
+
+      - name: Commit and push results
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          cd data-repo
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "No new results to backfill (data repo is already up to date)"
+          else
+            # Show what we're committing
+            echo "Files to commit:"
+            git diff --staged --stat
+            echo ""
+
+            DATES=$(git diff --staged --name-only | grep -oP '\d{4}-\d{2}-\d{2}' | sort -u | tr '\n' ', ' | sed 's/,$//')
+            git commit -m "Backfill evaluation results for: ${DATES}"
+            git push
+            echo ""
+            echo "Successfully backfilled results to scam-dunk-data!"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Backfill Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "**Mode:** Dry run (no changes committed)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode:** Live run" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Dates recovered:" >> $GITHUB_STEP_SUMMARY
+          find data-repo -type f \( -name "*.json" -o -name "*.md" \) 2>/dev/null | grep -oP '\d{4}-\d{2}-\d{2}' | sort -u | while read date; do
+            echo "- $date" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Files by directory:" >> $GITHUB_STEP_SUMMARY
+          for dir in evaluation-results daily-summaries suspicious-stocks reports scheme-tracking social-media-scans comparison-reports promoted-stocks; do
+            COUNT=$(find "data-repo/$dir" -type f 2>/dev/null | wc -l)
+            if [ "$COUNT" -gt 0 ]; then
+              echo "- **$dir/**: $COUNT files" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
