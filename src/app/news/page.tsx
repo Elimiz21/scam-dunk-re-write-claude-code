@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { prisma } from "@/lib/db";
 import NewsClient from "./news-client";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
@@ -30,50 +29,61 @@ export const metadata: Metadata = {
 };
 
 export default async function NewsPage() {
-  const [blogPosts, mediaMentions] = await Promise.all([
-    prisma.blogPost.findMany({
-      where: { isPublished: true },
-      orderBy: { publishedAt: "desc" },
-      take: 50,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        excerpt: true,
-        coverImage: true,
-        author: true,
-        category: true,
-        tags: true,
-        publishedAt: true,
-      },
-    }),
-    prisma.mediaMention.findMany({
-      where: { isPublished: true },
-      orderBy: [{ isFeatured: "desc" }, { mentionDate: "desc" }],
-      take: 50,
-      select: {
-        id: true,
-        title: true,
-        source: true,
-        sourceType: true,
-        sourceUrl: true,
-        logoUrl: true,
-        description: true,
-        quoteText: true,
-        mentionDate: true,
-        isFeatured: true,
-      },
-    }),
-  ]);
+  if (!process.env.DATABASE_URL) {
+    console.warn("Skipping news data fetch because DATABASE_URL is not set.");
+    return <NewsClient blogPosts={[]} mediaMentions={[]} />;
+  }
 
-  const serializedPosts = blogPosts.map((post) => ({
-    ...post,
-    publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
-  }));
-  const serializedMentions = mediaMentions.map((mention) => ({
-    ...mention,
-    mentionDate: mention.mentionDate ? mention.mentionDate.toISOString() : null,
-  }));
+  const { prisma } = await import("@/lib/db");
+  try {
+    const [blogPosts, mediaMentions] = await Promise.all([
+      prisma.blogPost.findMany({
+        where: { isPublished: true },
+        orderBy: { publishedAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          excerpt: true,
+          coverImage: true,
+          author: true,
+          category: true,
+          tags: true,
+          publishedAt: true,
+        },
+      }),
+      prisma.mediaMention.findMany({
+        where: { isPublished: true },
+        orderBy: [{ isFeatured: "desc" }, { mentionDate: "desc" }],
+        take: 50,
+        select: {
+          id: true,
+          title: true,
+          source: true,
+          sourceType: true,
+          sourceUrl: true,
+          logoUrl: true,
+          description: true,
+          quoteText: true,
+          mentionDate: true,
+          isFeatured: true,
+        },
+      }),
+    ]);
 
-  return <NewsClient blogPosts={serializedPosts} mediaMentions={serializedMentions} />;
+    const serializedPosts = blogPosts.map((post) => ({
+      ...post,
+      publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+    }));
+    const serializedMentions = mediaMentions.map((mention) => ({
+      ...mention,
+      mentionDate: mention.mentionDate ? mention.mentionDate.toISOString() : null,
+    }));
+
+    return <NewsClient blogPosts={serializedPosts} mediaMentions={serializedMentions} />;
+  } catch (error) {
+    console.error("Failed to load news content:", error);
+    return <NewsClient blogPosts={[]} mediaMentions={[]} />;
+  }
 }
