@@ -23,10 +23,11 @@ interface EvaluationStock {
   priceChangePct?: number;
   volume?: number;
   avgVolume?: number;
+  avgDailyVolume?: number; // Enhanced pipeline field (maps to avgVolume)
   volumeRatio?: number;
   riskLevel: string;
   totalScore: number;
-  isLegitimate: boolean;
+  isLegitimate?: boolean;
   isInsufficient?: boolean;
   signals: Array<{ code: string; category: string; weight: number; description?: string }>;
   signalSummary?: string;
@@ -219,10 +220,15 @@ export async function POST(request: Request) {
     }
 
     // Fetch evaluation file from Supabase Storage
-    const evaluationFilename = `fmp-evaluation-${date}.json`;
+    // Try enhanced format first (new pipeline), fall back to legacy fmp format
+    const enhancedEvalFilename = `enhanced-evaluation-${date}.json`;
+    const legacyEvalFilename = `fmp-evaluation-${date}.json`;
     const summaryFilename = `fmp-summary-${date}.json`;
 
-    const evaluationResult = await fetchEvaluationFile(evaluationFilename);
+    let evaluationResult = await fetchEvaluationFile(enhancedEvalFilename);
+    if (!evaluationResult.data) {
+      evaluationResult = await fetchEvaluationFile(legacyEvalFilename);
+    }
     if (!evaluationResult.data) {
       const statusCode =
         evaluationResult.errorType === "INVALID_SUPABASE_CONFIG"
@@ -354,7 +360,7 @@ export async function POST(request: Request) {
           previousClose: stock.previousClose || null,
           priceChangePct: stock.priceChangePct || null,
           volume: stock.volume || null,
-          avgVolume: stock.avgVolume || null,
+          avgVolume: stock.avgVolume || stock.avgDailyVolume || null,
           volumeRatio: stock.volumeRatio || null,
           marketCap: stock.marketCap || null,
           signals: JSON.stringify(stock.signals || []),
@@ -579,7 +585,7 @@ export async function GET() {
       const storageResult = await supabase.storage
         .from(EVALUATION_BUCKET)
         .list("", {
-          limit: 100,
+          limit: 500,
           sortBy: { column: "name", order: "desc" },
         });
       files = storageResult.data;
@@ -608,13 +614,23 @@ export async function GET() {
       );
     }
 
-    // Extract dates from evaluation files (format: fmp-evaluation-YYYY-MM-DD.json)
+    // Extract dates from evaluation files
+    // Supports both enhanced format (enhanced-evaluation-YYYY-MM-DD.json)
+    // and legacy format (fmp-evaluation-YYYY-MM-DD.json)
     const evaluationFiles = (files || [])
-      .filter((f) => f.name.startsWith("fmp-evaluation-") && f.name.endsWith(".json"))
+      .filter((f) =>
+        (f.name.startsWith("fmp-evaluation-") || f.name.startsWith("enhanced-evaluation-")) &&
+        f.name.endsWith(".json")
+      )
       .map((f) => ({
         filename: f.name,
-        date: f.name.replace("fmp-evaluation-", "").replace(".json", ""),
-      }));
+        date: f.name
+          .replace("enhanced-evaluation-", "")
+          .replace("fmp-evaluation-", "")
+          .replace(".json", ""),
+      }))
+      // Deduplicate dates (prefer enhanced over legacy if both exist)
+      .filter((f, i, arr) => arr.findIndex((x) => x.date === f.date) === i);
 
     // Extract dates from summary files (format: fmp-summary-YYYY-MM-DD.json)
     const summaryFiles = (files || [])
@@ -693,6 +709,8 @@ export async function GET() {
       debug: {
         filesFound: files?.length || 0,
         evaluationFiles: evaluationFiles.length,
+        enhancedEvaluationFiles: (files || []).filter(f => f.name.startsWith("enhanced-evaluation-")).length,
+        legacyEvaluationFiles: (files || []).filter(f => f.name.startsWith("fmp-evaluation-")).length,
         summaryFiles: summaryFiles.length,
         promotedFiles: promotedFiles.length,
         comparisonFiles: comparisonFiles.length,
