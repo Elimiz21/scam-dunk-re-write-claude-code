@@ -27,6 +27,18 @@ export const config = {
 
   // Python AI Backend (for full ML models)
   aiBackendUrl: process.env.AI_BACKEND_URL || "http://localhost:8000",
+
+  // Social Scan APIs
+  youtubeApiKey: process.env.YOUTUBE_API_KEY || "",
+  redditClientId: process.env.REDDIT_CLIENT_ID || "",
+  redditClientSecret: process.env.REDDIT_CLIENT_SECRET || "",
+  redditUsername: process.env.REDDIT_USERNAME || "",
+  redditPassword: process.env.REDDIT_PASSWORD || "",
+  googleCseApiKey: process.env.GOOGLE_CSE_API_KEY || "",
+  googleCseId: process.env.GOOGLE_CSE_ID || "",
+  perplexityApiKey: process.env.PERPLEXITY_API_KEY || "",
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
+  discordBotToken: process.env.DISCORD_BOT_TOKEN || "",
 } as const;
 
 // Get scan limit based on plan

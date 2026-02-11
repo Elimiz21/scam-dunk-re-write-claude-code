@@ -31,6 +31,7 @@ import {
   Headphones,
   Mail,
   Home,
+  Radio,
   LucideIcon,
 } from "lucide-react";
 
@@ -85,6 +86,7 @@ const navigationCategories: NavCategory[] = [
     items: [
       { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
       { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
+      { name: "Social Scan", href: "/admin/social-scan", icon: Radio },
       { name: "Stock Lookup", href: "/admin/stock-lookup", icon: Search },
     ],
   },

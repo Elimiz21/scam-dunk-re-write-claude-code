@@ -750,6 +750,59 @@ model RegulatoryDatabaseSync {
 }
 
 // ==========================================
+// SOCIAL MEDIA SCAN MODELS
+// For tracking social media scanning runs and evidence
+// ==========================================
+
+model SocialScanRun {
+  id                  String   @id @default(cuid())
+  scanDate            DateTime
+  status              String   @default("RUNNING") // RUNNING, COMPLETED, FAILED, PARTIAL
+  tickersScanned      Int      @default(0)
+  tickersWithMentions Int      @default(0)
+  totalMentions       Int      @default(0)
+  platformsUsed       String?  @db.Text // JSON array of platform names used
+  duration            Int?     // milliseconds
+  errors              String?  @db.Text // JSON array of error messages
+  triggeredBy         String?  // "manual", "scheduled", admin user ID
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  mentions            SocialMention[]
+
+  @@index([scanDate])
+  @@index([status])
+}
+
+model SocialMention {
+  id              String   @id @default(cuid())
+  scanRunId       String
+  scanRun         SocialScanRun @relation(fields: [scanRunId], references: [id], onDelete: Cascade)
+  ticker          String
+  stockName       String?
+  platform        String   // Reddit, YouTube, Discord, StockTwits, Twitter, TikTok, Web
+  source          String   // e.g., "r/wallstreetbets", "YouTube Channel Name", "Google CSE"
+  discoveredVia   String   // Which tool found it: reddit_oauth, google_cse, perplexity, youtube_api, discord_bot, stocktwits, rss
+  title           String?  @db.Text
+  content         String?  @db.Text
+  url             String?  @db.Text
+  author          String?
+  postDate        DateTime?
+  engagement      String?  @db.Text // JSON: { upvotes, comments, views, likes }
+  sentiment       String?  // bullish, bearish, neutral
+  isPromotional   Boolean  @default(false)
+  promotionScore  Int      @default(0) // 0-100
+  redFlags        String?  @db.Text // JSON array of strings
+  createdAt       DateTime @default(now())
+
+  @@index([ticker, platform])
+  @@index([scanRunId])
+  @@index([createdAt])
+  @@index([ticker, createdAt])
+  @@index([isPromotional])
+}
+
+// ==========================================
 // HOMEPAGE CONTENT MANAGEMENT
 // For managing landing page hero headline, subheadline, etc.
 // ==========================================
