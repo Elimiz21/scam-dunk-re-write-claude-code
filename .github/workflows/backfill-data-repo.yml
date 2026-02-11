@@ -1,7 +1,7 @@
-name: Backfill Data Repo from Artifacts
+name: Backfill Data Repo & Supabase from Artifacts
 
-# One-time workflow to recover evaluation results from failed runs
-# that produced artifacts but couldn't push to the data repo.
+# Recovery workflow to upload evaluation results from failed runs
+# that produced artifacts but couldn't push to the data repo or Supabase.
 # Run this after regenerating DATA_REPO_TOKEN.
 
 on:
@@ -9,6 +9,11 @@ on:
     inputs:
       dry_run:
         description: 'Show what would be pushed without actually pushing'
+        required: false
+        default: 'false'
+        type: boolean
+      skip_supabase:
+        description: 'Skip Supabase upload (only push to data repo)'
         required: false
         default: 'false'
         type: boolean
@@ -167,6 +172,60 @@ jobs:
           echo "Dates recovered:"
           find data-repo -type f -name "*.json" -o -name "*.md" | grep -oP '\d{4}-\d{2}-\d{2}' | sort -u
 
+      - name: Upload recovered results to Supabase
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.skip_supabase != 'true' }}
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "::warning::Supabase credentials not configured, skipping upload"
+            echo "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY secrets to enable"
+            exit 0
+          fi
+
+          BUCKET="evaluation-data"
+          UPLOADED=0
+          FAILED=0
+
+          echo "=========================================="
+          echo "UPLOADING TO SUPABASE (bucket: $BUCKET)"
+          echo "=========================================="
+
+          # Upload all recovered JSON and MD files to Supabase storage
+          for run_dir in recovered-results/run-*/; do
+            [ -d "$run_dir" ] || continue
+
+            while IFS= read -r file; do
+              FILENAME=$(basename "$file")
+              CONTENT_TYPE="application/json"
+              if echo "$FILENAME" | grep -q '\.md$'; then
+                CONTENT_TYPE="text/markdown"
+              fi
+
+              echo "  Uploading $FILENAME..."
+              HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/upload-response.txt \
+                -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${BUCKET}/${FILENAME}" \
+                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+                -H "Content-Type: ${CONTENT_TYPE}" \
+                -H "x-upsert: true" \
+                --data-binary @"$file")
+
+              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+                echo "    OK ($HTTP_CODE)"
+                UPLOADED=$((UPLOADED + 1))
+              else
+                BODY=$(cat /tmp/upload-response.txt 2>/dev/null || echo "no response body")
+                echo "    FAILED ($HTTP_CODE): $BODY"
+                FAILED=$((FAILED + 1))
+              fi
+            done < <(find "$run_dir" -type f \( -name "*.json" -o -name "*.md" \))
+          done
+
+          echo ""
+          echo "Supabase upload complete: $UPLOADED succeeded, $FAILED failed"
+
       - name: Show diff (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' }}
         run: |
@@ -212,17 +271,28 @@ jobs:
             echo "**Mode:** Live run" >> $GITHUB_STEP_SUMMARY
           fi
 
+          if [ "${{ github.event.inputs.skip_supabase }}" = "true" ]; then
+            echo "**Supabase:** Skipped" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Supabase:** Uploaded" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Dates recovered:" >> $GITHUB_STEP_SUMMARY
-          find data-repo -type f \( -name "*.json" -o -name "*.md" \) 2>/dev/null | grep -oP '\d{4}-\d{2}-\d{2}' | sort -u | while read date; do
+          find recovered-results -type f \( -name "*.json" -o -name "*.md" \) 2>/dev/null | grep -oP '\d{4}-\d{2}-\d{2}' | sort -u | while read date; do
             echo "- $date" >> $GITHUB_STEP_SUMMARY
           done
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Files by directory:" >> $GITHUB_STEP_SUMMARY
+          echo "### Files by directory (data repo):" >> $GITHUB_STEP_SUMMARY
           for dir in evaluation-results daily-summaries suspicious-stocks reports scheme-tracking social-media-scans comparison-reports promoted-stocks; do
             COUNT=$(find "data-repo/$dir" -type f 2>/dev/null | wc -l)
             if [ "$COUNT" -gt 0 ]; then
               echo "- **$dir/**: $COUNT files" >> $GITHUB_STEP_SUMMARY
             fi
           done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Recovered artifact files:" >> $GITHUB_STEP_SUMMARY
+          TOTAL=$(find recovered-results -type f \( -name "*.json" -o -name "*.md" \) 2>/dev/null | wc -l)
+          echo "- **Total files recovered from artifacts:** $TOTAL" >> $GITHUB_STEP_SUMMARY
