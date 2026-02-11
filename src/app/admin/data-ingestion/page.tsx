@@ -47,6 +47,8 @@ interface IngestionStatus {
   debug?: {
     filesFound: number;
     evaluationFiles: number;
+    enhancedEvaluationFiles: number;
+    legacyEvaluationFiles: number;
     summaryFiles: number;
     promotedFiles: number;
     comparisonFiles: number;
@@ -656,7 +658,7 @@ export default function DataIngestionPage() {
           <div className="bg-secondary/50 rounded-2xl shadow p-4 text-sm">
             <h4 className="font-medium text-foreground mb-2">Storage Debug Info</h4>
             <p className="text-muted-foreground">Total files in bucket: {status.debug.filesFound}</p>
-            <p className="text-muted-foreground">Evaluation files: {status.debug.evaluationFiles} (enhanced: {(status.debug as Record<string, number>).enhancedEvaluationFiles ?? '?'}, legacy: {(status.debug as Record<string, number>).legacyEvaluationFiles ?? '?'})</p>
+            <p className="text-muted-foreground">Evaluation files: {status.debug.evaluationFiles} (enhanced: {status.debug.enhancedEvaluationFiles}, legacy: {status.debug.legacyEvaluationFiles})</p>
             <p className="text-muted-foreground">Summary files: {status.debug.summaryFiles}</p>
             <p className="text-muted-foreground">Promoted stocks files: {status.debug.promotedFiles}</p>
             <p className="text-muted-foreground">Comparison files: {status.debug.comparisonFiles}</p>
