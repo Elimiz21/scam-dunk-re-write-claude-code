@@ -26,6 +26,9 @@ const SOCIAL_DOMAINS = [
   'stocktwits.com',
   'tiktok.com',
   'discord.com',
+  'facebook.com',
+  'instagram.com',
+  'threads.net',
   'seekingalpha.com',
   'investorshub.advfn.com',
   'finance.yahoo.com',
@@ -39,6 +42,9 @@ function detectPlatform(url: string): SocialMention['platform'] {
   if (lower.includes('stocktwits.com')) return 'StockTwits';
   if (lower.includes('tiktok.com')) return 'TikTok';
   if (lower.includes('discord.com') || lower.includes('discord.gg')) return 'Discord';
+  if (lower.includes('facebook.com') || lower.includes('fb.com')) return 'Web';
+  if (lower.includes('instagram.com')) return 'Web';
+  if (lower.includes('threads.net')) return 'Web';
   return 'Forum';
 }
 
@@ -61,7 +67,19 @@ function detectSource(url: string): string {
   if (lower.includes('seekingalpha.com')) return 'Seeking Alpha';
   if (lower.includes('finance.yahoo.com')) return 'Yahoo Finance';
   if (lower.includes('investorshub')) return 'InvestorsHub';
-  return new URL(url).hostname;
+  if (lower.includes('facebook.com')) {
+    const match = url.match(/facebook\.com\/(?:groups\/)?([^\/]+)/i);
+    return match ? `Facebook: ${match[1]}` : 'Facebook';
+  }
+  if (lower.includes('instagram.com')) {
+    const match = url.match(/instagram\.com\/([^\/]+)/i);
+    return match ? `@${match[1]} (Instagram)` : 'Instagram';
+  }
+  if (lower.includes('threads.net')) {
+    const match = url.match(/threads\.net\/@([^\/]+)/i);
+    return match ? `@${match[1]} (Threads)` : 'Threads';
+  }
+  try { return new URL(url).hostname; } catch { return 'Unknown'; }
 }
 
 async function googleSearch(

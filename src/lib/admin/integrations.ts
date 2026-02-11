@@ -264,6 +264,25 @@ async function testDiscordBot(): Promise<{ status: string; message?: string }> {
 }
 
 /**
+ * Test CrowdTangle / Meta Content Library
+ */
+async function testCrowdTangle(): Promise<{ status: string; message?: string }> {
+  if (!config.crowdtangleApiKey) {
+    return { status: "ERROR", message: "API token not configured" };
+  }
+  try {
+    const response = await fetch(
+      `https://api.crowdtangle.com/lists?token=${config.crowdtangleApiKey}`
+    );
+    if (response.ok) return { status: "CONNECTED" };
+    if (response.status === 401) return { status: "ERROR", message: "Invalid API token" };
+    return { status: "ERROR", message: `CrowdTangle returned ${response.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+/**
  * Integration definitions with test functions
  */
 const INTEGRATIONS = [
@@ -365,6 +384,15 @@ const INTEGRATIONS = [
     getApiKey: () => config.discordBotToken,
     testConnection: testDiscordBot,
     documentation: "https://discord.com/developers/docs",
+  },
+  {
+    name: "CROWDTANGLE",
+    displayName: "CrowdTangle / Meta Content Library",
+    category: "SOCIAL_SCAN",
+    description: "Searches public Facebook, Instagram, and Reddit content (Meta research tool)",
+    getApiKey: () => config.crowdtangleApiKey,
+    testConnection: testCrowdTangle,
+    documentation: "https://www.crowdtangle.com/",
   },
 ];
 

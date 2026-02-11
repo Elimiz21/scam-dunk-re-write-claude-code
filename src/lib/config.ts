@@ -39,6 +39,7 @@ export const config = {
   perplexityApiKey: process.env.PERPLEXITY_API_KEY || "",
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
   discordBotToken: process.env.DISCORD_BOT_TOKEN || "",
+  crowdtangleApiKey: process.env.CROWDTANGLE_API_KEY || "",
 } as const;
 
 // Get scan limit based on plan
