@@ -656,7 +656,7 @@ export default function DataIngestionPage() {
           <div className="bg-secondary/50 rounded-2xl shadow p-4 text-sm">
             <h4 className="font-medium text-foreground mb-2">Storage Debug Info</h4>
             <p className="text-muted-foreground">Total files in bucket: {status.debug.filesFound}</p>
-            <p className="text-muted-foreground">Evaluation files: {status.debug.evaluationFiles}</p>
+            <p className="text-muted-foreground">Evaluation files: {status.debug.evaluationFiles} (enhanced: {(status.debug as Record<string, number>).enhancedEvaluationFiles ?? '?'}, legacy: {(status.debug as Record<string, number>).legacyEvaluationFiles ?? '?'})</p>
             <p className="text-muted-foreground">Summary files: {status.debug.summaryFiles}</p>
             <p className="text-muted-foreground">Promoted stocks files: {status.debug.promotedFiles}</p>
             <p className="text-muted-foreground">Comparison files: {status.debug.comparisonFiles}</p>
@@ -664,10 +664,15 @@ export default function DataIngestionPage() {
               <ul className="mt-2 space-y-1">
                 {status.debug.allFileNames.map((name, i) => (
                   <li key={i} className={`font-mono text-xs ${
+                    name.startsWith('enhanced-evaluation-') ? 'text-green-600' :
                     name.startsWith('fmp-evaluation-') ? 'text-green-600' :
                     name.startsWith('fmp-summary-') ? 'text-blue-600' :
                     name.startsWith('promoted-stocks-') ? 'text-purple-600' :
-                    name.startsWith('comparison-') ? 'text-orange-600' : 'text-muted-foreground'
+                    name.startsWith('comparison-') ? 'text-orange-600' :
+                    name.startsWith('enhanced-high-risk-') ? 'text-red-600' :
+                    name.startsWith('suspicious-stocks-') ? 'text-red-600' :
+                    name.startsWith('daily-report-') ? 'text-blue-600' :
+                    name.startsWith('social-media-scan-') ? 'text-cyan-600' : 'text-muted-foreground'
                   }`}>{name}</li>
                 ))}
               </ul>
