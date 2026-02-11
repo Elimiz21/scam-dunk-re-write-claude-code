@@ -178,16 +178,18 @@
    ANIMATIONS — Spring easing for natural motion
    ============================================ */
 
-/* Admin layout: ensure form elements use theme-aware colors */
-.admin-layout input:not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]),
+/* Admin layout: ensure form elements have visible text on white/card backgrounds */
+.admin-layout input:not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="checkbox"]):not([type="radio"]),
 .admin-layout textarea,
 .admin-layout select {
-  color: hsl(var(--foreground));
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--card)) !important;
+  border-color: hsl(var(--border));
 }
 
 .admin-layout input::placeholder,
 .admin-layout textarea::placeholder {
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--muted-foreground)) !important;
 }
 
 /* Apple-style animations */

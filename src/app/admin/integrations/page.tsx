@@ -342,7 +342,7 @@ export default function IntegrationsPage() {
                         monthlyBudget: parseFloat(e.target.value) || null,
                       })
                     }
-                    className="mt-1 block w-full border border-border rounded-md px-3 py-2"
+                    className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                     placeholder="No limit"
                   />
                 </div>
@@ -359,7 +359,7 @@ export default function IntegrationsPage() {
                         rateLimit: parseInt(e.target.value) || null,
                       })
                     }
-                    className="mt-1 block w-full border border-border rounded-md px-3 py-2"
+                    className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">

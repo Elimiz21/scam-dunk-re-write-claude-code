@@ -485,14 +485,14 @@ export default function SupportPage() {
               placeholder="Search by email, name, subject, or ticket ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-md focus:ring-primary focus:border-primary/50"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:ring-primary focus:border-primary/50"
             />
           </div>
           <div className="flex gap-2">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-border rounded-md px-3 py-2 text-sm"
+              className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
             >
               <option value="">All Status</option>
               <option value="NEW">New</option>
@@ -505,7 +505,7 @@ export default function SupportPage() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="border border-border rounded-md px-3 py-2 text-sm"
+              className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
             >
               <option value="">All Categories</option>
               <option value="SUPPORT">Technical Support</option>
@@ -518,7 +518,7 @@ export default function SupportPage() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="border border-border rounded-md px-3 py-2 text-sm"
+              className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
             >
               <option value="">All Priorities</option>
               <option value="LOW">Low</option>
@@ -689,7 +689,7 @@ export default function SupportPage() {
                         value={responseText}
                         onChange={(e) => setResponseText(e.target.value)}
                         rows={4}
-                        className="w-full border border-border rounded-2xl p-3 focus:ring-primary focus:border-primary/50"
+                        className="w-full border border-border rounded-2xl p-3 bg-card text-foreground placeholder:text-muted-foreground focus:ring-primary focus:border-primary/50"
                         placeholder="Type your response..."
                       />
                       <div className="flex items-center justify-between mt-3">

@@ -446,7 +446,7 @@ export default function ScanMessagesPage() {
                   value={newHeadline}
                   onChange={(e) => setNewHeadline(e.target.value)}
                   placeholder="e.g., Let's find the scam before it finds you."
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={100}
                 />
                 <p className="mt-1 text-xs text-muted-foreground">{newHeadline.length}/100 characters</p>
@@ -460,7 +460,7 @@ export default function ScanMessagesPage() {
                   value={newSubtext}
                   onChange={(e) => setNewSubtext(e.target.value)}
                   placeholder="e.g., Enter a ticker to check for red flags"
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={80}
                 />
                 <p className="mt-1 text-xs text-muted-foreground">{newSubtext.length}/80 characters</p>
@@ -534,7 +534,7 @@ export default function ScanMessagesPage() {
                         value={msg.reason || ""}
                         onChange={(e) => handleSetRejectionReason(index, e.target.value)}
                         placeholder="Why was this rejected? (optional, helps improve future generations)"
-                        className="w-full px-3 py-2 text-sm border border-border rounded-2xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       />
                     </div>
                   )}
@@ -614,13 +614,13 @@ export default function ScanMessagesPage() {
                         type="text"
                         value={editHeadline}
                         onChange={(e) => setEditHeadline(e.target.value)}
-                        className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                       <input
                         type="text"
                         value={editSubtext}
                         onChange={(e) => setEditSubtext(e.target.value)}
-                        className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                       <div className="flex gap-2">
                         <button

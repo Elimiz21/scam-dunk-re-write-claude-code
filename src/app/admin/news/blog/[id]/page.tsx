@@ -509,7 +509,7 @@ export default function AdminBlogEditorPage() {
                                         type="text"
                                         value={post.title}
                                         onChange={(e) => handleTitleChange(e.target.value)}
-                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-primary/50"
                                         placeholder="Enter post title"
                                     />
                                 </div>
@@ -523,7 +523,7 @@ export default function AdminBlogEditorPage() {
                                             type="text"
                                             value={post.slug}
                                             onChange={(e) => setPost({ ...post, slug: e.target.value })}
-                                            className="flex-1 px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50"
+                                            className="flex-1 px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-primary/50"
                                             placeholder="post-url-slug"
                                         />
                                     </div>
@@ -536,7 +536,7 @@ export default function AdminBlogEditorPage() {
                                         value={post.excerpt}
                                         onChange={(e) => setPost({ ...post, excerpt: e.target.value })}
                                         rows={2}
-                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50"
+                                        className="w-full px-4 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-primary/50"
                                         placeholder="Brief summary of the post (shown in previews)"
                                     />
                                 </div>

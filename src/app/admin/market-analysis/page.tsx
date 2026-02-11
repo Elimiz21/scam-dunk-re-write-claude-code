@@ -117,7 +117,7 @@ export default function MarketAnalysisPage() {
           <select
             value={days}
             onChange={(e) => setDays(parseInt(e.target.value))}
-            className="px-4 py-2 border border-border rounded-md text-sm"
+            className="px-4 py-2 border border-border rounded-md text-sm bg-card text-foreground"
           >
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>

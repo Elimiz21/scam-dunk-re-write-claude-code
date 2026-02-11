@@ -226,7 +226,7 @@ export default function ModelEfficacyPage() {
           <select
             value={days}
             onChange={(e) => setDays(parseInt(e.target.value))}
-            className="border border-border rounded-md px-3 py-2 text-sm"
+            className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
           >
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>
@@ -338,7 +338,7 @@ export default function ModelEfficacyPage() {
                 <select
                   value={filterRisk}
                   onChange={(e) => setFilterRisk(e.target.value)}
-                  className="border border-border rounded-md px-3 py-2 text-sm"
+                  className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
                 >
                   <option value="">All Risk Levels</option>
                   <option value="LOW">Low Risk</option>

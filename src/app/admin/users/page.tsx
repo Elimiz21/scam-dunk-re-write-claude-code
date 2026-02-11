@@ -361,13 +361,13 @@ export default function UsersPage() {
               placeholder="Search by email or name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-md focus:ring-primary focus:border-primary/50"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-card text-foreground placeholder:text-muted-foreground focus:ring-primary focus:border-primary/50"
             />
           </div>
           <select
             value={planFilter}
             onChange={(e) => setPlanFilter(e.target.value)}
-            className="border border-border rounded-md px-3 py-2"
+            className="border border-border rounded-md px-3 py-2 bg-card text-foreground"
           >
             <option value="">All Plans</option>
             <option value="FREE">Free</option>
@@ -586,7 +586,7 @@ export default function UsersPage() {
                     min="0"
                     value={editValue}
                     onChange={(e) => setEditValue(parseInt(e.target.value) || 0)}
-                    className="mt-1 block w-full border border-border rounded-md px-3 py-2"
+                    className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                   />
                   <p className="mt-1 text-sm text-muted-foreground">
                     Current value: {editModal.currentValue}

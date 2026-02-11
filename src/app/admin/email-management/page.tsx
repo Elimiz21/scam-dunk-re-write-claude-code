@@ -594,7 +594,7 @@ export default function EmailManagementPage() {
                       value={testEmail}
                       onChange={(e) => setTestEmail(e.target.value)}
                       placeholder="test@example.com"
-                      className="flex-1 px-3 py-2 border border-primary/20 rounded-md text-sm focus:ring-primary focus:border-primary/50"
+                      className="flex-1 px-3 py-2 border border-primary/20 rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground focus:ring-primary focus:border-primary/50"
                     />
                     <button
                       onClick={handleSendTestEmail}
@@ -684,7 +684,7 @@ export default function EmailManagementPage() {
                         type="email"
                         value={addForm.email}
                         onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
-                        className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground"
                         placeholder="admin@example.com"
                       />
                     </div>
@@ -694,7 +694,7 @@ export default function EmailManagementPage() {
                         type="text"
                         value={addForm.name}
                         onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground"
                         placeholder="John Doe"
                       />
                     </div>
@@ -793,7 +793,7 @@ export default function EmailManagementPage() {
                                 type="email"
                                 value={editForm.email}
                                 onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                                className="w-full px-3 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground"
                               />
                             </div>
                             <div>
@@ -802,7 +802,7 @@ export default function EmailManagementPage() {
                                 type="text"
                                 value={editForm.name}
                                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                className="w-full px-3 py-2 border border-border rounded-md text-sm"
+                                className="w-full px-3 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground"
                               />
                             </div>
                           </div>
@@ -959,7 +959,7 @@ export default function EmailManagementPage() {
                     type="email"
                     value={composeForm.to}
                     onChange={(e) => setComposeForm({ ...composeForm, to: e.target.value })}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-primary focus:border-primary/50"
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground focus:ring-primary focus:border-primary/50"
                     placeholder="recipient@example.com"
                     required
                   />
@@ -970,7 +970,7 @@ export default function EmailManagementPage() {
                     type="text"
                     value={composeForm.subject}
                     onChange={(e) => setComposeForm({ ...composeForm, subject: e.target.value })}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-primary focus:border-primary/50"
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground focus:ring-primary focus:border-primary/50"
                     placeholder="Email subject"
                     required
                   />
@@ -981,7 +981,7 @@ export default function EmailManagementPage() {
                     type="email"
                     value={composeForm.replyTo}
                     onChange={(e) => setComposeForm({ ...composeForm, replyTo: e.target.value })}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-primary focus:border-primary/50"
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground focus:ring-primary focus:border-primary/50"
                     placeholder="reply-to@example.com"
                   />
                 </div>
@@ -991,7 +991,7 @@ export default function EmailManagementPage() {
                     value={composeForm.message}
                     onChange={(e) => setComposeForm({ ...composeForm, message: e.target.value })}
                     rows={8}
-                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-primary focus:border-primary/50"
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground focus:ring-primary focus:border-primary/50"
                     placeholder="Your email message..."
                     required
                   />
@@ -1037,7 +1037,7 @@ export default function EmailManagementPage() {
                       setLogPagination((p) => ({ ...p, page: 1 }));
                     }}
                     placeholder="Search by email or subject..."
-                    className="w-full pl-10 pr-4 py-2 border border-border rounded-md text-sm"
+                    className="w-full pl-10 pr-4 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
                 <select
@@ -1046,7 +1046,7 @@ export default function EmailManagementPage() {
                     setLogTypeFilter(e.target.value);
                     setLogPagination((p) => ({ ...p, page: 1 }));
                   }}
-                  className="border border-border rounded-md px-3 py-2 text-sm"
+                  className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
                 >
                   <option value="">All Types</option>
                   {Object.entries(EMAIL_TYPE_LABELS).map(([key, label]) => (
@@ -1059,7 +1059,7 @@ export default function EmailManagementPage() {
                     setLogStatusFilter(e.target.value);
                     setLogPagination((p) => ({ ...p, page: 1 }));
                   }}
-                  className="border border-border rounded-md px-3 py-2 text-sm"
+                  className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
                 >
                   <option value="">All Status</option>
                   <option value="SENT">Sent</option>

@@ -207,7 +207,7 @@ export default function SettingsPage() {
                     required
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                     placeholder="newemail@example.com"
                   />
                 </div>
@@ -227,7 +227,7 @@ export default function SettingsPage() {
                     required
                     value={emailPassword}
                     onChange={(e) => setEmailPassword(e.target.value)}
-                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
+                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
                     placeholder="Enter your current password"
                   />
                   <button
@@ -307,7 +307,7 @@ export default function SettingsPage() {
                   required
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
                   placeholder="Enter current password"
                 />
                 <button
@@ -340,7 +340,7 @@ export default function SettingsPage() {
                   minLength={8}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
                   placeholder="Minimum 8 characters"
                 />
                 <button
@@ -373,7 +373,7 @@ export default function SettingsPage() {
                   minLength={8}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-primary focus:border-primary sm:text-sm pr-10"
                   placeholder="Re-enter new password"
                 />
                 <button
