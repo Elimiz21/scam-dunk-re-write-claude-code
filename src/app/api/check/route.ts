@@ -61,6 +61,7 @@ async function callPythonAIBackend(
   assetType: string
 ): Promise<{
   success: boolean;
+  failReason?: string;
   riskLevel?: string;
   probability?: number;
   signals?: RiskSignal[];
@@ -82,7 +83,7 @@ async function callPythonAIBackend(
   // Skip if no backend URL configured
   if (!AI_BACKEND_URL) {
     console.log("AI_BACKEND_URL not configured, using TypeScript scoring");
-    return { success: false };
+    return { success: false, failReason: "AI_BACKEND_URL not configured" };
   }
 
   try {
@@ -122,7 +123,7 @@ async function callPythonAIBackend(
       }
 
       console.error(`AI backend returned ${response.status}`);
-      return { success: false };
+      return { success: false, failReason: `AI backend returned HTTP ${response.status}` };
     }
 
     const data = await response.json();
@@ -157,8 +158,9 @@ async function callPythonAIBackend(
       } : undefined,
     };
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("AI backend call failed:", error);
-    return { success: false };
+    return { success: false, failReason: `Exception: ${errMsg}` };
   }
 }
 
@@ -366,7 +368,15 @@ export async function POST(request: NextRequest) {
       isLegitimate: scoringResult.isLegitimate,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json({
+      ...response,
+      _debug: {
+        aiBackendUsed: usedAIBackend,
+        aiBackendConfigured: !!AI_BACKEND_URL,
+        aiBackendFailReason: aiResult.failReason || null,
+        processingTimeMs: Date.now() - startTime,
+      },
+    });
   } catch (error) {
     const elapsed = Date.now() - startTime;
     console.error(`Check API error at step [${currentStep}] after ${elapsed}ms:`, error);
