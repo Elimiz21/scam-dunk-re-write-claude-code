@@ -87,7 +87,7 @@ async function callPythonAIBackend(
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so TypeScript fallback has time
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout - Pro plan has maxDuration=30
 
     console.log(`Calling Python AI backend: ${AI_BACKEND_URL}/analyze`);
 
@@ -164,15 +164,24 @@ async function callPythonAIBackend(
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
+  let currentStep = "INIT";
 
   try {
     // Rate limit: heavy for CPU-intensive scan operations (10 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "heavy");
-    if (!rateLimitSuccess) {
-      return rateLimitExceededResponse(rateLimitHeaders);
+    // Wrapped in try/catch because Upstash Redis uses fetch internally and can fail
+    currentStep = "RATE_LIMIT";
+    try {
+      const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "heavy");
+      if (!rateLimitSuccess) {
+        return rateLimitExceededResponse(rateLimitHeaders);
+      }
+    } catch (rateLimitError) {
+      // If rate limiting fails (e.g. Upstash down), allow request through (fail-open)
+      console.error("Rate limit check failed, allowing request:", rateLimitError);
     }
 
     // Check authentication - support both session (web) and JWT (mobile)
+    currentStep = "AUTH";
     let userId: string | null = null;
 
     // Try session auth first (web)
@@ -189,6 +198,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check scan limit
+    currentStep = "USAGE_CHECK";
     const { canScan, usage } = await canUserScan(userId);
 
     if (!canScan) {
@@ -204,6 +214,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse and validate request body
+    currentStep = "PARSE_REQUEST";
     const body = await request.json();
     const validation = checkRequestSchema.safeParse(body);
 
@@ -228,6 +239,7 @@ export async function POST(request: NextRequest) {
     // =====================================================
     // TRY PYTHON AI BACKEND FIRST (Full ML Models)
     // =====================================================
+    currentStep = "AI_BACKEND";
     const aiResult = await callPythonAIBackend(ticker, checkRequest.assetType || "stock");
 
     let scoringResult;
@@ -243,6 +255,7 @@ export async function POST(request: NextRequest) {
       console.log(`Using Python AI backend for ${ticker}`);
 
       // Fetch market data as fallback for stock summary if AI doesn't provide it
+      currentStep = "MARKET_DATA_AI";
       marketData = await fetchMarketData(ticker, checkRequest.assetType);
 
       scoringResult = {
@@ -263,6 +276,7 @@ export async function POST(request: NextRequest) {
       console.log(`Falling back to TypeScript scoring for ${ticker}`);
 
       // Fetch market data (pass assetType to use correct API - CoinGecko for crypto)
+      currentStep = "MARKET_DATA_TS";
       marketData = await fetchMarketData(ticker, checkRequest.assetType);
 
       // Check if market data fetch failed - throw service unavailable error
@@ -277,6 +291,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Compute risk score using TypeScript
+      currentStep = "SCORING";
       scoringResult = await computeRiskScore({
         marketData,
         pitchText: checkRequest.pitchText || "",
@@ -297,6 +312,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Generate narrative (LLM or fallback)
+    currentStep = "NARRATIVE";
     const narrative = await generateNarrative(
       scoringResult.riskLevel,
       scoringResult.totalScore,
@@ -313,6 +329,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Increment scan count after successful analysis
+    currentStep = "INCREMENT_USAGE";
     const updatedUsage = await incrementScanCount(userId);
 
     // Calculate processing time
@@ -323,6 +340,7 @@ export async function POST(request: NextRequest) {
     const ipAddress = forwardedFor ? forwardedFor.split(",")[0].trim() : undefined;
 
     // Save scan to history and update model metrics for dashboard
+    currentStep = "LOG_HISTORY";
     await logScanHistory({
       userId,
       ticker,
@@ -350,7 +368,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Check API error:", error);
+    const elapsed = Date.now() - startTime;
+    console.error(`Check API error at step [${currentStep}] after ${elapsed}ms:`, error);
 
     // Handle service unavailable errors (data APIs are down)
     if (error instanceof ServiceUnavailableError) {
@@ -378,10 +397,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return more specific error for debugging
+    // Return error with step label for debugging
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: `Check failed: ${errorMessage}` },
+      { error: `Check failed [${currentStep}]: ${errorMessage}` },
       { status: 500 }
     );
   }
