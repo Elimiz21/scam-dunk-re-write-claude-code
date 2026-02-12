@@ -373,7 +373,7 @@ export default function HomePage() {
         />
 
         {/* Content Area */}
-        <main className="flex-1 flex flex-col">
+        <main id="main-content" className="flex-1 flex flex-col">
           {/* Show limit reached message */}
           {limitReached && (
             <div className="flex-1 flex items-center justify-center p-4">

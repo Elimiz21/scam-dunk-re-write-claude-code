@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import {
   HelpCircle,
   MessageCircle,
@@ -160,7 +161,7 @@ export default function HelpPage() {
           onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
             <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
@@ -209,42 +210,56 @@ export default function HelpPage() {
             </div>
 
             {/* FAQ List */}
-            <div className="space-y-3 mb-12 animate-slide-up">
-              {filteredFAQs.map((faq, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl card-interactive overflow-hidden"
-                >
-                  <button
-                    onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
-                    className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-secondary/50 transition-colors"
+            <div className="space-y-3 mb-12 animate-slide-up" role="list">
+              {filteredFAQs.map((faq, index) => {
+                const isOpen = openFAQ === index;
+                return (
+                  <div
+                    key={index}
+                    className="rounded-xl card-interactive overflow-hidden"
+                    role="listitem"
                   >
-                    <div className="flex items-start gap-3">
-                      <HelpCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">{faq.question}</span>
-                        {!activeCategory && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({faq.category})
-                          </span>
-                        )}
+                    <button
+                      id={`faq-question-${index}`}
+                      onClick={() => setOpenFAQ(isOpen ? null : index)}
+                      className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-secondary/50 transition-colors"
+                      aria-expanded={isOpen}
+                      aria-controls={`faq-answer-${index}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <HelpCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="font-medium">{faq.question}</span>
+                          {!activeCategory && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({faq.category})
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      {isOpen ? (
+                        <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      )}
+                    </button>
+                    <div
+                      id={`faq-answer-${index}`}
+                      role="region"
+                      aria-labelledby={`faq-question-${index}`}
+                      hidden={!isOpen}
+                    >
+                      {isOpen && (
+                        <div className="px-5 pb-4 pt-0">
+                          <div className="pl-8 text-sm text-muted-foreground">
+                            {faq.answer}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    {openFAQ === index ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    )}
-                  </button>
-                  {openFAQ === index && (
-                    <div className="px-5 pb-4 pt-0">
-                      <div className="pl-8 text-sm text-muted-foreground">
-                        {faq.answer}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Still Need Help */}
@@ -305,6 +320,7 @@ export default function HelpPage() {
             </section>
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

@@ -334,8 +334,8 @@ export function RiskCard({ result }: RiskCardProps) {
         {/* Disclaimers */}
         <div className="pt-5 border-t border-border/50">
           <div className="flex items-start gap-2.5">
-            <Info className="h-4 w-4 text-muted-foreground/60 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-muted-foreground/70 space-y-1 leading-relaxed">
+            <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <div className="text-xs text-muted-foreground space-y-1 leading-relaxed">
               {narrative.disclaimers.map((disclaimer, index) => (
                 <p key={index}>{disclaimer}</p>
               ))}

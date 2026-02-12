@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   Shield,
@@ -102,6 +103,7 @@ function formatDate(dateString: string) {
 
 export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [recentScans, setRecentScans] = useState<ScanHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -183,7 +185,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
 
           {/* Recent Scans */}
           <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 pb-3">
-            <p className="text-[11px] font-bold text-muted-foreground/70 px-2 py-2.5 uppercase tracking-widest">
+            <p className="text-[11px] font-bold text-muted-foreground px-2 py-2.5 uppercase tracking-widest">
               Recent Scans
             </p>
 
@@ -199,7 +201,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : recentScans.length === 0 ? (
-              <div className="text-sm text-muted-foreground/60 px-2 py-3">
+              <div className="text-sm text-muted-foreground px-2 py-3">
                 No recent scans
               </div>
             ) : (
@@ -222,7 +224,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                           {scan.riskLevel}
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground/60">
+                      <p className="text-[11px] text-muted-foreground">
                         {formatDate(scan.createdAt)}
                       </p>
                     </div>
@@ -234,7 +236,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
 
           {/* Bottom Navigation */}
           <div className="border-t border-border/50 p-3 space-y-0.5">
-            <p className="text-[11px] font-bold text-muted-foreground/70 px-2 py-1.5 uppercase tracking-widest">
+            <p className="text-[11px] font-bold text-muted-foreground px-2 py-1.5 uppercase tracking-widest">
               Navigation
             </p>
 
@@ -244,31 +246,47 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
               { href: "/how-it-works", icon: HelpCircle, label: "How It Works" },
               { href: "/help", icon: MessageCircleQuestion, label: "Help & FAQ" },
               { href: "/contact", icon: Mail, label: "Contact" },
-            ].map(({ href, icon: Icon, label }) => (
-              <Link key={href} href={href}>
-                <button className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </button>
-              </Link>
-            ))}
+            ].map(({ href, icon: Icon, label }) => {
+              const isActive = pathname === href;
+              return (
+                <Link key={href} href={href}>
+                  <button className={cn(
+                    "flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm transition-all duration-150",
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}>
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </button>
+                </Link>
+              );
+            })}
 
             <div className="pt-2 mt-2 border-t border-border/50 space-y-0.5">
-              <p className="text-[11px] font-bold text-muted-foreground/70 px-2 py-1.5 uppercase tracking-widest">
+              <p className="text-[11px] font-bold text-muted-foreground px-2 py-1.5 uppercase tracking-widest">
                 Legal
               </p>
               {[
                 { href: "/disclaimer", icon: FileText, label: "Disclaimer" },
                 { href: "/privacy", icon: Shield, label: "Privacy" },
                 { href: "/terms", icon: Scale, label: "Terms" },
-              ].map(({ href, icon: Icon, label }) => (
-                <Link key={href} href={href}>
-                  <button className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
-                    <Icon className="h-4 w-4" />
-                    {label}
-                  </button>
-                </Link>
-              ))}
+              ].map(({ href, icon: Icon, label }) => {
+                const isActive = pathname === href;
+                return (
+                  <Link key={href} href={href}>
+                    <button className={cn(
+                      "flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm transition-all duration-150",
+                      isActive
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    )}>
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </button>
+                  </Link>
+                );
+              })}
             </div>
 
             {session && (

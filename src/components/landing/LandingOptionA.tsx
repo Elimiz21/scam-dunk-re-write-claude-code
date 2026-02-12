@@ -18,6 +18,7 @@ import {
   Database,
 } from "lucide-react";
 import Link from "next/link";
+import { Footer } from "@/components/Footer";
 import { AssetType } from "@/lib/types";
 
 interface LandingOptionAProps {
@@ -355,6 +356,8 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline,
           </div>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 }

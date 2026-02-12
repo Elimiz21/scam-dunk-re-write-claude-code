@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import {
   AlertTriangle,
   XCircle,
@@ -30,7 +31,7 @@ export default function DisclaimerPage() {
           onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Hero Section */}
             <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
@@ -270,6 +271,7 @@ export default function DisclaimerPage() {
             </p>
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

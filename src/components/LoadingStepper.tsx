@@ -83,13 +83,13 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                     "text-sm transition-colors duration-200",
                     step.status === "complete" && "text-emerald-600 dark:text-emerald-400 font-medium",
                     step.status === "loading" && "text-foreground font-semibold",
-                    step.status === "pending" && "text-muted-foreground/50"
+                    step.status === "pending" && "text-muted-foreground"
                   )}
                 >
                   {step.label}
                 </span>
                 {hasSubSteps(step) && (
-                  <span className="text-muted-foreground/40">
+                  <span className="text-muted-foreground">
                     {expandedSteps.has(index) ? (
                       <ChevronDown className="h-3.5 w-3.5" />
                     ) : (
@@ -131,7 +131,7 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                         "text-xs",
                         subStep.status === "complete" && "text-emerald-600 dark:text-emerald-400",
                         subStep.status === "loading" && "text-foreground font-medium",
-                        subStep.status === "pending" && "text-muted-foreground/40"
+                        subStep.status === "pending" && "text-muted-foreground"
                       )}
                     >
                       {subStep.label}
