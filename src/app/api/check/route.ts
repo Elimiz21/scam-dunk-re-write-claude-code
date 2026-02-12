@@ -17,6 +17,9 @@ import {
   RiskSignal,
 } from "@/lib/types";
 
+// Allow up to 30 seconds for the full AI pipeline (Python backend + market data + narrative)
+export const maxDuration = 30;
+
 // Custom error for service unavailable
 class ServiceUnavailableError extends Error {
   apiName: string;
@@ -84,7 +87,7 @@ async function callPythonAIBackend(
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so TypeScript fallback has time
 
     console.log(`Calling Python AI backend: ${AI_BACKEND_URL}/analyze`);
 

@@ -19,6 +19,9 @@ import { computeRiskScore } from "@/lib/scoring";
 import { canUserScan } from "@/lib/usage";
 import { sendAPIFailureAlert } from "@/lib/email";
 
+// Allow up to 30 seconds for the full AI pipeline
+export const maxDuration = 30;
+
 // Custom error for service unavailable
 class ServiceUnavailableError extends Error {
   apiName: string;
@@ -86,7 +89,7 @@ async function callAIBackend(
 ): Promise<AIBackendResponse | null> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so fallback has time
 
     const response = await fetch(`${AI_BACKEND_URL}/analyze`, {
       method: "POST",
