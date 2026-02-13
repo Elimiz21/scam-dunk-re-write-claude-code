@@ -819,3 +819,213 @@ model HomepageHero {
   @@index([isActive])
   @@index([createdAt])
 }
+
+// ==========================================
+// BROWSER AGENT MODELS
+// For tracking browser-based social media scanning
+// ==========================================
+
+model BrowserAgentSession {
+  id                String   @id @default(cuid())
+  scanDate          DateTime
+  platform          String   // discord, reddit, twitter, instagram, facebook, tiktok
+  status            String   @default("RUNNING") // RUNNING, COMPLETED, FAILED, SUSPENDED, RESUMED
+  tickersSearched   String   @db.Text // JSON array of tickers scanned
+  pagesVisited      Int      @default(0)
+  mentionsFound     Int      @default(0)
+  screenshotsTaken  Int      @default(0)
+  browserMinutes    Float    @default(0)
+  memoryPeakMb      Float?
+  errors            String?  @db.Text // JSON array of error messages
+  suspensionCount   Int      @default(0) // How many times save-kill-resume triggered
+  resumedFrom       String?  // ID of previous session if this is a resumed session
+
+  // Link to scan run
+  scanRunId         String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  evidence          BrowserEvidence[]
+
+  @@index([scanDate])
+  @@index([platform])
+  @@index([status])
+  @@index([scanRunId])
+}
+
+model BrowserEvidence {
+  id                String   @id @default(cuid())
+  sessionId         String
+  session           BrowserAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  ticker            String
+  platform          String   // discord, reddit, twitter, instagram, facebook, tiktok
+  url               String?  @db.Text
+  textContent       String?  @db.Text
+  author            String?
+  authorProfileUrl  String?  @db.Text
+  postDate          DateTime?
+  engagement        String?  @db.Text // JSON: { upvotes, comments, views, likes, retweets }
+  promotionScore    Int      @default(0) // 0-100
+  redFlags          String?  @db.Text // JSON array of strings
+  screenshotPath    String?  @db.Text // Local path or Supabase Storage URL
+  screenshotUrl     String?  @db.Text // Public URL after upload
+  rawHtml           String?  @db.Text // Preserved page snippet for evidence
+  extractedAt       DateTime @default(now())
+
+  createdAt         DateTime @default(now())
+
+  @@index([ticker, platform])
+  @@index([sessionId])
+  @@index([promotionScore])
+  @@index([author])
+}
+
+model BrowserPlatformConfig {
+  id                String   @id @default(cuid())
+  platform          String   @unique // discord, reddit, twitter, instagram, facebook, tiktok
+  isEnabled         Boolean  @default(false)
+  lastLoginAt       DateTime?
+  lastLoginStatus   String?  // SUCCESS, FAILED, CAPTCHA_REQUIRED, TWO_FA_REQUIRED
+  consecutiveFailures Int    @default(0) // Auto-disable after 3
+  autoDisabled      Boolean  @default(false) // True if auto-disabled due to failures
+  autoDisabledAt    DateTime?
+  dailyPageLimit    Int      @default(100)
+  dailyPagesUsed    Int      @default(0)
+  dailyResetDate    String?  // YYYY-MM-DD, resets counters on new day
+  monitorTargets    String?  @db.Text // JSON: platform-specific targets (servers, subreddits, hashtags)
+  notes             String?  @db.Text
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([isEnabled])
+}
+
+// ==========================================
+// PROMOTER MATRIX MODELS
+// For tracking promoters/influencers across schemes
+// ==========================================
+
+model Promoter {
+  id                   String   @id @default(cuid())
+  displayName          String   // Primary known name: "StockGuru2026"
+  firstSeen            DateTime @default(now())
+  lastSeen             DateTime @default(now())
+
+  // Track record
+  totalStocksPromoted  Int      @default(0)
+  confirmedDumps       Int      @default(0)
+  repeatOffenderScore  Int      @default(0) // 0-100 calculated score
+  avgVictimLoss        Float?   // Average % loss after their promotions
+
+  // Status
+  isActive             Boolean  @default(true)
+  riskLevel            String   @default("LOW") // LOW, MEDIUM, HIGH, SERIAL_OFFENDER
+  notes                String?  @db.Text
+
+  // Network membership
+  networkId            String?
+  network              PromoterNetwork? @relation(fields: [networkId], references: [id])
+
+  // Relations
+  identities           PromoterIdentity[]
+  stockLinks           PromoterStockLink[]
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([displayName])
+  @@index([repeatOffenderScore])
+  @@index([riskLevel])
+  @@index([isActive])
+  @@index([networkId])
+}
+
+model PromoterIdentity {
+  id                String   @id @default(cuid())
+  promoterId        String
+  promoter          Promoter @relation(fields: [promoterId], references: [id], onDelete: Cascade)
+  platform          String   // Twitter, Reddit, Discord, Instagram, Facebook, TikTok, YouTube, StockTwits
+  username          String   // "@StockGuru2026"
+  profileUrl        String?  @db.Text
+  firstSeen         DateTime @default(now())
+  lastSeen          DateTime @default(now())
+  isVerified        Boolean  @default(false) // Admin confirmed identity
+
+  // Metadata (if available from extraction)
+  followerCount     Int?
+  accountAge        DateTime? // When the account was created
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([platform, username])
+  @@index([promoterId])
+  @@index([platform])
+}
+
+model PromoterStockLink {
+  id                     String   @id @default(cuid())
+  promoterId             String
+  promoter               Promoter @relation(fields: [promoterId], references: [id], onDelete: Cascade)
+  schemeId               String?  // Links to scheme record if available (e.g., "SCH-ACME-20260210")
+  ticker                 String
+
+  // Activity metrics
+  firstPromotionDate     DateTime @default(now())
+  lastPromotionDate      DateTime @default(now())
+  totalPosts             Int      @default(1)
+  platforms              String?  @db.Text // JSON array of platforms promoted on
+  avgPromotionScore      Int      @default(0) // Average promotion intensity 0-100
+
+  // Evidence
+  evidenceLinks          String?  @db.Text // JSON array of URLs to specific posts
+  screenshotUrls         String?  @db.Text // JSON array of screenshot URLs in Supabase Storage
+
+  // Outcome (filled in after the scheme resolves)
+  priceAtFirstPromotion  Float?
+  peakPrice              Float?
+  priceAfterDump         Float?
+  gainForPromoter        Float?   // % gain if sold at peak
+  lossForVictims         Float?   // % loss from peak to post-dump
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@unique([promoterId, ticker])
+  @@index([ticker])
+  @@index([promoterId])
+  @@index([schemeId])
+  @@index([firstPromotionDate])
+}
+
+model PromoterNetwork {
+  id                String   @id @default(cuid())
+  name              String   // Auto-generated or admin-assigned: "Network #7"
+
+  // Detection metrics
+  coPromotionCount  Int      @default(0) // How many stocks co-promoted
+  avgTimingGapHours Float?   // Average hours between posts on same stock
+  confidenceScore   Int      @default(0) // 0-100 how confident this is coordinated
+
+  // Track record
+  totalSchemes      Int      @default(0)
+  confirmedDumps    Int      @default(0)
+  dumpRate          Float?   // % of schemes that dumped
+
+  firstDetected     DateTime @default(now())
+  lastActive        DateTime @default(now())
+  isActive          Boolean  @default(true)
+  notes             String?  @db.Text
+
+  // Members
+  members           Promoter[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([confidenceScore])
+  @@index([dumpRate])
+}
