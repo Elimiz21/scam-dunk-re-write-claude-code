@@ -193,15 +193,15 @@ function FlagItem({
 function buildRiskFactorSummary(signals: RiskSignal[], riskLevel: RiskLevel): string {
   if (signals.length === 0) return "";
 
-  // Group signals by category and sort by weight (most significant first)
+  // Sort by weight (most significant first)
   const sorted = [...signals].sort((a, b) => b.weight - a.weight);
   const topSignals = sorted.slice(0, 3);
 
   const categoryLabels: Record<string, string> = {
-    STRUCTURAL: "structural",
-    PATTERN: "trading pattern",
-    ALERT: "regulatory alert",
-    BEHAVIORAL: "behavioral",
+    STRUCTURAL: "how the stock is structured (exchange type, company size, trading volume)",
+    PATTERN: "unusual trading activity (price spikes, volume surges, or pump-and-dump patterns)",
+    ALERT: "regulatory warnings or alerts from agencies like the SEC",
+    BEHAVIORAL: "the language and tactics used in the pitch or message you shared",
   };
 
   // Count signals by category
@@ -212,27 +212,37 @@ function buildRiskFactorSummary(signals: RiskSignal[], riskLevel: RiskLevel): st
 
   const parts: string[] = [];
 
-  // Summarize top risk factors
   if (riskLevel === "LOW") {
     if (signals.length === 0) {
-      parts.push("No significant risk signals were detected across any category.");
+      parts.push("We didn't find any red flags across the areas we checked. This stock looks clean based on publicly available data.");
     } else {
       parts.push(
-        `Only ${signals.length} minor signal${signals.length > 1 ? "s" : ""} detected. ` +
+        `We found only ${signals.length} minor concern${signals.length > 1 ? "s" : ""} — nothing that stands out as a serious warning sign. ` +
         `${topSignals[0].description}`
       );
     }
-  } else {
-    // For MEDIUM/HIGH — highlight the key findings
+  } else if (riskLevel === "MEDIUM") {
+    parts.push("Here's what caught our attention:");
     const topDescs = topSignals.map((s) => s.description);
-    parts.push(`Key factors: ${topDescs.join(". ")}.`);
+    parts.push(topDescs.join(". ") + ".");
 
-    // Mention category breadth
     const cats = Object.entries(categoryCounts)
       .filter(([, count]) => count > 0)
-      .map(([cat, count]) => `${count} ${categoryLabels[cat] || cat.toLowerCase()}`);
+      .map(([cat]) => categoryLabels[cat] || cat.toLowerCase());
     if (cats.length > 1) {
-      parts.push(`Signals span ${cats.join(", ")} categories.`);
+      parts.push(`These warning signs come from multiple areas, including ${cats.join(" and ")}.`);
+    }
+  } else {
+    // HIGH or INSUFFICIENT
+    parts.push("We found several serious warning signs:");
+    const topDescs = topSignals.map((s) => s.description);
+    parts.push(topDescs.join(". ") + ".");
+
+    const cats = Object.entries(categoryCounts)
+      .filter(([, count]) => count > 0)
+      .map(([cat]) => categoryLabels[cat] || cat.toLowerCase());
+    if (cats.length > 1) {
+      parts.push(`Red flags were detected across ${cats.join(" and ")} — this combination increases the overall concern.`);
     }
   }
 
@@ -277,7 +287,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
             {narrative.header}
           </p>
           {riskFactorSummary && (
-            <p className="text-[13px] leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               {riskFactorSummary}
             </p>
           )}
