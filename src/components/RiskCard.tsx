@@ -221,14 +221,13 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
             </p>
           </div>
         </div>
+        {/* Narrative summary — full width, risk-accented, sits between header row and content */}
+        <p className={`text-sm font-medium leading-relaxed text-foreground/85 border-l-[3px] rounded-md pl-3 py-2 mt-3 ${getRiskNarrativeClass(riskLevel)}`}>
+          {narrative.header}
+        </p>
       </CardHeader>
 
       <CardContent className="space-y-5">
-        {/* Narrative summary — full width, risk-accented */}
-        <p className={`text-[13px] font-medium leading-relaxed text-foreground/85 border-l-[3px] rounded-md pl-3 py-2 ${getRiskNarrativeClass(riskLevel)}`}>
-          {narrative.header}
-        </p>
-
         {/* Stock Summary Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-secondary/50 rounded-xl border border-border/50">
           <div>
