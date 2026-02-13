@@ -381,7 +381,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`bg-background ${result && !isLoading ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -390,7 +390,7 @@ export default function HomePage() {
       />
 
       {/* Main Content */}
-      <div className="flex flex-col min-h-screen">
+      <div className={`flex flex-col ${result && !isLoading ? 'h-screen' : 'min-h-screen'}`}>
         {/* Header */}
         <Header
           onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -445,19 +445,19 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Results — new split-screen layout */}
+          {/* Results — new split-screen layout, fits viewport */}
           {result && !isLoading && (
-            <>
-              <div className="px-4 pt-4 pb-2">
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="px-4 pt-3 pb-1 flex-shrink-0">
                 <div className="max-w-7xl mx-auto flex justify-center">
-                  <Button variant="outline" onClick={handleNewScan} className="gap-2">
-                    <Sparkles className="h-4 w-4" />
+                  <Button variant="outline" size="sm" onClick={handleNewScan} className="gap-2">
+                    <Sparkles className="h-3.5 w-3.5" />
                     Check another
                   </Button>
                 </div>
               </div>
               <ScanResultsLayout result={result} hasChatData={hasChatData} />
-            </>
+            </div>
           )}
 
           {/* Welcome State (no result, not loading) */}

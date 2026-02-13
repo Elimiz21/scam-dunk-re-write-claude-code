@@ -298,8 +298,8 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
           </div>
         )}
 
-        {/* Behavioral Red Flags */}
-        {narrative.behaviorRedFlags.length > 0 && (
+        {/* Behavioral Red Flags — show real flags when chat data was provided */}
+        {hasChatData && narrative.behaviorRedFlags.length > 0 && (
           <div className="space-y-3">
             <h3 className="flex items-center gap-2.5 font-semibold text-sm">
               <div className="h-7 w-7 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
@@ -325,23 +325,48 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
           </div>
         )}
 
-        {/* No Chat Data Notice */}
+        {/* No Chat / Pitch Data Notices — orangey-red */}
         {!hasChatData && (
-          <div className="space-y-3">
-            <h3 className="flex items-center gap-2.5 font-semibold text-sm">
-              <div className="h-7 w-7 rounded-lg bg-gray-500/10 flex items-center justify-center flex-shrink-0">
-                <MessageSquareOff className="h-3.5 w-3.5 text-gray-400" />
+          <div className="space-y-4">
+            {/* Pitch & Behavior — not analyzed */}
+            <div className="space-y-3">
+              <h3 className="flex items-center gap-2.5 font-semibold text-sm">
+                <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0">
+                  <Users className="h-3.5 w-3.5 text-orange-500" />
+                </div>
+                <span className="text-orange-700 dark:text-orange-400">Pitch & Behavior Patterns</span>
+              </h3>
+              <div className="ml-9 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-300 dark:border-orange-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-orange-800 dark:text-orange-200 leading-relaxed">
+                    <span className="font-semibold">Not analyzed.</span> No pitch text, red flags, or behavioral context was provided for this scan.
+                    Without this information, we cannot evaluate the language or tactics used to promote this investment.
+                    To get a pitch analysis, scan again and describe the tip you received or paste the message.
+                  </p>
+                </div>
               </div>
-              Social & Promotion Analysis
-            </h3>
-            <div className="ml-9 p-3 rounded-xl bg-secondary/50 border border-border/50">
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                No chat history, messages, or screenshots were uploaded for this scan.
-                Without this data, we cannot analyze social behavior patterns such as
-                unsolicited promotion, urgency tactics, or manipulative language.
-                For a more complete analysis, try scanning again with any suspicious
-                messages or screenshots attached.
-              </p>
+            </div>
+
+            {/* Social / Chat — not analyzed */}
+            <div className="space-y-3">
+              <h3 className="flex items-center gap-2.5 font-semibold text-sm">
+                <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0">
+                  <MessageSquareOff className="h-3.5 w-3.5 text-orange-500" />
+                </div>
+                <span className="text-orange-700 dark:text-orange-400">Social & Promotion Analysis</span>
+              </h3>
+              <div className="ml-9 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-300 dark:border-orange-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-orange-800 dark:text-orange-200 leading-relaxed">
+                    <span className="font-semibold">Not analyzed.</span> No chat history, messages, or screenshots were uploaded.
+                    Without this data, we cannot detect social behavior patterns such as unsolicited promotion,
+                    urgency tactics, or manipulative language. For a more complete analysis, scan again with
+                    any suspicious messages or screenshots attached.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}

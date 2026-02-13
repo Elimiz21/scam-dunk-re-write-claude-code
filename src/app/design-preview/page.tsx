@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Shield, ChevronRight } from "lucide-react";
+import { Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { RiskCard } from "@/components/RiskCard";
 import { ScanResultsLayout } from "@/components/ScanResultsLayout";
 import { LoadingStepper, Step } from "@/components/LoadingStepper";
 import { RiskResponse } from "@/lib/types";
@@ -172,43 +171,78 @@ const STEPS_NEAR_DONE: Step[] = [
   { label: "Generating risk report", status: "loading" },
 ];
 
+/* ─── Tab descriptions ─── */
+
+const TAB_DESCRIPTIONS: Record<string, { color: string; dotColor: string; bg: string; title: string; desc: string }> = {
+  "results-high": {
+    color: "text-red-600", dotColor: "bg-red-500", bg: "bg-red-500/5",
+    title: "HIGH Risk — Full Split-Screen Layout",
+    desc: "Red border on scorecard, red ticker text. Scorecard scrolls internally; taglines pinned at bottom-left. Info panels on right.",
+  },
+  "results-medium": {
+    color: "text-amber-600", dotColor: "bg-amber-500", bg: "bg-amber-500/5",
+    title: "MEDIUM Risk — Orange Border & Ticker",
+    desc: "Orange-bordered scorecard, orange ticker text, glow effect. Hover over the right-side panels to see the info tooltips expand.",
+  },
+  "results-low": {
+    color: "text-emerald-600", dotColor: "bg-emerald-500", bg: "bg-emerald-500/5",
+    title: "LOW Risk — Green Border & Ticker",
+    desc: "Green-bordered scorecard, green ticker text, green glow. Tagline pairs rotate every 4 seconds at bottom-left.",
+  },
+  "results-no-chat": {
+    color: "text-orange-600", dotColor: "bg-orange-500", bg: "bg-orange-500/5",
+    title: "No Chat / Pitch Data Uploaded",
+    desc: "Orangey-red warning boxes for 'Pitch & Behavior Patterns' and 'Social & Promotion Analysis' clearly indicate these sections were not analyzed because no data was provided.",
+  },
+};
+
 /* ─── Preview Page ─── */
 
 export default function DesignPreviewPage() {
   const [activeSection, setActiveSection] = useState<string>("results-high");
 
   const sections = [
-    { id: "results-high", label: "HIGH Risk Result" },
-    { id: "results-medium", label: "MEDIUM Risk Result" },
-    { id: "results-low", label: "LOW Risk Result" },
+    { id: "results-high", label: "HIGH Risk" },
+    { id: "results-medium", label: "MEDIUM Risk" },
+    { id: "results-low", label: "LOW Risk" },
     { id: "results-no-chat", label: "No Chat Data" },
-    { id: "loading-states", label: "Loading / Scan Steps" },
+    { id: "loading-states", label: "Loading Steps" },
   ];
 
+  const isResultTab = activeSection.startsWith("results-");
+  const tabMeta = TAB_DESCRIPTIONS[activeSection];
+
+  const resultForTab: Record<string, { result: RiskResponse; hasChatData: boolean }> = {
+    "results-high": { result: MOCK_HIGH_RISK, hasChatData: true },
+    "results-medium": { result: MOCK_MEDIUM_RISK, hasChatData: true },
+    "results-low": { result: MOCK_LOW_RISK, hasChatData: true },
+    "results-no-chat": { result: MOCK_HIGH_RISK, hasChatData: false },
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`bg-background ${isResultTab ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}>
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="flex-shrink-0 border-b border-border bg-background/80 backdrop-blur-lg z-50">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg gradient-brand flex items-center justify-center">
-              <Shield className="h-4 w-4 text-white" />
+            <div className="h-7 w-7 rounded-lg gradient-brand flex items-center justify-center">
+              <Shield className="h-3.5 w-3.5 text-white" />
             </div>
-            <span className="font-bold">Scan Results Redesign Preview</span>
+            <span className="font-bold text-sm">Scan Results Redesign Preview</span>
           </div>
-          <Badge variant="outline">No Auth Required</Badge>
+          <Badge variant="outline" className="text-[10px]">No Auth Required</Badge>
         </div>
       </header>
 
       {/* Navigation tabs */}
-      <div className="border-b border-border bg-card/50 sticky top-[65px] z-40 backdrop-blur-lg">
+      <div className="flex-shrink-0 border-b border-border bg-card/50 z-40">
         <div className="max-w-7xl mx-auto px-4">
-          <nav className="flex gap-1 overflow-x-auto py-2 scrollbar-thin">
+          <nav className="flex gap-1 overflow-x-auto py-1.5 scrollbar-thin">
             {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                   activeSection === section.id
                     ? "gradient-brand text-white shadow-sm"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -221,182 +255,135 @@ export default function DesignPreviewPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto">
-        {/* ─── HIGH Risk ─── */}
-        {activeSection === "results-high" && (
-          <div className="animate-fade-in">
-            <div className="px-4 py-4 border-b border-border/50 bg-red-500/5">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-red-500" />
-                HIGH Risk — Full Split-Screen Layout
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Red border on scorecard, red ticker text, info panels on right, taglines rotating at bottom-left, disclaimer bar fixed at bottom.
-              </p>
-            </div>
-            <ScanResultsLayout result={MOCK_HIGH_RISK} hasChatData={true} />
+      {/* Result tabs — viewport-constrained like production */}
+      {isResultTab && tabMeta && (
+        <>
+          {/* Brief description bar */}
+          <div className={`flex-shrink-0 px-4 py-2 border-b border-border/50 ${tabMeta.bg}`}>
+            <h2 className="text-sm font-bold flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${tabMeta.dotColor}`} />
+              {tabMeta.title}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{tabMeta.desc}</p>
           </div>
-        )}
 
-        {/* ─── MEDIUM Risk ─── */}
-        {activeSection === "results-medium" && (
-          <div className="animate-fade-in">
-            <div className="px-4 py-4 border-b border-border/50 bg-amber-500/5">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-amber-500" />
-                MEDIUM Risk — Orange Border & Ticker
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Orange-bordered scorecard, orange ticker text, glow effect. Hover over the right-side panels to see the info tooltips expand.
-              </p>
-            </div>
-            <ScanResultsLayout result={MOCK_MEDIUM_RISK} hasChatData={true} />
+          {/* ScanResultsLayout fills remaining viewport — scorecard scrolls internally */}
+          <ScanResultsLayout
+            result={resultForTab[activeSection].result}
+            hasChatData={resultForTab[activeSection].hasChatData}
+          />
+        </>
+      )}
+
+      {/* Loading States tab — scrollable page */}
+      {activeSection === "loading-states" && (
+        <div className="animate-fade-in p-4 space-y-8 max-w-7xl mx-auto">
+          <div className="px-4 py-3 border-b border-border/50">
+            <h2 className="text-lg font-bold">Loading / Scan Steps</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              All steps visible from the start in fuzzy/dim text. They animate to green as completed.
+              Tagline headline + subtext shown together, rotating every 4 seconds. Minimum 8-second scan.
+            </p>
           </div>
-        )}
 
-        {/* ─── LOW Risk ─── */}
-        {activeSection === "results-low" && (
-          <div className="animate-fade-in">
-            <div className="px-4 py-4 border-b border-border/50 bg-emerald-500/5">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-emerald-500" />
-                LOW Risk — Green Border & Ticker
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Green-bordered scorecard, green ticker text, green glow. Tagline pairs rotate every 4 seconds at bottom-left.
-              </p>
-            </div>
-            <ScanResultsLayout result={MOCK_LOW_RISK} hasChatData={true} />
-          </div>
-        )}
-
-        {/* ─── No Chat Data ─── */}
-        {activeSection === "results-no-chat" && (
-          <div className="animate-fade-in">
-            <div className="px-4 py-4 border-b border-border/50 bg-gray-500/5">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-gray-400" />
-                No Chat History Uploaded
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                When the user doesn&apos;t upload any chat, messages, or screenshots, we show a notice explaining we can&apos;t analyze social behavior patterns.
-              </p>
-            </div>
-            <ScanResultsLayout result={MOCK_HIGH_RISK} hasChatData={false} />
-          </div>
-        )}
-
-        {/* ─── Loading States ─── */}
-        {activeSection === "loading-states" && (
-          <div className="animate-fade-in p-4 space-y-10">
-            <div className="px-4 py-4 border-b border-border/50">
-              <h2 className="text-lg font-bold">Loading / Scan Steps</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                All steps are visible from the start in fuzzy/dim text. They animate to green as they complete.
-                Tagline headline + subtext pairs are shown together during the scan.
-                The scan always takes at least 8 seconds.
-              </p>
-            </div>
-
-            <div className="grid lg:grid-cols-3 gap-8">
-              {/* State 1: All pending (start of scan) */}
-              <div className="space-y-3">
-                <Badge variant="outline">Start of Scan — All Fuzzy</Badge>
-                <div className="p-4 rounded-xl border border-border bg-card">
-                  <div className="text-center mb-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
-                      <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
-                      <span className="text-xs font-semibold text-primary">Scanning</span>
-                    </div>
-                    <h3 className="font-display text-sm font-semibold italic">
-                      Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">XYZQ</span>
-                    </h3>
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* State 1: All pending */}
+            <div className="space-y-3">
+              <Badge variant="outline">Start — All Fuzzy</Badge>
+              <div className="p-4 rounded-xl border border-border bg-card">
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+                    <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
+                    <span className="text-xs font-semibold text-primary">Scanning</span>
                   </div>
-                  <LoadingStepper
-                    steps={STEPS_ALL_PENDING}
-                    currentTip={`"Your uncle's stock tip? Yeah, let's check that." — No judgment, just data`}
-                  />
+                  <h3 className="font-display text-sm font-semibold italic">
+                    Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">XYZQ</span>
+                  </h3>
                 </div>
-              </div>
-
-              {/* State 2: Mid-progress */}
-              <div className="space-y-3">
-                <Badge variant="outline">Mid-Scan — Partial Green</Badge>
-                <div className="p-4 rounded-xl border border-border bg-card">
-                  <div className="text-center mb-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
-                      <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
-                      <span className="text-xs font-semibold text-primary">Scanning</span>
-                    </div>
-                    <h3 className="font-display text-sm font-semibold italic">
-                      Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">XYZQ</span>
-                    </h3>
-                  </div>
-                  <LoadingStepper
-                    steps={STEPS_MID_PROGRESS}
-                    currentTip={`"Scammers hate this one simple trick." — It's called doing your homework. We made it easy.`}
-                  />
-                </div>
-              </div>
-
-              {/* State 3: Near complete */}
-              <div className="space-y-3">
-                <Badge variant="outline">Almost Done — Nearly All Green</Badge>
-                <div className="p-4 rounded-xl border border-border bg-card">
-                  <div className="text-center mb-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
-                      <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
-                      <span className="text-xs font-semibold text-primary">Scanning</span>
-                    </div>
-                    <h3 className="font-display text-sm font-semibold italic">
-                      Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">XYZQ</span>
-                    </h3>
-                  </div>
-                  <LoadingStepper
-                    steps={STEPS_NEAR_DONE}
-                    currentTip={`"Before you YOLO, let's LOLO." — Look Out, Look Out for scam signals`}
-                  />
-                </div>
+                <LoadingStepper
+                  steps={STEPS_ALL_PENDING}
+                  currentTip={`"Your uncle's stock tip? Yeah, let's check that." — No judgment, just data`}
+                />
               </div>
             </div>
 
-            {/* Summary of what changed */}
-            <div className="p-6 rounded-xl border border-primary/20 bg-primary/5">
-              <h3 className="font-semibold mb-3">Summary of Changes</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">1</span>
-                  <span><strong>8-second minimum scan</strong> — Results held until at least 8 seconds have passed, so users feel a thorough scan.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">2</span>
-                  <span><strong>Split-screen layout</strong> — Left 60%: scorecard (2/3) + rotating taglines (1/3). Right 40%: hoverable info panels.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">3</span>
-                  <span><strong>Info panels with (i) hover</strong> — How it Works, What We Check, After the Test, Disclaimer & Terms.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">4</span>
-                  <span><strong>Tagline pairs together</strong> — Headline + subtext always shown as a pair, rotating every 4 seconds.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">5</span>
-                  <span><strong>Fuzzy-to-green steps</strong> — All steps visible upfront in dim/blurred text, animate to highlighted green when done.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">6</span>
-                  <span><strong>No chat data notice</strong> — If no chat/screenshots uploaded, shows a message about missing social behavior analysis.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">7</span>
-                  <span><strong>Risk-colored borders & ticker</strong> — Scorecard border and ticker text match risk level: green/orange/red.</span>
-                </li>
-              </ul>
+            {/* State 2: Mid-progress */}
+            <div className="space-y-3">
+              <Badge variant="outline">Mid-Scan — Partial Green</Badge>
+              <div className="p-4 rounded-xl border border-border bg-card">
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+                    <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
+                    <span className="text-xs font-semibold text-primary">Scanning</span>
+                  </div>
+                  <h3 className="font-display text-sm font-semibold italic">
+                    Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">XYZQ</span>
+                  </h3>
+                </div>
+                <LoadingStepper
+                  steps={STEPS_MID_PROGRESS}
+                  currentTip={`"Scammers hate this one simple trick." — It's called doing your homework. We made it easy.`}
+                />
+              </div>
+            </div>
+
+            {/* State 3: Near complete */}
+            <div className="space-y-3">
+              <Badge variant="outline">Almost Done — Nearly All Green</Badge>
+              <div className="p-4 rounded-xl border border-border bg-card">
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+                    <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
+                    <span className="text-xs font-semibold text-primary">Scanning</span>
+                  </div>
+                  <h3 className="font-display text-sm font-semibold italic">
+                    Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">XYZQ</span>
+                  </h3>
+                </div>
+                <LoadingStepper
+                  steps={STEPS_NEAR_DONE}
+                  currentTip={`"Before you YOLO, let's LOLO." — Look Out, Look Out for scam signals`}
+                />
+              </div>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Summary */}
+          <div className="p-6 rounded-xl border border-primary/20 bg-primary/5">
+            <h3 className="font-semibold mb-3">Summary of All Changes</h3>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">1</span>
+                <span><strong>8-second minimum scan</strong> — Results held until at least 8 seconds have passed.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">2</span>
+                <span><strong>Split-screen layout</strong> — Left 60%: scorecard (scrollable) + taglines (pinned). Right 40%: info panels. No page scroll.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">3</span>
+                <span><strong>Info panels with (i) hover</strong> — How it Works, What We Check, After the Test, Disclaimer & Terms.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">4</span>
+                <span><strong>Tagline pairs</strong> — Headline + subtext shown together, rotating every 4 seconds.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">5</span>
+                <span><strong>Fuzzy-to-green steps</strong> — All steps visible upfront in dim/blurred text, animate to green when done.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">6</span>
+                <span><strong>Orangey-red missing data notices</strong> — When no pitch text or chat is uploaded, those sections show prominent orange-red warnings saying &quot;Not analyzed.&quot;</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">7</span>
+                <span><strong>Risk-colored borders & ticker</strong> — Scorecard border and ticker text match risk level: green/orange/red.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
