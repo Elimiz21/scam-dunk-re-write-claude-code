@@ -23,11 +23,13 @@ import {
   Info,
   Shield,
   BarChart3,
+  MessageSquareOff,
 } from "lucide-react";
 import { formatNumber, formatPrice } from "@/lib/utils";
 
 interface RiskCardProps {
   result: RiskResponse;
+  hasChatData?: boolean;
 }
 
 function getRiskBadgeVariant(
@@ -59,16 +61,29 @@ function getRiskIcon(level: RiskLevel) {
   }
 }
 
-function getRiskBorderClass(level: RiskLevel) {
+function getRiskFullBorderClass(level: RiskLevel) {
   switch (level) {
     case "LOW":
-      return "risk-border-low";
+      return "risk-border-full-low";
     case "MEDIUM":
-      return "risk-border-medium";
+      return "risk-border-full-medium";
     case "HIGH":
-      return "risk-border-high";
+      return "risk-border-full-high";
     case "INSUFFICIENT":
-      return "risk-border-insufficient";
+      return "risk-border-full-insufficient";
+  }
+}
+
+function getRiskTickerClass(level: RiskLevel) {
+  switch (level) {
+    case "LOW":
+      return "risk-ticker-low";
+    case "MEDIUM":
+      return "risk-ticker-medium";
+    case "HIGH":
+      return "risk-ticker-high";
+    case "INSUFFICIENT":
+      return "risk-ticker-insufficient";
   }
 }
 
@@ -82,6 +97,19 @@ function getRiskGlowClass(level: RiskLevel) {
       return "risk-glow-high";
     default:
       return "";
+  }
+}
+
+function getRiskNarrativeClass(level: RiskLevel) {
+  switch (level) {
+    case "LOW":
+      return "border-l-emerald-500/60 bg-emerald-500/5";
+    case "MEDIUM":
+      return "border-l-amber-500/60 bg-amber-500/5";
+    case "HIGH":
+      return "border-l-red-500/60 bg-red-500/5";
+    case "INSUFFICIENT":
+      return "border-l-gray-400/60 bg-gray-500/5";
   }
 }
 
@@ -162,44 +190,46 @@ function FlagItem({
   );
 }
 
-export function RiskCard({ result }: RiskCardProps) {
+export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
 
   return (
-    <Card className={`w-full card-elevated overflow-hidden ${getRiskBorderClass(riskLevel)}`}>
+    <Card className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}>
       {/* Header with Risk Level */}
-      <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              {getRiskIcon(riskLevel)}
-              <Badge variant={getRiskBadgeVariant(riskLevel)} className="text-xs">
-                {riskLevel} RISK
-              </Badge>
-              <span className="text-sm text-muted-foreground inline-flex items-center gap-1 font-medium">
-                Score: <span className="font-bold text-foreground">{totalScore}</span>
-                <InfoTooltip
-                  term={RISK_LEVEL_TERMS.riskScore.term}
-                  definition={RISK_LEVEL_TERMS.riskScore.definition}
-                />
-              </span>
-            </div>
-            <p className="text-sm sm:text-base leading-relaxed text-foreground/90">
-              {narrative.header}
-            </p>
+      <CardHeader className="pb-3">
+        {/* Top row: badge + score on left, ticker + company on right */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {getRiskIcon(riskLevel)}
+            <Badge variant={getRiskBadgeVariant(riskLevel)} className="text-xs">
+              {riskLevel} RISK
+            </Badge>
+            <span className="text-sm text-muted-foreground inline-flex items-center gap-1 font-medium">
+              Score: <span className="font-bold text-foreground">{totalScore}</span>
+              <InfoTooltip
+                term={RISK_LEVEL_TERMS.riskScore.term}
+                definition={RISK_LEVEL_TERMS.riskScore.definition}
+              />
+            </span>
           </div>
-          <div className="sm:text-right flex-shrink-0">
-            <p className="font-bold text-lg gradient-brand-text">{stockSummary.ticker}</p>
-            <p className="text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
+          <div className="text-right flex-shrink-0">
+            <p className={`font-bold text-lg ${getRiskTickerClass(riskLevel)}`}>
+              {stockSummary.ticker}
+            </p>
+            <p className="text-sm text-muted-foreground truncate max-w-[200px]">
               {stockSummary.companyName}
             </p>
           </div>
         </div>
+        {/* Narrative summary — full width, risk-accented, sits between header row and content */}
+        <p className={`text-sm font-medium leading-relaxed text-foreground/85 border-l-[3px] rounded-md pl-3 py-2 mt-3 ${getRiskNarrativeClass(riskLevel)}`}>
+          {narrative.header}
+        </p>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5">
         {/* Stock Summary Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-secondary/50 rounded-xl border border-border/50">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-secondary/50 rounded-xl border border-border/50">
           <div>
             <p className="text-xs text-muted-foreground font-medium inline-flex items-center gap-0.5 mb-1">
               Exchange
@@ -263,7 +293,7 @@ export function RiskCard({ result }: RiskCardProps) {
               </div>
               Stock & Market Behavior
             </h3>
-            <ul className="space-y-2.5 ml-9">
+            <ul className="space-y-2 ml-9">
               {narrative.stockRedFlags.map((flag, index) => {
                 const isPositive = flag.toLowerCase().includes("no concerning") ||
                                    flag.toLowerCase().includes("no red flags") ||
@@ -281,8 +311,8 @@ export function RiskCard({ result }: RiskCardProps) {
           </div>
         )}
 
-        {/* Behavioral Red Flags */}
-        {narrative.behaviorRedFlags.length > 0 && (
+        {/* Behavioral Red Flags — show real flags when chat data was provided */}
+        {hasChatData && narrative.behaviorRedFlags.length > 0 && (
           <div className="space-y-3">
             <h3 className="flex items-center gap-2.5 font-semibold text-sm">
               <div className="h-7 w-7 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
@@ -290,7 +320,7 @@ export function RiskCard({ result }: RiskCardProps) {
               </div>
               Pitch & Behavior Patterns
             </h3>
-            <ul className="space-y-2.5 ml-9">
+            <ul className="space-y-2 ml-9">
               {narrative.behaviorRedFlags.map((flag, index) => {
                 const isPositive = flag.toLowerCase().includes("no behavioral") ||
                                    flag.toLowerCase().includes("no red flags") ||
@@ -308,6 +338,52 @@ export function RiskCard({ result }: RiskCardProps) {
           </div>
         )}
 
+        {/* No Chat / Pitch Data Notices — orangey-red */}
+        {!hasChatData && (
+          <div className="space-y-4">
+            {/* Pitch & Behavior — not analyzed */}
+            <div className="space-y-3">
+              <h3 className="flex items-center gap-2.5 font-semibold text-sm">
+                <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0">
+                  <Users className="h-3.5 w-3.5 text-orange-500" />
+                </div>
+                <span className="text-orange-700 dark:text-orange-400">Pitch & Behavior Patterns</span>
+              </h3>
+              <div className="ml-9 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-300 dark:border-orange-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-orange-800 dark:text-orange-200 leading-relaxed">
+                    <span className="font-semibold">Not analyzed.</span> No pitch text, red flags, or behavioral context was provided for this scan.
+                    Without this information, we cannot evaluate the language or tactics used to promote this investment.
+                    To get a pitch analysis, scan again and describe the tip you received or paste the message.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Social / Chat — not analyzed */}
+            <div className="space-y-3">
+              <h3 className="flex items-center gap-2.5 font-semibold text-sm">
+                <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0">
+                  <MessageSquareOff className="h-3.5 w-3.5 text-orange-500" />
+                </div>
+                <span className="text-orange-700 dark:text-orange-400">Social & Promotion Analysis</span>
+              </h3>
+              <div className="ml-9 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-300 dark:border-orange-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-orange-800 dark:text-orange-200 leading-relaxed">
+                    <span className="font-semibold">Not analyzed.</span> No chat history, messages, or screenshots were uploaded.
+                    Without this data, we cannot detect social behavior patterns such as unsolicited promotion,
+                    urgency tactics, or manipulative language. For a more complete analysis, scan again with
+                    any suspicious messages or screenshots attached.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Suggestions */}
         {narrative.suggestions.length > 0 && (
           <div className="space-y-3">
@@ -317,7 +393,7 @@ export function RiskCard({ result }: RiskCardProps) {
               </div>
               What You Can Do Now
             </h3>
-            <ul className="space-y-2.5 ml-9">
+            <ul className="space-y-2 ml-9">
               {narrative.suggestions.map((suggestion, index) => (
                 <li
                   key={index}
@@ -330,18 +406,6 @@ export function RiskCard({ result }: RiskCardProps) {
             </ul>
           </div>
         )}
-
-        {/* Disclaimers */}
-        <div className="pt-5 border-t border-border/50">
-          <div className="flex items-start gap-2.5">
-            <Info className="h-4 w-4 text-muted-foreground/60 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-muted-foreground/70 space-y-1 leading-relaxed">
-              {narrative.disclaimers.map((disclaimer, index) => (
-                <p key={index}>{disclaimer}</p>
-              ))}
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
