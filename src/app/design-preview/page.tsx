@@ -1,102 +1,188 @@
 "use client";
 
 import { useState } from "react";
-import { Shield, TrendingUp, AlertTriangle, Zap, Check, X, ChevronDown, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { RiskCard } from "@/components/RiskCard";
+import { ScanResultsLayout } from "@/components/ScanResultsLayout";
+import { LoadingStepper, Step } from "@/components/LoadingStepper";
+import { RiskResponse } from "@/lib/types";
 
-// New styled components for preview
-const GradientText = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <span className={`bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent ${className}`}>
-    {children}
-  </span>
-);
+/* ─── Mock Data ─── */
 
-const GlowInput = ({ placeholder }: { placeholder: string }) => (
-  <input
-    type="text"
-    placeholder={placeholder}
-    className="w-full h-11 px-4 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
-  />
-);
-
-const LiftCard = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`p-6 rounded-xl border border-border bg-card transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-blue-500/20 ${className}`}>
-    {children}
-  </div>
-);
-
-const RiskGauge = ({ score, maxScore = 100 }: { score: number; maxScore?: number }) => {
-  const percentage = (score / maxScore) * 100;
-  const angle = (percentage / 100) * 180 - 90; // -90 to 90 degrees
-
-  const getColor = () => {
-    if (percentage < 33) return "#22C55E";
-    if (percentage < 66) return "#F59E0B";
-    return "#EF4444";
-  };
-
-  return (
-    <div className="relative w-40 h-24">
-      {/* Background arc */}
-      <svg viewBox="0 0 100 50" className="w-full h-full">
-        <path
-          d="M 5 50 A 45 45 0 0 1 95 50"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="8"
-          className="text-muted"
-        />
-        {/* Colored arc */}
-        <path
-          d="M 5 50 A 45 45 0 0 1 95 50"
-          fill="none"
-          stroke={getColor()}
-          strokeWidth="8"
-          strokeDasharray={`${percentage * 1.41} 141`}
-          className="transition-all duration-1000"
-        />
-      </svg>
-      {/* Needle */}
-      <div
-        className="absolute bottom-0 left-1/2 w-1 h-12 bg-foreground origin-bottom transition-transform duration-1000"
-        style={{ transform: `translateX(-50%) rotate(${angle}deg)` }}
-      />
-      {/* Center dot */}
-      <div className="absolute bottom-0 left-1/2 w-3 h-3 -translate-x-1/2 translate-y-1/2 rounded-full bg-foreground" />
-      {/* Labels */}
-      <div className="absolute -bottom-6 left-0 right-0 flex justify-between text-xs text-muted-foreground px-2">
-        <span>LOW</span>
-        <span>MED</span>
-        <span>HIGH</span>
-      </div>
-    </div>
-  );
+const MOCK_HIGH_RISK: RiskResponse = {
+  riskLevel: "HIGH",
+  totalScore: 78,
+  signals: [
+    { code: "MICROCAP_PRICE", category: "STRUCTURAL", description: "Penny stock under $5", weight: 15 },
+    { code: "VOLUME_EXPLOSION", category: "PATTERN", description: "Volume 8x normal average", weight: 20 },
+    { code: "SPIKE_7D", category: "PATTERN", description: "Price up 340% in 7 days", weight: 25 },
+    { code: "UNSOLICITED", category: "BEHAVIORAL", description: "Unsolicited investment tip", weight: 10 },
+  ],
+  stockSummary: {
+    ticker: "XYZQ",
+    companyName: "XYZ Quantum Holdings Inc.",
+    exchange: "OTC",
+    lastPrice: 0.87,
+    marketCap: 42000000,
+    avgDollarVolume30d: 85000,
+  },
+  narrative: {
+    header: "Multiple serious red flags detected. This stock shows classic pump-and-dump characteristics including a massive price spike, exploding volume, and penny stock structure traded on OTC markets.",
+    stockRedFlags: [
+      "Price spiked 340% in just 7 days with no clear catalyst — a hallmark of artificial price manipulation.",
+      "Trading volume exploded to 8x the 30-day average, suggesting coordinated buying activity.",
+      "Penny stock trading at $0.87 on OTC markets — the most common target for pump-and-dump schemes.",
+      "Market cap of only $42M with extremely low liquidity makes this stock easy to manipulate.",
+    ],
+    behaviorRedFlags: [
+      "This tip was received unsolicited — one of the top red flags for stock scams.",
+      "Claims of guaranteed high returns were made, which is never legitimate in investing.",
+    ],
+    suggestions: [
+      "Do NOT invest based on this tip. The pattern is highly consistent with pump-and-dump fraud.",
+      "Report this to the SEC at sec.gov/tcr if you received this tip via email or social media.",
+      "Check SEC EDGAR for any recent filings or trading suspensions on this ticker.",
+      "If you already own shares, consider consulting a financial advisor about your options.",
+    ],
+    disclaimers: [
+      "This analysis is for educational purposes only and does not constitute financial advice.",
+      "Past patterns do not guarantee future behavior. Always do your own research.",
+    ],
+  },
+  usage: { plan: "FREE", scansUsedThisMonth: 3, scansLimitThisMonth: 10, limitReached: false },
 };
 
-const SocialProofBadge = ({ count }: { count: number }) => (
-  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20">
-    <Check className="h-4 w-4 text-green-500" />
-    <span className="text-sm font-medium text-green-600 dark:text-green-400">
-      {count.toLocaleString()} scans performed
-    </span>
-  </div>
-);
+const MOCK_MEDIUM_RISK: RiskResponse = {
+  riskLevel: "MEDIUM",
+  totalScore: 42,
+  signals: [
+    { code: "SMALL_MARKET_CAP", category: "STRUCTURAL", description: "Market cap under $300M", weight: 8 },
+    { code: "SPIKE_7D", category: "PATTERN", description: "Price up 28% in 7 days", weight: 12 },
+    { code: "OVERBOUGHT_RSI", category: "PATTERN", description: "RSI above 70", weight: 10 },
+  ],
+  stockSummary: {
+    ticker: "NRGV",
+    companyName: "NovaTech Energy Corp",
+    exchange: "NASDAQ",
+    lastPrice: 12.45,
+    marketCap: 280000000,
+    avgDollarVolume30d: 3200000,
+  },
+  narrative: {
+    header: "Some warning signs detected. While this stock trades on a major exchange, recent price activity and momentum indicators suggest caution is warranted before investing.",
+    stockRedFlags: [
+      "Price increased 28% in the past 7 days — a notable spike that warrants investigation into the cause.",
+      "RSI indicator shows the stock is currently overbought, suggesting the price may have run up too quickly.",
+      "Market cap of $280M places this in the small-cap range where manipulation is more feasible.",
+    ],
+    behaviorRedFlags: [
+      "No behavioral red flags were identified in the pitch context provided.",
+    ],
+    suggestions: [
+      "Research what's driving the recent price spike — look for legitimate news or earnings catalysts.",
+      "Check the company's SEC filings for recent 10-K and 10-Q reports.",
+      "Consider waiting for the RSI to normalize before making any investment decisions.",
+      "Never invest more than you can afford to lose, especially in small-cap stocks.",
+    ],
+    disclaimers: [
+      "This analysis is for educational purposes only and does not constitute financial advice.",
+    ],
+  },
+  usage: { plan: "FREE", scansUsedThisMonth: 4, scansLimitThisMonth: 10, limitReached: false },
+};
+
+const MOCK_LOW_RISK: RiskResponse = {
+  riskLevel: "LOW",
+  totalScore: 8,
+  signals: [],
+  stockSummary: {
+    ticker: "AAPL",
+    companyName: "Apple Inc.",
+    exchange: "NASDAQ",
+    lastPrice: 198.50,
+    marketCap: 3080000000000,
+    avgDollarVolume30d: 8500000000,
+  },
+  narrative: {
+    header: "This is a well-established, large-cap company trading on a major exchange with high liquidity. Our scan found very few red flags associated with common investment scams.",
+    stockRedFlags: [
+      "No concerning price patterns or volume anomalies detected in recent trading activity.",
+      "No pump-and-dump signals identified — this stock's market cap and volume make manipulation extremely difficult.",
+    ],
+    behaviorRedFlags: [
+      "No behavioral red flags detected. No signs of unsolicited promotion or manipulation tactics.",
+    ],
+    suggestions: [
+      "While scam risk appears low, always do your own fundamental research before investing.",
+      "Review the company's latest earnings report and financial statements.",
+      "Consider your overall portfolio allocation and investment timeline.",
+    ],
+    disclaimers: [
+      "Low risk does not mean the stock is a good investment. This only indicates we found few scam-related red flags.",
+    ],
+  },
+  usage: { plan: "FREE", scansUsedThisMonth: 5, scansLimitThisMonth: 10, limitReached: false },
+};
+
+/* ─── Mock Loading Steps (different states) ─── */
+
+const STEPS_ALL_PENDING: Step[] = [
+  { label: "Validating ticker symbol", status: "pending" },
+  { label: "Fetching market data", status: "pending" },
+  {
+    label: "Running risk analysis", status: "pending",
+    subSteps: [
+      { label: "Analyzing price patterns", status: "pending" },
+      { label: "Checking volume anomalies", status: "pending" },
+      { label: "Scanning for pump-and-dump signals", status: "pending" },
+    ],
+  },
+  { label: "Checking regulatory alerts", status: "pending" },
+  { label: "Generating risk report", status: "pending" },
+];
+
+const STEPS_MID_PROGRESS: Step[] = [
+  { label: "Validating ticker symbol", status: "complete", detail: "XYZQ is valid" },
+  { label: "Fetching market data", status: "complete", detail: "Retrieved price history and company data" },
+  {
+    label: "Running risk analysis", status: "loading",
+    subSteps: [
+      { label: "Analyzing price patterns", status: "complete" },
+      { label: "Checking volume anomalies", status: "loading" },
+      { label: "Scanning for pump-and-dump signals", status: "pending" },
+    ],
+  },
+  { label: "Checking regulatory alerts", status: "pending" },
+  { label: "Generating risk report", status: "pending" },
+];
+
+const STEPS_NEAR_DONE: Step[] = [
+  { label: "Validating ticker symbol", status: "complete", detail: "XYZQ is valid" },
+  { label: "Fetching market data", status: "complete", detail: "Retrieved price history and company data" },
+  {
+    label: "Running risk analysis", status: "complete", detail: "Risk patterns analyzed",
+    subSteps: [
+      { label: "Analyzing price patterns", status: "complete" },
+      { label: "Checking volume anomalies", status: "complete" },
+      { label: "Scanning for pump-and-dump signals", status: "complete" },
+    ],
+  },
+  { label: "Checking regulatory alerts", status: "complete", detail: "SEC and alert databases checked" },
+  { label: "Generating risk report", status: "loading" },
+];
+
+/* ─── Preview Page ─── */
 
 export default function DesignPreviewPage() {
-  const [activeSection, setActiveSection] = useState<string | null>("hero");
+  const [activeSection, setActiveSection] = useState<string>("results-high");
 
   const sections = [
-    { id: "hero", label: "Hero Section" },
-    { id: "cards", label: "Feature Cards" },
-    { id: "input", label: "Input Bar" },
-    { id: "buttons", label: "Buttons" },
-    { id: "badges", label: "Risk Badges" },
-    { id: "gauge", label: "Risk Gauge" },
-    { id: "typography", label: "Typography" },
-    { id: "colors", label: "Colors" },
+    { id: "results-high", label: "HIGH Risk Result" },
+    { id: "results-medium", label: "MEDIUM Risk Result" },
+    { id: "results-low", label: "LOW Risk Result" },
+    { id: "results-no-chat", label: "No Chat Data" },
+    { id: "loading-states", label: "Loading / Scan Steps" },
   ];
 
   return (
@@ -105,394 +191,211 @@ export default function DesignPreviewPage() {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-blue-500" />
-            <span className="font-bold">Design Preview</span>
+            <div className="h-8 w-8 rounded-lg gradient-brand flex items-center justify-center">
+              <Shield className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-bold">Scan Results Redesign Preview</span>
           </div>
-          <Badge variant="outline">Development Only</Badge>
+          <Badge variant="outline">No Auth Required</Badge>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Navigation */}
-        <nav className="mb-8 flex flex-wrap gap-2">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeSection === section.id
-                  ? "bg-blue-500 text-white"
-                  : "bg-muted hover:bg-muted/80"
-              }`}
-            >
-              {section.label}
-            </button>
-          ))}
-        </nav>
+      {/* Navigation tabs */}
+      <div className="border-b border-border bg-card/50 sticky top-[65px] z-40 backdrop-blur-lg">
+        <div className="max-w-7xl mx-auto px-4">
+          <nav className="flex gap-1 overflow-x-auto py-2 scrollbar-thin">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  activeSection === section.id
+                    ? "gradient-brand text-white shadow-sm"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                {section.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
 
-        {/* Hero Section */}
-        {(activeSection === "hero" || activeSection === null) && (
-          <section className="mb-12">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <ChevronRight className="h-5 w-5" />
-              Hero Section
-            </h2>
+      <div className="max-w-7xl mx-auto">
+        {/* ─── HIGH Risk ─── */}
+        {activeSection === "results-high" && (
+          <div className="animate-fade-in">
+            <div className="px-4 py-4 border-b border-border/50 bg-red-500/5">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-red-500" />
+                HIGH Risk — Full Split-Screen Layout
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Red border on scorecard, red ticker text, info panels on right, taglines rotating at bottom-left, disclaimer bar fixed at bottom.
+              </p>
+            </div>
+            <ScanResultsLayout result={MOCK_HIGH_RISK} hasChatData={true} />
+          </div>
+        )}
 
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Current */}
-              <div className="space-y-4">
-                <Badge variant="outline" className="mb-2">Current</Badge>
-                <div className="p-8 rounded-xl border border-border bg-card text-center">
-                  <div className="flex justify-center mb-4">
-                    <div className="p-4 rounded-2xl bg-secondary">
-                      <Shield className="h-12 w-12 text-primary" />
+        {/* ─── MEDIUM Risk ─── */}
+        {activeSection === "results-medium" && (
+          <div className="animate-fade-in">
+            <div className="px-4 py-4 border-b border-border/50 bg-amber-500/5">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-amber-500" />
+                MEDIUM Risk — Orange Border & Ticker
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Orange-bordered scorecard, orange ticker text, glow effect. Hover over the right-side panels to see the info tooltips expand.
+              </p>
+            </div>
+            <ScanResultsLayout result={MOCK_MEDIUM_RISK} hasChatData={true} />
+          </div>
+        )}
+
+        {/* ─── LOW Risk ─── */}
+        {activeSection === "results-low" && (
+          <div className="animate-fade-in">
+            <div className="px-4 py-4 border-b border-border/50 bg-emerald-500/5">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                LOW Risk — Green Border & Ticker
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Green-bordered scorecard, green ticker text, green glow. Tagline pairs rotate every 4 seconds at bottom-left.
+              </p>
+            </div>
+            <ScanResultsLayout result={MOCK_LOW_RISK} hasChatData={true} />
+          </div>
+        )}
+
+        {/* ─── No Chat Data ─── */}
+        {activeSection === "results-no-chat" && (
+          <div className="animate-fade-in">
+            <div className="px-4 py-4 border-b border-border/50 bg-gray-500/5">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-gray-400" />
+                No Chat History Uploaded
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                When the user doesn&apos;t upload any chat, messages, or screenshots, we show a notice explaining we can&apos;t analyze social behavior patterns.
+              </p>
+            </div>
+            <ScanResultsLayout result={MOCK_HIGH_RISK} hasChatData={false} />
+          </div>
+        )}
+
+        {/* ─── Loading States ─── */}
+        {activeSection === "loading-states" && (
+          <div className="animate-fade-in p-4 space-y-10">
+            <div className="px-4 py-4 border-b border-border/50">
+              <h2 className="text-lg font-bold">Loading / Scan Steps</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                All steps are visible from the start in fuzzy/dim text. They animate to green as they complete.
+                Tagline headline + subtext pairs are shown together during the scan.
+                The scan always takes at least 8 seconds.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* State 1: All pending (start of scan) */}
+              <div className="space-y-3">
+                <Badge variant="outline">Start of Scan — All Fuzzy</Badge>
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <div className="text-center mb-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+                      <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
+                      <span className="text-xs font-semibold text-primary">Scanning</span>
                     </div>
+                    <h3 className="font-display text-sm font-semibold italic">
+                      Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">XYZQ</span>
+                    </h3>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-                    Don't Get Dunked On
-                  </h1>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Check any stock or crypto for scam red flags before you invest
-                  </p>
+                  <LoadingStepper
+                    steps={STEPS_ALL_PENDING}
+                    currentTip={`"Your uncle's stock tip? Yeah, let's check that." — No judgment, just data`}
+                  />
                 </div>
               </div>
 
-              {/* New */}
-              <div className="space-y-4">
-                <Badge className="mb-2 bg-blue-500">New Design</Badge>
-                <div className="p-8 rounded-xl border border-border bg-card text-center">
-                  <div className="flex justify-center mb-4">
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/30">
-                      <Shield className="h-12 w-12 text-white" />
+              {/* State 2: Mid-progress */}
+              <div className="space-y-3">
+                <Badge variant="outline">Mid-Scan — Partial Green</Badge>
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <div className="text-center mb-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+                      <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
+                      <span className="text-xs font-semibold text-primary">Scanning</span>
                     </div>
+                    <h3 className="font-display text-sm font-semibold italic">
+                      Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">XYZQ</span>
+                    </h3>
                   </div>
-                  <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">
-                    <GradientText>Don't Get Dunked On</GradientText>
-                  </h1>
-                  <p className="text-muted-foreground max-w-md mx-auto mb-4">
-                    Check any stock or crypto for scam red flags before you invest
-                  </p>
-                  <SocialProofBadge count={12847} />
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Feature Cards */}
-        {(activeSection === "cards" || activeSection === null) && (
-          <section className="mb-12">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <ChevronRight className="h-5 w-5" />
-              Feature Cards
-            </h2>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Current */}
-              <div className="space-y-4">
-                <Badge variant="outline" className="mb-2">Current</Badge>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <TrendingUp className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-                    <h3 className="font-medium text-sm mb-1">Market Analysis</h3>
-                    <p className="text-xs text-muted-foreground">Price, volume signals</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-                    <h3 className="font-medium text-sm mb-1">Red Flags</h3>
-                    <p className="text-xs text-muted-foreground">Pump-dump patterns</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-card border border-border text-center">
-                    <Shield className="h-6 w-6 mx-auto mb-2 text-green-500" />
-                    <h3 className="font-medium text-sm mb-1">AI-Powered</h3>
-                    <p className="text-xs text-muted-foreground">Smart analysis</p>
-                  </div>
+                  <LoadingStepper
+                    steps={STEPS_MID_PROGRESS}
+                    currentTip={`"Scammers hate this one simple trick." — It's called doing your homework. We made it easy.`}
+                  />
                 </div>
               </div>
 
-              {/* New */}
-              <div className="space-y-4">
-                <Badge className="mb-2 bg-blue-500">New Design</Badge>
-                <div className="grid grid-cols-3 gap-4">
-                  <LiftCard className="text-center cursor-pointer">
-                    <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-blue-500" />
+              {/* State 3: Near complete */}
+              <div className="space-y-3">
+                <Badge variant="outline">Almost Done — Nearly All Green</Badge>
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <div className="text-center mb-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+                      <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
+                      <span className="text-xs font-semibold text-primary">Scanning</span>
                     </div>
-                    <h3 className="font-semibold text-sm mb-1">Market Analysis</h3>
-                    <p className="text-xs text-muted-foreground">Price, volume signals</p>
-                  </LiftCard>
-                  <LiftCard className="text-center cursor-pointer">
-                    <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                      <AlertTriangle className="h-5 w-5 text-orange-500" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">Red Flags</h3>
-                    <p className="text-xs text-muted-foreground">Pump-dump patterns</p>
-                  </LiftCard>
-                  <LiftCard className="text-center cursor-pointer">
-                    <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-green-500/10 flex items-center justify-center">
-                      <Shield className="h-5 w-5 text-green-500" />
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">AI-Powered</h3>
-                    <p className="text-xs text-muted-foreground">Smart analysis</p>
-                  </LiftCard>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Input Bar */}
-        {(activeSection === "input" || activeSection === null) && (
-          <section className="mb-12">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <ChevronRight className="h-5 w-5" />
-              Input Bar
-            </h2>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Current */}
-              <div className="space-y-4">
-                <Badge variant="outline" className="mb-2">Current</Badge>
-                <div className="p-4 rounded-2xl border border-border bg-card">
-                  <div className="flex gap-2">
-                    <Input placeholder="Enter ticker symbol..." className="flex-1" />
-                    <Button>Check</Button>
+                    <h3 className="font-display text-sm font-semibold italic">
+                      Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">XYZQ</span>
+                    </h3>
                   </div>
-                </div>
-              </div>
-
-              {/* New */}
-              <div className="space-y-4">
-                <Badge className="mb-2 bg-blue-500">New Design</Badge>
-                <div className="p-2 rounded-2xl border border-border bg-card shadow-lg">
-                  <div className="flex gap-2">
-                    <GlowInput placeholder="Enter ticker symbol..." />
-                    <button className="px-6 py-2 rounded-xl bg-blue-500 text-white font-medium transition-all duration-200 hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/25 active:translate-y-0">
-                      Check
-                    </button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">Click in the input to see the glow effect</p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Buttons */}
-        {(activeSection === "buttons" || activeSection === null) && (
-          <section className="mb-12">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <ChevronRight className="h-5 w-5" />
-              Buttons
-            </h2>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Current */}
-              <div className="space-y-4">
-                <Badge variant="outline" className="mb-2">Current</Badge>
-                <div className="flex flex-wrap gap-3">
-                  <Button>Primary</Button>
-                  <Button variant="secondary">Secondary</Button>
-                  <Button variant="outline">Outline</Button>
-                  <Button variant="ghost">Ghost</Button>
-                  <Button variant="destructive">Destructive</Button>
-                </div>
-              </div>
-
-              {/* New */}
-              <div className="space-y-4">
-                <Badge className="mb-2 bg-blue-500">New Design</Badge>
-                <div className="flex flex-wrap gap-3">
-                  <button className="px-4 py-2 rounded-lg bg-blue-500 text-white font-medium transition-all duration-200 hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/25 active:translate-y-0 active:shadow-none">
-                    Primary
-                  </button>
-                  <button className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground font-medium transition-all duration-200 hover:bg-secondary/80 hover:-translate-y-0.5 active:translate-y-0">
-                    Secondary
-                  </button>
-                  <button className="px-4 py-2 rounded-lg border border-border bg-transparent font-medium transition-all duration-200 hover:bg-muted hover:-translate-y-0.5 active:translate-y-0">
-                    Outline
-                  </button>
-                  <button className="px-4 py-2 rounded-lg bg-transparent text-muted-foreground font-medium transition-all duration-200 hover:bg-muted hover:text-foreground active:bg-muted/80">
-                    Ghost
-                  </button>
-                  <button className="px-4 py-2 rounded-lg bg-red-500 text-white font-medium transition-all duration-200 hover:bg-red-600 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-red-500/25 active:translate-y-0">
-                    Destructive
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground">Hover to see lift effect and shadows</p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Risk Badges */}
-        {(activeSection === "badges" || activeSection === null) && (
-          <section className="mb-12">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <ChevronRight className="h-5 w-5" />
-              Risk Badges
-            </h2>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Current */}
-              <div className="space-y-4">
-                <Badge variant="outline" className="mb-2">Current</Badge>
-                <div className="flex flex-wrap gap-3">
-                  <Badge className="bg-risk-low text-white">LOW RISK</Badge>
-                  <Badge className="bg-risk-medium text-white">MEDIUM RISK</Badge>
-                  <Badge className="bg-risk-high text-white">HIGH RISK</Badge>
-                  <Badge className="bg-risk-insufficient text-white">INSUFFICIENT</Badge>
-                </div>
-              </div>
-
-              {/* New */}
-              <div className="space-y-4">
-                <Badge className="mb-2 bg-blue-500">New Design</Badge>
-                <div className="flex flex-wrap gap-3">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border border-green-200 dark:border-green-500/30">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    Low Risk
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    Medium Risk
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border border-red-200 dark:border-red-500/30 animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                    High Risk
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400 border border-gray-200 dark:border-gray-500/30">
-                    <span className="w-2 h-2 rounded-full bg-gray-400" />
-                    Insufficient
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">Note the pulse animation on LOW and HIGH risk badges</p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Risk Gauge */}
-        {(activeSection === "gauge" || activeSection === null) && (
-          <section className="mb-12">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <ChevronRight className="h-5 w-5" />
-              Risk Gauge (New Component)
-            </h2>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="p-6 rounded-xl border border-border bg-card text-center">
-                <h3 className="text-sm font-medium text-muted-foreground mb-4">Low Risk (15/100)</h3>
-                <div className="flex justify-center">
-                  <RiskGauge score={15} />
-                </div>
-              </div>
-              <div className="p-6 rounded-xl border border-border bg-card text-center">
-                <h3 className="text-sm font-medium text-muted-foreground mb-4">Medium Risk (52/100)</h3>
-                <div className="flex justify-center">
-                  <RiskGauge score={52} />
-                </div>
-              </div>
-              <div className="p-6 rounded-xl border border-border bg-card text-center">
-                <h3 className="text-sm font-medium text-muted-foreground mb-4">High Risk (85/100)</h3>
-                <div className="flex justify-center">
-                  <RiskGauge score={85} />
+                  <LoadingStepper
+                    steps={STEPS_NEAR_DONE}
+                    currentTip={`"Before you YOLO, let's LOLO." — Look Out, Look Out for scam signals`}
+                  />
                 </div>
               </div>
             </div>
-          </section>
-        )}
 
-        {/* Typography */}
-        {(activeSection === "typography" || activeSection === null) && (
-          <section className="mb-12">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <ChevronRight className="h-5 w-5" />
-              Typography
-            </h2>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Current */}
-              <div className="space-y-4">
-                <Badge variant="outline" className="mb-2">Current (System Fonts)</Badge>
-                <div className="p-6 rounded-xl border border-border bg-card space-y-4">
-                  <h1 className="text-3xl font-bold">Heading 1</h1>
-                  <h2 className="text-2xl font-semibold">Heading 2</h2>
-                  <h3 className="text-xl font-medium">Heading 3</h3>
-                  <p className="text-base">Body text - The quick brown fox jumps over the lazy dog.</p>
-                  <p className="text-sm text-muted-foreground">Small text - Secondary information</p>
-                </div>
-              </div>
-
-              {/* New */}
-              <div className="space-y-4">
-                <Badge className="mb-2 bg-blue-500">New Design (Custom Fonts)</Badge>
-                <div className="p-6 rounded-xl border border-border bg-card space-y-4">
-                  <h1 className="text-4xl font-extrabold tracking-tight">
-                    <GradientText>Heading 1</GradientText>
-                  </h1>
-                  <h2 className="text-2xl font-bold">Heading 2</h2>
-                  <h3 className="text-xl font-semibold">Heading 3</h3>
-                  <p className="text-base leading-relaxed">Body text - The quick brown fox jumps over the lazy dog.</p>
-                  <p className="text-sm text-muted-foreground">Small text - Secondary information</p>
-                </div>
-                <p className="text-xs text-muted-foreground">Recommend: Plus Jakarta Sans for headings, Inter for body</p>
-              </div>
+            {/* Summary of what changed */}
+            <div className="p-6 rounded-xl border border-primary/20 bg-primary/5">
+              <h3 className="font-semibold mb-3">Summary of Changes</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">1</span>
+                  <span><strong>8-second minimum scan</strong> — Results held until at least 8 seconds have passed, so users feel a thorough scan.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">2</span>
+                  <span><strong>Split-screen layout</strong> — Left 60%: scorecard (2/3) + rotating taglines (1/3). Right 40%: hoverable info panels.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">3</span>
+                  <span><strong>Info panels with (i) hover</strong> — How it Works, What We Check, After the Test, Disclaimer & Terms.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">4</span>
+                  <span><strong>Tagline pairs together</strong> — Headline + subtext always shown as a pair, rotating every 4 seconds.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">5</span>
+                  <span><strong>Fuzzy-to-green steps</strong> — All steps visible upfront in dim/blurred text, animate to highlighted green when done.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">6</span>
+                  <span><strong>No chat data notice</strong> — If no chat/screenshots uploaded, shows a message about missing social behavior analysis.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">7</span>
+                  <span><strong>Risk-colored borders & ticker</strong> — Scorecard border and ticker text match risk level: green/orange/red.</span>
+                </li>
+              </ul>
             </div>
-          </section>
+          </div>
         )}
-
-        {/* Colors */}
-        {(activeSection === "colors" || activeSection === null) && (
-          <section className="mb-12">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <ChevronRight className="h-5 w-5" />
-              Brand Colors
-            </h2>
-
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-medium mb-3">Proposed Primary Color</h3>
-                <div className="flex gap-2">
-                  <div className="w-20 h-20 rounded-xl bg-blue-400 flex items-center justify-center text-white text-xs font-medium">400</div>
-                  <div className="w-20 h-20 rounded-xl bg-blue-500 flex items-center justify-center text-white text-xs font-medium">500</div>
-                  <div className="w-20 h-20 rounded-xl bg-blue-600 flex items-center justify-center text-white text-xs font-medium">600</div>
-                  <div className="w-20 h-20 rounded-xl bg-blue-700 flex items-center justify-center text-white text-xs font-medium">700</div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">Electric Blue (#3B82F6) - Trust, technology, security</p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium mb-3">Risk Colors</h3>
-                <div className="flex gap-2">
-                  <div className="w-20 h-20 rounded-xl bg-green-500 flex items-center justify-center text-white text-xs font-medium">Low</div>
-                  <div className="w-20 h-20 rounded-xl bg-amber-500 flex items-center justify-center text-white text-xs font-medium">Medium</div>
-                  <div className="w-20 h-20 rounded-xl bg-red-500 flex items-center justify-center text-white text-xs font-medium">High</div>
-                  <div className="w-20 h-20 rounded-xl bg-gray-500 flex items-center justify-center text-white text-xs font-medium">N/A</div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium mb-3">Gradient Options</h3>
-                <div className="flex gap-2">
-                  <div className="w-32 h-20 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xs font-medium">Blue → Cyan</div>
-                  <div className="w-32 h-20 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white text-xs font-medium">Blue → Purple</div>
-                  <div className="w-32 h-20 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center text-white text-xs font-medium">Emerald → Cyan</div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Footer */}
-        <footer className="mt-16 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          <p>This is a development preview page. Not visible in production.</p>
-          <p className="mt-2">
-            <a href="/docs/DESIGN-RECOMMENDATIONS.md" className="text-blue-500 hover:underline">
-              View full design recommendations →
-            </a>
-          </p>
-        </footer>
       </div>
     </div>
   );
