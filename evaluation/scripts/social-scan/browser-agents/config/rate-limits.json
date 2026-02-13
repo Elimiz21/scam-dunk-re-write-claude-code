@@ -1,0 +1,46 @@
+{
+  "_description": "Per-platform rate limits for browser agents. Conservative defaults for personal accounts.",
+  "_note": "These are overridden by DEFAULT_PLATFORM_CONFIGS in types.ts. Edit types.ts to change limits.",
+  "discord": {
+    "maxPagesPerDay": 100,
+    "maxActionsPerMinute": 2,
+    "minDelayMs": 3000,
+    "maxDelayMs": 8000,
+    "riskLevel": "low"
+  },
+  "reddit": {
+    "maxPagesPerDay": 150,
+    "maxActionsPerMinute": 3,
+    "minDelayMs": 2000,
+    "maxDelayMs": 5000,
+    "riskLevel": "low"
+  },
+  "twitter": {
+    "maxPagesPerDay": 75,
+    "maxActionsPerMinute": 1,
+    "minDelayMs": 5000,
+    "maxDelayMs": 12000,
+    "riskLevel": "medium"
+  },
+  "instagram": {
+    "maxPagesPerDay": 75,
+    "maxActionsPerMinute": 1,
+    "minDelayMs": 5000,
+    "maxDelayMs": 12000,
+    "riskLevel": "medium"
+  },
+  "facebook": {
+    "maxPagesPerDay": 50,
+    "maxActionsPerMinute": 1,
+    "minDelayMs": 8000,
+    "maxDelayMs": 15000,
+    "riskLevel": "high"
+  },
+  "tiktok": {
+    "maxPagesPerDay": 50,
+    "maxActionsPerMinute": 1,
+    "minDelayMs": 5000,
+    "maxDelayMs": 10000,
+    "riskLevel": "medium"
+  }
+}

@@ -200,24 +200,41 @@ function loadStockList(): any[] {
 }
 
 // Load existing scheme database
+// Uses scheme-database.json (shared with scheme-tracker.ts) for unified tracking
 function loadSchemeDatabase(): Map<string, SchemeRecord> {
-    const dbPath = path.join(SCHEME_DB_DIR, 'active-schemes.json');
+    const dbPath = path.join(SCHEME_DB_DIR, 'scheme-database.json');
     if (!fs.existsSync(dbPath)) {
         return new Map();
     }
     try {
         const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-        return new Map(Object.entries(data));
+        // scheme-database.json uses a wrapper format with a 'schemes' property
+        const schemes = data.schemes || data;
+        return new Map(Object.entries(schemes));
     } catch {
         return new Map();
     }
 }
 
 // Save scheme database
+// Writes in the SchemeDatabase wrapper format shared with scheme-tracker.ts
 function saveSchemeDatabase(db: Map<string, SchemeRecord>): void {
-    const dbPath = path.join(SCHEME_DB_DIR, 'active-schemes.json');
-    const data = Object.fromEntries(db);
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+    const dbPath = path.join(SCHEME_DB_DIR, 'scheme-database.json');
+    const schemes = Object.fromEntries(db);
+    const schemeValues = Object.values(schemes);
+    const activeStatuses = ['NEW', 'ONGOING', 'COOLING'];
+    const resolvedStatuses = ['PUMP_AND_DUMP_ENDED', 'PUMP_AND_DUMP_ENDED_NO_PROMO', 'NO_SCAM_DETECTED', 'RESOLVED'];
+
+    const wrappedData = {
+        lastUpdated: new Date().toISOString(),
+        totalSchemes: schemeValues.length,
+        activeSchemes: schemeValues.filter(s => activeStatuses.includes(s.status)).length,
+        resolvedSchemes: schemeValues.filter(s => resolvedStatuses.includes(s.status)).length,
+        confirmedFrauds: schemeValues.filter(s => s.status === 'CONFIRMED_FRAUD').length,
+        schemes
+    };
+
+    fs.writeFileSync(dbPath, JSON.stringify(wrappedData, null, 2));
 }
 
 // Generate unique scheme ID
@@ -1078,6 +1095,133 @@ async function runEnhancedPipeline(): Promise<void> {
     const reportPath = path.join(RESULTS_DIR, `daily-report-${evaluationDate}.json`);
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
+    // Generate fmp-summary (legacy format used by data ingestion)
+    const byExchange: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number }> = {};
+    for (const result of allResults) {
+        const exchange = result.exchange || 'Unknown';
+        // Normalize exchange names
+        let normalizedExchange = exchange;
+        if (exchange.includes('NASDAQ') || exchange.includes('NMS') || exchange.includes('NGM') || exchange.includes('NCM')) {
+            normalizedExchange = 'NASDAQ';
+        } else if (exchange.includes('NYSE') || exchange.includes('NYQ')) {
+            normalizedExchange = 'NYSE';
+        } else if (exchange.includes('AMEX') || exchange.includes('ASE')) {
+            normalizedExchange = 'AMEX';
+        } else if (exchange.includes('OTC') || exchange.includes('PINK')) {
+            normalizedExchange = 'OTC';
+        }
+
+        if (!byExchange[normalizedExchange]) {
+            byExchange[normalizedExchange] = { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0 };
+        }
+        byExchange[normalizedExchange].total++;
+        if (result.riskLevel === 'LOW' || result.riskLevel === 'MEDIUM' || result.riskLevel === 'HIGH') {
+            byExchange[normalizedExchange][result.riskLevel]++;
+        }
+    }
+
+    const summary = {
+        totalStocks: stocks.length,
+        evaluated: processedCount,
+        skippedNoData: skippedNoData,
+        byRiskLevel: riskCounts,
+        byExchange,
+        startTime: new Date(startTime).toISOString(),
+        endTime: new Date(endTime).toISOString(),
+        durationMinutes,
+        apiCallsMade: processedCount * 2 // estimate: 1 profile + 1 history per stock
+    };
+
+    const summaryPath = path.join(RESULTS_DIR, `fmp-summary-${evaluationDate}.json`);
+    fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
+
+    // Generate social-media-scan file (standalone social media data)
+    const socialMediaResults = suspiciousStocks
+        .filter(s => s.socialMediaScanned && s.socialMediaFindings)
+        .map(s => ({
+            symbol: s.symbol,
+            name: s.name,
+            riskScore: s.totalScore,
+            signals: s.signals.map(sig => sig.code),
+            hasLegitimateNews: s.hasLegitimateNews,
+            newsAnalysis: s.newsAnalysis,
+            recentNews: s.recentNews,
+            socialMediaMentions: s.socialMediaFindings!.platforms.map(p => ({
+                platform: p.platform,
+                source: p.dataSource,
+                mentionsFound: p.mentionsFound,
+                activityLevel: p.overallActivityLevel,
+                promotionRisk: p.promotionRisk,
+            })),
+            overallPromotionScore: s.socialMediaFindings!.overallPromotionScore,
+            promotionRiskLevel: s.socialMediaFindings!.riskLevel,
+            hasRealSocialEvidence: s.socialMediaFindings!.hasRealSocialEvidence,
+            potentialPromoters: s.socialMediaFindings!.potentialPromoters,
+            overallAssessment: s.socialMediaFindings!.summary,
+            scanDate: evaluationDate
+        }));
+
+    const socialScanData = {
+        scanDate: evaluationDate,
+        totalScanned: suspiciousStocks.length,
+        socialMediaScannedCount: socialMediaResults.length,
+        highPromotionCount: socialMediaResults.filter(r => r.overallPromotionScore >= 60).length,
+        mediumPromotionCount: socialMediaResults.filter(r => r.overallPromotionScore >= 40 && r.overallPromotionScore < 60).length,
+        results: socialMediaResults
+    };
+
+    const socialScanPath = path.join(RESULTS_DIR, `social-media-scan-${evaluationDate}.json`);
+    fs.writeFileSync(socialScanPath, JSON.stringify(socialScanData, null, 2));
+
+    // Generate promoted-stocks file (stocks with high promotion scores)
+    const promotedStocks = suspiciousStocks
+        .filter(s => s.socialMediaScanned && s.socialMediaFindings)
+        .map(s => {
+            const promo = s.socialMediaFindings!;
+            const highRiskPlatforms = promo.platforms
+                .filter(p => p.promotionRisk === 'high')
+                .map(p => p.platform);
+            const allPlatforms = promo.platforms
+                .filter(p => p.mentionsFound > 0)
+                .map(p => p.platform);
+
+            let marketCapStr: string | null = null;
+            if (s.marketCap) {
+                if (s.marketCap >= 1_000_000_000) {
+                    marketCapStr = `${(s.marketCap / 1_000_000_000).toFixed(1)}B`;
+                } else if (s.marketCap >= 1_000_000) {
+                    marketCapStr = `${(s.marketCap / 1_000_000).toFixed(1)}M`;
+                } else {
+                    marketCapStr = `${(s.marketCap / 1_000).toFixed(0)}K`;
+                }
+            }
+
+            return {
+                symbol: s.symbol,
+                name: s.name,
+                riskScore: s.totalScore,
+                price: s.lastPrice || null,
+                marketCap: marketCapStr,
+                tier: promo.overallPromotionScore >= 60 ? 'HIGH' : promo.overallPromotionScore >= 40 ? 'MEDIUM' : 'STRUCTURAL',
+                platforms: allPlatforms.length > 0 ? allPlatforms : highRiskPlatforms,
+                redFlags: s.signals.map(sig => sig.description),
+                sources: promo.platforms
+                    .filter(p => p.mentionsFound > 0)
+                    .map(p => `${p.platform}: ${p.mentionsFound} mentions (${p.dataSource})`),
+                assessment: promo.summary || null
+            };
+        })
+        .sort((a, b) => b.riskScore - a.riskScore);
+
+    const promotedReport = {
+        date: evaluationDate,
+        totalHighRiskStocks: highRiskBeforeFilter.length,
+        promotedStocks
+    };
+
+    const promotedPath = path.join(RESULTS_DIR, `promoted-stocks-${evaluationDate}.json`);
+    fs.writeFileSync(promotedPath, JSON.stringify(promotedReport, null, 2));
+
     // Print final summary
     console.log('\n' + '='.repeat(80));
     console.log('PIPELINE COMPLETE');
@@ -1104,7 +1248,10 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log(`  High-risk stocks: ${highRiskPath}`);
     console.log(`  Suspicious stocks: ${suspiciousPath}`);
     console.log(`  Daily report: ${reportPath}`);
-    console.log(`  Scheme database: ${path.join(SCHEME_DB_DIR, 'active-schemes.json')}`);
+    console.log(`  Summary (legacy): ${summaryPath}`);
+    console.log(`  Social media scan: ${socialScanPath}`);
+    console.log(`  Promoted stocks: ${promotedPath}`);
+    console.log(`  Scheme database: ${path.join(SCHEME_DB_DIR, 'scheme-database.json')}`);
 
     // Print top suspicious stocks
     if (suspiciousStocks.length > 0) {

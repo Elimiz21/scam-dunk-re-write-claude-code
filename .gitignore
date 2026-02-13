@@ -66,3 +66,7 @@ evaluation/results/checkpoint-*.json
 
 # Root-level models directory (generated during testing)
 /models/
+
+# Browser agent session data (cookies, progress, credentials)
+evaluation/browser-sessions/
+!evaluation/browser-sessions/.gitkeep
