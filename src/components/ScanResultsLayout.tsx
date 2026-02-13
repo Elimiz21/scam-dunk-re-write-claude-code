@@ -145,7 +145,7 @@ export function ScanResultsLayout({ result, hasChatData, onNewScan }: ScanResult
         </div>
 
         {/* Right side — rightmost quarter, near top */}
-        <div className="lg:w-1/4 lg:max-w-[320px] flex flex-col justify-start pt-4 min-h-0">
+        <div className="lg:w-1/4 lg:max-w-[320px] flex flex-col justify-start pt-4 min-h-0 lg:ml-2.5">
           <div className="flex flex-col gap-2.5 overflow-y-auto scrollbar-thin">
             <div className="flex items-center gap-2 mb-1 flex-shrink-0">
               <AlertTriangle className="h-3.5 w-3.5 text-primary/60" />
