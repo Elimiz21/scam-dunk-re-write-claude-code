@@ -26,9 +26,7 @@ export const metadata: Metadata = {
   description:
     "Help retail investors quickly see scam-like red flags in stock pitches they receive.",
   metadataBase: new URL(siteUrl),
-  alternates: {
-    canonical: "/",
-  },
+  alternates: {},
   openGraph: {
     type: "website",
     url: siteUrl,
