@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Shield, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Shield, Eye, EyeOff, Loader2, Monitor } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -17,6 +17,8 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [isPreviewEnv, setIsPreviewEnv] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     // Check if already logged in
@@ -25,7 +27,17 @@ function LoginForm() {
     if (inviteToken) {
       setIsInviteMode(true);
     }
+    // Detect preview environment (non-production Vercel URLs or localhost)
+    detectPreviewEnv();
   }, [inviteToken]);
+
+  function detectPreviewEnv() {
+    const hostname = window.location.hostname;
+    // Vercel preview deployments use *.vercel.app subdomains (not the production custom domain)
+    const isVercelPreview = hostname.endsWith(".vercel.app");
+    const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+    setIsPreviewEnv(isVercelPreview || isLocalhost);
+  }
 
   async function checkSession() {
     try {
@@ -38,6 +50,30 @@ function LoginForm() {
       // Not logged in
     } finally {
       setCheckingSession(false);
+    }
+  }
+
+  async function handlePreviewLogin() {
+    setPreviewLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/admin/auth/preview-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        router.push("/admin/browser-agents");
+      } else {
+        setError(data.error || "Preview login not available in this environment");
+        setPreviewLoading(false);
+      }
+    } catch {
+      setError("Preview login failed. This may not be a preview deployment.");
+      setPreviewLoading(false);
     }
   }
 
@@ -214,6 +250,33 @@ function LoginForm() {
               )}
             </button>
           </form>
+
+          {/* Preview Login - only visible on Vercel preview deployments and localhost */}
+          {isPreviewEnv && !isInviteMode && (
+            <div className="mt-6 pt-6 border-t border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <Monitor className="h-4 w-4 text-amber-400" />
+                <span className="text-xs font-medium text-amber-400 uppercase tracking-wider">
+                  Preview Mode
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                This is a preview deployment. Click below to access the admin dashboard without credentials.
+              </p>
+              <button
+                onClick={handlePreviewLogin}
+                disabled={previewLoading}
+                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-amber-500/50 rounded-md shadow-sm text-sm font-medium text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {previewLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Monitor className="h-4 w-4" />
+                )}
+                {previewLoading ? "Logging in & loading demo data..." : "Preview Login (Auto)"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

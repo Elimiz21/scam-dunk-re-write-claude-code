@@ -27,6 +27,40 @@ export const config = {
 
   // Python AI Backend (for full ML models)
   aiBackendUrl: process.env.AI_BACKEND_URL || "http://localhost:8000",
+
+  // Social Scan APIs
+  youtubeApiKey: process.env.YOUTUBE_API_KEY || "",
+  redditClientId: process.env.REDDIT_CLIENT_ID || "",
+  redditClientSecret: process.env.REDDIT_CLIENT_SECRET || "",
+  redditUsername: process.env.REDDIT_USERNAME || "",
+  redditPassword: process.env.REDDIT_PASSWORD || "",
+  googleCseApiKey: process.env.GOOGLE_CSE_API_KEY || "",
+  googleCseId: process.env.GOOGLE_CSE_ID || "",
+  perplexityApiKey: process.env.PERPLEXITY_API_KEY || "",
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
+  discordBotToken: process.env.DISCORD_BOT_TOKEN || "",
+  crowdtangleApiKey: process.env.CROWDTANGLE_API_KEY || "",
+
+  // Browser Agent Platform Credentials (personal account logins)
+  browserDiscordEmail: process.env.BROWSER_DISCORD_EMAIL || "",
+  browserDiscordPassword: process.env.BROWSER_DISCORD_PASSWORD || "",
+  browserDiscord2faSecret: process.env.BROWSER_DISCORD_2FA_SECRET || "",
+  browserRedditUsername: process.env.BROWSER_REDDIT_USERNAME || "",
+  browserRedditPassword: process.env.BROWSER_REDDIT_PASSWORD || "",
+  browserReddit2faSecret: process.env.BROWSER_REDDIT_2FA_SECRET || "",
+  browserTwitterUsername: process.env.BROWSER_TWITTER_USERNAME || "",
+  browserTwitterPassword: process.env.BROWSER_TWITTER_PASSWORD || "",
+  browserTwitter2faSecret: process.env.BROWSER_TWITTER_2FA_SECRET || "",
+  browserInstagramUsername: process.env.BROWSER_INSTAGRAM_USERNAME || "",
+  browserInstagramPassword: process.env.BROWSER_INSTAGRAM_PASSWORD || "",
+  browserInstagram2faSecret: process.env.BROWSER_INSTAGRAM_2FA_SECRET || "",
+  browserFacebookEmail: process.env.BROWSER_FACEBOOK_EMAIL || "",
+  browserFacebookPassword: process.env.BROWSER_FACEBOOK_PASSWORD || "",
+  browserFacebook2faSecret: process.env.BROWSER_FACEBOOK_2FA_SECRET || "",
+  browserTiktokUsername: process.env.BROWSER_TIKTOK_USERNAME || "",
+  browserTiktokPassword: process.env.BROWSER_TIKTOK_PASSWORD || "",
+  browserTiktok2faSecret: process.env.BROWSER_TIKTOK_2FA_SECRET || "",
+  browserSessionEncryptionKey: process.env.BROWSER_SESSION_ENCRYPTION_KEY || "",
 } as const;
 
 // Get scan limit based on plan

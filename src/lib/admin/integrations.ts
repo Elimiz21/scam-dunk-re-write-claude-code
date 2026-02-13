@@ -117,6 +117,202 @@ async function testDatabase(): Promise<{ status: string; message?: string }> {
 }
 
 /**
+ * Test YouTube Data API v3
+ */
+async function testYouTube(): Promise<{ status: string; message?: string }> {
+  if (!config.youtubeApiKey) {
+    return { status: "ERROR", message: "API key not configured" };
+  }
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&maxResults=1&key=${config.youtubeApiKey}`
+    );
+    if (response.ok) return { status: "CONNECTED" };
+    const error = await response.json();
+    return { status: "ERROR", message: error.error?.message || "Connection failed" };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+/**
+ * Test Reddit OAuth
+ */
+async function testRedditOAuth(): Promise<{ status: string; message?: string }> {
+  if (!config.redditClientId || !config.redditClientSecret || !config.redditUsername || !config.redditPassword) {
+    return { status: "ERROR", message: "Reddit credentials not fully configured" };
+  }
+  try {
+    const auth = Buffer.from(`${config.redditClientId}:${config.redditClientSecret}`).toString("base64");
+    const response = await fetch("https://www.reddit.com/api/v1/access_token", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "ScamDunk/1.0",
+      },
+      body: `grant_type=password&username=${encodeURIComponent(config.redditUsername)}&password=${encodeURIComponent(config.redditPassword)}`,
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.access_token) return { status: "CONNECTED" };
+      return { status: "ERROR", message: data.error || "No access token returned" };
+    }
+    return { status: "ERROR", message: `Reddit auth returned ${response.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+/**
+ * Test Google Custom Search Engine
+ */
+async function testGoogleCSE(): Promise<{ status: string; message?: string }> {
+  if (!config.googleCseApiKey || !config.googleCseId) {
+    return { status: "ERROR", message: "Google CSE API key or Search Engine ID not configured" };
+  }
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/customsearch/v1?key=${config.googleCseApiKey}&cx=${config.googleCseId}&q=test&num=1`
+    );
+    if (response.ok) return { status: "CONNECTED" };
+    const error = await response.json();
+    return { status: "ERROR", message: error.error?.message || "Connection failed" };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+/**
+ * Test Perplexity API
+ */
+async function testPerplexity(): Promise<{ status: string; message?: string }> {
+  if (!config.perplexityApiKey) {
+    return { status: "ERROR", message: "API key not configured" };
+  }
+  try {
+    const response = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.perplexityApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "sonar",
+        messages: [{ role: "user", content: "ping" }],
+        max_tokens: 5,
+      }),
+    });
+    if (response.ok) return { status: "CONNECTED" };
+    const error = await response.json().catch(() => ({}));
+    return { status: "ERROR", message: error.error?.message || `API returned ${response.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+/**
+ * Test Anthropic API
+ */
+async function testAnthropic(): Promise<{ status: string; message?: string }> {
+  if (!config.anthropicApiKey) {
+    return { status: "ERROR", message: "API key not configured" };
+  }
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": config.anthropicApiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 5,
+        messages: [{ role: "user", content: "ping" }],
+      }),
+    });
+    if (response.ok) return { status: "CONNECTED" };
+    const error = await response.json().catch(() => ({}));
+    return { status: "ERROR", message: error.error?.message || `API returned ${response.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+/**
+ * Test Discord Bot
+ */
+async function testDiscordBot(): Promise<{ status: string; message?: string }> {
+  if (!config.discordBotToken) {
+    return { status: "ERROR", message: "Bot token not configured" };
+  }
+  try {
+    const response = await fetch("https://discord.com/api/v10/users/@me", {
+      headers: {
+        Authorization: `Bot ${config.discordBotToken}`,
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return { status: "CONNECTED", message: `Bot: ${data.username}#${data.discriminator}` };
+    }
+    return { status: "ERROR", message: `Discord returned ${response.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+/**
+ * Test CrowdTangle / Meta Content Library
+ */
+async function testCrowdTangle(): Promise<{ status: string; message?: string }> {
+  if (!config.crowdtangleApiKey) {
+    return { status: "ERROR", message: "API token not configured" };
+  }
+  try {
+    const response = await fetch(
+      `https://api.crowdtangle.com/lists?token=${config.crowdtangleApiKey}`
+    );
+    if (response.ok) return { status: "CONNECTED" };
+    if (response.status === 401) return { status: "ERROR", message: "Invalid API token" };
+    return { status: "ERROR", message: `CrowdTangle returned ${response.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+/**
+ * Test browser agent credential (just checks if username + password are set)
+ */
+function testBrowserCredential(
+  usernameKey: keyof typeof config,
+  passwordKey: keyof typeof config
+): () => Promise<{ status: string; message?: string }> {
+  return async () => {
+    const username = config[usernameKey];
+    const password = config[passwordKey];
+    if (!username || !password) {
+      return { status: "ERROR", message: "Username and password not configured" };
+    }
+    return { status: "CONNECTED", message: `Credentials set for ${username}` };
+  };
+}
+
+/**
+ * Test browser session encryption key
+ */
+async function testBrowserEncryptionKey(): Promise<{ status: string; message?: string }> {
+  if (!config.browserSessionEncryptionKey) {
+    return { status: "ERROR", message: "Encryption key not configured" };
+  }
+  if (config.browserSessionEncryptionKey.length < 32) {
+    return { status: "ERROR", message: "Encryption key must be at least 32 characters" };
+  }
+  return { status: "CONNECTED", message: "Key configured" };
+}
+
+/**
  * Integration definitions with test functions
  */
 const INTEGRATIONS = [
@@ -158,6 +354,132 @@ const INTEGRATIONS = [
     getApiKey: () => process.env.DATABASE_URL,
     testConnection: testDatabase,
     documentation: "https://supabase.com/docs",
+  },
+  // Social Media Scan Integrations
+  {
+    name: "YOUTUBE",
+    displayName: "YouTube Data API",
+    category: "SOCIAL_SCAN",
+    description: "Searches for stock promotion videos on YouTube (10,000 units/day free)",
+    getApiKey: () => config.youtubeApiKey,
+    testConnection: testYouTube,
+    rateLimit: 100, // 100 searches per day (each costs 100 units)
+    documentation: "https://developers.google.com/youtube/v3",
+  },
+  {
+    name: "REDDIT_OAUTH",
+    displayName: "Reddit OAuth",
+    category: "SOCIAL_SCAN",
+    description: "Authenticated Reddit search for stock mentions (60 req/min)",
+    getApiKey: () => config.redditClientId,
+    testConnection: testRedditOAuth,
+    rateLimit: 60,
+    documentation: "https://www.reddit.com/wiki/api/",
+  },
+  {
+    name: "GOOGLE_CSE",
+    displayName: "Google Custom Search",
+    category: "SOCIAL_SCAN",
+    description: "Searches all social media platforms via Google (100 free queries/day)",
+    getApiKey: () => config.googleCseApiKey,
+    testConnection: testGoogleCSE,
+    rateLimit: 100, // 100 queries per day on free tier
+    documentation: "https://developers.google.com/custom-search/v1/overview",
+  },
+  {
+    name: "PERPLEXITY",
+    displayName: "Perplexity AI",
+    category: "SOCIAL_SCAN",
+    description: "Web-grounded AI search for social media mentions with real citations",
+    getApiKey: () => config.perplexityApiKey,
+    testConnection: testPerplexity,
+    rateLimit: 600, // 600 queries per day
+    documentation: "https://docs.perplexity.ai/",
+  },
+  {
+    name: "ANTHROPIC",
+    displayName: "Anthropic Claude",
+    category: "SOCIAL_SCAN",
+    description: "Deep analysis of suspicious social media patterns using Claude",
+    getApiKey: () => config.anthropicApiKey,
+    testConnection: testAnthropic,
+    rateLimit: 1000,
+    documentation: "https://docs.anthropic.com/",
+  },
+  {
+    name: "DISCORD_BOT",
+    displayName: "Discord Bot",
+    category: "SOCIAL_SCAN",
+    description: "Monitors Discord servers for stock promotion activity",
+    getApiKey: () => config.discordBotToken,
+    testConnection: testDiscordBot,
+    documentation: "https://discord.com/developers/docs",
+  },
+  {
+    name: "CROWDTANGLE",
+    displayName: "CrowdTangle / Meta Content Library",
+    category: "SOCIAL_SCAN",
+    description: "Searches public Facebook, Instagram, and Reddit content (Meta research tool)",
+    getApiKey: () => config.crowdtangleApiKey,
+    testConnection: testCrowdTangle,
+    documentation: "https://www.crowdtangle.com/",
+  },
+  // Browser Agent Platform Credentials
+  {
+    name: "BROWSER_DISCORD",
+    displayName: "Discord (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Discord account for browser-based server scanning",
+    getApiKey: () => config.browserDiscordEmail,
+    testConnection: testBrowserCredential("browserDiscordEmail", "browserDiscordPassword"),
+  },
+  {
+    name: "BROWSER_REDDIT",
+    displayName: "Reddit (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Reddit account for browser-based subreddit scanning",
+    getApiKey: () => config.browserRedditUsername,
+    testConnection: testBrowserCredential("browserRedditUsername", "browserRedditPassword"),
+  },
+  {
+    name: "BROWSER_TWITTER",
+    displayName: "Twitter/X (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Twitter/X account for browser-based cashtag scanning",
+    getApiKey: () => config.browserTwitterUsername,
+    testConnection: testBrowserCredential("browserTwitterUsername", "browserTwitterPassword"),
+  },
+  {
+    name: "BROWSER_INSTAGRAM",
+    displayName: "Instagram (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Instagram account for browser-based hashtag scanning",
+    getApiKey: () => config.browserInstagramUsername,
+    testConnection: testBrowserCredential("browserInstagramUsername", "browserInstagramPassword"),
+  },
+  {
+    name: "BROWSER_FACEBOOK",
+    displayName: "Facebook (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Facebook account for browser-based group scanning",
+    getApiKey: () => config.browserFacebookEmail,
+    testConnection: testBrowserCredential("browserFacebookEmail", "browserFacebookPassword"),
+  },
+  {
+    name: "BROWSER_TIKTOK",
+    displayName: "TikTok (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal TikTok account for browser-based hashtag scanning",
+    getApiKey: () => config.browserTiktokUsername,
+    testConnection: testBrowserCredential("browserTiktokUsername", "browserTiktokPassword"),
+  },
+  {
+    name: "BROWSER_ENCRYPTION_KEY",
+    displayName: "Session Encryption Key",
+    category: "BROWSER_AGENT",
+    description: "AES-256 encryption key for browser cookie/session storage",
+    getApiKey: () => config.browserSessionEncryptionKey,
+    testConnection: testBrowserEncryptionKey,
   },
 ];
 

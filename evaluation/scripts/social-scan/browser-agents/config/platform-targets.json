@@ -1,0 +1,37 @@
+{
+  "discord": {
+    "description": "Discord servers to monitor for stock promotion activity",
+    "servers": [
+      {
+        "serverId": "",
+        "serverName": "Example Penny Stock Server",
+        "channels": [],
+        "_comment": "Add Discord server IDs here. Leave channels empty to search the whole server."
+      }
+    ]
+  },
+  "reddit": {
+    "description": "Subreddits to monitor (supplements the PROMOTION_SUBREDDITS list in types.ts)",
+    "additionalSubreddits": [],
+    "_note": "Primary subreddits are defined in types.ts PROMOTION_SUBREDDITS"
+  },
+  "twitter": {
+    "description": "Twitter/X search configuration",
+    "searchPrefixes": ["$"],
+    "additionalHashtags": ["stock", "pennystocks", "trading"]
+  },
+  "instagram": {
+    "description": "Instagram hashtag patterns to search",
+    "hashtagPatterns": ["{TICKER}", "{TICKER}stock", "{TICKER}trading", "{TICKER}investment"]
+  },
+  "facebook": {
+    "description": "Facebook groups to monitor (DISABLED by default)",
+    "groups": [],
+    "enabled": false
+  },
+  "tiktok": {
+    "description": "TikTok search configuration (DISABLED by default)",
+    "hashtagPatterns": ["{TICKER}", "{TICKER}stock"],
+    "enabled": false
+  }
+}
