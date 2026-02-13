@@ -87,6 +87,7 @@ class AnalysisRequest(BaseModel):
     asset_type: str = Field(default="stock", description="Asset type: 'stock' or 'crypto'")
     days: int = Field(default=90, description="Days of historical data to analyze")
     use_live_data: bool = Field(default=True, description="Use live API data (real market data from yfinance)")
+    sec_flagged: Optional[bool] = Field(default=None, description="SEC flag result from upstream regulatory database check. Overrides internal SEC list when provided.")
 
 
 class SignalDetail(BaseModel):
@@ -250,7 +251,8 @@ async def analyze_asset(request: AnalysisRequest):
             asset_type=request.asset_type,
             use_synthetic=not request.use_live_data,
             is_scam_scenario=False,
-            news_flag=False
+            news_flag=False,
+            sec_flagged_override=request.sec_flagged
         )
 
         # Build signal details from key indicators

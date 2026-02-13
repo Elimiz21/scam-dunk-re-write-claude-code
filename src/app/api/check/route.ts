@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { z } from "zod";
-import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
+import { fetchMarketData, runAnomalyDetection, checkAlertList } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
 import { generateNarrative } from "@/lib/narrative";
 import { canUserScan, incrementScanCount } from "@/lib/usage";
@@ -58,7 +58,8 @@ const checkRequestSchema = z.object({
  */
 async function callPythonAIBackend(
   ticker: string,
-  assetType: string
+  assetType: string,
+  secFlagged?: boolean
 ): Promise<{
   success: boolean;
   failReason?: string;
@@ -100,6 +101,7 @@ async function callPythonAIBackend(
         asset_type: assetType,
         use_live_data: true,
         days: 90,
+        sec_flagged: secFlagged ?? null,
       }),
       signal: controller.signal,
     });
@@ -239,10 +241,16 @@ export async function POST(request: NextRequest) {
     };
 
     // =====================================================
+    // CHECK REGULATORY DATABASE (real SEC EDGAR data)
+    // =====================================================
+    currentStep = "SEC_CHECK";
+    const secFlagged = await checkAlertList(ticker);
+
+    // =====================================================
     // TRY PYTHON AI BACKEND FIRST (Full ML Models)
     // =====================================================
     currentStep = "AI_BACKEND";
-    const aiResult = await callPythonAIBackend(ticker, checkRequest.assetType || "stock");
+    const aiResult = await callPythonAIBackend(ticker, checkRequest.assetType || "stock", secFlagged);
 
     let scoringResult;
     let marketData;

@@ -332,7 +332,8 @@ class ScamDetectionPipeline:
         fundamentals: Dict = None,
         news_flag: bool = False,
         use_synthetic: bool = True,
-        is_scam_scenario: bool = False
+        is_scam_scenario: bool = False,
+        sec_flagged_override: bool = None
     ) -> RiskAssessment:
         """
         Main analysis function - runs the complete pipeline.
@@ -345,6 +346,8 @@ class ScamDetectionPipeline:
             news_flag: Whether significant news exists
             use_synthetic: Use synthetic data for testing
             is_scam_scenario: Generate scam-like test data
+            sec_flagged_override: If provided, overrides internal SEC list check
+                with result from upstream regulatory database
 
         Returns:
             RiskAssessment with complete analysis
@@ -378,7 +381,16 @@ class ScamDetectionPipeline:
             }
             price_data = preprocess_price_data(price_data)
 
-        sec_flagged = context['sec_flagged']['is_flagged']
+        # Use upstream regulatory database result when provided, otherwise
+        # fall back to the internal (simulated) SEC list check
+        if sec_flagged_override is not None:
+            sec_flagged = sec_flagged_override
+            context['sec_flagged']['is_flagged'] = sec_flagged
+            if sec_flagged:
+                context['sec_flagged']['source'] = 'Upstream regulatory database'
+                context['sec_flagged']['reason'] = context['sec_flagged'].get('reason') or 'Flagged by regulatory database'
+        else:
+            sec_flagged = context['sec_flagged']['is_flagged']
         print(f"   Data loaded: {len(price_data)} days")
         print(f"   SEC Flagged: {sec_flagged}")
         print(f"   Exchange: {fundamentals.get('exchange', 'N/A')}")
