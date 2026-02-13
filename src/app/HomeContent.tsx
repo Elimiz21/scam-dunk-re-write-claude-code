@@ -297,6 +297,7 @@ export default function HomeContent() {
       } else {
         setResult(responseData as RiskResponse);
         setUsage(responseData.usage);
+        setSidebarOpen(false);
       }
     } catch (err) {
       clearInterval(tipInterval);
