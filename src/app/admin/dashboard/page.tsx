@@ -14,6 +14,11 @@ import {
   CreditCard,
   AlertTriangle,
   Shield,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  ExternalLink,
+  Database,
 } from "lucide-react";
 
 interface DashboardMetrics {
@@ -36,13 +41,42 @@ interface DashboardMetrics {
   lastUpdated: string;
 }
 
+interface PipelineFileStatus {
+  name: string;
+  file: string;
+  status: "present" | "missing";
+  sizeBytes: number;
+}
+
+interface PipelineHealth {
+  date: string;
+  timestamp: string;
+  status: "healthy" | "degraded" | "failing" | "unknown";
+  filesExpected: number;
+  filesPresent: number;
+  filesMissing: number;
+  missingFiles: string;
+  files: PipelineFileStatus[];
+  schemeTracking: {
+    status: string;
+    activeSchemes: number;
+    totalSchemes: number;
+  };
+  workflowRun: string;
+  workflowUrl: string;
+  error?: string;
+  history: { date: string; filename: string }[];
+}
+
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     fetchMetrics();
+    fetchPipelineHealth();
   }, []);
 
   async function fetchMetrics() {
@@ -55,6 +89,18 @@ export default function DashboardPage() {
       setError(err instanceof Error ? err.message : "Failed to load dashboard");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchPipelineHealth() {
+    try {
+      const res = await fetch("/api/admin/pipeline-health");
+      if (res.ok) {
+        const data = await res.json();
+        setPipelineHealth(data);
+      }
+    } catch {
+      // Non-critical - dashboard still works without pipeline health
     }
   }
 
@@ -269,6 +315,111 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Pipeline Health */}
+        {pipelineHealth && (
+          <div className="bg-card rounded-2xl shadow-sm p-6 border border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium font-display italic text-foreground">
+                Pipeline Health
+              </h3>
+              {pipelineHealth.status !== "unknown" && (
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+                    pipelineHealth.status === "healthy"
+                      ? "bg-emerald-500/10 text-emerald-700"
+                      : pipelineHealth.status === "degraded"
+                      ? "bg-amber-500/10 text-amber-700"
+                      : "bg-red-500/10 text-red-700"
+                  }`}
+                >
+                  {pipelineHealth.status === "healthy" ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : pipelineHealth.status === "degraded" ? (
+                    <AlertCircle className="h-3.5 w-3.5" />
+                  ) : (
+                    <XCircle className="h-3.5 w-3.5" />
+                  )}
+                  {pipelineHealth.status.toUpperCase()}
+                </span>
+              )}
+            </div>
+
+            {pipelineHealth.error && !pipelineHealth.date && (
+              <p className="text-sm text-muted-foreground mb-4">
+                {pipelineHealth.error}
+              </p>
+            )}
+
+            {pipelineHealth.date && (
+              <>
+                <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
+                  <span>
+                    Last scan: <span className="font-medium text-foreground">{pipelineHealth.date}</span>
+                  </span>
+                  <span>
+                    Files: <span className="font-medium text-foreground">
+                      {pipelineHealth.filesPresent}/{pipelineHealth.filesExpected}
+                    </span>
+                  </span>
+                  {pipelineHealth.schemeTracking.status === "active" && (
+                    <span className="flex items-center gap-1">
+                      <Database className="h-3.5 w-3.5" />
+                      Schemes: <span className="font-medium text-foreground">
+                        {pipelineHealth.schemeTracking.activeSchemes} active / {pipelineHealth.schemeTracking.totalSchemes} total
+                      </span>
+                    </span>
+                  )}
+                </div>
+
+                {/* File status grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {pipelineHealth.files.map((f) => (
+                    <div
+                      key={f.name}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+                        f.status === "present"
+                          ? "bg-emerald-500/5 text-emerald-700"
+                          : "bg-red-500/10 text-red-700"
+                      }`}
+                    >
+                      {f.status === "present" ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                      )}
+                      <span className="truncate">{f.name}</span>
+                      {f.status === "present" && f.sizeBytes > 0 && (
+                        <span className="ml-auto text-muted-foreground whitespace-nowrap">
+                          {f.sizeBytes > 1048576
+                            ? `${(f.sizeBytes / 1048576).toFixed(1)}MB`
+                            : f.sizeBytes > 1024
+                            ? `${(f.sizeBytes / 1024).toFixed(0)}KB`
+                            : `${f.sizeBytes}B`}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Workflow link */}
+                {pipelineHealth.workflowUrl && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <a
+                      href={pipelineHealth.workflowUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View workflow run #{pipelineHealth.workflowRun}
+                    </a>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

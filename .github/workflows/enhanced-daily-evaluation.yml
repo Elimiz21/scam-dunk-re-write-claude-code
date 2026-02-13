@@ -278,6 +278,102 @@ jobs:
           npx ts-node scripts/scheme-tracker.ts report $EVALUATION_DATE
           echo "Scheme report generated"
 
+      - name: Validate pipeline output
+        if: ${{ github.event.inputs.upload_only != 'true' }}
+        run: |
+          DATE="${{ steps.date.outputs.date }}"
+          cd evaluation
+
+          echo "Validating pipeline output for ${DATE}..."
+
+          # Define expected files with categories
+          declare -A EXPECTED_FILES
+          EXPECTED_FILES=(
+            ["enhanced-evaluation"]="results/enhanced-evaluation-${DATE}.json"
+            ["enhanced-high-risk"]="results/enhanced-high-risk-${DATE}.json"
+            ["suspicious-stocks"]="results/suspicious-stocks-${DATE}.json"
+            ["daily-report"]="results/daily-report-${DATE}.json"
+            ["fmp-summary"]="results/fmp-summary-${DATE}.json"
+            ["social-media-scan"]="results/social-media-scan-${DATE}.json"
+            ["promoted-stocks"]="results/promoted-stocks-${DATE}.json"
+            ["scheme-database"]="scheme-database/scheme-database.json"
+          )
+
+          TOTAL=0
+          PRESENT=0
+          MISSING_LIST=""
+          FILE_DETAILS="["
+
+          for key in "${!EXPECTED_FILES[@]}"; do
+            filepath="${EXPECTED_FILES[$key]}"
+            TOTAL=$((TOTAL + 1))
+
+            if [ -f "$filepath" ]; then
+              PRESENT=$((PRESENT + 1))
+              SIZE=$(stat -c%s "$filepath" 2>/dev/null || echo "0")
+              echo "  [PASS] $key ($SIZE bytes)"
+              FILE_DETAILS="${FILE_DETAILS}{\"name\":\"${key}\",\"file\":\"$(basename $filepath)\",\"status\":\"present\",\"sizeBytes\":${SIZE}},"
+            else
+              echo "  [FAIL] $key - MISSING: $filepath"
+              MISSING_LIST="${MISSING_LIST} ${key}"
+              FILE_DETAILS="${FILE_DETAILS}{\"name\":\"${key}\",\"file\":\"$(basename $filepath)\",\"status\":\"missing\",\"sizeBytes\":0},"
+            fi
+          done
+
+          # Remove trailing comma and close array
+          FILE_DETAILS="${FILE_DETAILS%,}]"
+
+          # Determine overall status
+          if [ $PRESENT -eq $TOTAL ]; then
+            STATUS="healthy"
+            echo ""
+            echo "Pipeline validation PASSED: All ${TOTAL} files present"
+          elif [ $PRESENT -ge $((TOTAL - 2)) ]; then
+            STATUS="degraded"
+            echo ""
+            echo "::warning::Pipeline validation DEGRADED: ${PRESENT}/${TOTAL} files present, missing:${MISSING_LIST}"
+          else
+            STATUS="failing"
+            echo ""
+            echo "::error::Pipeline validation FAILED: ${PRESENT}/${TOTAL} files present, missing:${MISSING_LIST}"
+          fi
+
+          # Check scheme database health
+          SCHEME_STATUS="unknown"
+          ACTIVE_SCHEMES=0
+          TOTAL_SCHEMES=0
+          if [ -f "scheme-database/scheme-database.json" ]; then
+            ACTIVE_SCHEMES=$(cat scheme-database/scheme-database.json | jq -r '.activeSchemes // 0' 2>/dev/null || echo "0")
+            TOTAL_SCHEMES=$(cat scheme-database/scheme-database.json | jq -r '.totalSchemes // 0' 2>/dev/null || echo "0")
+            LAST_UPDATED=$(cat scheme-database/scheme-database.json | jq -r '.lastUpdated // "unknown"' 2>/dev/null || echo "unknown")
+            SCHEME_STATUS="active"
+            echo "  Scheme DB: ${ACTIVE_SCHEMES} active / ${TOTAL_SCHEMES} total (updated: ${LAST_UPDATED})"
+          fi
+
+          # Write validation report
+          cat > "results/pipeline-validation-${DATE}.json" <<EOFVAL
+          {
+            "date": "${DATE}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "status": "${STATUS}",
+            "filesExpected": ${TOTAL},
+            "filesPresent": ${PRESENT},
+            "filesMissing": $((TOTAL - PRESENT)),
+            "missingFiles": "$(echo ${MISSING_LIST} | xargs)",
+            "files": ${FILE_DETAILS},
+            "schemeTracking": {
+              "status": "${SCHEME_STATUS}",
+              "activeSchemes": ${ACTIVE_SCHEMES},
+              "totalSchemes": ${TOTAL_SCHEMES}
+            },
+            "workflowRun": "${{ github.run_id }}",
+            "workflowUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          }
+          EOFVAL
+
+          echo ""
+          echo "Validation report written to results/pipeline-validation-${DATE}.json"
+
       - name: Upload to Supabase
         continue-on-error: true
         env:
