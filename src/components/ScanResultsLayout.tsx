@@ -128,7 +128,7 @@ export function ScanResultsLayout({ result, hasChatData, onNewScan }: ScanResult
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Main content area — fills remaining viewport height */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 pb-2 min-h-0 max-w-[1400px] mx-auto w-full animate-slide-up">
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 pb-2 min-h-0 w-full animate-slide-up">
         {/* Left side — 75%, scorecard fills full width */}
         <div className="lg:w-3/4 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
@@ -144,8 +144,8 @@ export function ScanResultsLayout({ result, hasChatData, onNewScan }: ScanResult
           </div>
         </div>
 
-        {/* Right side — 25%, vertically centered */}
-        <div className="lg:w-1/4 flex flex-col justify-center min-h-0">
+        {/* Right side — rightmost quarter, near top */}
+        <div className="lg:w-1/4 lg:max-w-[320px] flex flex-col justify-start pt-4 min-h-0 lg:ml-auto">
           <div className="flex flex-col gap-2.5 overflow-y-auto scrollbar-thin">
             <div className="flex items-center gap-2 mb-1 flex-shrink-0">
               <AlertTriangle className="h-3.5 w-3.5 text-primary/60" />
