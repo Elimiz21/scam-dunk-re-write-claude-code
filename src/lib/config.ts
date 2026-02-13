@@ -21,6 +21,12 @@ export const config = {
   // Alpha Vantage API (Legacy/Fallback)
   alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY || "",
 
+  // OTC Markets API (optional - free public API used by default, paid API if key provided)
+  otcMarketsApiKey: process.env.OTC_MARKETS_API_KEY || "",
+
+  // FINRA API (optional - free BrokerCheck API used by default, official API if key provided)
+  finraApiKey: process.env.FINRA_API_KEY || "",
+
   // NextAuth
   nextAuthUrl: process.env.NEXTAUTH_URL || "http://localhost:3000",
   nextAuthSecret: process.env.NEXTAUTH_SECRET || "",

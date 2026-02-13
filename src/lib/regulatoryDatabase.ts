@@ -9,6 +9,8 @@
  */
 
 import { prisma } from '@/lib/db';
+import { fetchOTCProfile, assessOTCRisk } from '@/lib/otcMarkets';
+import { searchFirm } from '@/lib/finra';
 
 export interface RegulatoryCheck {
   isFlagged: boolean;
@@ -119,6 +121,7 @@ export function formatRegulatoryWarning(check: RegulatoryCheck): string {
     FRAUD_ALERT: 'Fraud Alert',
     PUMP_DUMP_WARNING: 'Pump & Dump Warning',
     CAVEAT_EMPTOR: 'Caveat Emptor (Buyer Beware)',
+    SHELL_RISK: 'Shell Company Risk',
   };
 
   const warnings: string[] = [];
@@ -260,6 +263,306 @@ export async function syncSECTradingSuspensions(): Promise<{
     await prisma.regulatoryDatabaseSync.create({
       data: {
         source: 'SEC',
+        lastSyncAt: new Date(),
+        recordsAdded: 0,
+        recordsUpdated: 0,
+        status: 'FAILED',
+        errorMessage: errors.join('; '),
+      },
+    });
+  }
+
+  return { added, updated, errors };
+}
+
+/**
+ * Sync OTC Markets data for a specific ticker
+ * Uses the free public backend.otcmarkets.com API
+ */
+export async function syncOTCMarketsFlags(ticker: string): Promise<{
+  added: number;
+  updated: number;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  let added = 0;
+  let updated = 0;
+  const normalizedTicker = ticker.toUpperCase().trim();
+
+  try {
+    // Check if OTC Markets integration is enabled
+    const integration = await prisma.integrationConfig.findUnique({
+      where: { name: 'OTC_MARKETS' },
+    });
+    if (integration && !integration.isEnabled) {
+      return { added: 0, updated: 0, errors: ['OTC Markets integration is disabled'] };
+    }
+
+    const profile = await fetchOTCProfile(normalizedTicker);
+
+    if (!profile) {
+      // Not an OTC stock or API unavailable — not an error
+      return { added: 0, updated: 0, errors: [] };
+    }
+
+    const risk = assessOTCRisk(profile);
+    const now = new Date();
+
+    // Upsert Caveat Emptor flag
+    if (profile.caveatEmptor) {
+      try {
+        const result = await prisma.regulatoryFlag.upsert({
+          where: {
+            ticker_source_flagType_flagDate: {
+              ticker: normalizedTicker,
+              source: 'OTC',
+              flagType: 'CAVEAT_EMPTOR',
+              flagDate: now,
+            },
+          },
+          create: {
+            ticker: normalizedTicker,
+            source: 'OTC',
+            flagType: 'CAVEAT_EMPTOR',
+            title: `Caveat Emptor — Buyer Beware Warning`,
+            description: `OTC Markets has designated ${normalizedTicker} (${profile.companyName || 'Unknown'}) with a Caveat Emptor warning, indicating a public interest concern.`,
+            flagDate: now,
+            severity: 'CRITICAL',
+            isActive: true,
+            sourceUrl: `https://www.otcmarkets.com/stock/${normalizedTicker}/company-info`,
+          },
+          update: {
+            isActive: true,
+            description: `OTC Markets has designated ${normalizedTicker} (${profile.companyName || 'Unknown'}) with a Caveat Emptor warning, indicating a public interest concern.`,
+          },
+        });
+        if (result.createdAt.getTime() === result.updatedAt.getTime()) added++;
+        else updated++;
+      } catch (err) {
+        errors.push(`Failed to upsert Caveat Emptor for ${normalizedTicker}: ${err}`);
+      }
+    }
+
+    // Upsert Shell Risk flag
+    if (profile.shellRisk || profile.isShell) {
+      try {
+        const result = await prisma.regulatoryFlag.upsert({
+          where: {
+            ticker_source_flagType_flagDate: {
+              ticker: normalizedTicker,
+              source: 'OTC',
+              flagType: 'SHELL_RISK',
+              flagDate: now,
+            },
+          },
+          create: {
+            ticker: normalizedTicker,
+            source: 'OTC',
+            flagType: 'SHELL_RISK',
+            title: `Shell Company Risk`,
+            description: `${normalizedTicker} has been identified as a shell or blank-check entity by OTC Markets.`,
+            flagDate: now,
+            severity: 'HIGH',
+            isActive: true,
+            sourceUrl: `https://www.otcmarkets.com/stock/${normalizedTicker}/company-info`,
+          },
+          update: {
+            isActive: true,
+          },
+        });
+        if (result.createdAt.getTime() === result.updatedAt.getTime()) added++;
+        else updated++;
+      } catch (err) {
+        errors.push(`Failed to upsert Shell Risk for ${normalizedTicker}: ${err}`);
+      }
+    }
+
+    // Upsert Grey Market / Expert Market flag
+    if (profile.tierCode === 'GM' || profile.tierCode === 'EM') {
+      const tierLabel = profile.tierCode === 'GM' ? 'Grey Market' : 'Expert Market';
+      try {
+        const result = await prisma.regulatoryFlag.upsert({
+          where: {
+            ticker_source_flagType_flagDate: {
+              ticker: normalizedTicker,
+              source: 'OTC',
+              flagType: 'DELISTING_WARNING',
+              flagDate: now,
+            },
+          },
+          create: {
+            ticker: normalizedTicker,
+            source: 'OTC',
+            flagType: 'DELISTING_WARNING',
+            title: `${tierLabel} Designation`,
+            description: `${normalizedTicker} trades on the OTC ${tierLabel}, indicating extremely limited transparency and liquidity.`,
+            flagDate: now,
+            severity: 'HIGH',
+            isActive: true,
+            sourceUrl: `https://www.otcmarkets.com/stock/${normalizedTicker}/security`,
+          },
+          update: {
+            isActive: true,
+            title: `${tierLabel} Designation`,
+          },
+        });
+        if (result.createdAt.getTime() === result.updatedAt.getTime()) added++;
+        else updated++;
+      } catch (err) {
+        errors.push(`Failed to upsert tier flag for ${normalizedTicker}: ${err}`);
+      }
+    }
+
+    // Upsert Promotion flag
+    if (profile.hasPromotion) {
+      try {
+        const result = await prisma.regulatoryFlag.upsert({
+          where: {
+            ticker_source_flagType_flagDate: {
+              ticker: normalizedTicker,
+              source: 'OTC',
+              flagType: 'PUMP_DUMP_WARNING',
+              flagDate: now,
+            },
+          },
+          create: {
+            ticker: normalizedTicker,
+            source: 'OTC',
+            flagType: 'PUMP_DUMP_WARNING',
+            title: `Active Stock Promotion Detected`,
+            description: `OTC Markets has flagged active promotional activity for ${normalizedTicker}. Promoted stocks carry elevated pump-and-dump risk.`,
+            flagDate: now,
+            severity: 'HIGH',
+            isActive: true,
+            sourceUrl: `https://www.otcmarkets.com/stock/${normalizedTicker}/company-info`,
+          },
+          update: {
+            isActive: true,
+          },
+        });
+        if (result.createdAt.getTime() === result.updatedAt.getTime()) added++;
+        else updated++;
+      } catch (err) {
+        errors.push(`Failed to upsert promotion flag for ${normalizedTicker}: ${err}`);
+      }
+    }
+
+    // Log sync
+    await prisma.regulatoryDatabaseSync.create({
+      data: {
+        source: 'OTC',
+        lastSyncAt: now,
+        recordsAdded: added,
+        recordsUpdated: updated,
+        status: errors.length > 0 ? 'PARTIAL' : 'SUCCESS',
+        errorMessage: errors.length > 0 ? errors.join('; ') : null,
+      },
+    });
+  } catch (error) {
+    errors.push(`OTC Markets sync failed for ${normalizedTicker}: ${error}`);
+
+    await prisma.regulatoryDatabaseSync.create({
+      data: {
+        source: 'OTC',
+        lastSyncAt: new Date(),
+        recordsAdded: 0,
+        recordsUpdated: 0,
+        status: 'FAILED',
+        errorMessage: errors.join('; '),
+      },
+    });
+  }
+
+  return { added, updated, errors };
+}
+
+/**
+ * Sync FINRA data for a specific firm name
+ * Uses the free public api.brokercheck.finra.org API
+ */
+export async function syncFINRAFlags(firmName: string, ticker?: string): Promise<{
+  added: number;
+  updated: number;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  let added = 0;
+  let updated = 0;
+
+  try {
+    // Check if FINRA integration is enabled
+    const integration = await prisma.integrationConfig.findUnique({
+      where: { name: 'FINRA' },
+    });
+    if (integration && !integration.isEnabled) {
+      return { added: 0, updated: 0, errors: ['FINRA integration is disabled'] };
+    }
+
+    const firms = await searchFirm(firmName);
+    if (firms.length === 0) {
+      return { added: 0, updated: 0, errors: [] };
+    }
+
+    const now = new Date();
+    const targetTicker = ticker?.toUpperCase().trim() || firmName.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 5);
+
+    for (const firm of firms.slice(0, 3)) {
+      if (!firm.hasDisclosures || firm.disclosureCount === 0) continue;
+
+      const severity = firm.disclosureCount >= 10 ? 'HIGH' : firm.disclosureCount >= 3 ? 'MEDIUM' : 'LOW';
+
+      try {
+        const result = await prisma.regulatoryFlag.upsert({
+          where: {
+            ticker_source_flagType_flagDate: {
+              ticker: targetTicker,
+              source: 'FINRA',
+              flagType: 'ENFORCEMENT_ACTION',
+              flagDate: now,
+            },
+          },
+          create: {
+            ticker: targetTicker,
+            source: 'FINRA',
+            flagType: 'ENFORCEMENT_ACTION',
+            title: `FINRA Disclosures: ${firm.name}`,
+            description: `${firm.name} (CRD #${firm.sourceId}) has ${firm.disclosureCount} disclosure(s) on FINRA BrokerCheck, which may include customer complaints, regulatory actions, or disciplinary proceedings.`,
+            flagDate: now,
+            severity,
+            isActive: true,
+            sourceUrl: `https://brokercheck.finra.org/firm/summary/${firm.sourceId}`,
+          },
+          update: {
+            isActive: true,
+            severity,
+            description: `${firm.name} (CRD #${firm.sourceId}) has ${firm.disclosureCount} disclosure(s) on FINRA BrokerCheck, which may include customer complaints, regulatory actions, or disciplinary proceedings.`,
+          },
+        });
+
+        if (result.createdAt.getTime() === result.updatedAt.getTime()) added++;
+        else updated++;
+      } catch (err) {
+        errors.push(`Failed to upsert FINRA flag for ${firm.name}: ${err}`);
+      }
+    }
+
+    // Log sync
+    await prisma.regulatoryDatabaseSync.create({
+      data: {
+        source: 'FINRA',
+        lastSyncAt: now,
+        recordsAdded: added,
+        recordsUpdated: updated,
+        status: errors.length > 0 ? 'PARTIAL' : 'SUCCESS',
+        errorMessage: errors.length > 0 ? errors.join('; ') : null,
+      },
+    });
+  } catch (error) {
+    errors.push(`FINRA sync failed for ${firmName}: ${error}`);
+
+    await prisma.regulatoryDatabaseSync.create({
+      data: {
+        source: 'FINRA',
         lastSyncAt: new Date(),
         recordsAdded: 0,
         recordsUpdated: 0,
