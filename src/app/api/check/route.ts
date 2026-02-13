@@ -368,15 +368,7 @@ export async function POST(request: NextRequest) {
       isLegitimate: scoringResult.isLegitimate,
     };
 
-    return NextResponse.json({
-      ...response,
-      _debug: {
-        aiBackendUsed: usedAIBackend,
-        aiBackendConfigured: !!AI_BACKEND_URL,
-        aiBackendFailReason: aiResult.failReason || null,
-        processingTimeMs: Date.now() - startTime,
-      },
-    });
+    return NextResponse.json(response);
   } catch (error) {
     const elapsed = Date.now() - startTime;
     console.error(`Check API error at step [${currentStep}] after ${elapsed}ms:`, error);

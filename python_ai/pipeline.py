@@ -200,7 +200,8 @@ class ScamDetectionPipeline:
 
         # Severe patterns detection
         severe_anomalies = ['pump_and_dump_pattern', 'pump_pattern_detected',
-                          'extreme_volume_explosion', 'extreme_weekly_price_move']
+                          'extreme_volume_explosion', 'extreme_weekly_price_move',
+                          'coordinated_volume_price_activity', 'extreme_volatility']
         has_severe_pattern = any(a in anomaly_result.anomaly_types for a in severe_anomalies)
 
         # Apply floor for severe patterns (raised from 0.6 to 0.65 to guarantee HIGH with 0.55 threshold)
@@ -213,6 +214,10 @@ class ScamDetectionPipeline:
             combined = max(combined, 0.75)
         if has_severe_pattern and is_otc and is_micro_cap:
             combined = max(combined, 0.80)
+
+        # Micro-cap with severe patterns is suspicious regardless of exchange
+        if has_severe_pattern and is_micro_cap:
+            combined = max(combined, 0.70)
 
         # Additional boost for multiple risk factors
         risk_factor_count = sum([is_otc, is_micro_cap, has_severe_pattern,
