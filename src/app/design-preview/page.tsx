@@ -302,7 +302,7 @@ export default function DesignPreviewPage() {
                 </div>
                 <LoadingStepper
                   steps={STEPS_ALL_PENDING}
-                  currentTip={`"Your uncle's stock tip? Yeah, let's check that." — No judgment, just data`}
+                  currentTip={{ headline: "Your uncle's stock tip? Yeah, let's check that.", subtext: "No judgment, just data" }}
                 />
               </div>
             </div>
@@ -322,7 +322,7 @@ export default function DesignPreviewPage() {
                 </div>
                 <LoadingStepper
                   steps={STEPS_MID_PROGRESS}
-                  currentTip={`"Scammers hate this one simple trick." — It's called doing your homework. We made it easy.`}
+                  currentTip={{ headline: "Scammers hate this one simple trick.", subtext: "It's called doing your homework. We made it easy." }}
                 />
               </div>
             </div>
@@ -342,7 +342,7 @@ export default function DesignPreviewPage() {
                 </div>
                 <LoadingStepper
                   steps={STEPS_NEAR_DONE}
-                  currentTip={`"Before you YOLO, let's LOLO." — Look Out, Look Out for scam signals`}
+                  currentTip={{ headline: "Before you YOLO, let's LOLO.", subtext: "Look Out, Look Out for scam signals" }}
                 />
               </div>
             </div>
