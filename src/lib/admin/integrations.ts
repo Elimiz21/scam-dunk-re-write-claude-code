@@ -283,6 +283,36 @@ async function testCrowdTangle(): Promise<{ status: string; message?: string }> 
 }
 
 /**
+ * Test browser agent credential (just checks if username + password are set)
+ */
+function testBrowserCredential(
+  usernameKey: keyof typeof config,
+  passwordKey: keyof typeof config
+): () => Promise<{ status: string; message?: string }> {
+  return async () => {
+    const username = config[usernameKey];
+    const password = config[passwordKey];
+    if (!username || !password) {
+      return { status: "ERROR", message: "Username and password not configured" };
+    }
+    return { status: "CONNECTED", message: `Credentials set for ${username}` };
+  };
+}
+
+/**
+ * Test browser session encryption key
+ */
+async function testBrowserEncryptionKey(): Promise<{ status: string; message?: string }> {
+  if (!config.browserSessionEncryptionKey) {
+    return { status: "ERROR", message: "Encryption key not configured" };
+  }
+  if (config.browserSessionEncryptionKey.length < 32) {
+    return { status: "ERROR", message: "Encryption key must be at least 32 characters" };
+  }
+  return { status: "CONNECTED", message: "Key configured" };
+}
+
+/**
  * Integration definitions with test functions
  */
 const INTEGRATIONS = [
@@ -393,6 +423,63 @@ const INTEGRATIONS = [
     getApiKey: () => config.crowdtangleApiKey,
     testConnection: testCrowdTangle,
     documentation: "https://www.crowdtangle.com/",
+  },
+  // Browser Agent Platform Credentials
+  {
+    name: "BROWSER_DISCORD",
+    displayName: "Discord (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Discord account for browser-based server scanning",
+    getApiKey: () => config.browserDiscordEmail,
+    testConnection: testBrowserCredential("browserDiscordEmail", "browserDiscordPassword"),
+  },
+  {
+    name: "BROWSER_REDDIT",
+    displayName: "Reddit (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Reddit account for browser-based subreddit scanning",
+    getApiKey: () => config.browserRedditUsername,
+    testConnection: testBrowserCredential("browserRedditUsername", "browserRedditPassword"),
+  },
+  {
+    name: "BROWSER_TWITTER",
+    displayName: "Twitter/X (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Twitter/X account for browser-based cashtag scanning",
+    getApiKey: () => config.browserTwitterUsername,
+    testConnection: testBrowserCredential("browserTwitterUsername", "browserTwitterPassword"),
+  },
+  {
+    name: "BROWSER_INSTAGRAM",
+    displayName: "Instagram (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Instagram account for browser-based hashtag scanning",
+    getApiKey: () => config.browserInstagramUsername,
+    testConnection: testBrowserCredential("browserInstagramUsername", "browserInstagramPassword"),
+  },
+  {
+    name: "BROWSER_FACEBOOK",
+    displayName: "Facebook (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal Facebook account for browser-based group scanning",
+    getApiKey: () => config.browserFacebookEmail,
+    testConnection: testBrowserCredential("browserFacebookEmail", "browserFacebookPassword"),
+  },
+  {
+    name: "BROWSER_TIKTOK",
+    displayName: "TikTok (Browser Agent)",
+    category: "BROWSER_AGENT",
+    description: "Personal TikTok account for browser-based hashtag scanning",
+    getApiKey: () => config.browserTiktokUsername,
+    testConnection: testBrowserCredential("browserTiktokUsername", "browserTiktokPassword"),
+  },
+  {
+    name: "BROWSER_ENCRYPTION_KEY",
+    displayName: "Session Encryption Key",
+    category: "BROWSER_AGENT",
+    description: "AES-256 encryption key for browser cookie/session storage",
+    getApiKey: () => config.browserSessionEncryptionKey,
+    testConnection: testBrowserEncryptionKey,
   },
 ];
 

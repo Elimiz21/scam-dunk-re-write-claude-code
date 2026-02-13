@@ -40,6 +40,27 @@ export const config = {
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
   discordBotToken: process.env.DISCORD_BOT_TOKEN || "",
   crowdtangleApiKey: process.env.CROWDTANGLE_API_KEY || "",
+
+  // Browser Agent Platform Credentials (personal account logins)
+  browserDiscordEmail: process.env.BROWSER_DISCORD_EMAIL || "",
+  browserDiscordPassword: process.env.BROWSER_DISCORD_PASSWORD || "",
+  browserDiscord2faSecret: process.env.BROWSER_DISCORD_2FA_SECRET || "",
+  browserRedditUsername: process.env.BROWSER_REDDIT_USERNAME || "",
+  browserRedditPassword: process.env.BROWSER_REDDIT_PASSWORD || "",
+  browserReddit2faSecret: process.env.BROWSER_REDDIT_2FA_SECRET || "",
+  browserTwitterUsername: process.env.BROWSER_TWITTER_USERNAME || "",
+  browserTwitterPassword: process.env.BROWSER_TWITTER_PASSWORD || "",
+  browserTwitter2faSecret: process.env.BROWSER_TWITTER_2FA_SECRET || "",
+  browserInstagramUsername: process.env.BROWSER_INSTAGRAM_USERNAME || "",
+  browserInstagramPassword: process.env.BROWSER_INSTAGRAM_PASSWORD || "",
+  browserInstagram2faSecret: process.env.BROWSER_INSTAGRAM_2FA_SECRET || "",
+  browserFacebookEmail: process.env.BROWSER_FACEBOOK_EMAIL || "",
+  browserFacebookPassword: process.env.BROWSER_FACEBOOK_PASSWORD || "",
+  browserFacebook2faSecret: process.env.BROWSER_FACEBOOK_2FA_SECRET || "",
+  browserTiktokUsername: process.env.BROWSER_TIKTOK_USERNAME || "",
+  browserTiktokPassword: process.env.BROWSER_TIKTOK_PASSWORD || "",
+  browserTiktok2faSecret: process.env.BROWSER_TIKTOK_2FA_SECRET || "",
+  browserSessionEncryptionKey: process.env.BROWSER_SESSION_ENCRYPTION_KEY || "",
 } as const;
 
 // Get scan limit based on plan
