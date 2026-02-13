@@ -537,6 +537,236 @@ def fetch_crypto_info(symbol: str) -> Dict:
 
 
 # =============================================================================
+# NEWS VERIFICATION - Check for legitimate catalysts before confirming HIGH risk
+# =============================================================================
+
+# Keywords that indicate legitimate catalysts for price/volume activity
+LEGITIMATE_CATALYST_KEYWORDS = [
+    'earnings', 'revenue', 'profit', 'quarterly results', 'annual results',
+    'FDA approval', 'FDA clearance', 'clinical trial', 'phase 3', 'phase 2',
+    'merger', 'acquisition', 'acquired', 'buyout', 'takeover',
+    'partnership', 'contract', 'agreement', 'deal',
+    'dividend', 'buyback', 'repurchase', 'stock split',
+    'IPO', 'offering', 'secondary offering',
+    'upgrade', 'analyst', 'price target', 'rating',
+    'patent', 'approval', 'regulatory approval',
+    'government contract', 'defense contract',
+    'product launch', 'new product',
+]
+
+# Keywords that suggest promotional/pump activity (not legitimate)
+PROMOTIONAL_KEYWORDS = [
+    'hot stock', 'huge gains', 'next big thing', 'massive returns',
+    'get in now', 'to the moon', 'guaranteed', 'secret stock',
+    'penny stock pick', 'stock alert', 'breakout alert',
+    'undervalued gem', '1000%', '500%', 'explode',
+]
+
+SEC_EDGAR_HEADERS = {
+    'User-Agent': 'ScamDunk Research Tool support@scamdunk.com',
+    'Accept-Encoding': 'gzip, deflate',
+}
+
+
+def fetch_yfinance_news(ticker: str) -> List[Dict]:
+    """
+    Fetch recent news for a ticker from Yahoo Finance via yfinance.
+
+    Args:
+        ticker: Stock ticker symbol
+
+    Returns:
+        List of news items with title, link, publisher, and publish time
+    """
+    try:
+        import yfinance as yf
+    except ImportError:
+        print("   yfinance not available for news fetch")
+        return []
+
+    try:
+        stock = yf.Ticker(ticker)
+        news = stock.news or []
+
+        results = []
+        for item in news[:10]:  # Limit to 10 most recent
+            results.append({
+                'title': item.get('title', ''),
+                'publisher': item.get('publisher', ''),
+                'link': item.get('link', ''),
+                'published': item.get('providerPublishTime', 0),
+                'source': 'yahoo_finance',
+            })
+
+        return results
+    except Exception as e:
+        print(f"   Warning: Yahoo Finance news fetch failed: {e}")
+        return []
+
+
+def fetch_sec_company_filings(ticker: str, days_back: int = 30) -> List[Dict]:
+    """
+    Fetch recent SEC filings (8-K, 10-Q, 10-K) for a company.
+
+    Uses SEC EDGAR company search API (free, no key required).
+    8-K filings are material events (earnings, M&A, leadership changes).
+
+    Args:
+        ticker: Stock ticker symbol
+        days_back: How far back to search for filings
+
+    Returns:
+        List of recent filings with type, date, and description
+    """
+    results = []
+
+    # SEC EDGAR company filings search
+    url = (
+        f'https://www.sec.gov/cgi-bin/browse-edgar'
+        f'?action=getcompany&CIK={ticker}&type=8-K&dateb=&owner=include'
+        f'&count=10&search_text=&action=getcompany&output=atom'
+    )
+
+    try:
+        response = requests.get(url, headers=SEC_EDGAR_HEADERS, timeout=10)
+        if response.status_code != 200:
+            print(f"   SEC EDGAR returned {response.status_code}")
+            return results
+
+        text = response.text
+        entries = text.split('<entry>')[1:]  # Skip header
+
+        cutoff = datetime.now() - timedelta(days=days_back)
+
+        for entry in entries:
+            title_match = entry.split('<title type="html">')[1].split('</title>')[0] if '<title type="html">' in entry else None
+            date_match = entry.split('<updated>')[1].split('</updated>')[0] if '<updated>' in entry else None
+            link_match = entry.split('href="')[1].split('"')[0] if 'href="' in entry else None
+
+            if not title_match or not date_match:
+                continue
+
+            try:
+                filing_date = datetime.fromisoformat(date_match.replace('Z', '+00:00').replace('+00:00', ''))
+            except (ValueError, AttributeError):
+                continue
+
+            if filing_date.replace(tzinfo=None) < cutoff:
+                continue
+
+            results.append({
+                'type': '8-K',
+                'title': title_match.strip(),
+                'date': date_match,
+                'link': link_match,
+                'source': 'sec_edgar',
+            })
+
+    except Exception as e:
+        print(f"   Warning: SEC EDGAR filing fetch failed: {e}")
+
+    return results
+
+
+def verify_legitimate_catalysts(ticker: str) -> Dict:
+    """
+    Check if a HIGH-risk stock has legitimate news catalysts that explain
+    suspicious price/volume patterns.
+
+    Called only for HIGH-risk results before finalizing the assessment.
+
+    Args:
+        ticker: Stock ticker symbol
+
+    Returns:
+        Dictionary with:
+        - has_legitimate_catalyst: bool
+        - catalyst_summary: str describing what was found
+        - news_items: list of relevant news
+        - sec_filings: list of recent 8-K filings
+        - should_reduce_risk: bool
+        - recommended_level: 'MEDIUM' or 'HIGH'
+    """
+    print(f"\n[News Verification] Checking legitimate catalysts for {ticker}...")
+
+    news_items = fetch_yfinance_news(ticker)
+    sec_filings = fetch_sec_company_filings(ticker, days_back=30)
+
+    print(f"   Found {len(news_items)} news items, {len(sec_filings)} recent SEC filings")
+
+    # Analyze news for legitimate catalysts
+    legitimate_matches = []
+    promotional_matches = []
+
+    all_titles = [item.get('title', '') for item in news_items]
+    all_titles += [filing.get('title', '') for filing in sec_filings]
+
+    for title in all_titles:
+        title_lower = title.lower()
+
+        for keyword in LEGITIMATE_CATALYST_KEYWORDS:
+            if keyword.lower() in title_lower:
+                legitimate_matches.append({
+                    'title': title,
+                    'keyword': keyword,
+                })
+                break
+
+        for keyword in PROMOTIONAL_KEYWORDS:
+            if keyword.lower() in title_lower:
+                promotional_matches.append({
+                    'title': title,
+                    'keyword': keyword,
+                })
+                break
+
+    has_legitimate = len(legitimate_matches) > 0
+    has_promotional = len(promotional_matches) > 0
+    has_sec_filings = len(sec_filings) > 0
+
+    # Determine if risk should be reduced
+    # Legitimate catalyst + no promotional signals = reduce risk
+    # Legitimate catalyst + promotional signals = keep HIGH (mixed signals)
+    # SEC 8-K filing alone suggests material event = reduce risk
+    # No news at all = keep HIGH (suspicious silence)
+    should_reduce = False
+    recommended_level = 'HIGH'
+    catalyst_summary = 'No legitimate news catalysts found'
+
+    if has_legitimate and not has_promotional:
+        should_reduce = True
+        recommended_level = 'MEDIUM'
+        keywords_found = list(set(m['keyword'] for m in legitimate_matches))
+        catalyst_summary = f"Legitimate catalyst found: {', '.join(keywords_found[:3])}"
+    elif has_sec_filings and not has_promotional:
+        should_reduce = True
+        recommended_level = 'MEDIUM'
+        catalyst_summary = f"Recent SEC 8-K filing detected ({len(sec_filings)} filing(s))"
+    elif has_legitimate and has_promotional:
+        catalyst_summary = 'Mixed signals: legitimate news present alongside promotional content'
+    elif not has_legitimate and not has_sec_filings:
+        catalyst_summary = 'No news catalyst found for unusual price/volume activity'
+
+    print(f"   Legitimate catalysts: {len(legitimate_matches)}")
+    print(f"   Promotional signals: {len(promotional_matches)}")
+    print(f"   SEC 8-K filings: {len(sec_filings)}")
+    print(f"   Verdict: {'REDUCE to ' + recommended_level if should_reduce else 'KEEP HIGH'}")
+    print(f"   Reason: {catalyst_summary}")
+
+    return {
+        'has_legitimate_catalyst': has_legitimate,
+        'has_sec_filings': has_sec_filings,
+        'has_promotional_signals': has_promotional,
+        'catalyst_summary': catalyst_summary,
+        'news_items': news_items[:5],  # Limit for response size
+        'sec_filings': sec_filings[:5],
+        'legitimate_matches': legitimate_matches[:5],
+        'should_reduce_risk': should_reduce,
+        'recommended_level': recommended_level,
+    }
+
+
+# =============================================================================
 # UNIFIED INTERFACE
 # =============================================================================
 

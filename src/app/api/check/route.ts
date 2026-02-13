@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { z } from "zod";
-import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
+import { fetchMarketData, runAnomalyDetection, checkAlertList } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
 import { generateNarrative } from "@/lib/narrative";
 import { canUserScan, incrementScanCount } from "@/lib/usage";
@@ -58,7 +58,8 @@ const checkRequestSchema = z.object({
  */
 async function callPythonAIBackend(
   ticker: string,
-  assetType: string
+  assetType: string,
+  secFlagged?: boolean
 ): Promise<{
   success: boolean;
   failReason?: string;
@@ -78,6 +79,14 @@ async function callPythonAIBackend(
     lastPrice?: number;
     marketCap?: number;
     avgVolume?: number;
+  };
+  newsVerification?: {
+    hasLegitimateCatalyst: boolean;
+    hasSecFilings: boolean;
+    hasPromotionalSignals: boolean;
+    catalystSummary: string;
+    shouldReduceRisk: boolean;
+    recommendedLevel: string;
   };
 }> {
   // Skip if no backend URL configured
@@ -100,6 +109,7 @@ async function callPythonAIBackend(
         asset_type: assetType,
         use_live_data: true,
         days: 90,
+        sec_flagged: secFlagged ?? null,
       }),
       signal: controller.signal,
     });
@@ -155,6 +165,14 @@ async function callPythonAIBackend(
         lastPrice: data.stock_info.last_price,
         marketCap: data.stock_info.market_cap,
         avgVolume: data.stock_info.avg_volume,
+      } : undefined,
+      newsVerification: data.news_verification ? {
+        hasLegitimateCatalyst: data.news_verification.has_legitimate_catalyst,
+        hasSecFilings: data.news_verification.has_sec_filings,
+        hasPromotionalSignals: data.news_verification.has_promotional_signals,
+        catalystSummary: data.news_verification.catalyst_summary,
+        shouldReduceRisk: data.news_verification.should_reduce_risk,
+        recommendedLevel: data.news_verification.recommended_level,
       } : undefined,
     };
   } catch (error) {
@@ -239,10 +257,16 @@ export async function POST(request: NextRequest) {
     };
 
     // =====================================================
+    // CHECK REGULATORY DATABASE (real SEC EDGAR data)
+    // =====================================================
+    currentStep = "SEC_CHECK";
+    const secFlagged = await checkAlertList(ticker);
+
+    // =====================================================
     // TRY PYTHON AI BACKEND FIRST (Full ML Models)
     // =====================================================
     currentStep = "AI_BACKEND";
-    const aiResult = await callPythonAIBackend(ticker, checkRequest.assetType || "stock");
+    const aiResult = await callPythonAIBackend(ticker, checkRequest.assetType || "stock", secFlagged);
 
     let scoringResult;
     let marketData;
@@ -366,6 +390,7 @@ export async function POST(request: NextRequest) {
       narrative,
       usage: updatedUsage,
       isLegitimate: scoringResult.isLegitimate,
+      ...(aiResult.newsVerification ? { newsVerification: aiResult.newsVerification } : {}),
     };
 
     return NextResponse.json(response);

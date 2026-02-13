@@ -5,6 +5,8 @@
 
 import { prisma } from "@/lib/db";
 import { config } from "@/lib/config";
+import { testOTCMarketsConnection } from "@/lib/otcMarkets";
+import { testFINRAConnection } from "@/lib/finra";
 
 /**
  * Mask an API key for display (show first 4 and last 4 characters)
@@ -114,6 +116,20 @@ async function testDatabase(): Promise<{ status: string; message?: string }> {
   } catch (error) {
     return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
+}
+
+/**
+ * Test OTC Markets connection (free public API — no key required)
+ */
+async function testOTCMarkets(): Promise<{ status: string; message?: string }> {
+  return testOTCMarketsConnection();
+}
+
+/**
+ * Test FINRA BrokerCheck connection (free public API — no key required)
+ */
+async function testFINRA(): Promise<{ status: string; message?: string }> {
+  return testFINRAConnection();
 }
 
 /**
@@ -354,6 +370,27 @@ const INTEGRATIONS = [
     getApiKey: () => process.env.DATABASE_URL,
     testConnection: testDatabase,
     documentation: "https://supabase.com/docs",
+  },
+  // Regulatory Data Integrations (free public APIs)
+  {
+    name: "OTC_MARKETS",
+    displayName: "OTC Markets",
+    category: "REGULATORY",
+    description: "Caveat Emptor flags, shell risk, tier data, compliance status (free public API)",
+    getApiKey: () => config.otcMarketsApiKey || "FREE_PUBLIC_API",
+    testConnection: testOTCMarkets,
+    rateLimit: 30, // Conservative limit for the free public endpoint
+    documentation: "https://www.otcmarkets.com/market-data/overview",
+  },
+  {
+    name: "FINRA",
+    displayName: "FINRA BrokerCheck",
+    category: "REGULATORY",
+    description: "Firm disclosures, disciplinary actions, broker misconduct (free public API)",
+    getApiKey: () => config.finraApiKey || "FREE_PUBLIC_API",
+    testConnection: testFINRA,
+    rateLimit: 20, // Conservative limit for the free public endpoint
+    documentation: "https://brokercheck.finra.org/",
   },
   // Social Media Scan Integrations
   {

@@ -247,7 +247,9 @@ export default function IntegrationsPage() {
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">API Key</span>
                         <span className="font-mono text-foreground">
-                          {integration.apiKeyMasked || "Not configured"}
+                          {integration.apiKeyMasked?.startsWith("FREE")
+                            ? "Free Public API"
+                            : integration.apiKeyMasked || "Not configured"}
                         </span>
                       </div>
                       {integration.rateLimit && (
@@ -363,7 +365,9 @@ export default function IntegrationsPage() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Note: To update API keys, modify the environment variables directly.
+                  {editingIntegration.category === "REGULATORY"
+                    ? "Note: Uses free public APIs by default. Set API key env vars for paid tier access."
+                    : "Note: To update API keys, modify the environment variables directly."}
                 </p>
               </div>
               <div className="mt-6 flex justify-end space-x-3">

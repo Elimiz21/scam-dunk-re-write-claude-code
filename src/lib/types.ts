@@ -52,6 +52,15 @@ export interface Narrative {
   disclaimers: string[];
 }
 
+export interface NewsVerification {
+  hasLegitimateCatalyst: boolean;
+  hasSecFilings: boolean;
+  hasPromotionalSignals: boolean;
+  catalystSummary: string;
+  shouldReduceRisk: boolean;
+  recommendedLevel: string;
+}
+
 export interface RiskResponse {
   riskLevel: RiskLevel;
   totalScore: number;
@@ -60,6 +69,7 @@ export interface RiskResponse {
   narrative: Narrative;
   usage: UsageInfo;
   isLegitimate?: boolean;
+  newsVerification?: NewsVerification;
 }
 
 export interface LimitReachedResponse {

@@ -721,26 +721,42 @@ export async function checkAlertList(ticker: string): Promise<boolean> {
 
   try {
     // First, check our local regulatory database
-    const { checkRegulatoryDatabase } = await import('@/lib/regulatoryDatabase');
+    const { checkRegulatoryDatabase, syncOTCMarketsFlags } = await import('@/lib/regulatoryDatabase');
     const regulatoryCheck = await checkRegulatoryDatabase(normalizedTicker);
 
     if (regulatoryCheck.isFlagged) {
       return true;
     }
 
-    // Fallback: Check SEC RSS feed directly for real-time data
-    const response = await fetch("https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom");
-    const text = await response.text();
+    // Live OTC Markets check — fetch real-time data and sync to DB
+    // This runs in parallel with the SEC check for speed
+    const [otcResult, secResult] = await Promise.allSettled([
+      syncOTCMarketsFlags(normalizedTicker).then((r) => r.added > 0),
+      checkSECFeed(normalizedTicker),
+    ]);
 
-    // Simple check if ticker appears in recent suspension notices
-    if (text.toUpperCase().includes(normalizedTicker)) {
-      return true;
-    }
+    if (otcResult.status === "fulfilled" && otcResult.value) return true;
+    if (secResult.status === "fulfilled" && secResult.value) return true;
 
     return false;
   } catch (error) {
     // If we can't check the alert list, return false (don't block the analysis)
     console.error("Error checking alert list:", error);
+    return false;
+  }
+}
+
+/**
+ * Check SEC RSS feed for recent trading suspensions
+ */
+async function checkSECFeed(ticker: string): Promise<boolean> {
+  try {
+    const response = await fetch(
+      "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom"
+    );
+    const text = await response.text();
+    return text.toUpperCase().includes(ticker);
+  } catch {
     return false;
   }
 }
@@ -762,12 +778,44 @@ export async function checkRegulatoryFlags(ticker: string): Promise<{
   }>;
   highestSeverity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
   sources: string[];
+  otcProfile?: {
+    tierCode: string | null;
+    tierName: string | null;
+    caveatEmptor: boolean;
+    shellRisk: boolean;
+    complianceStatus: string | null;
+  };
 }> {
   const normalizedTicker = ticker.toUpperCase().trim();
 
   try {
-    const { checkRegulatoryDatabase } = await import('@/lib/regulatoryDatabase');
-    return await checkRegulatoryDatabase(normalizedTicker);
+    const { checkRegulatoryDatabase, syncOTCMarketsFlags } = await import('@/lib/regulatoryDatabase');
+
+    // Sync OTC Markets data first (adds flags to DB if found)
+    await syncOTCMarketsFlags(normalizedTicker).catch(() => {});
+
+    // Then check all flags from the database
+    const result = await checkRegulatoryDatabase(normalizedTicker);
+
+    // Also fetch OTC profile for additional context
+    let otcProfile = undefined;
+    try {
+      const { fetchOTCProfile } = await import('@/lib/otcMarkets');
+      const profile = await fetchOTCProfile(normalizedTicker);
+      if (profile) {
+        otcProfile = {
+          tierCode: profile.tierCode,
+          tierName: profile.tierName,
+          caveatEmptor: profile.caveatEmptor,
+          shellRisk: profile.shellRisk,
+          complianceStatus: profile.complianceStatus,
+        };
+      }
+    } catch {
+      // OTC profile is optional enrichment — don't fail the check
+    }
+
+    return { ...result, otcProfile };
   } catch (error) {
     console.error("Error checking regulatory flags:", error);
     return {
