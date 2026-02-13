@@ -11,8 +11,10 @@ import { testFINRAConnection } from "@/lib/finra";
 /**
  * Mask an API key for display (show first 4 and last 4 characters)
  */
-function maskApiKey(key: string | undefined): string {
-  if (!key || key.length < 12) return "Not configured";
+function maskApiKey(key: string | undefined, showFull = false): string {
+  if (!key || key.length === 0) return "Not configured";
+  if (showFull) return key;
+  if (key.length < 12) return "Not configured";
   return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
 }
 
@@ -405,9 +407,9 @@ const INTEGRATIONS = [
   },
   {
     name: "REDDIT_OAUTH",
-    displayName: "Reddit OAuth",
+    displayName: "Reddit OAuth API",
     category: "SOCIAL_SCAN",
-    description: "Authenticated Reddit search for stock mentions (60 req/min)",
+    description: "Reddit API app credentials for authenticated search (separate from personal account)",
     getApiKey: () => config.redditClientId,
     testConnection: testRedditOAuth,
     rateLimit: 60,
@@ -447,7 +449,7 @@ const INTEGRATIONS = [
     name: "DISCORD_BOT",
     displayName: "Discord Bot",
     category: "SOCIAL_SCAN",
-    description: "Monitors Discord servers for stock promotion activity",
+    description: "Bot created but not yet linked to any servers. Needs server invites to begin monitoring.",
     getApiKey: () => config.discordBotToken,
     testConnection: testDiscordBot,
     documentation: "https://discord.com/developers/docs",
@@ -461,53 +463,59 @@ const INTEGRATIONS = [
     testConnection: testCrowdTangle,
     documentation: "https://www.crowdtangle.com/",
   },
-  // Browser Agent Platform Credentials
+  // Browser Agent Platform Credentials (personal accounts)
   {
     name: "BROWSER_DISCORD",
-    displayName: "Discord (Browser Agent)",
+    displayName: "Discord (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Discord account for browser-based server scanning",
+    description: "Owner's personal Discord account for browser-based server scanning",
     getApiKey: () => config.browserDiscordEmail,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserDiscordEmail", "browserDiscordPassword"),
   },
   {
     name: "BROWSER_REDDIT",
-    displayName: "Reddit (Browser Agent)",
+    displayName: "Reddit (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Reddit account for browser-based subreddit scanning",
+    description: "Owner's personal Reddit account for browser-based subreddit scanning",
     getApiKey: () => config.browserRedditUsername,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserRedditUsername", "browserRedditPassword"),
   },
   {
     name: "BROWSER_TWITTER",
-    displayName: "Twitter/X (Browser Agent)",
+    displayName: "Twitter/X (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Twitter/X account for browser-based cashtag scanning",
+    description: "Owner's personal Twitter/X account for browser-based cashtag scanning",
     getApiKey: () => config.browserTwitterUsername,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserTwitterUsername", "browserTwitterPassword"),
   },
   {
     name: "BROWSER_INSTAGRAM",
-    displayName: "Instagram (Browser Agent)",
+    displayName: "Instagram (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Instagram account for browser-based hashtag scanning",
+    description: "Owner's personal Instagram account for browser-based hashtag scanning",
     getApiKey: () => config.browserInstagramUsername,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserInstagramUsername", "browserInstagramPassword"),
   },
   {
     name: "BROWSER_FACEBOOK",
-    displayName: "Facebook (Browser Agent)",
+    displayName: "Facebook (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Facebook account for browser-based group scanning",
+    description: "Owner's personal Facebook account for browser-based group scanning",
     getApiKey: () => config.browserFacebookEmail,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserFacebookEmail", "browserFacebookPassword"),
   },
   {
     name: "BROWSER_TIKTOK",
-    displayName: "TikTok (Browser Agent)",
+    displayName: "TikTok (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal TikTok account for browser-based hashtag scanning",
+    description: "Owner's personal TikTok account for browser-based hashtag scanning",
     getApiKey: () => config.browserTiktokUsername,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserTiktokUsername", "browserTiktokPassword"),
   },
   {
@@ -529,6 +537,8 @@ export async function initializeIntegrations() {
       where: { name: integration.name },
     });
 
+    const showFull = 'showFullKey' in integration && integration.showFullKey === true;
+
     if (!existing) {
       await prisma.integrationConfig.create({
         data: {
@@ -536,18 +546,21 @@ export async function initializeIntegrations() {
           displayName: integration.displayName,
           category: integration.category,
           isEnabled: true,
-          apiKeyMasked: maskApiKey(integration.getApiKey()),
+          apiKeyMasked: maskApiKey(integration.getApiKey(), showFull),
           rateLimit: integration.rateLimit,
           status: "UNKNOWN",
         },
       });
     } else {
-      // Update masked API key if changed
-      const newMasked = maskApiKey(integration.getApiKey());
-      if (existing.apiKeyMasked !== newMasked) {
+      // Update masked API key (or full username) if changed
+      const newMasked = maskApiKey(integration.getApiKey(), showFull);
+      if (existing.apiKeyMasked !== newMasked || existing.displayName !== integration.displayName) {
         await prisma.integrationConfig.update({
           where: { name: integration.name },
-          data: { apiKeyMasked: newMasked },
+          data: {
+            apiKeyMasked: newMasked,
+            displayName: integration.displayName,
+          },
         });
       }
     }
