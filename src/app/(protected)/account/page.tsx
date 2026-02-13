@@ -22,10 +22,21 @@ import {
   Edit2,
   Eye,
   EyeOff,
+  AlertTriangle,
+  Calendar,
+  XCircle,
 } from "lucide-react";
 import { UsageInfo } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { PayPalButton } from "@/components/PayPalButton";
+
+interface SubscriptionInfo {
+  plan: "FREE" | "PAID";
+  subscriptionId?: string;
+  status?: string;
+  nextBillingDate?: string;
+  startDate?: string;
+}
 
 function AccountAlerts() {
   const searchParams = useSearchParams();
@@ -81,6 +92,12 @@ function AccountContent() {
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
 
+  // Subscription management
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login?callbackUrl=/account");
@@ -90,6 +107,7 @@ function AccountContent() {
   useEffect(() => {
     if (session?.user) {
       fetchUsage();
+      fetchSubscriptionInfo();
       setEditName(session.user.name || "");
     }
   }, [session]);
@@ -106,9 +124,57 @@ function AccountContent() {
     }
   };
 
+  const fetchSubscriptionInfo = async () => {
+    setIsLoadingSubscription(true);
+    try {
+      const response = await fetch("/api/billing/paypal/subscription");
+      if (response.ok) {
+        const data = await response.json();
+        setSubscriptionInfo(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch subscription info:", err);
+    } finally {
+      setIsLoadingSubscription(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setIsCancelling(true);
+    setError("");
+    try {
+      const response = await fetch("/api/billing/paypal/cancel", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        addToast({
+          type: "success",
+          title: "Subscription cancelled",
+          description: "Your plan has been downgraded to Free. You can re-subscribe at any time.",
+        });
+        setShowCancelConfirm(false);
+        // Refresh data
+        await fetchUsage();
+        await fetchSubscriptionInfo();
+        // Trigger session refresh so the plan badge updates
+        await update({});
+        router.refresh();
+      } else {
+        const data = await response.json();
+        setError(data.error || "Failed to cancel subscription");
+      }
+    } catch {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const handlePayPalSuccess = () => {
-    // Refresh usage data
+    // Refresh usage and subscription data
     fetchUsage();
+    fetchSubscriptionInfo();
     // Show success message
     addToast({
       type: "success",
@@ -499,6 +565,9 @@ function AccountContent() {
                     >
                       {usage?.plan === "PAID" ? "Pro" : "Free"}
                     </Badge>
+                    {usage?.plan === "PAID" && (
+                      <span className="text-sm text-muted-foreground">$4.99/month</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -547,11 +616,83 @@ function AccountContent() {
                 </p>
               </div>
 
+              {/* Subscription details for PAID users */}
               {usage?.plan === "PAID" && (
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    To manage or cancel your subscription, please log in to your PayPal account.
-                  </p>
+                <div className="pt-4 border-t space-y-4">
+                  <div>
+                    <p className="text-sm font-medium mb-2">Subscription Details</p>
+                    {isLoadingSubscription ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading subscription info...
+                      </div>
+                    ) : subscriptionInfo?.nextBillingDate ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        Next billing date:{" "}
+                        {new Date(subscriptionInfo.nextBillingDate).toLocaleDateString(
+                          "en-US",
+                          { year: "numeric", month: "long", day: "numeric" }
+                        )}
+                      </div>
+                    ) : subscriptionInfo?.subscriptionId ? (
+                      <p className="text-sm text-muted-foreground">
+                        Subscription active via PayPal
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {/* Cancel subscription */}
+                  {!showCancelConfirm ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => setShowCancelConfirm(true)}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Cancel Subscription
+                    </Button>
+                  ) : (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Cancel your Pro subscription?</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Your plan will be downgraded to Free immediately. You will
+                            lose access to 200 monthly checks and be limited to 5 checks
+                            per month. You can re-subscribe at any time.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 ml-7">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleCancelSubscription}
+                          disabled={isCancelling}
+                        >
+                          {isCancelling ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Cancelling...
+                            </>
+                          ) : (
+                            "Yes, Cancel Subscription"
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowCancelConfirm(false)}
+                          disabled={isCancelling}
+                        >
+                          Keep Subscription
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

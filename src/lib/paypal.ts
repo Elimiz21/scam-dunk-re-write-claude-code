@@ -356,3 +356,122 @@ export async function getSubscriptionStatus(userId: string): Promise<{
     subscriptionId: user.billingCustomerId || undefined,
   };
 }
+
+/**
+ * Cancel a user's PayPal subscription
+ */
+export async function cancelSubscription(
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, billingCustomerId: true },
+    });
+
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    if (!user.billingCustomerId) {
+      return { success: false, error: "No active subscription found" };
+    }
+
+    // Cancel the subscription via PayPal API
+    const accessToken = await getAccessToken();
+    const startTime = Date.now();
+
+    const response = await fetch(
+      `${PAYPAL_API_BASE}/v1/billing/subscriptions/${user.billingCustomerId}/cancel`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: "User requested cancellation from account settings",
+        }),
+      }
+    );
+
+    await logApiUsage({
+      service: "PAYPAL",
+      endpoint: "/v1/billing/subscriptions/{id}/cancel",
+      responseTime: Date.now() - startTime,
+      statusCode: response.status,
+      errorMessage: response.ok ? undefined : "Failed to cancel subscription",
+    });
+
+    // PayPal returns 204 No Content on successful cancellation
+    if (response.status !== 204 && !response.ok) {
+      const errorText = await response.text();
+      console.error("PayPal cancel subscription failed:", errorText);
+      return { success: false, error: "Failed to cancel subscription with PayPal" };
+    }
+
+    // Update user to FREE plan
+    await prisma.user.update({
+      where: { id: userId },
+      data: { plan: "FREE" },
+    });
+
+    console.log(`User ${userId} cancelled PayPal subscription ${user.billingCustomerId}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error cancelling subscription:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to cancel subscription",
+    };
+  }
+}
+
+/**
+ * Get user's subscription info including next billing date
+ */
+export async function getUserSubscriptionInfo(userId: string): Promise<{
+  plan: "FREE" | "PAID";
+  subscriptionId?: string;
+  status?: string;
+  nextBillingDate?: string;
+  startDate?: string;
+}> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { plan: true, billingCustomerId: true },
+  });
+
+  if (!user) {
+    return { plan: "FREE" };
+  }
+
+  const result: {
+    plan: "FREE" | "PAID";
+    subscriptionId?: string;
+    status?: string;
+    nextBillingDate?: string;
+    startDate?: string;
+  } = {
+    plan: user.plan as "FREE" | "PAID",
+  };
+
+  // If user has a subscription, fetch details from PayPal
+  if (user.billingCustomerId && isPayPalConfigured()) {
+    try {
+      const details = await getSubscriptionDetails(user.billingCustomerId);
+      result.subscriptionId = user.billingCustomerId;
+      result.status = details.status;
+      result.startDate = details.start_time;
+      if (details.billing_info?.next_billing_time) {
+        result.nextBillingDate = details.billing_info.next_billing_time;
+      }
+    } catch (error) {
+      // If we can't fetch subscription details, just return what we have
+      console.error("Failed to fetch subscription details:", error);
+      result.subscriptionId = user.billingCustomerId;
+    }
+  }
+
+  return result;
+}
