@@ -1,6 +1,6 @@
 "use client";
 
-import { RiskResponse, RiskLevel } from "@/lib/types";
+import { RiskResponse, RiskLevel, RiskSignal } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -190,8 +190,58 @@ function FlagItem({
   );
 }
 
+function buildRiskFactorSummary(signals: RiskSignal[], riskLevel: RiskLevel): string {
+  if (signals.length === 0) return "";
+
+  // Group signals by category and sort by weight (most significant first)
+  const sorted = [...signals].sort((a, b) => b.weight - a.weight);
+  const topSignals = sorted.slice(0, 3);
+
+  const categoryLabels: Record<string, string> = {
+    STRUCTURAL: "structural",
+    PATTERN: "trading pattern",
+    ALERT: "regulatory alert",
+    BEHAVIORAL: "behavioral",
+  };
+
+  // Count signals by category
+  const categoryCounts: Record<string, number> = {};
+  for (const sig of signals) {
+    categoryCounts[sig.category] = (categoryCounts[sig.category] || 0) + 1;
+  }
+
+  const parts: string[] = [];
+
+  // Summarize top risk factors
+  if (riskLevel === "LOW") {
+    if (signals.length === 0) {
+      parts.push("No significant risk signals were detected across any category.");
+    } else {
+      parts.push(
+        `Only ${signals.length} minor signal${signals.length > 1 ? "s" : ""} detected. ` +
+        `${topSignals[0].description}`
+      );
+    }
+  } else {
+    // For MEDIUM/HIGH — highlight the key findings
+    const topDescs = topSignals.map((s) => s.description);
+    parts.push(`Key factors: ${topDescs.join(". ")}.`);
+
+    // Mention category breadth
+    const cats = Object.entries(categoryCounts)
+      .filter(([, count]) => count > 0)
+      .map(([cat, count]) => `${count} ${categoryLabels[cat] || cat.toLowerCase()}`);
+    if (cats.length > 1) {
+      parts.push(`Signals span ${cats.join(", ")} categories.`);
+    }
+  }
+
+  return parts.join(" ");
+}
+
 export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
+  const riskFactorSummary = buildRiskFactorSummary(signals, riskLevel);
 
   return (
     <Card className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}>
@@ -222,9 +272,16 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
           </div>
         </div>
         {/* Narrative summary — full width, risk-accented, sits between header row and content */}
-        <p className={`text-sm font-medium leading-relaxed text-foreground/85 border-l-[3px] rounded-md pl-3 py-2 mt-3 ${getRiskNarrativeClass(riskLevel)}`}>
-          {narrative.header}
-        </p>
+        <div className={`border-l-[3px] rounded-md pl-3 py-2 mt-3 space-y-1 ${getRiskNarrativeClass(riskLevel)}`}>
+          <p className="text-sm font-medium leading-relaxed text-foreground/85">
+            {narrative.header}
+          </p>
+          {riskFactorSummary && (
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              {riskFactorSummary}
+            </p>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-5">

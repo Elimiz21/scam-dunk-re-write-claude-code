@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Check, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import type { Tagline } from "@/lib/taglines";
 
 export interface Step {
   label: string;
@@ -16,7 +17,7 @@ export interface Step {
 
 interface LoadingStepperProps {
   steps: Step[];
-  currentTip?: string;
+  currentTip?: Tagline | null;
 }
 
 export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
@@ -84,7 +85,7 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                 ) : step.status === "loading" ? (
                   <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
                 ) : (
-                  <span className="text-xs font-medium text-muted-foreground/40">{index + 1}</span>
+                  <span className="text-xs font-medium text-muted-foreground/60">{index + 1}</span>
                 )}
               </div>
 
@@ -95,7 +96,7 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                     "text-sm transition-all duration-500",
                     step.status === "complete" && "text-emerald-600 dark:text-emerald-400 font-medium",
                     step.status === "loading" && "text-foreground font-semibold",
-                    step.status === "pending" && "text-muted-foreground/30"
+                    step.status === "pending" && "text-muted-foreground/50"
                   )}
                 >
                   {step.label}
@@ -156,7 +157,7 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                         "text-xs transition-all duration-500",
                         subStep.status === "complete" && "text-emerald-600 dark:text-emerald-400",
                         subStep.status === "loading" && "text-foreground font-medium",
-                        subStep.status === "pending" && "text-muted-foreground/25"
+                        subStep.status === "pending" && "text-muted-foreground/45"
                       )}
                     >
                       {subStep.label}
@@ -169,11 +170,17 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
         ))}
       </div>
 
-      {/* Rotating tip */}
+      {/* Rotating tip — headline + subtext together */}
       {currentTip && (
-        <div className="p-4 rounded-xl gradient-brand-subtle border border-primary/10 animate-fade-in">
-          <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            {currentTip}
+        <div
+          key={currentTip.headline}
+          className="p-5 rounded-2xl gradient-brand-subtle border border-primary/15 animate-fade-in"
+        >
+          <p className="font-display text-base text-foreground/90 text-center leading-snug italic mb-1.5">
+            {currentTip.headline}
+          </p>
+          <p className="text-xs text-muted-foreground/70 text-center tracking-wide uppercase font-medium">
+            {currentTip.subtext}
           </p>
         </div>
       )}
