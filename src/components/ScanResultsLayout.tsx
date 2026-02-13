@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { RiskResponse } from "@/lib/types";
 import { RiskCard } from "@/components/RiskCard";
-import { taglines, Tagline } from "@/lib/taglines";
 import {
   Info,
   Search,
   CheckSquare,
   ClipboardList,
   FileText,
-  Shield,
   AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -121,69 +119,6 @@ function InfoPanel({
   );
 }
 
-/* ─── Rotating Tagline Component ─── */
-
-function RotatingTaglines() {
-  const [currentIndex, setCurrentIndex] = useState(() =>
-    Math.floor(Math.random() * taglines.length)
-  );
-  const [isVisible, setIsVisible] = useState(true);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Fade out
-      setIsVisible(false);
-
-      // After fade out, change tagline and fade in
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % taglines.length);
-        setIsVisible(true);
-      }, 400);
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const current = taglines[currentIndex];
-
-  return (
-    <div className="tagline-area rounded-xl p-5 h-full flex flex-col items-center justify-center text-center">
-      <div className="mb-2">
-        <Shield className="h-5 w-5 text-primary/40 mx-auto" />
-      </div>
-      <div
-        className={cn(
-          "transition-all duration-400 ease-out",
-          isVisible
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 translate-y-2"
-        )}
-      >
-        <p className="font-display text-base sm:text-lg font-semibold text-foreground/90 italic leading-snug mb-2">
-          &ldquo;{current.headline}&rdquo;
-        </p>
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          {current.subtext}
-        </p>
-      </div>
-      {/* Dot indicators */}
-      <div className="flex gap-1.5 mt-4">
-        {taglines.slice(0, 5).map((_, i) => (
-          <div
-            key={i}
-            className={cn(
-              "h-1.5 rounded-full transition-all duration-300",
-              currentIndex % 5 === i
-                ? "w-4 bg-primary/60"
-                : "w-1.5 bg-muted-foreground/20"
-            )}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /* ─── Main Layout ─── */
 
 export function ScanResultsLayout({ result, hasChatData }: ScanResultsLayoutProps) {
@@ -191,16 +126,10 @@ export function ScanResultsLayout({ result, hasChatData }: ScanResultsLayoutProp
     <div className="flex-1 flex flex-col min-h-0">
       {/* Main content area — fills remaining viewport height */}
       <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 pb-2 min-h-0 max-w-7xl mx-auto w-full animate-slide-up">
-        {/* Left side — 60%, split into scrollable scorecard + pinned taglines */}
-        <div className="lg:w-3/5 flex flex-col gap-3 min-h-0">
-          {/* Scorecard — scrollable area, takes remaining space */}
+        {/* Left side — 60%, scorecard fills full height */}
+        <div className="lg:w-3/5 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
             <RiskCard result={result} hasChatData={hasChatData} />
-          </div>
-
-          {/* Rotating taglines — pinned at bottom of left column */}
-          <div className="flex-shrink-0">
-            <RotatingTaglines />
           </div>
         </div>
 

@@ -183,9 +183,9 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   return (
     <Card className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}>
       {/* Header with Risk Level */}
-      <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="space-y-3">
+      <CardHeader className="pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
               {getRiskIcon(riskLevel)}
               <Badge variant={getRiskBadgeVariant(riskLevel)} className="text-xs">
@@ -199,7 +199,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
                 />
               </span>
             </div>
-            <p className="text-sm sm:text-base leading-relaxed text-foreground/90">
+            <p className="text-sm leading-relaxed text-foreground/90">
               {narrative.header}
             </p>
           </div>
@@ -214,9 +214,9 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5">
         {/* Stock Summary Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-secondary/50 rounded-xl border border-border/50">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-secondary/50 rounded-xl border border-border/50">
           <div>
             <p className="text-xs text-muted-foreground font-medium inline-flex items-center gap-0.5 mb-1">
               Exchange
@@ -280,7 +280,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
               </div>
               Stock & Market Behavior
             </h3>
-            <ul className="space-y-2.5 ml-9">
+            <ul className="space-y-2 ml-9">
               {narrative.stockRedFlags.map((flag, index) => {
                 const isPositive = flag.toLowerCase().includes("no concerning") ||
                                    flag.toLowerCase().includes("no red flags") ||
@@ -307,7 +307,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
               </div>
               Pitch & Behavior Patterns
             </h3>
-            <ul className="space-y-2.5 ml-9">
+            <ul className="space-y-2 ml-9">
               {narrative.behaviorRedFlags.map((flag, index) => {
                 const isPositive = flag.toLowerCase().includes("no behavioral") ||
                                    flag.toLowerCase().includes("no red flags") ||
@@ -380,7 +380,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
               </div>
               What You Can Do Now
             </h3>
-            <ul className="space-y-2.5 ml-9">
+            <ul className="space-y-2 ml-9">
               {narrative.suggestions.map((suggestion, index) => (
                 <li
                   key={index}

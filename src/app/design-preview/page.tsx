@@ -177,7 +177,7 @@ const TAB_DESCRIPTIONS: Record<string, { color: string; dotColor: string; bg: st
   "results-high": {
     color: "text-red-600", dotColor: "bg-red-500", bg: "bg-red-500/5",
     title: "HIGH Risk — Full Split-Screen Layout",
-    desc: "Red border on scorecard, red ticker text. Scorecard scrolls internally; taglines pinned at bottom-left. Info panels on right.",
+    desc: "Red border on scorecard, red ticker text. Scorecard scrolls internally on left; info panels on right. Disclaimer bar fixed at bottom.",
   },
   "results-medium": {
     color: "text-amber-600", dotColor: "bg-amber-500", bg: "bg-amber-500/5",
@@ -187,7 +187,7 @@ const TAB_DESCRIPTIONS: Record<string, { color: string; dotColor: string; bg: st
   "results-low": {
     color: "text-emerald-600", dotColor: "bg-emerald-500", bg: "bg-emerald-500/5",
     title: "LOW Risk — Green Border & Ticker",
-    desc: "Green-bordered scorecard, green ticker text, green glow. Tagline pairs rotate every 4 seconds at bottom-left.",
+    desc: "Green-bordered scorecard, green ticker text, green glow. Humorous tagline pairs show only during the scan, not on results.",
   },
   "results-no-chat": {
     color: "text-orange-600", dotColor: "bg-orange-500", bg: "bg-orange-500/5",
@@ -358,7 +358,7 @@ export default function DesignPreviewPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">2</span>
-                <span><strong>Split-screen layout</strong> — Left 60%: scorecard (scrollable) + taglines (pinned). Right 40%: info panels. No page scroll.</span>
+                <span><strong>Split-screen layout</strong> — Left 60%: scorecard (scrollable). Right 40%: info panels. No page scroll. Disclaimer bar pinned at bottom.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">3</span>
@@ -366,7 +366,7 @@ export default function DesignPreviewPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">4</span>
-                <span><strong>Tagline pairs</strong> — Headline + subtext shown together, rotating every 4 seconds.</span>
+                <span><strong>Tagline pairs (scan only)</strong> — Headline + subtext shown together during scan, rotating every 4 seconds. Not shown on results page.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-[10px] font-bold">5</span>
