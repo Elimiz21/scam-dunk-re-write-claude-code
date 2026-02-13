@@ -29,6 +29,7 @@ interface User {
   email: string;
   name: string | null;
   plan: string;
+  formerPro: boolean;
   billingCustomerId: string | null;
   createdAt: string;
   scansThisMonth: number;
@@ -41,6 +42,7 @@ interface UserDetails {
     email: string;
     name: string | null;
     plan: string;
+    formerPro: boolean;
     billingCustomerId: string | null;
     emailVerified: string | null;
     createdAt: string;
@@ -71,6 +73,7 @@ interface Stats {
   totalUsers: number;
   freeUsers: number;
   paidUsers: number;
+  formerProUsers: number;
   newUsersLast30Days: number;
 }
 
@@ -168,16 +171,23 @@ export default function UsersPage() {
     }
   }
 
-  function getPlanBadge(plan: string) {
+  function getPlanBadge(plan: string, formerPro?: boolean) {
     return plan === "PAID" ? (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
         <CreditCard className="h-3 w-3 mr-1" />
         PAID
       </span>
     ) : (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-foreground">
-        FREE
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-foreground">
+          FREE
+        </span>
+        {formerPro && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            Former PRO
+          </span>
+        )}
+      </div>
     );
   }
 
@@ -209,7 +219,7 @@ export default function UsersPage() {
     {
       key: "plan",
       header: "Plan",
-      render: (item: User) => getPlanBadge(item.plan),
+      render: (item: User) => getPlanBadge(item.plan, item.formerPro),
     },
     {
       key: "scansThisMonth",
@@ -344,10 +354,11 @@ export default function UsersPage() {
 
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
             <StatCard title="Total Users" value={stats.totalUsers} icon={Users} color="blue" />
             <StatCard title="Free Users" value={stats.freeUsers} icon={Users} color="gray" />
             <StatCard title="Paid Users" value={stats.paidUsers} icon={CreditCard} color="green" />
+            <StatCard title="Former PRO" value={stats.formerProUsers} icon={CreditCard} color="yellow" />
             <StatCard title="New (30 days)" value={stats.newUsersLast30Days} icon={UserPlus} color="indigo" />
           </div>
         )}
@@ -416,7 +427,7 @@ export default function UsersPage() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Plan</p>
-                      <p>{getPlanBadge(selectedUser.user.plan)}</p>
+                      <p>{getPlanBadge(selectedUser.user.plan, selectedUser.user.formerPro)}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Joined</p>
