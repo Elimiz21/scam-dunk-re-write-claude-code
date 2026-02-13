@@ -100,6 +100,19 @@ function getRiskGlowClass(level: RiskLevel) {
   }
 }
 
+function getRiskNarrativeClass(level: RiskLevel) {
+  switch (level) {
+    case "LOW":
+      return "border-l-emerald-500/60 bg-emerald-500/5";
+    case "MEDIUM":
+      return "border-l-amber-500/60 bg-amber-500/5";
+    case "HIGH":
+      return "border-l-red-500/60 bg-red-500/5";
+    case "INSUFFICIENT":
+      return "border-l-gray-400/60 bg-gray-500/5";
+  }
+}
+
 /**
  * Technical term patterns and their associated glossary definitions
  */
@@ -208,13 +221,14 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
             </p>
           </div>
         </div>
-        {/* Narrative — full width below the top row */}
-        <p className="text-sm leading-relaxed text-foreground/90 mt-3">
-          {narrative.header}
-        </p>
       </CardHeader>
 
       <CardContent className="space-y-5">
+        {/* Narrative summary — full width, risk-accented */}
+        <p className={`text-[13px] font-medium leading-relaxed text-foreground/85 border-l-[3px] rounded-md pl-3 py-2 ${getRiskNarrativeClass(riskLevel)}`}>
+          {narrative.header}
+        </p>
+
         {/* Stock Summary Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-secondary/50 rounded-xl border border-border/50">
           <div>
