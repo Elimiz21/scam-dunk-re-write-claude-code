@@ -66,13 +66,15 @@ function LoginForm() {
       const data = await res.json();
 
       if (res.ok && data.success) {
+        // Wait a moment for background seed to populate data, then redirect
+        await new Promise((resolve) => setTimeout(resolve, 2000));
         router.push("/admin/browser-agents");
       } else {
         setError(data.error || "Preview login not available in this environment");
+        setPreviewLoading(false);
       }
     } catch {
       setError("Preview login failed. This may not be a preview deployment.");
-    } finally {
       setPreviewLoading(false);
     }
   }
@@ -273,7 +275,7 @@ function LoginForm() {
                 ) : (
                   <Monitor className="h-4 w-4" />
                 )}
-                {previewLoading ? "Logging in..." : "Preview Login (Auto)"}
+                {previewLoading ? "Logging in & loading demo data..." : "Preview Login (Auto)"}
               </button>
             </div>
           )}
