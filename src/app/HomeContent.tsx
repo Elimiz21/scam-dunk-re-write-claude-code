@@ -2,15 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { ScanInput } from "@/components/ScanInput";
-import { RiskCard } from "@/components/RiskCard";
 import { LimitReached } from "@/components/LimitReached";
 import { LoadingStepper } from "@/components/LoadingStepper";
-import { Shield, TrendingUp, AlertTriangle, Zap, Sparkles, ArrowRight, BarChart3, Eye, Brain } from "lucide-react";
+import { ScanResultsLayout } from "@/components/ScanResultsLayout";
+import { Shield, AlertTriangle, Eye } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
 import { getRandomTagline, taglines } from "@/lib/taglines";
 import { LandingOptionA } from "@/components/landing/LandingOptionA";
@@ -37,6 +36,7 @@ export default function HomeContent() {
   const [limitReached, setLimitReached] = useState<LimitReachedResponse | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [currentTicker, setCurrentTicker] = useState("");
+  const [hasChatData, setHasChatData] = useState(false);
 
   const [steps, setSteps] = useState<Step[]>([
     { label: "Validating ticker symbol", status: "pending" },
@@ -118,6 +118,7 @@ export default function HomeContent() {
     setLimitReached(null);
     setIsLoading(true);
     setCurrentTicker(data.ticker);
+    setHasChatData(!!data.pitchText?.trim());
 
     // Reset steps with enhanced granular progress
     const initialSteps: Step[] = [
@@ -411,19 +412,9 @@ export default function HomeContent() {
             </div>
           )}
 
-          {/* Results */}
+          {/* Results — new split-screen layout */}
           {result && !isLoading && (
-            <div className="flex-1 overflow-y-auto p-4 pb-8">
-              <div className="max-w-3xl mx-auto space-y-6 animate-slide-up">
-                <RiskCard result={result} />
-                <div className="flex justify-center gap-3">
-                  <Button variant="outline" onClick={handleNewScan} className="gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Check another
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <ScanResultsLayout result={result} hasChatData={hasChatData} onNewScan={handleNewScan} />
           )}
 
           {/* Welcome State (no result, not loading) */}

@@ -10,12 +10,15 @@ import {
   ClipboardList,
   FileText,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface ScanResultsLayoutProps {
   result: RiskResponse;
   hasChatData: boolean;
+  onNewScan?: () => void;
 }
 
 /* ─── Right-side info panel content ─── */
@@ -121,7 +124,7 @@ function InfoPanel({
 
 /* ─── Main Layout ─── */
 
-export function ScanResultsLayout({ result, hasChatData }: ScanResultsLayoutProps) {
+export function ScanResultsLayout({ result, hasChatData, onNewScan }: ScanResultsLayoutProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Main content area — fills remaining viewport height */}
@@ -130,6 +133,14 @@ export function ScanResultsLayout({ result, hasChatData }: ScanResultsLayoutProp
         <div className="lg:w-3/5 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
             <RiskCard result={result} hasChatData={hasChatData} />
+            {onNewScan && (
+              <div className="flex justify-center py-4">
+                <Button variant="outline" onClick={onNewScan} className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Check another
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
