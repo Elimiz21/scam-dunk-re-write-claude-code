@@ -184,34 +184,34 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
     <Card className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}>
       {/* Header with Risk Level */}
       <CardHeader className="pb-3">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2.5">
-              {getRiskIcon(riskLevel)}
-              <Badge variant={getRiskBadgeVariant(riskLevel)} className="text-xs">
-                {riskLevel} RISK
-              </Badge>
-              <span className="text-sm text-muted-foreground inline-flex items-center gap-1 font-medium">
-                Score: <span className="font-bold text-foreground">{totalScore}</span>
-                <InfoTooltip
-                  term={RISK_LEVEL_TERMS.riskScore.term}
-                  definition={RISK_LEVEL_TERMS.riskScore.definition}
-                />
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-foreground/90">
-              {narrative.header}
-            </p>
+        {/* Top row: badge + score on left, ticker + company on right */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {getRiskIcon(riskLevel)}
+            <Badge variant={getRiskBadgeVariant(riskLevel)} className="text-xs">
+              {riskLevel} RISK
+            </Badge>
+            <span className="text-sm text-muted-foreground inline-flex items-center gap-1 font-medium">
+              Score: <span className="font-bold text-foreground">{totalScore}</span>
+              <InfoTooltip
+                term={RISK_LEVEL_TERMS.riskScore.term}
+                definition={RISK_LEVEL_TERMS.riskScore.definition}
+              />
+            </span>
           </div>
-          <div className="sm:text-right flex-shrink-0">
+          <div className="text-right flex-shrink-0">
             <p className={`font-bold text-lg ${getRiskTickerClass(riskLevel)}`}>
               {stockSummary.ticker}
             </p>
-            <p className="text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
+            <p className="text-sm text-muted-foreground truncate max-w-[200px]">
               {stockSummary.companyName}
             </p>
           </div>
         </div>
+        {/* Narrative — full width below the top row */}
+        <p className="text-sm leading-relaxed text-foreground/90 mt-3">
+          {narrative.header}
+        </p>
       </CardHeader>
 
       <CardContent className="space-y-5">
