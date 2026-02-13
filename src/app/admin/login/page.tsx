@@ -66,8 +66,6 @@ function LoginForm() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // Wait a moment for background seed to populate data, then redirect
-        await new Promise((resolve) => setTimeout(resolve, 2000));
         router.push("/admin/browser-agents");
       } else {
         setError(data.error || "Preview login not available in this environment");

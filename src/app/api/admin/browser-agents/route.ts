@@ -28,33 +28,47 @@ export async function GET(request: NextRequest) {
     if (platform) where.platform = platform;
     if (status) where.status = status;
 
-    // Fetch sessions, platform configs, and stats in parallel
-    const [sessions, totalSessions, platformConfigs, stats, recentEvidence] =
-      await Promise.all([
-        prisma.browserAgentSession.findMany({
-          where,
-          orderBy: { createdAt: "desc" },
-          skip: (page - 1) * limit,
-          take: limit,
-          include: {
-            _count: { select: { evidence: true } },
+    // Fetch all data in parallel, tolerating individual failures so the
+    // page still renders partial data instead of showing a blanket error.
+    const results = await Promise.allSettled([
+      prisma.browserAgentSession.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          _count: { select: { evidence: true } },
+        },
+      }),
+      prisma.browserAgentSession.count({ where }),
+      prisma.browserPlatformConfig.findMany({
+        orderBy: { platform: "asc" },
+      }),
+      getBrowserAgentStats(),
+      prisma.browserEvidence.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: {
+          session: {
+            select: { platform: true, scanDate: true },
           },
-        }),
-        prisma.browserAgentSession.count({ where }),
-        prisma.browserPlatformConfig.findMany({
-          orderBy: { platform: "asc" },
-        }),
-        getBrowserAgentStats(),
-        prisma.browserEvidence.findMany({
-          orderBy: { createdAt: "desc" },
-          take: 10,
-          include: {
-            session: {
-              select: { platform: true, scanDate: true },
-            },
-          },
-        }),
-      ]);
+        },
+      }),
+    ]);
+
+    const sessions = results[0].status === "fulfilled" ? results[0].value : [];
+    const totalSessions = results[1].status === "fulfilled" ? results[1].value : 0;
+    const platformConfigs = results[2].status === "fulfilled" ? results[2].value : [];
+    const stats = results[3].status === "fulfilled" ? results[3].value : getEmptyStats();
+    const recentEvidence = results[4].status === "fulfilled" ? results[4].value : [];
+
+    // Log any individual failures for debugging
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        const labels = ["sessions", "sessionCount", "platformConfigs", "stats", "evidence"];
+        console.error(`Browser agents query failed [${labels[i]}]:`, r.reason);
+      }
+    });
 
     return NextResponse.json({
       sessions,
@@ -170,67 +184,86 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function getBrowserAgentStats() {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const weekAgo = new Date(todayStart);
-  weekAgo.setDate(weekAgo.getDate() - 7);
-
-  const [
-    totalSessions,
-    todaySessions,
-    weekSessions,
-    totalEvidence,
-    runningSessions,
-    platformBreakdown,
-    avgBrowserMinutes,
-    suspensionCount,
-  ] = await Promise.all([
-    prisma.browserAgentSession.count(),
-    prisma.browserAgentSession.count({
-      where: { scanDate: { gte: todayStart } },
-    }),
-    prisma.browserAgentSession.count({
-      where: { scanDate: { gte: weekAgo } },
-    }),
-    prisma.browserEvidence.count(),
-    prisma.browserAgentSession.count({
-      where: { status: { in: ["RUNNING", "PENDING"] } },
-    }),
-    prisma.browserAgentSession.groupBy({
-      by: ["platform"],
-      _count: { id: true },
-      _sum: { mentionsFound: true, pagesVisited: true, browserMinutes: true },
-      where: { scanDate: { gte: weekAgo } },
-    }),
-    prisma.browserAgentSession.aggregate({
-      _avg: { browserMinutes: true },
-      where: {
-        status: "COMPLETED",
-        scanDate: { gte: weekAgo },
-      },
-    }),
-    prisma.browserAgentSession.aggregate({
-      _sum: { suspensionCount: true },
-      where: { scanDate: { gte: weekAgo } },
-    }),
-  ]);
-
+function getEmptyStats() {
   return {
-    totalSessions,
-    todaySessions,
-    weekSessions,
-    totalEvidence,
-    runningSessions,
-    platformBreakdown: platformBreakdown.map((p) => ({
-      platform: p.platform,
-      sessions: p._count.id,
-      mentions: p._sum.mentionsFound || 0,
-      pagesVisited: p._sum.pagesVisited || 0,
-      browserMinutes: Math.round((p._sum.browserMinutes || 0) * 10) / 10,
-    })),
-    avgBrowserMinutes:
-      Math.round((avgBrowserMinutes._avg.browserMinutes || 0) * 10) / 10,
-    totalSuspensions: suspensionCount._sum.suspensionCount || 0,
+    totalSessions: 0,
+    todaySessions: 0,
+    weekSessions: 0,
+    totalEvidence: 0,
+    runningSessions: 0,
+    platformBreakdown: [],
+    avgBrowserMinutes: 0,
+    totalSuspensions: 0,
   };
+}
+
+async function getBrowserAgentStats() {
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(todayStart);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const results = await Promise.allSettled([
+      prisma.browserAgentSession.count(),
+      prisma.browserAgentSession.count({
+        where: { scanDate: { gte: todayStart } },
+      }),
+      prisma.browserAgentSession.count({
+        where: { scanDate: { gte: weekAgo } },
+      }),
+      prisma.browserEvidence.count(),
+      prisma.browserAgentSession.count({
+        where: { status: { in: ["RUNNING", "PENDING"] } },
+      }),
+      prisma.browserAgentSession.groupBy({
+        by: ["platform"],
+        _count: { id: true },
+        _sum: { mentionsFound: true, pagesVisited: true, browserMinutes: true },
+        where: { scanDate: { gte: weekAgo } },
+      }),
+      prisma.browserAgentSession.aggregate({
+        _avg: { browserMinutes: true },
+        where: {
+          status: "COMPLETED",
+          scanDate: { gte: weekAgo },
+        },
+      }),
+      prisma.browserAgentSession.aggregate({
+        _sum: { suspensionCount: true },
+        where: { scanDate: { gte: weekAgo } },
+      }),
+    ]);
+
+    const val = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
+      r.status === "fulfilled" ? r.value : fallback;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const platformBreakdown = val(results[5] as any, []) as any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const avgResult = val(results[6] as any, { _avg: { browserMinutes: null } }) as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const suspResult = val(results[7] as any, { _sum: { suspensionCount: 0 } }) as any;
+
+    return {
+      totalSessions: val(results[0], 0) as number,
+      todaySessions: val(results[1], 0) as number,
+      weekSessions: val(results[2], 0) as number,
+      totalEvidence: val(results[3], 0) as number,
+      runningSessions: val(results[4], 0) as number,
+      platformBreakdown: platformBreakdown.map((p: Record<string, unknown>) => ({
+        platform: p.platform,
+        sessions: (p._count as Record<string, number>)?.id || 0,
+        mentions: (p._sum as Record<string, number>)?.mentionsFound || 0,
+        pagesVisited: (p._sum as Record<string, number>)?.pagesVisited || 0,
+        browserMinutes: Math.round(((p._sum as Record<string, number>)?.browserMinutes || 0) * 10) / 10,
+      })),
+      avgBrowserMinutes:
+        Math.round((avgResult._avg?.browserMinutes || 0) * 10) / 10,
+      totalSuspensions: suspResult._sum?.suspensionCount || 0,
+    };
+  } catch (err) {
+    console.error("getBrowserAgentStats error:", err);
+    return getEmptyStats();
+  }
 }

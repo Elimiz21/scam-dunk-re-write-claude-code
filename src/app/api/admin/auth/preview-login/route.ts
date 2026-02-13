@@ -70,15 +70,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Seed demo data in the background (don't block the login response)
-    seedPreviewData().catch((err) =>
-      console.error("Preview seed error (non-fatal):", err)
-    );
+    // Seed demo data before responding (must complete before Vercel
+    // terminates the serverless function, so we await instead of fire-and-forget)
+    try {
+      await seedPreviewData();
+    } catch (err) {
+      console.error("Preview seed error (non-fatal):", err);
+    }
 
     return NextResponse.json({
       success: true,
       admin: result.admin,
       isPreview: true,
+      seeded: true,
     });
   } catch (error) {
     console.error("Preview login error:", error);
