@@ -281,6 +281,27 @@ export async function handleWebhook(
         break;
       }
 
+      case "PAYMENT.SALE.DENIED":
+      case "PAYMENT.SALE.REFUNDED":
+      case "PAYMENT.SALE.REVERSED":
+      case "BILLING.SUBSCRIPTION.PAYMENT.FAILED": {
+        // Payment failed, refunded, or reversed — PayPal will retry automatically.
+        // We do NOT revoke PRO here; PayPal retries up to 3 times over ~15 days.
+        // If all retries fail, PayPal suspends the subscription and sends
+        // BILLING.SUBSCRIPTION.SUSPENDED, which is handled above and revokes PRO.
+        const subscriptionId = resource.billing_agreement_id || resource.id;
+
+        const user = await prisma.user.findFirst({
+          where: { billingCustomerId: subscriptionId },
+        });
+
+        console.warn(
+          `PayPal payment issue for user ${user?.id || "unknown"}: ${eventType}` +
+          ` (subscription: ${subscriptionId}). PayPal will retry automatically.`
+        );
+        break;
+      }
+
       default:
         console.log(`Unhandled PayPal webhook event: ${eventType}`);
     }
