@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,15 +10,16 @@ import { ScanInput } from "@/components/ScanInput";
 import { RiskCard } from "@/components/RiskCard";
 import { LimitReached } from "@/components/LimitReached";
 import { LoadingStepper } from "@/components/LoadingStepper";
+import { ScanResultsLayout } from "@/components/ScanResultsLayout";
 import { Shield, TrendingUp, AlertTriangle, Zap, Sparkles, ArrowRight, BarChart3, Eye, Brain } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
-import { getRandomTagline, taglines } from "@/lib/taglines";
+import { getRandomTagline, taglines, Tagline } from "@/lib/taglines";
 import { LandingOptionA } from "@/components/landing/LandingOptionA";
 import { useToast } from "@/components/ui/toast";
 import { Step } from "@/components/LoadingStepper";
 
-// Scanning tips derived from taglines for rotation during analysis
-const scanningTips = taglines.map(t => t.headline);
+// Minimum scan duration in ms (8 seconds)
+const MIN_SCAN_DURATION_MS = 8000;
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -37,6 +38,7 @@ export default function HomePage() {
   const [limitReached, setLimitReached] = useState<LimitReachedResponse | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [currentTicker, setCurrentTicker] = useState("");
+  const [hasChatData, setHasChatData] = useState(false);
 
   const [steps, setSteps] = useState<Step[]>([
     { label: "Validating ticker symbol", status: "pending" },
@@ -53,8 +55,10 @@ export default function HomePage() {
     { label: "Checking regulatory alerts", status: "pending" },
     { label: "Generating risk report", status: "pending" },
   ]);
-  const [currentTip, setCurrentTip] = useState<string>("");
-  const [tipIndex, setTipIndex] = useState(0);
+
+  // Rotating tagline state — shows headline + subtext together
+  const [currentTagline, setCurrentTagline] = useState<Tagline | null>(null);
+  const [taglineIndex, setTaglineIndex] = useState(0);
 
   // Homepage hero content from admin DB
   const [heroContent, setHeroContent] = useState<{ headline?: string; subheadline?: string }>({});
@@ -100,6 +104,7 @@ export default function HomePage() {
     ticker: string;
     assetType: AssetType;
     pitchText?: string;
+    chatImages?: File[];
     context?: {
       unsolicited: boolean;
       promisesHighReturns: boolean;
@@ -119,7 +124,14 @@ export default function HomePage() {
     setIsLoading(true);
     setCurrentTicker(data.ticker);
 
-    // Reset steps with enhanced granular progress
+    // Track whether the user submitted chat/pitch data
+    const userHasChatData = !!(data.pitchText?.trim() || (data.chatImages && data.chatImages.length > 0));
+    setHasChatData(userHasChatData);
+
+    // Record start time for minimum duration enforcement
+    const scanStartTime = Date.now();
+
+    // Reset steps — all visible from start in fuzzy/dim state
     const initialSteps: Step[] = [
       { label: "Validating ticker symbol", status: "loading" },
       { label: "Fetching market data", status: "pending" },
@@ -137,25 +149,24 @@ export default function HomePage() {
     ];
     setSteps(initialSteps);
 
-    // Start rotating tips
-    const startTipIndex = Math.floor(Math.random() * scanningTips.length);
-    setTipIndex(startTipIndex);
-    setCurrentTip(scanningTips[startTipIndex]);
+    // Start rotating taglines — show headline + subtext pairs every 4 seconds
+    const startIdx = Math.floor(Math.random() * taglines.length);
+    setTaglineIndex(startIdx);
+    setCurrentTagline(taglines[startIdx]);
 
-    // Rotate tips every 3 seconds
     const tipInterval = setInterval(() => {
-      setTipIndex((prev) => {
-        const nextIndex = (prev + 1) % scanningTips.length;
-        setCurrentTip(scanningTips[nextIndex]);
+      setTaglineIndex((prev) => {
+        const nextIndex = (prev + 1) % taglines.length;
+        setCurrentTagline(taglines[nextIndex]);
         return nextIndex;
       });
-    }, 3000);
+    }, 4000);
 
     try {
-      // Simulate step progress with enhanced details
+      // Simulate step progress with enhanced timing for 8-second minimum
       const simulateSteps = async () => {
-        // Step 1: Validating ticker - quick
-        await new Promise((r) => setTimeout(r, 300));
+        // Step 1: Validating ticker — 800ms
+        await new Promise((r) => setTimeout(r, 800));
         setSteps((s) => [
           { ...s[0], status: "complete", detail: `${data.ticker.toUpperCase()} is valid` },
           { ...s[1], status: "loading" },
@@ -164,8 +175,8 @@ export default function HomePage() {
           s[4],
         ]);
 
-        // Step 2: Fetching market data
-        await new Promise((r) => setTimeout(r, 600));
+        // Step 2: Fetching market data — 1200ms
+        await new Promise((r) => setTimeout(r, 1200));
         setSteps((s) => [
           s[0],
           { ...s[1], status: "complete", detail: "Retrieved price history and company data" },
@@ -182,8 +193,8 @@ export default function HomePage() {
           s[4],
         ]);
 
-        // Step 3a: Price patterns
-        await new Promise((r) => setTimeout(r, 400));
+        // Step 3a: Price patterns — 1000ms
+        await new Promise((r) => setTimeout(r, 1000));
         setSteps((s) => [
           s[0],
           s[1],
@@ -200,8 +211,8 @@ export default function HomePage() {
           s[4],
         ]);
 
-        // Step 3b: Volume anomalies
-        await new Promise((r) => setTimeout(r, 350));
+        // Step 3b: Volume anomalies — 900ms
+        await new Promise((r) => setTimeout(r, 900));
         setSteps((s) => [
           s[0],
           s[1],
@@ -218,8 +229,8 @@ export default function HomePage() {
           s[4],
         ]);
 
-        // Step 3c: Pump-and-dump signals
-        await new Promise((r) => setTimeout(r, 350));
+        // Step 3c: Pump-and-dump signals — 900ms
+        await new Promise((r) => setTimeout(r, 900));
         setSteps((s) => [
           s[0],
           s[1],
@@ -237,14 +248,24 @@ export default function HomePage() {
           s[4],
         ]);
 
-        // Step 4: Regulatory alerts
-        await new Promise((r) => setTimeout(r, 300));
+        // Step 4: Regulatory alerts — 1000ms
+        await new Promise((r) => setTimeout(r, 1000));
         setSteps((s) => [
           s[0],
           s[1],
           s[2],
           { ...s[3], status: "complete", detail: "SEC and alert databases checked" },
           { ...s[4], status: "loading" },
+        ]);
+
+        // Step 5: Generating report — 800ms
+        await new Promise((r) => setTimeout(r, 800));
+        setSteps((s) => [
+          s[0],
+          s[1],
+          s[2],
+          s[3],
+          { ...s[4], status: "complete", detail: "Analysis complete" }
         ]);
       };
 
@@ -262,14 +283,19 @@ export default function HomePage() {
         simulateSteps(),
       ]);
 
-      // Complete final step
-      setSteps((s) => [
-        s[0],
-        s[1],
-        s[2],
-        s[3],
-        { ...s[4], status: "complete", detail: "Analysis complete" }
-      ]);
+      // Enforce minimum 8-second scan duration
+      const elapsed = Date.now() - scanStartTime;
+      if (elapsed < MIN_SCAN_DURATION_MS) {
+        await new Promise((r) => setTimeout(r, MIN_SCAN_DURATION_MS - elapsed));
+      }
+
+      // Ensure all steps show as complete
+      setSteps((s) => s.map((step) => ({
+        ...step,
+        status: "complete" as const,
+        detail: step.detail || (step.label === "Generating risk report" ? "Analysis complete" : step.detail),
+        subSteps: step.subSteps?.map((sub) => ({ ...sub, status: "complete" as const })),
+      })));
 
       // Stop tip rotation
       clearInterval(tipInterval);
@@ -295,7 +321,7 @@ export default function HomePage() {
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
-      setCurrentTip("");
+      setCurrentTagline(null);
     }
   };
 
@@ -304,6 +330,7 @@ export default function HomePage() {
     setLimitReached(null);
     setError("");
     setCurrentTicker("");
+    setHasChatData(false);
   };
 
   const handleShare = async () => {
@@ -406,24 +433,31 @@ export default function HomePage() {
                   </h2>
                   <p className="text-sm text-muted-foreground">Running multi-layer risk detection</p>
                 </div>
-                <LoadingStepper steps={steps} currentTip={currentTip} />
+                <LoadingStepper
+                  steps={steps}
+                  currentTip={
+                    currentTagline
+                      ? `"${currentTagline.headline}" — ${currentTagline.subtext}`
+                      : undefined
+                  }
+                />
               </div>
             </div>
           )}
 
-          {/* Results */}
+          {/* Results — new split-screen layout */}
           {result && !isLoading && (
-            <div className="flex-1 overflow-y-auto p-4 pb-8">
-              <div className="max-w-3xl mx-auto space-y-6 animate-slide-up">
-                <RiskCard result={result} />
-                <div className="flex justify-center gap-3">
+            <>
+              <div className="px-4 pt-4 pb-2">
+                <div className="max-w-7xl mx-auto flex justify-center">
                   <Button variant="outline" onClick={handleNewScan} className="gap-2">
                     <Sparkles className="h-4 w-4" />
                     Check another
                   </Button>
                 </div>
               </div>
-            </div>
+              <ScanResultsLayout result={result} hasChatData={hasChatData} />
+            </>
           )}
 
           {/* Welcome State (no result, not loading) */}

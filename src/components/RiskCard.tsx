@@ -23,11 +23,13 @@ import {
   Info,
   Shield,
   BarChart3,
+  MessageSquareOff,
 } from "lucide-react";
 import { formatNumber, formatPrice } from "@/lib/utils";
 
 interface RiskCardProps {
   result: RiskResponse;
+  hasChatData?: boolean;
 }
 
 function getRiskBadgeVariant(
@@ -59,16 +61,29 @@ function getRiskIcon(level: RiskLevel) {
   }
 }
 
-function getRiskBorderClass(level: RiskLevel) {
+function getRiskFullBorderClass(level: RiskLevel) {
   switch (level) {
     case "LOW":
-      return "risk-border-low";
+      return "risk-border-full-low";
     case "MEDIUM":
-      return "risk-border-medium";
+      return "risk-border-full-medium";
     case "HIGH":
-      return "risk-border-high";
+      return "risk-border-full-high";
     case "INSUFFICIENT":
-      return "risk-border-insufficient";
+      return "risk-border-full-insufficient";
+  }
+}
+
+function getRiskTickerClass(level: RiskLevel) {
+  switch (level) {
+    case "LOW":
+      return "risk-ticker-low";
+    case "MEDIUM":
+      return "risk-ticker-medium";
+    case "HIGH":
+      return "risk-ticker-high";
+    case "INSUFFICIENT":
+      return "risk-ticker-insufficient";
   }
 }
 
@@ -162,11 +177,11 @@ function FlagItem({
   );
 }
 
-export function RiskCard({ result }: RiskCardProps) {
+export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
 
   return (
-    <Card className={`w-full card-elevated overflow-hidden ${getRiskBorderClass(riskLevel)}`}>
+    <Card className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}>
       {/* Header with Risk Level */}
       <CardHeader className="pb-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -189,7 +204,9 @@ export function RiskCard({ result }: RiskCardProps) {
             </p>
           </div>
           <div className="sm:text-right flex-shrink-0">
-            <p className="font-bold text-lg gradient-brand-text">{stockSummary.ticker}</p>
+            <p className={`font-bold text-lg ${getRiskTickerClass(riskLevel)}`}>
+              {stockSummary.ticker}
+            </p>
             <p className="text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
               {stockSummary.companyName}
             </p>
@@ -308,6 +325,27 @@ export function RiskCard({ result }: RiskCardProps) {
           </div>
         )}
 
+        {/* No Chat Data Notice */}
+        {!hasChatData && (
+          <div className="space-y-3">
+            <h3 className="flex items-center gap-2.5 font-semibold text-sm">
+              <div className="h-7 w-7 rounded-lg bg-gray-500/10 flex items-center justify-center flex-shrink-0">
+                <MessageSquareOff className="h-3.5 w-3.5 text-gray-400" />
+              </div>
+              Social & Promotion Analysis
+            </h3>
+            <div className="ml-9 p-3 rounded-xl bg-secondary/50 border border-border/50">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                No chat history, messages, or screenshots were uploaded for this scan.
+                Without this data, we cannot analyze social behavior patterns such as
+                unsolicited promotion, urgency tactics, or manipulative language.
+                For a more complete analysis, try scanning again with any suspicious
+                messages or screenshots attached.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Suggestions */}
         {narrative.suggestions.length > 0 && (
           <div className="space-y-3">
@@ -330,18 +368,6 @@ export function RiskCard({ result }: RiskCardProps) {
             </ul>
           </div>
         )}
-
-        {/* Disclaimers */}
-        <div className="pt-5 border-t border-border/50">
-          <div className="flex items-start gap-2.5">
-            <Info className="h-4 w-4 text-muted-foreground/60 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-muted-foreground/70 space-y-1 leading-relaxed">
-              {narrative.disclaimers.map((disclaimer, index) => (
-                <p key={index}>{disclaimer}</p>
-              ))}
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
