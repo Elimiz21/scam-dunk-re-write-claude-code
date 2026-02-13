@@ -11,6 +11,9 @@ import {
   ExternalLink,
   Settings,
   Loader2,
+  Bot,
+  User,
+  AlertTriangle,
 } from "lucide-react";
 
 interface Integration {
@@ -213,9 +216,18 @@ export default function IntegrationsPage() {
         ) : (
           Object.entries(groupedIntegrations).map(([category, items]) => (
             <div key={category} className="space-y-4">
-              <h2 className="text-lg font-medium text-foreground capitalize">
-                {category.toLowerCase()} Integrations
+              <h2 className="text-lg font-medium text-foreground">
+                {category === "BROWSER_AGENT"
+                  ? "Personal Account Credentials (Browser Agents)"
+                  : category === "SOCIAL_SCAN"
+                    ? "Social Media Scan APIs"
+                    : `${category.charAt(0) + category.slice(1).toLowerCase()} Integrations`}
               </h2>
+              {category === "BROWSER_AGENT" && (
+                <p className="text-sm text-muted-foreground -mt-2">
+                  Your personal social media accounts used by browser agents to scan platforms that don&apos;t have public APIs.
+                </p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {items.map((integration) => (
                   <div
@@ -228,9 +240,23 @@ export default function IntegrationsPage() {
                       <div className="flex items-center">
                         {getStatusIcon(integration.status)}
                         <div className="ml-3">
-                          <h3 className="text-lg font-medium text-foreground">
-                            {integration.displayName}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-medium text-foreground">
+                              {integration.displayName}
+                            </h3>
+                            {integration.name === "DISCORD_BOT" && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                <Bot className="h-3 w-3" />
+                                Bot
+                              </span>
+                            )}
+                            {integration.category === "BROWSER_AGENT" && integration.name !== "BROWSER_ENCRYPTION_KEY" && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <User className="h-3 w-3" />
+                                Personal
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">{integration.description}</p>
                         </div>
                       </div>
@@ -242,10 +268,23 @@ export default function IntegrationsPage() {
                         {integration.status}
                       </span>
                     </div>
+                    {/* Special notes for specific integrations */}
+                    {integration.name === "DISCORD_BOT" && integration.apiKeyMasked !== "Not configured" && (
+                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800 flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <span>Bot is set up but not linked to any Discord servers yet. Invite the bot to target servers to start monitoring.</span>
+                      </div>
+                    )}
 
                     <div className="mt-4 space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">API Key</span>
+                        <span className="text-muted-foreground">
+                          {integration.category === "BROWSER_AGENT" && integration.name !== "BROWSER_ENCRYPTION_KEY"
+                            ? "Account"
+                            : integration.name === "DISCORD_BOT"
+                              ? "Bot Token"
+                              : "API Key"}
+                        </span>
                         <span className="font-mono text-foreground">
                           {integration.apiKeyMasked || "Not configured"}
                         </span>
