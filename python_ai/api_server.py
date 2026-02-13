@@ -107,6 +107,16 @@ class StockInfo(BaseModel):
     avg_volume: Optional[float] = None
 
 
+class NewsVerificationResult(BaseModel):
+    """Result of news verification for HIGH risk stocks"""
+    has_legitimate_catalyst: bool = False
+    has_sec_filings: bool = False
+    has_promotional_signals: bool = False
+    catalyst_summary: str = ''
+    should_reduce_risk: bool = False
+    recommended_level: str = 'HIGH'
+
+
 class AnalysisResponse(BaseModel):
     """Response model for scam analysis"""
     ticker: str
@@ -127,6 +137,8 @@ class AnalysisResponse(BaseModel):
     analysis_timestamp: str
     # Additional stock info for frontend display
     stock_info: Optional[StockInfo] = None
+    # News verification result (only present for initially-HIGH risk)
+    news_verification: Optional[NewsVerificationResult] = None
 
 
 class HealthResponse(BaseModel):
@@ -313,6 +325,19 @@ async def analyze_asset(request: AnalysisRequest):
             avg_volume=data_summary.get('avg_daily_volume') or data_summary.get('avg_volume')
         )
 
+        # Build news verification result if present
+        news_ver = None
+        if assessment.news_verification:
+            nv = assessment.news_verification
+            news_ver = NewsVerificationResult(
+                has_legitimate_catalyst=nv.get('has_legitimate_catalyst', False),
+                has_sec_filings=nv.get('has_sec_filings', False),
+                has_promotional_signals=nv.get('has_promotional_signals', False),
+                catalyst_summary=nv.get('catalyst_summary', ''),
+                should_reduce_risk=nv.get('should_reduce_risk', False),
+                recommended_level=nv.get('recommended_level', 'HIGH'),
+            )
+
         return AnalysisResponse(
             ticker=request.ticker.upper(),
             asset_type=request.asset_type,
@@ -330,7 +355,8 @@ async def analyze_asset(request: AnalysisRequest):
             is_micro_cap=data_summary.get('market_cap', float('inf')) < 50_000_000 if data_summary.get('market_cap') else False,
             data_available=True,
             analysis_timestamp=assessment.timestamp,
-            stock_info=stock_info
+            stock_info=stock_info,
+            news_verification=news_ver
         )
 
     except Exception as e:

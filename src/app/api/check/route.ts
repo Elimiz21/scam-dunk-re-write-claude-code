@@ -80,6 +80,14 @@ async function callPythonAIBackend(
     marketCap?: number;
     avgVolume?: number;
   };
+  newsVerification?: {
+    hasLegitimateCatalyst: boolean;
+    hasSecFilings: boolean;
+    hasPromotionalSignals: boolean;
+    catalystSummary: string;
+    shouldReduceRisk: boolean;
+    recommendedLevel: string;
+  };
 }> {
   // Skip if no backend URL configured
   if (!AI_BACKEND_URL) {
@@ -157,6 +165,14 @@ async function callPythonAIBackend(
         lastPrice: data.stock_info.last_price,
         marketCap: data.stock_info.market_cap,
         avgVolume: data.stock_info.avg_volume,
+      } : undefined,
+      newsVerification: data.news_verification ? {
+        hasLegitimateCatalyst: data.news_verification.has_legitimate_catalyst,
+        hasSecFilings: data.news_verification.has_sec_filings,
+        hasPromotionalSignals: data.news_verification.has_promotional_signals,
+        catalystSummary: data.news_verification.catalyst_summary,
+        shouldReduceRisk: data.news_verification.should_reduce_risk,
+        recommendedLevel: data.news_verification.recommended_level,
       } : undefined,
     };
   } catch (error) {
@@ -374,6 +390,7 @@ export async function POST(request: NextRequest) {
       narrative,
       usage: updatedUsage,
       isLegitimate: scoringResult.isLegitimate,
+      ...(aiResult.newsVerification ? { newsVerification: aiResult.newsVerification } : {}),
     };
 
     return NextResponse.json(response);
