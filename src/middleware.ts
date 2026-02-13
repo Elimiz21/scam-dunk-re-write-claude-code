@@ -10,6 +10,12 @@ const { auth } = NextAuth(authConfig);
  * 2. Uses NextAuth session auth for web requests
  */
 export default async function middleware(request: NextRequest) {
+  // Allow PayPal webhooks through without authentication
+  // (webhook signature is verified in the route handler itself)
+  if (request.nextUrl.pathname === "/api/billing/paypal/webhook") {
+    return NextResponse.next();
+  }
+
   // Check if request has a Bearer token (mobile app)
   const authHeader = request.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {

@@ -456,8 +456,9 @@ export async function getUserSubscriptionInfo(userId: string): Promise<{
     plan: user.plan as "FREE" | "PAID",
   };
 
-  // If user has a subscription, fetch details from PayPal
-  if (user.billingCustomerId && isPayPalConfigured()) {
+  // Only fetch PayPal details for active PAID subscribers to avoid
+  // unnecessary API calls for ex-subscribers who still have billingCustomerId
+  if (user.plan === "PAID" && user.billingCustomerId && isPayPalConfigured()) {
     try {
       const details = await getSubscriptionDetails(user.billingCustomerId);
       result.subscriptionId = user.billingCustomerId;
