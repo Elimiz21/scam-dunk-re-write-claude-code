@@ -397,41 +397,47 @@ export async function cancelSubscription(
       return { success: false, error: "User not found" };
     }
 
-    if (!user.billingCustomerId) {
+    if (user.plan !== "PAID") {
       return { success: false, error: "No active subscription found" };
     }
 
-    // Cancel the subscription via PayPal API
-    const accessToken = await getAccessToken();
-    const startTime = Date.now();
+    // If there's a PayPal subscription, cancel it via the API
+    if (user.billingCustomerId) {
+      const accessToken = await getAccessToken();
+      const startTime = Date.now();
 
-    const response = await fetch(
-      `${PAYPAL_API_BASE}/v1/billing/subscriptions/${user.billingCustomerId}/cancel`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reason: "User requested cancellation from account settings",
-        }),
+      const response = await fetch(
+        `${PAYPAL_API_BASE}/v1/billing/subscriptions/${user.billingCustomerId}/cancel`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reason: "User requested cancellation from account settings",
+          }),
+        }
+      );
+
+      await logApiUsage({
+        service: "PAYPAL",
+        endpoint: "/v1/billing/subscriptions/{id}/cancel",
+        responseTime: Date.now() - startTime,
+        statusCode: response.status,
+        errorMessage: response.ok ? undefined : "Failed to cancel subscription",
+      });
+
+      // PayPal returns 204 No Content on successful cancellation
+      if (response.status !== 204 && !response.ok) {
+        const errorText = await response.text();
+        console.error("PayPal cancel subscription failed:", errorText);
+        return { success: false, error: "Failed to cancel subscription with PayPal" };
       }
-    );
 
-    await logApiUsage({
-      service: "PAYPAL",
-      endpoint: "/v1/billing/subscriptions/{id}/cancel",
-      responseTime: Date.now() - startTime,
-      statusCode: response.status,
-      errorMessage: response.ok ? undefined : "Failed to cancel subscription",
-    });
-
-    // PayPal returns 204 No Content on successful cancellation
-    if (response.status !== 204 && !response.ok) {
-      const errorText = await response.text();
-      console.error("PayPal cancel subscription failed:", errorText);
-      return { success: false, error: "Failed to cancel subscription with PayPal" };
+      console.log(`User ${userId} cancelled PayPal subscription ${user.billingCustomerId}`);
+    } else {
+      console.log(`User ${userId} cancelled manually-upgraded Pro plan (no PayPal subscription)`);
     }
 
     // Update user to FREE plan and mark as former Pro
@@ -440,7 +446,6 @@ export async function cancelSubscription(
       data: { plan: "FREE", formerPro: true },
     });
 
-    console.log(`User ${userId} cancelled PayPal subscription ${user.billingCustomerId}`);
     return { success: true };
   } catch (error) {
     console.error("Error cancelling subscription:", error);
