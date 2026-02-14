@@ -233,7 +233,7 @@ export async function handleWebhook(
         if (user) {
           await prisma.user.update({
             where: { id: user.id },
-            data: { plan: "FREE" },
+            data: { plan: "FREE", formerPro: true },
           });
           console.log(`User ${user.id} downgraded to FREE plan (PayPal subscription ${eventType})`);
         }
@@ -255,6 +255,7 @@ export async function handleWebhook(
             where: { id: user.id },
             data: {
               plan: newPlan,
+              ...(newPlan === "FREE" ? { formerPro: true } : {}),
             },
           });
           console.log(`User ${user.id} subscription updated: ${status}`);
@@ -439,10 +440,10 @@ export async function cancelSubscription(
       console.log(`User ${userId} cancelled manually-upgraded Pro plan (no PayPal subscription)`);
     }
 
-    // Update user to FREE plan
+    // Update user to FREE plan and mark as former Pro
     await prisma.user.update({
       where: { id: userId },
-      data: { plan: "FREE" },
+      data: { plan: "FREE", formerPro: true },
     });
 
     return { success: true };
