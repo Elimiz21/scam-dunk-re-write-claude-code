@@ -25,9 +25,14 @@ logger = logging.getLogger(__name__)
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+AI_API_SECRET = os.environ.get("AI_API_SECRET")
+if not AI_API_SECRET:
+    logger.warning("WARNING: AI_API_SECRET is not set. API endpoints are unprotected!")
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -37,13 +42,24 @@ app = FastAPI(
 )
 
 # Configure CORS for web app access
+allowed_origin = os.environ.get("ALLOWED_ORIGIN", "https://scamdunk.com")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[allowed_origin],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def verify_api_key(request: Request, call_next):
+    if request.url.path in ("/", "/health"):
+        return await call_next(request)
+    if AI_API_SECRET:
+        api_key = request.headers.get("X-API-Key")
+        if api_key != AI_API_SECRET:
+            return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+    return await call_next(request)
 
 # Pipeline will be initialized lazily
 pipeline = None

@@ -115,17 +115,24 @@ export async function verifyPasswordResetToken(token: string): Promise<{ valid: 
 }
 
 /**
- * Consume (use and delete) a password reset token
+ * Consume (use and delete) a password reset token atomically
  */
 export async function consumePasswordResetToken(token: string): Promise<{ valid: boolean; email?: string }> {
-  const result = await verifyPasswordResetToken(token);
-
-  if (result.valid) {
-    // Delete the token after use
-    await prisma.passwordResetToken.deleteMany({
+  return prisma.$transaction(async (tx) => {
+    const resetToken = await tx.passwordResetToken.findUnique({
       where: { token },
     });
-  }
 
-  return result;
+    if (!resetToken) {
+      return { valid: false };
+    }
+
+    if (resetToken.expires < new Date()) {
+      await tx.passwordResetToken.delete({ where: { id: resetToken.id } });
+      return { valid: false };
+    }
+
+    await tx.passwordResetToken.delete({ where: { id: resetToken.id } });
+    return { valid: true, email: resetToken.email };
+  });
 }

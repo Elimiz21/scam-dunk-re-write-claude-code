@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import NextAuth from "next-auth";
 import { authConfig } from "@/lib/auth.config";
+import { jwtVerify } from "jose";
 
 const { auth } = NextAuth(authConfig);
 
 /**
  * Custom middleware that:
- * 1. Allows requests with Bearer tokens to pass through (mobile JWT auth)
+ * 1. Validates Bearer token JWTs for mobile requests
  * 2. Uses NextAuth session auth for web requests
  */
 export default async function middleware(request: NextRequest) {
@@ -19,8 +20,20 @@ export default async function middleware(request: NextRequest) {
   // Check if request has a Bearer token (mobile app)
   const authHeader = request.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
-    // Let the request through - API route will handle JWT validation
-    return NextResponse.next();
+    const token = authHeader.slice(7);
+    const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+    if (!secret) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    try {
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+      if (payload.type !== "access") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      return NextResponse.next();
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   // For web requests, use NextAuth session auth

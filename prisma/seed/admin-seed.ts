@@ -11,10 +11,14 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-// Initial admin owner credentials
-const ADMIN_EMAIL = "elimizroch@gmail.com";
-const ADMIN_PASSWORD = "AdminPassword123!";
-const ADMIN_NAME = "Eli Mizroch";
+// Admin owner credentials from environment
+const ADMIN_EMAIL = process.env.ADMIN_SEED_EMAIL;
+const ADMIN_PASSWORD = process.env.ADMIN_SEED_PASSWORD;
+const ADMIN_NAME = process.env.ADMIN_SEED_NAME || "Admin Owner";
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  throw new Error("ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD must be set");
+}
 
 // Default integrations to create
 const DEFAULT_INTEGRATIONS = [
@@ -113,9 +117,7 @@ async function main() {
   }
 
   console.log("\nAdmin seed completed successfully!");
-  console.log(`\nLogin credentials:`);
-  console.log(`  Email: ${ADMIN_EMAIL}`);
-  console.log(`  Password: ${ADMIN_PASSWORD}`);
+  console.log(`\nAdmin email: ${ADMIN_EMAIL}`);
   console.log(`\nAccess the admin panel at: /admin/login`);
 }
 

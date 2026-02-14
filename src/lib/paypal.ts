@@ -186,14 +186,16 @@ export async function handleWebhook(
   }
 
   try {
-    // Verify webhook signature if webhook ID is configured
+    // Verify webhook signature (required)
     const webhookId = process.env.PAYPAL_WEBHOOK_ID;
-    if (webhookId) {
-      const isValid = await verifyWebhookSignature(webhookId, headers, body);
-      if (!isValid) {
-        console.error("Invalid PayPal webhook signature");
-        return { success: false, error: "Invalid webhook signature" };
-      }
+    if (!webhookId) {
+      console.error("PAYPAL_WEBHOOK_ID is not configured — rejecting webhook");
+      return { success: false, error: "Webhook verification not configured" };
+    }
+    const isValid = await verifyWebhookSignature(webhookId, headers, body);
+    if (!isValid) {
+      console.error("Invalid PayPal webhook signature");
+      return { success: false, error: "Invalid webhook signature" };
     }
 
     const eventType = body.event_type;
@@ -325,13 +327,27 @@ export async function activateSubscription(
   subscriptionId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Get subscription details to verify it's active
+    // Get subscription details to verify it's active and belongs to user
     const subscription = await getSubscriptionDetails(subscriptionId);
 
     if (subscription.status !== "ACTIVE" && subscription.status !== "APPROVED") {
       return {
         success: false,
         error: "Subscription is not active",
+      };
+    }
+
+    // Verify subscription ownership
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    const subscriberEmail = subscription.subscriber?.email_address?.toLowerCase();
+    const customId = subscription.custom_id;
+    if (customId !== userId && subscriberEmail !== user?.email?.toLowerCase()) {
+      return {
+        success: false,
+        error: "Subscription does not belong to this user",
       };
     }
 
