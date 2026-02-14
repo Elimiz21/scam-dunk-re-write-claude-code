@@ -8,21 +8,28 @@
 
 ## Prerequisites & Tooling Setup
 
-### MCP Servers (Need Your Help)
+### MCP Servers (Configured)
 
-No MCP servers are currently configured. The following would be valuable:
+| Server | Purpose | Status |
+|--------|---------|--------|
+| **GitHub** | PR management, issue tracking | Configured |
+| **Supabase** | Direct DB management, schema inspection | Configured |
+| **Vercel** | Preview deployments, env var management | Configured |
 
-| Server | Purpose | Setup Command |
-|--------|---------|---------------|
-| **GitHub** | PR management, issue tracking | `claude mcp add --transport http github https://api.githubcopilot.com/mcp/` |
-| **Supabase** | Direct DB management, schema inspection | Requires Supabase MCP server + API key |
-| **Vercel** | Preview deployments, env var management | Requires Vercel MCP server + token |
+### Plugins (Installed)
 
-**Action needed from you:** Run these setup commands with your credentials, or we can do them together interactively.
+Three official Anthropic plugins are installed in `.claude/plugins/`:
 
-### Skills
+| Plugin | Slash Command | Purpose |
+|--------|--------------|---------|
+| **frontend-design** | `/frontend-design` | Production-grade UI/UX skill (auto-invokes for frontend work) |
+| **code-review** | `/code-review` | Multi-agent PR review — 5 parallel agents for bugs & CLAUDE.md compliance |
+| **pr-review-toolkit** | `/pr-review-toolkit:review-pr` | 6 specialized agents: code-reviewer, code-simplifier, comment-analyzer, pr-test-analyzer, silent-failure-hunter, type-design-analyzer |
 
-Claude Code does not have built-in "code review" or "code simplifier" plugins. These capabilities are handled via subagent prompts in the agent team below. Each batch includes a **verification agent** that performs code review and a **build/test agent** that validates the changes.
+These plugins are used in every batch prompt below:
+- **code-simplifier** agent runs after each implementation to refine code clarity
+- **code-reviewer** agent runs after simplification to catch bugs and standards violations
+- **silent-failure-hunter** agent validates error handling changes (Batches 2b, 3a, 3c)
 
 ### Hooks (Already Configured)
 
@@ -32,32 +39,60 @@ The SessionStart hook is active (npm install + prisma generate). No additional h
 
 ## Agent Team Architecture
 
-Each batch runs as a sequence of agents:
+Each batch runs as a **5-stage multi-agent pipeline**. The prompt orchestrates these agents sequentially — each stage must pass before proceeding to the next:
 
 ```
-┌─────────────┐    ┌──────────────┐    ┌───────────────┐    ┌─────────────┐
-│ IMPLEMENT   │───>│ TEST/BUILD   │───>│ CODE REVIEW   │───>│ COMMIT      │
-│ Agent       │    │ Agent        │    │ Agent         │    │ & Report    │
-│             │    │              │    │               │    │             │
-│ Makes the   │    │ Runs tests,  │    │ Reviews diff  │    │ Commits if  │
-│ code changes│    │ lint, build  │    │ for quality,  │    │ all pass    │
-│             │    │ checks       │    │ security,     │    │             │
-│             │    │              │    │ regressions   │    │             │
-└─────────────┘    └──────────────┘    └───────────────┘    └─────────────┘
+┌─────────────┐    ┌──────────────┐    ┌───────────────┐    ┌───────────────┐    ┌─────────────┐
+│ 1. IMPLEMENT│───>│ 2. TEST      │───>│ 3. SIMPLIFY   │───>│ 4. REVIEW     │───>│ 5. COMMIT   │
+│    Agent    │    │    Agent     │    │    Agent      │    │    Agent      │    │   & Push    │
+│             │    │              │    │               │    │               │    │             │
+│ Makes code  │    │ Per-fix:     │    │ code-simplifier│   │ code-reviewer │    │ Commits if  │
+│ changes for │    │  tsc check   │    │ agent from    │    │ agent from    │    │ all stages  │
+│ each issue  │    │  npm test    │    │ pr-review-    │    │ pr-review-    │    │ passed      │
+│ one at a    │    │  prisma val. │    │ toolkit runs  │    │ toolkit runs  │    │             │
+│ time        │    │ Per-fix:     │    │ on full diff  │    │ on full diff  │    │ Push to     │
+│             │    │  fix before  │    │               │    │               │    │ remote      │
+│             │    │  next issue  │    │               │    │               │    │             │
+└─────────────┘    └──────────────┘    └───────────────┘    └───────────────┘    └─────────────┘
 ```
 
-**Testing constraints in this environment:**
-- `next build` cannot complete (no network access to Google Fonts)
-- `next lint` requires an `.eslintrc.json` (will prompt interactively without one)
-- `jest` tests can run for pure logic (scoring, tokens, etc.)
-- Prisma generate works (already runs in SessionStart hook)
-- Full build verification will happen on Vercel preview deployment
+### Stage Details
+
+**Stage 1 — IMPLEMENT:** Fix each issue one at a time. Read the file, make the change, then immediately move to Stage 2 testing for that fix before starting the next issue.
+
+**Stage 2 — TEST (per-fix):** After each individual fix, run:
+- `npx tsc --noEmit 2>&1 | head -50` — catch type errors immediately
+- `npm test 2>&1` — catch broken tests immediately
+- `npx prisma validate 2>&1` — if schema was touched
+- If any check fails, fix it **before** moving to the next issue. Never batch up broken code.
+
+**Stage 3 — SIMPLIFY:** After all fixes pass testing, launch the **code-simplifier** agent (from pr-review-toolkit) on the full diff. This agent refines clarity, consistency, and maintainability while preserving all functionality. Re-run Stage 2 tests after any simplification changes.
+
+**Stage 4 — REVIEW:** Launch the **code-reviewer** agent (from pr-review-toolkit) on the full diff. This agent checks for bugs, security issues, and project guideline violations with confidence scoring (only flags issues >= 80% confidence). Fix any Critical (90-100) or Important (80-89) issues found, then re-run tests.
+
+**Stage 5 — COMMIT & PUSH:** Only after Stages 1-4 all pass. Commit with the batch-specific message and push to the remote branch.
+
+### Additional Specialized Agents (triggered when relevant)
+
+| Agent | When to Use | Batches |
+|-------|-------------|---------|
+| **silent-failure-hunter** | When error handling, catch blocks, or fallback logic is modified | 1, 2a, 2b, 3a, 3c |
+| **type-design-analyzer** | When new types or interfaces are introduced | 2b (CircuitBreaker), 3b (Zod schemas) |
+| **comment-analyzer** | When significant comments or documentation are added | 2b (H-11 TODO), 4 (L-01 documentation) |
+| **pr-test-analyzer** | When new test files are added or existing tests modified | Any batch that adds tests |
+
+### Testing Constraints
 
 **What we CAN verify locally:**
 - TypeScript compilation (`npx tsc --noEmit`)
 - Jest unit tests (`npm test`)
 - ESLint on specific files (`npx eslint <file>`)
 - Prisma schema validity (`npx prisma validate`)
+
+**What requires Vercel preview deploy:**
+- `next build` (no network access to Google Fonts locally)
+- `next lint` (requires `.eslintrc.json` which breaks Vercel build)
+- Full E2E integration testing
 
 ---
 
@@ -285,7 +320,14 @@ All LOW items in a single batch.
 
 ### How to Run Each Batch
 
-Each batch is a single prompt you give to Claude Code. Copy the prompt, run it, and monitor progress via the todo list.
+Each batch is a single prompt you give to Claude Code. The prompt implements the **5-stage multi-agent pipeline** described above. Copy the prompt, run it, and monitor progress via the todo list.
+
+**Pipeline enforced in every prompt:**
+1. **IMPLEMENT** — Fix issues one at a time
+2. **TEST (per-fix)** — Validate each fix immediately before moving to the next
+3. **SIMPLIFY** — Launch code-simplifier agent on full diff, then re-test
+4. **REVIEW** — Launch code-reviewer agent on full diff, fix any findings, re-test
+5. **COMMIT & PUSH** — Only after all stages pass
 
 ---
 
@@ -294,24 +336,50 @@ Each batch is a single prompt you give to Claude Code. Copy the prompt, run it, 
 ```
 You are fixing the 12 CRITICAL security issues from SECURITY_SCALABILITY_AUDIT.md on branch claude/security-scalability-audit-bVtb4. Follow the implementation details in REMEDIATION_PLAN.md Batch 1 exactly.
 
-RULES:
-1. Read each file BEFORE editing it
-2. Make the minimal change needed — no refactoring, no extra comments
-3. After ALL changes, run: npx tsc --noEmit 2>&1 | head -50
-4. After ALL changes, run: npm test 2>&1
-5. After ALL changes, run: npx prisma validate 2>&1
-6. If any check fails, fix the issue before committing
-7. Commit with message: "fix(security): resolve all 12 CRITICAL audit findings (C-01 through C-12)"
-8. Push to origin/claude/security-scalability-audit-bVtb4
-9. Use TodoWrite to track each issue as a separate task
+## STAGE 1 — IMPLEMENT (one issue at a time)
 
 Fix these issues in order: C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12.
+Use TodoWrite to track each issue as a separate task. Mark each in_progress before starting, completed after passing tests.
+
+For each issue:
+1. Read the target file BEFORE editing
+2. Make the minimal change needed — no refactoring, no extra comments
+3. Immediately proceed to Stage 2 testing for this fix
 
 For C-02 (middleware JWT validation), use the `jose` library (already installed via NextAuth) for Edge-compatible JWT verification. Import `jwtVerify` from 'jose'.
-
 For C-09 (env validation), add the validation function to src/lib/config.ts and call it from src/instrumentation.ts.
-
 For C-10 and C-11 (Python changes), edit files in python_ai/ directory.
+
+## STAGE 2 — TEST (after EACH individual fix)
+
+After fixing each issue, run ALL of these before moving to the next issue:
+- npx tsc --noEmit 2>&1 | head -50
+- npm test 2>&1
+- npx prisma validate 2>&1
+
+If any check fails, fix it NOW before proceeding to the next issue. Never accumulate broken code.
+
+## STAGE 3 — SIMPLIFY (after all 12 fixes pass)
+
+After all 12 fixes are implemented and individually tested:
+1. Launch the code-simplifier agent (from .claude/plugins/pr-review-toolkit/agents/code-simplifier.md) using the Task tool
+2. The agent should review the full git diff of all changes in this batch
+3. Apply any simplification suggestions that improve clarity without changing functionality
+4. Re-run ALL Stage 2 tests after any simplification changes
+
+## STAGE 4 — REVIEW (after simplification)
+
+1. Launch the code-reviewer agent (from .claude/plugins/pr-review-toolkit/agents/code-reviewer.md) using the Task tool
+2. The agent reviews the full git diff for bugs, security issues, and standards violations
+3. Additionally, launch the silent-failure-hunter agent (from .claude/plugins/pr-review-toolkit/agents/silent-failure-hunter.md) since this batch modifies error handling and fallback logic
+4. Fix any Critical (90-100) or Important (80-89) confidence issues found
+5. Re-run ALL Stage 2 tests after any review-driven fixes
+
+## STAGE 5 — COMMIT & PUSH
+
+Only after Stages 1-4 all pass:
+1. Commit: "fix(security): resolve all 12 CRITICAL audit findings (C-01 through C-12)"
+2. Push to origin/claude/security-scalability-audit-bVtb4
 
 IMPORTANT: Do NOT add or modify .eslintrc.json — this breaks the Vercel build.
 ```
@@ -323,19 +391,44 @@ IMPORTANT: Do NOT add or modify .eslintrc.json — this breaks the Vercel build.
 ```
 You are fixing HIGH severity auth/security issues H-01 through H-09 from SECURITY_SCALABILITY_AUDIT.md on branch claude/security-scalability-audit-bVtb4. Follow REMEDIATION_PLAN.md Batch 2a.
 
-RULES:
-1. Read each file BEFORE editing
-2. Minimal changes only
-3. After ALL changes: npx tsc --noEmit 2>&1 | head -50
-4. After ALL changes: npm test 2>&1
-5. Fix any failures before committing
-6. Commit: "fix(security): resolve HIGH auth/security issues H-01 through H-09"
-7. Push to origin/claude/security-scalability-audit-bVtb4
-8. Track each issue with TodoWrite
+## STAGE 1 — IMPLEMENT (one issue at a time)
+
+Fix issues in order: H-01, H-02, H-03, H-04, H-05, H-06, H-07, H-08, H-09.
+Use TodoWrite to track each issue. Mark in_progress before starting, completed after passing tests.
+
+For each issue:
+1. Read the target file BEFORE editing
+2. Make the minimal change needed
+3. Immediately proceed to Stage 2 testing for this fix
 
 For H-02 (rate limiting), import the existing rateLimit function from src/lib/rate-limit.ts. Use sensible defaults: auth endpoints 5/min, contact 3/hour, billing 10/min, ai-analyze 5/min.
-
 For H-09 (sortBy), use a const array whitelist and check with .includes().
+
+## STAGE 2 — TEST (after EACH individual fix)
+
+After fixing each issue, run ALL of these before moving to the next issue:
+- npx tsc --noEmit 2>&1 | head -50
+- npm test 2>&1
+
+If any check fails, fix it NOW before proceeding to the next issue.
+
+## STAGE 3 — SIMPLIFY (after all 9 fixes pass)
+
+1. Launch the code-simplifier agent (from .claude/plugins/pr-review-toolkit/agents/code-simplifier.md) using the Task tool
+2. Review the full git diff, apply clarity improvements
+3. Re-run ALL Stage 2 tests after any changes
+
+## STAGE 4 — REVIEW (after simplification)
+
+1. Launch the code-reviewer agent (from .claude/plugins/pr-review-toolkit/agents/code-reviewer.md) using the Task tool
+2. Launch the silent-failure-hunter agent (from .claude/plugins/pr-review-toolkit/agents/silent-failure-hunter.md) — this batch modifies rate limiting fallback behavior (H-01) and error responses
+3. Fix any Critical or Important issues found, re-run tests
+
+## STAGE 5 — COMMIT & PUSH
+
+Only after Stages 1-4 all pass:
+1. Commit: "fix(security): resolve HIGH auth/security issues H-01 through H-09"
+2. Push to origin/claude/security-scalability-audit-bVtb4
 
 IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
@@ -347,26 +440,49 @@ IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
 You are fixing HIGH severity infrastructure issues H-10 through H-18 from SECURITY_SCALABILITY_AUDIT.md on branch claude/security-scalability-audit-bVtb4. Follow REMEDIATION_PLAN.md Batch 2b.
 
-RULES:
-1. Read each file BEFORE editing
-2. Minimal changes only
-3. After ALL changes: npx tsc --noEmit 2>&1 | head -50
-4. After ALL changes: npm test 2>&1
-5. After ALL changes: npx prisma validate 2>&1
-6. Fix any failures before committing
-7. Commit: "fix(security): resolve HIGH infrastructure issues H-10 through H-18"
-8. Push to origin/claude/security-scalability-audit-bVtb4
-9. Track each issue with TodoWrite
+## STAGE 1 — IMPLEMENT (one issue at a time)
 
-For H-11 (OAuth encryption): Do NOT modify the schema now. Add a code comment documenting the need for a future migration. Create a TODO in the code.
+Fix issues in order: H-10, H-11, H-12, H-13, H-14, H-15, H-16, H-17, H-18.
+Use TodoWrite to track each issue.
 
+For each issue:
+1. Read the target file BEFORE editing
+2. Make the minimal change needed
+3. Immediately proceed to Stage 2 testing
+
+For H-11 (OAuth encryption): Do NOT modify the schema now. Add a code comment documenting the need for a future migration.
 For H-13 (bounded cache): Implement a simple LRU with a Map that deletes the oldest entry when size > 1000.
-
-For H-14 (circuit breaker): Create a lightweight CircuitBreaker class in src/lib/circuit-breaker.ts with states: CLOSED (normal), OPEN (failing), HALF_OPEN (testing). Configure: 5 failures to open, 30s recovery.
-
+For H-14 (circuit breaker): Create a lightweight CircuitBreaker class in src/lib/circuit-breaker.ts with states: CLOSED, OPEN, HALF_OPEN. Configure: 5 failures to open, 30s recovery.
 For H-15/H-16 (Python model safety): Add SHA-256 hash verification. Store expected hashes in python_ai/model_hashes.json.
-
 For H-18 (open redirect): Validate that callbackUrl starts with "/" and doesn't start with "//".
+
+## STAGE 2 — TEST (after EACH individual fix)
+
+After fixing each issue:
+- npx tsc --noEmit 2>&1 | head -50
+- npm test 2>&1
+- npx prisma validate 2>&1
+
+If any check fails, fix it NOW.
+
+## STAGE 3 — SIMPLIFY (after all fixes pass)
+
+1. Launch the code-simplifier agent using the Task tool
+2. Review full diff, apply clarity improvements
+3. Re-run ALL Stage 2 tests
+
+## STAGE 4 — REVIEW (after simplification)
+
+1. Launch the code-reviewer agent using the Task tool
+2. Launch the silent-failure-hunter agent — H-14 (circuit breaker) introduces significant fallback/error handling logic
+3. Launch the type-design-analyzer agent (from .claude/plugins/pr-review-toolkit/agents/type-design-analyzer.md) — H-14 introduces a new CircuitBreaker class with state invariants
+4. Fix any Critical or Important issues, re-run tests
+
+## STAGE 5 — COMMIT & PUSH
+
+Only after Stages 1-4 all pass:
+1. Commit: "fix(security): resolve HIGH infrastructure issues H-10 through H-18"
+2. Push to origin/claude/security-scalability-audit-bVtb4
 
 IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
@@ -378,21 +494,45 @@ IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
 You are fixing MEDIUM severity auth/session issues M-01 through M-09 from SECURITY_SCALABILITY_AUDIT.md on branch claude/security-scalability-audit-bVtb4. Follow REMEDIATION_PLAN.md Batch 3a.
 
-RULES:
-1. Read each file BEFORE editing
-2. Minimal changes only
-3. After ALL changes: npx tsc --noEmit 2>&1 | head -50
-4. After ALL changes: npm test 2>&1
-5. Fix any failures before committing
-6. Commit: "fix(security): resolve MEDIUM auth/session issues M-01 through M-09"
-7. Push to origin/claude/security-scalability-audit-bVtb4
-8. Track each issue with TodoWrite
+## STAGE 1 — IMPLEMENT (one issue at a time)
+
+Fix issues in order: M-01, M-02, M-03, M-04, M-05, M-06, M-07, M-08, M-09.
+Use TodoWrite to track each issue.
+
+For each issue:
+1. Read the target file BEFORE editing
+2. Make the minimal change needed
+3. Immediately proceed to Stage 2 testing
 
 For M-03 (console logging): Replace console.log calls that include emails with structured logging that masks the email (show first 2 chars + domain).
-
 For M-06 (token cleanup): Add a serverless-compatible cleanup to the health check endpoint (run cleanup if last run > 24h ago). Don't add a separate cron job.
-
 For M-09 (timing-safe comparison): Use crypto.timingSafeEqual for webhook secret comparison.
+
+## STAGE 2 — TEST (after EACH individual fix)
+
+After fixing each issue:
+- npx tsc --noEmit 2>&1 | head -50
+- npm test 2>&1
+
+If any check fails, fix it NOW.
+
+## STAGE 3 — SIMPLIFY (after all fixes pass)
+
+1. Launch the code-simplifier agent using the Task tool
+2. Review full diff, apply clarity improvements
+3. Re-run ALL Stage 2 tests
+
+## STAGE 4 — REVIEW (after simplification)
+
+1. Launch the code-reviewer agent using the Task tool
+2. Launch the silent-failure-hunter agent — M-01 (Turnstile fail-closed) and M-09 (timing-safe comparison) modify error handling paths
+3. Fix any Critical or Important issues, re-run tests
+
+## STAGE 5 — COMMIT & PUSH
+
+Only after Stages 1-4 all pass:
+1. Commit: "fix(security): resolve MEDIUM auth/session issues M-01 through M-09"
+2. Push to origin/claude/security-scalability-audit-bVtb4
 
 IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
@@ -404,20 +544,45 @@ IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
 You are fixing MEDIUM severity API/data issues M-10 through M-18 from SECURITY_SCALABILITY_AUDIT.md on branch claude/security-scalability-audit-bVtb4. Follow REMEDIATION_PLAN.md Batch 3b.
 
-RULES:
-1. Read each file BEFORE editing
-2. Minimal changes only
-3. After ALL changes: npx tsc --noEmit 2>&1 | head -50
-4. After ALL changes: npm test 2>&1
-5. After ALL changes: npx prisma validate 2>&1
-6. Fix any failures before committing
-7. Commit: "fix(security): resolve MEDIUM API/data issues M-10 through M-18"
-8. Push to origin/claude/security-scalability-audit-bVtb4
-9. Track each issue with TodoWrite
+## STAGE 1 — IMPLEMENT (one issue at a time)
 
-For M-18 (soft delete): Add a `deletedAt DateTime?` field to RegulatoryFlag, ScanHistory, and User models. Run npx prisma validate after the schema change.
+Fix issues in order: M-10, M-11, M-12, M-13, M-14, M-15, M-16, M-17, M-18.
+Use TodoWrite to track each issue.
+
+For each issue:
+1. Read the target file BEFORE editing
+2. Make the minimal change needed
+3. Immediately proceed to Stage 2 testing
 
 For M-15 (N+1 queries): Replace the loop with a single findMany using `where: { ticker: { in: tickers } }`.
+For M-18 (soft delete): Add a `deletedAt DateTime?` field to RegulatoryFlag, ScanHistory, and User models.
+
+## STAGE 2 — TEST (after EACH individual fix)
+
+After fixing each issue:
+- npx tsc --noEmit 2>&1 | head -50
+- npm test 2>&1
+- npx prisma validate 2>&1 (especially after M-18 schema change)
+
+If any check fails, fix it NOW.
+
+## STAGE 3 — SIMPLIFY (after all fixes pass)
+
+1. Launch the code-simplifier agent using the Task tool
+2. Review full diff, apply clarity improvements
+3. Re-run ALL Stage 2 tests
+
+## STAGE 4 — REVIEW (after simplification)
+
+1. Launch the code-reviewer agent using the Task tool
+2. Launch the type-design-analyzer agent — M-17 introduces Zod validation schemas with type invariants
+3. Fix any Critical or Important issues, re-run tests
+
+## STAGE 5 — COMMIT & PUSH
+
+Only after Stages 1-4 all pass:
+1. Commit: "fix(security): resolve MEDIUM API/data issues M-10 through M-18"
+2. Push to origin/claude/security-scalability-audit-bVtb4
 
 IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
@@ -429,21 +594,45 @@ IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
 You are fixing MEDIUM severity infrastructure issues M-19 through M-27 from SECURITY_SCALABILITY_AUDIT.md on branch claude/security-scalability-audit-bVtb4. Follow REMEDIATION_PLAN.md Batch 3c.
 
-RULES:
-1. Read each file BEFORE editing
-2. Minimal changes only
-3. After ALL changes: npx tsc --noEmit 2>&1 | head -50
-4. After ALL changes: npm test 2>&1
-5. Fix any failures before committing
-6. Commit: "fix(security): resolve MEDIUM infrastructure issues M-19 through M-27"
-7. Push to origin/claude/security-scalability-audit-bVtb4
-8. Track each issue with TodoWrite
+## STAGE 1 — IMPLEMENT (one issue at a time)
+
+Fix issues in order: M-19, M-20, M-21, M-22, M-23, M-24, M-25, M-26, M-27.
+Use TodoWrite to track each issue.
+
+For each issue:
+1. Read the target file BEFORE editing
+2. Make the minimal change needed
+3. Immediately proceed to Stage 2 testing
 
 For M-19 (atomic scan counting): Use prisma.$transaction with an increment operation.
-
 For M-20 (API keys in URLs): Move to headers where the API supports it. For FMP, use the header method if available, otherwise document the limitation.
-
 For M-25 (Docker non-root): Add `RUN adduser --disabled-password appuser` and `USER appuser` to the Dockerfile.
+
+## STAGE 2 — TEST (after EACH individual fix)
+
+After fixing each issue:
+- npx tsc --noEmit 2>&1 | head -50
+- npm test 2>&1
+
+If any check fails, fix it NOW.
+
+## STAGE 3 — SIMPLIFY (after all fixes pass)
+
+1. Launch the code-simplifier agent using the Task tool
+2. Review full diff, apply clarity improvements
+3. Re-run ALL Stage 2 tests
+
+## STAGE 4 — REVIEW (after simplification)
+
+1. Launch the code-reviewer agent using the Task tool
+2. Launch the silent-failure-hunter agent — M-22 (response.ok checks) and M-21 (Zod validation) introduce new error handling patterns
+3. Fix any Critical or Important issues, re-run tests
+
+## STAGE 5 — COMMIT & PUSH
+
+Only after Stages 1-4 all pass:
+1. Commit: "fix(security): resolve MEDIUM infrastructure issues M-19 through M-27"
+2. Push to origin/claude/security-scalability-audit-bVtb4
 
 IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
@@ -455,22 +644,46 @@ IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
 You are fixing all 18 LOW severity issues L-01 through L-18 from SECURITY_SCALABILITY_AUDIT.md on branch claude/security-scalability-audit-bVtb4. Follow REMEDIATION_PLAN.md Batch 4.
 
-RULES:
-1. Read each file BEFORE editing
-2. Minimal changes only
-3. After ALL changes: npx tsc --noEmit 2>&1 | head -50
-4. After ALL changes: npm test 2>&1
-5. After ALL changes: npx prisma validate 2>&1
-6. Fix any failures before committing
-7. Commit: "fix(security): resolve all LOW severity issues L-01 through L-18"
-8. Push to origin/claude/security-scalability-audit-bVtb4
-9. Track each issue with TodoWrite
+## STAGE 1 — IMPLEMENT (one issue at a time)
+
+Fix issues in order: L-01 through L-18.
+Use TodoWrite to track each issue.
+
+For each issue:
+1. Read the target file BEFORE editing
+2. Make the minimal change needed
+3. Immediately proceed to Stage 2 testing
 
 For L-10 (indexes): Add @@index annotations to frequently queried fields: ScanHistory(userId), ApiUsageLog(createdAt), SupportTicket(status), AdminAuditLog(createdAt).
-
 For L-11 (enums): Add Prisma enums for User.plan (FREE, PAID, ENTERPRISE), SupportTicket.status, AdminUser.role.
-
 For L-16 (foreign key): Add a relation from ScanHistory to User with userId field.
+
+## STAGE 2 — TEST (after EACH individual fix)
+
+After fixing each issue:
+- npx tsc --noEmit 2>&1 | head -50
+- npm test 2>&1
+- npx prisma validate 2>&1 (especially after L-10, L-11, L-16 schema changes)
+
+If any check fails, fix it NOW.
+
+## STAGE 3 — SIMPLIFY (after all fixes pass)
+
+1. Launch the code-simplifier agent using the Task tool
+2. Review full diff, apply clarity improvements
+3. Re-run ALL Stage 2 tests
+
+## STAGE 4 — REVIEW (after simplification)
+
+1. Launch the code-reviewer agent using the Task tool
+2. Launch the comment-analyzer agent (from .claude/plugins/pr-review-toolkit/agents/comment-analyzer.md) — L-01 adds documentation comments
+3. Fix any Critical or Important issues, re-run tests
+
+## STAGE 5 — COMMIT & PUSH
+
+Only after Stages 1-4 all pass:
+1. Commit: "fix(security): resolve all LOW severity issues L-01 through L-18"
+2. Push to origin/claude/security-scalability-audit-bVtb4
 
 IMPORTANT: Do NOT add or modify .eslintrc.json.
 ```
