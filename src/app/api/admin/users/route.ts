@@ -69,7 +69,6 @@ export async function GET(request: NextRequest) {
         email: user.email,
         name: user.name,
         plan: user.plan,
-        formerPro: user.formerPro,
         billingCustomerId: user.billingCustomerId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -85,9 +84,8 @@ export async function GET(request: NextRequest) {
       _count: true,
     });
 
-    const [totalUsers, formerProUsers, newUsersLast30Days] = await Promise.all([
+    const [totalUsers, newUsersLast30Days] = await Promise.all([
       prisma.user.count(),
-      prisma.user.count({ where: { formerPro: true } }),
       prisma.user.count({
         where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
       }),
@@ -105,7 +103,6 @@ export async function GET(request: NextRequest) {
         totalUsers,
         freeUsers: stats.find((s) => s.plan === "FREE")?._count || 0,
         paidUsers: stats.find((s) => s.plan === "PAID")?._count || 0,
-        formerProUsers,
         newUsersLast30Days,
       },
     });
@@ -154,7 +151,7 @@ export async function PATCH(request: NextRequest) {
         break;
 
       case "downgradeToFree":
-        updateData = { plan: "FREE", formerPro: true };
+        updateData = { plan: "FREE" };
         logDetails = "Downgraded user to FREE plan";
         break;
 
