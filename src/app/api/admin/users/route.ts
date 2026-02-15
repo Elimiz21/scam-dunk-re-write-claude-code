@@ -10,6 +10,8 @@ import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 
 export const dynamic = 'force-dynamic';
 
+const ALLOWED_SORT_FIELDS = ["createdAt", "email", "name", "plan", "updatedAt"] as const;
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getAdminSession();
@@ -18,12 +20,13 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20));
     const search = searchParams.get("search") || "";
     const plan = searchParams.get("plan") || "";
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
+    const rawSortBy = searchParams.get("sortBy") || "createdAt";
+    const sortBy = (ALLOWED_SORT_FIELDS as readonly string[]).includes(rawSortBy) ? rawSortBy : "createdAt";
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
 
     // Build where clause
     const where: Record<string, unknown> = {};

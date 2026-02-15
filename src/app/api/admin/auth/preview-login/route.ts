@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { hashPassword, adminLogin } from "@/lib/admin/auth";
 import { initializeIntegrations } from "@/lib/admin/integrations";
+import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +17,21 @@ const PREVIEW_PASSWORD = "PreviewAdmin2026!";
 const PREVIEW_NAME = "Preview Admin";
 
 function isPreviewEnvironment(): boolean {
+  // Never allow preview login in production (Vercel sets NODE_ENV=production for previews too)
+  if (process.env.VERCEL_ENV === "production") return false;
   if (process.env.VERCEL_ENV === "preview") return true;
   if (process.env.NODE_ENV === "development") return true;
-  if (process.env.PREVIEW_ADMIN_ENABLED === "true") return true;
   return false;
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: strict for preview login (5 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     if (!isPreviewEnvironment()) {
       return NextResponse.json(
         { error: "Preview login is only available in preview deployments" },
@@ -68,6 +76,18 @@ export async function POST(request: NextRequest) {
       if (!result.success) {
         return NextResponse.json({ error: "Preview login failed" }, { status: 500 });
       }
+    }
+
+    // Log the preview login for audit trail
+    if (result.admin?.id) {
+      await prisma.adminAuditLog.create({
+        data: {
+          adminUserId: result.admin.id,
+          action: "PREVIEW_LOGIN",
+          resource: "preview-admin",
+          details: JSON.stringify({ ip: ipAddress, userAgent }),
+        },
+      });
     }
 
     // Seed demo data before responding (must complete before Vercel

@@ -16,11 +16,13 @@ import {
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { createEmailVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().optional(),
+  turnstileToken: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -41,7 +43,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, name } = validation.data;
+    const { email, password, name, turnstileToken } = validation.data;
+
+    // Verify Turnstile CAPTCHA if token provided
+    if (turnstileToken) {
+      const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
+      const isValid = await verifyTurnstileToken(turnstileToken, ip);
+      if (!isValid) {
+        return NextResponse.json(
+          { error: "CAPTCHA verification failed. Please try again." },
+          { status: 400 }
+        );
+      }
+    }
+
     const normalizedEmail = email.toLowerCase();
 
     // Check if user already exists

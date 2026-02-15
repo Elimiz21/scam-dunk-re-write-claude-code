@@ -9,11 +9,12 @@ import jwt from "jsonwebtoken";
 import { prisma } from "./db";
 import { Plan } from "./types";
 
-// JWT Configuration
+// JWT Configuration - separate secrets for access and refresh tokens
 const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
 if (!JWT_SECRET) {
   throw new Error("FATAL: JWT_SECRET or NEXTAUTH_SECRET must be set");
 }
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET + "_REFRESH";
 const JWT_EXPIRY = "7d";
 const JWT_REFRESH_EXPIRY = "30d";
 
@@ -53,17 +54,19 @@ export function generateRefreshToken(userId: string, email: string): string {
     email,
     type: "refresh",
   };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRY });
+  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRY });
 }
 
 /**
  * Verify and decode a JWT token
+ * Uses the appropriate secret based on expected token type.
  */
-export function verifyToken(token: string): JWTPayload | null {
+export function verifyToken(token: string, expectedType: "access" | "refresh" = "access"): JWTPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const secret = expectedType === "refresh" ? JWT_REFRESH_SECRET : JWT_SECRET;
+    const decoded = jwt.verify(token, secret) as JWTPayload;
     return decoded;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

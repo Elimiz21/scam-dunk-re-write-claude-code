@@ -196,8 +196,12 @@ export async function POST(request: NextRequest) {
         return rateLimitExceededResponse(rateLimitHeaders);
       }
     } catch (rateLimitError) {
-      // If rate limiting fails (e.g. Upstash down), allow request through (fail-open)
-      console.error("Rate limit check failed, allowing request:", rateLimitError);
+      // Fail closed: if rate limiting is unavailable, reject the request
+      console.error("Rate limit check failed:", rateLimitError);
+      return NextResponse.json(
+        { error: "Service temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
     }
 
     // Check authentication - support both session (web) and JWT (mobile)

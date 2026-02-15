@@ -13,6 +13,7 @@ import {
   sendSupportTicketNotification,
   sendSupportTicketConfirmation,
 } from '@/lib/email';
+import { rateLimit, rateLimitExceededResponse } from '@/lib/rate-limit';
 
 // Validation schema for contact form
 const contactFormSchema = z.object({
@@ -25,6 +26,12 @@ const contactFormSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: strict for contact form (5 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     // Get IP address for logging
     const forwarded = request.headers.get('x-forwarded-for');
     const ipAddress = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown';

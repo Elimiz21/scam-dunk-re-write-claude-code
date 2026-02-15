@@ -18,6 +18,7 @@ import {
   sendSupportTicketNotification,
   sendSupportTicketConfirmation,
 } from '@/lib/email';
+import { rateLimit, rateLimitExceededResponse } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +76,12 @@ function stripHtml(html: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: auth for inbound email webhook (10 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "auth");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     // Verify webhook secret if configured
     if (WEBHOOK_SECRET) {
       const authHeader = request.headers.get('authorization');
