@@ -1,11 +1,15 @@
 /**
- * Reddit OAuth Scanner
+ * Reddit Public JSON Scanner
  *
- * Uses Reddit OAuth2 "script" app for authenticated API access.
- * Provides 60 requests/min vs 10/min for unauthenticated access.
+ * Uses Reddit's public .json endpoints — NO OAuth or API credentials needed.
+ * Rate limit: ~10 requests/min (unauthenticated). We throttle to 6s between requests.
  *
- * Setup: Register app at https://www.reddit.com/prefs/apps (script type)
- * Env: REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD
+ * Reddit killed self-service API key registration in November 2025, so
+ * this scanner avoids the OAuth flow entirely and reads only public data.
+ *
+ * Endpoints used:
+ *   https://www.reddit.com/search.json?q=...
+ *   https://www.reddit.com/r/{subreddit}/new.json
  */
 
 import {
@@ -13,81 +17,49 @@ import {
   PROMOTION_SUBREDDITS, calculatePromotionScore, SocialScanner
 } from './types';
 
-const REDDIT_AUTH_URL = 'https://www.reddit.com/api/v1/access_token';
-const REDDIT_API_BASE = 'https://oauth.reddit.com';
-const USER_AGENT = 'ScamDunk/1.0 (Social Media Scanner)';
-
-let cachedToken: { token: string; expiresAt: number } | null = null;
-
-async function getAccessToken(): Promise<string | null> {
-  const clientId = process.env.REDDIT_CLIENT_ID;
-  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
-  const username = process.env.REDDIT_USERNAME;
-  const password = process.env.REDDIT_PASSWORD;
-
-  if (!clientId || !clientSecret || !username || !password) {
-    return null;
-  }
-
-  // Return cached token if still valid
-  if (cachedToken && Date.now() < cachedToken.expiresAt - 60000) {
-    return cachedToken.token;
-  }
-
-  try {
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    const response = await fetch(REDDIT_AUTH_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': USER_AGENT,
-      },
-      body: `grant_type=password&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
-    });
-
-    if (!response.ok) {
-      console.error(`Reddit auth failed: ${response.status}`);
-      return null;
-    }
-
-    const data = await response.json();
-    cachedToken = {
-      token: data.access_token,
-      expiresAt: Date.now() + (data.expires_in * 1000),
-    };
-    return cachedToken.token;
-  } catch (error) {
-    console.error('Reddit OAuth error:', error);
-    return null;
-  }
-}
-
-async function redditApiGet(endpoint: string, token: string): Promise<any> {
-  const response = await fetch(`${REDDIT_API_BASE}${endpoint}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'User-Agent': USER_AGENT,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Reddit API ${response.status}: ${response.statusText}`);
-  }
-
-  return response.json();
-}
+const USER_AGENT = 'Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)';
+const REQUEST_DELAY_MS = 6500; // ~9 req/min — safely under the 10/min unauthenticated limit
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function redditPublicGet(url: string): Promise<any> {
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': USER_AGENT,
+      'Accept': 'application/json',
+    },
+  });
+
+  if (response.status === 429) {
+    // Rate limited — wait and retry once
+    console.warn('    [Reddit] Rate limited, waiting 10s and retrying...');
+    await sleep(10000);
+    const retry = await fetch(url, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'Accept': 'application/json',
+      },
+    });
+    if (!retry.ok) {
+      throw new Error(`Reddit ${retry.status} after rate-limit retry: ${retry.statusText}`);
+    }
+    return retry.json();
+  }
+
+  if (!response.ok) {
+    throw new Error(`Reddit ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
 async function searchRedditForTicker(
-  token: string,
   target: ScanTarget
 ): Promise<SocialMention[]> {
   const mentions: SocialMention[] = [];
-  const { ticker, name } = target;
+  const { ticker } = target;
 
   // Search with multiple queries for better coverage
   const queries = [
@@ -101,10 +73,8 @@ async function searchRedditForTicker(
 
   for (const query of queries) {
     try {
-      const data = await redditApiGet(
-        `/search?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25&type=link`,
-        token
-      );
+      const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25&type=link`;
+      const data = await redditPublicGet(url);
 
       const posts = data?.data?.children || [];
 
@@ -143,7 +113,7 @@ async function searchRedditForTicker(
         mentions.push({
           platform: 'Reddit',
           source: `r/${d.subreddit}`,
-          discoveredVia: 'reddit_oauth',
+          discoveredVia: 'reddit_public',
           title,
           content: (selftext || title).substring(0, 500),
           url: permalink,
@@ -160,9 +130,9 @@ async function searchRedditForTicker(
         });
       }
 
-      await sleep(1100); // Stay within 60 req/min
+      await sleep(REQUEST_DELAY_MS);
     } catch (error) {
-      console.error(`Reddit search error for "${query}":`, error);
+      console.error(`    [Reddit] Search error for "${query}":`, error);
     }
   }
 
@@ -170,19 +140,15 @@ async function searchRedditForTicker(
 }
 
 async function scanSubredditForTickers(
-  token: string,
   subreddit: string,
   targets: ScanTarget[]
 ): Promise<SocialMention[]> {
   const mentions: SocialMention[] = [];
-  const tickerSet = new Set(targets.map(t => t.ticker.toLowerCase()));
   const promotionSubreddits = new Set(PROMOTION_SUBREDDITS);
 
   try {
-    const data = await redditApiGet(
-      `/r/${subreddit}/new?limit=100`,
-      token
-    );
+    const url = `https://www.reddit.com/r/${subreddit}/new.json?limit=100`;
+    const data = await redditPublicGet(url);
 
     const posts = data?.data?.children || [];
 
@@ -207,7 +173,7 @@ async function scanSubredditForTickers(
         mentions.push({
           platform: 'Reddit',
           source: `r/${subreddit}`,
-          discoveredVia: 'reddit_oauth',
+          discoveredVia: 'reddit_public',
           title,
           content: (selftext || title).substring(0, 500),
           url: `https://reddit.com${d.permalink}`,
@@ -225,52 +191,33 @@ async function scanSubredditForTickers(
       }
     }
   } catch (error) {
-    console.error(`Subreddit scan error for r/${subreddit}:`, error);
+    console.error(`    [Reddit] Subreddit scan error for r/${subreddit}:`, error);
   }
 
   return mentions;
 }
 
 export class RedditOAuthScanner implements SocialScanner {
-  name = 'reddit_oauth';
+  name = 'reddit_public';
   platform = 'Reddit';
 
   isConfigured(): boolean {
-    return !!(
-      process.env.REDDIT_CLIENT_ID &&
-      process.env.REDDIT_CLIENT_SECRET &&
-      process.env.REDDIT_USERNAME &&
-      process.env.REDDIT_PASSWORD
-    );
+    // No credentials needed — always configured
+    return true;
   }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
     const results: PlatformScanResult[] = [];
 
-    const token = await getAccessToken();
-    if (!token) {
-      return [{
-        platform: 'Reddit',
-        scanner: this.name,
-        success: false,
-        error: 'Reddit OAuth not configured or authentication failed',
-        mentionsFound: 0,
-        mentions: [],
-        activityLevel: 'none',
-        promotionRisk: 'low',
-        scanDuration: Date.now() - startTime,
-      }];
-    }
-
-    console.log(`  [Reddit OAuth] Authenticated. Scanning ${targets.length} tickers...`);
+    console.log(`  [Reddit Public JSON] Scanning ${targets.length} tickers (no OAuth required)...`);
 
     // Strategy 1: Direct search for each ticker
     const allMentions: SocialMention[] = [];
 
     for (const target of targets) {
       console.log(`    Searching for ${target.ticker}...`);
-      const mentions = await searchRedditForTicker(token, target);
+      const mentions = await searchRedditForTicker(target);
       allMentions.push(...mentions);
       await sleep(500);
     }
@@ -279,7 +226,7 @@ export class RedditOAuthScanner implements SocialScanner {
     const topSubreddits = ['wallstreetbets', 'pennystocks', 'shortsqueeze', 'smallstreetbets', 'daytrading'];
     for (const sub of topSubreddits) {
       console.log(`    Monitoring r/${sub}...`);
-      const subMentions = await scanSubredditForTickers(token, sub, targets);
+      const subMentions = await scanSubredditForTickers(sub, targets);
       // Deduplicate by URL
       const existingUrls = new Set(allMentions.map(m => m.url));
       for (const mention of subMentions) {
@@ -288,7 +235,7 @@ export class RedditOAuthScanner implements SocialScanner {
           existingUrls.add(mention.url);
         }
       }
-      await sleep(1100);
+      await sleep(REQUEST_DELAY_MS);
     }
 
     // Group by ticker for results
