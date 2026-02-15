@@ -24,6 +24,9 @@ import {
   Target,
   Activity,
   Zap,
+  Users,
+  Link2,
+  Globe,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -119,6 +122,7 @@ interface Scheme {
   schemeId: string;
   symbol: string;
   name: string;
+  schemeName?: string;
   status: string;
   currentRiskScore: number;
   peakRiskScore: number;
@@ -131,8 +135,22 @@ interface Scheme {
   firstDetected: string;
   lastSeen: string;
   promotionPlatforms: string[];
+  promoterAccounts?: { platform: string; identifier: string; postCount: number; confidence: string }[];
+  coordinationIndicators?: string[];
   signalsDetected: string[];
   timeline: { date: string; event: string; significance?: string }[];
+}
+
+interface PromoterSummary {
+  promoterId: string;
+  identifier: string;
+  platform: string;
+  totalPosts: number;
+  confidence: string;
+  riskLevel: string;
+  isActive: boolean;
+  stocksPromoted: { symbol: string; schemeStatus: string }[];
+  coPromoters: { identifier: string; platform: string; sharedStocks: string[] }[];
 }
 
 interface PromotedStock {
@@ -168,15 +186,17 @@ export default function ScanIntelligencePage() {
   const [expandedStock, setExpandedStock] = useState<string | null>(null);
   const [stockFilter, setStockFilter] = useState("");
   const [showAllStocks, setShowAllStocks] = useState(false);
+  const [promoters, setPromoters] = useState<PromoterSummary[]>([]);
 
   const fetchData = useCallback(async (date?: string) => {
     try {
       setLoading(true);
       setError("");
       const qs = date ? `?date=${date}` : "";
-      const [dashRes, histRes] = await Promise.all([
+      const [dashRes, histRes, promRes] = await Promise.all([
         fetch(`/api/admin/scan-intelligence${qs}`),
         fetch("/api/admin/scan-intelligence/history"),
+        fetch("/api/admin/scan-intelligence/promoters"),
       ]);
 
       if (!dashRes.ok) throw new Error("Failed to fetch scan data");
@@ -187,6 +207,11 @@ export default function ScanIntelligencePage() {
       if (histRes.ok) {
         const histData = await histRes.json();
         setHistory(histData.history || []);
+      }
+
+      if (promRes.ok) {
+        const promData = await promRes.json();
+        setPromoters(promData.promoters || []);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data");
@@ -551,6 +576,109 @@ export default function ScanIntelligencePage() {
               <Shield className="h-8 w-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No active schemes detected</p>
               <p className="text-xs mt-1">Schemes are tracked automatically when high-risk stocks show coordinated promotion patterns</p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Promoter Matrix ────────────────────────────────────── */}
+        <div className="bg-card rounded-2xl border border-border p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-purple-500" />
+              <h3 className="text-sm font-medium font-display italic text-foreground">
+                Promoter Matrix
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {promoters.length} tracked
+              </span>
+            </div>
+            {promoters.filter(p => p.isActive).length > 0 && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-600">
+                {promoters.filter(p => p.isActive).length} active now
+              </span>
+            )}
+          </div>
+
+          {promoters.length > 0 ? (
+            <div className="space-y-2">
+              {promoters.slice(0, 10).map((promoter) => {
+                const riskColor =
+                  promoter.riskLevel === "SERIAL_OFFENDER" ? "text-red-600 bg-red-500/10" :
+                  promoter.riskLevel === "HIGH" ? "text-red-600 bg-red-500/10" :
+                  promoter.riskLevel === "MEDIUM" ? "text-amber-600 bg-amber-500/10" :
+                  "text-muted-foreground bg-secondary";
+
+                return (
+                  <button
+                    key={promoter.promoterId}
+                    onClick={() => router.push(`/admin/scan-intelligence/promoter/${promoter.promoterId}`)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-purple-500/30 hover:bg-purple-500/5 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-purple-500/10">
+                        <Users className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">{promoter.identifier}</span>
+                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${riskColor}`}>
+                            {promoter.riskLevel.replace(/_/g, " ")}
+                          </span>
+                          {promoter.isActive && (
+                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-600">
+                              ACTIVE
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                          <span className="flex items-center gap-0.5"><Globe className="h-3 w-3" />{promoter.platform}</span>
+                          {promoter.coPromoters.length > 0 && (
+                            <span className="flex items-center gap-0.5"><Link2 className="h-3 w-3" />{promoter.coPromoters.length} linked</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                      <div className="flex gap-1">
+                        {promoter.stocksPromoted.slice(0, 4).map((s, i) => (
+                          <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                            s.schemeStatus === "ONGOING" ? "bg-red-500/10 text-red-600" :
+                            s.schemeStatus === "COOLING" ? "bg-amber-500/10 text-amber-600" :
+                            "bg-secondary text-muted-foreground"
+                          }`}>
+                            {s.symbol}
+                          </span>
+                        ))}
+                        {promoter.stocksPromoted.length > 4 && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                            +{promoter.stocksPromoted.length - 4}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold tabular-nums">{promoter.totalPosts}</div>
+                        <div className="text-[10px] text-muted-foreground">posts</div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+              {promoters.length > 10 && (
+                <button
+                  onClick={() => {/* Could navigate to a full promoters page */}}
+                  className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                >
+                  View all {promoters.length} promoters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No promoter accounts identified yet</p>
+              <p className="text-xs mt-1">
+                Promoters are tracked when social media scans detect specific accounts pushing stocks
+              </p>
             </div>
           )}
         </div>

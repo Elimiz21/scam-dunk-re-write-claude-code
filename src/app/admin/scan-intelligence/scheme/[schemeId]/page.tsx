@@ -364,30 +364,41 @@ export default function SchemeDetailPage() {
 
           {scheme.promoterAccounts.length > 0 ? (
             <div className="space-y-2">
-              {scheme.promoterAccounts.map((promoter, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-purple-500/10">
-                      <Users className="h-4 w-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-foreground">{promoter.identifier}</div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {promoter.platform} &middot; First seen: {promoter.firstSeen} &middot; Last: {promoter.lastSeen}
+              {scheme.promoterAccounts.map((promoter, i) => {
+                // Build a promoterId to link to the promoter detail page
+                const promoterId = `PROM-${promoter.platform.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 6)}-${promoter.identifier.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10)}`;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => router.push(`/admin/scan-intelligence/promoter/${promoterId}`)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border hover:border-purple-500/30 hover:bg-purple-500/5 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-purple-500/10">
+                        <Users className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">{promoter.identifier}</span>
+                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {promoter.platform} &middot; First seen: {promoter.firstSeen} &middot; Last: {promoter.lastSeen}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <div className="text-sm font-bold tabular-nums">{promoter.postCount}</div>
-                      <div className="text-[10px] text-muted-foreground">posts</div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-sm font-bold tabular-nums">{promoter.postCount}</div>
+                        <div className="text-[10px] text-muted-foreground">posts</div>
+                      </div>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${confidenceColors[promoter.confidence] || confidenceColors.low}`}>
+                        {promoter.confidence}
+                      </span>
                     </div>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${confidenceColors[promoter.confidence] || confidenceColors.low}`}>
-                      {promoter.confidence}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">

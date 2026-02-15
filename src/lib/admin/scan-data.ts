@@ -293,6 +293,47 @@ export interface SchemeDatabase {
   schemes: Record<string, SchemeRecord>;
 }
 
+// ── Promoter Matrix Database ──────────────────────────────────────────
+
+export interface PromoterStockLink {
+  symbol: string;
+  schemeId: string;
+  schemeName: string;
+  schemeStatus: string;
+  firstSeen: string;
+  lastSeen: string;
+  postCount: number;
+}
+
+export interface CoPromoter {
+  promoterId: string;
+  identifier: string;
+  platform: string;
+  sharedStocks: string[];
+}
+
+export interface PromoterEntry {
+  promoterId: string;
+  identifier: string;
+  platform: string;
+  firstSeen: string;
+  lastSeen: string;
+  totalPosts: number;
+  confidence: string;
+  stocksPromoted: PromoterStockLink[];
+  coPromoters: CoPromoter[];
+  riskLevel: string;
+  isActive: boolean;
+}
+
+export interface PromoterDatabase {
+  lastUpdated: string;
+  totalPromoters: number;
+  activePromoters: number;
+  serialOffenders: number;
+  promoters: Record<string, PromoterEntry>;
+}
+
 export interface PromotedStock {
   symbol: string;
   name: string;

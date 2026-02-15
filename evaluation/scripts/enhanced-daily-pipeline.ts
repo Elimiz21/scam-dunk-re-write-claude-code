@@ -135,8 +135,11 @@ interface SchemeRecord {
     schemeId: string;
     symbol: string;
     name: string;
+    sector?: string;
+    industry?: string;
     firstDetected: string;
     lastSeen: string;
+    daysActive?: number;
     // Status flow: NEW → ONGOING → COOLING → (PUMP_AND_DUMP_ENDED | PUMP_AND_DUMP_ENDED_NO_PROMO | NO_SCAM_DETECTED)
     // CONFIRMED_FRAUD is for manually verified cases
     status:
@@ -149,15 +152,30 @@ interface SchemeRecord {
     | 'CONFIRMED_FRAUD';              // Manually verified as fraud
     peakRiskScore: number;
     currentRiskScore: number;
+    peakPromotionScore?: number;
+    currentPromotionScore?: number;
     promotionPlatforms: string[];
-    promoterAccounts: string[];
+    promoterAccounts: Array<{
+        platform: string;
+        identifier: string;
+        firstSeen: string;
+        lastSeen: string;
+        postCount: number;
+        confidence: 'high' | 'medium' | 'low';
+    }>;
     hadSocialMediaPromotion: boolean;     // Whether we found real social media promotion
     priceAtDetection: number;
     peakPrice: number;
     currentPrice: number;
+    priceChangeFromDetection?: number;
     priceChangeFromPeak?: number;
     volumeAtDetection: number;
+    peakVolume?: number;
+    currentVolume?: number;
+    signalsDetected?: string[];
+    coordinationIndicators?: string[];
     notes: string[];
+    investigationFlags?: string[];
     resolutionDetails?: string;
     timeline: Array<{
         date: string;
@@ -218,6 +236,7 @@ function loadSchemeDatabase(): Map<string, SchemeRecord> {
 
 // Save scheme database
 // Writes in the SchemeDatabase wrapper format shared with scheme-tracker.ts
+// Also generates the promoter database from aggregated promoter data
 function saveSchemeDatabase(db: Map<string, SchemeRecord>): void {
     const dbPath = path.join(SCHEME_DB_DIR, 'scheme-database.json');
     const schemes = Object.fromEntries(db);
@@ -235,6 +254,149 @@ function saveSchemeDatabase(db: Map<string, SchemeRecord>): void {
     };
 
     fs.writeFileSync(dbPath, JSON.stringify(wrappedData, null, 2));
+
+    // Generate promoter database
+    generatePromoterDatabase(schemeValues);
+}
+
+// Build the promoter matrix database from all scheme data
+function generatePromoterDatabase(schemes: SchemeRecord[]): void {
+    const promoterDbPath = path.join(SCHEME_DB_DIR, 'promoter-database.json');
+
+    interface PromoterEntry {
+        promoterId: string;
+        identifier: string;
+        platform: string;
+        firstSeen: string;
+        lastSeen: string;
+        totalPosts: number;
+        confidence: string;
+        stocksPromoted: Array<{
+            symbol: string;
+            schemeId: string;
+            schemeName: string;
+            schemeStatus: string;
+            firstSeen: string;
+            lastSeen: string;
+            postCount: number;
+        }>;
+        coPromoters: Array<{
+            promoterId: string;
+            identifier: string;
+            platform: string;
+            sharedStocks: string[];
+        }>;
+        riskLevel: string;
+        isActive: boolean;
+    }
+
+    const promoterMap = new Map<string, PromoterEntry>();
+
+    // Aggregate promoter data across all schemes
+    for (const scheme of schemes) {
+        if (!Array.isArray(scheme.promoterAccounts)) continue;
+
+        for (const account of scheme.promoterAccounts) {
+            // Skip string-formatted legacy entries
+            if (typeof account === 'string') continue;
+
+            const key = `${account.platform}::${account.identifier}`;
+            let promoter = promoterMap.get(key);
+
+            if (!promoter) {
+                promoter = {
+                    promoterId: `PROM-${account.platform.replace(/[^a-zA-Z]/g, '').toUpperCase()}-${account.identifier.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}-${Date.now().toString(36).slice(-4).toUpperCase()}`,
+                    identifier: account.identifier,
+                    platform: account.platform,
+                    firstSeen: account.firstSeen,
+                    lastSeen: account.lastSeen,
+                    totalPosts: 0,
+                    confidence: account.confidence,
+                    stocksPromoted: [],
+                    coPromoters: [],
+                    riskLevel: 'LOW',
+                    isActive: false,
+                };
+                promoterMap.set(key, promoter);
+            }
+
+            // Update aggregate fields
+            promoter.totalPosts += account.postCount;
+            if (account.firstSeen < promoter.firstSeen) promoter.firstSeen = account.firstSeen;
+            if (account.lastSeen > promoter.lastSeen) promoter.lastSeen = account.lastSeen;
+            if (account.confidence === 'high') promoter.confidence = 'high';
+
+            // Check if this stock is already tracked
+            const existing = promoter.stocksPromoted.find(s => s.schemeId === scheme.schemeId);
+            if (!existing) {
+                promoter.stocksPromoted.push({
+                    symbol: scheme.symbol,
+                    schemeId: scheme.schemeId,
+                    schemeName: scheme.name,
+                    schemeStatus: scheme.status,
+                    firstSeen: account.firstSeen,
+                    lastSeen: account.lastSeen,
+                    postCount: account.postCount,
+                });
+            }
+
+            // Active if any associated scheme is active
+            const activeStatuses = ['NEW', 'ONGOING', 'COOLING'];
+            if (activeStatuses.includes(scheme.status)) {
+                promoter.isActive = true;
+            }
+        }
+    }
+
+    // Build co-promoter relationships
+    const promoterList = Array.from(promoterMap.values());
+    for (const promoter of promoterList) {
+        const myStocks = new Set(promoter.stocksPromoted.map(s => s.symbol));
+
+        for (const other of promoterList) {
+            if (other.promoterId === promoter.promoterId) continue;
+            const sharedStocks = other.stocksPromoted
+                .filter(s => myStocks.has(s.symbol))
+                .map(s => s.symbol);
+
+            if (sharedStocks.length > 0) {
+                promoter.coPromoters.push({
+                    promoterId: other.promoterId,
+                    identifier: other.identifier,
+                    platform: other.platform,
+                    sharedStocks,
+                });
+            }
+        }
+
+        // Calculate risk level
+        const stockCount = promoter.stocksPromoted.length;
+        const hasHighConfidence = promoter.confidence === 'high';
+        const hasCoPromoters = promoter.coPromoters.length > 0;
+
+        if (stockCount >= 3 || (stockCount >= 2 && hasHighConfidence && hasCoPromoters)) {
+            promoter.riskLevel = 'SERIAL_OFFENDER';
+        } else if (stockCount >= 2 || (hasHighConfidence && hasCoPromoters)) {
+            promoter.riskLevel = 'HIGH';
+        } else if (hasHighConfidence || hasCoPromoters) {
+            promoter.riskLevel = 'MEDIUM';
+        } else {
+            promoter.riskLevel = 'LOW';
+        }
+    }
+
+    const promoterDb = {
+        lastUpdated: new Date().toISOString(),
+        totalPromoters: promoterList.length,
+        activePromoters: promoterList.filter(p => p.isActive).length,
+        serialOffenders: promoterList.filter(p => p.riskLevel === 'SERIAL_OFFENDER').length,
+        promoters: Object.fromEntries(
+            promoterList.map(p => [p.promoterId, p])
+        ),
+    };
+
+    fs.writeFileSync(promoterDbPath, JSON.stringify(promoterDb, null, 2));
+    console.log(`  Promoter database: ${promoterList.length} promoters tracked`);
 }
 
 // Generate unique scheme ID
@@ -995,13 +1157,65 @@ async function runEnhancedPipeline(): Promise<void> {
             existingScheme.lastSeen = evaluationDate;
             existingScheme.currentRiskScore = result.totalScore;
             existingScheme.currentPrice = result.lastPrice || existingScheme.currentPrice;
+            existingScheme.currentVolume = result.avgDailyVolume || existingScheme.currentVolume || 0;
             existingScheme.status = 'ONGOING';
+
+            // Update peak tracking
+            if (result.totalScore > (existingScheme.peakRiskScore || 0)) {
+                existingScheme.peakRiskScore = result.totalScore;
+            }
+            if (existingScheme.currentPrice > (existingScheme.peakPrice || 0)) {
+                existingScheme.peakPrice = existingScheme.currentPrice;
+            }
+            if (existingScheme.priceAtDetection > 0) {
+                existingScheme.priceChangeFromDetection =
+                    ((existingScheme.currentPrice - existingScheme.priceAtDetection) / existingScheme.priceAtDetection) * 100;
+                existingScheme.priceChangeFromPeak =
+                    ((existingScheme.currentPrice - (existingScheme.peakPrice || existingScheme.priceAtDetection)) / (existingScheme.peakPrice || existingScheme.priceAtDetection)) * 100;
+            }
 
             if (result.socialMediaFindings) {
                 const newPlatforms = result.socialMediaFindings.platforms
                     .filter(p => p.promotionRisk === 'high')
                     .map(p => p.platform);
                 existingScheme.promotionPlatforms = Array.from(new Set([...existingScheme.promotionPlatforms, ...newPlatforms]));
+
+                // Update promotion score
+                existingScheme.currentPromotionScore = result.socialMediaFindings.overallPromotionScore;
+                if (result.socialMediaFindings.overallPromotionScore > (existingScheme.peakPromotionScore || 0)) {
+                    existingScheme.peakPromotionScore = result.socialMediaFindings.overallPromotionScore;
+                }
+
+                // Merge new promoter accounts (structured objects)
+                if (!Array.isArray(existingScheme.promoterAccounts)) {
+                    existingScheme.promoterAccounts = [];
+                }
+                for (const p of result.socialMediaFindings.potentialPromoters) {
+                    const existing = existingScheme.promoterAccounts.find(
+                        (a: { platform: string; identifier: string }) =>
+                            a.platform === p.platform && a.identifier === p.username
+                    );
+                    if (existing) {
+                        existing.lastSeen = evaluationDate;
+                        existing.postCount += p.postCount;
+                        if (p.confidence === 'high') existing.confidence = 'high';
+                    } else {
+                        existingScheme.promoterAccounts.push({
+                            platform: p.platform,
+                            identifier: p.username,
+                            firstSeen: evaluationDate,
+                            lastSeen: evaluationDate,
+                            postCount: p.postCount,
+                            confidence: p.confidence,
+                        });
+                    }
+                }
+
+                // Merge signals
+                if (existingScheme.signalsDetected) {
+                    const newSignals = result.signals.map(s => s.code);
+                    existingScheme.signalsDetected = Array.from(new Set([...existingScheme.signalsDetected, ...newSignals]));
+                }
             }
 
             existingScheme.timeline.push({
@@ -1020,31 +1234,56 @@ async function runEnhancedPipeline(): Promise<void> {
             // Create new scheme record
             const schemeId = generateSchemeId(result.symbol, evaluationDate);
 
+            const highRiskPlatforms = result.socialMediaFindings.platforms
+                .filter(p => p.promotionRisk === 'high');
+            const coordinationIndicators = highRiskPlatforms
+                .map(p => `High promotion risk on ${p.platform}`);
+
             const newScheme: SchemeRecord = {
                 schemeId,
                 symbol: result.symbol,
                 name: result.name,
+                sector: result.sector || 'Unknown',
+                industry: result.industry || 'Unknown',
                 firstDetected: evaluationDate,
                 lastSeen: evaluationDate,
+                daysActive: 1,
                 status: 'NEW',
                 peakRiskScore: result.totalScore,
                 currentRiskScore: result.totalScore,
-                promotionPlatforms: result.socialMediaFindings.platforms
-                    .filter(p => p.promotionRisk === 'high')
-                    .map(p => p.platform),
-                promoterAccounts: result.socialMediaFindings.potentialPromoters.map(p => `${p.username} (${p.platform})`),
+                peakPromotionScore: result.socialMediaFindings.overallPromotionScore,
+                currentPromotionScore: result.socialMediaFindings.overallPromotionScore,
+                promotionPlatforms: highRiskPlatforms.map(p => p.platform),
+                // Map promoter objects properly (username → identifier)
+                promoterAccounts: result.socialMediaFindings.potentialPromoters.map(p => ({
+                    platform: p.platform,
+                    identifier: p.username,
+                    firstSeen: evaluationDate,
+                    lastSeen: evaluationDate,
+                    postCount: p.postCount,
+                    confidence: p.confidence,
+                })),
                 // Track whether we have REAL social media evidence (not AI predictions)
                 hadSocialMediaPromotion: result.socialMediaFindings.platforms
                     .some(p => p.promotionRisk === 'high' && p.dataSource === 'real'),
                 priceAtDetection: result.lastPrice || 0,
                 peakPrice: result.lastPrice || 0,
                 currentPrice: result.lastPrice || 0,
+                priceChangeFromDetection: 0,
+                priceChangeFromPeak: 0,
                 volumeAtDetection: result.avgDailyVolume || 0,
+                peakVolume: result.avgDailyVolume || 0,
+                currentVolume: result.avgDailyVolume || 0,
+                signalsDetected: result.signals.map(s => s.code),
+                coordinationIndicators,
                 notes: [`Initial detection with promotion score ${result.socialMediaFindings.overallPromotionScore}`],
+                investigationFlags: [],
                 timeline: [{
                     date: evaluationDate,
                     event: 'Scheme detected',
-                    details: `Risk score: ${result.totalScore}, Signals: ${result.signals.map(s => s.code).join(', ')}`
+                    category: 'detection',
+                    details: `Initial detection with risk score ${result.totalScore} and promotion score ${result.socialMediaFindings.overallPromotionScore}`,
+                    significance: 'high'
                 }]
             };
 
