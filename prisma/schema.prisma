@@ -29,6 +29,9 @@ model User {
   scanUsages ScanUsage[]
 }
 
+// TODO [H-11]: OAuth tokens (refresh_token, access_token, id_token) are stored in plain text.
+// A future migration should add field-level encryption for these sensitive fields.
+// This requires a data migration script to encrypt existing tokens in place.
 model Account {
   id                String  @id @default(cuid())
   userId            String

@@ -22,7 +22,12 @@ import { Turnstile } from "@/components/turnstile";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const rawCallbackUrl = searchParams.get("callbackUrl") || "/";
+  // Prevent open redirect: only allow relative paths, block protocol-relative URLs (//, /\)
+  const callbackUrl =
+    rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//") && !rawCallbackUrl.startsWith("/\\")
+      ? rawCallbackUrl
+      : "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

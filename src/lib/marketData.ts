@@ -15,6 +15,7 @@
 import { MarketData, StockQuote, PriceHistory } from "./types";
 import { config } from "./config";
 import { logApiUsage } from "./admin/metrics";
+import { circuitBreakers, CircuitBreakerOpenError } from "./circuit-breaker";
 
 // Known OTC exchanges
 const OTC_EXCHANGES = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets", "OTHER_OTC"];
@@ -43,9 +44,21 @@ const CRYPTO_ID_MAP: Record<string, string> = {
   ARB: "arbitrum",
 };
 
-// Simple in-memory cache to reduce API calls
+// Bounded in-memory cache with LRU eviction to prevent memory leaks
+const CACHE_MAX_SIZE = 1000;
 const cache: Map<string, { data: MarketData; timestamp: number }> = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function cacheSet(key: string, value: { data: MarketData; timestamp: number }) {
+  // Delete first so re-insertion moves key to end (most recent) in Map iteration order
+  cache.delete(key);
+  if (cache.size >= CACHE_MAX_SIZE) {
+    // Evict oldest entry (first key in Map iteration order)
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+  cache.set(key, value);
+}
 
 // API base URLs
 const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
@@ -391,10 +404,9 @@ async function fetchMarketDataFromCoinGecko(ticker: string): Promise<MarketData>
 
   try {
     // Fetch quote and price history in parallel
-    const [quote, priceHistory] = await Promise.all([
-      fetchCoinGeckoQuote(ticker),
-      fetchCoinGeckoPriceHistory(ticker),
-    ]);
+    const [quote, priceHistory] = await circuitBreakers.coinGecko.execute(() =>
+      Promise.all([fetchCoinGeckoQuote(ticker), fetchCoinGeckoPriceHistory(ticker)])
+    );
 
     if (!quote) {
       const responseTime = Date.now() - apiStartTime;
@@ -428,6 +440,10 @@ async function fetchMarketDataFromCoinGecko(ticker: string): Promise<MarketData>
       dataAvailable: true,
     };
   } catch (error) {
+    if (error instanceof CircuitBreakerOpenError) {
+      console.warn(`CoinGecko circuit breaker open, skipping request for ${ticker}`);
+      return { quote: null, priceHistory: [], isOTC: true, dataAvailable: false };
+    }
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
       service: "COINGECKO",
@@ -491,7 +507,7 @@ export async function fetchMarketData(
     console.log(`Fetching crypto data for ${normalizedTicker} from CoinGecko`);
     const coinGeckoResult = await fetchMarketDataFromCoinGecko(normalizedTicker);
     if (coinGeckoResult.dataAvailable) {
-      cache.set(normalizedTicker, { data: coinGeckoResult, timestamp: Date.now() });
+      cacheSet(normalizedTicker, { data: coinGeckoResult, timestamp: Date.now() });
       return coinGeckoResult;
     }
     // If CoinGecko fails for crypto, return no data (don't try stock APIs)
@@ -508,7 +524,7 @@ export async function fetchMarketData(
   if (config.fmpApiKey) {
     const fmpResult = await fetchMarketDataFromFMP(normalizedTicker);
     if (fmpResult.dataAvailable) {
-      cache.set(normalizedTicker, { data: fmpResult, timestamp: Date.now() });
+      cacheSet(normalizedTicker, { data: fmpResult, timestamp: Date.now() });
       return fmpResult;
     }
   }
@@ -517,7 +533,7 @@ export async function fetchMarketData(
   if (config.alphaVantageApiKey) {
     const avResult = await fetchMarketDataFromAlphaVantage(normalizedTicker);
     if (avResult.dataAvailable) {
-      cache.set(normalizedTicker, { data: avResult, timestamp: Date.now() });
+      cacheSet(normalizedTicker, { data: avResult, timestamp: Date.now() });
       return avResult;
     }
   }
@@ -540,10 +556,9 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
 
   try {
     // Fetch quote and price history in parallel (FMP has generous rate limits)
-    const [quote, priceHistory] = await Promise.all([
-      fetchFMPQuote(ticker),
-      fetchFMPPriceHistory(ticker),
-    ]);
+    const [quote, priceHistory] = await circuitBreakers.fmp.execute(() =>
+      Promise.all([fetchFMPQuote(ticker), fetchFMPPriceHistory(ticker)])
+    );
 
     if (!quote) {
       const responseTime = Date.now() - apiStartTime;
@@ -562,7 +577,7 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
       };
     }
 
-    // Optionally fetch profile for more details
+    // Optionally fetch profile for more details (outside circuit breaker — supplementary enrichment)
     const profile = await fetchFMPProfile(ticker);
     if (profile) {
       quote.companyName = profile.companyName;
@@ -595,6 +610,10 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
       dataAvailable: true,
     };
   } catch (error) {
+    if (error instanceof CircuitBreakerOpenError) {
+      console.warn(`FMP circuit breaker open, skipping request for ${ticker}`);
+      return { quote: null, priceHistory: [], isOTC: false, dataAvailable: false };
+    }
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
       service: "FMP",
@@ -624,10 +643,9 @@ async function fetchMarketDataFromAlphaVantage(ticker: string): Promise<MarketDa
   try {
     // Fetch quote and price history in parallel
     // Note: Be careful of rate limits (5 calls/min on free tier)
-    const [quote, priceHistory] = await Promise.all([
-      fetchQuote(ticker),
-      fetchPriceHistory(ticker),
-    ]);
+    const [quote, priceHistory] = await circuitBreakers.alphaVantage.execute(() =>
+      Promise.all([fetchQuote(ticker), fetchPriceHistory(ticker)])
+    );
     apiCallCount = 2;
 
     if (!quote) {
@@ -686,6 +704,10 @@ async function fetchMarketDataFromAlphaVantage(ticker: string): Promise<MarketDa
       dataAvailable: true,
     };
   } catch (error) {
+    if (error instanceof CircuitBreakerOpenError) {
+      console.warn(`Alpha Vantage circuit breaker open, skipping request for ${ticker}`);
+      return { quote: null, priceHistory: [], isOTC: false, dataAvailable: false };
+    }
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
       service: "ALPHA_VANTAGE",
