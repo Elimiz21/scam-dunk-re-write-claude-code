@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
     console.error("Social scan POST error:", error);
     // Give specific error message if table doesn't exist
     const msg = error?.message?.includes('does not exist')
-      ? "Database tables not set up. Run 'npx prisma db push' to create them."
+      ? "Database tables not set up. Click 'Setup Database' above to create them automatically."
       : "Failed to run social scan";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
