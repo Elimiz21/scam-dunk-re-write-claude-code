@@ -78,9 +78,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         console.log("[AUTH] Attempting login for:", maskEmail(email));
 
-        const user = await prisma.user.findUnique({
-          where: { email },
-        });
+        let user;
+        try {
+          user = await prisma.user.findUnique({
+            where: { email },
+          });
+        } catch (dbError) {
+          console.error("[AUTH] DATABASE CONNECTION ERROR during login:", dbError);
+          console.error("[AUTH] DATABASE_URL defined:", !!process.env.DATABASE_URL);
+          console.error("[AUTH] DATABASE_URL prefix:", process.env.DATABASE_URL?.substring(0, 20) + "...");
+          await logAuthError(
+            { email, endpoint: "/api/auth/[...nextauth]" },
+            {
+              errorType: "LOGIN_FAILED",
+              errorCode: "DATABASE_ERROR",
+              message: `Database query failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+            }
+          );
+          throw new Error(`DATABASE_UNAVAILABLE: ${dbError instanceof Error ? dbError.message : "Connection failed"}`);
+        }
 
         if (!user) {
           console.log("[AUTH] User not found for:", maskEmail(email));
