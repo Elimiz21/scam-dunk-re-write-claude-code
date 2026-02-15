@@ -8,6 +8,7 @@ interface StatCardProps {
   icon: LucideIcon;
   change?: number;
   changeLabel?: string;
+  changeIsAbsolute?: boolean;
   color?: "blue" | "green" | "yellow" | "red" | "purple" | "indigo" | "gray";
 }
 
@@ -17,6 +18,7 @@ export default function StatCard({
   icon: Icon,
   change,
   changeLabel,
+  changeIsAbsolute,
 }: StatCardProps) {
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm p-6 transition-all duration-200 hover:shadow-md">
@@ -33,7 +35,7 @@ export default function StatCard({
               )}
               <span className={change >= 0 ? "text-emerald-600" : "text-red-600"}>
                 {change >= 0 ? "+" : ""}
-                {change}%
+                {change}{changeIsAbsolute ? "" : "%"}
               </span>
               {changeLabel && <span className="text-muted-foreground ml-1">{changeLabel}</span>}
             </div>
