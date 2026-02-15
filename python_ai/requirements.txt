@@ -1,24 +1,24 @@
 # Core dependencies
-numpy>=1.24.0
-pandas>=2.0.0
-scikit-learn>=1.3.0
+numpy==1.24.0
+pandas==2.0.0
+scikit-learn==1.3.0
 
 # Deep Learning - Full TensorFlow for LSTM model
-tensorflow>=2.15.0
+tensorflow==2.15.0
 
 # Data handling
-yfinance>=0.2.30
+yfinance==0.2.30
 
 # API Server
-fastapi>=0.109.0
-uvicorn>=0.27.0
-gunicorn>=21.0.0
-pydantic>=2.5.0
+fastapi==0.109.0
+uvicorn==0.27.0
+gunicorn==21.0.0
+pydantic==2.5.0
 
 # HTTP client for live data
-requests>=2.31.0
-python-dotenv>=1.0.0
+requests==2.31.0
+python-dotenv==1.0.0
 
 # Utilities
-joblib>=1.3.0
-python-dateutil>=2.8.0
+joblib==1.3.0
+python-dateutil==2.8.2
