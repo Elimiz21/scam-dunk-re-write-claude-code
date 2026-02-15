@@ -49,73 +49,103 @@ export async function getUserUsage(userId: string): Promise<{
 }
 
 /**
- * Check if user can perform a scan (hasn't exceeded limit)
+ * Check if user can perform a scan (hasn't exceeded limit).
+ * Uses a transaction to ensure consistent reads of user plan and usage count.
+ * Note: There is still a TOCTOU window between this check and the separate
+ * incrementScanCount() call — callers should be aware that concurrent requests
+ * may both pass this check before either increments.
  */
 export async function canUserScan(userId: string): Promise<{
   canScan: boolean;
   usage: UsageInfo;
 }> {
-  const { plan, scansUsedThisMonth, scansLimitThisMonth } = await getUserUsage(userId);
+  const monthKey = getCurrentMonthKey();
 
-  const limitReached = scansUsedThisMonth >= scansLimitThisMonth;
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { plan: true },
+    });
 
-  return {
-    canScan: !limitReached,
-    usage: {
-      plan,
-      scansUsedThisMonth,
-      scansLimitThisMonth,
-      limitReached,
-    },
-  };
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const plan = user.plan as Plan;
+    const limit = getScanLimit(plan);
+
+    const usage = await tx.scanUsage.findUnique({
+      where: {
+        userId_monthKey: {
+          userId,
+          monthKey,
+        },
+      },
+    });
+
+    const currentCount = usage?.scanCount ?? 0;
+    const limitReached = currentCount >= limit;
+
+    return {
+      canScan: !limitReached,
+      usage: {
+        plan,
+        scansUsedThisMonth: currentCount,
+        scansLimitThisMonth: limit,
+        limitReached,
+      } as UsageInfo,
+    };
+  });
+
+  return result;
 }
 
 /**
- * Increment scan count for a user
- * Should be called after a successful scan
+ * Atomically increment scan count for a user within a transaction.
+ * Should be called after a successful scan.
  */
 export async function incrementScanCount(userId: string): Promise<UsageInfo> {
   const monthKey = getCurrentMonthKey();
 
-  // Get user's plan
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { plan: true },
-  });
+  return await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { plan: true },
+    });
 
-  if (!user) {
-    throw new Error("User not found");
-  }
+    if (!user) {
+      throw new Error("User not found");
+    }
 
-  const plan = user.plan as Plan;
-  const limit = getScanLimit(plan);
+    const plan = user.plan as Plan;
+    const limit = getScanLimit(plan);
 
-  // Upsert the usage record
-  const usage = await prisma.scanUsage.upsert({
-    where: {
-      userId_monthKey: {
+    const usage = await tx.scanUsage.upsert({
+      where: {
+        userId_monthKey: {
+          userId,
+          monthKey,
+        },
+      },
+      update: {
+        scanCount: {
+          increment: 1,
+        },
+      },
+      create: {
         userId,
         monthKey,
+        scanCount: 1,
       },
-    },
-    update: {
-      scanCount: {
-        increment: 1,
-      },
-    },
-    create: {
-      userId,
-      monthKey,
-      scanCount: 1,
-    },
-  });
+    });
 
-  return {
-    plan,
-    scansUsedThisMonth: usage.scanCount,
-    scansLimitThisMonth: limit,
-    limitReached: usage.scanCount >= limit,
-  };
+    return {
+      plan,
+      scansUsedThisMonth: usage.scanCount,
+      scansLimitThisMonth: limit,
+      limitReached: usage.scanCount >= limit,
+    };
+  });
 }
 
 /**
