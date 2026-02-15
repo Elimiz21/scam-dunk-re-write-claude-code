@@ -39,7 +39,6 @@ export async function getScanTargetsFromLatestDailyScan(
     where: {
       scanDate,
       riskLevel: 'HIGH',
-      isLegitimate: false,
       isInsufficient: false,
     },
     include: {
