@@ -13,6 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { prisma } from '@/lib/db';
 import {
   sendSupportTicketNotification,
@@ -82,16 +83,21 @@ export async function POST(request: NextRequest) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
 
-    // Verify webhook secret if configured
-    if (WEBHOOK_SECRET) {
-      const authHeader = request.headers.get('authorization');
-      const webhookHeader = request.headers.get('x-webhook-secret');
-      const token = authHeader?.replace('Bearer ', '') || webhookHeader || '';
+    // Verify webhook secret
+    if (!WEBHOOK_SECRET) {
+      console.error('[INBOUND EMAIL] INBOUND_EMAIL_WEBHOOK_SECRET not configured');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+    }
 
-      if (token !== WEBHOOK_SECRET) {
-        console.error('[INBOUND EMAIL] Invalid webhook secret');
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    const authHeader = request.headers.get('authorization');
+    const webhookHeader = request.headers.get('x-webhook-secret');
+    const token = authHeader?.replace('Bearer ', '') || webhookHeader || '';
+
+    const tokenBuf = Buffer.from(token);
+    const secretBuf = Buffer.from(WEBHOOK_SECRET);
+    if (tokenBuf.length !== secretBuf.length || !crypto.timingSafeEqual(tokenBuf, secretBuf)) {
+      console.error('[INBOUND EMAIL] Invalid webhook secret');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();

@@ -34,10 +34,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (user.emailVerified) {
-      return NextResponse.json(
-        { error: "Email is already verified" },
-        { status: 400 }
-      );
+      // Return generic response to prevent user enumeration
+      return NextResponse.json({ success: true });
     }
 
     // Create new verification token and send email

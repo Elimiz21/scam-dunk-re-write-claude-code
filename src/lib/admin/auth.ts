@@ -58,7 +58,7 @@ export async function adminLogin(
     }
 
     if (!adminUser.isActive) {
-      return { success: false, error: "Account is deactivated" };
+      return { success: false, error: "Invalid credentials" };
     }
 
     const isValid = await verifyPassword(password, adminUser.hashedPassword);
@@ -99,10 +99,12 @@ export async function adminLogin(
 
     // Set cookie
     const cookieStore = await cookies();
+    // Path remains "/" because admin pages make client-side fetches to /api/admin/*
+    // which doesn't match a /admin path prefix. SameSite strict prevents cross-site leakage.
     cookieStore.set(ADMIN_SESSION_COOKIE, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       expires: expiresAt,
       path: "/",
     });

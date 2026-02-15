@@ -20,8 +20,10 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || (() => {
   }
   return JWT_SECRET + "_REFRESH";
 })();
-const JWT_EXPIRY = "7d";
-const JWT_REFRESH_EXPIRY = "30d";
+// Short access token expiry mitigates stateless JWT revocation limitation.
+// Refresh tokens are longer-lived; revocation requires a future token blacklist.
+const JWT_EXPIRY = "15m";
+const JWT_REFRESH_EXPIRY = "7d";
 
 interface JWTPayload {
   userId: string;
