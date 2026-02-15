@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { activateSubscription } from "@/lib/paypal";
+import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 /**
  * POST /api/billing/paypal/activate
@@ -10,6 +11,12 @@ import { activateSubscription } from "@/lib/paypal";
  */
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit: auth for billing activation (10 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(req, "auth");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

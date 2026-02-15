@@ -13,6 +13,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "@/lib/mobile-auth";
+import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 const refreshSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token is required"),
@@ -20,6 +21,12 @@ const refreshSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: strict for token refresh (5 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     const body = await request.json();
     const validation = refreshSchema.safeParse(body);
 
@@ -32,8 +39,8 @@ export async function POST(request: NextRequest) {
 
     const { refreshToken } = validation.data;
 
-    // Verify the refresh token
-    const payload = verifyToken(refreshToken);
+    // Verify the refresh token using the refresh secret
+    const payload = verifyToken(refreshToken, "refresh");
 
     if (!payload || payload.type !== "refresh") {
       return NextResponse.json(

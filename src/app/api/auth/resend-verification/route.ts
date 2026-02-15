@@ -3,9 +3,16 @@ import { prisma } from "@/lib/db";
 import { createEmailVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { logAuthError } from "@/lib/auth-error-tracking";
+import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: strict for resend verification (5 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     const { email } = await request.json();
 
     if (!email) {

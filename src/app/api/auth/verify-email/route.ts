@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyEmailVerificationToken } from "@/lib/tokens";
 import { logAuthError } from "@/lib/auth-error-tracking";
+import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
   const userAgent = request.headers.get("user-agent") || undefined;
 
   try {
+    // Rate limit: strict for email verification (5 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     const { token } = await request.json();
 
     if (!token) {

@@ -13,7 +13,8 @@ export async function GET() {
     await prisma.$queryRaw`SELECT 1`;
     checks.database = "ok";
   } catch (error) {
-    checks.database = `error: ${error instanceof Error ? error.message : "Unknown error"}`;
+    console.error("Health check database error:", error);
+    checks.database = "error";
   }
 
   const allOk = checks.database === "ok";
