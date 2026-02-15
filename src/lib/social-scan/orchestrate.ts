@@ -33,10 +33,11 @@ function aggregateResults(
       }
     }
 
-    // Deduplicate by URL
+    // Deduplicate by URL (keep mentions without URLs)
     const seenUrls = new Set<string>();
     const uniqueMentions = tickerMentions.filter(m => {
-      if (!m.url || seenUrls.has(m.url)) return false;
+      if (!m.url) return true; // Keep mentions without URLs (e.g. StockTwits)
+      if (seenUrls.has(m.url)) return false;
       seenUrls.add(m.url);
       return true;
     });
