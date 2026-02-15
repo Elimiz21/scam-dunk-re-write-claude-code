@@ -428,10 +428,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return error with step label for debugging
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: `Check failed [${currentStep}]: ${errorMessage}` },
+      { error: "An internal error occurred. Please try again later." },
       { status: 500 }
     );
   }

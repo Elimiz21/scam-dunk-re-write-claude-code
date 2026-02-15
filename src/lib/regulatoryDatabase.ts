@@ -48,6 +48,7 @@ export async function checkRegulatoryDatabase(ticker: string): Promise<Regulator
       orderBy: {
         flagDate: 'desc',
       },
+      take: 100,
     });
 
     if (flags.length === 0) {
@@ -588,34 +589,33 @@ export async function getRegulatoryDatabaseStatus(): Promise<{
   totalActiveFlags: number;
 }> {
   const sources = ['SEC', 'FINRA', 'NYSE', 'NASDAQ', 'OTC'];
-  const result: Array<{
-    source: string;
-    lastSyncAt: Date | null;
-    status: string;
-    totalFlags: number;
-  }> = [];
 
-  for (const source of sources) {
-    const lastSync = await prisma.regulatoryDatabaseSync.findFirst({
-      where: { source },
+  // Batch: fetch all syncs and flag counts in 2 queries instead of 10
+  const [allSyncs, flagCounts, totalActiveFlags] = await Promise.all([
+    prisma.regulatoryDatabaseSync.findMany({
+      where: { source: { in: sources } },
       orderBy: { lastSyncAt: 'desc' },
-    });
+      distinct: ['source'] as const,
+    }),
+    prisma.regulatoryFlag.groupBy({
+      by: ['source'],
+      where: { source: { in: sources }, isActive: true },
+      _count: true,
+    }),
+    prisma.regulatoryFlag.count({
+      where: { isActive: true },
+    }),
+  ]);
 
-    const flagCount = await prisma.regulatoryFlag.count({
-      where: { source, isActive: true },
-    });
+  const syncMap = new Map(allSyncs.map(s => [s.source, s]));
+  const flagCountMap = new Map(flagCounts.map(f => [f.source, f._count]));
 
-    result.push({
-      source,
-      lastSyncAt: lastSync?.lastSyncAt || null,
-      status: lastSync?.status || 'NEVER_SYNCED',
-      totalFlags: flagCount,
-    });
-  }
-
-  const totalActiveFlags = await prisma.regulatoryFlag.count({
-    where: { isActive: true },
-  });
+  const result = sources.map(source => ({
+    source,
+    lastSyncAt: syncMap.get(source)?.lastSyncAt || null,
+    status: syncMap.get(source)?.status || 'NEVER_SYNCED',
+    totalFlags: flagCountMap.get(source) || 0,
+  }));
 
   return {
     sources: result,
