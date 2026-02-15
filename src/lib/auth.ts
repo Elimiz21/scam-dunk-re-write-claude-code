@@ -84,18 +84,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { email },
           });
         } catch (dbError) {
-          console.error("[AUTH] DATABASE CONNECTION ERROR during login:", dbError);
+          const errorMsg = dbError instanceof Error ? dbError.message : String(dbError);
+          console.error("[AUTH] DATABASE CONNECTION ERROR during login:", errorMsg);
           console.error("[AUTH] DATABASE_URL defined:", !!process.env.DATABASE_URL);
           console.error("[AUTH] DATABASE_URL prefix:", process.env.DATABASE_URL?.substring(0, 20) + "...");
+
+          // Detect common Supabase/Postgres failure modes
+          const isTimeout = errorMsg.includes("timed out") || errorMsg.includes("ETIMEDOUT");
+          const isRefused = errorMsg.includes("ECONNREFUSED") || errorMsg.includes("Connection refused");
+          const isPaused = errorMsg.includes("Project is paused") || errorMsg.includes("too many clients");
+          const isDns = errorMsg.includes("ENOTFOUND") || errorMsg.includes("getaddrinfo");
+
+          let hint = "Database connection failed";
+          if (isPaused) hint = "Database appears to be paused (Supabase free-tier auto-pause)";
+          else if (isTimeout) hint = "Database connection timed out — server may be paused or unreachable";
+          else if (isRefused) hint = "Database connection refused — check DATABASE_URL and server status";
+          else if (isDns) hint = "Database hostname not found — check DATABASE_URL";
+
+          console.error("[AUTH] DIAGNOSIS:", hint);
+
           await logAuthError(
             { email, endpoint: "/api/auth/[...nextauth]" },
             {
               errorType: "LOGIN_FAILED",
               errorCode: "DATABASE_ERROR",
-              message: `Database query failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+              message: `${hint}: ${errorMsg}`,
             }
           );
-          throw new Error(`DATABASE_UNAVAILABLE: ${dbError instanceof Error ? dbError.message : "Connection failed"}`);
+          throw new Error(`DATABASE_UNAVAILABLE: ${hint}`);
         }
 
         if (!user) {

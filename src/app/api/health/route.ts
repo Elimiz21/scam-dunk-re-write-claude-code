@@ -45,19 +45,37 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Test database connection
+    // Test database connection with a timeout
+    const dbStart = Date.now();
     await prisma.$queryRaw`SELECT 1`;
+    const dbLatency = Date.now() - dbStart;
     checks.database = "ok";
+    if (verbose) {
+      checks.databaseLatencyMs = dbLatency;
+    }
 
     // Run expired token cleanup if last run > 24h ago
     if (Date.now() - lastCleanupRun > CLEANUP_INTERVAL_MS) {
       cleanupExpiredTokens().catch((err) => console.error("Token cleanup error:", err));
     }
   } catch (error) {
-    console.error("Health check database error:", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("Health check database error:", errorMsg);
     checks.database = "error";
     if (verbose) {
-      checks.databaseError = error instanceof Error ? error.message : String(error);
+      checks.databaseError = errorMsg;
+
+      // Diagnose common failure modes
+      const isTimeout = errorMsg.includes("timed out") || errorMsg.includes("ETIMEDOUT");
+      const isRefused = errorMsg.includes("ECONNREFUSED") || errorMsg.includes("Connection refused");
+      const isPaused = errorMsg.includes("Project is paused") || errorMsg.includes("too many clients");
+      const isDns = errorMsg.includes("ENOTFOUND") || errorMsg.includes("getaddrinfo");
+
+      if (isPaused) checks.databaseHint = "Database appears paused — restore it in Supabase dashboard";
+      else if (isTimeout) checks.databaseHint = "Connection timed out — database may be paused or unreachable";
+      else if (isRefused) checks.databaseHint = "Connection refused — check DATABASE_URL and server status";
+      else if (isDns) checks.databaseHint = "Hostname not found — DATABASE_URL may be incorrect";
+      else checks.databaseHint = "Unexpected error — check DATABASE_URL in Vercel environment variables";
     }
   }
 
