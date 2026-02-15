@@ -78,16 +78,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Log the preview login for audit trail
+    // Log the preview login for audit trail (non-fatal if it fails)
     if (result.admin?.id) {
-      await prisma.adminAuditLog.create({
-        data: {
-          adminUserId: result.admin.id,
-          action: "PREVIEW_LOGIN",
-          resource: "preview-admin",
-          details: JSON.stringify({ ip: ipAddress, userAgent }),
-        },
-      });
+      try {
+        await prisma.adminAuditLog.create({
+          data: {
+            adminUserId: result.admin.id,
+            action: "PREVIEW_LOGIN",
+            resource: "preview-admin",
+            details: JSON.stringify({ ip: ipAddress, userAgent }),
+          },
+        });
+      } catch (auditError) {
+        console.error("Preview login audit log error (non-fatal):", auditError);
+      }
     }
 
     // Seed demo data before responding (must complete before Vercel

@@ -71,7 +71,8 @@ export function verifyToken(token: string, expectedType: "access" | "refresh" = 
     const secret = expectedType === "refresh" ? JWT_REFRESH_SECRET : JWT_SECRET;
     const decoded = jwt.verify(token, secret) as JWTPayload;
     return decoded;
-  } catch {
+  } catch (error) {
+    console.warn(`JWT verification failed (expected ${expectedType}):`, error instanceof Error ? error.message : error);
     return null;
   }
 }
