@@ -1,0 +1,7 @@
+{
+  "_comment": "SHA-256 hashes of trusted model files. Update after retraining models.",
+  "models/scam_detector_rf.joblib": null,
+  "models/scam_detector_scaler.joblib": null,
+  "models/scam_detector_lstm.keras": null,
+  "models/scam_detector_lstm_scaler.npy": null
+}

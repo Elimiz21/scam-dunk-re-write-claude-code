@@ -13,7 +13,7 @@ Run with: uvicorn api_server:app --host 0.0.0.0 --port 8000
 
 import os
 import sys
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
 from datetime import datetime
 import logging
 import threading
@@ -99,9 +99,9 @@ pipeline_lock = threading.Lock()
 
 class AnalysisRequest(BaseModel):
     """Request model for scam analysis"""
-    ticker: str = Field(..., description="Stock ticker or crypto symbol")
-    asset_type: str = Field(default="stock", description="Asset type: 'stock' or 'crypto'")
-    days: int = Field(default=90, description="Days of historical data to analyze")
+    ticker: str = Field(..., max_length=10, description="Stock ticker or crypto symbol")
+    asset_type: Literal["stock", "crypto"] = Field(default="stock", description="Asset type: 'stock' or 'crypto'")
+    days: int = Field(default=90, ge=1, le=365, description="Days of historical data to analyze (1-365)")
     use_live_data: bool = Field(default=True, description="Use live API data (real market data from yfinance)")
     sec_flagged: Optional[bool] = Field(default=None, description="SEC flag result from upstream regulatory database check. Overrides internal SEC list when provided.")
 
