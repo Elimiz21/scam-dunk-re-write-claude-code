@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && (DIRECT_URL=${DIRECT_URL:-$DATABASE_URL} prisma db push --accept-data-loss || echo 'DB push skipped') && next build",
+    "build": "prisma generate && (DATABASE_URL=${DATABASE_URL:-$DIRECT_URL} DIRECT_URL=${DIRECT_URL:-$DATABASE_URL} prisma db push --accept-data-loss || echo 'DB push skipped — set DATABASE_URL or DIRECT_URL') && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",

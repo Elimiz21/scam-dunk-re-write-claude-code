@@ -125,6 +125,8 @@ export default function SocialScanPage() {
     duration: number;
     message: string;
   } | null>(null);
+  const [settingUpDb, setSettingUpDb] = useState(false);
+  const [dbSetupDone, setDbSetupDone] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -181,6 +183,25 @@ export default function SocialScanPage() {
       setTriggering(false);
     }
   }
+
+  async function setupDatabase() {
+    setSettingUpDb(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/db-status", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to set up database");
+      setDbSetupDone(true);
+      setError("");
+      // Refresh data now that tables exist
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to set up database");
+    } finally {
+      setSettingUpDb(false);
+    }
+  }
+
+  const isDbSetupError = error.toLowerCase().includes("table") && (error.toLowerCase().includes("not set up") || error.toLowerCase().includes("not exist") || error.toLowerCase().includes("does not exist"));
 
   function getStatusBadge(status: string) {
     switch (status) {
@@ -317,9 +338,39 @@ export default function SocialScanPage() {
           </div>
         )}
 
+        {dbSetupDone && !error && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-700 flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 flex-shrink-0" />
+            Database tables created successfully. You can now run scans.
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
-            {error}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p>{isDbSetupError ? "Database tables need to be created before you can run scans." : error}</p>
+                {isDbSetupError && (
+                  <p className="text-xs mt-1 opacity-70">Click the button to automatically create the required tables.</p>
+                )}
+              </div>
+              {isDbSetupError && (
+                <button
+                  onClick={setupDatabase}
+                  disabled={settingUpDb}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 whitespace-nowrap flex items-center gap-2"
+                >
+                  {settingUpDb ? (
+                    <>
+                      <Clock className="h-4 w-4 animate-spin" />
+                      Setting up...
+                    </>
+                  ) : (
+                    "Setup Database"
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         )}
 

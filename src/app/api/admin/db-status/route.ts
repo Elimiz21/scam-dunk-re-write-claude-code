@@ -57,6 +57,46 @@ export async function GET() {
       tables.PromotedStock = { exists: false, error: String(e) };
     }
 
+    // Check SocialScanRun table
+    try {
+      const count = await prisma.socialScanRun.count();
+      tables.SocialScanRun = { exists: true, count };
+    } catch (e) {
+      tables.SocialScanRun = { exists: false, error: String(e) };
+    }
+
+    // Check SocialMention table
+    try {
+      const count = await prisma.socialMention.count();
+      tables.SocialMention = { exists: true, count };
+    } catch (e) {
+      tables.SocialMention = { exists: false, error: String(e) };
+    }
+
+    // Check BrowserAgentSession table
+    try {
+      const count = await prisma.browserAgentSession.count();
+      tables.BrowserAgentSession = { exists: true, count };
+    } catch (e) {
+      tables.BrowserAgentSession = { exists: false, error: String(e) };
+    }
+
+    // Check BrowserEvidence table
+    try {
+      const count = await prisma.browserEvidence.count();
+      tables.BrowserEvidence = { exists: true, count };
+    } catch (e) {
+      tables.BrowserEvidence = { exists: false, error: String(e) };
+    }
+
+    // Check BrowserPlatformConfig table
+    try {
+      const count = await prisma.browserPlatformConfig.count();
+      tables.BrowserPlatformConfig = { exists: true, count };
+    } catch (e) {
+      tables.BrowserPlatformConfig = { exists: false, error: String(e) };
+    }
+
     const allExist = Object.values(tables).every((t) => t.exists);
     const hasData = Object.values(tables).some((t) => t.exists && (t.count || 0) > 0);
 
@@ -213,10 +253,255 @@ export async function POST() {
       }
     }
 
+    // Social Scan tables
+    const socialScanStatements = [
+      `CREATE TABLE IF NOT EXISTS "SocialScanRun" (
+        "id" TEXT NOT NULL,
+        "scanDate" TIMESTAMP(3) NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'RUNNING',
+        "tickersScanned" INTEGER NOT NULL DEFAULT 0,
+        "tickersWithMentions" INTEGER NOT NULL DEFAULT 0,
+        "totalMentions" INTEGER NOT NULL DEFAULT 0,
+        "platformsUsed" TEXT,
+        "duration" INTEGER,
+        "errors" TEXT,
+        "triggeredBy" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "SocialScanRun_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE INDEX IF NOT EXISTS "SocialScanRun_scanDate_idx" ON "SocialScanRun"("scanDate")`,
+      `CREATE INDEX IF NOT EXISTS "SocialScanRun_status_idx" ON "SocialScanRun"("status")`,
+
+      `CREATE TABLE IF NOT EXISTS "SocialMention" (
+        "id" TEXT NOT NULL,
+        "scanRunId" TEXT NOT NULL,
+        "ticker" TEXT NOT NULL,
+        "stockName" TEXT,
+        "platform" TEXT NOT NULL,
+        "source" TEXT NOT NULL,
+        "discoveredVia" TEXT NOT NULL,
+        "title" TEXT,
+        "content" TEXT,
+        "url" TEXT,
+        "author" TEXT,
+        "postDate" TIMESTAMP(3),
+        "engagement" TEXT,
+        "sentiment" TEXT,
+        "isPromotional" BOOLEAN NOT NULL DEFAULT false,
+        "promotionScore" INTEGER NOT NULL DEFAULT 0,
+        "redFlags" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "SocialMention_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE INDEX IF NOT EXISTS "SocialMention_ticker_platform_idx" ON "SocialMention"("ticker", "platform")`,
+      `CREATE INDEX IF NOT EXISTS "SocialMention_scanRunId_idx" ON "SocialMention"("scanRunId")`,
+      `CREATE INDEX IF NOT EXISTS "SocialMention_createdAt_idx" ON "SocialMention"("createdAt")`,
+      `CREATE INDEX IF NOT EXISTS "SocialMention_ticker_createdAt_idx" ON "SocialMention"("ticker", "createdAt")`,
+      `CREATE INDEX IF NOT EXISTS "SocialMention_isPromotional_idx" ON "SocialMention"("isPromotional")`,
+    ];
+
+    // Browser Agent tables
+    const browserAgentStatements = [
+      `CREATE TABLE IF NOT EXISTS "BrowserAgentSession" (
+        "id" TEXT NOT NULL,
+        "scanDate" TIMESTAMP(3) NOT NULL,
+        "platform" TEXT NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'RUNNING',
+        "tickersSearched" TEXT NOT NULL,
+        "pagesVisited" INTEGER NOT NULL DEFAULT 0,
+        "mentionsFound" INTEGER NOT NULL DEFAULT 0,
+        "screenshotsTaken" INTEGER NOT NULL DEFAULT 0,
+        "browserMinutes" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "memoryPeakMb" DOUBLE PRECISION,
+        "errors" TEXT,
+        "suspensionCount" INTEGER NOT NULL DEFAULT 0,
+        "resumedFrom" TEXT,
+        "scanRunId" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "BrowserAgentSession_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE INDEX IF NOT EXISTS "BrowserAgentSession_scanDate_idx" ON "BrowserAgentSession"("scanDate")`,
+      `CREATE INDEX IF NOT EXISTS "BrowserAgentSession_platform_idx" ON "BrowserAgentSession"("platform")`,
+      `CREATE INDEX IF NOT EXISTS "BrowserAgentSession_status_idx" ON "BrowserAgentSession"("status")`,
+      `CREATE INDEX IF NOT EXISTS "BrowserAgentSession_scanRunId_idx" ON "BrowserAgentSession"("scanRunId")`,
+
+      `CREATE TABLE IF NOT EXISTS "BrowserEvidence" (
+        "id" TEXT NOT NULL,
+        "sessionId" TEXT NOT NULL,
+        "ticker" TEXT NOT NULL,
+        "platform" TEXT NOT NULL,
+        "url" TEXT,
+        "textContent" TEXT,
+        "author" TEXT,
+        "authorProfileUrl" TEXT,
+        "postDate" TIMESTAMP(3),
+        "engagement" TEXT,
+        "promotionScore" INTEGER NOT NULL DEFAULT 0,
+        "redFlags" TEXT,
+        "screenshotPath" TEXT,
+        "screenshotUrl" TEXT,
+        "rawHtml" TEXT,
+        "extractedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "BrowserEvidence_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE INDEX IF NOT EXISTS "BrowserEvidence_ticker_platform_idx" ON "BrowserEvidence"("ticker", "platform")`,
+      `CREATE INDEX IF NOT EXISTS "BrowserEvidence_sessionId_idx" ON "BrowserEvidence"("sessionId")`,
+      `CREATE INDEX IF NOT EXISTS "BrowserEvidence_promotionScore_idx" ON "BrowserEvidence"("promotionScore")`,
+      `CREATE INDEX IF NOT EXISTS "BrowserEvidence_author_idx" ON "BrowserEvidence"("author")`,
+
+      `CREATE TABLE IF NOT EXISTS "BrowserPlatformConfig" (
+        "id" TEXT NOT NULL,
+        "platform" TEXT NOT NULL,
+        "isEnabled" BOOLEAN NOT NULL DEFAULT false,
+        "lastLoginAt" TIMESTAMP(3),
+        "lastLoginStatus" TEXT,
+        "consecutiveFailures" INTEGER NOT NULL DEFAULT 0,
+        "autoDisabled" BOOLEAN NOT NULL DEFAULT false,
+        "autoDisabledAt" TIMESTAMP(3),
+        "dailyPageLimit" INTEGER NOT NULL DEFAULT 100,
+        "dailyPagesUsed" INTEGER NOT NULL DEFAULT 0,
+        "dailyResetDate" TEXT,
+        "monitorTargets" TEXT,
+        "notes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "BrowserPlatformConfig_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS "BrowserPlatformConfig_platform_key" ON "BrowserPlatformConfig"("platform")`,
+      `CREATE INDEX IF NOT EXISTS "BrowserPlatformConfig_isEnabled_idx" ON "BrowserPlatformConfig"("isEnabled")`,
+    ];
+
+    // Promoter Matrix tables (PromoterNetwork first since Promoter references it)
+    const promoterStatements = [
+      `CREATE TABLE IF NOT EXISTS "PromoterNetwork" (
+        "id" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "coPromotionCount" INTEGER NOT NULL DEFAULT 0,
+        "avgTimingGapHours" DOUBLE PRECISION,
+        "confidenceScore" INTEGER NOT NULL DEFAULT 0,
+        "totalSchemes" INTEGER NOT NULL DEFAULT 0,
+        "confirmedDumps" INTEGER NOT NULL DEFAULT 0,
+        "dumpRate" DOUBLE PRECISION,
+        "firstDetected" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "lastActive" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "notes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "PromoterNetwork_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE INDEX IF NOT EXISTS "PromoterNetwork_isActive_idx" ON "PromoterNetwork"("isActive")`,
+      `CREATE INDEX IF NOT EXISTS "PromoterNetwork_confidenceScore_idx" ON "PromoterNetwork"("confidenceScore")`,
+      `CREATE INDEX IF NOT EXISTS "PromoterNetwork_dumpRate_idx" ON "PromoterNetwork"("dumpRate")`,
+
+      `CREATE TABLE IF NOT EXISTS "Promoter" (
+        "id" TEXT NOT NULL,
+        "displayName" TEXT NOT NULL,
+        "firstSeen" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "lastSeen" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "totalStocksPromoted" INTEGER NOT NULL DEFAULT 0,
+        "confirmedDumps" INTEGER NOT NULL DEFAULT 0,
+        "repeatOffenderScore" INTEGER NOT NULL DEFAULT 0,
+        "avgVictimLoss" DOUBLE PRECISION,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "riskLevel" TEXT NOT NULL DEFAULT 'LOW',
+        "notes" TEXT,
+        "networkId" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "Promoter_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE INDEX IF NOT EXISTS "Promoter_displayName_idx" ON "Promoter"("displayName")`,
+      `CREATE INDEX IF NOT EXISTS "Promoter_repeatOffenderScore_idx" ON "Promoter"("repeatOffenderScore")`,
+      `CREATE INDEX IF NOT EXISTS "Promoter_riskLevel_idx" ON "Promoter"("riskLevel")`,
+      `CREATE INDEX IF NOT EXISTS "Promoter_isActive_idx" ON "Promoter"("isActive")`,
+      `CREATE INDEX IF NOT EXISTS "Promoter_networkId_idx" ON "Promoter"("networkId")`,
+
+      `CREATE TABLE IF NOT EXISTS "PromoterIdentity" (
+        "id" TEXT NOT NULL,
+        "promoterId" TEXT NOT NULL,
+        "platform" TEXT NOT NULL,
+        "username" TEXT NOT NULL,
+        "profileUrl" TEXT,
+        "firstSeen" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "lastSeen" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "isVerified" BOOLEAN NOT NULL DEFAULT false,
+        "followerCount" INTEGER,
+        "accountAge" TIMESTAMP(3),
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "PromoterIdentity_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS "PromoterIdentity_platform_username_key" ON "PromoterIdentity"("platform", "username")`,
+      `CREATE INDEX IF NOT EXISTS "PromoterIdentity_promoterId_idx" ON "PromoterIdentity"("promoterId")`,
+      `CREATE INDEX IF NOT EXISTS "PromoterIdentity_platform_idx" ON "PromoterIdentity"("platform")`,
+
+      `CREATE TABLE IF NOT EXISTS "PromoterStockLink" (
+        "id" TEXT NOT NULL,
+        "promoterId" TEXT NOT NULL,
+        "schemeId" TEXT,
+        "ticker" TEXT NOT NULL,
+        "firstPromotionDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "lastPromotionDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "totalPosts" INTEGER NOT NULL DEFAULT 1,
+        "platforms" TEXT,
+        "avgPromotionScore" INTEGER NOT NULL DEFAULT 0,
+        "evidenceLinks" TEXT,
+        "screenshotUrls" TEXT,
+        "priceAtFirstPromotion" DOUBLE PRECISION,
+        "peakPrice" DOUBLE PRECISION,
+        "priceAfterDump" DOUBLE PRECISION,
+        "gainForPromoter" DOUBLE PRECISION,
+        "lossForVictims" DOUBLE PRECISION,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "PromoterStockLink_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS "PromoterStockLink_promoterId_ticker_key" ON "PromoterStockLink"("promoterId", "ticker")`,
+      `CREATE INDEX IF NOT EXISTS "PromoterStockLink_ticker_idx" ON "PromoterStockLink"("ticker")`,
+      `CREATE INDEX IF NOT EXISTS "PromoterStockLink_promoterId_idx" ON "PromoterStockLink"("promoterId")`,
+      `CREATE INDEX IF NOT EXISTS "PromoterStockLink_schemeId_idx" ON "PromoterStockLink"("schemeId")`,
+      `CREATE INDEX IF NOT EXISTS "PromoterStockLink_firstPromotionDate_idx" ON "PromoterStockLink"("firstPromotionDate")`,
+    ];
+
+    // Homepage Hero table
+    const homepageStatements = [
+      `CREATE TABLE IF NOT EXISTS "HomepageHero" (
+        "id" TEXT NOT NULL,
+        "headline" TEXT NOT NULL,
+        "subheadline" TEXT NOT NULL,
+        "isActive" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdBy" TEXT,
+        CONSTRAINT "HomepageHero_pkey" PRIMARY KEY ("id")
+      )`,
+      `CREATE INDEX IF NOT EXISTS "HomepageHero_isActive_idx" ON "HomepageHero"("isActive")`,
+      `CREATE INDEX IF NOT EXISTS "HomepageHero_createdAt_idx" ON "HomepageHero"("createdAt")`,
+    ];
+
+    // Run all statement groups
+    for (const sql of [...socialScanStatements, ...browserAgentStatements, ...promoterStatements, ...homepageStatements]) {
+      try {
+        await prisma.$executeRawUnsafe(sql);
+        results.push({ statement: sql.substring(0, 60) + "...", success: true });
+      } catch (e) {
+        results.push({ statement: sql.substring(0, 60) + "...", success: false, error: String(e) });
+      }
+    }
+
     // Add foreign key constraints
     const fkStatements = [
       `ALTER TABLE "StockDailySnapshot" ADD CONSTRAINT IF NOT EXISTS "StockDailySnapshot_stockId_fkey" FOREIGN KEY ("stockId") REFERENCES "TrackedStock"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
       `ALTER TABLE "StockRiskAlert" ADD CONSTRAINT IF NOT EXISTS "StockRiskAlert_stockId_fkey" FOREIGN KEY ("stockId") REFERENCES "TrackedStock"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+      `DO $$ BEGIN ALTER TABLE "SocialMention" ADD CONSTRAINT "SocialMention_scanRunId_fkey" FOREIGN KEY ("scanRunId") REFERENCES "SocialScanRun"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+      `DO $$ BEGIN ALTER TABLE "BrowserEvidence" ADD CONSTRAINT "BrowserEvidence_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "BrowserAgentSession"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+      `DO $$ BEGIN ALTER TABLE "Promoter" ADD CONSTRAINT "Promoter_networkId_fkey" FOREIGN KEY ("networkId") REFERENCES "PromoterNetwork"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+      `DO $$ BEGIN ALTER TABLE "PromoterIdentity" ADD CONSTRAINT "PromoterIdentity_promoterId_fkey" FOREIGN KEY ("promoterId") REFERENCES "Promoter"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+      `DO $$ BEGIN ALTER TABLE "PromoterStockLink" ADD CONSTRAINT "PromoterStockLink_promoterId_fkey" FOREIGN KEY ("promoterId") REFERENCES "Promoter"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
     ];
 
     for (const sql of fkStatements) {
