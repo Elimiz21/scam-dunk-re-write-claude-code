@@ -15,6 +15,12 @@ import { prisma } from "./db";
 import { authConfig } from "./auth.config";
 import { logAuthError } from "./auth-error-tracking";
 
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
 // Custom error class for email not verified
 class EmailNotVerifiedError extends CredentialsSignin {
   code = "EMAIL_NOT_VERIFIED";
@@ -55,7 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.log("[AUTH] Missing credentials");
+          console.log("[AUTH] Missing credentials in login attempt");
           await logAuthError(
             { endpoint: "/api/auth/[...nextauth]" },
             {
@@ -70,14 +76,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = (credentials.email as string).toLowerCase().trim();
         const password = credentials.password as string;
 
-        console.log("[AUTH] Attempting login for email:", email);
+        console.log("[AUTH] Attempting login for:", maskEmail(email));
 
         const user = await prisma.user.findUnique({
           where: { email },
         });
 
         if (!user) {
-          console.log("[AUTH] User not found for email:", email);
+          console.log("[AUTH] User not found for:", maskEmail(email));
           await logAuthError(
             { email, endpoint: "/api/auth/[...nextauth]" },
             {
@@ -90,7 +96,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (!user.hashedPassword) {
-          console.log("[AUTH] User has no password set:", email);
+          console.log("[AUTH] User has no password set:", maskEmail(email));
           await logAuthError(
             { email, userId: user.id, endpoint: "/api/auth/[...nextauth]" },
             {
@@ -102,11 +108,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        console.log("[AUTH] User found, checking password...");
+        console.log("[AUTH] User found, checking password");
         const passwordMatch = await bcrypt.compare(password, user.hashedPassword);
 
         if (!passwordMatch) {
-          console.log("[AUTH] Password mismatch for:", email);
+          console.log("[AUTH] Password mismatch for:", maskEmail(email));
           await logAuthError(
             { email, userId: user.id, endpoint: "/api/auth/[...nextauth]" },
             {
@@ -118,7 +124,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        console.log("[AUTH] Password matched, checking email verification...");
+        console.log("[AUTH] Password matched, checking email verification");
 
         // Check if email is verified
         if (!user.emailVerified) {

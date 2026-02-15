@@ -10,7 +10,11 @@ import { logAuthError } from "@/lib/auth-error-tracking";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string()
+    .min(10, "Password must be at least 10 characters")
+    .regex(/[a-z]/, "Password must contain a lowercase letter")
+    .regex(/[A-Z]/, "Password must contain an uppercase letter")
+    .regex(/[0-9]/, "Password must contain a number"),
   name: z.string().optional(),
   turnstileToken: z.string().min(1, "CAPTCHA token is required"),
 });
@@ -36,31 +40,28 @@ export async function POST(request: NextRequest) {
 
     const { email, password, name, turnstileToken } = validation.data;
 
-    // Verify CAPTCHA if Turnstile is configured
-    if (process.env.TURNSTILE_SECRET_KEY) {
-      const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
-      const isValidCaptcha = await verifyTurnstileToken(turnstileToken, ip);
+    // Verify CAPTCHA — turnstile.ts handles fail-closed in production
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+    const isValidCaptcha = await verifyTurnstileToken(turnstileToken, ip);
 
-      if (!isValidCaptcha) {
-        const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
-        await logAuthError(
-          {
-            email: validation.data.email,
-            ipAddress: ip,
-            userAgent: request.headers.get("user-agent") || undefined,
-            endpoint: "/api/auth/register",
-          },
-          {
-            errorType: "SIGNUP_FAILED",
-            errorCode: "CAPTCHA_FAILED",
-            message: "CAPTCHA verification failed",
-          }
-        );
-        return NextResponse.json(
-          { error: "CAPTCHA verification failed. Please try again." },
-          { status: 400 }
-        );
-      }
+    if (!isValidCaptcha) {
+      await logAuthError(
+        {
+          email: validation.data.email,
+          ipAddress: ip,
+          userAgent: request.headers.get("user-agent") || undefined,
+          endpoint: "/api/auth/register",
+        },
+        {
+          errorType: "SIGNUP_FAILED",
+          errorCode: "CAPTCHA_FAILED",
+          message: "CAPTCHA verification failed",
+        }
+      );
+      return NextResponse.json(
+        { error: "CAPTCHA verification failed. Please try again." },
+        { status: 400 }
+      );
     }
 
     // Check if user already exists
@@ -83,10 +84,11 @@ export async function POST(request: NextRequest) {
           message: "Email already registered",
         }
       );
-      return NextResponse.json(
-        { error: "Email already registered" },
-        { status: 400 }
-      );
+      // Return generic message to prevent user enumeration
+      return NextResponse.json({
+        success: true,
+        requiresVerification: true,
+      });
     }
 
     // Hash password
@@ -136,8 +138,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      userId: user.id,
-      requiresVerification: true
+      requiresVerification: true,
     });
   } catch (error) {
     console.error("Registration error:", error);

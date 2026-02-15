@@ -21,9 +21,13 @@ interface TurnstileVerifyResponse {
  * @returns Whether the verification succeeded
  */
 export async function verifyTurnstileToken(token: string, ip?: string): Promise<boolean> {
-  // If no secret key configured, skip verification (for development)
+  // In production, fail closed if secret key is not configured
   if (!TURNSTILE_SECRET_KEY) {
-    console.warn('TURNSTILE_SECRET_KEY not configured, skipping CAPTCHA verification');
+    if (process.env.NODE_ENV === "production") {
+      console.error('TURNSTILE_SECRET_KEY not configured in production — rejecting CAPTCHA');
+      return false;
+    }
+    console.warn('TURNSTILE_SECRET_KEY not configured, skipping CAPTCHA verification (dev only)');
     return true;
   }
 
