@@ -36,6 +36,8 @@ export const config = {
 
   // Social Scan APIs
   youtubeApiKey: process.env.YOUTUBE_API_KEY || "",
+  // Reddit OAuth credentials — no longer required (public JSON scanner needs no auth).
+  // Kept for backward compatibility if OAuth access is restored in the future.
   redditClientId: process.env.REDDIT_CLIENT_ID || "",
   redditClientSecret: process.env.REDDIT_CLIENT_SECRET || "",
   redditUsername: process.env.REDDIT_USERNAME || "",

@@ -95,6 +95,7 @@ const platformColors: Record<string, string> = {
 
 const scannerLabels: Record<string, string> = {
   reddit_oauth: "Reddit OAuth",
+  reddit_public: "Reddit Public",
   youtube_api: "YouTube API",
   google_cse: "Google CSE",
   perplexity: "Perplexity AI",

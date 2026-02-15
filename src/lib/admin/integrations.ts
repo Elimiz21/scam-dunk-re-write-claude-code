@@ -154,29 +154,27 @@ async function testYouTube(): Promise<{ status: string; message?: string }> {
 }
 
 /**
- * Test Reddit OAuth
+ * Test Reddit Public JSON endpoint (no OAuth needed)
  */
-async function testRedditOAuth(): Promise<{ status: string; message?: string }> {
-  if (!config.redditClientId || !config.redditClientSecret || !config.redditUsername || !config.redditPassword) {
-    return { status: "ERROR", message: "Reddit credentials not fully configured" };
-  }
+async function testRedditPublic(): Promise<{ status: string; message?: string }> {
   try {
-    const auth = Buffer.from(`${config.redditClientId}:${config.redditClientSecret}`).toString("base64");
-    const response = await fetch("https://www.reddit.com/api/v1/access_token", {
-      method: "POST",
+    const response = await fetch("https://www.reddit.com/r/stocks/new.json?limit=1", {
       headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": "ScamDunk/1.0",
+        "User-Agent": "Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)",
+        "Accept": "application/json",
       },
-      body: `grant_type=password&username=${encodeURIComponent(config.redditUsername)}&password=${encodeURIComponent(config.redditPassword)}`,
     });
     if (response.ok) {
       const data = await response.json();
-      if (data.access_token) return { status: "CONNECTED" };
-      return { status: "ERROR", message: data.error || "No access token returned" };
+      if (data?.data?.children?.length > 0) {
+        return { status: "CONNECTED", message: "Public JSON endpoint reachable (no credentials needed)" };
+      }
+      return { status: "CONNECTED", message: "Endpoint reachable but returned no posts" };
     }
-    return { status: "ERROR", message: `Reddit auth returned ${response.status}` };
+    if (response.status === 429) {
+      return { status: "ERROR", message: "Rate limited — try again in a minute" };
+    }
+    return { status: "ERROR", message: `Reddit returned ${response.status}` };
   } catch (error) {
     return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
@@ -406,13 +404,13 @@ const INTEGRATIONS = [
     documentation: "https://developers.google.com/youtube/v3",
   },
   {
-    name: "REDDIT_OAUTH",
-    displayName: "Reddit OAuth API",
+    name: "REDDIT_PUBLIC",
+    displayName: "Reddit Public JSON",
     category: "SOCIAL_SCAN",
-    description: "Reddit API app credentials for authenticated search (separate from personal account)",
-    getApiKey: () => config.redditClientId,
-    testConnection: testRedditOAuth,
-    rateLimit: 60,
+    description: "Reddit public JSON endpoints — no credentials needed (10 req/min)",
+    getApiKey: () => "No credentials required",
+    testConnection: testRedditPublic,
+    rateLimit: 10,
     documentation: "https://www.reddit.com/wiki/api/",
   },
   {
