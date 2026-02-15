@@ -1,6 +1,6 @@
 "use client";
 
-import { RiskResponse, RiskLevel } from "@/lib/types";
+import { RiskResponse, RiskLevel, RiskSignal } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -190,8 +190,68 @@ function FlagItem({
   );
 }
 
+function buildRiskFactorSummary(signals: RiskSignal[], riskLevel: RiskLevel): string {
+  if (signals.length === 0) return "";
+
+  // Sort by weight (most significant first)
+  const sorted = [...signals].sort((a, b) => b.weight - a.weight);
+  const topSignals = sorted.slice(0, 3);
+
+  const categoryLabels: Record<string, string> = {
+    STRUCTURAL: "how the stock is structured (exchange type, company size, trading volume)",
+    PATTERN: "unusual trading activity (price spikes, volume surges, or pump-and-dump patterns)",
+    ALERT: "regulatory warnings or alerts from agencies like the SEC",
+    BEHAVIORAL: "the language and tactics used in the pitch or message you shared",
+  };
+
+  // Count signals by category
+  const categoryCounts: Record<string, number> = {};
+  for (const sig of signals) {
+    categoryCounts[sig.category] = (categoryCounts[sig.category] || 0) + 1;
+  }
+
+  const parts: string[] = [];
+
+  if (riskLevel === "LOW") {
+    if (signals.length === 0) {
+      parts.push("We didn't find any red flags across the areas we checked. This stock looks clean based on publicly available data.");
+    } else {
+      parts.push(
+        `We found only ${signals.length} minor concern${signals.length > 1 ? "s" : ""} — nothing that stands out as a serious warning sign. ` +
+        `${topSignals[0].description}`
+      );
+    }
+  } else if (riskLevel === "MEDIUM") {
+    parts.push("Here's what caught our attention:");
+    const topDescs = topSignals.map((s) => s.description);
+    parts.push(topDescs.join(". ") + ".");
+
+    const cats = Object.entries(categoryCounts)
+      .filter(([, count]) => count > 0)
+      .map(([cat]) => categoryLabels[cat] || cat.toLowerCase());
+    if (cats.length > 1) {
+      parts.push(`These warning signs come from multiple areas, including ${cats.join(" and ")}.`);
+    }
+  } else {
+    // HIGH or INSUFFICIENT
+    parts.push("We found several serious warning signs:");
+    const topDescs = topSignals.map((s) => s.description);
+    parts.push(topDescs.join(". ") + ".");
+
+    const cats = Object.entries(categoryCounts)
+      .filter(([, count]) => count > 0)
+      .map(([cat]) => categoryLabels[cat] || cat.toLowerCase());
+    if (cats.length > 1) {
+      parts.push(`Red flags were detected across ${cats.join(" and ")} — this combination increases the overall concern.`);
+    }
+  }
+
+  return parts.join(" ");
+}
+
 export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
+  const riskFactorSummary = buildRiskFactorSummary(signals, riskLevel);
 
   return (
     <Card className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}>
@@ -222,9 +282,16 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
           </div>
         </div>
         {/* Narrative summary — full width, risk-accented, sits between header row and content */}
-        <p className={`text-sm font-medium leading-relaxed text-foreground/85 border-l-[3px] rounded-md pl-3 py-2 mt-3 ${getRiskNarrativeClass(riskLevel)}`}>
-          {narrative.header}
-        </p>
+        <div className={`border-l-[3px] rounded-md pl-3 py-2 mt-3 space-y-1 ${getRiskNarrativeClass(riskLevel)}`}>
+          <p className="text-sm font-medium leading-relaxed text-foreground/85">
+            {narrative.header}
+          </p>
+          {riskFactorSummary && (
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {riskFactorSummary}
+            </p>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-5">

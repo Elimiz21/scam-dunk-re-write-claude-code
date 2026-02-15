@@ -6,13 +6,53 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
 
+const adminInitSchema = z.object({
+  setupKey: z.string().min(1).max(256),
+  email: z.string().email().max(255).optional(),
+  password: z.string().min(10).max(72).optional(),
+  name: z.string().min(1).max(100).trim().optional(),
+}).refine(
+  (data) => (!data.email && !data.password) || (!!data.email && !!data.password),
+  { message: "Both email and password must be provided together, or neither" }
+);
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const { email, password, name } = body;
+    const setupKey = process.env.ADMIN_SETUP_KEY;
+    if (!setupKey) {
+      return NextResponse.json(
+        { error: "Admin setup is disabled" },
+        { status: 403 }
+      );
+    }
+
+    const rawBody = await request.json().catch(() => ({}));
+    const parsed = adminInitSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid request body",
+          details: parsed.error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    const { setupKey: providedSetupKey, email, password, name } = parsed.data;
+
+    if (providedSetupKey !== setupKey) {
+      return NextResponse.json(
+        { error: "Invalid setup key" },
+        { status: 403 }
+      );
+    }
 
     // Try to create the AdminUser table by attempting a query
     // If it fails, the tables don't exist

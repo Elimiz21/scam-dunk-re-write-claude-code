@@ -9,16 +9,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
-import {
-  generateAccessToken,
-  generateRefreshToken,
-} from "@/lib/mobile-auth";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
+import { createEmailVerificationToken } from "@/lib/tokens";
+import { sendVerificationEmail } from "@/lib/email";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string()
+    .min(10, "Password must be at least 10 characters")
+    .regex(/[a-z]/, "Password must contain a lowercase letter")
+    .regex(/[A-Z]/, "Password must contain an uppercase letter")
+    .regex(/[0-9]/, "Password must contain a number"),
   name: z.string().optional(),
+  turnstileToken: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -39,7 +43,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, name } = validation.data;
+    const { email, password, name, turnstileToken } = validation.data;
+
+    // Verify Turnstile CAPTCHA if token provided
+    if (turnstileToken) {
+      const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
+      const isValid = await verifyTurnstileToken(turnstileToken, ip);
+      if (!isValid) {
+        return NextResponse.json(
+          { error: "CAPTCHA verification failed. Please try again." },
+          { status: 400 }
+        );
+      }
+    }
+
     const normalizedEmail = email.toLowerCase();
 
     // Check if user already exists
@@ -48,25 +65,24 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: "An account with this email already exists" },
-        { status: 409 }
-      );
+      // Return generic message to prevent user enumeration
+      return NextResponse.json({
+        success: true,
+        message: "Account created. Please check your email to verify your account before logging in.",
+      });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user with FREE plan
+    // Create user with FREE plan (email not verified)
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         hashedPassword,
         name: name || null,
         plan: "FREE",
-        // For mobile registrations, we can auto-verify email
-        // or implement email verification later
-        emailVerified: new Date(),
+        emailVerified: null,
       },
       select: {
         id: true,
@@ -76,20 +92,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user.id, user.email);
-    const refreshToken = generateRefreshToken(user.id, user.email);
+    // Send verification email (don't block registration if this fails)
+    try {
+      const verificationToken = await createEmailVerificationToken(normalizedEmail);
+      await sendVerificationEmail(normalizedEmail, verificationToken);
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+    }
 
-    // Return user data and tokens
+    // Do not issue tokens until email is verified (enforced at login)
+    // Response shape matches existing-user path to prevent enumeration
     return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        plan: user.plan,
-      },
-      token: accessToken,
-      refreshToken,
+      success: true,
+      message: "Account created. Please check your email to verify your account before logging in.",
     });
   } catch (error) {
     console.error("Mobile registration error:", error);

@@ -15,10 +15,12 @@ import {
   getMobileUser,
 } from "@/lib/mobile-auth";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
+  turnstileToken: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -39,7 +41,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password } = validation.data;
+    const { email, password, turnstileToken } = validation.data;
+
+    // Verify Turnstile CAPTCHA if token provided
+    if (turnstileToken) {
+      const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
+      const isValid = await verifyTurnstileToken(turnstileToken, ip);
+      if (!isValid) {
+        return NextResponse.json(
+          { error: "CAPTCHA verification failed. Please try again." },
+          { status: 400 }
+        );
+      }
+    }
 
     // Find user by email
     const user = await prisma.user.findUnique({
@@ -71,9 +85,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if email is verified (optional - can be relaxed for mobile)
-    // For mobile, we allow unverified emails but flag it
-    const emailVerified = !!user.emailVerified;
+    // Reject unverified email accounts
+    if (!user.emailVerified) {
+      return NextResponse.json(
+        { error: "Please verify your email address before logging in." },
+        { status: 403 }
+      );
+    }
 
     // Generate tokens
     const accessToken = generateAccessToken(user.id, user.email);
@@ -89,7 +107,7 @@ export async function POST(request: NextRequest) {
       },
       token: accessToken,
       refreshToken,
-      emailVerified,
+      emailVerified: true,
     });
   } catch (error) {
     console.error("Mobile login error:", error);

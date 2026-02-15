@@ -83,6 +83,7 @@ def _import_tensorflow():
 from sklearn.preprocessing import MinMaxScaler
 
 from config import LSTM_MODEL_CONFIG, MODEL_PATHS
+from model_integrity import verify_model_file
 
 
 class ScamDetectorLSTM:
@@ -558,10 +559,18 @@ class ScamDetectorLSTM:
         model_path = model_path or MODEL_PATHS['lstm_model']
 
         try:
+            # Verify model file integrity before loading
+            if not verify_model_file(model_path):
+                print(f"Model integrity check failed for {model_path}")
+                return False
+
             self.model = load_model(model_path)
 
             # Load scaler
             scaler_path = model_path.replace('.keras', '_scaler.npy').replace('.h5', '_scaler.npy')
+            if not verify_model_file(scaler_path):
+                print(f"Scaler integrity check failed for {scaler_path}")
+                return False
             scaler_data = np.load(scaler_path, allow_pickle=True).item()
 
             self.scaler = MinMaxScaler()

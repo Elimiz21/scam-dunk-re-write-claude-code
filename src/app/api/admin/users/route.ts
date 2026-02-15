@@ -10,6 +10,8 @@ import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 
 export const dynamic = 'force-dynamic';
 
+const ALLOWED_SORT_FIELDS = ["createdAt", "email", "name", "plan", "updatedAt"] as const;
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getAdminSession();
@@ -18,12 +20,13 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20));
     const search = searchParams.get("search") || "";
     const plan = searchParams.get("plan") || "";
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
+    const rawSortBy = searchParams.get("sortBy") || "createdAt";
+    const sortBy = (ALLOWED_SORT_FIELDS as readonly string[]).includes(rawSortBy) ? rawSortBy : "createdAt";
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
 
     // Build where clause
     const where: Record<string, unknown> = {};
@@ -69,6 +72,7 @@ export async function GET(request: NextRequest) {
         email: user.email,
         name: user.name,
         plan: user.plan,
+        formerPro: user.formerPro,
         billingCustomerId: user.billingCustomerId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -84,12 +88,13 @@ export async function GET(request: NextRequest) {
       _count: true,
     });
 
-    const totalUsers = await prisma.user.count();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const newUsersLast30Days = await prisma.user.count({
-      where: { createdAt: { gte: thirtyDaysAgo } },
-    });
+    const [totalUsers, formerProUsers, newUsersLast30Days] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { formerPro: true } }),
+      prisma.user.count({
+        where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+      }),
+    ]);
 
     return NextResponse.json({
       users: formattedUsers,
@@ -103,6 +108,7 @@ export async function GET(request: NextRequest) {
         totalUsers,
         freeUsers: stats.find((s) => s.plan === "FREE")?._count || 0,
         paidUsers: stats.find((s) => s.plan === "PAID")?._count || 0,
+        formerProUsers,
         newUsersLast30Days,
       },
     });
@@ -151,7 +157,7 @@ export async function PATCH(request: NextRequest) {
         break;
 
       case "downgradeToFree":
-        updateData = { plan: "FREE" };
+        updateData = { plan: "FREE", formerPro: true };
         logDetails = "Downgraded user to FREE plan";
         break;
 

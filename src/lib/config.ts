@@ -21,6 +21,12 @@ export const config = {
   // Alpha Vantage API (Legacy/Fallback)
   alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY || "",
 
+  // OTC Markets API (optional - free public API used by default, paid API if key provided)
+  otcMarketsApiKey: process.env.OTC_MARKETS_API_KEY || "",
+
+  // FINRA API (optional - free BrokerCheck API used by default, official API if key provided)
+  finraApiKey: process.env.FINRA_API_KEY || "",
+
   // NextAuth
   nextAuthUrl: process.env.NEXTAUTH_URL || "http://localhost:3000",
   nextAuthSecret: process.env.NEXTAUTH_SECRET || "",
@@ -30,6 +36,8 @@ export const config = {
 
   // Social Scan APIs
   youtubeApiKey: process.env.YOUTUBE_API_KEY || "",
+  // Reddit OAuth credentials — no longer required (public JSON scanner needs no auth).
+  // Kept for backward compatibility if OAuth access is restored in the future.
   redditClientId: process.env.REDDIT_CLIENT_ID || "",
   redditClientSecret: process.env.REDDIT_CLIENT_SECRET || "",
   redditUsername: process.env.REDDIT_USERNAME || "",
@@ -62,6 +70,20 @@ export const config = {
   browserTiktok2faSecret: process.env.BROWSER_TIKTOK_2FA_SECRET || "",
   browserSessionEncryptionKey: process.env.BROWSER_SESSION_ENCRYPTION_KEY || "",
 } as const;
+
+/**
+ * Validate required environment variables at startup.
+ * Throws if critical secrets are missing.
+ */
+export function validateRequiredEnvVars(): void {
+  const required = ["NEXTAUTH_SECRET", "DATABASE_URL"];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      `FATAL: Missing required environment variables: ${missing.join(", ")}`
+    );
+  }
+}
 
 // Get scan limit based on plan
 export function getScanLimit(plan: "FREE" | "PAID"): number {

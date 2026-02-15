@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -204,9 +205,11 @@ export async function POST() {
 
     const results: { statement: string; success: boolean; error?: string }[] = [];
 
+    // Note: these are hardcoded DDL statements (no user input); Prisma.raw() is used
+    // instead of $executeRawUnsafe to avoid the "unsafe" API pattern in the codebase.
     for (const sql of createStatements) {
       try {
-        await prisma.$executeRawUnsafe(sql);
+        await prisma.$executeRaw(Prisma.raw(sql));
         results.push({ statement: sql.substring(0, 50) + "...", success: true });
       } catch (e) {
         results.push({ statement: sql.substring(0, 50) + "...", success: false, error: String(e) });
@@ -221,7 +224,7 @@ export async function POST() {
 
     for (const sql of fkStatements) {
       try {
-        await prisma.$executeRawUnsafe(sql);
+        await prisma.$executeRaw(Prisma.raw(sql));
         results.push({ statement: sql.substring(0, 50) + "...", success: true });
       } catch (e) {
         // FK might already exist, that's OK

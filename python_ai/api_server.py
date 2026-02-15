@@ -13,10 +13,10 @@ Run with: uvicorn api_server:app --host 0.0.0.0 --port 8000
 
 import os
 import sys
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
 from datetime import datetime
 import logging
-import threading
+import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,9 +25,14 @@ logger = logging.getLogger(__name__)
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+AI_API_SECRET = os.environ.get("AI_API_SECRET")
+if not AI_API_SECRET:
+    logger.warning("WARNING: AI_API_SECRET is not set. API endpoints are unprotected!")
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -37,29 +42,38 @@ app = FastAPI(
 )
 
 # Configure CORS for web app access
+allowed_origin = os.environ.get("ALLOWED_ORIGIN", "https://scamdunk.com")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[allowed_origin],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def verify_api_key(request: Request, call_next):
+    if request.url.path in ("/", "/health"):
+        return await call_next(request)
+    if AI_API_SECRET:
+        api_key = request.headers.get("X-API-Key")
+        if api_key != AI_API_SECRET:
+            return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+    return await call_next(request)
+
 # Pipeline will be initialized lazily
 pipeline = None
-pipeline_initializing = False
 
 # Startup event to log when app is ready
 @app.on_event("startup")
 async def startup_event():
-    import asyncio
     logger.info("=== ScamDunk AI API Starting ===")
     logger.info(f"Python version: {sys.version}")
     try:
         import resource
         mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
         logger.info(f"Memory usage at startup: {mem:.1f} MB")
-    except:
+    except Exception:
         pass
     logger.info("API ready to receive requests (models load on first analyze request)")
 
@@ -78,15 +92,16 @@ async def shutdown_event():
     logger.warning("=== ScamDunk AI API Shutting Down ===")
     logger.warning("Received shutdown signal")
 
-pipeline_lock = threading.Lock()
+pipeline_lock = asyncio.Lock()
 
 
 class AnalysisRequest(BaseModel):
     """Request model for scam analysis"""
-    ticker: str = Field(..., description="Stock ticker or crypto symbol")
-    asset_type: str = Field(default="stock", description="Asset type: 'stock' or 'crypto'")
-    days: int = Field(default=90, description="Days of historical data to analyze")
+    ticker: str = Field(..., max_length=10, description="Stock ticker or crypto symbol")
+    asset_type: Literal["stock", "crypto"] = Field(default="stock", description="Asset type: 'stock' or 'crypto'")
+    days: int = Field(default=90, ge=1, le=365, description="Days of historical data to analyze (1-365)")
     use_live_data: bool = Field(default=True, description="Use live API data (real market data from yfinance)")
+    sec_flagged: Optional[bool] = Field(default=None, description="SEC flag result from upstream regulatory database check. Overrides internal SEC list when provided.")
 
 
 class SignalDetail(BaseModel):
@@ -104,6 +119,16 @@ class StockInfo(BaseModel):
     last_price: Optional[float] = None
     market_cap: Optional[float] = None
     avg_volume: Optional[float] = None
+
+
+class NewsVerificationResult(BaseModel):
+    """Result of news verification for HIGH risk stocks"""
+    has_legitimate_catalyst: bool = False
+    has_sec_filings: bool = False
+    has_promotional_signals: bool = False
+    catalyst_summary: str = ''
+    should_reduce_risk: bool = False
+    recommended_level: str = 'HIGH'
 
 
 class AnalysisResponse(BaseModel):
@@ -126,6 +151,8 @@ class AnalysisResponse(BaseModel):
     analysis_timestamp: str
     # Additional stock info for frontend display
     stock_info: Optional[StockInfo] = None
+    # News verification result (only present for initially-HIGH risk)
+    news_verification: Optional[NewsVerificationResult] = None
 
 
 class HealthResponse(BaseModel):
@@ -137,29 +164,28 @@ class HealthResponse(BaseModel):
     version: str
 
 
-def get_pipeline():
+async def get_pipeline():
     """Get or initialize the pipeline (lazy loading)"""
-    global pipeline, pipeline_initializing
+    global pipeline
 
     if pipeline is not None:
         return pipeline
 
-    with pipeline_lock:
+    async with pipeline_lock:
         # Double-check after acquiring lock
         if pipeline is not None:
             return pipeline
 
-        if pipeline_initializing:
-            return None
-
-        pipeline_initializing = True
         logger.info("Initializing ScamDunk AI Pipeline (lazy load)...")
 
         try:
             from config import SEC_FLAGGED_TICKERS
             from pipeline import ScamDetectionPipeline
 
-            pipeline_instance = ScamDetectionPipeline(load_models=True)
+            loop = asyncio.get_running_loop()
+            pipeline_instance = await loop.run_in_executor(
+                None, lambda: ScamDetectionPipeline(load_models=True)
+            )
             logger.info("Pipeline initialized successfully")
             logger.info(f"  - Random Forest: {'Ready' if pipeline_instance.rf_available else 'Not loaded'}")
             logger.info(f"  - LSTM Model: {'Ready' if pipeline_instance.lstm_available else 'Not loaded'}")
@@ -167,10 +193,11 @@ def get_pipeline():
             # Train models if not available
             if not pipeline_instance.rf_available:
                 logger.info("Training Random Forest model...")
-                pipeline_instance.train_models(
-                    train_rf=True,
-                    train_lstm=False,
-                    save_models=True
+                await loop.run_in_executor(
+                    None,
+                    lambda: pipeline_instance.train_models(
+                        train_rf=True, train_lstm=False, save_models=True
+                    )
                 )
                 logger.info("RF training complete")
 
@@ -178,11 +205,12 @@ def get_pipeline():
             if pipeline_instance.rf_available and not pipeline_instance.lstm_available:
                 logger.info("Training LSTM model...")
                 try:
-                    pipeline_instance.train_models(
-                        train_rf=False,
-                        train_lstm=True,
-                        lstm_epochs=10,  # Reduced epochs for faster startup
-                        save_models=True
+                    await loop.run_in_executor(
+                        None,
+                        lambda: pipeline_instance.train_models(
+                            train_rf=False, train_lstm=True,
+                            lstm_epochs=10, save_models=True
+                        )
                     )
                     logger.info("LSTM training complete")
                 except Exception as e:
@@ -197,8 +225,6 @@ def get_pipeline():
             import traceback
             traceback.print_exc()
             return None
-        finally:
-            pipeline_initializing = False
 
 
 # Root endpoint - always works
@@ -235,7 +261,7 @@ async def analyze_asset(request: AnalysisRequest):
     """Run full hybrid AI analysis on an asset"""
 
     # Get or initialize pipeline
-    p = get_pipeline()
+    p = await get_pipeline()
 
     if p is None:
         raise HTTPException(
@@ -244,13 +270,18 @@ async def analyze_asset(request: AnalysisRequest):
         )
 
     try:
-        # Run the full pipeline analysis
-        assessment = p.analyze(
-            ticker=request.ticker,
-            asset_type=request.asset_type,
-            use_synthetic=not request.use_live_data,
-            is_scam_scenario=False,
-            news_flag=False
+        # Run the full pipeline analysis in a thread pool to avoid blocking the event loop
+        loop = asyncio.get_running_loop()
+        assessment = await loop.run_in_executor(
+            None,
+            lambda: p.analyze(
+                ticker=request.ticker,
+                asset_type=request.asset_type,
+                use_synthetic=not request.use_live_data,
+                is_scam_scenario=False,
+                news_flag=False,
+                sec_flagged_override=request.sec_flagged
+            )
         )
 
         # Build signal details from key indicators
@@ -311,6 +342,19 @@ async def analyze_asset(request: AnalysisRequest):
             avg_volume=data_summary.get('avg_daily_volume') or data_summary.get('avg_volume')
         )
 
+        # Build news verification result if present
+        news_ver = None
+        if assessment.news_verification:
+            nv = assessment.news_verification
+            news_ver = NewsVerificationResult(
+                has_legitimate_catalyst=nv.get('has_legitimate_catalyst', False),
+                has_sec_filings=nv.get('has_sec_filings', False),
+                has_promotional_signals=nv.get('has_promotional_signals', False),
+                catalyst_summary=nv.get('catalyst_summary', ''),
+                should_reduce_risk=nv.get('should_reduce_risk', False),
+                recommended_level=nv.get('recommended_level', 'HIGH'),
+            )
+
         return AnalysisResponse(
             ticker=request.ticker.upper(),
             asset_type=request.asset_type,
@@ -328,7 +372,8 @@ async def analyze_asset(request: AnalysisRequest):
             is_micro_cap=data_summary.get('market_cap', float('inf')) < 50_000_000 if data_summary.get('market_cap') else False,
             data_available=True,
             analysis_timestamp=assessment.timestamp,
-            stock_info=stock_info
+            stock_info=stock_info,
+            news_verification=news_ver
         )
 
     except Exception as e:
@@ -351,7 +396,7 @@ async def analyze_asset(request: AnalysisRequest):
         logger.error(f"Analysis failed for {request.ticker}: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal analysis error")
 
 
 @app.get("/sec-check/{ticker}")

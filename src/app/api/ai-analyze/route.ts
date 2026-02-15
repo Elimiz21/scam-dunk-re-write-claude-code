@@ -18,6 +18,7 @@ import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
 import { canUserScan } from "@/lib/usage";
 import { sendAPIFailureAlert } from "@/lib/email";
+import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 // Allow up to 30 seconds for the full AI pipeline
 export const maxDuration = 30;
@@ -162,6 +163,12 @@ async function checkAIBackendHealth(): Promise<boolean> {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: strict for AI analysis (5 requests per minute)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    if (!rateLimitSuccess) {
+      return rateLimitExceededResponse(rateLimitHeaders);
+    }
+
     // Check authentication
     const session = await auth();
     if (!session?.user?.id) {
@@ -324,7 +331,6 @@ export async function GET() {
 
   return NextResponse.json({
     aiBackend: {
-      url: AI_BACKEND_URL,
       available: healthy,
       status: healthy ? "connected" : "unavailable",
     },

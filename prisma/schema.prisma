@@ -19,7 +19,9 @@ model User {
   emailVerified     DateTime?
   image             String?
   plan              String    @default("FREE") // FREE or PAID
+  formerPro         Boolean   @default(false) // true if user ever cancelled a Pro subscription
   billingCustomerId String?
+  deletedAt         DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -28,6 +30,9 @@ model User {
   scanUsages ScanUsage[]
 }
 
+// TODO [H-11]: OAuth tokens (refresh_token, access_token, id_token) are stored in plain text.
+// A future migration should add field-level encryption for these sensitive fields.
+// This requires a data migration script to encrypt existing tokens in place.
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -88,7 +93,7 @@ model PasswordResetToken {
 model ScanUsage {
   id        String   @id @default(cuid())
   userId    String
-  monthKey  String   // Format: YYYY-MM
+  monthKey  String // Format: YYYY-MM
   scanCount Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,49 +109,49 @@ model ScanUsage {
 // ==========================================
 
 model AdminUser {
-  id             String   @id @default(cuid())
-  email          String   @unique
+  id             String    @id @default(cuid())
+  email          String    @unique
   hashedPassword String
   name           String?
-  role           String   @default("ADMIN") // OWNER, ADMIN, VIEWER
-  isActive       Boolean  @default(true)
+  role           String    @default("ADMIN") // OWNER, ADMIN, VIEWER
+  isActive       Boolean   @default(true)
   lastLoginAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  createdBy      String?  // ID of admin who invited them
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      String? // ID of admin who invited them
 
-  invitesSent    AdminInvite[] @relation("InvitedBy")
-  sessions       AdminSession[]
+  invitesSent AdminInvite[]  @relation("InvitedBy")
+  sessions    AdminSession[]
 
   @@index([email])
 }
 
 model AdminSession {
-  id           String    @id @default(cuid())
-  adminUserId  String
-  token        String    @unique
-  expiresAt    DateTime
-  createdAt    DateTime  @default(now())
-  ipAddress    String?
-  userAgent    String?
+  id          String   @id @default(cuid())
+  adminUserId String
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  ipAddress   String?
+  userAgent   String?
 
-  adminUser    AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([adminUserId])
 }
 
 model AdminInvite {
-  id          String   @id @default(cuid())
-  email       String
-  token       String   @unique
-  role        String   @default("ADMIN") // ADMIN, VIEWER
-  expiresAt   DateTime
-  usedAt      DateTime?
-  createdAt   DateTime @default(now())
-  invitedBy   String
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  role      String    @default("ADMIN") // ADMIN, VIEWER
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  invitedBy String
 
-  inviter     AdminUser @relation("InvitedBy", fields: [invitedBy], references: [id], onDelete: Cascade)
+  inviter AdminUser @relation("InvitedBy", fields: [invitedBy], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([email])
@@ -154,17 +159,17 @@ model AdminInvite {
 
 model ApiUsageLog {
   id            String   @id @default(cuid())
-  service       String   // OPENAI, ALPHA_VANTAGE, STRIPE
+  service       String // OPENAI, ALPHA_VANTAGE, STRIPE
   endpoint      String?
   requestCount  Int      @default(1)
-  tokensUsed    Int?     // For OpenAI
-  estimatedCost Float?   // In USD
-  responseTime  Int?     // In milliseconds
+  tokensUsed    Int? // For OpenAI
+  estimatedCost Float? // In USD
+  responseTime  Int? // In milliseconds
   statusCode    Int?
   errorMessage  String?
-  monthKey      String   // Format: YYYY-MM
-  dayKey        String   // Format: YYYY-MM-DD
-  hourKey       String   // Format: YYYY-MM-DD-HH
+  monthKey      String // Format: YYYY-MM
+  dayKey        String // Format: YYYY-MM-DD
+  hourKey       String // Format: YYYY-MM-DD-HH
   createdAt     DateTime @default(now())
 
   @@index([service, monthKey])
@@ -173,55 +178,56 @@ model ApiUsageLog {
 }
 
 model ApiCostAlert {
-  id             String   @id @default(cuid())
-  service        String   // ALL, OPENAI, ALPHA_VANTAGE, STRIPE
-  alertType      String   // COST_THRESHOLD, RATE_LIMIT, ERROR_RATE
-  threshold      Float    // Threshold value
-  currentValue   Float?   // Current value when alert triggered
-  isActive       Boolean  @default(true)
-  lastTriggered  DateTime?
-  notifyEmail    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String    @id @default(cuid())
+  service       String // ALL, OPENAI, ALPHA_VANTAGE, STRIPE
+  alertType     String // COST_THRESHOLD, RATE_LIMIT, ERROR_RATE
+  threshold     Float // Threshold value
+  currentValue  Float? // Current value when alert triggered
+  isActive      Boolean   @default(true)
+  lastTriggered DateTime?
+  notifyEmail   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([service, isActive])
 }
 
 model IntegrationConfig {
-  id            String   @id @default(cuid())
-  name          String   @unique // OPENAI, ALPHA_VANTAGE, STRIPE, etc.
+  id            String    @id @default(cuid())
+  name          String    @unique // OPENAI, ALPHA_VANTAGE, STRIPE, etc.
   displayName   String
-  category      String   // API, PAYMENT, DATABASE, ANALYTICS
-  isEnabled     Boolean  @default(true)
-  config        String?  @db.Text // JSON config (encrypted sensitive data)
-  apiKeyMasked  String?  // Masked version of API key for display
-  rateLimit     Int?     // Requests per minute
-  monthlyBudget Float?   // Monthly budget in USD
-  status        String   @default("UNKNOWN") // CONNECTED, ERROR, UNKNOWN
+  category      String // API, PAYMENT, DATABASE, ANALYTICS
+  isEnabled     Boolean   @default(true)
+  config        String?   @db.Text // JSON config (encrypted sensitive data)
+  apiKeyMasked  String? // Masked version of API key for display
+  rateLimit     Int? // Requests per minute
+  monthlyBudget Float? // Monthly budget in USD
+  status        String    @default("UNKNOWN") // CONNECTED, ERROR, UNKNOWN
   lastCheckedAt DateTime?
   errorMessage  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([category])
 }
 
 model ScanHistory {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   userId          String?
   ticker          String
-  assetType       String   @default("stock")
-  riskLevel       String   // LOW, MEDIUM, HIGH, INSUFFICIENT
+  assetType       String    @default("stock")
+  riskLevel       String // LOW, MEDIUM, HIGH, INSUFFICIENT
   totalScore      Int
   signalsCount    Int
-  processingTime  Int?     // In milliseconds
+  processingTime  Int? // In milliseconds
   openaiTokens    Int?
-  alphaVantageHit Boolean  @default(false)
+  alphaVantageHit Boolean   @default(false)
   isLegitimate    Boolean?
-  pitchProvided   Boolean  @default(false)
-  contextProvided Boolean  @default(false)
+  pitchProvided   Boolean   @default(false)
+  contextProvided Boolean   @default(false)
   ipAddress       String?
-  createdAt       DateTime @default(now())
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
 
   @@index([createdAt])
   @@index([riskLevel])
@@ -253,8 +259,8 @@ model ModelMetrics {
 model AdminAuditLog {
   id          String   @id @default(cuid())
   adminUserId String
-  action      String   // LOGIN, LOGOUT, CONFIG_CHANGE, INVITE_SENT, etc.
-  resource    String?  // What was affected
+  action      String // LOGIN, LOGOUT, CONFIG_CHANGE, INVITE_SENT, etc.
+  resource    String? // What was affected
   details     String?  @db.Text // JSON details
   ipAddress   String?
   createdAt   DateTime @default(now())
@@ -270,16 +276,16 @@ model AdminAuditLog {
 // ==========================================
 
 model TrackedStock {
-  id        String   @id @default(cuid())
-  symbol    String   @unique
-  name      String
-  exchange  String   // NASDAQ, NYSE, AMEX, OTC
-  sector    String?
-  industry  String?
-  isOTC     Boolean  @default(false)
+  id       String  @id @default(cuid())
+  symbol   String  @unique
+  name     String
+  exchange String // NASDAQ, NYSE, AMEX, OTC
+  sector   String?
+  industry String?
+  isOTC    Boolean @default(false)
 
-  dailySnapshots     StockDailySnapshot[]
-  riskAlerts         StockRiskAlert[]
+  dailySnapshots StockDailySnapshot[]
+  riskAlerts     StockRiskAlert[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -289,40 +295,40 @@ model TrackedStock {
 }
 
 model StockDailySnapshot {
-  id        String   @id @default(cuid())
-  stockId   String
-  stock     TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  id      String       @id @default(cuid())
+  stockId String
+  stock   TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
-  scanDate  DateTime
+  scanDate DateTime
 
   // Risk Assessment
-  riskLevel       String   // LOW, MEDIUM, HIGH, INSUFFICIENT
-  totalScore      Int
-  isLegitimate    Boolean
-  isInsufficient  Boolean  @default(false)
+  riskLevel      String // LOW, MEDIUM, HIGH, INSUFFICIENT
+  totalScore     Int
+  isLegitimate   Boolean
+  isInsufficient Boolean @default(false)
 
   // Price Data
-  lastPrice       Float?
-  previousClose   Float?
-  priceChangePct  Float?
+  lastPrice      Float?
+  previousClose  Float?
+  priceChangePct Float?
 
   // Volume Data
-  volume          Int?
-  avgVolume       Int?
-  volumeRatio     Float?
+  volume      Int?
+  avgVolume   Int?
+  volumeRatio Float?
 
   // Market Data
-  marketCap       Float?
+  marketCap Float?
 
   // Signals (JSON array)
-  signals         String   @default("[]") @db.Text
-  signalSummary   String?
-  signalCount     Int      @default(0)
+  signals       String  @default("[]") @db.Text
+  signalSummary String?
+  signalCount   Int     @default(0)
 
-  dataSource      String   // FMP, etc.
-  evaluatedAt     DateTime
+  dataSource  String // FMP, etc.
+  evaluatedAt DateTime
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([stockId, scanDate])
   @@index([scanDate])
@@ -331,50 +337,50 @@ model StockDailySnapshot {
 }
 
 model DailyScanSummary {
-  id        String   @id @default(cuid())
-  scanDate  DateTime @unique
+  id       String   @id @default(cuid())
+  scanDate DateTime @unique
 
-  totalStocks       Int
-  evaluated         Int
-  skippedNoData     Int
+  totalStocks   Int
+  evaluated     Int
+  skippedNoData Int
 
   lowRiskCount      Int
   mediumRiskCount   Int
   highRiskCount     Int
   insufficientCount Int
 
-  byExchange        String   @db.Text // JSON
-  bySector          String?  @db.Text // JSON
+  byExchange String  @db.Text // JSON
+  bySector   String? @db.Text // JSON
 
-  scanDurationMins  Int?
-  apiCallsMade      Int?
+  scanDurationMins Int?
+  apiCallsMade     Int?
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([scanDate])
 }
 
 model StockRiskAlert {
-  id        String   @id @default(cuid())
-  stockId   String
-  stock     TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  id      String       @id @default(cuid())
+  stockId String
+  stock   TrackedStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
   alertDate DateTime
-  alertType String   // NEW_HIGH_RISK, RISK_INCREASED, RISK_DECREASED, PUMP_DETECTED
+  alertType String // NEW_HIGH_RISK, RISK_INCREASED, RISK_DECREASED, PUMP_DETECTED
 
   previousRiskLevel String?
   newRiskLevel      String
   previousScore     Int?
   newScore          Int
 
-  triggeringSignals String?  @db.Text
+  triggeringSignals String? @db.Text
   priceAtAlert      Float?
   volumeAtAlert     Int?
 
-  isAcknowledged    Boolean  @default(false)
-  notes             String?  @db.Text
+  isAcknowledged Boolean @default(false)
+  notes          String? @db.Text
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([alertDate])
   @@index([alertType])
@@ -382,32 +388,32 @@ model StockRiskAlert {
 }
 
 model PromotedStock {
-  id        String   @id @default(cuid())
-  symbol    String
+  id     String @id @default(cuid())
+  symbol String
 
   addedDate         DateTime
   promoterName      String
-  promotionPlatform String   // Discord, Twitter, Reddit
+  promotionPlatform String // Discord, Twitter, Reddit
   promotionGroup    String?
 
-  entryPrice        Float
-  entryMarketCap    Float?
-  entryRiskScore    Int
+  entryPrice     Float
+  entryMarketCap Float?
+  entryRiskScore Int
 
-  peakPrice         Float?
-  peakDate          DateTime?
-  currentPrice      Float?
-  lastUpdateDate    DateTime?
+  peakPrice      Float?
+  peakDate       DateTime?
+  currentPrice   Float?
+  lastUpdateDate DateTime?
 
-  outcome           String?  // PUMPING, PEAKED, DUMPED, STABLE
-  maxGainPct        Float?
-  currentGainPct    Float?
+  outcome        String? // PUMPING, PEAKED, DUMPED, STABLE
+  maxGainPct     Float?
+  currentGainPct Float?
 
-  evidenceLinks     String?  @db.Text
+  evidenceLinks String? @db.Text
 
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([symbol, addedDate])
   @@index([promoterName])
@@ -420,33 +426,33 @@ model PromotedStock {
 // ==========================================
 
 model AuthErrorLog {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Error categorization
-  errorType   String   // SIGNUP_FAILED, LOGIN_FAILED, VERIFICATION_FAILED, PASSWORD_RESET_FAILED, EMAIL_SEND_FAILED
-  errorCode   String?  // More specific error code (e.g., EMAIL_NOT_VERIFIED, INVALID_CREDENTIALS, TOKEN_EXPIRED)
+  errorType String // SIGNUP_FAILED, LOGIN_FAILED, VERIFICATION_FAILED, PASSWORD_RESET_FAILED, EMAIL_SEND_FAILED
+  errorCode String? // More specific error code (e.g., EMAIL_NOT_VERIFIED, INVALID_CREDENTIALS, TOKEN_EXPIRED)
 
   // Context
-  email       String?  // Email involved (if available, partially masked in queries)
-  userId      String?  // User ID if user exists
-  endpoint    String   // API endpoint that generated the error
+  email    String? // Email involved (if available, partially masked in queries)
+  userId   String? // User ID if user exists
+  endpoint String // API endpoint that generated the error
 
   // Error details
-  message     String   // User-facing error message
-  details     String?  @db.Text // Technical details (JSON) - internal only
-  stackTrace  String?  @db.Text // Stack trace for debugging
+  message    String // User-facing error message
+  details    String? @db.Text // Technical details (JSON) - internal only
+  stackTrace String? @db.Text // Stack trace for debugging
 
   // Request context
-  ipAddress   String?
-  userAgent   String?  @db.Text
+  ipAddress String?
+  userAgent String? @db.Text
 
   // Resolution tracking
-  isResolved  Boolean  @default(false)
-  resolvedAt  DateTime?
-  resolvedBy  String?  // Admin user who resolved
-  resolution  String?  @db.Text // Notes on resolution
+  isResolved Boolean   @default(false)
+  resolvedAt DateTime?
+  resolvedBy String? // Admin user who resolved
+  resolution String?   @db.Text // Notes on resolution
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([errorType])
   @@index([errorCode])
@@ -456,9 +462,9 @@ model AuthErrorLog {
 }
 
 model AuthErrorSummary {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  dateKey     String   @unique // Format: YYYY-MM-DD
+  dateKey String @unique // Format: YYYY-MM-DD
 
   // Error counts by type
   signupErrors        Int @default(0)
@@ -468,13 +474,13 @@ model AuthErrorSummary {
   emailSendErrors     Int @default(0)
 
   // Top error codes for the day (JSON array)
-  topErrorCodes       String? @db.Text
+  topErrorCodes String? @db.Text
 
   // Unique users affected
   uniqueEmailsAffected Int @default(0)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([dateKey])
 }
@@ -485,11 +491,11 @@ model AuthErrorSummary {
 // ==========================================
 
 model ScanMessage {
-  id        String   @id @default(cuid())
-  headline  String   // Main message text
-  subtext   String   // Secondary/supporting text
-  order     Int      // Display order (0-based)
-  isActive  Boolean  @default(true)
+  id       String  @id @default(cuid())
+  headline String // Main message text
+  subtext  String // Secondary/supporting text
+  order    Int // Display order (0-based)
+  isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -503,12 +509,12 @@ model ScanMessage {
 }
 
 model ScanMessageHistory {
-  id        String   @id @default(cuid())
-  headline  String
-  subtext   String
+  id       String @id @default(cuid())
+  headline String
+  subtext  String
 
   // Why it was archived
-  archiveReason String?  // REPLACED, DISCARDED, MANUAL_REMOVE
+  archiveReason String? // REPLACED, DISCARDED, MANUAL_REMOVE
 
   // Original creation data
   originalCreatedAt DateTime
@@ -521,30 +527,30 @@ model ScanMessageHistory {
 }
 
 model ScanMessageGeneration {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Generation context
-  prompt         String   @db.Text  // The prompt used
-  model          String             // e.g., gpt-4o-mini
+  prompt String @db.Text // The prompt used
+  model  String // e.g., gpt-4o-mini
 
   // Results
-  generatedCount Int               // How many were generated
-  acceptedCount  Int   @default(0) // How many were kept
-  discardedCount Int   @default(0) // How many were discarded
+  generatedCount Int // How many were generated
+  acceptedCount  Int @default(0) // How many were kept
+  discardedCount Int @default(0) // How many were discarded
 
   // Feedback for improvement
-  discardedMessages String? @db.Text  // JSON array of discarded messages with reasons
-  feedbackNotes     String? @db.Text  // Additional notes for next generation
+  discardedMessages String? @db.Text // JSON array of discarded messages with reasons
+  feedbackNotes     String? @db.Text // Additional notes for next generation
 
   // Token usage
   tokensUsed    Int?
   estimatedCost Float?
 
-  createdAt     DateTime @default(now())
-  createdBy     String?  // Admin user ID who triggered generation
+  createdAt DateTime @default(now())
+  createdBy String? // Admin user ID who triggered generation
 
   // Relation to messages created from this generation
-  messages      ScanMessage[]
+  messages ScanMessage[]
 
   @@index([createdAt])
 }
@@ -555,19 +561,19 @@ model ScanMessageGeneration {
 // ==========================================
 
 model BlogPost {
-  id           String   @id @default(cuid())
-  title        String
-  slug         String   @unique
-  excerpt      String?  @db.Text
-  content      String   @db.Text
-  coverImage   String?  // URL to cover image
-  author       String   @default("Scam Dunk Team")
-  category     String   @default("General") // Security Tips, Industry News, Product Updates
-  tags         String?  // Comma-separated tags
-  isPublished  Boolean  @default(false)
-  publishedAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  excerpt     String?   @db.Text
+  content     String    @db.Text
+  coverImage  String? // URL to cover image
+  author      String    @default("Scam Dunk Team")
+  category    String    @default("General") // Security Tips, Industry News, Product Updates
+  tags        String? // Comma-separated tags
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([isPublished, publishedAt])
   @@index([slug])
@@ -575,19 +581,19 @@ model BlogPost {
 }
 
 model MediaMention {
-  id           String   @id @default(cuid())
-  title        String
-  source       String   // e.g., "TechCrunch", "Reddit", "@user123"
-  sourceType   String   // NEWS_OUTLET, PLATFORM, USER_SHOUTOUT
-  sourceUrl    String?  // Link to the original mention
-  logoUrl      String?  // Logo of the source
-  description  String?  @db.Text
-  quoteText    String?  @db.Text // Featured quote if applicable
-  mentionDate  DateTime?
-  isPublished  Boolean  @default(false)
-  isFeatured   Boolean  @default(false) // Show prominently
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String    @id @default(cuid())
+  title       String
+  source      String // e.g., "TechCrunch", "Reddit", "@user123"
+  sourceType  String // NEWS_OUTLET, PLATFORM, USER_SHOUTOUT
+  sourceUrl   String? // Link to the original mention
+  logoUrl     String? // Logo of the source
+  description String?   @db.Text
+  quoteText   String?   @db.Text // Featured quote if applicable
+  mentionDate DateTime?
+  isPublished Boolean   @default(false)
+  isFeatured  Boolean   @default(false) // Show prominently
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([isPublished, isFeatured])
   @@index([sourceType])
@@ -600,41 +606,41 @@ model MediaMention {
 // ==========================================
 
 model SupportTicket {
-  id           String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Submitter information
-  name         String
-  email        String
-  userId       String?  // Optional: linked user if logged in
+  name   String
+  email  String
+  userId String? // Optional: linked user if logged in
 
   // Ticket content
-  subject      String
-  message      String   @db.Text
-  category     String   // SUPPORT, FEEDBACK, BUG_REPORT, FEATURE_REQUEST, BILLING, OTHER
+  subject  String
+  message  String @db.Text
+  category String // SUPPORT, FEEDBACK, BUG_REPORT, FEATURE_REQUEST, BILLING, OTHER
 
   // Ticket management
-  status       String   @default("NEW") // NEW, OPEN, IN_PROGRESS, WAITING_ON_USER, RESOLVED, CLOSED
-  priority     String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  status   String @default("NEW") // NEW, OPEN, IN_PROGRESS, WAITING_ON_USER, RESOLVED, CLOSED
+  priority String @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
 
   // Assignment
-  assignedTo   String?  // Admin user ID who is handling the ticket
+  assignedTo String? // Admin user ID who is handling the ticket
 
   // Internal notes
   internalNotes String? @db.Text
 
   // Timestamps
-  resolvedAt   DateTime?
-  closedAt     DateTime?
-  lastActivityAt DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  resolvedAt     DateTime?
+  closedAt       DateTime?
+  lastActivityAt DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Request metadata
-  ipAddress    String?
-  userAgent    String?  @db.Text
+  ipAddress String?
+  userAgent String? @db.Text
 
   // Relations
-  responses    SupportTicketResponse[]
+  responses SupportTicketResponse[]
 
   @@index([status])
   @@index([category])
@@ -645,38 +651,38 @@ model SupportTicket {
 }
 
 model SupportTicketResponse {
-  id           String   @id @default(cuid())
-  ticketId     String
-  ticket       SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   // Response content
-  message      String   @db.Text
+  message String @db.Text
 
   // Who sent the response
-  isFromAdmin  Boolean  @default(true) // true = admin response, false = user follow-up
-  responderId  String?  // Admin user ID if from admin
-  responderName String? // Name of responder
+  isFromAdmin    Boolean @default(true) // true = admin response, false = user follow-up
+  responderId    String? // Admin user ID if from admin
+  responderName  String? // Name of responder
   responderEmail String? // Email of responder
 
   // Was this sent via email?
-  emailSent    Boolean  @default(false)
+  emailSent Boolean @default(false)
 
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([ticketId])
   @@index([createdAt])
 }
 
 model SupportEmailRecipient {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  isActive     Boolean  @default(true)
-  isPrimary    Boolean  @default(false) // Primary recipient receives all tickets
-  categories   String?  // JSON array of categories this recipient handles, null = all
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  createdBy    String?  // Admin who added this recipient
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String?
+  isActive   Boolean  @default(true)
+  isPrimary  Boolean  @default(false) // Primary recipient receives all tickets
+  categories String? // JSON array of categories this recipient handles, null = all
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  createdBy  String? // Admin who added this recipient
 
   @@index([isActive])
   @@index([isPrimary])
@@ -691,12 +697,12 @@ model EmailLog {
   id              String   @id @default(cuid())
   recipientEmail  String
   subject         String
-  emailType       String   // TEST, CUSTOM, TICKET_NOTIFICATION, TICKET_CONFIRMATION, TICKET_RESPONSE, VERIFICATION, PASSWORD_RESET, ADMIN_INVITE, API_ALERT
-  status          String   // SENT, FAILED, SKIPPED
+  emailType       String // TEST, CUSTOM, TICKET_NOTIFICATION, TICKET_CONFIRMATION, TICKET_RESPONSE, VERIFICATION, PASSWORD_RESET, ADMIN_INVITE, API_ALERT
+  status          String // SENT, FAILED, SKIPPED
   fromEmail       String?
-  resendId        String?  // Resend API message ID
+  resendId        String? // Resend API message ID
   errorMessage    String?  @db.Text
-  relatedTicketId String?  // Link to support ticket if applicable
+  relatedTicketId String? // Link to support ticket if applicable
   createdAt       DateTime @default(now())
 
   @@index([emailType])
@@ -712,20 +718,21 @@ model EmailLog {
 // ==========================================
 
 model RegulatoryFlag {
-  id           String   @id @default(cuid())
-  ticker       String
-  source       String   // SEC, FINRA, NYSE, NASDAQ, OTC
-  flagType     String   // TRADING_SUSPENSION, ENFORCEMENT_ACTION, DELISTING_WARNING, FRAUD_ALERT, PUMP_DUMP_WARNING
-  title        String?
-  description  String?  @db.Text
-  flagDate     DateTime // When the flag was issued
-  expiryDate   DateTime? // When the flag expires (if applicable)
-  sourceUrl    String?  @db.Text // URL to original source
-  isActive     Boolean  @default(true)
-  severity     String   @default("HIGH") // LOW, MEDIUM, HIGH, CRITICAL
+  id          String    @id @default(cuid())
+  ticker      String
+  source      String // SEC, FINRA, NYSE, NASDAQ, OTC
+  flagType    String // TRADING_SUSPENSION, ENFORCEMENT_ACTION, DELISTING_WARNING, FRAUD_ALERT, PUMP_DUMP_WARNING
+  title       String?
+  description String?   @db.Text
+  flagDate    DateTime // When the flag was issued
+  expiryDate  DateTime? // When the flag expires (if applicable)
+  sourceUrl   String?   @db.Text // URL to original source
+  isActive    Boolean   @default(true)
+  severity    String    @default("HIGH") // LOW, MEDIUM, HIGH, CRITICAL
+  deletedAt   DateTime?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([ticker, source, flagType, flagDate])
   @@index([ticker])
@@ -735,15 +742,15 @@ model RegulatoryFlag {
 }
 
 model RegulatoryDatabaseSync {
-  id           String   @id @default(cuid())
-  source       String   // SEC, FINRA, NYSE, NASDAQ, OTC
-  lastSyncAt   DateTime
-  recordsAdded Int      @default(0)
-  recordsUpdated Int    @default(0)
-  status       String   @default("SUCCESS") // SUCCESS, FAILED, PARTIAL
-  errorMessage String?  @db.Text
+  id             String   @id @default(cuid())
+  source         String // SEC, FINRA, NYSE, NASDAQ, OTC
+  lastSyncAt     DateTime
+  recordsAdded   Int      @default(0)
+  recordsUpdated Int      @default(0)
+  status         String   @default("SUCCESS") // SUCCESS, FAILED, PARTIAL
+  errorMessage   String?  @db.Text
 
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([source])
   @@index([lastSyncAt])
@@ -762,38 +769,38 @@ model SocialScanRun {
   tickersWithMentions Int      @default(0)
   totalMentions       Int      @default(0)
   platformsUsed       String?  @db.Text // JSON array of platform names used
-  duration            Int?     // milliseconds
+  duration            Int? // milliseconds
   errors              String?  @db.Text // JSON array of error messages
-  triggeredBy         String?  // "manual", "scheduled", admin user ID
+  triggeredBy         String? // "manual", "scheduled", admin user ID
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  mentions            SocialMention[]
+  mentions SocialMention[]
 
   @@index([scanDate])
   @@index([status])
 }
 
 model SocialMention {
-  id              String   @id @default(cuid())
-  scanRunId       String
-  scanRun         SocialScanRun @relation(fields: [scanRunId], references: [id], onDelete: Cascade)
-  ticker          String
-  stockName       String?
-  platform        String   // Reddit, YouTube, Discord, StockTwits, Twitter, TikTok, Web
-  source          String   // e.g., "r/wallstreetbets", "YouTube Channel Name", "Google CSE"
-  discoveredVia   String   // Which tool found it: reddit_oauth, google_cse, perplexity, youtube_api, discord_bot, stocktwits, rss
-  title           String?  @db.Text
-  content         String?  @db.Text
-  url             String?  @db.Text
-  author          String?
-  postDate        DateTime?
-  engagement      String?  @db.Text // JSON: { upvotes, comments, views, likes }
-  sentiment       String?  // bullish, bearish, neutral
-  isPromotional   Boolean  @default(false)
-  promotionScore  Int      @default(0) // 0-100
-  redFlags        String?  @db.Text // JSON array of strings
-  createdAt       DateTime @default(now())
+  id             String        @id @default(cuid())
+  scanRunId      String
+  scanRun        SocialScanRun @relation(fields: [scanRunId], references: [id], onDelete: Cascade)
+  ticker         String
+  stockName      String?
+  platform       String // Reddit, YouTube, Discord, StockTwits, Twitter, TikTok, Web
+  source         String // e.g., "r/wallstreetbets", "YouTube Channel Name", "Google CSE"
+  discoveredVia  String // Which tool found it: reddit_oauth, google_cse, perplexity, youtube_api, discord_bot, stocktwits, rss
+  title          String?       @db.Text
+  content        String?       @db.Text
+  url            String?       @db.Text
+  author         String?
+  postDate       DateTime?
+  engagement     String?       @db.Text // JSON: { upvotes, comments, views, likes }
+  sentiment      String? // bullish, bearish, neutral
+  isPromotional  Boolean       @default(false)
+  promotionScore Int           @default(0) // 0-100
+  redFlags       String?       @db.Text // JSON array of strings
+  createdAt      DateTime      @default(now())
 
   @@index([ticker, platform])
   @@index([scanRunId])
@@ -808,13 +815,13 @@ model SocialMention {
 // ==========================================
 
 model HomepageHero {
-  id           String   @id @default(cuid())
-  headline     String   @db.Text  // Main hero headline
-  subheadline  String   @db.Text  // Secondary description text
-  isActive     Boolean  @default(false) // Only one should be active at a time
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  createdBy    String?  // Admin user ID
+  id          String   @id @default(cuid())
+  headline    String   @db.Text // Main hero headline
+  subheadline String   @db.Text // Secondary description text
+  isActive    Boolean  @default(false) // Only one should be active at a time
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String? // Admin user ID
 
   @@index([isActive])
   @@index([createdAt])
@@ -826,27 +833,27 @@ model HomepageHero {
 // ==========================================
 
 model BrowserAgentSession {
-  id                String   @id @default(cuid())
-  scanDate          DateTime
-  platform          String   // discord, reddit, twitter, instagram, facebook, tiktok
-  status            String   @default("RUNNING") // RUNNING, COMPLETED, FAILED, SUSPENDED, RESUMED
-  tickersSearched   String   @db.Text // JSON array of tickers scanned
-  pagesVisited      Int      @default(0)
-  mentionsFound     Int      @default(0)
-  screenshotsTaken  Int      @default(0)
-  browserMinutes    Float    @default(0)
-  memoryPeakMb      Float?
-  errors            String?  @db.Text // JSON array of error messages
-  suspensionCount   Int      @default(0) // How many times save-kill-resume triggered
-  resumedFrom       String?  // ID of previous session if this is a resumed session
+  id               String   @id @default(cuid())
+  scanDate         DateTime
+  platform         String // discord, reddit, twitter, instagram, facebook, tiktok
+  status           String   @default("RUNNING") // RUNNING, COMPLETED, FAILED, SUSPENDED, RESUMED
+  tickersSearched  String   @db.Text // JSON array of tickers scanned
+  pagesVisited     Int      @default(0)
+  mentionsFound    Int      @default(0)
+  screenshotsTaken Int      @default(0)
+  browserMinutes   Float    @default(0)
+  memoryPeakMb     Float?
+  errors           String?  @db.Text // JSON array of error messages
+  suspensionCount  Int      @default(0) // How many times save-kill-resume triggered
+  resumedFrom      String? // ID of previous session if this is a resumed session
 
   // Link to scan run
-  scanRunId         String?
+  scanRunId String?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  evidence          BrowserEvidence[]
+  evidence BrowserEvidence[]
 
   @@index([scanDate])
   @@index([platform])
@@ -855,25 +862,25 @@ model BrowserAgentSession {
 }
 
 model BrowserEvidence {
-  id                String   @id @default(cuid())
-  sessionId         String
-  session           BrowserAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  ticker            String
-  platform          String   // discord, reddit, twitter, instagram, facebook, tiktok
-  url               String?  @db.Text
-  textContent       String?  @db.Text
-  author            String?
-  authorProfileUrl  String?  @db.Text
-  postDate          DateTime?
-  engagement        String?  @db.Text // JSON: { upvotes, comments, views, likes, retweets }
-  promotionScore    Int      @default(0) // 0-100
-  redFlags          String?  @db.Text // JSON array of strings
-  screenshotPath    String?  @db.Text // Local path or Supabase Storage URL
-  screenshotUrl     String?  @db.Text // Public URL after upload
-  rawHtml           String?  @db.Text // Preserved page snippet for evidence
-  extractedAt       DateTime @default(now())
+  id               String              @id @default(cuid())
+  sessionId        String
+  session          BrowserAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  ticker           String
+  platform         String // discord, reddit, twitter, instagram, facebook, tiktok
+  url              String?             @db.Text
+  textContent      String?             @db.Text
+  author           String?
+  authorProfileUrl String?             @db.Text
+  postDate         DateTime?
+  engagement       String?             @db.Text // JSON: { upvotes, comments, views, likes, retweets }
+  promotionScore   Int                 @default(0) // 0-100
+  redFlags         String?             @db.Text // JSON array of strings
+  screenshotPath   String?             @db.Text // Local path or Supabase Storage URL
+  screenshotUrl    String?             @db.Text // Public URL after upload
+  rawHtml          String?             @db.Text // Preserved page snippet for evidence
+  extractedAt      DateTime            @default(now())
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([ticker, platform])
   @@index([sessionId])
@@ -882,22 +889,22 @@ model BrowserEvidence {
 }
 
 model BrowserPlatformConfig {
-  id                String   @id @default(cuid())
-  platform          String   @unique // discord, reddit, twitter, instagram, facebook, tiktok
-  isEnabled         Boolean  @default(false)
-  lastLoginAt       DateTime?
-  lastLoginStatus   String?  // SUCCESS, FAILED, CAPTCHA_REQUIRED, TWO_FA_REQUIRED
-  consecutiveFailures Int    @default(0) // Auto-disable after 3
-  autoDisabled      Boolean  @default(false) // True if auto-disabled due to failures
-  autoDisabledAt    DateTime?
-  dailyPageLimit    Int      @default(100)
-  dailyPagesUsed    Int      @default(0)
-  dailyResetDate    String?  // YYYY-MM-DD, resets counters on new day
-  monitorTargets    String?  @db.Text // JSON: platform-specific targets (servers, subreddits, hashtags)
-  notes             String?  @db.Text
+  id                  String    @id @default(cuid())
+  platform            String    @unique // discord, reddit, twitter, instagram, facebook, tiktok
+  isEnabled           Boolean   @default(false)
+  lastLoginAt         DateTime?
+  lastLoginStatus     String? // SUCCESS, FAILED, CAPTCHA_REQUIRED, TWO_FA_REQUIRED
+  consecutiveFailures Int       @default(0) // Auto-disable after 3
+  autoDisabled        Boolean   @default(false) // True if auto-disabled due to failures
+  autoDisabledAt      DateTime?
+  dailyPageLimit      Int       @default(100)
+  dailyPagesUsed      Int       @default(0)
+  dailyResetDate      String? // YYYY-MM-DD, resets counters on new day
+  monitorTargets      String?   @db.Text // JSON: platform-specific targets (servers, subreddits, hashtags)
+  notes               String?   @db.Text
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isEnabled])
 }
@@ -908,32 +915,32 @@ model BrowserPlatformConfig {
 // ==========================================
 
 model Promoter {
-  id                   String   @id @default(cuid())
-  displayName          String   // Primary known name: "StockGuru2026"
-  firstSeen            DateTime @default(now())
-  lastSeen             DateTime @default(now())
+  id          String   @id @default(cuid())
+  displayName String // Primary known name: "StockGuru2026"
+  firstSeen   DateTime @default(now())
+  lastSeen    DateTime @default(now())
 
   // Track record
-  totalStocksPromoted  Int      @default(0)
-  confirmedDumps       Int      @default(0)
-  repeatOffenderScore  Int      @default(0) // 0-100 calculated score
-  avgVictimLoss        Float?   // Average % loss after their promotions
+  totalStocksPromoted Int    @default(0)
+  confirmedDumps      Int    @default(0)
+  repeatOffenderScore Int    @default(0) // 0-100 calculated score
+  avgVictimLoss       Float? // Average % loss after their promotions
 
   // Status
-  isActive             Boolean  @default(true)
-  riskLevel            String   @default("LOW") // LOW, MEDIUM, HIGH, SERIAL_OFFENDER
-  notes                String?  @db.Text
+  isActive  Boolean @default(true)
+  riskLevel String  @default("LOW") // LOW, MEDIUM, HIGH, SERIAL_OFFENDER
+  notes     String? @db.Text
 
   // Network membership
-  networkId            String?
-  network              PromoterNetwork? @relation(fields: [networkId], references: [id])
+  networkId String?
+  network   PromoterNetwork? @relation(fields: [networkId], references: [id])
 
   // Relations
-  identities           PromoterIdentity[]
-  stockLinks           PromoterStockLink[]
+  identities PromoterIdentity[]
+  stockLinks PromoterStockLink[]
 
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([displayName])
   @@index([repeatOffenderScore])
@@ -943,22 +950,22 @@ model Promoter {
 }
 
 model PromoterIdentity {
-  id                String   @id @default(cuid())
-  promoterId        String
-  promoter          Promoter @relation(fields: [promoterId], references: [id], onDelete: Cascade)
-  platform          String   // Twitter, Reddit, Discord, Instagram, Facebook, TikTok, YouTube, StockTwits
-  username          String   // "@StockGuru2026"
-  profileUrl        String?  @db.Text
-  firstSeen         DateTime @default(now())
-  lastSeen          DateTime @default(now())
-  isVerified        Boolean  @default(false) // Admin confirmed identity
+  id         String   @id @default(cuid())
+  promoterId String
+  promoter   Promoter @relation(fields: [promoterId], references: [id], onDelete: Cascade)
+  platform   String // Twitter, Reddit, Discord, Instagram, Facebook, TikTok, YouTube, StockTwits
+  username   String // "@StockGuru2026"
+  profileUrl String?  @db.Text
+  firstSeen  DateTime @default(now())
+  lastSeen   DateTime @default(now())
+  isVerified Boolean  @default(false) // Admin confirmed identity
 
   // Metadata (if available from extraction)
-  followerCount     Int?
-  accountAge        DateTime? // When the account was created
+  followerCount Int?
+  accountAge    DateTime? // When the account was created
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([platform, username])
   @@index([promoterId])
@@ -966,32 +973,32 @@ model PromoterIdentity {
 }
 
 model PromoterStockLink {
-  id                     String   @id @default(cuid())
-  promoterId             String
-  promoter               Promoter @relation(fields: [promoterId], references: [id], onDelete: Cascade)
-  schemeId               String?  // Links to scheme record if available (e.g., "SCH-ACME-20260210")
-  ticker                 String
+  id         String   @id @default(cuid())
+  promoterId String
+  promoter   Promoter @relation(fields: [promoterId], references: [id], onDelete: Cascade)
+  schemeId   String? // Links to scheme record if available (e.g., "SCH-ACME-20260210")
+  ticker     String
 
   // Activity metrics
-  firstPromotionDate     DateTime @default(now())
-  lastPromotionDate      DateTime @default(now())
-  totalPosts             Int      @default(1)
-  platforms              String?  @db.Text // JSON array of platforms promoted on
-  avgPromotionScore      Int      @default(0) // Average promotion intensity 0-100
+  firstPromotionDate DateTime @default(now())
+  lastPromotionDate  DateTime @default(now())
+  totalPosts         Int      @default(1)
+  platforms          String?  @db.Text // JSON array of platforms promoted on
+  avgPromotionScore  Int      @default(0) // Average promotion intensity 0-100
 
   // Evidence
-  evidenceLinks          String?  @db.Text // JSON array of URLs to specific posts
-  screenshotUrls         String?  @db.Text // JSON array of screenshot URLs in Supabase Storage
+  evidenceLinks  String? @db.Text // JSON array of URLs to specific posts
+  screenshotUrls String? @db.Text // JSON array of screenshot URLs in Supabase Storage
 
   // Outcome (filled in after the scheme resolves)
-  priceAtFirstPromotion  Float?
-  peakPrice              Float?
-  priceAfterDump         Float?
-  gainForPromoter        Float?   // % gain if sold at peak
-  lossForVictims         Float?   // % loss from peak to post-dump
+  priceAtFirstPromotion Float?
+  peakPrice             Float?
+  priceAfterDump        Float?
+  gainForPromoter       Float? // % gain if sold at peak
+  lossForVictims        Float? // % loss from peak to post-dump
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([promoterId, ticker])
   @@index([ticker])
@@ -1001,29 +1008,29 @@ model PromoterStockLink {
 }
 
 model PromoterNetwork {
-  id                String   @id @default(cuid())
-  name              String   // Auto-generated or admin-assigned: "Network #7"
+  id   String @id @default(cuid())
+  name String // Auto-generated or admin-assigned: "Network #7"
 
   // Detection metrics
-  coPromotionCount  Int      @default(0) // How many stocks co-promoted
-  avgTimingGapHours Float?   // Average hours between posts on same stock
-  confidenceScore   Int      @default(0) // 0-100 how confident this is coordinated
+  coPromotionCount  Int    @default(0) // How many stocks co-promoted
+  avgTimingGapHours Float? // Average hours between posts on same stock
+  confidenceScore   Int    @default(0) // 0-100 how confident this is coordinated
 
   // Track record
-  totalSchemes      Int      @default(0)
-  confirmedDumps    Int      @default(0)
-  dumpRate          Float?   // % of schemes that dumped
+  totalSchemes   Int    @default(0)
+  confirmedDumps Int    @default(0)
+  dumpRate       Float? // % of schemes that dumped
 
-  firstDetected     DateTime @default(now())
-  lastActive        DateTime @default(now())
-  isActive          Boolean  @default(true)
-  notes             String?  @db.Text
+  firstDetected DateTime @default(now())
+  lastActive    DateTime @default(now())
+  isActive      Boolean  @default(true)
+  notes         String?  @db.Text
 
   // Members
-  members           Promoter[]
+  members Promoter[]
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isActive])
   @@index([confidenceScore])

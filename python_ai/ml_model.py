@@ -27,6 +27,7 @@ from sklearn.metrics import (
 from sklearn.preprocessing import StandardScaler
 
 from config import RF_MODEL_CONFIG, MODEL_PATHS
+from model_integrity import verify_model_file
 
 
 class ScamDetectorRF:
@@ -384,6 +385,14 @@ class ScamDetectorRF:
         scaler_path = scaler_path or MODEL_PATHS['scaler']
 
         try:
+            # Verify model file integrity before loading (joblib uses pickle internally)
+            if not verify_model_file(model_path):
+                print(f"Model integrity check failed for {model_path}")
+                return False
+            if not verify_model_file(scaler_path):
+                print(f"Scaler integrity check failed for {scaler_path}")
+                return False
+
             model_data = joblib.load(model_path)
             self.model = model_data['model']
             self.feature_names = model_data['feature_names']

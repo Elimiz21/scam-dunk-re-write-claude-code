@@ -5,12 +5,16 @@
 
 import { prisma } from "@/lib/db";
 import { config } from "@/lib/config";
+import { testOTCMarketsConnection } from "@/lib/otcMarkets";
+import { testFINRAConnection } from "@/lib/finra";
 
 /**
  * Mask an API key for display (show first 4 and last 4 characters)
  */
-function maskApiKey(key: string | undefined): string {
-  if (!key || key.length < 12) return "Not configured";
+function maskApiKey(key: string | undefined, showFull = false): string {
+  if (!key || key.length === 0) return "Not configured";
+  if (showFull) return key;
+  if (key.length < 12) return "Not configured";
   return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
 }
 
@@ -117,6 +121,20 @@ async function testDatabase(): Promise<{ status: string; message?: string }> {
 }
 
 /**
+ * Test OTC Markets connection (free public API — no key required)
+ */
+async function testOTCMarkets(): Promise<{ status: string; message?: string }> {
+  return testOTCMarketsConnection();
+}
+
+/**
+ * Test FINRA BrokerCheck connection (free public API — no key required)
+ */
+async function testFINRA(): Promise<{ status: string; message?: string }> {
+  return testFINRAConnection();
+}
+
+/**
  * Test YouTube Data API v3
  */
 async function testYouTube(): Promise<{ status: string; message?: string }> {
@@ -136,29 +154,27 @@ async function testYouTube(): Promise<{ status: string; message?: string }> {
 }
 
 /**
- * Test Reddit OAuth
+ * Test Reddit Public JSON endpoint (no OAuth needed)
  */
-async function testRedditOAuth(): Promise<{ status: string; message?: string }> {
-  if (!config.redditClientId || !config.redditClientSecret || !config.redditUsername || !config.redditPassword) {
-    return { status: "ERROR", message: "Reddit credentials not fully configured" };
-  }
+async function testRedditPublic(): Promise<{ status: string; message?: string }> {
   try {
-    const auth = Buffer.from(`${config.redditClientId}:${config.redditClientSecret}`).toString("base64");
-    const response = await fetch("https://www.reddit.com/api/v1/access_token", {
-      method: "POST",
+    const response = await fetch("https://www.reddit.com/r/stocks/new.json?limit=1", {
       headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": "ScamDunk/1.0",
+        "User-Agent": "Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)",
+        "Accept": "application/json",
       },
-      body: `grant_type=password&username=${encodeURIComponent(config.redditUsername)}&password=${encodeURIComponent(config.redditPassword)}`,
     });
     if (response.ok) {
       const data = await response.json();
-      if (data.access_token) return { status: "CONNECTED" };
-      return { status: "ERROR", message: data.error || "No access token returned" };
+      if (data?.data?.children?.length > 0) {
+        return { status: "CONNECTED", message: "Public JSON endpoint reachable (no credentials needed)" };
+      }
+      return { status: "CONNECTED", message: "Endpoint reachable but returned no posts" };
     }
-    return { status: "ERROR", message: `Reddit auth returned ${response.status}` };
+    if (response.status === 429) {
+      return { status: "ERROR", message: "Rate limited — try again in a minute" };
+    }
+    return { status: "ERROR", message: `Reddit returned ${response.status}` };
   } catch (error) {
     return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
@@ -355,6 +371,27 @@ const INTEGRATIONS = [
     testConnection: testDatabase,
     documentation: "https://supabase.com/docs",
   },
+  // Regulatory Data Integrations (free public APIs)
+  {
+    name: "OTC_MARKETS",
+    displayName: "OTC Markets",
+    category: "REGULATORY",
+    description: "Caveat Emptor flags, shell risk, tier data, compliance status (free public API)",
+    getApiKey: () => config.otcMarketsApiKey || "FREE_PUBLIC_API",
+    testConnection: testOTCMarkets,
+    rateLimit: 30, // Conservative limit for the free public endpoint
+    documentation: "https://www.otcmarkets.com/market-data/overview",
+  },
+  {
+    name: "FINRA",
+    displayName: "FINRA BrokerCheck",
+    category: "REGULATORY",
+    description: "Firm disclosures, disciplinary actions, broker misconduct (free public API)",
+    getApiKey: () => config.finraApiKey || "FREE_PUBLIC_API",
+    testConnection: testFINRA,
+    rateLimit: 20, // Conservative limit for the free public endpoint
+    documentation: "https://brokercheck.finra.org/",
+  },
   // Social Media Scan Integrations
   {
     name: "YOUTUBE",
@@ -367,13 +404,13 @@ const INTEGRATIONS = [
     documentation: "https://developers.google.com/youtube/v3",
   },
   {
-    name: "REDDIT_OAUTH",
-    displayName: "Reddit OAuth",
+    name: "REDDIT_PUBLIC",
+    displayName: "Reddit Public JSON",
     category: "SOCIAL_SCAN",
-    description: "Authenticated Reddit search for stock mentions (60 req/min)",
-    getApiKey: () => config.redditClientId,
-    testConnection: testRedditOAuth,
-    rateLimit: 60,
+    description: "Reddit public JSON endpoints — no credentials needed (10 req/min)",
+    getApiKey: () => "No credentials required",
+    testConnection: testRedditPublic,
+    rateLimit: 10,
     documentation: "https://www.reddit.com/wiki/api/",
   },
   {
@@ -410,7 +447,7 @@ const INTEGRATIONS = [
     name: "DISCORD_BOT",
     displayName: "Discord Bot",
     category: "SOCIAL_SCAN",
-    description: "Monitors Discord servers for stock promotion activity",
+    description: "Bot created but not yet linked to any servers. Needs server invites to begin monitoring.",
     getApiKey: () => config.discordBotToken,
     testConnection: testDiscordBot,
     documentation: "https://discord.com/developers/docs",
@@ -424,53 +461,59 @@ const INTEGRATIONS = [
     testConnection: testCrowdTangle,
     documentation: "https://www.crowdtangle.com/",
   },
-  // Browser Agent Platform Credentials
+  // Browser Agent Platform Credentials (personal accounts)
   {
     name: "BROWSER_DISCORD",
-    displayName: "Discord (Browser Agent)",
+    displayName: "Discord (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Discord account for browser-based server scanning",
+    description: "Owner's personal Discord account for browser-based server scanning",
     getApiKey: () => config.browserDiscordEmail,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserDiscordEmail", "browserDiscordPassword"),
   },
   {
     name: "BROWSER_REDDIT",
-    displayName: "Reddit (Browser Agent)",
+    displayName: "Reddit (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Reddit account for browser-based subreddit scanning",
+    description: "Owner's personal Reddit account for browser-based subreddit scanning",
     getApiKey: () => config.browserRedditUsername,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserRedditUsername", "browserRedditPassword"),
   },
   {
     name: "BROWSER_TWITTER",
-    displayName: "Twitter/X (Browser Agent)",
+    displayName: "Twitter/X (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Twitter/X account for browser-based cashtag scanning",
+    description: "Owner's personal Twitter/X account for browser-based cashtag scanning",
     getApiKey: () => config.browserTwitterUsername,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserTwitterUsername", "browserTwitterPassword"),
   },
   {
     name: "BROWSER_INSTAGRAM",
-    displayName: "Instagram (Browser Agent)",
+    displayName: "Instagram (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Instagram account for browser-based hashtag scanning",
+    description: "Owner's personal Instagram account for browser-based hashtag scanning",
     getApiKey: () => config.browserInstagramUsername,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserInstagramUsername", "browserInstagramPassword"),
   },
   {
     name: "BROWSER_FACEBOOK",
-    displayName: "Facebook (Browser Agent)",
+    displayName: "Facebook (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal Facebook account for browser-based group scanning",
+    description: "Owner's personal Facebook account for browser-based group scanning",
     getApiKey: () => config.browserFacebookEmail,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserFacebookEmail", "browserFacebookPassword"),
   },
   {
     name: "BROWSER_TIKTOK",
-    displayName: "TikTok (Browser Agent)",
+    displayName: "TikTok (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Personal TikTok account for browser-based hashtag scanning",
+    description: "Owner's personal TikTok account for browser-based hashtag scanning",
     getApiKey: () => config.browserTiktokUsername,
+    showFullKey: true,
     testConnection: testBrowserCredential("browserTiktokUsername", "browserTiktokPassword"),
   },
   {
@@ -492,6 +535,8 @@ export async function initializeIntegrations() {
       where: { name: integration.name },
     });
 
+    const showFull = 'showFullKey' in integration && integration.showFullKey === true;
+
     if (!existing) {
       await prisma.integrationConfig.create({
         data: {
@@ -499,18 +544,21 @@ export async function initializeIntegrations() {
           displayName: integration.displayName,
           category: integration.category,
           isEnabled: true,
-          apiKeyMasked: maskApiKey(integration.getApiKey()),
+          apiKeyMasked: maskApiKey(integration.getApiKey(), showFull),
           rateLimit: integration.rateLimit,
           status: "UNKNOWN",
         },
       });
     } else {
-      // Update masked API key if changed
-      const newMasked = maskApiKey(integration.getApiKey());
-      if (existing.apiKeyMasked !== newMasked) {
+      // Update masked API key (or full username) if changed
+      const newMasked = maskApiKey(integration.getApiKey(), showFull);
+      if (existing.apiKeyMasked !== newMasked || existing.displayName !== integration.displayName) {
         await prisma.integrationConfig.update({
           where: { name: integration.name },
-          data: { apiKeyMasked: newMasked },
+          data: {
+            apiKeyMasked: newMasked,
+            displayName: integration.displayName,
+          },
         });
       }
     }

@@ -23,7 +23,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const body = await request.json();
+    // Reject oversized request bodies (max 5MB)
+    const MAX_BODY_SIZE = 5 * 1024 * 1024;
+    const rawText = await request.text();
+    if (rawText.length > MAX_BODY_SIZE) {
+      return NextResponse.json(
+        { error: "Request body too large" },
+        { status: 413 }
+      );
+    }
+
+    const body = JSON.parse(rawText);
     const { scanId, scanDate, status, tickersScanned, tickersWithMentions,
             totalMentions, platformsUsed, results, errors, duration } = body;
 

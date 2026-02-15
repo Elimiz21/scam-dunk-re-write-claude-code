@@ -10,12 +10,15 @@ import {
   ClipboardList,
   FileText,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface ScanResultsLayoutProps {
   result: RiskResponse;
   hasChatData: boolean;
+  onNewScan?: () => void;
 }
 
 /* ─── Right-side info panel content ─── */
@@ -121,35 +124,45 @@ function InfoPanel({
 
 /* ─── Main Layout ─── */
 
-export function ScanResultsLayout({ result, hasChatData }: ScanResultsLayoutProps) {
+export function ScanResultsLayout({ result, hasChatData, onNewScan }: ScanResultsLayoutProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Main content area — fills remaining viewport height */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 pb-2 min-h-0 max-w-7xl mx-auto w-full animate-slide-up">
-        {/* Left side — 60%, scorecard fills full height */}
-        <div className="lg:w-3/5 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 pb-2 min-h-0 w-full animate-slide-up">
+        {/* Left side — 75%, scorecard fills full width */}
+        <div className="lg:w-3/4 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
             <RiskCard result={result} hasChatData={hasChatData} />
+            {onNewScan && (
+              <div className="flex justify-center py-4">
+                <Button variant="outline" onClick={onNewScan} className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Check another
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right side — 40%, scrollable independently */}
-        <div className="lg:w-2/5 flex flex-col gap-3 min-h-0 overflow-y-auto scrollbar-thin">
-          <div className="flex items-center gap-2 mb-1 flex-shrink-0">
-            <AlertTriangle className="h-4 w-4 text-primary/60" />
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Learn More
-            </h3>
+        {/* Right side — rightmost quarter, near top */}
+        <div className="lg:w-1/4 lg:max-w-[320px] flex flex-col justify-start pt-4 min-h-0 lg:ml-2.5">
+          <div className="flex flex-col gap-2.5 overflow-y-auto scrollbar-thin">
+            <div className="flex items-center gap-2 mb-1 flex-shrink-0">
+              <AlertTriangle className="h-3.5 w-3.5 text-primary/60" />
+              <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Learn More
+              </h3>
+            </div>
+            {INFO_PANELS.map((panel) => (
+              <InfoPanel key={panel.id} panel={panel} />
+            ))}
           </div>
-          {INFO_PANELS.map((panel) => (
-            <InfoPanel key={panel.id} panel={panel} />
-          ))}
         </div>
       </div>
 
       {/* Fixed disclaimer bar at bottom */}
-      <div className="disclaimer-bar px-4 py-3 flex-shrink-0">
-        <div className="max-w-7xl mx-auto flex items-start gap-2">
+      <div className="disclaimer-bar px-4 py-2.5 flex-shrink-0">
+        <div className="max-w-[1400px] mx-auto flex items-start gap-2">
           <Info className="h-3.5 w-3.5 text-muted-foreground/50 mt-0.5 flex-shrink-0" />
           <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
             <span className="font-medium">Disclaimer:</span> ScamDunk is not a financial advisor.
@@ -161,6 +174,24 @@ export function ScanResultsLayout({ result, hasChatData }: ScanResultsLayoutProp
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── Compact Learn More for scanning page ─── */
+
+export function LearnMoreCompact() {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 mb-0.5 flex-shrink-0">
+        <AlertTriangle className="h-3.5 w-3.5 text-primary/60" />
+        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          Learn More
+        </h3>
+      </div>
+      {INFO_PANELS.map((panel) => (
+        <InfoPanel key={panel.id} panel={panel} />
+      ))}
     </div>
   );
 }

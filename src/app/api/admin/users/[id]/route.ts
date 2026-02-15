@@ -73,6 +73,7 @@ export async function GET(
         email: user.email,
         name: user.name,
         plan: user.plan,
+        formerPro: user.formerPro,
         billingCustomerId: user.billingCustomerId,
         emailVerified: user.emailVerified,
         createdAt: user.createdAt,

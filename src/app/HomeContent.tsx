@@ -2,23 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { ScanInput } from "@/components/ScanInput";
-import { RiskCard } from "@/components/RiskCard";
 import { LimitReached } from "@/components/LimitReached";
 import { LoadingStepper } from "@/components/LoadingStepper";
-import { Shield, TrendingUp, AlertTriangle, Zap, Sparkles, ArrowRight, BarChart3, Eye, Brain } from "lucide-react";
+import { ScanResultsLayout, LearnMoreCompact } from "@/components/ScanResultsLayout";
+import { Shield, AlertTriangle, Eye } from "lucide-react";
 import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
-import { getRandomTagline, taglines } from "@/lib/taglines";
+import { getRandomTagline, taglines, Tagline } from "@/lib/taglines";
 import { LandingOptionA } from "@/components/landing/LandingOptionA";
 import { useToast } from "@/components/ui/toast";
 import { Step } from "@/components/LoadingStepper";
-
-// Scanning tips derived from taglines for rotation during analysis
-const scanningTips = taglines.map(t => t.headline);
 
 export default function HomeContent() {
   const { data: session, status } = useSession();
@@ -37,6 +33,7 @@ export default function HomeContent() {
   const [limitReached, setLimitReached] = useState<LimitReachedResponse | null>(null);
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [currentTicker, setCurrentTicker] = useState("");
+  const [hasChatData, setHasChatData] = useState(false);
 
   const [steps, setSteps] = useState<Step[]>([
     { label: "Validating ticker symbol", status: "pending" },
@@ -53,7 +50,7 @@ export default function HomeContent() {
     { label: "Checking regulatory alerts", status: "pending" },
     { label: "Generating risk report", status: "pending" },
   ]);
-  const [currentTip, setCurrentTip] = useState<string>("");
+  const [currentTip, setCurrentTip] = useState<Tagline | null>(null);
   const [tipIndex, setTipIndex] = useState(0);
 
   // Homepage hero content from admin DB
@@ -118,6 +115,7 @@ export default function HomeContent() {
     setLimitReached(null);
     setIsLoading(true);
     setCurrentTicker(data.ticker);
+    setHasChatData(!!data.pitchText?.trim());
 
     // Reset steps with enhanced granular progress
     const initialSteps: Step[] = [
@@ -137,25 +135,27 @@ export default function HomeContent() {
     ];
     setSteps(initialSteps);
 
-    // Start rotating tips
-    const startTipIndex = Math.floor(Math.random() * scanningTips.length);
+    // Start rotating tips — show both headline and subtext for 3 seconds each
+    const startTipIndex = Math.floor(Math.random() * taglines.length);
     setTipIndex(startTipIndex);
-    setCurrentTip(scanningTips[startTipIndex]);
+    setCurrentTip(taglines[startTipIndex]);
 
     // Rotate tips every 3 seconds
     const tipInterval = setInterval(() => {
       setTipIndex((prev) => {
-        const nextIndex = (prev + 1) % scanningTips.length;
-        setCurrentTip(scanningTips[nextIndex]);
+        const nextIndex = (prev + 1) % taglines.length;
+        setCurrentTip(taglines[nextIndex]);
         return nextIndex;
       });
     }, 3000);
 
     try {
-      // Simulate step progress with enhanced details
+      // Simulate step progress — decoupled from actual scan.
+      // Each step stays grey for at least 1 second after the previous
+      // step turns green, making the scan feel thorough.
       const simulateSteps = async () => {
-        // Step 1: Validating ticker - quick
-        await new Promise((r) => setTimeout(r, 300));
+        // Step 1: Validating ticker
+        await new Promise((r) => setTimeout(r, 1200));
         setSteps((s) => [
           { ...s[0], status: "complete", detail: `${data.ticker.toUpperCase()} is valid` },
           { ...s[1], status: "loading" },
@@ -164,8 +164,8 @@ export default function HomeContent() {
           s[4],
         ]);
 
-        // Step 2: Fetching market data
-        await new Promise((r) => setTimeout(r, 600));
+        // Step 2: Fetching market data (grey 1s → loading → complete)
+        await new Promise((r) => setTimeout(r, 1400));
         setSteps((s) => [
           s[0],
           { ...s[1], status: "complete", detail: "Retrieved price history and company data" },
@@ -183,7 +183,7 @@ export default function HomeContent() {
         ]);
 
         // Step 3a: Price patterns
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 1200));
         setSteps((s) => [
           s[0],
           s[1],
@@ -201,7 +201,7 @@ export default function HomeContent() {
         ]);
 
         // Step 3b: Volume anomalies
-        await new Promise((r) => setTimeout(r, 350));
+        await new Promise((r) => setTimeout(r, 1100));
         setSteps((s) => [
           s[0],
           s[1],
@@ -219,7 +219,7 @@ export default function HomeContent() {
         ]);
 
         // Step 3c: Pump-and-dump signals
-        await new Promise((r) => setTimeout(r, 350));
+        await new Promise((r) => setTimeout(r, 1100));
         setSteps((s) => [
           s[0],
           s[1],
@@ -238,7 +238,7 @@ export default function HomeContent() {
         ]);
 
         // Step 4: Regulatory alerts
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 1200));
         setSteps((s) => [
           s[0],
           s[1],
@@ -248,17 +248,22 @@ export default function HomeContent() {
         ]);
       };
 
-      const [response] = await Promise.all([
-        fetch("/api/check", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ticker: data.ticker,
-            assetType: data.assetType,
-            pitchText: data.pitchText,
-            context: data.context,
-          }),
+      // Run the actual API call and the visual simulation in parallel.
+      // The simulation is deliberately slower — if the API finishes
+      // first, the user still sees the steps finish at their own pace.
+      const apiCall = fetch("/api/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticker: data.ticker,
+          assetType: data.assetType,
+          pitchText: data.pitchText,
+          context: data.context,
         }),
+      });
+
+      const [response] = await Promise.all([
+        apiCall,
         simulateSteps(),
       ]);
 
@@ -270,6 +275,9 @@ export default function HomeContent() {
         s[3],
         { ...s[4], status: "complete", detail: "Analysis complete" }
       ]);
+
+      // Brief pause so the user sees all green before results appear
+      await new Promise((r) => setTimeout(r, 600));
 
       // Stop tip rotation
       clearInterval(tipInterval);
@@ -289,13 +297,14 @@ export default function HomeContent() {
       } else {
         setResult(responseData as RiskResponse);
         setUsage(responseData.usage);
+        setSidebarOpen(false);
       }
     } catch (err) {
       clearInterval(tipInterval);
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
-      setCurrentTip("");
+      setCurrentTip(null);
     }
   };
 
@@ -392,38 +401,36 @@ export default function HomeContent() {
             </div>
           )}
 
-          {/* Loading State */}
+          {/* Loading State — split layout with Learn More on the right */}
           {isLoading && (
-            <div className="flex-1 flex items-center justify-center p-4">
-              <div className="max-w-lg w-full animate-fade-in">
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                    <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
-                    <span className="text-sm font-semibold text-primary">Scanning</span>
+            <div className="flex-1 flex flex-col lg:flex-row gap-6 p-4 min-h-0 max-w-[1400px] mx-auto w-full">
+              {/* Left side — scan progress and tips */}
+              <div className="lg:w-3/4 flex items-center justify-center">
+                <div className="max-w-lg w-full animate-fade-in">
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                      <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
+                      <span className="text-sm font-semibold text-primary">Scanning</span>
+                    </div>
+                    <h2 className="font-display text-title mb-1 italic">
+                      Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">{currentTicker.toUpperCase()}</span>
+                    </h2>
+                    <p className="text-sm text-muted-foreground">Running multi-layer risk detection</p>
                   </div>
-                  <h2 className="font-display text-title mb-1 italic">
-                    Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">{currentTicker.toUpperCase()}</span>
-                  </h2>
-                  <p className="text-sm text-muted-foreground">Running multi-layer risk detection</p>
+                  <LoadingStepper steps={steps} currentTip={currentTip} />
                 </div>
-                <LoadingStepper steps={steps} currentTip={currentTip} />
+              </div>
+
+              {/* Right side — Learn More panels */}
+              <div className="hidden lg:flex lg:w-1/4 flex-col justify-center">
+                <LearnMoreCompact />
               </div>
             </div>
           )}
 
-          {/* Results */}
+          {/* Results — new split-screen layout */}
           {result && !isLoading && (
-            <div className="flex-1 overflow-y-auto p-4 pb-8">
-              <div className="max-w-3xl mx-auto space-y-6 animate-slide-up">
-                <RiskCard result={result} />
-                <div className="flex justify-center gap-3">
-                  <Button variant="outline" onClick={handleNewScan} className="gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Check another
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <ScanResultsLayout result={result} hasChatData={hasChatData} onNewScan={handleNewScan} />
           )}
 
           {/* Welcome State (no result, not loading) */}

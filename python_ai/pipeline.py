@@ -56,6 +56,7 @@ class RiskAssessment:
     key_indicators: List[str]
     explanation: str
     detailed_report: Dict
+    news_verification: Optional[Dict] = None
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
 
@@ -332,7 +333,8 @@ class ScamDetectionPipeline:
         fundamentals: Dict = None,
         news_flag: bool = False,
         use_synthetic: bool = True,
-        is_scam_scenario: bool = False
+        is_scam_scenario: bool = False,
+        sec_flagged_override: bool = None
     ) -> RiskAssessment:
         """
         Main analysis function - runs the complete pipeline.
@@ -345,6 +347,8 @@ class ScamDetectionPipeline:
             news_flag: Whether significant news exists
             use_synthetic: Use synthetic data for testing
             is_scam_scenario: Generate scam-like test data
+            sec_flagged_override: If provided, overrides internal SEC list check
+                with result from upstream regulatory database
 
         Returns:
             RiskAssessment with complete analysis
@@ -378,7 +382,16 @@ class ScamDetectionPipeline:
             }
             price_data = preprocess_price_data(price_data)
 
-        sec_flagged = context['sec_flagged']['is_flagged']
+        # Use upstream regulatory database result when provided, otherwise
+        # fall back to the internal (simulated) SEC list check
+        if sec_flagged_override is not None:
+            sec_flagged = sec_flagged_override
+            context['sec_flagged']['is_flagged'] = sec_flagged
+            if sec_flagged:
+                context['sec_flagged']['source'] = 'Upstream regulatory database'
+                context['sec_flagged']['reason'] = context['sec_flagged'].get('reason') or 'Flagged by regulatory database'
+        else:
+            sec_flagged = context['sec_flagged']['is_flagged']
         print(f"   Data loaded: {len(price_data)} days")
         print(f"   SEC Flagged: {sec_flagged}")
         print(f"   Exchange: {fundamentals.get('exchange', 'N/A')}")
@@ -447,6 +460,32 @@ class ScamDetectionPipeline:
             context, features, feature_names, anomaly_result, combined_prob
         )
 
+        # Step 8: News verification for HIGH risk results
+        # Check if legitimate news catalysts explain suspicious activity
+        news_verification = None
+        if risk_level == 'HIGH' and not use_synthetic:
+            print("\n[Step 8] Verifying HIGH risk - checking for legitimate catalysts...")
+            try:
+                from live_data import verify_legitimate_catalysts
+                news_verification = verify_legitimate_catalysts(ticker)
+
+                if news_verification['should_reduce_risk']:
+                    risk_level = news_verification['recommended_level']
+                    key_indicators.append(
+                        f"News verification: {news_verification['catalyst_summary']}"
+                    )
+                    print(f"   Risk reduced to {risk_level} due to legitimate catalyst")
+                else:
+                    key_indicators.append(
+                        f"No legitimate catalyst: {news_verification['catalyst_summary']}"
+                    )
+                    print(f"   Risk remains HIGH - no legitimate catalyst found")
+            except Exception as e:
+                print(f"   Warning: News verification failed: {e}")
+                # Don't block the assessment if news verification fails
+        elif risk_level == 'HIGH':
+            print("\n[Step 8] Skipping news verification (synthetic data mode)")
+
         # Build detailed report
         detailed_report = {
             'data_summary': {
@@ -500,7 +539,8 @@ class ScamDetectionPipeline:
             sec_flagged=sec_flagged,
             key_indicators=key_indicators,
             explanation=explanation,
-            detailed_report=detailed_report
+            detailed_report=detailed_report,
+            news_verification=news_verification
         )
 
         return assessment
