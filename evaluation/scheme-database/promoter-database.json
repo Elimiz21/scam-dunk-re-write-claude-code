@@ -1,0 +1,617 @@
+{
+  "lastUpdated": "2026-02-15T17:22:39.800Z",
+  "totalPromoters": 5,
+  "activePromoters": 5,
+  "serialOffenders": 4,
+  "promoters": {
+    "PROM-TWITTE-TWITTERXPR": {
+      "promoterId": "PROM-TWITTE-TWITTERXPR",
+      "identifier": "Twitter/X promoters",
+      "platform": "Twitter/X",
+      "firstSeen": "2026-02-02",
+      "lastSeen": "2026-02-13",
+      "totalPosts": 10,
+      "confidence": "high",
+      "stocksPromoted": [
+        {
+          "symbol": "EVTV",
+          "schemeId": "SCH-EVTV-20260202-9ALD",
+          "schemeName": "Envirotech Vehicles, Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-13",
+          "postCount": 1
+        },
+        {
+          "symbol": "BCARW",
+          "schemeId": "SCH-BCARW-20260202-88CA",
+          "schemeName": "D. Boral ARC Acquisition I Corp. Warrant",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "PTHL",
+          "schemeId": "SCH-PTHL-20260202-AI2J",
+          "schemeName": "Pheton Holdings Ltd Class A Ordinary Shares",
+          "schemeStatus": "PUMP_AND_DUMP_ENDED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "XAIR",
+          "schemeId": "SCH-XAIR-20260202-M8NZ",
+          "schemeName": "Beyond Air, Inc.",
+          "schemeStatus": "COOLING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "PELIR",
+          "schemeId": "SCH-PELIR-20260202-0ENE",
+          "schemeName": "Pelican Acquisition Corporation Right",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "THH",
+          "schemeId": "SCH-THH-20260202-YD9V",
+          "schemeName": "TryHard Holdings Limited",
+          "schemeStatus": "COOLING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "SXTC",
+          "schemeId": "SCH-SXTC-20260202-4CVF",
+          "schemeName": "China SXT Pharmaceuticals, Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "MTEN",
+          "schemeId": "SCH-MTEN-20260202-KMCM",
+          "schemeName": "Mingteng International Corporation Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "DRTSW",
+          "schemeId": "SCH-DRTSW-20260202-H1OO",
+          "schemeName": "Alpha Tau Medical Ltd.",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "JDZG",
+          "schemeId": "SCH-JDZG-20260202-18AA",
+          "schemeName": "JIADE Limited",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-13",
+          "postCount": 1
+        }
+      ],
+      "coPromoters": [
+        {
+          "promoterId": "PROM-YOUTUB-YOUTUBEPRO",
+          "identifier": "YouTube promoters",
+          "platform": "YouTube",
+          "sharedStocks": [
+            "EVTV",
+            "PELIR",
+            "SXTC",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-DISCOR-DISCORDPRO",
+          "identifier": "Discord promoters",
+          "platform": "Discord",
+          "sharedStocks": [
+            "EVTV",
+            "BCARW",
+            "PTHL",
+            "PELIR",
+            "THH",
+            "SXTC",
+            "MTEN",
+            "DRTSW",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-TELEGR-TELEGRAMPR",
+          "identifier": "Telegram promoters",
+          "platform": "Telegram",
+          "sharedStocks": [
+            "EVTV",
+            "BCARW",
+            "PTHL",
+            "XAIR",
+            "PELIR",
+            "THH",
+            "SXTC",
+            "MTEN",
+            "DRTSW",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-REDDIT-CARLENETRA",
+          "identifier": "Carlene_Trammel",
+          "platform": "Reddit",
+          "sharedStocks": [
+            "SXTC"
+          ]
+        }
+      ],
+      "riskLevel": "SERIAL_OFFENDER",
+      "isActive": true
+    },
+    "PROM-YOUTUB-YOUTUBEPRO": {
+      "promoterId": "PROM-YOUTUB-YOUTUBEPRO",
+      "identifier": "YouTube promoters",
+      "platform": "YouTube",
+      "firstSeen": "2026-02-02",
+      "lastSeen": "2026-02-13",
+      "totalPosts": 4,
+      "confidence": "high",
+      "stocksPromoted": [
+        {
+          "symbol": "EVTV",
+          "schemeId": "SCH-EVTV-20260202-9ALD",
+          "schemeName": "Envirotech Vehicles, Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-13",
+          "postCount": 1
+        },
+        {
+          "symbol": "PELIR",
+          "schemeId": "SCH-PELIR-20260202-0ENE",
+          "schemeName": "Pelican Acquisition Corporation Right",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "SXTC",
+          "schemeId": "SCH-SXTC-20260202-4CVF",
+          "schemeName": "China SXT Pharmaceuticals, Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "JDZG",
+          "schemeId": "SCH-JDZG-20260202-18AA",
+          "schemeName": "JIADE Limited",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-13",
+          "postCount": 1
+        }
+      ],
+      "coPromoters": [
+        {
+          "promoterId": "PROM-TWITTE-TWITTERXPR",
+          "identifier": "Twitter/X promoters",
+          "platform": "Twitter/X",
+          "sharedStocks": [
+            "EVTV",
+            "PELIR",
+            "SXTC",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-DISCOR-DISCORDPRO",
+          "identifier": "Discord promoters",
+          "platform": "Discord",
+          "sharedStocks": [
+            "EVTV",
+            "PELIR",
+            "SXTC",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-TELEGR-TELEGRAMPR",
+          "identifier": "Telegram promoters",
+          "platform": "Telegram",
+          "sharedStocks": [
+            "EVTV",
+            "PELIR",
+            "SXTC",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-REDDIT-CARLENETRA",
+          "identifier": "Carlene_Trammel",
+          "platform": "Reddit",
+          "sharedStocks": [
+            "SXTC"
+          ]
+        }
+      ],
+      "riskLevel": "SERIAL_OFFENDER",
+      "isActive": true
+    },
+    "PROM-DISCOR-DISCORDPRO": {
+      "promoterId": "PROM-DISCOR-DISCORDPRO",
+      "identifier": "Discord promoters",
+      "platform": "Discord",
+      "firstSeen": "2026-02-02",
+      "lastSeen": "2026-02-13",
+      "totalPosts": 9,
+      "confidence": "high",
+      "stocksPromoted": [
+        {
+          "symbol": "EVTV",
+          "schemeId": "SCH-EVTV-20260202-9ALD",
+          "schemeName": "Envirotech Vehicles, Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-13",
+          "postCount": 1
+        },
+        {
+          "symbol": "BCARW",
+          "schemeId": "SCH-BCARW-20260202-88CA",
+          "schemeName": "D. Boral ARC Acquisition I Corp. Warrant",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "PTHL",
+          "schemeId": "SCH-PTHL-20260202-AI2J",
+          "schemeName": "Pheton Holdings Ltd Class A Ordinary Shares",
+          "schemeStatus": "PUMP_AND_DUMP_ENDED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "PELIR",
+          "schemeId": "SCH-PELIR-20260202-0ENE",
+          "schemeName": "Pelican Acquisition Corporation Right",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "THH",
+          "schemeId": "SCH-THH-20260202-YD9V",
+          "schemeName": "TryHard Holdings Limited",
+          "schemeStatus": "COOLING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "SXTC",
+          "schemeId": "SCH-SXTC-20260202-4CVF",
+          "schemeName": "China SXT Pharmaceuticals, Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "MTEN",
+          "schemeId": "SCH-MTEN-20260202-KMCM",
+          "schemeName": "Mingteng International Corporation Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "DRTSW",
+          "schemeId": "SCH-DRTSW-20260202-H1OO",
+          "schemeName": "Alpha Tau Medical Ltd.",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "JDZG",
+          "schemeId": "SCH-JDZG-20260202-18AA",
+          "schemeName": "JIADE Limited",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-13",
+          "postCount": 1
+        }
+      ],
+      "coPromoters": [
+        {
+          "promoterId": "PROM-TWITTE-TWITTERXPR",
+          "identifier": "Twitter/X promoters",
+          "platform": "Twitter/X",
+          "sharedStocks": [
+            "EVTV",
+            "BCARW",
+            "PTHL",
+            "PELIR",
+            "THH",
+            "SXTC",
+            "MTEN",
+            "DRTSW",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-YOUTUB-YOUTUBEPRO",
+          "identifier": "YouTube promoters",
+          "platform": "YouTube",
+          "sharedStocks": [
+            "EVTV",
+            "PELIR",
+            "SXTC",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-TELEGR-TELEGRAMPR",
+          "identifier": "Telegram promoters",
+          "platform": "Telegram",
+          "sharedStocks": [
+            "EVTV",
+            "BCARW",
+            "PTHL",
+            "PELIR",
+            "THH",
+            "SXTC",
+            "MTEN",
+            "DRTSW",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-REDDIT-CARLENETRA",
+          "identifier": "Carlene_Trammel",
+          "platform": "Reddit",
+          "sharedStocks": [
+            "SXTC"
+          ]
+        }
+      ],
+      "riskLevel": "SERIAL_OFFENDER",
+      "isActive": true
+    },
+    "PROM-TELEGR-TELEGRAMPR": {
+      "promoterId": "PROM-TELEGR-TELEGRAMPR",
+      "identifier": "Telegram promoters",
+      "platform": "Telegram",
+      "firstSeen": "2026-02-02",
+      "lastSeen": "2026-02-13",
+      "totalPosts": 10,
+      "confidence": "high",
+      "stocksPromoted": [
+        {
+          "symbol": "EVTV",
+          "schemeId": "SCH-EVTV-20260202-9ALD",
+          "schemeName": "Envirotech Vehicles, Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-13",
+          "postCount": 1
+        },
+        {
+          "symbol": "BCARW",
+          "schemeId": "SCH-BCARW-20260202-88CA",
+          "schemeName": "D. Boral ARC Acquisition I Corp. Warrant",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "PTHL",
+          "schemeId": "SCH-PTHL-20260202-AI2J",
+          "schemeName": "Pheton Holdings Ltd Class A Ordinary Shares",
+          "schemeStatus": "PUMP_AND_DUMP_ENDED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "XAIR",
+          "schemeId": "SCH-XAIR-20260202-M8NZ",
+          "schemeName": "Beyond Air, Inc.",
+          "schemeStatus": "COOLING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "PELIR",
+          "schemeId": "SCH-PELIR-20260202-0ENE",
+          "schemeName": "Pelican Acquisition Corporation Right",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "THH",
+          "schemeId": "SCH-THH-20260202-YD9V",
+          "schemeName": "TryHard Holdings Limited",
+          "schemeStatus": "COOLING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "SXTC",
+          "schemeId": "SCH-SXTC-20260202-4CVF",
+          "schemeName": "China SXT Pharmaceuticals, Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "MTEN",
+          "schemeId": "SCH-MTEN-20260202-KMCM",
+          "schemeName": "Mingteng International Corporation Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "DRTSW",
+          "schemeId": "SCH-DRTSW-20260202-H1OO",
+          "schemeName": "Alpha Tau Medical Ltd.",
+          "schemeStatus": "NO_SCAM_DETECTED",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-03",
+          "postCount": 1
+        },
+        {
+          "symbol": "JDZG",
+          "schemeId": "SCH-JDZG-20260202-18AA",
+          "schemeName": "JIADE Limited",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-13",
+          "postCount": 1
+        }
+      ],
+      "coPromoters": [
+        {
+          "promoterId": "PROM-TWITTE-TWITTERXPR",
+          "identifier": "Twitter/X promoters",
+          "platform": "Twitter/X",
+          "sharedStocks": [
+            "EVTV",
+            "BCARW",
+            "PTHL",
+            "XAIR",
+            "PELIR",
+            "THH",
+            "SXTC",
+            "MTEN",
+            "DRTSW",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-YOUTUB-YOUTUBEPRO",
+          "identifier": "YouTube promoters",
+          "platform": "YouTube",
+          "sharedStocks": [
+            "EVTV",
+            "PELIR",
+            "SXTC",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-DISCOR-DISCORDPRO",
+          "identifier": "Discord promoters",
+          "platform": "Discord",
+          "sharedStocks": [
+            "EVTV",
+            "BCARW",
+            "PTHL",
+            "PELIR",
+            "THH",
+            "SXTC",
+            "MTEN",
+            "DRTSW",
+            "JDZG"
+          ]
+        },
+        {
+          "promoterId": "PROM-REDDIT-CARLENETRA",
+          "identifier": "Carlene_Trammel",
+          "platform": "Reddit",
+          "sharedStocks": [
+            "SXTC"
+          ]
+        }
+      ],
+      "riskLevel": "SERIAL_OFFENDER",
+      "isActive": true
+    },
+    "PROM-REDDIT-CARLENETRA": {
+      "promoterId": "PROM-REDDIT-CARLENETRA",
+      "identifier": "Carlene_Trammel",
+      "platform": "Reddit",
+      "firstSeen": "2026-02-02",
+      "lastSeen": "2026-02-02",
+      "totalPosts": 1,
+      "confidence": "medium",
+      "stocksPromoted": [
+        {
+          "symbol": "SXTC",
+          "schemeId": "SCH-SXTC-20260202-4CVF",
+          "schemeName": "China SXT Pharmaceuticals, Inc.",
+          "schemeStatus": "ONGOING",
+          "firstSeen": "2026-02-02",
+          "lastSeen": "2026-02-02",
+          "postCount": 1
+        }
+      ],
+      "coPromoters": [
+        {
+          "promoterId": "PROM-TWITTE-TWITTERXPR",
+          "identifier": "Twitter/X promoters",
+          "platform": "Twitter/X",
+          "sharedStocks": [
+            "SXTC"
+          ]
+        },
+        {
+          "promoterId": "PROM-YOUTUB-YOUTUBEPRO",
+          "identifier": "YouTube promoters",
+          "platform": "YouTube",
+          "sharedStocks": [
+            "SXTC"
+          ]
+        },
+        {
+          "promoterId": "PROM-DISCOR-DISCORDPRO",
+          "identifier": "Discord promoters",
+          "platform": "Discord",
+          "sharedStocks": [
+            "SXTC"
+          ]
+        },
+        {
+          "promoterId": "PROM-TELEGR-TELEGRAMPR",
+          "identifier": "Telegram promoters",
+          "platform": "Telegram",
+          "sharedStocks": [
+            "SXTC"
+          ]
+        }
+      ],
+      "riskLevel": "MEDIUM",
+      "isActive": true
+    }
+  }
+}
