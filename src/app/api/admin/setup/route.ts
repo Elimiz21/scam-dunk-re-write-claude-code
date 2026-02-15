@@ -14,7 +14,7 @@ const setupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().optional(),
-  setupKey: z.string().optional(), // Optional secret key for additional security
+  setupKey: z.string().optional(),
 });
 
 export async function GET() {
@@ -58,9 +58,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Optional: Check setup key for additional security
+    // Require setup key
     const expectedSetupKey = process.env.ADMIN_SETUP_KEY;
-    if (expectedSetupKey && validation.data.setupKey !== expectedSetupKey) {
+    if (!expectedSetupKey) {
+      return NextResponse.json(
+        { error: "Admin setup is disabled" },
+        { status: 403 }
+      );
+    }
+    if (validation.data.setupKey !== expectedSetupKey) {
       return NextResponse.json(
         { error: "Invalid setup key" },
         { status: 403 }

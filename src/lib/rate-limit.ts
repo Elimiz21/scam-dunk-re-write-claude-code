@@ -18,6 +18,13 @@ const isRedisConfigured = Boolean(
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
 );
 
+const isProduction = process.env.NODE_ENV === "production";
+if (isProduction && !isRedisConfigured) {
+  throw new Error(
+    "FATAL: Redis (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN) must be configured in production for rate limiting"
+  );
+}
+
 // Initialize Redis client if configured
 const redis = isRedisConfigured
   ? new Redis({

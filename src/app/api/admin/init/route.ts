@@ -11,8 +11,23 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    const setupKey = process.env.ADMIN_SETUP_KEY;
+    if (!setupKey) {
+      return NextResponse.json(
+        { error: "Admin setup is disabled" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     const { email, password, name } = body;
+
+    if (body.setupKey !== setupKey) {
+      return NextResponse.json(
+        { error: "Invalid setup key" },
+        { status: 403 }
+      );
+    }
 
     // Try to create the AdminUser table by attempting a query
     // If it fails, the tables don't exist

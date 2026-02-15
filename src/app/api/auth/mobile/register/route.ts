@@ -14,6 +14,8 @@ import {
   generateRefreshToken,
 } from "@/lib/mobile-auth";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
+import { createEmailVerificationToken } from "@/lib/tokens";
+import { sendVerificationEmail } from "@/lib/email";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -57,16 +59,14 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user with FREE plan
+    // Create user with FREE plan (email not verified)
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         hashedPassword,
         name: name || null,
         plan: "FREE",
-        // For mobile registrations, we can auto-verify email
-        // or implement email verification later
-        emailVerified: new Date(),
+        emailVerified: null,
       },
       select: {
         id: true,
@@ -75,6 +75,14 @@ export async function POST(request: NextRequest) {
         plan: true,
       },
     });
+
+    // Send verification email (don't block registration if this fails)
+    try {
+      const verificationToken = await createEmailVerificationToken(normalizedEmail);
+      await sendVerificationEmail(normalizedEmail, verificationToken);
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+    }
 
     // Generate tokens
     const accessToken = generateAccessToken(user.id, user.email);
@@ -87,6 +95,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         plan: user.plan,
+        emailVerified: false,
       },
       token: accessToken,
       refreshToken,

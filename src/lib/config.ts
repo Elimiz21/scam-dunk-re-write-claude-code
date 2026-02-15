@@ -69,6 +69,20 @@ export const config = {
   browserSessionEncryptionKey: process.env.BROWSER_SESSION_ENCRYPTION_KEY || "",
 } as const;
 
+/**
+ * Validate required environment variables at startup.
+ * Throws if critical secrets are missing.
+ */
+export function validateRequiredEnvVars(): void {
+  const required = ["NEXTAUTH_SECRET", "DATABASE_URL"];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      `FATAL: Missing required environment variables: ${missing.join(", ")}`
+    );
+  }
+}
+
 // Get scan limit based on plan
 export function getScanLimit(plan: "FREE" | "PAID"): number {
   return plan === "PAID" ? config.paidChecksPerMonth : config.freeChecksPerMonth;
