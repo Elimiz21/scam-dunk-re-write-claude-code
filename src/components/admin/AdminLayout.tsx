@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Bell,
   Eye,
+  Radar,
   TrendingUp,
   AlertTriangle,
   Search,
@@ -85,6 +86,7 @@ const navigationCategories: NavCategory[] = [
     name: "Market Intelligence",
     icon: BarChart3,
     items: [
+      { name: "Scan Intelligence", href: "/admin/scan-intelligence", icon: Radar },
       { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
       { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
       { name: "Social Scan", href: "/admin/social-scan", icon: Radio },

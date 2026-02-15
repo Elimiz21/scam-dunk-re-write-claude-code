@@ -24,15 +24,27 @@ import { execSync } from 'child_process';
 import { createClient } from '@supabase/supabase-js';
 
 const RESULTS_DIR = path.join(__dirname, '..', 'results');
+const SCHEME_DB_DIR = path.join(__dirname, '..', 'scheme-database');
 const BUCKET_NAME = 'evaluation-data';
 
-// File patterns to upload
+// File patterns to upload (date-based files)
 const FILE_PATTERNS = [
   { prefix: 'fmp-evaluation-', type: 'evaluation' },
   { prefix: 'fmp-summary-', type: 'summary' },
   { prefix: 'fmp-high-risk-', type: 'high-risk' },
+  { prefix: 'enhanced-evaluation-', type: 'evaluation' },
+  { prefix: 'enhanced-high-risk-', type: 'high-risk' },
   { prefix: 'social-media-scan-', type: 'social-media' },
   { prefix: 'promoted-stocks-', type: 'promoted' },
+  { prefix: 'daily-report-', type: 'report' },
+  { prefix: 'suspicious-stocks-', type: 'suspicious' },
+  { prefix: 'scheme-report-', type: 'scheme-report' },
+];
+
+// Non-date-based files to always upload
+const STATIC_FILES = [
+  { path: path.join(SCHEME_DB_DIR, 'scheme-database.json'), name: 'scheme-database.json' },
+  { path: path.join(SCHEME_DB_DIR, 'promoter-database.json'), name: 'promoter-database.json' },
 ];
 
 function getSupabaseCredentials() {
@@ -95,7 +107,9 @@ async function uploadDateFiles(date: string) {
 
   for (const pattern of FILE_PATTERNS) {
     // Try both .json and .md extensions
-    const extensions = pattern.type === 'social-media' ? ['.md', '.json'] : ['.json'];
+    const extensions = ['social-media', 'scheme-report'].includes(pattern.type)
+      ? ['.md', '.json']
+      : ['.json'];
 
     for (const ext of extensions) {
       const fileName = `${pattern.prefix}${date}${ext}`;
@@ -105,6 +119,14 @@ async function uploadDateFiles(date: string) {
         await uploadFile(filePath, fileName);
         uploadCount++;
       }
+    }
+  }
+
+  // Always upload scheme and promoter databases
+  for (const staticFile of STATIC_FILES) {
+    if (fs.existsSync(staticFile.path)) {
+      await uploadFile(staticFile.path, staticFile.name);
+      uploadCount++;
     }
   }
 

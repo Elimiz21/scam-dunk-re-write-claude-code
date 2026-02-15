@@ -422,7 +422,18 @@ jobs:
               --data-binary @"scheme-database/scheme-database.json" || true
             UPLOADED=$((UPLOADED + 1))
           fi
-          
+
+          # Upload promoter database
+          if [ -f "scheme-database/promoter-database.json" ]; then
+            echo "Uploading promoter database..."
+            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/promoter-database.json" \
+              -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+              -H "Content-Type: application/json" \
+              -H "x-upsert: true" \
+              --data-binary @"scheme-database/promoter-database.json" || true
+            UPLOADED=$((UPLOADED + 1))
+          fi
+
           echo "Uploaded $UPLOADED files to Supabase"
 
       - name: Checkout data repository
@@ -462,8 +473,9 @@ jobs:
           cp evaluation/results/suspicious-stocks-${DATE}.json data-repo/suspicious-stocks/ 2>/dev/null || true
           cp evaluation/results/daily-report-${DATE}.json data-repo/reports/ 2>/dev/null || true
           
-          # Copy scheme tracking data
+          # Copy scheme tracking data (scheme + promoter databases)
           cp evaluation/scheme-database/scheme-database.json data-repo/scheme-tracking/ 2>/dev/null || true
+          cp evaluation/scheme-database/promoter-database.json data-repo/scheme-tracking/ 2>/dev/null || true
           cp evaluation/results/scheme-report-${DATE}.md data-repo/scheme-tracking/ 2>/dev/null || true
 
           # Copy social media scans
