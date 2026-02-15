@@ -253,13 +253,13 @@ export default function BrowserAgentsPage() {
   }
 
   async function triggerScan() {
-    if (!scanTickers.trim()) return;
     setTriggering(true);
+    setError("");
     try {
-      const tickers = scanTickers
-        .split(",")
-        .map((t) => t.trim().toUpperCase())
-        .filter(Boolean);
+      // If tickers provided, use them. Otherwise, let the API auto-pull from daily scan.
+      const tickers = scanTickers.trim()
+        ? scanTickers.split(",").map((t) => t.trim().toUpperCase()).filter(Boolean)
+        : undefined;
       const res = await fetch("/api/admin/browser-agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -269,8 +269,8 @@ export default function BrowserAgentsPage() {
           platforms: scanPlatforms.length > 0 ? scanPlatforms : undefined,
         }),
       });
-      if (!res.ok) throw new Error("Failed to trigger scan");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to trigger scan");
       setSuccess(data.message);
       setShowScanModal(false);
       setScanTickers("");
@@ -953,15 +953,18 @@ export default function BrowserAgentsPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
-                    Tickers (comma-separated)
+                    Tickers (optional)
                   </label>
                   <input
                     type="text"
                     value={scanTickers}
                     onChange={(e) => setScanTickers(e.target.value)}
-                    placeholder="ACME, DEFG, HIJK"
+                    placeholder="Leave empty to auto-scan high-risk stocks from daily scan"
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Enter comma-separated tickers (e.g. ACME, DEFG), or leave empty to automatically use high-risk stocks from the latest daily scan.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
@@ -1021,11 +1024,7 @@ export default function BrowserAgentsPage() {
                 </button>
                 <button
                   onClick={triggerScan}
-                  disabled={
-                    triggering ||
-                    !scanTickers.trim() ||
-                    platformConfigs.filter((p) => p.isEnabled).length === 0
-                  }
+                  disabled={triggering}
                   className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
                 >
                   {triggering ? (

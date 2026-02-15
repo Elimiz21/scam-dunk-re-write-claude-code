@@ -113,7 +113,18 @@ export default function SocialScanPage() {
   const [filterPlatform, setFilterPlatform] = useState("");
   const [promotionalOnly, setPromotionalOnly] = useState(false);
   const [triggering, setTriggering] = useState(false);
+  const [manualTickers, setManualTickers] = useState("");
   const [expandedMention, setExpandedMention] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<{
+    status: string;
+    tickersScanned: number;
+    tickersWithMentions: number;
+    totalMentions: number;
+    platformsUsed: string[];
+    errors: string[];
+    duration: number;
+    message: string;
+  } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -142,13 +153,27 @@ export default function SocialScanPage() {
 
   async function triggerScan() {
     setTriggering(true);
+    setError("");
+    setScanResult(null);
     try {
+      // If manual tickers provided, send them. Otherwise, auto-pull from daily scan.
+      const tickerList = manualTickers.trim()
+        ? manualTickers.split(",").map(t => t.trim().toUpperCase()).filter(Boolean)
+        : undefined;
       const res = await fetch("/api/admin/social-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: new Date().toISOString().split("T")[0] }),
+        body: JSON.stringify({
+          date: new Date().toISOString().split("T")[0],
+          tickers: tickerList,
+        }),
       });
-      if (!res.ok) throw new Error("Failed to trigger scan");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to trigger scan");
+      }
+      const result = await res.json();
+      setScanResult(result);
       await fetchData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to trigger scan");
@@ -225,15 +250,72 @@ export default function SocialScanPage() {
               Monitor social media for suspicious stock promotion activity
             </p>
           </div>
-          <button
-            onClick={triggerScan}
-            disabled={triggering}
-            className="gradient-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
-          >
-            <Radio className={`h-4 w-4 ${triggering ? "animate-pulse" : ""}`} />
-            {triggering ? "Triggering..." : "Run Scan"}
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={manualTickers}
+              onChange={(e) => setManualTickers(e.target.value)}
+              placeholder="Auto from daily scan, or enter tickers..."
+              disabled={triggering}
+              className="w-64 px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            />
+            <button
+              onClick={triggerScan}
+              disabled={triggering}
+              className="gradient-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+            >
+              <Radio className={`h-4 w-4 ${triggering ? "animate-pulse" : ""}`} />
+              {triggering ? "Scanning..." : "Run Scan"}
+            </button>
+          </div>
         </div>
+
+        {triggering && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700 flex items-center gap-3">
+            <Clock className="h-5 w-5 animate-spin flex-shrink-0" />
+            <div>
+              <p className="font-medium">Social media scan in progress...</p>
+              <p className="text-xs mt-1 text-blue-600">
+                Scanning Reddit, YouTube, StockTwits, Google, Perplexity, and Discord for high-risk tickers from the latest daily scan. This may take 2-5 minutes.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {scanResult && !triggering && (
+          <div className={`border rounded-lg p-4 text-sm ${
+            scanResult.status === 'COMPLETED' ? 'bg-green-50 border-green-200 text-green-700' :
+            scanResult.status === 'PARTIAL' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
+            'bg-red-50 border-red-200 text-red-700'
+          }`}>
+            <div className="flex items-start gap-3">
+              {scanResult.status === 'COMPLETED' ? <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" /> :
+               scanResult.status === 'PARTIAL' ? <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" /> :
+               <XCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />}
+              <div className="space-y-1">
+                <p className="font-medium">{scanResult.message}</p>
+                <div className="flex flex-wrap gap-3 text-xs opacity-80">
+                  <span>{scanResult.tickersScanned} tickers scanned</span>
+                  <span>{scanResult.tickersWithMentions} with mentions</span>
+                  <span>{scanResult.totalMentions} total mentions</span>
+                  {scanResult.duration > 0 && <span>{(scanResult.duration / 1000).toFixed(0)}s</span>}
+                </div>
+                {scanResult.platformsUsed.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {scanResult.platformsUsed.map(p => (
+                      <span key={p} className="px-1.5 py-0.5 rounded text-xs bg-white/50">{p}</span>
+                    ))}
+                  </div>
+                )}
+                {scanResult.errors.length > 0 && (
+                  <div className="mt-1 text-xs opacity-70">
+                    {scanResult.errors.map((e, i) => <p key={i}>{e}</p>)}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
