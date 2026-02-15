@@ -113,6 +113,7 @@ export default function SocialScanPage() {
   const [filterPlatform, setFilterPlatform] = useState("");
   const [promotionalOnly, setPromotionalOnly] = useState(false);
   const [triggering, setTriggering] = useState(false);
+  const [manualTickers, setManualTickers] = useState("");
   const [expandedMention, setExpandedMention] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<{
     status: string;
@@ -155,10 +156,17 @@ export default function SocialScanPage() {
     setError("");
     setScanResult(null);
     try {
+      // If manual tickers provided, send them. Otherwise, auto-pull from daily scan.
+      const tickerList = manualTickers.trim()
+        ? manualTickers.split(",").map(t => t.trim().toUpperCase()).filter(Boolean)
+        : undefined;
       const res = await fetch("/api/admin/social-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: new Date().toISOString().split("T")[0] }),
+        body: JSON.stringify({
+          date: new Date().toISOString().split("T")[0],
+          tickers: tickerList,
+        }),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -242,14 +250,24 @@ export default function SocialScanPage() {
               Monitor social media for suspicious stock promotion activity
             </p>
           </div>
-          <button
-            onClick={triggerScan}
-            disabled={triggering}
-            className="gradient-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
-          >
-            <Radio className={`h-4 w-4 ${triggering ? "animate-pulse" : ""}`} />
-            {triggering ? "Scanning..." : "Run Scan"}
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={manualTickers}
+              onChange={(e) => setManualTickers(e.target.value)}
+              placeholder="Auto from daily scan, or enter tickers..."
+              disabled={triggering}
+              className="w-64 px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            />
+            <button
+              onClick={triggerScan}
+              disabled={triggering}
+              className="gradient-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+            >
+              <Radio className={`h-4 w-4 ${triggering ? "animate-pulse" : ""}`} />
+              {triggering ? "Scanning..." : "Run Scan"}
+            </button>
+          </div>
         </div>
 
         {triggering && (

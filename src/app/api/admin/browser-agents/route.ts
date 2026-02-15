@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import { getScanTargetsFromLatestDailyScan } from "@/lib/social-scan/get-scan-targets";
 
 export const dynamic = "force-dynamic";
 
@@ -109,13 +110,25 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     if (action === "trigger_scan") {
-      const { tickers, platforms } = body;
+      let { tickers, platforms } = body;
 
+      // If no tickers provided, auto-pull from latest daily scan
       if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
-        return NextResponse.json(
-          { error: "At least one ticker is required" },
-          { status: 400 }
-        );
+        try {
+          const { targets } = await getScanTargetsFromLatestDailyScan(20);
+          if (targets.length === 0) {
+            return NextResponse.json(
+              { error: "No tickers provided and no high-risk stocks found in the latest daily scan. Enter tickers manually or run the daily pipeline first." },
+              { status: 400 }
+            );
+          }
+          tickers = targets.map(t => t.ticker);
+        } catch {
+          return NextResponse.json(
+            { error: "No tickers provided and could not load from daily scan. Enter tickers manually." },
+            { status: 400 }
+          );
+        }
       }
 
       // Create a placeholder session record to track the request
@@ -140,8 +153,9 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Browser scan queued for ${tickers.length} ticker(s)`,
+        message: `Browser scan queued for ${tickers.length} ticker(s): ${tickers.slice(0, 5).join(', ')}${tickers.length > 5 ? ` +${tickers.length - 5} more` : ''}`,
         sessionId: scanSession.id,
+        tickers,
       });
     }
 

@@ -3,6 +3,8 @@
  *
  * GET  - Fetch scan history, mentions, and stats
  * POST - Trigger a real social media scan using high-risk stocks from the latest daily scan
+ *
+ * Uses Promise.allSettled so the page renders even if DB tables are empty or missing.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -31,24 +33,6 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo");
     const promotionalOnly = searchParams.get("promotionalOnly") === "true";
 
-    // Fetch recent scan runs
-    const scanRuns = await prisma.socialScanRun.findMany({
-      orderBy: { scanDate: "desc" },
-      take: 10,
-      select: {
-        id: true,
-        scanDate: true,
-        status: true,
-        tickersScanned: true,
-        tickersWithMentions: true,
-        totalMentions: true,
-        platformsUsed: true,
-        duration: true,
-        errors: true,
-        createdAt: true,
-      },
-    });
-
     // Build mention filters
     const mentionWhere: any = {};
     if (ticker) mentionWhere.ticker = { contains: ticker, mode: "insensitive" };
@@ -60,100 +44,100 @@ export async function GET(request: NextRequest) {
       if (dateTo) mentionWhere.createdAt.lte = new Date(dateTo + "T23:59:59Z");
     }
 
-    // Fetch mentions with pagination
-    const [mentions, totalMentions] = await Promise.all([
+    // Fetch all data in parallel, tolerating individual failures so the
+    // page still renders with empty state instead of a blanket error
+    const results = await Promise.allSettled([
+      prisma.socialScanRun.findMany({
+        orderBy: { scanDate: "desc" },
+        take: 10,
+        select: {
+          id: true, scanDate: true, status: true, tickersScanned: true,
+          tickersWithMentions: true, totalMentions: true, platformsUsed: true,
+          duration: true, errors: true, createdAt: true,
+        },
+      }),
       prisma.socialMention.findMany({
         where: mentionWhere,
         orderBy: [{ promotionScore: "desc" }, { createdAt: "desc" }],
         skip: (page - 1) * limit,
         take: limit,
         select: {
-          id: true,
-          ticker: true,
-          stockName: true,
-          platform: true,
-          source: true,
-          discoveredVia: true,
-          title: true,
-          content: true,
-          url: true,
-          author: true,
-          postDate: true,
-          engagement: true,
-          sentiment: true,
-          isPromotional: true,
-          promotionScore: true,
-          redFlags: true,
-          createdAt: true,
-          scanRun: {
-            select: { scanDate: true },
-          },
+          id: true, ticker: true, stockName: true, platform: true, source: true,
+          discoveredVia: true, title: true, content: true, url: true,
+          author: true, postDate: true, engagement: true, sentiment: true,
+          isPromotional: true, promotionScore: true, redFlags: true,
+          createdAt: true, scanRun: { select: { scanDate: true } },
         },
       }),
       prisma.socialMention.count({ where: mentionWhere }),
+      prisma.socialMention.aggregate({ _count: true, _avg: { promotionScore: true } }),
+      prisma.socialMention.count({ where: { isPromotional: true } }),
+      prisma.socialMention.groupBy({
+        by: ["ticker"], _count: true,
+        orderBy: { _count: { ticker: "desc" } }, take: 20,
+      }),
+      prisma.socialMention.groupBy({
+        by: ["platform"], _count: true, _avg: { promotionScore: true },
+      }),
     ]);
 
-    // Aggregate stats
-    const stats = await prisma.socialMention.aggregate({
-      _count: true,
-      _avg: { promotionScore: true },
+    const val = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
+      r.status === "fulfilled" ? r.value : fallback;
+
+    // Log any failures for debugging (table missing, etc.)
+    const labels = ["scanRuns", "mentions", "mentionCount", "stats", "promoCount", "tickers", "platforms"];
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        console.error(`Social scan query failed [${labels[i]}]:`, r.reason);
+      }
     });
 
-    const promotionalCount = await prisma.socialMention.count({
-      where: { isPromotional: true },
-    });
-
-    const uniqueTickers = await prisma.socialMention.groupBy({
-      by: ["ticker"],
-      _count: true,
-      orderBy: { _count: { ticker: "desc" } },
-      take: 20,
-    });
-
-    const platformBreakdown = await prisma.socialMention.groupBy({
-      by: ["platform"],
-      _count: true,
-      _avg: { promotionScore: true },
-    });
+    const scanRuns = val(results[0], [] as any[]);
+    const mentions = val(results[1], [] as any[]);
+    const totalMentions = val(results[2], 0 as number);
+    const statsAgg = val(results[3], { _count: 0, _avg: { promotionScore: null } } as any);
+    const promotionalCount = val(results[4], 0 as number);
+    const uniqueTickers = val(results[5], [] as any[]);
+    const platformBreakdown = val(results[6], [] as any[]);
 
     return NextResponse.json({
-      scanRuns: scanRuns.map(run => ({
+      scanRuns: scanRuns.map((run: any) => ({
         ...run,
         platformsUsed: run.platformsUsed ? JSON.parse(run.platformsUsed) : [],
         errors: run.errors ? JSON.parse(run.errors) : [],
       })),
-      mentions: mentions.map(m => ({
+      mentions: mentions.map((m: any) => ({
         ...m,
         engagement: m.engagement ? JSON.parse(m.engagement as string) : {},
         redFlags: m.redFlags ? JSON.parse(m.redFlags as string) : [],
       })),
       pagination: {
-        page,
-        limit,
-        total: totalMentions,
+        page, limit, total: totalMentions,
         totalPages: Math.ceil(totalMentions / limit),
       },
       stats: {
-        totalMentions: stats._count,
-        avgPromotionScore: Math.round(stats._avg.promotionScore || 0),
+        totalMentions: statsAgg._count || 0,
+        avgPromotionScore: Math.round(statsAgg._avg?.promotionScore || 0),
         promotionalCount,
-        uniqueTickers: uniqueTickers.map(t => ({
-          ticker: t.ticker,
-          count: t._count,
-        })),
-        platformBreakdown: platformBreakdown.map(p => ({
-          platform: p.platform,
-          count: p._count,
-          avgScore: Math.round(p._avg.promotionScore || 0),
+        uniqueTickers: uniqueTickers.map((t: any) => ({ ticker: t.ticker, count: t._count })),
+        platformBreakdown: platformBreakdown.map((p: any) => ({
+          platform: p.platform, count: p._count,
+          avgScore: Math.round(p._avg?.promotionScore || 0),
         })),
       },
     });
   } catch (error) {
     console.error("Social scan GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch social scan data" },
-      { status: 500 }
-    );
+    // Return empty state instead of 500 so the page still renders
+    return NextResponse.json({
+      scanRuns: [],
+      mentions: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      stats: {
+        totalMentions: 0, avgPromotionScore: 0, promotionalCount: 0,
+        uniqueTickers: [], platformBreakdown: [],
+      },
+    });
   }
 }
 
@@ -228,11 +212,12 @@ export async function POST(request: NextRequest) {
         ? "No high-risk tickers found in the latest daily scan. Run the enhanced daily pipeline first, or provide tickers manually."
         : `Scan complete: ${result.totalMentions} mentions found across ${result.tickersWithMentions} ticker(s).`,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Social scan POST error:", error);
-    return NextResponse.json(
-      { error: "Failed to run social scan" },
-      { status: 500 }
-    );
+    // Give specific error message if table doesn't exist
+    const msg = error?.message?.includes('does not exist')
+      ? "Database tables not set up. Run 'npx prisma db push' to create them."
+      : "Failed to run social scan";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
