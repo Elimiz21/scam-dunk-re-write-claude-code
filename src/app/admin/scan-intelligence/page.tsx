@@ -518,28 +518,42 @@ export default function ScanIntelligencePage() {
         </div>
 
         {/* ── Active Schemes ──────────────────────────────────────── */}
-        {data.activeSchemes.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
+        <div className="bg-card rounded-2xl border border-border p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-red-500" />
               <h3 className="text-sm font-medium font-display italic text-foreground">
                 Active Schemes
               </h3>
               <span className="text-xs text-muted-foreground">
                 {data.activeSchemes.length} tracked
+                {data.schemeDb && ` of ${data.schemeDb.totalSchemes} total`}
               </span>
             </div>
+            {data.schemeDb && (
+              <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                <span>{data.schemeDb.resolvedSchemes} resolved</span>
+              </div>
+            )}
+          </div>
+          {data.activeSchemes.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {data.activeSchemes.map((scheme) => (
                 <SchemeCard
                   key={scheme.schemeId}
                   scheme={scheme}
-                  onClick={() => router.push(`/admin/scan-intelligence/stock/${scheme.symbol}`)}
+                  onClick={() => router.push(`/admin/scan-intelligence/scheme/${scheme.schemeId}`)}
                 />
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Shield className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No active schemes detected</p>
+              <p className="text-xs mt-1">Schemes are tracked automatically when high-risk stocks show coordinated promotion patterns</p>
+            </div>
+          )}
+        </div>
 
         {/* ── Top Promoted Stocks ─────────────────────────────────── */}
         {data.topPromoted.length > 0 && (

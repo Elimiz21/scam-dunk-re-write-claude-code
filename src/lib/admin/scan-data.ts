@@ -222,6 +222,15 @@ export interface EnhancedStock {
   evaluatedAt: string;
 }
 
+export interface PromoterAccount {
+  platform: string;
+  identifier: string;
+  firstSeen: string;
+  lastSeen: string;
+  postCount: number;
+  confidence: "high" | "medium" | "low";
+}
+
 export interface SchemeRecord {
   schemeId: string;
   symbol: string;
@@ -241,9 +250,38 @@ export interface SchemeRecord {
   currentPrice: number;
   priceChangeFromDetection: number;
   priceChangeFromPeak: number;
+  volumeAtDetection?: number;
+  peakVolume?: number;
+  currentVolume?: number;
   promotionPlatforms: string[];
+  promoterAccounts: PromoterAccount[];
   signalsDetected: string[];
+  coordinationIndicators: string[];
   timeline: { date: string; event: string; category?: string; details?: string; significance?: string }[];
+  notes: string[];
+  investigationFlags: string[];
+}
+
+/**
+ * Generate a human-readable scheme name from its attributes.
+ */
+export function generateSchemeName(scheme: SchemeRecord): string {
+  const platformCount = scheme.promotionPlatforms.length;
+  const hasMultiPlatform = platformCount >= 3;
+  const hasDump = scheme.priceChangeFromPeak < -20;
+  const isPump = scheme.signalsDetected.some(s =>
+    ["SPIKE_7D", "SPIKE_THEN_DROP", "VOLUME_EXPLOSION"].includes(s)
+  );
+
+  let type = "Promotion";
+  if (hasDump) type = "Pump & Dump";
+  else if (isPump) type = "Suspected Pump";
+
+  let scope = "";
+  if (hasMultiPlatform) scope = "Multi-Platform ";
+  else if (platformCount === 1) scope = `${scheme.promotionPlatforms[0]} `;
+
+  return `${scheme.symbol} ${scope}${type}`;
 }
 
 export interface SchemeDatabase {

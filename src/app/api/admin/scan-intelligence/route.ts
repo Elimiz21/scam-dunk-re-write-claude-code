@@ -14,6 +14,7 @@ import {
   fetchSmallFile,
   fetchPartialArray,
   getHighRiskPath,
+  generateSchemeName,
   type DailyReport,
   type FmpSummary,
   type SchemeDatabase,
@@ -93,11 +94,16 @@ export async function GET(req: Request) {
         }
       : null;
 
-    // Extract active schemes
+    // Extract active schemes with generated names
     const activeSchemes = schemeDb
-      ? Object.values(schemeDb.schemes).filter(
-          (s) => s.status === "ONGOING" || s.status === "COOLING" || s.status === "NEW"
-        )
+      ? Object.values(schemeDb.schemes)
+          .filter((s) => s.status === "ONGOING" || s.status === "COOLING" || s.status === "NEW")
+          .map((s) => ({
+            ...s,
+            schemeName: generateSchemeName(s),
+            promoterAccounts: s.promoterAccounts || [],
+            coordinationIndicators: s.coordinationIndicators || [],
+          }))
       : [];
 
     // Compute social scan summary

@@ -1,12 +1,13 @@
 "use client";
 
-import { TrendingDown, TrendingUp, Clock, AlertTriangle, Shield, ExternalLink } from "lucide-react";
+import { TrendingDown, TrendingUp, Clock, Shield, Users } from "lucide-react";
 
 interface SchemeCardProps {
   scheme: {
     schemeId: string;
     symbol: string;
     name: string;
+    schemeName?: string;
     status: string;
     currentRiskScore: number;
     peakRiskScore: number;
@@ -19,6 +20,8 @@ interface SchemeCardProps {
     firstDetected: string;
     lastSeen: string;
     promotionPlatforms: string[];
+    promoterAccounts?: { platform: string; identifier: string; postCount: number; confidence: string }[];
+    coordinationIndicators?: string[];
     signalsDetected: string[];
     timeline: { date: string; event: string; significance?: string }[];
   };
@@ -37,31 +40,36 @@ export default function SchemeCard({ scheme, onClick }: SchemeCardProps) {
   const config = statusConfig[scheme.status] || statusConfig.ONGOING;
   const priceDown = scheme.priceChangeFromPeak < -5;
   const priceUp = scheme.priceChangeFromPeak > 5;
+  const promoters = scheme.promoterAccounts || [];
+  const coordination = scheme.coordinationIndicators || [];
 
   return (
     <button
       onClick={onClick}
       className={`w-full text-left rounded-xl border ${config.border} p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.01] bg-card`}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div>
+      {/* Header with scheme name */}
+      <div className="flex items-start justify-between mb-1">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold font-display text-foreground">{scheme.symbol}</span>
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${config.bg} ${config.text}`}>
               {config.label}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{scheme.name}</p>
+          {scheme.schemeName && (
+            <p className="text-[11px] font-semibold text-primary mt-0.5">{scheme.schemeName}</p>
+          )}
+          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{scheme.name}</p>
         </div>
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
           <div className="text-2xl font-bold tabular-nums text-foreground">{scheme.currentRiskScore}</div>
           <div className="text-[10px] text-muted-foreground">risk score</div>
         </div>
       </div>
 
       {/* Price journey */}
-      <div className="flex items-center gap-3 mb-3 text-xs">
+      <div className="flex items-center gap-3 mb-3 mt-3 text-xs">
         <div className="flex-1">
           <div className="text-muted-foreground">Detection</div>
           <div className="font-medium tabular-nums">${scheme.priceAtDetection.toFixed(2)}</div>
@@ -85,6 +93,22 @@ export default function SchemeCard({ scheme, onClick }: SchemeCardProps) {
         )}
       </div>
 
+      {/* Coordination indicators */}
+      {coordination.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {coordination.slice(0, 3).map((ind, i) => (
+            <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 line-clamp-1">
+              {ind}
+            </span>
+          ))}
+          {coordination.length > 3 && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+              +{coordination.length - 3} more
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Metadata row */}
       <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
@@ -95,13 +119,24 @@ export default function SchemeCard({ scheme, onClick }: SchemeCardProps) {
           <Shield className="h-3 w-3" />
           Promo: {scheme.currentPromotionScore}
         </span>
-        {scheme.promotionPlatforms.length > 0 && (
+        {promoters.length > 0 && (
           <span className="flex items-center gap-1">
-            {scheme.promotionPlatforms.slice(0, 3).join(", ")}
-            {scheme.promotionPlatforms.length > 3 && ` +${scheme.promotionPlatforms.length - 3}`}
+            <Users className="h-3 w-3" />
+            {promoters.length} promoter{promoters.length !== 1 ? "s" : ""}
           </span>
         )}
       </div>
+
+      {/* Platforms */}
+      {scheme.promotionPlatforms.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {scheme.promotionPlatforms.map((p, i) => (
+            <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 font-medium">
+              {p}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Mini timeline */}
       {scheme.timeline.length > 0 && (
