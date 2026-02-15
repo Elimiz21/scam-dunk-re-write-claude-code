@@ -16,7 +16,7 @@ import sys
 from typing import Optional, Dict, Any, List, Literal
 from datetime import datetime
 import logging
-import threading
+import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -63,19 +63,17 @@ async def verify_api_key(request: Request, call_next):
 
 # Pipeline will be initialized lazily
 pipeline = None
-pipeline_initializing = False
 
 # Startup event to log when app is ready
 @app.on_event("startup")
 async def startup_event():
-    import asyncio
     logger.info("=== ScamDunk AI API Starting ===")
     logger.info(f"Python version: {sys.version}")
     try:
         import resource
         mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
         logger.info(f"Memory usage at startup: {mem:.1f} MB")
-    except:
+    except Exception:
         pass
     logger.info("API ready to receive requests (models load on first analyze request)")
 
@@ -94,7 +92,7 @@ async def shutdown_event():
     logger.warning("=== ScamDunk AI API Shutting Down ===")
     logger.warning("Received shutdown signal")
 
-pipeline_lock = threading.Lock()
+pipeline_lock = asyncio.Lock()
 
 
 class AnalysisRequest(BaseModel):
@@ -166,29 +164,28 @@ class HealthResponse(BaseModel):
     version: str
 
 
-def get_pipeline():
+async def get_pipeline():
     """Get or initialize the pipeline (lazy loading)"""
-    global pipeline, pipeline_initializing
+    global pipeline
 
     if pipeline is not None:
         return pipeline
 
-    with pipeline_lock:
+    async with pipeline_lock:
         # Double-check after acquiring lock
         if pipeline is not None:
             return pipeline
 
-        if pipeline_initializing:
-            return None
-
-        pipeline_initializing = True
         logger.info("Initializing ScamDunk AI Pipeline (lazy load)...")
 
         try:
             from config import SEC_FLAGGED_TICKERS
             from pipeline import ScamDetectionPipeline
 
-            pipeline_instance = ScamDetectionPipeline(load_models=True)
+            loop = asyncio.get_running_loop()
+            pipeline_instance = await loop.run_in_executor(
+                None, lambda: ScamDetectionPipeline(load_models=True)
+            )
             logger.info("Pipeline initialized successfully")
             logger.info(f"  - Random Forest: {'Ready' if pipeline_instance.rf_available else 'Not loaded'}")
             logger.info(f"  - LSTM Model: {'Ready' if pipeline_instance.lstm_available else 'Not loaded'}")
@@ -196,10 +193,11 @@ def get_pipeline():
             # Train models if not available
             if not pipeline_instance.rf_available:
                 logger.info("Training Random Forest model...")
-                pipeline_instance.train_models(
-                    train_rf=True,
-                    train_lstm=False,
-                    save_models=True
+                await loop.run_in_executor(
+                    None,
+                    lambda: pipeline_instance.train_models(
+                        train_rf=True, train_lstm=False, save_models=True
+                    )
                 )
                 logger.info("RF training complete")
 
@@ -207,11 +205,12 @@ def get_pipeline():
             if pipeline_instance.rf_available and not pipeline_instance.lstm_available:
                 logger.info("Training LSTM model...")
                 try:
-                    pipeline_instance.train_models(
-                        train_rf=False,
-                        train_lstm=True,
-                        lstm_epochs=10,  # Reduced epochs for faster startup
-                        save_models=True
+                    await loop.run_in_executor(
+                        None,
+                        lambda: pipeline_instance.train_models(
+                            train_rf=False, train_lstm=True,
+                            lstm_epochs=10, save_models=True
+                        )
                     )
                     logger.info("LSTM training complete")
                 except Exception as e:
@@ -226,8 +225,6 @@ def get_pipeline():
             import traceback
             traceback.print_exc()
             return None
-        finally:
-            pipeline_initializing = False
 
 
 # Root endpoint - always works
@@ -264,7 +261,7 @@ async def analyze_asset(request: AnalysisRequest):
     """Run full hybrid AI analysis on an asset"""
 
     # Get or initialize pipeline
-    p = get_pipeline()
+    p = await get_pipeline()
 
     if p is None:
         raise HTTPException(
@@ -273,14 +270,18 @@ async def analyze_asset(request: AnalysisRequest):
         )
 
     try:
-        # Run the full pipeline analysis
-        assessment = p.analyze(
-            ticker=request.ticker,
-            asset_type=request.asset_type,
-            use_synthetic=not request.use_live_data,
-            is_scam_scenario=False,
-            news_flag=False,
-            sec_flagged_override=request.sec_flagged
+        # Run the full pipeline analysis in a thread pool to avoid blocking the event loop
+        loop = asyncio.get_running_loop()
+        assessment = await loop.run_in_executor(
+            None,
+            lambda: p.analyze(
+                ticker=request.ticker,
+                asset_type=request.asset_type,
+                use_synthetic=not request.use_live_data,
+                is_scam_scenario=False,
+                news_flag=False,
+                sec_flagged_override=request.sec_flagged
+            )
         )
 
         # Build signal details from key indicators
@@ -395,7 +396,7 @@ async def analyze_asset(request: AnalysisRequest):
         logger.error(f"Analysis failed for {request.ticker}: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal analysis error")
 
 
 @app.get("/sec-check/{ticker}")

@@ -12,10 +12,49 @@
  * - Rate Limits: 5 API requests per minute, 500 requests per day (free tier)
  */
 
+import { z } from "zod";
 import { MarketData, StockQuote, PriceHistory } from "./types";
 import { config } from "./config";
 import { logApiUsage } from "./admin/metrics";
 import { circuitBreakers, CircuitBreakerOpenError } from "./circuit-breaker";
+
+// Zod schemas for external API response validation
+const FMPProfileSchema = z.array(z.object({
+  companyName: z.string().optional(),
+  exchange: z.string().optional(),
+  price: z.number().optional(),
+  marketCap: z.number().optional(),
+  averageVolume: z.number().optional(),
+  volume: z.number().optional(),
+  sector: z.string().optional(),
+  industry: z.string().optional(),
+})).min(1);
+
+const FMPHistoricalSchema = z.array(z.object({
+  date: z.string(),
+  open: z.number(),
+  high: z.number(),
+  low: z.number(),
+  close: z.number(),
+  volume: z.number(),
+}));
+
+const AlphaVantageQuoteSchema = z.object({
+  "Global Quote": z.object({
+    "05. price": z.string(),
+    "06. volume": z.string(),
+  }),
+});
+
+const AlphaVantageTimeSeriesSchema = z.object({
+  "Time Series (Daily)": z.record(z.object({
+    "1. open": z.string(),
+    "2. high": z.string(),
+    "3. low": z.string(),
+    "4. close": z.string(),
+    "5. volume": z.string(),
+  })),
+});
 
 // Known OTC exchanges
 const OTC_EXCHANGES = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets", "OTHER_OTC"];
@@ -61,6 +100,9 @@ function cacheSet(key: string, value: { data: MarketData; timestamp: number }) {
 }
 
 // API base URLs
+// Note: FMP and Alpha Vantage require API keys as query parameters (no header auth support).
+// These calls are server-side only, so keys are not exposed to clients.
+// Risk is limited to server log exposure — ensure logs do not capture full request URLs.
 const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 const ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query";
 const COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3";
@@ -77,13 +119,19 @@ async function fetchFMPQuote(ticker: string): Promise<StockQuote | null> {
 
   try {
     const response = await fetch(url);
-    const data = await response.json();
+    if (!response.ok) {
+      console.error(`FMP quote API returned ${response.status}`);
+      return null;
+    }
+    const raw = await response.json();
 
-    if (!data || data.length === 0 || data["Error Message"]) {
+    const parsed = FMPProfileSchema.safeParse(raw);
+    if (!parsed.success) {
+      console.error("FMP quote response validation failed:", parsed.error.message);
       return null;
     }
 
-    const profile = data[0];
+    const profile = parsed.data[0];
     return {
       ticker: ticker.toUpperCase(),
       companyName: profile.companyName || ticker.toUpperCase(),
@@ -108,17 +156,23 @@ async function fetchFMPPriceHistory(ticker: string): Promise<PriceHistory[]> {
 
   try {
     const response = await fetch(url);
-    const data = await response.json();
+    if (!response.ok) {
+      console.error(`FMP history API returned ${response.status}`);
+      return [];
+    }
+    const raw = await response.json();
 
-    if (!data || data.length === 0 || data["Error Message"]) {
+    const parsed = FMPHistoricalSchema.safeParse(raw);
+    if (!parsed.success) {
+      console.error("FMP history response validation failed:", parsed.error.message);
       return [];
     }
 
     // FMP stable API returns data in descending order (newest first), we need ascending
-    const history: PriceHistory[] = data
-      .slice(0, 100) // Get last 100 days
-      .reverse() // Convert to ascending order
-      .map((day: any) => ({
+    const history: PriceHistory[] = parsed.data
+      .slice(0, 100)
+      .reverse()
+      .map((day) => ({
         date: day.date,
         open: day.open,
         high: day.high,
@@ -150,13 +204,19 @@ async function fetchFMPProfile(ticker: string): Promise<{
 
   try {
     const response = await fetch(url);
-    const data = await response.json();
+    if (!response.ok) {
+      console.error(`FMP profile API returned ${response.status}`);
+      return null;
+    }
+    const raw = await response.json();
 
-    if (!data || data.length === 0 || data["Error Message"]) {
+    const parsed = FMPProfileSchema.safeParse(raw);
+    if (!parsed.success) {
+      console.error("FMP profile response validation failed:", parsed.error.message);
       return null;
     }
 
-    const profile = data[0];
+    const profile = parsed.data[0];
     return {
       companyName: profile.companyName || ticker,
       exchange: profile.exchange || "Unknown",
@@ -182,29 +242,35 @@ async function fetchQuote(ticker: string): Promise<StockQuote | null> {
 
   try {
     const response = await fetch(url);
-    const data = await response.json();
+    if (!response.ok) {
+      console.error(`Alpha Vantage quote API returned ${response.status}`);
+      return null;
+    }
+    const raw = await response.json();
 
     // Check for API errors
-    if (data["Error Message"] || data["Note"]) {
-      console.error("Alpha Vantage API error:", data["Error Message"] || data["Note"]);
+    if (raw["Error Message"] || raw["Note"]) {
+      console.error("Alpha Vantage API error:", raw["Error Message"] || raw["Note"]);
       return null;
     }
 
-    const quote = data["Global Quote"];
-    if (!quote || !quote["05. price"]) {
+    const parsed = AlphaVantageQuoteSchema.safeParse(raw);
+    if (!parsed.success) {
+      console.error("Alpha Vantage quote response validation failed:", parsed.error.message);
       return null;
     }
 
+    const quote = parsed.data["Global Quote"];
     const lastPrice = parseFloat(quote["05. price"]);
     const volume = parseInt(quote["06. volume"], 10);
 
     return {
       ticker: ticker.toUpperCase(),
-      companyName: ticker.toUpperCase(), // Alpha Vantage GLOBAL_QUOTE doesn't return company name
-      exchange: "Unknown", // Will be updated from OVERVIEW endpoint
+      companyName: ticker.toUpperCase(),
+      exchange: "Unknown",
       lastPrice,
-      marketCap: 0, // Will be updated from OVERVIEW endpoint
-      avgVolume30d: volume, // Using current volume as approximation
+      marketCap: 0,
+      avgVolume30d: volume,
       avgDollarVolume30d: volume * lastPrice,
     };
   } catch (error) {
@@ -225,6 +291,10 @@ async function fetchCompanyOverview(ticker: string): Promise<{
 
   try {
     const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Alpha Vantage overview API returned ${response.status}`);
+      return null;
+    }
     const data = await response.json();
 
     if (data["Error Message"] || !data["Name"]) {
@@ -232,8 +302,8 @@ async function fetchCompanyOverview(ticker: string): Promise<{
     }
 
     return {
-      companyName: data["Name"] || ticker,
-      exchange: data["Exchange"] || "Unknown",
+      companyName: String(data["Name"] || ticker),
+      exchange: String(data["Exchange"] || "Unknown"),
       marketCap: parseInt(data["MarketCapitalization"] || "0", 10),
     };
   } catch (error) {
@@ -250,20 +320,26 @@ async function fetchPriceHistory(ticker: string): Promise<PriceHistory[]> {
 
   try {
     const response = await fetch(url);
-    const data = await response.json();
+    if (!response.ok) {
+      console.error(`Alpha Vantage history API returned ${response.status}`);
+      return [];
+    }
+    const raw = await response.json();
 
-    if (data["Error Message"] || data["Note"]) {
-      console.error("Alpha Vantage API error:", data["Error Message"] || data["Note"]);
+    if (raw["Error Message"] || raw["Note"]) {
+      console.error("Alpha Vantage API error:", raw["Error Message"] || raw["Note"]);
       return [];
     }
 
-    const timeSeries = data["Time Series (Daily)"];
-    if (!timeSeries) {
+    const parsed = AlphaVantageTimeSeriesSchema.safeParse(raw);
+    if (!parsed.success) {
+      console.error("Alpha Vantage history response validation failed:", parsed.error.message);
       return [];
     }
 
+    const timeSeries = parsed.data["Time Series (Daily)"];
     const history: PriceHistory[] = [];
-    const dates = Object.keys(timeSeries).sort(); // Sort dates ascending
+    const dates = Object.keys(timeSeries).sort();
 
     for (const date of dates) {
       const dayData = timeSeries[date];
@@ -776,6 +852,7 @@ async function checkSECFeed(ticker: string): Promise<boolean> {
     const response = await fetch(
       "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom"
     );
+    if (!response.ok) return false;
     const text = await response.text();
     return text.toUpperCase().includes(ticker);
   } catch {
