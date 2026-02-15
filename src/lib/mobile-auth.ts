@@ -14,7 +14,12 @@ const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
 if (!JWT_SECRET) {
   throw new Error("FATAL: JWT_SECRET or NEXTAUTH_SECRET must be set");
 }
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET + "_REFRESH";
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || (() => {
+  if (process.env.NODE_ENV === "production") {
+    console.warn("WARNING: JWT_REFRESH_SECRET not set. Set a unique secret in production.");
+  }
+  return JWT_SECRET + "_REFRESH";
+})();
 const JWT_EXPIRY = "7d";
 const JWT_REFRESH_EXPIRY = "30d";
 

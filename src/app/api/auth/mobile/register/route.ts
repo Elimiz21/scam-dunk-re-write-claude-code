@@ -9,10 +9,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
-import {
-  generateAccessToken,
-  generateRefreshToken,
-} from "@/lib/mobile-auth";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { createEmailVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
@@ -99,12 +95,10 @@ export async function POST(request: NextRequest) {
       console.error("Failed to send verification email:", emailError);
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user.id, user.email);
-    const refreshToken = generateRefreshToken(user.id, user.email);
-
-    // Return user data and tokens
+    // Do not issue tokens until email is verified (enforced at login)
     return NextResponse.json({
+      success: true,
+      message: "Account created. Please check your email to verify your account before logging in.",
       user: {
         id: user.id,
         email: user.email,
@@ -112,8 +106,6 @@ export async function POST(request: NextRequest) {
         plan: user.plan,
         emailVerified: false,
       },
-      token: accessToken,
-      refreshToken,
     });
   } catch (error) {
     console.error("Mobile registration error:", error);
