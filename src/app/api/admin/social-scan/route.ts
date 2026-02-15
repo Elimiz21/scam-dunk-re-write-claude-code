@@ -1,12 +1,18 @@
 /**
  * Social Scan API - List scans and trigger new ones
+ *
+ * GET  - Fetch scan history, mentions, and stats
+ * POST - Trigger a real social media scan using high-risk stocks from the latest daily scan
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import { runSocialScanAndStore } from "@/lib/social-scan/orchestrate";
+import { ScanTarget } from "@/lib/social-scan/types";
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes — scanning takes time
 
 // GET - Fetch social scan runs and mentions
 export async function GET(request: NextRequest) {
@@ -151,7 +157,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Trigger a new social scan (stores results in DB)
+// POST - Trigger a new social scan
 export async function POST(request: NextRequest) {
   try {
     const session = await getAdminSession();
@@ -168,6 +174,18 @@ export async function POST(request: NextRequest) {
 
     const scanDate = date || new Date().toISOString().split("T")[0];
 
+    // Build manual ticker list if provided
+    let manualTickers: ScanTarget[] | undefined;
+    if (tickers && Array.isArray(tickers) && tickers.length > 0) {
+      manualTickers = tickers.map((t: string) => ({
+        ticker: t.trim().toUpperCase(),
+        name: '',
+        riskScore: 0,
+        riskLevel: 'HIGH' as const,
+        signals: [],
+      }));
+    }
+
     // Create scan run record
     const scanRun = await prisma.socialScanRun.create({
       data: {
@@ -183,23 +201,37 @@ export async function POST(request: NextRequest) {
         adminUserId: session.id,
         action: "SOCIAL_SCAN_TRIGGERED",
         resource: scanRun.id,
-        details: JSON.stringify({ tickers, date: scanDate }),
+        details: JSON.stringify({
+          tickers: manualTickers?.map(t => t.ticker) || 'auto-from-daily-scan',
+          date: scanDate,
+        }),
       },
     });
 
-    // Note: The actual scan would be triggered as a background process.
-    // For now, we return the scan run ID so the frontend can poll for results.
-    // In production, this would call the scan orchestrator via a queue or subprocess.
+    // Run the actual scan (this takes time — up to a few minutes)
+    const result = await runSocialScanAndStore({
+      scanRunId: scanRun.id,
+      triggeredBy: session.id,
+      manualTickers,
+    });
 
     return NextResponse.json({
       scanRunId: scanRun.id,
-      status: "RUNNING",
-      message: "Social scan triggered. Poll for results.",
+      status: result.status,
+      tickersScanned: result.tickersScanned,
+      tickersWithMentions: result.tickersWithMentions,
+      totalMentions: result.totalMentions,
+      platformsUsed: result.platformsUsed,
+      errors: result.errors,
+      duration: result.duration,
+      message: result.tickersScanned === 0
+        ? "No high-risk tickers found in the latest daily scan. Run the enhanced daily pipeline first, or provide tickers manually."
+        : `Scan complete: ${result.totalMentions} mentions found across ${result.tickersWithMentions} ticker(s).`,
     });
   } catch (error) {
     console.error("Social scan POST error:", error);
     return NextResponse.json(
-      { error: "Failed to trigger social scan" },
+      { error: "Failed to run social scan" },
       { status: 500 }
     );
   }
