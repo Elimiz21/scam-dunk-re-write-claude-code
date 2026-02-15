@@ -26,8 +26,8 @@ const contactFormSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit: strict for contact form (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    // Rate limit: contact form (3 requests per hour to prevent email relay abuse)
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "contact");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }

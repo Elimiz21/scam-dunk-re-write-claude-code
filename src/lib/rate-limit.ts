@@ -65,6 +65,11 @@ export const rateLimitConfigs = {
     requests: 10,
     window: "1 m" as const, // 10 requests per minute
   },
+  // Contact: Contact form submissions (prevent email relay abuse)
+  contact: {
+    requests: 3,
+    window: "1 h" as const, // 3 requests per hour
+  },
 };
 
 type RateLimitConfig = keyof typeof rateLimitConfigs;
@@ -121,28 +126,39 @@ const rateLimiters: Record<RateLimitConfig, Ratelimit | null> = {
         prefix: "ratelimit:heavy",
       })
     : null,
+  contact: redis
+    ? new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(
+          rateLimitConfigs.contact.requests,
+          rateLimitConfigs.contact.window
+        ),
+        prefix: "ratelimit:contact",
+      })
+    : null,
 };
 
 /**
  * Get client identifier from request
- * Uses IP address, with fallback to forwarded headers
+ * Prioritizes Vercel's trusted x-real-ip header to prevent spoofing via x-forwarded-for
  */
 export function getClientIdentifier(request: NextRequest): string {
-  // Try various headers that might contain the real IP
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
-  }
-
+  // Prefer x-real-ip (set by Vercel's proxy, not spoofable by clients)
   const realIp = request.headers.get("x-real-ip");
   if (realIp) {
     return realIp;
   }
 
-  // Vercel-specific header
+  // Vercel-specific forwarded header (also set by the platform)
   const vercelIp = request.headers.get("x-vercel-forwarded-for");
   if (vercelIp) {
     return vercelIp.split(",")[0].trim();
+  }
+
+  // x-forwarded-for as last resort (can be spoofed but better than nothing)
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0].trim();
   }
 
   // Fallback to localhost for development
