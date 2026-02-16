@@ -69,7 +69,8 @@ function LoginForm() {
           setError("Invalid email or password");
         } else if (result.error === "Configuration" || result.error.includes("Configuration")) {
           // Server configuration error - database/environment issue
-          setError("Service temporarily unavailable. Please try again later.");
+          console.error("[LOGIN] Configuration/database error detected. Check Vercel logs for DATABASE_URL or NEXTAUTH_SECRET issues. Error:", result.error);
+          setError("Unable to connect to the database. The service may be temporarily down — please try again in a minute. If this persists, contact support.");
         } else {
           // Log unexpected errors for debugging
           console.error("Login error:", result.error);
