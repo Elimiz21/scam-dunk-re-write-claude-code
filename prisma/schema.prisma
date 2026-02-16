@@ -888,6 +888,18 @@ model BrowserEvidence {
   @@index([author])
 }
 
+model RateLimitEntry {
+  id         String   @id @default(cuid())
+  identifier String
+  tier       String
+  count      Int      @default(1)
+  window     DateTime
+  expiresAt  DateTime
+
+  @@unique([identifier, tier])
+  @@index([expiresAt])
+}
+
 model BrowserPlatformConfig {
   id                  String    @id @default(cuid())
   platform            String    @unique // discord, reddit, twitter, instagram, facebook, tiktok

@@ -1,39 +1,14 @@
 /**
  * Rate Limiting Module
  *
- * Provides rate limiting for API routes using Upstash Redis.
- * Falls back to in-memory rate limiting if Redis is not configured.
- *
- * Required environment variables for Redis:
- * - UPSTASH_REDIS_REST_URL
- * - UPSTASH_REDIS_REST_TOKEN
+ * Provides rate limiting for API routes using PostgreSQL via Prisma.
+ * Falls back to in-memory rate limiting if the database query fails.
  */
 
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { prisma } from "./db";
 import { NextRequest, NextResponse } from "next/server";
 
-// Check if Upstash Redis is configured
-const isRedisConfigured = Boolean(
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-);
-
-const isProduction = process.env.NODE_ENV === "production";
-if (isProduction && !isRedisConfigured) {
-  throw new Error(
-    "FATAL: Redis (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN) must be configured in production for rate limiting"
-  );
-}
-
-// Initialize Redis client if configured
-const redis = isRedisConfigured
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-  : null;
-
-// In-memory fallback for development/testing
+// In-memory fallback for when Prisma queries fail
 const inMemoryStore = new Map<string, { count: number; resetTime: number }>();
 
 /**
@@ -44,99 +19,41 @@ export const rateLimitConfigs = {
   strict: {
     requests: 5,
     window: "1 m" as const, // 5 requests per minute
+    windowMs: 60 * 1000,
   },
   // Auth: Email verification, resend verification
   auth: {
     requests: 10,
     window: "1 m" as const, // 10 requests per minute
+    windowMs: 60 * 1000,
   },
   // Standard: Regular API endpoints
   standard: {
     requests: 30,
     window: "1 m" as const, // 30 requests per minute
+    windowMs: 60 * 1000,
   },
   // Relaxed: Read-only endpoints, health checks
   relaxed: {
     requests: 100,
     window: "1 m" as const, // 100 requests per minute
+    windowMs: 60 * 1000,
   },
   // Heavy: CPU-intensive operations like scans
   heavy: {
     requests: 10,
     window: "1 m" as const, // 10 requests per minute
+    windowMs: 60 * 1000,
   },
   // Contact: Contact form submissions (prevent email relay abuse)
   contact: {
     requests: 3,
     window: "1 h" as const, // 3 requests per hour
+    windowMs: 60 * 60 * 1000,
   },
 };
 
 type RateLimitConfig = keyof typeof rateLimitConfigs;
-
-// Create rate limiters for each config
-const rateLimiters: Record<RateLimitConfig, Ratelimit | null> = {
-  strict: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(
-          rateLimitConfigs.strict.requests,
-          rateLimitConfigs.strict.window
-        ),
-        prefix: "ratelimit:strict",
-      })
-    : null,
-  auth: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(
-          rateLimitConfigs.auth.requests,
-          rateLimitConfigs.auth.window
-        ),
-        prefix: "ratelimit:auth",
-      })
-    : null,
-  standard: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(
-          rateLimitConfigs.standard.requests,
-          rateLimitConfigs.standard.window
-        ),
-        prefix: "ratelimit:standard",
-      })
-    : null,
-  relaxed: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(
-          rateLimitConfigs.relaxed.requests,
-          rateLimitConfigs.relaxed.window
-        ),
-        prefix: "ratelimit:relaxed",
-      })
-    : null,
-  heavy: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(
-          rateLimitConfigs.heavy.requests,
-          rateLimitConfigs.heavy.window
-        ),
-        prefix: "ratelimit:heavy",
-      })
-    : null,
-  contact: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(
-          rateLimitConfigs.contact.requests,
-          rateLimitConfigs.contact.window
-        ),
-        prefix: "ratelimit:contact",
-      })
-    : null,
-};
 
 /**
  * Get client identifier from request
@@ -166,15 +83,76 @@ export function getClientIdentifier(request: NextRequest): string {
 }
 
 /**
+ * Prisma-based rate limiting using the RateLimitEntry table
+ */
+async function prismaRateLimit(
+  identifier: string,
+  config: RateLimitConfig
+): Promise<{ success: boolean; remaining: number; reset: number }> {
+  const configValues = rateLimitConfigs[config];
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - configValues.windowMs);
+  const windowEnd = new Date(now.getTime() + configValues.windowMs);
+
+  const entry = await prisma.rateLimitEntry.findUnique({
+    where: { identifier_tier: { identifier, tier: config } },
+  });
+
+  // No entry or window has expired — start a new window
+  if (!entry || entry.window < windowStart) {
+    await prisma.rateLimitEntry.upsert({
+      where: { identifier_tier: { identifier, tier: config } },
+      create: {
+        identifier,
+        tier: config,
+        count: 1,
+        window: now,
+        expiresAt: windowEnd,
+      },
+      update: {
+        count: 1,
+        window: now,
+        expiresAt: windowEnd,
+      },
+    });
+    return {
+      success: true,
+      remaining: configValues.requests - 1,
+      reset: windowEnd.getTime(),
+    };
+  }
+
+  // Window still active and limit reached
+  if (entry.count >= configValues.requests) {
+    return {
+      success: false,
+      remaining: 0,
+      reset: entry.expiresAt.getTime(),
+    };
+  }
+
+  // Increment count within the current window
+  const updated = await prisma.rateLimitEntry.update({
+    where: { identifier_tier: { identifier, tier: config } },
+    data: { count: { increment: 1 } },
+  });
+
+  return {
+    success: true,
+    remaining: configValues.requests - updated.count,
+    reset: entry.expiresAt.getTime(),
+  };
+}
+
+/**
  * In-memory rate limiting fallback
- * Used when Redis is not configured
+ * Used when the Prisma query fails
  */
 function inMemoryRateLimit(
   identifier: string,
   config: RateLimitConfig
 ): { success: boolean; remaining: number; reset: number } {
   const configValues = rateLimitConfigs[config];
-  const windowMs = 60 * 1000; // 1 minute in milliseconds
   const now = Date.now();
   const key = `${config}:${identifier}`;
 
@@ -184,12 +162,12 @@ function inMemoryRateLimit(
     // Create new entry
     inMemoryStore.set(key, {
       count: 1,
-      resetTime: now + windowMs,
+      resetTime: now + configValues.windowMs,
     });
     return {
       success: true,
       remaining: configValues.requests - 1,
-      reset: now + windowMs,
+      reset: now + configValues.windowMs,
     };
   }
 
@@ -222,6 +200,8 @@ setInterval(() => {
 /**
  * Rate limit a request
  *
+ * Tries PostgreSQL (via Prisma) first, falls back to in-memory on error.
+ *
  * @param request - The incoming request
  * @param config - Rate limit configuration to use
  * @returns Rate limit result with success status and headers
@@ -236,16 +216,13 @@ export async function rateLimit(
   headers: Record<string, string>;
 }> {
   const identifier = getClientIdentifier(request);
-  const limiter = rateLimiters[config];
 
   let result: { success: boolean; remaining: number; reset: number };
 
-  if (limiter) {
-    // Use Redis-based rate limiting
-    const { success, remaining, reset } = await limiter.limit(identifier);
-    result = { success, remaining, reset };
-  } else {
-    // Use in-memory fallback
+  try {
+    result = await prismaRateLimit(identifier, config);
+  } catch (error) {
+    console.error("Prisma rate limit error, falling back to in-memory:", error);
     result = inMemoryRateLimit(identifier, config);
   }
 
@@ -312,8 +289,8 @@ export function withRateLimit<T extends NextRequest>(
 }
 
 /**
- * Check if rate limiting is using Redis (production) or in-memory (development)
+ * Check if rate limiting is using a persistent store (PostgreSQL)
  */
 export function isUsingRedis(): boolean {
-  return isRedisConfigured;
+  return true;
 }

@@ -39,8 +39,7 @@ export async function GET(request: Request) {
       NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
       AUTH_SECRET: !!process.env.AUTH_SECRET,
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || "(not set)",
-      UPSTASH_REDIS_REST_URL: !!process.env.UPSTASH_REDIS_REST_URL,
-      UPSTASH_REDIS_REST_TOKEN: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+      RATE_LIMIT: "PostgreSQL (via Prisma)",
     };
   }
 
