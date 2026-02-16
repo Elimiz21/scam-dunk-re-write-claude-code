@@ -51,10 +51,11 @@ async function runRegularStocksScan(): Promise<void> {
     console.log(`Total high-risk stocks: ${highRiskStocks.length}`);
     console.log(`Regular stocks (excluding warrants/rights): ${regularStocks.length}\n`);
 
-    // Sort by score and take top 20 for scanning
+    // Sort by score and scan all regular stocks (no artificial limit)
+    const maxStocks = process.env.SOCIAL_SCAN_LIMIT ? parseInt(process.env.SOCIAL_SCAN_LIMIT, 10) : regularStocks.length;
     const stocksToScan = regularStocks
         .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 20);
+        .slice(0, maxStocks);
 
     console.log(`Scanning top ${stocksToScan.length} regular high-risk stocks:\n`);
     stocksToScan.forEach((s, i) => {
@@ -183,7 +184,7 @@ async function runRegularStocksScan(): Promise<void> {
 ## Methodology
 - Excluded warrants (W, WS, WT), rights (R), and units (U)
 - Focused on regular common stocks more likely to be promoted
-- Scanned top 20 highest-risk stocks
+- Scanned all regular high-risk stocks (no limit)
 
 ${promotedStocks.length > 0 ? `
 ## Stocks with Promotion Evidence
