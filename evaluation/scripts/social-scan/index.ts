@@ -160,10 +160,10 @@ function aggregateResults(
       .slice(0, 10);
 
     // Determine platforms with mentions
-    const platformsWithMentions = new Set(uniqueMentions.map(m => m.platform));
+    const platformsWithMentions = Array.from(new Set(uniqueMentions.map(m => m.platform)));
 
     // Risk level
-    const highRiskPlatforms = [...platformsWithMentions].filter(p => {
+    const highRiskPlatforms = platformsWithMentions.filter(p => {
       const platformMentions = uniqueMentions.filter(m => m.platform === p);
       const avgScore = platformMentions.reduce((s, m) => s + m.promotionScore, 0) / platformMentions.length;
       return avgScore >= 40;
@@ -177,14 +177,15 @@ function aggregateResults(
     if (uniqueMentions.length === 0) {
       summary = `No social media mentions found for ${target.ticker}.`;
     } else if (overallPromotionScore >= 50) {
-      summary = `HIGH promotional activity for ${target.ticker}: ${uniqueMentions.length} mentions across ${platformsWithMentions.size} platform(s) (${[...platformsWithMentions].join(', ')}). Average promotion score: ${overallPromotionScore}/100.`;
+      summary = `HIGH promotional activity for ${target.ticker}: ${uniqueMentions.length} mentions across ${platformsWithMentions.length} platform(s) (${platformsWithMentions.join(', ')}). Average promotion score: ${overallPromotionScore}/100.`;
     } else if (uniqueMentions.length > 0) {
-      summary = `${uniqueMentions.length} mention(s) found for ${target.ticker} on ${[...platformsWithMentions].join(', ')}. Promotion score: ${overallPromotionScore}/100.`;
+      summary = `${uniqueMentions.length} mention(s) found for ${target.ticker} on ${platformsWithMentions.join(', ')}. Promotion score: ${overallPromotionScore}/100.`;
     }
 
     // Group mentions by platform for the platforms array
     const platformBreakdown: PlatformScanResult[] = [];
-    for (const platformName of platformsWithMentions) {
+    for (let pi = 0; pi < platformsWithMentions.length; pi++) {
+      const platformName = platformsWithMentions[pi];
       const pMentions = uniqueMentions.filter(m => m.platform === platformName);
       const pAvg = pMentions.reduce((s, m) => s + m.promotionScore, 0) / pMentions.length;
       platformBreakdown.push({

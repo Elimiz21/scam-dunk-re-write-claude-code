@@ -18,12 +18,38 @@
 
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import * as fs from 'fs';
 dotenv.config({ path: path.join(__dirname, '..', '..', '.env.local') });
 
 import { execSync } from 'child_process';
 
 // API Keys
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
+
+// YouTube quota tracking: 10,000 units/day, each search = 100 units = max 100 searches
+const YOUTUBE_QUOTA_FILE = path.join(__dirname, '..', '.youtube-quota.json');
+const YOUTUBE_MAX_DAILY_SEARCHES = 80; // Reserve 20 for manual testing
+
+function getYouTubeQuotaUsed(): { date: string; searches: number } {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        if (fs.existsSync(YOUTUBE_QUOTA_FILE)) {
+            const data = JSON.parse(fs.readFileSync(YOUTUBE_QUOTA_FILE, 'utf-8'));
+            if (data.date === today) return data;
+        }
+        return { date: today, searches: 0 };
+    } catch {
+        return { date: new Date().toISOString().split('T')[0], searches: 0 };
+    }
+}
+
+function recordYouTubeSearch(): void {
+    const quota = getYouTubeQuotaUsed();
+    quota.searches++;
+    try {
+        fs.writeFileSync(YOUTUBE_QUOTA_FILE, JSON.stringify(quota));
+    } catch { /* best effort */ }
+}
 
 // Types
 export interface RealSocialMention {
@@ -103,8 +129,137 @@ function sleep(ms: number): Promise<void> {
 
 // ==========================================
 // REDDIT SCANNER (FREE - Public JSON API)
-// Rate limit: 100 requests/min with OAuth, 10/min without
+// Strategy: Search globally + scan key promotion subreddits directly
+// Rate limit: ~10 requests/min unauthenticated, so we throttle to 6s between
 // ==========================================
+
+// Stock promotion subreddits (red flags if posted here)
+const PROMOTION_SUBREDDITS = new Set([
+    'wallstreetbets', 'pennystocks', 'shortsqueeze', 'robinhoodpennystocks',
+    'smallstreetbets', 'weedstocks', 'spacs', 'squeezeplay', 'daytrading',
+    'stockmarket', 'stocks', 'investing', 'options', 'microcap',
+    'biotechplays', 'otcstocks'
+]);
+
+// Promotional patterns - tiered by severity
+const REDDIT_PROMO_TIER1 = [ // Strong promotion signals (+15 each)
+    'next gme', 'next amc', '🚀', 'to the moon', 'short squeeze', 'gamma squeeze',
+    '10x', '100x', '1000x', 'guaranteed', 'easy money', 'free money',
+    'about to explode', 'sleeping giant', 'going parabolic'
+];
+const REDDIT_PROMO_TIER2 = [ // Moderate promotion signals (+8 each)
+    'moon', 'rocket', 'squeeze', 'hidden gem', 'undervalued', 'load up',
+    'buy now', 'yolo', 'huge potential', 'massive gains', 'must buy',
+    'trust me bro', 'accumulate', 'before it explodes'
+];
+const REDDIT_PROMO_TIER3 = [ // Mild bullish signals (+3 each)
+    'not financial advice', 'nfa', 'dyor', 'breakout', 'breaking out'
+];
+
+function tryParseRedditResponse(response: string | null, label: string): any | null {
+    if (!response) {
+        console.log(`      [Reddit] ${label}: no response (timeout or connection failure)`);
+        return null;
+    }
+    if (response.startsWith('<') || response.includes('<!DOCTYPE')) {
+        console.log(`      [Reddit] ${label}: got HTML instead of JSON (blocked or redirected to login)`);
+        return null;
+    }
+    try {
+        const data = JSON.parse(response);
+        if (data.error) {
+            console.log(`      [Reddit] ${label}: API error ${data.error} - ${data.message || ''}`);
+            return null;
+        }
+        return data;
+    } catch {
+        console.log(`      [Reddit] ${label}: failed to parse JSON (response starts with: ${response.substring(0, 80)})`);
+        return null;
+    }
+}
+
+function scoreRedditPost(combinedText: string, subreddit: string, postData: any): { promotionScore: number; redFlags: string[] } {
+    let promotionScore = 0;
+    const redFlags: string[] = [];
+
+    // Red flag: Posted in known promotion subreddit
+    if (PROMOTION_SUBREDDITS.has(subreddit)) {
+        promotionScore += 20;
+        redFlags.push(`Posted in r/${subreddit}`);
+    }
+
+    // Tiered promotional language detection
+    for (const pattern of REDDIT_PROMO_TIER1) {
+        if (combinedText.includes(pattern)) {
+            promotionScore += 15;
+            if (redFlags.length < 5) redFlags.push(`Strong promo: "${pattern}"`);
+        }
+    }
+    for (const pattern of REDDIT_PROMO_TIER2) {
+        if (combinedText.includes(pattern)) {
+            promotionScore += 8;
+            if (redFlags.length < 5) redFlags.push(`Moderate promo: "${pattern}"`);
+        }
+    }
+    for (const pattern of REDDIT_PROMO_TIER3) {
+        if (combinedText.includes(pattern)) {
+            promotionScore += 3;
+            if (redFlags.length < 5) redFlags.push(`Mild promo: "${pattern}"`);
+        }
+    }
+
+    // Red flag: New account (if available)
+    const accountAgeSeconds = postData.author_fullname_created_utc || postData.author_created_utc;
+    if (accountAgeSeconds) {
+        const accountAgeDays = (Date.now() / 1000 - accountAgeSeconds) / (60 * 60 * 24);
+        if (accountAgeDays < 90) {
+            promotionScore += 15;
+            redFlags.push('New account (<90 days)');
+        }
+    }
+
+    // Red flag: High engagement on suspicious post
+    if (postData.score > 100 && promotionScore > 20) {
+        promotionScore += 20;
+        redFlags.push('High engagement on promotional post');
+    }
+
+    return { promotionScore: Math.min(promotionScore, 100), redFlags };
+}
+
+function parseRedditPostToMention(postData: any, symbol: string): RealSocialMention | null {
+    const subreddit = (postData.subreddit || '').toLowerCase();
+    const title = postData.title || '';
+    const selftext = postData.selftext || '';
+    const combinedText = (title + ' ' + selftext).toLowerCase();
+
+    // Check if symbol is actually mentioned (not just a false positive)
+    const symbolLower = symbol.toLowerCase();
+    if (!combinedText.includes(symbolLower) && !combinedText.includes('$' + symbolLower)) {
+        return null;
+    }
+
+    const { promotionScore, redFlags } = scoreRedditPost(combinedText, subreddit, postData);
+
+    return {
+        platform: 'Reddit',
+        source: `r/${postData.subreddit}`,
+        title,
+        content: (selftext || title).substring(0, 300),
+        url: `https://reddit.com${postData.permalink}`,
+        author: postData.author || 'unknown',
+        date: new Date(postData.created_utc * 1000).toISOString(),
+        engagement: {
+            upvotes: postData.score,
+            comments: postData.num_comments
+        },
+        sentiment: promotionScore > 30 ? 'bullish' : 'neutral',
+        isPromotional: promotionScore >= 30,
+        promotionScore,
+        redFlags
+    };
+}
+
 async function scanReddit(symbol: string, name: string): Promise<PlatformScanResult> {
     const result: PlatformScanResult = {
         platform: 'Reddit',
@@ -116,108 +271,57 @@ async function scanReddit(symbol: string, name: string): Promise<PlatformScanRes
         promotionRisk: 'low'
     };
 
-    try {
-        // Search Reddit for the stock symbol
-        const searchUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(symbol)}&sort=new&t=week&limit=25`;
-        const response = curlFetch(searchUrl);
+    const seenUrls = new Set<string>();
 
-        if (!response) {
-            result.error = 'Failed to fetch from Reddit';
-            return result;
-        }
-
-        let data;
-        try {
-            data = JSON.parse(response);
-        } catch (e) {
-            result.error = 'Invalid JSON response from Reddit';
-            return result;
-        }
-
-        const posts = data?.data?.children || [];
-
-        // Stock promotion subreddits (red flags if posted here)
-        const promotionSubreddits = new Set([
-            'wallstreetbets', 'pennystocks', 'shortsqueeze', 'robinhoodpennystocks',
-            'smallstreetbets', 'weedstocks', 'spacs', 'squeezeplay', 'daytrading',
-            'stockmarket', 'stocks', 'investing', 'options'
-        ]);
-
-        // Promotional patterns to look for
-        const promotionalPatterns = [
-            'next gme', 'next amc', 'moon', 'rocket', '🚀', 'to the moon',
-            'squeeze', 'short squeeze', 'gamma squeeze', '10x', '100x', '1000x',
-            'guaranteed', 'easy money', 'free money', 'buy now', 'load up', 'yolo',
-            'undervalued', 'hidden gem', 'sleeping giant', 'about to explode',
-            'trust me bro', 'not financial advice', 'nfa', 'dyor'
-        ];
-
-        for (const post of posts) {
-            const postData = post.data;
-            const subreddit = (postData.subreddit || '').toLowerCase();
-            const title = postData.title || '';
-            const selftext = postData.selftext || '';
-            const combinedText = (title + ' ' + selftext).toLowerCase();
-
-            // Check if symbol is actually mentioned (not just a false positive)
-            const symbolMentioned = combinedText.includes(symbol.toLowerCase()) ||
-                combinedText.includes('$' + symbol.toLowerCase());
-
-            if (!symbolMentioned) continue;
-
-            // Calculate promotion score
-            let promotionScore = 0;
-            const redFlags: string[] = [];
-
-            // Red flag: Posted in known promotion subreddit
-            if (promotionSubreddits.has(subreddit)) {
-                promotionScore += 20;
-                redFlags.push(`Posted in r/${subreddit}`);
-            }
-
-            // Red flag: Contains promotional language
-            for (const pattern of promotionalPatterns) {
-                if (combinedText.includes(pattern)) {
-                    promotionScore += 10;
-                    if (redFlags.length < 5) redFlags.push(`Contains "${pattern}"`);
-                }
-            }
-
-            // Red flag: New account (if available)
-            const accountAgeSeconds = postData.author_fullname_created_utc;
-            if (accountAgeSeconds) {
-                const accountAgeDays = (Date.now() / 1000 - accountAgeSeconds) / (60 * 60 * 24);
-                if (accountAgeDays < 90) {
-                    promotionScore += 15;
-                    redFlags.push('New account (<90 days)');
-                }
-            }
-
-            // Red flag: High engagement on suspicious post
-            if (postData.score > 100 && promotionScore > 20) {
-                promotionScore += 20;
-                redFlags.push('High engagement on promotional post');
-            }
-
-            const mention: RealSocialMention = {
-                platform: 'Reddit',
-                source: `r/${postData.subreddit}`,
-                title: title,
-                content: (selftext || title).substring(0, 300),
-                url: `https://reddit.com${postData.permalink}`,
-                author: postData.author || 'unknown',
-                date: new Date(postData.created_utc * 1000).toISOString(),
-                engagement: {
-                    upvotes: postData.score,
-                    comments: postData.num_comments
-                },
-                sentiment: promotionScore > 30 ? 'bullish' : 'neutral',
-                isPromotional: promotionScore >= 30,
-                promotionScore: Math.min(promotionScore, 100),
-                redFlags
-            };
-
+    function addMention(mention: RealSocialMention | null) {
+        if (mention && !seenUrls.has(mention.url)) {
+            seenUrls.add(mention.url);
             result.mentions.push(mention);
+        }
+    }
+
+    try {
+        // Strategy 1: Global search with multiple queries for coverage
+        const queries = [symbol, `$${symbol}`, `${symbol} stock`];
+        for (const query of queries) {
+            // Try www.reddit.com first, fall back to old.reddit.com
+            const urls = [
+                `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25`,
+                `https://old.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25`,
+            ];
+
+            let data: any = null;
+            for (const url of urls) {
+                const response = curlFetch(url);
+                data = tryParseRedditResponse(response, `search "${query}"`);
+                if (data) break;
+            }
+
+            if (data) {
+                const posts = data?.data?.children || [];
+                for (const post of posts) {
+                    addMention(parseRedditPostToMention(post.data, symbol));
+                }
+            }
+
+            await sleep(6500); // Stay under 10 req/min unauthenticated limit
+        }
+
+        // Strategy 2: Scan key promotion subreddits directly for this symbol
+        const topSubreddits = ['wallstreetbets', 'pennystocks', 'shortsqueeze', 'smallstreetbets'];
+        for (const sub of topSubreddits) {
+            const subSearchUrl = `https://www.reddit.com/r/${sub}/search.json?q=${encodeURIComponent(symbol)}&restrict_sr=1&sort=new&t=week&limit=25`;
+            const response = curlFetch(subSearchUrl);
+            const data = tryParseRedditResponse(response, `r/${sub} search`);
+
+            if (data) {
+                const posts = data?.data?.children || [];
+                for (const post of posts) {
+                    addMention(parseRedditPostToMention(post.data, symbol));
+                }
+            }
+
+            await sleep(6500);
         }
 
         result.success = true;
@@ -244,10 +348,92 @@ async function scanReddit(symbol: string, name: string): Promise<PlatformScanRes
 
 // ==========================================
 // STOCKTWITS SCANNER (FREE - Public API)
-// No rate limit documentation, use conservatively
+// Now fetches 2 pages for velocity analysis and uses tiered keyword scoring
 // ==========================================
-async function scanStockTwits(symbol: string): Promise<PlatformScanResult> {
-    const result: PlatformScanResult = {
+
+// StockTwits promotional patterns - tiered to reduce false positives
+const ST_PROMO_TIER1 = [ // Strong pump signals (+15 each)
+    'moon', '🚀', 'rocket', 'squeeze', 'explosion', '10x', '100x',
+    'to the moon', 'going parabolic', 'about to explode', 'massive gains'
+];
+const ST_PROMO_TIER2 = [ // Moderate promotion (+8 each)
+    'undervalued', 'hidden gem', 'load up', 'accumulate', 'huge upside',
+    'cheap', 'discount', 'sleeping giant', 'next big thing'
+];
+const ST_PROMO_TIER3 = [ // Mild bullish - normal trading talk (+3 each)
+    'buy', 'bullish', 'long', 'breakout', 'breaking out', 'target', 'price target'
+];
+
+interface StockTwitsMetadata {
+    watchlistCount: number;
+    messagesPerDay: number;  // velocity metric
+    totalMessages: number;
+}
+
+function parseStockTwitsResponse(response: string | null): { data: any; error?: string } {
+    if (!response) {
+        return { data: null, error: 'Failed to fetch from StockTwits' };
+    }
+    if (response.startsWith('<') || response.includes('<html')) {
+        return { data: null, error: 'StockTwits blocked request or symbol not found' };
+    }
+    try {
+        const data = JSON.parse(response);
+        if (data.response?.status !== 200) {
+            return { data: null, error: data.errors?.[0]?.message || 'Symbol not found on StockTwits' };
+        }
+        return { data };
+    } catch {
+        return { data: null, error: 'Invalid JSON response from StockTwits' };
+    }
+}
+
+function scoreStockTwitsMessage(bodyLower: string, msg: any): { promotionScore: number; redFlags: string[] } {
+    let promotionScore = 0;
+    const redFlags: string[] = [];
+
+    // Tiered promotional language detection
+    for (const pattern of ST_PROMO_TIER1) {
+        if (bodyLower.includes(pattern)) {
+            promotionScore += 15;
+            if (redFlags.length < 3) redFlags.push(`Strong promo: "${pattern}"`);
+        }
+    }
+    for (const pattern of ST_PROMO_TIER2) {
+        if (bodyLower.includes(pattern)) {
+            promotionScore += 8;
+            if (redFlags.length < 3) redFlags.push(`Moderate promo: "${pattern}"`);
+        }
+    }
+    for (const pattern of ST_PROMO_TIER3) {
+        if (bodyLower.includes(pattern)) {
+            promotionScore += 3;
+            if (redFlags.length < 3) redFlags.push(`Mild: "${pattern}"`);
+        }
+    }
+
+    // Red flag: Low follower account
+    const followers = msg.user?.followers || 0;
+    if (followers < 10) {
+        promotionScore += 10;
+        redFlags.push('Low follower account');
+    }
+
+    // Red flag: New account
+    if (msg.user?.join_date) {
+        const joinDate = new Date(msg.user.join_date);
+        const daysSince = (Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSince < 30) {
+            promotionScore += 15;
+            redFlags.push('Account < 30 days old');
+        }
+    }
+
+    return { promotionScore: Math.min(promotionScore, 100), redFlags };
+}
+
+async function scanStockTwits(symbol: string): Promise<PlatformScanResult & { metadata?: StockTwitsMetadata }> {
+    const result: PlatformScanResult & { metadata?: StockTwitsMetadata } = {
         platform: 'StockTwits',
         success: false,
         dataSource: 'real',
@@ -258,78 +444,55 @@ async function scanStockTwits(symbol: string): Promise<PlatformScanResult> {
     };
 
     try {
-        const url = `https://api.stocktwits.com/api/2/streams/symbol/${encodeURIComponent(symbol)}.json`;
-        const response = curlFetch(url);
+        // Page 1
+        const url1 = `https://api.stocktwits.com/api/2/streams/symbol/${encodeURIComponent(symbol)}.json`;
+        const response1 = curlFetch(url1);
+        const { data: data1, error: error1 } = parseStockTwitsResponse(response1);
 
-        if (!response) {
-            result.error = 'Failed to fetch from StockTwits';
+        if (!data1) {
+            result.error = error1;
             return result;
         }
 
-        let data;
-        try {
-            data = JSON.parse(response);
-        } catch (e) {
-            // StockTwits commonly returns 404 HTML for missing symbols or blocked requests
-            if (response.includes('<html')) {
-                result.error = 'StockTwits blocked request or symbol not found';
-                return result;
+        const allMessages = [...(data1.messages || [])];
+
+        // Extract watchlist count from symbol metadata
+        const watchlistCount = data1.symbol?.watchlist_count || 0;
+
+        // Page 2: Use cursor for velocity analysis
+        const cursor = data1.cursor;
+        if (cursor?.max) {
+            await sleep(2000); // Rate limit courtesy
+            const url2 = `https://api.stocktwits.com/api/2/streams/symbol/${encodeURIComponent(symbol)}.json?max=${cursor.max}`;
+            const response2 = curlFetch(url2);
+            const { data: data2 } = parseStockTwitsResponse(response2);
+            if (data2?.messages) {
+                allMessages.push(...data2.messages);
             }
-            result.error = 'Invalid JSON response from StockTwits';
-            return result;
         }
 
-        // Check if API returned an error
-        if (data.response?.status !== 200) {
-            if (data.errors) {
-                result.error = data.errors[0]?.message || 'StockTwits API error';
-            } else {
-                result.error = 'Symbol not found on StockTwits';
-            }
-            return result;
+        // Calculate velocity: messages per day across the full fetch window
+        let messagesPerDay = 0;
+        if (allMessages.length >= 2) {
+            const newest = new Date(allMessages[0].created_at).getTime();
+            const oldest = new Date(allMessages[allMessages.length - 1].created_at).getTime();
+            const timeSpanDays = Math.max((newest - oldest) / (1000 * 60 * 60 * 24), 0.01);
+            messagesPerDay = allMessages.length / timeSpanDays;
         }
 
-        const messages = data.messages || [];
+        result.metadata = {
+            watchlistCount,
+            messagesPerDay: Math.round(messagesPerDay * 10) / 10,
+            totalMessages: allMessages.length
+        };
 
-        // Promotional patterns for stock pumping
-        const promotionalPatterns = [
-            'buy', 'bullish', 'long', 'moon', '🚀', 'rocket',
-            'load up', 'accumulate', 'target', 'price target',
-            'breaking out', 'breakout', 'squeeze', 'explosion',
-            'undervalued', 'cheap', 'discount', 'huge upside'
-        ];
+        console.log(`      [StockTwits] ${symbol}: ${allMessages.length} msgs, ${result.metadata.messagesPerDay} msgs/day, ${watchlistCount} watchers`);
 
-        for (const msg of messages) {
+        // Process all messages with tiered scoring
+        for (const msg of allMessages) {
             const body = msg.body || '';
             const bodyLower = body.toLowerCase();
-
-            let promotionScore = 0;
-            const redFlags: string[] = [];
-
-            // Check for promotional patterns
-            for (const pattern of promotionalPatterns) {
-                if (bodyLower.includes(pattern)) {
-                    promotionScore += 8;
-                    if (redFlags.length < 3) redFlags.push(`Contains "${pattern}"`);
-                }
-            }
-
-            // Red flag: Low follower account
-            const followers = msg.user?.followers || 0;
-            if (followers < 10) {
-                promotionScore += 10;
-                redFlags.push('Low follower account');
-            }
-
-            // Red flag: New account
-            if (msg.user?.join_date) {
-                const joinDate = new Date(msg.user.join_date);
-                const daysSince = (Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24);
-                if (daysSince < 30) {
-                    promotionScore += 15;
-                    redFlags.push('Account < 30 days old');
-                }
-            }
+            const { promotionScore, redFlags } = scoreStockTwitsMessage(bodyLower, msg);
 
             // Get sentiment from StockTwits
             const stSentiment = msg.entities?.sentiment?.basic;
@@ -348,8 +511,8 @@ async function scanStockTwits(symbol: string): Promise<PlatformScanResult> {
                     likes: msg.likes?.total || 0
                 },
                 sentiment,
-                isPromotional: promotionScore >= 25,
-                promotionScore: Math.min(promotionScore, 100),
+                isPromotional: promotionScore >= 30,
+                promotionScore,
                 redFlags
             };
 
@@ -363,9 +526,17 @@ async function scanStockTwits(symbol: string): Promise<PlatformScanResult> {
             ? result.mentions.reduce((sum, m) => sum + m.promotionScore, 0) / result.mentions.length
             : 0;
 
-        result.overallActivityLevel = result.mentionsFound >= 20 ? 'high'
-            : result.mentionsFound >= 5 ? 'medium'
-                : result.mentionsFound > 0 ? 'low' : 'none';
+        // Activity level considers velocity, not just raw count
+        // >100 msgs/day = high, >20 msgs/day = medium (for a small-cap stock)
+        if (messagesPerDay > 100 || result.mentionsFound >= 40) {
+            result.overallActivityLevel = 'high';
+        } else if (messagesPerDay > 20 || result.mentionsFound >= 10) {
+            result.overallActivityLevel = 'medium';
+        } else if (result.mentionsFound > 0) {
+            result.overallActivityLevel = 'low';
+        } else {
+            result.overallActivityLevel = 'none';
+        }
 
         result.promotionRisk = avgScore >= 40 ? 'high'
             : avgScore >= 20 ? 'medium' : 'low';
@@ -379,9 +550,10 @@ async function scanStockTwits(symbol: string): Promise<PlatformScanResult> {
 
 // ==========================================
 // YOUTUBE SCANNER (FREE - YouTube Data API v3)
-// 10,000 units/day free, search costs 100 units = 100 searches/day
+// 10,000 units/day free, search costs 100 units = max ~100 searches/day
+// Quota-managed: skips search if daily budget exhausted
 // ==========================================
-async function scanYouTube(symbol: string, name: string): Promise<PlatformScanResult> {
+async function scanYouTube(symbol: string, name: string, skipQuotaCheck: boolean = false): Promise<PlatformScanResult> {
     const result: PlatformScanResult = {
         platform: 'YouTube',
         success: false,
@@ -398,12 +570,25 @@ async function scanYouTube(symbol: string, name: string): Promise<PlatformScanRe
         return result;
     }
 
+    // Check quota before searching
+    if (!skipQuotaCheck) {
+        const quota = getYouTubeQuotaUsed();
+        if (quota.searches >= YOUTUBE_MAX_DAILY_SEARCHES) {
+            result.error = `YouTube daily quota exhausted (${quota.searches}/${YOUTUBE_MAX_DAILY_SEARCHES} searches used today)`;
+            console.log(`      [YouTube] Quota exhausted for today (${quota.searches} searches used)`);
+            // Mark as success with 0 mentions rather than failure — quota isn't a scan error
+            result.success = true;
+            return result;
+        }
+    }
+
     try {
         // Search YouTube for stock-related videos
         const searchQuery = `${symbol} stock`;
         const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&order=date&publishedAfter=${getOneWeekAgo()}&maxResults=10&key=${YOUTUBE_API_KEY}`;
 
         const response = curlFetch(searchUrl);
+        recordYouTubeSearch(); // Track quota usage regardless of result
 
         if (!response) {
             result.error = 'Failed to fetch from YouTube API';
@@ -419,10 +604,16 @@ async function scanYouTube(symbol: string, name: string): Promise<PlatformScanRe
         }
 
         if (data.error) {
-            result.error = data.error.message || 'YouTube API error';
+            const errMsg = data.error.message || 'YouTube API error';
+            // Check for quota exceeded from YouTube itself
+            if (data.error.code === 403 && errMsg.includes('quota')) {
+                result.error = 'YouTube API quota exceeded';
+                result.success = true; // Not a scan failure
+            } else {
+                result.error = errMsg;
+            }
             return result;
         }
-
 
         const videos = data.items || [];
 
@@ -538,24 +729,75 @@ export async function performRealSocialScan(
     const youtubeResult = await scanYouTube(symbol, name);
     platforms.push(youtubeResult);
 
-    // Calculate overall score (only from real data)
+    // ============================================
+    // COMPOSITE SCORING (replaces broken categorical average)
+    //
+    // Old formula: avg of (high=80, medium=50, low=20) per platform
+    //   - Always returned 20 when all platforms report "low"
+    //   - Could not distinguish "30 active StockTwits messages" from "nothing"
+    //
+    // New formula: weighted composite of 4 signals (0-100):
+    //   1. Mention volume score (0-30): based on total mentions
+    //   2. Promotional content score (0-30): % of mentions flagged as promotional
+    //   3. Velocity score (0-20): StockTwits messages/day (if available)
+    //   4. Cross-platform score (0-20): mentions on multiple platforms
+    // ============================================
+
     const successfulScans = platforms.filter(p => p.success);
     const totalMentions = successfulScans.reduce((sum, p) => sum + p.mentionsFound, 0);
-    const avgPromotionScore = successfulScans.length > 0
-        ? successfulScans.reduce((sum, p) => {
-            const platformScore = p.promotionRisk === 'high' ? 80
-                : p.promotionRisk === 'medium' ? 50 : 20;
-            return sum + platformScore;
-        }, 0) / successfulScans.length
+    const allMentions = successfulScans.flatMap(p => p.mentions);
+    const promotionalMentions = allMentions.filter(m => m.isPromotional);
+
+    // 1. Mention volume score (0-30)
+    // 0 mentions = 0, 1-5 = 5, 6-15 = 10, 16-30 = 20, 30+ = 30
+    const volumeScore = totalMentions === 0 ? 0
+        : totalMentions <= 5 ? 5
+        : totalMentions <= 15 ? 10
+        : totalMentions <= 30 ? 20
+        : 30;
+
+    // 2. Promotional content score (0-30)
+    // Based on % of mentions flagged as promotional AND their average score
+    const promoRatio = allMentions.length > 0
+        ? promotionalMentions.length / allMentions.length
         : 0;
+    const avgPromoScore = promotionalMentions.length > 0
+        ? promotionalMentions.reduce((sum, m) => sum + m.promotionScore, 0) / promotionalMentions.length
+        : 0;
+    // Combine: weight ratio (how many are promotional) and intensity (how promotional they are)
+    const promoContentScore = Math.min(30, Math.round(
+        (promoRatio * 20) + (avgPromoScore / 100 * 10)
+    ));
+
+    // 3. Velocity score (0-20) - from StockTwits metadata if available
+    const stResult = platforms.find(p => p.platform === 'StockTwits') as any;
+    const messagesPerDay = stResult?.metadata?.messagesPerDay || 0;
+    // >200 msgs/day = 20, >50 = 15, >20 = 10, >5 = 5, else 0
+    const velocityScore = messagesPerDay > 200 ? 20
+        : messagesPerDay > 50 ? 15
+        : messagesPerDay > 20 ? 10
+        : messagesPerDay > 5 ? 5
+        : 0;
+
+    // 4. Cross-platform score (0-20)
+    // Activity on multiple platforms is more suspicious than one
+    const platformsWithMentions = successfulScans.filter(p => p.mentionsFound > 0).length;
+    const crossPlatformScore = platformsWithMentions >= 3 ? 20
+        : platformsWithMentions >= 2 ? 12
+        : platformsWithMentions >= 1 ? 5
+        : 0;
+
+    const compositeScore = volumeScore + promoContentScore + velocityScore + crossPlatformScore;
+
+    console.log(`    [Scoring] ${symbol}: volume=${volumeScore} promo=${promoContentScore} velocity=${velocityScore} cross=${crossPlatformScore} => ${compositeScore}`);
 
     // Find potential promoters (real accounts)
     const potentialPromoters: ComprehensiveScanResult['potentialPromoters'] = [];
     for (const platform of platforms) {
-        const promotionalMentions = platform.mentions.filter(m => m.isPromotional);
+        const platformPromoMentions = platform.mentions.filter(m => m.isPromotional);
         const authorCounts = new Map<string, number>();
 
-        for (const mention of promotionalMentions) {
+        for (const mention of platformPromoMentions) {
             const count = authorCounts.get(mention.author) || 0;
             authorCounts.set(mention.author, count + 1);
         }
@@ -572,23 +814,25 @@ export async function performRealSocialScan(
         }
     }
 
-    // Determine overall risk level
-    const highRiskPlatforms = platforms.filter(p => p.promotionRisk === 'high').length;
-    const riskLevel = highRiskPlatforms >= 2 ? 'high'
-        : highRiskPlatforms >= 1 ? 'medium' : 'low';
+    // Determine overall risk level based on composite score
+    const riskLevel = compositeScore >= 50 ? 'high'
+        : compositeScore >= 25 ? 'medium' : 'low';
 
-    // Has real evidence?
-    const hasRealSocialEvidence = platforms.some(p =>
-        p.success && p.promotionRisk === 'high' && p.mentionsFound > 0
-    );
+    // Has real evidence: needs both promotional mentions AND meaningful volume
+    const hasRealSocialEvidence = promotionalMentions.length >= 3 && compositeScore >= 40;
 
     // Generate summary
     let summary = '';
     if (hasRealSocialEvidence) {
-        const activePlatforms = platforms.filter(p => p.promotionRisk === 'high').map(p => p.platform);
-        summary = `REAL promotional activity detected on: ${activePlatforms.join(', ')}. ${totalMentions} total mentions found.`;
+        const activePlatformNames = successfulScans
+            .filter(p => p.mentionsFound > 0 && p.promotionRisk !== 'low')
+            .map(p => p.platform);
+        summary = `REAL promotional activity detected on: ${activePlatformNames.join(', ') || 'multiple platforms'}. ` +
+            `${totalMentions} total mentions (${promotionalMentions.length} promotional). ` +
+            `Composite score: ${compositeScore}/100.`;
     } else if (totalMentions > 0) {
-        summary = `Low-level activity found (${totalMentions} mentions) but no significant promotional patterns detected.`;
+        summary = `Activity found (${totalMentions} mentions, ${promotionalMentions.length} promotional) ` +
+            `but below evidence threshold. Composite score: ${compositeScore}/100.`;
     } else {
         summary = `No significant social media activity found for ${symbol}.`;
     }
@@ -598,7 +842,7 @@ export async function performRealSocialScan(
         name,
         scanDate: new Date().toISOString(),
         platforms,
-        overallPromotionScore: Math.round(avgPromotionScore),
+        overallPromotionScore: Math.round(compositeScore),
         riskLevel,
         hasRealSocialEvidence,
         potentialPromoters,

@@ -23,7 +23,9 @@ import { execSync } from 'child_process';
 
 // Import scoring modules
 import { computeRiskScore, MarketData, PriceHistory, StockQuote, ScoringResult } from './standalone-scorer';
-import { performRealSocialScan, ComprehensiveScanResult } from './real-social-scanner';
+import { ComprehensiveScanResult, PlatformScanResult as RealPlatformScanResult } from './real-social-scanner';
+import { runSocialScan } from './social-scan/index';
+import { ScanTarget, TickerScanResult } from './social-scan/types';
 
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
@@ -739,6 +741,49 @@ Respond in JSON format:
 
 
 
+// Convert modular TickerScanResult → ComprehensiveScanResult (used by scheme tracker)
+function tickerResultToComprehensiveScan(result: TickerScanResult): ComprehensiveScanResult {
+    return {
+        symbol: result.ticker,
+        name: result.name,
+        scanDate: result.scanDate,
+        platforms: result.platforms.map(p => ({
+            platform: p.platform,
+            success: p.success,
+            dataSource: 'real' as const,
+            mentionsFound: p.mentionsFound,
+            mentions: p.mentions.map(m => ({
+                platform: m.platform as any,
+                source: m.source,
+                title: m.title,
+                content: m.content,
+                url: m.url,
+                author: m.author,
+                date: m.postDate,
+                engagement: m.engagement,
+                sentiment: m.sentiment,
+                isPromotional: m.isPromotional,
+                promotionScore: m.promotionScore,
+                redFlags: m.redFlags,
+            })),
+            overallActivityLevel: p.activityLevel,
+            promotionRisk: p.promotionRisk,
+            error: p.error,
+        })),
+        overallPromotionScore: result.overallPromotionScore,
+        riskLevel: result.riskLevel,
+        hasRealSocialEvidence: result.hasRealEvidence,
+        potentialPromoters: result.topPromoters.map(tp => ({
+            platform: tp.platform,
+            username: tp.username,
+            postCount: tp.postCount,
+            confidence: (tp.avgPromotionScore >= 60 ? 'high'
+                : tp.avgPromotionScore >= 30 ? 'medium' : 'low') as 'high' | 'medium' | 'low',
+        })),
+        summary: result.summary,
+    };
+}
+
 // Main pipeline execution
 async function runEnhancedPipeline(): Promise<void> {
     const startTime = Date.now();
@@ -1006,34 +1051,64 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log(`\n  Filtered by legitimate news: ${filteredByNews}`);
     console.log(`  Remaining suspicious stocks: ${afterNewsFilter.length}`);
 
-    // Phase 4: Social Media Scanning
+    // Phase 4: Social Media Scanning (Modular Orchestrator)
+    // Uses all configured scanners: Google CSE, Perplexity, Reddit OAuth, YouTube, StockTwits, Discord
     console.log('\n' + '='.repeat(80));
-    console.log('PHASE 4: Social Media Scanning');
+    console.log('PHASE 4: Social Media Scanning (Modular Orchestrator)');
     console.log('-'.repeat(50));
 
-    for (let i = 0; i < afterNewsFilter.length; i++) {
-        const result = afterNewsFilter[i];
-        console.log(`[${i + 1}/${afterNewsFilter.length}] Scanning social media for ${result.symbol}...`);
+    if (afterNewsFilter.length > 0) {
+        // Convert pipeline stocks to ScanTarget format for the modular orchestrator
+        const scanTargets: ScanTarget[] = afterNewsFilter.map(r => ({
+            ticker: r.symbol,
+            name: r.name,
+            riskScore: r.totalScore,
+            riskLevel: r.riskLevel as 'HIGH' | 'MEDIUM' | 'LOW',
+            signals: r.signals.map(s => s.code),
+        }));
 
-        const socialFindings = await performRealSocialScan(
-            result.symbol,
-            result.name,
-            result.marketCap || 0
-        );
+        // Run all configured scanners in one batch call
+        const scanRunResult = await runSocialScan({
+            tickers: scanTargets,
+            date: evaluationDate,
+            scanId: `pipeline-${evaluationDate}-${Date.now()}`,
+        });
 
-        result.socialMediaScanned = true;
-        result.socialMediaFindings = socialFindings;
-
-        if (socialFindings && socialFindings.overallPromotionScore >= 60) {
-            console.log(`  🔴 HIGH promotion score: ${socialFindings.overallPromotionScore}/100`);
-        } else if (socialFindings && socialFindings.overallPromotionScore >= 40) {
-            console.log(`  🟡 MEDIUM promotion score: ${socialFindings.overallPromotionScore}/100`);
-        } else if (socialFindings) {
-            console.log(`  🟢 LOW promotion score: ${socialFindings.overallPromotionScore}/100`);
+        console.log(`\n  Orchestrator status: ${scanRunResult.status}`);
+        console.log(`  Platforms used: ${scanRunResult.platformsUsed.join(', ') || 'none'}`);
+        console.log(`  Total mentions found: ${scanRunResult.totalMentions}`);
+        if (scanRunResult.errors.length > 0) {
+            console.log(`  Errors: ${scanRunResult.errors.join('; ')}`);
         }
 
-        suspiciousStocks.push(result);
-        await sleep(1000);
+        // Map results back to each stock in afterNewsFilter
+        for (const result of afterNewsFilter) {
+            const tickerResult = scanRunResult.results.find(
+                r => r.ticker.toUpperCase() === result.symbol.toUpperCase()
+            );
+
+            if (tickerResult) {
+                const socialFindings = tickerResultToComprehensiveScan(tickerResult);
+                result.socialMediaScanned = true;
+                result.socialMediaFindings = socialFindings;
+
+                if (socialFindings.overallPromotionScore >= 60) {
+                    console.log(`  🔴 ${result.symbol}: HIGH promotion score: ${socialFindings.overallPromotionScore}/100`);
+                } else if (socialFindings.overallPromotionScore >= 40) {
+                    console.log(`  🟡 ${result.symbol}: MEDIUM promotion score: ${socialFindings.overallPromotionScore}/100`);
+                } else {
+                    console.log(`  🟢 ${result.symbol}: LOW promotion score: ${socialFindings.overallPromotionScore}/100`);
+                }
+            } else {
+                result.socialMediaScanned = true;
+                result.socialMediaFindings = null;
+                console.log(`  ⚪ ${result.symbol}: No scan results returned`);
+            }
+
+            suspiciousStocks.push(result);
+        }
+    } else {
+        console.log('  No suspicious stocks to scan.');
     }
 
     // Phase 5: Scheme Tracking

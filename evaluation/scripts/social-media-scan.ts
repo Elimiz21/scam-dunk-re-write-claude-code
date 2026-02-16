@@ -347,13 +347,14 @@ async function runSocialMediaScan(date?: string): Promise<void> {
   const highRiskStocks: HighRiskStock[] = JSON.parse(fs.readFileSync(highRiskPath, 'utf-8'));
   console.log(`\nLoaded ${highRiskStocks.length} high-risk stocks`);
 
-  // Filter to top stocks by risk score
+  // Filter to stocks by risk score (no artificial limit on count)
+  const maxStocks = process.env.SOCIAL_SCAN_LIMIT ? parseInt(process.env.SOCIAL_SCAN_LIMIT, 10) : Infinity;
   const topStocks = highRiskStocks
     .filter(s => s.totalScore >= 10) // Only very high risk
     .sort((a, b) => b.totalScore - a.totalScore)
-    .slice(0, 20); // Top 20 most suspicious
+    .slice(0, maxStocks);
 
-  console.log(`Analyzing top ${topStocks.length} most suspicious stocks (score >= 10)\n`);
+  console.log(`Analyzing ${topStocks.length} suspicious stocks (score >= 10)\n`);
 
   const openai = getOpenAIClient();
   const results: ScanResult[] = [];
