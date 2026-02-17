@@ -70,11 +70,11 @@ function aggregateResults(
     const highRiskPlatforms = platformsWithMentions.filter(p => {
       const pMentions = uniqueMentions.filter(m => m.platform === p);
       const avgScore = pMentions.reduce((s, m) => s + m.promotionScore, 0) / pMentions.length;
-      return avgScore >= 40;
+      return avgScore >= 25;
     });
 
     const riskLevel = highRiskPlatforms.length >= 2 ? 'high'
-      : highRiskPlatforms.length >= 1 || overallPromotionScore >= 50 ? 'medium' : 'low';
+      : highRiskPlatforms.length >= 1 || overallPromotionScore >= 30 ? 'medium' : 'low';
 
     let summary = '';
     if (uniqueMentions.length === 0) {
