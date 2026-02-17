@@ -82,18 +82,50 @@ export interface SocialScanner {
   scan(targets: ScanTarget[]): Promise<PlatformScanResult[]>;
 }
 
-// Promotional language patterns
-export const PROMOTIONAL_PATTERNS = [
-  'next gme', 'next amc', 'moon', 'to the moon', 'rocket', '🚀',
+// ─── Weighted promotional pattern categories ───────────────
+// HIGH: Clear pump/scam indicators (+20 each)
+// MEDIUM: Hype and promotional language (+15 each)
+// LOW: Mildly promotional or disclaimer phrases (+10 each)
+
+const PROMO_PATTERNS_HIGH: string[] = [
+  'guaranteed returns', 'guaranteed profit', 'guaranteed gains',
+  'insider info', 'insider tip', 'insider knowledge',
+  'get in now', 'get in before', 'act fast', 'act now',
+  'limited time', 'last chance', 'once in a lifetime',
+  'easy money', 'free money', 'quick money', 'fast money',
+  'financial freedom', 'life changing', 'retire early',
+  "don't miss", 'dont miss', 'must buy',
+  'they dont want you to know', 'secret stock',
+  'pump and dump', 'pump & dump',
+];
+
+const PROMO_PATTERNS_MEDIUM: string[] = [
+  'to the moon', '🚀', 'rocket', 'moon shot',
   'squeeze', 'short squeeze', 'gamma squeeze',
-  '10x', '100x', '1000x', 'guaranteed', 'easy money', 'free money',
-  'buy now', 'load up', 'yolo', 'all in',
-  'undervalued', 'hidden gem', 'sleeping giant', 'about to explode',
-  'trust me bro', 'not financial advice', 'nfa', 'dyor',
-  'massive gains', 'huge potential', 'price target',
-  'must buy', 'urgent', 'breaking', 'insider',
-  'they dont want you to know', 'before it explodes',
-  'next big thing', 'accumulate', 'breakout', 'going parabolic',
+  'next gme', 'next amc', 'next gamestop',
+  '10x', '100x', '1000x',
+  'hidden gem', 'sleeping giant',
+  'about to explode', 'before it explodes', 'going parabolic',
+  'massive gains', 'huge potential', 'enormous upside', 'explosive growth',
+  'buy now', 'load up', 'back up the truck',
+  'diamond hands', '💎', 'tendies', 'lambo', 'wen lambo',
+  'yolo', 'all in',
+  'breakout', 'explosive', 'parabolic',
+  'moon', 'bag holder', 'bagholders',
+];
+
+const PROMO_PATTERNS_LOW: string[] = [
+  'undervalued', 'oversold', 'accumulate', 'strong buy',
+  'dyor', 'nfa', 'not financial advice', 'trust me bro',
+  'next big thing', 'game changer',
+  'breaking', 'urgent', 'insider',
+  'guaranteed', 'price target',
+  'huge upside', 'massive upside', 'potential upside',
+];
+
+// Flat export for external consumers
+export const PROMOTIONAL_PATTERNS = [
+  ...PROMO_PATTERNS_HIGH, ...PROMO_PATTERNS_MEDIUM, ...PROMO_PATTERNS_LOW,
 ];
 
 export const PROMOTION_SUBREDDITS = [
@@ -112,24 +144,38 @@ export function calculatePromotionScore(text: string, context?: {
   let score = 0;
   const flags: string[] = [];
 
-  for (const pattern of PROMOTIONAL_PATTERNS) {
+  // Weighted pattern matching
+  for (const pattern of PROMO_PATTERNS_HIGH) {
+    if (lower.includes(pattern)) {
+      score += 20;
+      if (flags.length < 8) flags.push(`Contains "${pattern}"`);
+    }
+  }
+  for (const pattern of PROMO_PATTERNS_MEDIUM) {
+    if (lower.includes(pattern)) {
+      score += 15;
+      if (flags.length < 8) flags.push(`Contains "${pattern}"`);
+    }
+  }
+  for (const pattern of PROMO_PATTERNS_LOW) {
     if (lower.includes(pattern)) {
       score += 10;
-      if (flags.length < 5) flags.push(`Contains "${pattern}"`);
+      if (flags.length < 8) flags.push(`Contains "${pattern}"`);
     }
   }
 
+  // Context bonuses
   if (context?.isPromotionSubreddit) {
     score += 15;
     flags.push('Posted in promotion-heavy community');
   }
   if (context?.isNewAccount) {
-    score += 15;
-    flags.push('New account');
-  }
-  if (context?.hasHighEngagement && score > 20) {
     score += 20;
-    flags.push('High engagement on promotional post');
+    flags.push('New or recently created account');
+  }
+  if (context?.hasHighEngagement && score >= 10) {
+    score += 20;
+    flags.push('High engagement on promotional content');
   }
 
   return { score: Math.min(score, 100), flags };

@@ -84,7 +84,7 @@ export class RedditScanner implements SocialScanner {
               postDate: new Date(d.created_utc * 1000).toISOString(),
               engagement: { upvotes: d.score, comments: d.num_comments },
               sentiment: score > 30 ? 'bullish' : 'neutral',
-              isPromotional: score >= 30, promotionScore: score, redFlags: flags,
+              isPromotional: score >= 20, promotionScore: score, redFlags: flags,
             });
           }
           await sleep(REDDIT_DELAY_MS);
@@ -124,7 +124,7 @@ export class RedditScanner implements SocialScanner {
               postDate: new Date(d.created_utc * 1000).toISOString(),
               engagement: { upvotes: d.score, comments: d.num_comments },
               sentiment: score > 30 ? 'bullish' : 'neutral',
-              isPromotional: score >= 30, promotionScore: score, redFlags: flags,
+              isPromotional: score >= 20, promotionScore: score, redFlags: flags,
             });
             break;
           }
@@ -173,10 +173,13 @@ export class YouTubeScanner implements SocialScanner {
         const params = new URLSearchParams({
           part: 'snippet', q: `${target.ticker} stock`, type: 'video',
           order: 'date', publishedAfter: oneWeekAgo.toISOString(),
-          maxResults: '10', key: apiKey,
+          maxResults: '25', key: apiKey,
         });
         const res = await fetch(`${YT_API_BASE}/search?${params}`);
-        if (!res.ok) continue;
+        if (!res.ok) {
+          console.error(`[YouTube] API ${res.status} for ${target.ticker}: ${await res.text().catch(() => 'no body')}`);
+          continue;
+        }
         const data = await res.json();
         const videos = data.items || [];
 
@@ -225,7 +228,7 @@ export class YouTubeScanner implements SocialScanner {
               comments: stats ? parseInt(stats.commentCount || '0') : undefined,
             },
             sentiment: finalScore > 25 ? 'bullish' : 'neutral',
-            isPromotional: finalScore >= 30, promotionScore: finalScore, redFlags: flags,
+            isPromotional: finalScore >= 20, promotionScore: finalScore, redFlags: flags,
           });
         }
         await sleep(200);
@@ -303,7 +306,7 @@ export class StockTwitsScanner implements SocialScanner {
             author: msg.user?.username || 'unknown',
             postDate: msg.created_at || new Date().toISOString(),
             engagement: { likes: msg.likes?.total || 0 },
-            sentiment, isPromotional: finalScore >= 30,
+            sentiment, isPromotional: finalScore >= 20,
             promotionScore: finalScore, redFlags: flags,
           });
         }
@@ -394,7 +397,10 @@ export class GoogleCSEScanner implements SocialScanner {
           key: apiKey, cx: cseId, q: query, num: '10', sort: 'date', dateRestrict: 'w1',
         });
         const res = await fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
-        if (!res.ok) continue;
+        if (!res.ok) {
+          console.error(`[Google CSE] API ${res.status} for ${target.ticker}: ${await res.text().catch(() => 'no body')}`);
+          continue;
+        }
         const data = await res.json();
 
         for (const result of (data.items || [])) {
@@ -423,7 +429,7 @@ export class GoogleCSEScanner implements SocialScanner {
             title: title.substring(0, 300), content: snippet.substring(0, 500),
             url, author: 'unknown', postDate, engagement: {},
             sentiment: score > 25 ? 'bullish' : 'neutral',
-            isPromotional: score >= 25, promotionScore: score, redFlags: flags,
+            isPromotional: score >= 20, promotionScore: score, redFlags: flags,
           });
         }
       } catch (error: any) {
@@ -486,7 +492,10 @@ IMPORTANT: Only REAL mentions with actual URLs. Return [] if none found. Return 
           }),
         });
 
-        if (!res.ok) continue;
+        if (!res.ok) {
+          console.error(`[Perplexity] API ${res.status}: ${await res.text().catch(() => 'no body')}`);
+          continue;
+        }
         const data = await res.json();
         const content = data.choices?.[0]?.message?.content || '';
         const citations: string[] = data.citations || [];
@@ -524,7 +533,7 @@ IMPORTANT: Only REAL mentions with actual URLs. Return [] if none found. Return 
                     views: item.views || undefined, likes: item.likes || undefined,
                   },
                   sentiment: score > 30 ? 'bullish' : (item.sentiment as any) || 'neutral',
-                  isPromotional: score >= 25, promotionScore: score, redFlags: flags,
+                  isPromotional: score >= 20, promotionScore: score, redFlags: flags,
                 });
               }
             }
@@ -543,12 +552,15 @@ IMPORTANT: Only REAL mentions with actual URLs. Return [] if none found. Return 
           else if (url.includes('tiktok.com')) platform = 'TikTok';
           else continue;
 
+          const citationText = `Stock mention found via web search at ${citationUrl}`;
+          const { score: citScore, flags: citFlags } = calculatePromotionScore(citationText);
+
           allMentions.push({
             platform, source: String(platform), discoveredVia: 'perplexity',
             title: `Stock mention found via web search`, content: `Social media mention found at: ${citationUrl}`,
             url: citationUrl, author: 'unknown', postDate: new Date().toISOString(),
-            engagement: {}, sentiment: 'neutral',
-            isPromotional: false, promotionScore: 0, redFlags: [],
+            engagement: {}, sentiment: citScore > 20 ? 'bullish' : 'neutral',
+            isPromotional: citScore >= 20, promotionScore: citScore, redFlags: citFlags,
           });
         }
 
@@ -631,7 +643,7 @@ export class DiscordBotScanner implements SocialScanner {
                     postDate: msg.timestamp || new Date().toISOString(),
                     engagement: { likes: msg.reactions?.reduce((s: number, r: any) => s + (r.count || 0), 0) || 0 },
                     sentiment: finalScore > 30 ? 'bullish' : 'neutral',
-                    isPromotional: finalScore >= 30, promotionScore: finalScore, redFlags: flags,
+                    isPromotional: finalScore >= 20, promotionScore: finalScore, redFlags: flags,
                   });
                   break;
                 }
