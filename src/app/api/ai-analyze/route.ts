@@ -238,15 +238,8 @@ export async function POST(request: NextRequest) {
 
     const marketData = await fetchMarketData(ticker, assetType);
 
-    // Check if market data fetch failed - throw service unavailable error
     if (!marketData.dataAvailable) {
-      const apiName = assetType === "crypto" ? "CoinGecko" : "FMP/AlphaVantage";
-      throw new ServiceUnavailableError(
-        apiName,
-        ticker,
-        assetType,
-        "Failed to fetch market data - all data sources unavailable"
-      );
+      console.warn(`No market data available for ${ticker} — scoring will return INSUFFICIENT. Check that FMP_API_KEY or ALPHA_VANTAGE_API_KEY is configured.`);
     }
 
     const scoringResult = await computeRiskScore({
