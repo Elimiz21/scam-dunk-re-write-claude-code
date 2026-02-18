@@ -92,9 +92,14 @@ async function callAIBackend(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so fallback has time
 
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (process.env.AI_API_SECRET) {
+      headers["X-API-Key"] = process.env.AI_API_SECRET;
+    }
+
     const response = await fetch(`${AI_BACKEND_URL}/analyze`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         ticker,
         asset_type: assetType,
@@ -128,10 +133,6 @@ async function callAIBackend(
 
     return await response.json();
   } catch (error) {
-    // Re-throw ServiceUnavailableError
-    if (error instanceof ServiceUnavailableError) {
-      throw error;
-    }
     console.error("AI backend unavailable:", error);
     return null;
   }

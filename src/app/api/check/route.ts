@@ -36,8 +36,8 @@ class ServiceUnavailableError extends Error {
   }
 }
 
-// Python AI backend URL
-const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "";
+// Python AI backend URL (must match ai-analyze/route.ts and config.ts default)
+const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000";
 
 // Request validation schema - only ticker is required
 const checkRequestSchema = z.object({
@@ -101,9 +101,14 @@ async function callPythonAIBackend(
 
     console.log(`Calling Python AI backend: ${AI_BACKEND_URL}/analyze`);
 
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (process.env.AI_API_SECRET) {
+      headers["X-API-Key"] = process.env.AI_API_SECRET;
+    }
+
     const response = await fetch(`${AI_BACKEND_URL}/analyze`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         ticker,
         asset_type: assetType,
@@ -176,10 +181,6 @@ async function callPythonAIBackend(
       } : undefined,
     };
   } catch (error) {
-    // Re-throw ServiceUnavailableError so the main handler can return a proper 503
-    if (error instanceof ServiceUnavailableError) {
-      throw error;
-    }
     const errMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("AI backend call failed:", error);
     return { success: false, failReason: `Exception: ${errMsg}` };
