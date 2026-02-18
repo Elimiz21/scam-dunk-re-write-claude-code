@@ -8,7 +8,9 @@
 import {
   ScanTarget, PlatformScanResult, SocialMention,
   SocialScanner, calculatePromotionScore, PROMOTION_SUBREDDITS,
+  calculatePlatformSpecificScore,
 } from './types';
+import type { PlatformName } from './platform-patterns';
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -76,6 +78,9 @@ export class RedditScanner implements SocialScanner {
               isNewAccount,
               hasHighEngagement: d.score > 100,
             });
+            const { scoreBonus: platformBonus, flags: platformFlags } = calculatePlatformSpecificScore(`${title} ${selftext}`, 'reddit');
+            flags.push(...platformFlags);
+            const finalScore = Math.min(score + platformBonus, 100);
 
             allMentions.push({
               platform: 'Reddit', source: `r/${d.subreddit}`, discoveredVia: 'reddit_public',
@@ -83,8 +88,8 @@ export class RedditScanner implements SocialScanner {
               author: d.author || 'unknown',
               postDate: new Date(d.created_utc * 1000).toISOString(),
               engagement: { upvotes: d.score, comments: d.num_comments },
-              sentiment: score > 30 ? 'bullish' : 'neutral',
-              isPromotional: score >= 20, promotionScore: score, redFlags: flags,
+              sentiment: finalScore > 30 ? 'bullish' : 'neutral',
+              isPromotional: finalScore >= 20, promotionScore: finalScore, redFlags: flags,
             });
           }
           await sleep(REDDIT_DELAY_MS);
@@ -116,6 +121,9 @@ export class RedditScanner implements SocialScanner {
               isPromotionSubreddit: promotionSubs.has(sub),
               hasHighEngagement: d.score > 50,
             });
+            const { scoreBonus: subPlatformBonus, flags: subPlatformFlags } = calculatePlatformSpecificScore(`${title} ${selftext}`, 'reddit');
+            flags.push(...subPlatformFlags);
+            const subFinalScore = Math.min(score + subPlatformBonus, 100);
 
             allMentions.push({
               platform: 'Reddit', source: `r/${sub}`, discoveredVia: 'reddit_public',
@@ -123,8 +131,8 @@ export class RedditScanner implements SocialScanner {
               author: d.author || 'unknown',
               postDate: new Date(d.created_utc * 1000).toISOString(),
               engagement: { upvotes: d.score, comments: d.num_comments },
-              sentiment: score > 30 ? 'bullish' : 'neutral',
-              isPromotional: score >= 20, promotionScore: score, redFlags: flags,
+              sentiment: subFinalScore > 30 ? 'bullish' : 'neutral',
+              isPromotional: subFinalScore >= 20, promotionScore: subFinalScore, redFlags: flags,
             });
             break;
           }
@@ -206,12 +214,14 @@ export class YouTubeScanner implements SocialScanner {
           if (!combined.includes(target.ticker.toLowerCase())) continue;
 
           const { score, flags } = calculatePromotionScore(`${title} ${description}`);
+          const { scoreBonus: platformBonus, flags: platformFlags } = calculatePlatformSpecificScore(`${title} ${description}`, 'youtube');
+          flags.push(...platformFlags);
           if (title.includes('🚀') || title.includes('💰') || title.includes('🔥') || title.includes('💎'))
             flags.push('Clickbait emojis in title');
           const capsRatio = (title.match(/[A-Z]/g) || []).length / Math.max(title.length, 1);
           if (capsRatio > 0.6) flags.push('Excessive caps in title');
 
-          const finalScore = Math.min(score + (flags.includes('Clickbait emojis in title') ? 10 : 0) + (flags.includes('Excessive caps in title') ? 10 : 0), 100);
+          const finalScore = Math.min(score + platformBonus + (flags.includes('Clickbait emojis in title') ? 10 : 0) + (flags.includes('Excessive caps in title') ? 10 : 0), 100);
           const videoId = video.id?.videoId;
           const stats = videoId ? statsMap.get(videoId) : null;
 
@@ -285,6 +295,8 @@ export class StockTwitsScanner implements SocialScanner {
         for (const msg of (data.messages || [])) {
           const body = msg.body || '';
           const { score, flags } = calculatePromotionScore(body);
+          const { scoreBonus: platformBonus, flags: platformFlags } = calculatePlatformSpecificScore(body, 'stocktwits');
+          flags.push(...platformFlags);
 
           const followers = msg.user?.followers || 0;
           if (followers < 10) flags.push('Low follower account');
@@ -297,7 +309,7 @@ export class StockTwitsScanner implements SocialScanner {
           const sentiment = stSentiment === 'Bullish' ? 'bullish' as const
             : stSentiment === 'Bearish' ? 'bearish' as const : 'neutral' as const;
 
-          const finalScore = Math.min(score + (followers < 10 ? 10 : 0) + (flags.includes('Account < 30 days old') ? 15 : 0), 100);
+          const finalScore = Math.min(score + platformBonus + (followers < 10 ? 10 : 0) + (flags.includes('Account < 30 days old') ? 15 : 0), 100);
 
           allMentions.push({
             platform: 'StockTwits', source: 'StockTwits Feed', discoveredVia: 'stocktwits',
@@ -418,6 +430,19 @@ export class GoogleCSEScanner implements SocialScanner {
           const source = detectSource(url);
           const { score, flags } = calculatePromotionScore(`${title} ${snippet}`);
 
+          // Apply platform-specific scoring based on detected platform
+          const platformMap: Record<string, PlatformName> = {
+            'Reddit': 'reddit', 'YouTube': 'youtube', 'Twitter': 'twitter',
+            'StockTwits': 'stocktwits', 'Discord': 'discord_telegram', 'TikTok': 'tiktok',
+          };
+          const platformKey = platformMap[platform];
+          let cseScore = score;
+          if (platformKey) {
+            const { scoreBonus, flags: pFlags } = calculatePlatformSpecificScore(`${title} ${snippet}`, platformKey);
+            flags.push(...pFlags);
+            cseScore = Math.min(score + scoreBonus, 100);
+          }
+
           let postDate = new Date().toISOString();
           if (result.pagemap?.metatags?.[0]) {
             const meta = result.pagemap.metatags[0];
@@ -428,8 +453,8 @@ export class GoogleCSEScanner implements SocialScanner {
             platform, source, discoveredVia: 'google_cse',
             title: title.substring(0, 300), content: snippet.substring(0, 500),
             url, author: 'unknown', postDate, engagement: {},
-            sentiment: score > 25 ? 'bullish' : 'neutral',
-            isPromotional: score >= 20, promotionScore: score, redFlags: flags,
+            sentiment: cseScore > 25 ? 'bullish' : 'neutral',
+            isPromotional: cseScore >= 20, promotionScore: cseScore, redFlags: flags,
           });
         }
       } catch (error: any) {
@@ -628,12 +653,14 @@ export class DiscordBotScanner implements SocialScanner {
                   if (!regex.test(content)) continue;
 
                   const { score, flags } = calculatePromotionScore(content);
+                  const { scoreBonus: discordBonus, flags: discordFlags } = calculatePlatformSpecificScore(content, 'discord_telegram');
+                  flags.push(...discordFlags);
                   const memberSince = msg.member?.joined_at;
                   if (memberSince) {
                     const daysSince = (Date.now() - new Date(memberSince).getTime()) / 86400000;
                     if (daysSince < 7) flags.push('Recently joined server');
                   }
-                  const finalScore = Math.min(score + (flags.includes('Recently joined server') ? 15 : 0), 100);
+                  const finalScore = Math.min(score + discordBonus + (flags.includes('Recently joined server') ? 15 : 0), 100);
 
                   allMentions.push({
                     platform: 'Discord', source: `${guild.name} / #${channel.name}`,
