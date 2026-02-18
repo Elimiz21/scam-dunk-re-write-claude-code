@@ -73,7 +73,7 @@ async function searchRedditForTicker(
 
   for (const query of queries) {
     try {
-      const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25&type=link`;
+      const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25`;
       const data = await redditPublicGet(url);
 
       const posts = data?.data?.children || [];
