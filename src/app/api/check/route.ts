@@ -97,7 +97,7 @@ async function callPythonAIBackend(
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout - Pro plan has maxDuration=30
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so TypeScript fallback has time
 
     console.log(`Calling Python AI backend: ${AI_BACKEND_URL}/analyze`);
 
