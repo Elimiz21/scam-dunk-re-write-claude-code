@@ -9,7 +9,7 @@
 
 import {
   ScanTarget, PlatformScanResult, SocialMention,
-  calculatePromotionScore, SocialScanner
+  calculatePromotionScore, calculatePlatformSpecificScore, SocialScanner
 } from './types';
 
 const STOCKTWITS_API = 'https://api.stocktwits.com/api/2';
@@ -66,6 +66,11 @@ export class StockTwitsScanner implements SocialScanner {
           const body = msg.body || '';
           const { score, flags } = calculatePromotionScore(body);
 
+          // Layer on StockTwits-specific pattern detection
+          const { scoreBonus: platformBonus, flags: platformFlags } =
+            calculatePlatformSpecificScore(body, 'stocktwits');
+          flags.push(...platformFlags);
+
           // Additional StockTwits-specific scoring
           const followers = msg.user?.followers || 0;
           if (followers < 10) {
@@ -86,6 +91,7 @@ export class StockTwitsScanner implements SocialScanner {
 
           const finalScore = Math.min(
             score +
+            platformBonus +
             (followers < 10 ? 10 : 0) +
             (flags.includes('Account < 30 days old') ? 15 : 0),
             100

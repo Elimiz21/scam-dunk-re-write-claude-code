@@ -13,7 +13,7 @@
 
 import {
   ScanTarget, PlatformScanResult, SocialMention,
-  calculatePromotionScore, SocialScanner
+  calculatePromotionScore, calculatePlatformSpecificScore, SocialScanner
 } from './types';
 
 const DISCORD_API = 'https://discord.com/api/v10';
@@ -96,6 +96,11 @@ export class DiscordBotScanner implements SocialScanner {
 
                   const { score, flags } = calculatePromotionScore(content);
 
+                  // Layer on Discord/Telegram-specific pattern detection
+                  const { scoreBonus: platformBonus, flags: platformFlags } =
+                    calculatePlatformSpecificScore(content, 'discord_telegram');
+                  flags.push(...platformFlags);
+
                   // Discord-specific: check for coordinated posting
                   const memberSince = msg.member?.joined_at;
                   if (memberSince) {
@@ -106,7 +111,7 @@ export class DiscordBotScanner implements SocialScanner {
                   }
 
                   const finalScore = Math.min(
-                    score + (flags.includes('Recently joined server') ? 15 : 0),
+                    score + platformBonus + (flags.includes('Recently joined server') ? 15 : 0),
                     100
                   );
 

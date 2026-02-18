@@ -12,8 +12,9 @@
 
 import {
   ScanTarget, PlatformScanResult, SocialMention,
-  calculatePromotionScore, SocialScanner
+  calculatePromotionScore, calculatePlatformSpecificScore, SocialScanner
 } from './types';
+import type { PlatformName } from './platform-patterns';
 
 const GOOGLE_CSE_URL = 'https://www.googleapis.com/customsearch/v1';
 
@@ -46,6 +47,19 @@ function detectPlatform(url: string): SocialMention['platform'] {
   if (lower.includes('instagram.com')) return 'Web';
   if (lower.includes('threads.net')) return 'Web';
   return 'Forum';
+}
+
+/** Map social mention platform to our platform-specific pattern key */
+function toPlatformPatternName(platform: SocialMention['platform']): PlatformName | null {
+  switch (platform) {
+    case 'Reddit': return 'reddit';
+    case 'YouTube': return 'youtube';
+    case 'Twitter': return 'twitter';
+    case 'StockTwits': return 'stocktwits';
+    case 'TikTok': return 'tiktok';
+    case 'Discord': return 'discord_telegram';
+    default: return null;
+  }
 }
 
 function detectSource(url: string): string {
@@ -178,6 +192,17 @@ export class GoogleCSEScanner implements SocialScanner {
           const source = detectSource(url);
           const { score, flags } = calculatePromotionScore(combinedText);
 
+          // Apply platform-specific patterns when we know the source platform
+          let platformBonus = 0;
+          const platformKey = toPlatformPatternName(platform);
+          if (platformKey) {
+            const { scoreBonus, flags: platformFlags } =
+              calculatePlatformSpecificScore(combinedText, platformKey);
+            platformBonus = scoreBonus;
+            flags.push(...platformFlags);
+          }
+          const adjustedScore = Math.min(score + platformBonus, 100);
+
           // Parse date from metadata
           let postDate = new Date().toISOString();
           if (result.pagemap?.metatags?.[0]) {
@@ -195,9 +220,9 @@ export class GoogleCSEScanner implements SocialScanner {
             author: 'unknown', // CSE doesn't provide author info
             postDate,
             engagement: {}, // CSE doesn't provide engagement metrics
-            sentiment: score > 25 ? 'bullish' : 'neutral',
-            isPromotional: score >= 25,
-            promotionScore: score,
+            sentiment: adjustedScore > 25 ? 'bullish' : 'neutral',
+            isPromotional: adjustedScore >= 25,
+            promotionScore: adjustedScore,
             redFlags: flags,
           });
         }

@@ -14,7 +14,7 @@
 
 import {
   ScanTarget, PlatformScanResult, SocialMention,
-  PROMOTION_SUBREDDITS, calculatePromotionScore, SocialScanner
+  PROMOTION_SUBREDDITS, calculatePromotionScore, calculatePlatformSpecificScore, SocialScanner
 } from './types';
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)';
@@ -110,6 +110,13 @@ async function searchRedditForTicker(
           hasHighEngagement: d.score > 100,
         });
 
+        // Layer on Reddit-specific pattern detection
+        const { scoreBonus: platformBonus, flags: platformFlags } =
+          calculatePlatformSpecificScore(combinedText, 'reddit');
+        flags.push(...platformFlags);
+
+        const finalScore = Math.min(score + platformBonus, 100);
+
         mentions.push({
           platform: 'Reddit',
           source: `r/${d.subreddit}`,
@@ -123,9 +130,9 @@ async function searchRedditForTicker(
             upvotes: d.score,
             comments: d.num_comments,
           },
-          sentiment: score > 30 ? 'bullish' : 'neutral',
-          isPromotional: score >= 30,
-          promotionScore: score,
+          sentiment: finalScore > 30 ? 'bullish' : 'neutral',
+          isPromotional: finalScore >= 30,
+          promotionScore: finalScore,
           redFlags: flags,
         });
       }
@@ -170,6 +177,13 @@ async function scanSubredditForTickers(
           hasHighEngagement: d.score > 50,
         });
 
+        // Layer on Reddit-specific pattern detection
+        const { scoreBonus: platformBonus, flags: platformFlags } =
+          calculatePlatformSpecificScore(combinedText, 'reddit');
+        flags.push(...platformFlags);
+
+        const finalScore = Math.min(score + platformBonus, 100);
+
         mentions.push({
           platform: 'Reddit',
           source: `r/${subreddit}`,
@@ -183,9 +197,9 @@ async function scanSubredditForTickers(
             upvotes: d.score,
             comments: d.num_comments,
           },
-          sentiment: score > 30 ? 'bullish' : 'neutral',
-          isPromotional: score >= 30,
-          promotionScore: score,
+          sentiment: finalScore > 30 ? 'bullish' : 'neutral',
+          isPromotional: finalScore >= 30,
+          promotionScore: finalScore,
           redFlags: flags,
         });
       }

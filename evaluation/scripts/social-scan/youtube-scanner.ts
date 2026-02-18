@@ -9,7 +9,7 @@
 
 import {
   ScanTarget, PlatformScanResult, SocialMention,
-  calculatePromotionScore, SocialScanner
+  calculatePromotionScore, calculatePlatformSpecificScore, SocialScanner
 } from './types';
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
@@ -119,7 +119,12 @@ export class YouTubeScanner implements SocialScanner {
 
           const { score, flags } = calculatePromotionScore(combinedText);
 
-          // Extra YouTube-specific red flags
+          // Layer on YouTube-specific pattern detection
+          const { scoreBonus: platformBonus, flags: platformFlags } =
+            calculatePlatformSpecificScore(combinedText, 'youtube');
+          flags.push(...platformFlags);
+
+          // Extra YouTube-specific red flags (legacy checks kept for continuity)
           if (title.includes('🚀') || title.includes('💰') || title.includes('🔥') || title.includes('💎')) {
             flags.push('Clickbait emojis in title');
           }
@@ -129,7 +134,8 @@ export class YouTubeScanner implements SocialScanner {
           }
 
           const finalScore = Math.min(
-            score + (flags.includes('Clickbait emojis in title') ? 10 : 0) +
+            score + platformBonus +
+            (flags.includes('Clickbait emojis in title') ? 10 : 0) +
             (flags.includes('Excessive caps in title') ? 10 : 0),
             100
           );
