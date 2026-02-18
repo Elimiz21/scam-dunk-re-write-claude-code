@@ -86,8 +86,12 @@ export interface SocialScanner {
 // HIGH: Clear pump/scam indicators (+20 each)
 // MEDIUM: Hype and promotional language (+15 each)
 // LOW: Mildly promotional or disclaimer phrases (+10 each)
+//
+// Patterns are based on REAL content observed in StockTwits, YouTube, Reddit
+// penny stock posts — not just WSB meme culture language.
 
 const PROMO_PATTERNS_HIGH: string[] = [
+  // Classic scam language
   'guaranteed returns', 'guaranteed profit', 'guaranteed gains',
   'insider info', 'insider tip', 'insider knowledge',
   'get in now', 'get in before', 'act fast', 'act now',
@@ -97,9 +101,21 @@ const PROMO_PATTERNS_HIGH: string[] = [
   "don't miss", 'dont miss', 'must buy',
   'they dont want you to know', 'secret stock',
   'pump and dump', 'pump & dump',
+  // Alert service / paid group promotion (real StockTwits patterns)
+  'top alerts', 'stock alerts', 'alert service', 'signal service',
+  'paid group', 'premium alerts', 'vip group', 'premium group',
+  'see profile for', 'see bio for', 'check profile for', 'link in bio',
+  'join our discord', 'join our telegram', 'join the discord', 'join the telegram',
+  'join our group', 'join my group',
+  'catch the runners', 'catch runners early',
+  // Solicitation / calls to action
+  'click here to get', 'sign up now', 'sign up today',
+  'free trial', '4-day trial', 'day trial',
+  'buying power for only',
 ];
 
 const PROMO_PATTERNS_MEDIUM: string[] = [
+  // WSB / meme stock language
   'to the moon', '🚀', 'rocket', 'moon shot',
   'squeeze', 'short squeeze', 'gamma squeeze',
   'next gme', 'next amc', 'next gamestop',
@@ -112,6 +128,20 @@ const PROMO_PATTERNS_MEDIUM: string[] = [
   'yolo', 'all in',
   'breakout', 'explosive', 'parabolic',
   'moon', 'bag holder', 'bagholders',
+  // Real-world pump language from StockTwits/YouTube
+  'biggest pay day', 'biggest payday', 'biggest runner',
+  'way upside', 'huge run', 'about to run', 'going to run', 'this will run',
+  'remember this post', 'told you so', 'called it',
+  'i am early', "i'm early", 'get in early', 'still early',
+  // Money/hype emojis commonly used in pump posts
+  '💰', '💵', '🤑', '🔥', '🏆',
+  // Self-promotion / monetization
+  'buy me a coffee', 'buymeacoffee', 'support me here',
+  'subscribe for', 'follow for more', 'follow me for',
+  // Automated trading signals
+  'stock pick', 'stock picks', 'top pick', 'top picks',
+  'my alerts', 'our alerts', 'morning alerts',
+  'watchlist', 'watch list',
 ];
 
 const PROMO_PATTERNS_LOW: string[] = [
@@ -121,6 +151,44 @@ const PROMO_PATTERNS_LOW: string[] = [
   'breaking', 'urgent', 'insider',
   'guaranteed', 'price target',
   'huge upside', 'massive upside', 'potential upside',
+  // Disclaimer language (almost always accompanies promotional content)
+  'not a financial advisor', 'personal analysis', 'own research',
+  'do your own research', 'disclaimer',
+  // Mild promotion signals
+  'on the radar', 'on my radar', 'just saying',
+  'subscribe', 'click here',
+  'let\'s get this', 'let\'s go', 'lfg',
+];
+
+// Regex-based patterns for detecting structural pump signals
+const REGEX_PATTERNS_HIGH: Array<{ regex: RegExp; flag: string; score: number }> = [
+  // Multiple tickers in one post ($XXXX pattern, 4+ = likely spam/alert service)
+  {
+    regex: /\$[A-Z]{2,5}/g,
+    flag: 'Multi-ticker spam',
+    score: 0, // Handled specially: 4+ tickers = +20, 6+ = +30
+  },
+];
+
+const REGEX_PATTERNS_MEDIUM: Array<{ regex: RegExp; flag: string; score: number }> = [
+  // Percentage gains bragging (e.g., "390%", "up 200%")
+  {
+    regex: /\d{3,4}%/g,
+    flag: 'Large percentage gain claims',
+    score: 0, // Handled specially: each match +10, up to +30
+  },
+  // External alert/promotion website links
+  {
+    regex: /(?:alerts?|signals?|picks?|trading)\.com/gi,
+    flag: 'Links to alert/signal service',
+    score: 15,
+  },
+  // "RSI: XX, MACD: XX" automated signal bot posts
+  {
+    regex: /\b(?:rsi|macd)\s*:\s*-?\d/gi,
+    flag: 'Automated trading signal',
+    score: 15,
+  },
 ];
 
 // Flat export for external consumers
@@ -144,27 +212,59 @@ export function calculatePromotionScore(text: string, context?: {
   let score = 0;
   const flags: string[] = [];
 
-  // Weighted pattern matching
+  // ── String-based pattern matching ──
   for (const pattern of PROMO_PATTERNS_HIGH) {
     if (lower.includes(pattern)) {
       score += 20;
-      if (flags.length < 8) flags.push(`Contains "${pattern}"`);
+      if (flags.length < 10) flags.push(`Contains "${pattern}"`);
     }
   }
   for (const pattern of PROMO_PATTERNS_MEDIUM) {
     if (lower.includes(pattern)) {
       score += 15;
-      if (flags.length < 8) flags.push(`Contains "${pattern}"`);
+      if (flags.length < 10) flags.push(`Contains "${pattern}"`);
     }
   }
   for (const pattern of PROMO_PATTERNS_LOW) {
     if (lower.includes(pattern)) {
       score += 10;
-      if (flags.length < 8) flags.push(`Contains "${pattern}"`);
+      if (flags.length < 10) flags.push(`Contains "${pattern}"`);
     }
   }
 
-  // Context bonuses
+  // ── Regex-based structural detection ──
+
+  // Multi-ticker spam detection: posts listing many $TICKER symbols
+  const tickerMatches = text.match(/\$[A-Z]{2,5}/g);
+  if (tickerMatches) {
+    const uniqueTickers = new Set(tickerMatches).size;
+    if (uniqueTickers >= 6) {
+      score += 30;
+      if (flags.length < 10) flags.push(`Lists ${uniqueTickers} tickers (likely alert spam)`);
+    } else if (uniqueTickers >= 4) {
+      score += 20;
+      if (flags.length < 10) flags.push(`Lists ${uniqueTickers} tickers (multi-ticker promotion)`);
+    }
+  }
+
+  // Percentage gain bragging: "390%", "up 314%", etc.
+  const pctMatches = text.match(/\d{3,4}%/g);
+  if (pctMatches) {
+    const pctScore = Math.min(pctMatches.length * 10, 30);
+    score += pctScore;
+    if (flags.length < 10) flags.push(`Claims ${pctMatches.length} large percentage gain(s)`);
+  }
+
+  // Automated signal detection (RSI/MACD bots)
+  for (const { regex, flag, score: regexScore } of REGEX_PATTERNS_MEDIUM) {
+    if (regexScore > 0 && regex.test(text)) {
+      score += regexScore;
+      if (flags.length < 10) flags.push(flag);
+      regex.lastIndex = 0; // Reset regex state
+    }
+  }
+
+  // ── Context bonuses ──
   if (context?.isPromotionSubreddit) {
     score += 15;
     flags.push('Posted in promotion-heavy community');
