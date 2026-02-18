@@ -51,7 +51,7 @@ export class RedditScanner implements SocialScanner {
 
       for (const query of queries) {
         try {
-          const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25&type=link`;
+          const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25`;
           const data = await redditGet(url);
 
           for (const post of (data?.data?.children || [])) {
@@ -720,5 +720,23 @@ export function getConfiguredScanners(): SocialScanner[] {
     new StockTwitsScanner(),
     new DiscordBotScanner(),
   ];
-  return all.filter(s => s.isConfigured());
+
+  const configured = all.filter(s => s.isConfigured());
+  const skipped = all.filter(s => !s.isConfigured());
+
+  console.log(`[Social Scan] Configured scanners (${configured.length}/${all.length}): ${configured.map(s => s.name).join(', ')}`);
+  if (skipped.length > 0) {
+    const envHints: Record<string, string> = {
+      google_cse: 'GOOGLE_CSE_API_KEY + GOOGLE_CSE_ID',
+      perplexity: 'PERPLEXITY_API_KEY',
+      youtube_api: 'YOUTUBE_API_KEY',
+      discord_bot: 'DISCORD_BOT_TOKEN',
+    };
+    for (const s of skipped) {
+      const hint = envHints[s.name] || 'unknown env var';
+      console.warn(`[Social Scan] SKIPPED ${s.name} (${s.platform}) — missing env: ${hint}`);
+    }
+  }
+
+  return configured;
 }
