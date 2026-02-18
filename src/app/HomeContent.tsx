@@ -293,7 +293,7 @@ export default function HomeContent() {
           limitReached: true,
         });
       } else if (!response.ok) {
-        setError(responseData.error || "An error occurred");
+        setError(responseData.message || responseData.error || "An error occurred");
       } else {
         setResult(responseData as RiskResponse);
         setUsage(responseData.usage);

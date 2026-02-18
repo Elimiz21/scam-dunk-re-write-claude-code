@@ -176,6 +176,10 @@ async function callPythonAIBackend(
       } : undefined,
     };
   } catch (error) {
+    // Re-throw ServiceUnavailableError so the main handler can return a proper 503
+    if (error instanceof ServiceUnavailableError) {
+      throw error;
+    }
     const errMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("AI backend call failed:", error);
     return { success: false, failReason: `Exception: ${errMsg}` };
