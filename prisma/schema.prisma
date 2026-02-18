@@ -226,7 +226,6 @@ model ScanHistory {
   pitchProvided   Boolean   @default(false)
   contextProvided Boolean   @default(false)
   ipAddress       String?
-  deletedAt       DateTime?
   createdAt       DateTime  @default(now())
 
   @@index([createdAt])
@@ -729,7 +728,6 @@ model RegulatoryFlag {
   sourceUrl   String?   @db.Text // URL to original source
   isActive    Boolean   @default(true)
   severity    String    @default("HIGH") // LOW, MEDIUM, HIGH, CRITICAL
-  deletedAt   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
