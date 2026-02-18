@@ -46,8 +46,9 @@ RUN mkdir -p models
 RUN python -c "from api_server import app; print('App imported successfully')"
 
 # Create non-root user for runtime security
-RUN adduser --disabled-password --no-create-home appuser \
-    && chown -R appuser:appuser /app
+RUN adduser --disabled-password --gecos "" appuser \
+    && mkdir -p /home/appuser/.cache \
+    && chown -R appuser:appuser /app /home/appuser
 USER appuser
 
 # Set default port (Railway will override with $PORT)
