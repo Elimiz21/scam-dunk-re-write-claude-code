@@ -400,9 +400,12 @@ export class GoogleCSEScanner implements SocialScanner {
     const allMentions: SocialMention[] = [];
     const seenUrls = new Set<string>();
 
+    let apiErrors = 0;
+
     for (const target of targets) {
-      const siteQueries = SOCIAL_DOMAINS.map(d => `site:${d}`).join(' OR ');
-      const query = `"${target.ticker}" stock (${siteQueries})`;
+      // Use a short query — the CSE itself should be configured to search social sites.
+      // Long site: OR chains get truncated by the API and return 0 results.
+      const query = `"$${target.ticker}" OR "${target.ticker} stock"`;
 
       try {
         const params = new URLSearchParams({
@@ -410,7 +413,9 @@ export class GoogleCSEScanner implements SocialScanner {
         });
         const res = await fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
         if (!res.ok) {
-          console.error(`[Google CSE] API ${res.status} for ${target.ticker}: ${await res.text().catch(() => 'no body')}`);
+          const body = await res.text().catch(() => 'no body');
+          console.error(`[Google CSE] API ${res.status} for ${target.ticker}: ${body}`);
+          apiErrors++;
           continue;
         }
         const data = await res.json();
@@ -466,8 +471,15 @@ export class GoogleCSEScanner implements SocialScanner {
     const avgScore = allMentions.length > 0
       ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
 
+    const allFailed = apiErrors === targets.length;
+    if (allFailed) {
+      console.error(`[Google CSE] All ${targets.length} ticker queries failed. Check your GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID are valid.`);
+    }
+
     return [{
-      platform: 'Multi-Platform (Google CSE)', scanner: this.name, success: true,
+      platform: 'Multi-Platform (Google CSE)', scanner: this.name,
+      success: !allFailed,
+      error: allFailed ? `All ${apiErrors} API requests failed — check CSE credentials` : undefined,
       mentionsFound: allMentions.length, mentions: allMentions,
       activityLevel: allMentions.length >= 20 ? 'high' : allMentions.length >= 5 ? 'medium' : allMentions.length > 0 ? 'low' : 'none',
       promotionRisk: avgScore >= 40 ? 'high' : avgScore >= 20 ? 'medium' : 'low',
@@ -633,6 +645,19 @@ export class DiscordBotScanner implements SocialScanner {
 
     try {
       const guilds = await discordGet('/users/@me/guilds');
+
+      if (!guilds || guilds.length === 0) {
+        console.warn('[Discord] Bot is not in any servers. Invite it to stock-related Discord servers for scanning to work.');
+        return [{
+          platform: 'Discord', scanner: this.name, success: false,
+          error: 'Bot is not in any Discord servers — invite it to stock-related servers first',
+          mentionsFound: 0, mentions: [], activityLevel: 'none', promotionRisk: 'low',
+          scanDuration: Date.now() - startTime,
+        }];
+      }
+
+      console.log(`[Discord] Bot is in ${guilds.length} server(s): ${guilds.map((g: any) => g.name).join(', ')}`);
+
       const tickerPatterns = targets.map(t => ({
         target: t, regex: new RegExp(`\\b\\$?${t.ticker}\\b`, 'i'),
       }));
