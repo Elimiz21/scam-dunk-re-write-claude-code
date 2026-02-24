@@ -2,6 +2,9 @@
  * Shared types for the Social Media Scanning System
  */
 
+// Re-export platform-specific scoring so scanners can import from './types'
+export { calculatePlatformSpecificScore } from './platform-patterns';
+
 // Input: what we're scanning for
 export interface ScanTarget {
   ticker: string;
