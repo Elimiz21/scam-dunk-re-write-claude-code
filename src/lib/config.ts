@@ -1,75 +1,86 @@
-// Configuration values loaded from environment variables
+// Configuration values loaded from environment variables.
+// Uses getters so process.env is read at access time (not at build/module-init
+// time). This ensures runtime env vars injected by Vercel are always picked up,
+// even if they were absent during `next build`.
+
+function env(key: string, fallback = ""): string {
+  return process.env[key] || fallback;
+}
+
+function envInt(key: string, fallback: number): number {
+  return parseInt(process.env[key] || String(fallback), 10);
+}
 
 export const config = {
   // Plan limits
-  freeChecksPerMonth: parseInt(process.env.FREE_CHECKS_PER_MONTH || "5", 10),
-  paidChecksPerMonth: parseInt(process.env.PAID_CHECKS_PER_MONTH || "200", 10),
+  get freeChecksPerMonth() { return envInt("FREE_CHECKS_PER_MONTH", 5); },
+  get paidChecksPerMonth() { return envInt("PAID_CHECKS_PER_MONTH", 200); },
 
   // PayPal
-  paypalClientId: process.env.PAYPAL_CLIENT_ID || "",
-  paypalClientSecret: process.env.PAYPAL_CLIENT_SECRET || "",
-  paypalPlanId: process.env.PAYPAL_PLAN_ID || "",
-  paypalWebhookId: process.env.PAYPAL_WEBHOOK_ID || "",
-  paypalMode: process.env.PAYPAL_MODE || "sandbox",
+  get paypalClientId() { return env("PAYPAL_CLIENT_ID"); },
+  get paypalClientSecret() { return env("PAYPAL_CLIENT_SECRET"); },
+  get paypalPlanId() { return env("PAYPAL_PLAN_ID"); },
+  get paypalWebhookId() { return env("PAYPAL_WEBHOOK_ID"); },
+  get paypalMode() { return env("PAYPAL_MODE", "sandbox"); },
 
   // OpenAI
-  openaiApiKey: process.env.OPENAI_API_KEY || "",
+  get openaiApiKey() { return env("OPENAI_API_KEY"); },
 
   // Financial Modeling Prep API (Primary)
-  fmpApiKey: process.env.FMP_API_KEY || "",
+  get fmpApiKey() { return env("FMP_API_KEY"); },
 
   // Alpha Vantage API (Legacy/Fallback)
-  alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY || "",
+  get alphaVantageApiKey() { return env("ALPHA_VANTAGE_API_KEY"); },
 
   // OTC Markets API (optional - free public API used by default, paid API if key provided)
-  otcMarketsApiKey: process.env.OTC_MARKETS_API_KEY || "",
+  get otcMarketsApiKey() { return env("OTC_MARKETS_API_KEY"); },
 
   // FINRA API (optional - free BrokerCheck API used by default, official API if key provided)
-  finraApiKey: process.env.FINRA_API_KEY || "",
+  get finraApiKey() { return env("FINRA_API_KEY"); },
 
   // NextAuth
-  nextAuthUrl: process.env.NEXTAUTH_URL || "http://localhost:3000",
-  nextAuthSecret: process.env.NEXTAUTH_SECRET || "",
+  get nextAuthUrl() { return env("NEXTAUTH_URL", "http://localhost:3000"); },
+  get nextAuthSecret() { return env("NEXTAUTH_SECRET"); },
 
   // Python AI Backend (for full ML models)
-  aiBackendUrl: process.env.AI_BACKEND_URL || "http://localhost:8000",
+  get aiBackendUrl() { return env("AI_BACKEND_URL", "http://localhost:8000"); },
 
   // Social Scan APIs
-  youtubeApiKey: process.env.YOUTUBE_API_KEY || "",
+  get youtubeApiKey() { return env("YOUTUBE_API_KEY"); },
   // Reddit OAuth credentials — no longer required (public JSON scanner needs no auth).
   // Kept for backward compatibility if OAuth access is restored in the future.
-  redditClientId: process.env.REDDIT_CLIENT_ID || "",
-  redditClientSecret: process.env.REDDIT_CLIENT_SECRET || "",
-  redditUsername: process.env.REDDIT_USERNAME || "",
-  redditPassword: process.env.REDDIT_PASSWORD || "",
-  googleCseApiKey: process.env.GOOGLE_CSE_API_KEY || "",
-  googleCseId: process.env.GOOGLE_CSE_ID || "",
-  perplexityApiKey: process.env.PERPLEXITY_API_KEY || "",
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
-  discordBotToken: process.env.DISCORD_BOT_TOKEN || "",
-  crowdtangleApiKey: process.env.CROWDTANGLE_API_KEY || "",
+  get redditClientId() { return env("REDDIT_CLIENT_ID"); },
+  get redditClientSecret() { return env("REDDIT_CLIENT_SECRET"); },
+  get redditUsername() { return env("REDDIT_USERNAME"); },
+  get redditPassword() { return env("REDDIT_PASSWORD"); },
+  get googleCseApiKey() { return env("GOOGLE_CSE_API_KEY"); },
+  get googleCseId() { return env("GOOGLE_CSE_ID"); },
+  get perplexityApiKey() { return env("PERPLEXITY_API_KEY"); },
+  get anthropicApiKey() { return env("ANTHROPIC_API_KEY"); },
+  get discordBotToken() { return env("DISCORD_BOT_TOKEN"); },
+  get crowdtangleApiKey() { return env("CROWDTANGLE_API_KEY"); },
 
   // Browser Agent Platform Credentials (personal account logins)
-  browserDiscordEmail: process.env.BROWSER_DISCORD_EMAIL || "",
-  browserDiscordPassword: process.env.BROWSER_DISCORD_PASSWORD || "",
-  browserDiscord2faSecret: process.env.BROWSER_DISCORD_2FA_SECRET || "",
-  browserRedditUsername: process.env.BROWSER_REDDIT_USERNAME || "",
-  browserRedditPassword: process.env.BROWSER_REDDIT_PASSWORD || "",
-  browserReddit2faSecret: process.env.BROWSER_REDDIT_2FA_SECRET || "",
-  browserTwitterUsername: process.env.BROWSER_TWITTER_USERNAME || "",
-  browserTwitterPassword: process.env.BROWSER_TWITTER_PASSWORD || "",
-  browserTwitter2faSecret: process.env.BROWSER_TWITTER_2FA_SECRET || "",
-  browserInstagramUsername: process.env.BROWSER_INSTAGRAM_USERNAME || "",
-  browserInstagramPassword: process.env.BROWSER_INSTAGRAM_PASSWORD || "",
-  browserInstagram2faSecret: process.env.BROWSER_INSTAGRAM_2FA_SECRET || "",
-  browserFacebookEmail: process.env.BROWSER_FACEBOOK_EMAIL || "",
-  browserFacebookPassword: process.env.BROWSER_FACEBOOK_PASSWORD || "",
-  browserFacebook2faSecret: process.env.BROWSER_FACEBOOK_2FA_SECRET || "",
-  browserTiktokUsername: process.env.BROWSER_TIKTOK_USERNAME || "",
-  browserTiktokPassword: process.env.BROWSER_TIKTOK_PASSWORD || "",
-  browserTiktok2faSecret: process.env.BROWSER_TIKTOK_2FA_SECRET || "",
-  browserSessionEncryptionKey: process.env.BROWSER_SESSION_ENCRYPTION_KEY || "",
-} as const;
+  get browserDiscordEmail() { return env("BROWSER_DISCORD_EMAIL"); },
+  get browserDiscordPassword() { return env("BROWSER_DISCORD_PASSWORD"); },
+  get browserDiscord2faSecret() { return env("BROWSER_DISCORD_2FA_SECRET"); },
+  get browserRedditUsername() { return env("BROWSER_REDDIT_USERNAME"); },
+  get browserRedditPassword() { return env("BROWSER_REDDIT_PASSWORD"); },
+  get browserReddit2faSecret() { return env("BROWSER_REDDIT_2FA_SECRET"); },
+  get browserTwitterUsername() { return env("BROWSER_TWITTER_USERNAME"); },
+  get browserTwitterPassword() { return env("BROWSER_TWITTER_PASSWORD"); },
+  get browserTwitter2faSecret() { return env("BROWSER_TWITTER_2FA_SECRET"); },
+  get browserInstagramUsername() { return env("BROWSER_INSTAGRAM_USERNAME"); },
+  get browserInstagramPassword() { return env("BROWSER_INSTAGRAM_PASSWORD"); },
+  get browserInstagram2faSecret() { return env("BROWSER_INSTAGRAM_2FA_SECRET"); },
+  get browserFacebookEmail() { return env("BROWSER_FACEBOOK_EMAIL"); },
+  get browserFacebookPassword() { return env("BROWSER_FACEBOOK_PASSWORD"); },
+  get browserFacebook2faSecret() { return env("BROWSER_FACEBOOK_2FA_SECRET"); },
+  get browserTiktokUsername() { return env("BROWSER_TIKTOK_USERNAME"); },
+  get browserTiktokPassword() { return env("BROWSER_TIKTOK_PASSWORD"); },
+  get browserTiktok2faSecret() { return env("BROWSER_TIKTOK_2FA_SECRET"); },
+  get browserSessionEncryptionKey() { return env("BROWSER_SESSION_ENCRYPTION_KEY"); },
+};
 
 /**
  * Validate required environment variables at startup.
