@@ -60,6 +60,11 @@ export const config = {
   get discordBotToken() { return env("DISCORD_BOT_TOKEN"); },
   get crowdtangleApiKey() { return env("CROWDTANGLE_API_KEY"); },
 
+  // Email (Resend)
+  get resendApiKey() { return env("RESEND_API_KEY"); },
+  get emailFrom() { return env("EMAIL_FROM"); },
+  get adminAlertEmail() { return env("ADMIN_ALERT_EMAIL"); },
+
   // Browser Agent Platform Credentials (personal account logins)
   get browserDiscordEmail() { return env("BROWSER_DISCORD_EMAIL"); },
   get browserDiscordPassword() { return env("BROWSER_DISCORD_PASSWORD"); },

@@ -14,7 +14,20 @@ import {
   Bot,
   User,
   AlertTriangle,
+  KeyRound,
+  Database,
+  Cloud,
+  Trash2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+
+interface CredentialField {
+  key: string;
+  label: string;
+  envVar: string;
+  sensitive?: boolean;
+}
 
 interface Integration {
   id: string;
@@ -30,6 +43,8 @@ interface Integration {
   errorMessage: string | null;
   description: string;
   documentation: string;
+  credentialFields: CredentialField[];
+  hasDbCredentials: boolean;
 }
 
 interface HealthSummary {
@@ -45,8 +60,13 @@ export default function IntegrationsPage() {
   const [healthSummary, setHealthSummary] = useState<HealthSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [testing, setTesting] = useState<string | null>(null);
   const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
+  const [credentialsIntegration, setCredentialsIntegration] = useState<Integration | null>(null);
+  const [credentialValues, setCredentialValues] = useState<Record<string, string>>({});
+  const [savingCredentials, setSavingCredentials] = useState(false);
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchIntegrations();
@@ -116,6 +136,71 @@ export default function IntegrationsPage() {
     }
   }
 
+  function openCredentialsModal(integration: Integration) {
+    setCredentialsIntegration(integration);
+    setCredentialValues({});
+    setShowPasswords({});
+    setError("");
+    setSuccess("");
+  }
+
+  async function saveCredentials() {
+    if (!credentialsIntegration) return;
+
+    // Filter out empty values
+    const nonEmpty: Record<string, string> = {};
+    for (const [key, value] of Object.entries(credentialValues)) {
+      if (value.trim()) nonEmpty[key] = value.trim();
+    }
+
+    if (Object.keys(nonEmpty).length === 0) {
+      setError("Please enter at least one credential value");
+      return;
+    }
+
+    setSavingCredentials(true);
+    try {
+      const res = await fetch("/api/admin/integrations", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: credentialsIntegration.name,
+          credentials: nonEmpty,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save credentials");
+
+      setSuccess(`Credentials saved for ${credentialsIntegration.displayName}`);
+      setCredentialsIntegration(null);
+      setCredentialValues({});
+      await fetchIntegrations();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save credentials");
+    } finally {
+      setSavingCredentials(false);
+    }
+  }
+
+  async function clearCredentials(integration: Integration) {
+    if (!confirm(`Clear all stored credentials for ${integration.displayName}? It will revert to environment variables.`)) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/integrations", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: integration.name, clear: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to clear credentials");
+      setSuccess(`Credentials cleared for ${integration.displayName}`);
+      await fetchIntegrations();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to clear credentials");
+    }
+  }
+
   function getStatusIcon(status: string) {
     switch (status) {
       case "CONNECTED":
@@ -175,6 +260,9 @@ export default function IntegrationsPage() {
 
         {error && (
           <AlertBanner type="error" title="Error" message={error} onDismiss={() => setError("")} />
+        )}
+        {success && (
+          <AlertBanner type="success" title="Success" message={success} onDismiss={() => setSuccess("")} />
         )}
 
         {/* Health Summary */}
@@ -268,6 +356,7 @@ export default function IntegrationsPage() {
                         {integration.status}
                       </span>
                     </div>
+
                     {/* Special notes for specific integrations */}
                     {integration.name === "DISCORD_BOT" && integration.apiKeyMasked !== "Not configured" && (
                       <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800 flex items-start gap-2">
@@ -285,11 +374,26 @@ export default function IntegrationsPage() {
                               ? "Bot Token"
                               : "API Key"}
                         </span>
-                        <span className="font-mono text-foreground">
-                          {integration.apiKeyMasked?.startsWith("FREE")
-                            ? "Free Public API"
-                            : integration.apiKeyMasked || "Not configured"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-foreground">
+                            {integration.apiKeyMasked?.startsWith("FREE")
+                              ? "Free Public API"
+                              : integration.apiKeyMasked || "Not configured"}
+                          </span>
+                          {/* Source indicator */}
+                          {integration.apiKeyMasked && integration.apiKeyMasked !== "Not configured" && (
+                            <span
+                              title={integration.hasDbCredentials ? "Stored in database (set via dashboard)" : "From environment variable"}
+                              className="inline-flex items-center"
+                            >
+                              {integration.hasDbCredentials ? (
+                                <Database className="h-3.5 w-3.5 text-blue-500" />
+                              ) : (
+                                <Cloud className="h-3.5 w-3.5 text-gray-400" />
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {integration.rateLimit && (
                         <div className="flex justify-between text-sm">
@@ -318,6 +422,17 @@ export default function IntegrationsPage() {
                           )}
                           Test
                         </button>
+                        {integration.credentialFields.length > 0 && (
+                          <button
+                            onClick={() => openCredentialsModal(integration)}
+                            className="inline-flex items-center px-3 py-1 text-sm text-amber-600 hover:text-amber-700"
+                          >
+                            <KeyRound className="h-4 w-4 mr-1" />
+                            {integration.apiKeyMasked === "Not configured"
+                              ? "Set Credentials"
+                              : "Update Credentials"}
+                          </button>
+                        )}
                         <button
                           onClick={() => setEditingIntegration(integration)}
                           className="inline-flex items-center px-3 py-1 text-sm text-muted-foreground hover:text-foreground"
@@ -345,7 +460,7 @@ export default function IntegrationsPage() {
           ))
         )}
 
-        {/* Edit Modal */}
+        {/* Configure Modal (rate limits, budgets, enable/disable) */}
         {editingIntegration && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-md">
@@ -405,8 +520,8 @@ export default function IntegrationsPage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {editingIntegration.category === "REGULATORY"
-                    ? "Note: Uses free public APIs by default. Set API key env vars for paid tier access."
-                    : "Note: To update API keys, modify the environment variables directly."}
+                    ? "Note: Uses free public APIs by default. Set API key for paid tier access."
+                    : "Use the \"Set Credentials\" button on the card to update API keys."}
                 </p>
               </div>
               <div className="mt-6 flex justify-end space-x-3">
@@ -426,6 +541,115 @@ export default function IntegrationsPage() {
                   className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90"
                 >
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Credentials Modal */}
+        {credentialsIntegration && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-foreground">
+                  <KeyRound className="h-5 w-5 inline mr-2 text-amber-600" />
+                  {credentialsIntegration.displayName} Credentials
+                </h3>
+                {credentialsIntegration.hasDbCredentials && (
+                  <button
+                    onClick={() => {
+                      clearCredentials(credentialsIntegration);
+                      setCredentialsIntegration(null);
+                    }}
+                    className="inline-flex items-center px-2 py-1 text-xs text-red-600 hover:text-red-700 border border-red-200 rounded hover:bg-red-50"
+                    title="Clear stored credentials and revert to environment variables"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Clear Stored
+                  </button>
+                )}
+              </div>
+
+              {credentialsIntegration.hasDbCredentials && (
+                <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800 flex items-start gap-2">
+                  <Database className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>This integration has credentials stored in the database. New values will overwrite them.</span>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {credentialsIntegration.credentialFields.map((field) => {
+                  const isSensitive = field.sensitive !== false;
+                  const isVisible = showPasswords[field.key];
+                  return (
+                    <div key={field.key}>
+                      <label className="block text-sm font-medium text-foreground mb-1">
+                        {field.label}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={isSensitive && !isVisible ? "password" : "text"}
+                          value={credentialValues[field.key] || ""}
+                          onChange={(e) =>
+                            setCredentialValues({
+                              ...credentialValues,
+                              [field.key]: e.target.value,
+                            })
+                          }
+                          className="block w-full border border-border rounded-md px-3 py-2 pr-10 bg-card text-foreground font-mono text-sm"
+                          placeholder={`Enter ${field.label.toLowerCase()}`}
+                          autoComplete="off"
+                        />
+                        {isSensitive && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowPasswords({
+                                ...showPasswords,
+                                [field.key]: !isVisible,
+                              })
+                            }
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                          >
+                            {isVisible ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Env var: <code className="text-xs">{field.envVar}</code>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="mt-4 text-xs text-muted-foreground">
+                Credentials are encrypted with AES-256-GCM and stored in the database. They take
+                priority over environment variables. Leave a field empty to keep its current value.
+              </p>
+
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setCredentialsIntegration(null);
+                    setCredentialValues({});
+                  }}
+                  className="px-4 py-2 text-foreground border border-border rounded-md hover:bg-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveCredentials}
+                  disabled={savingCredentials}
+                  className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50 inline-flex items-center"
+                >
+                  {savingCredentials && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Credentials
                 </button>
               </div>
             </div>
