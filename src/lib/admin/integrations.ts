@@ -312,19 +312,6 @@ async function testDiscordBot(): Promise<{ status: string; message?: string }> {
   }
 }
 
-async function testCrowdTangle(): Promise<{ status: string; message?: string }> {
-  if (!config.crowdtangleApiKey) return { status: "ERROR", message: "API token not configured" };
-  try {
-    const response = await fetch(
-      `https://api.crowdtangle.com/lists?token=${config.crowdtangleApiKey}`
-    );
-    if (response.ok) return { status: "CONNECTED" };
-    if (response.status === 401) return { status: "ERROR", message: "Invalid API token" };
-    return { status: "ERROR", message: `CrowdTangle returned ${response.status}` };
-  } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
-  }
-}
 
 function testBrowserCredential(
   usernameKey: keyof typeof config,
@@ -589,18 +576,6 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     documentation: "https://discord.com/developers/docs",
     credentialFields: [
       { key: "botToken", label: "Bot Token", envVar: "DISCORD_BOT_TOKEN" },
-    ],
-  },
-  {
-    name: "CROWDTANGLE",
-    displayName: "CrowdTangle / Meta Content Library",
-    category: "SOCIAL_SCAN",
-    description: "Searches public Facebook, Instagram, and Reddit content (Meta research tool)",
-    getApiKey: () => config.crowdtangleApiKey,
-    testConnection: testCrowdTangle,
-    documentation: "https://www.crowdtangle.com/",
-    credentialFields: [
-      { key: "apiKey", label: "API Token", envVar: "CROWDTANGLE_API_KEY" },
     ],
   },
   // Browser Agent Platform Credentials (personal accounts)
