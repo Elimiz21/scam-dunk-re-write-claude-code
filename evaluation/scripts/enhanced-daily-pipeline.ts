@@ -40,6 +40,7 @@ if (!fs.existsSync(SCHEME_DB_DIR)) fs.mkdirSync(SCHEME_DB_DIR, { recursive: true
 const FMP_API_KEY = process.env.FMP_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL || '';  // Python AI backend for full 4-layer analysis
+const AI_API_SECRET = process.env.AI_API_SECRET || '';  // Auth key for Python AI backend
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 // Note: Legacy v3 endpoints deprecated Aug 31, 2025 - now using stable API
 const FMP_DELAY_MS = 210;
@@ -444,15 +445,42 @@ async function callPythonAIBackend(symbol: string): Promise<PythonAIResult | nul
     }
 
     try {
-        const cmd = `curl -s --max-time 30 -X POST "${AI_BACKEND_URL}/analyze" ` +
+        // Build auth header if API secret is configured
+        const authHeader = AI_API_SECRET
+            ? `-H "X-API-Key: ${AI_API_SECRET}" `
+            : '';
+
+        // Use -w to append HTTP status code, separated by newline
+        const cmd = `curl -s --max-time 30 -w '\\n%{http_code}' -X POST "${AI_BACKEND_URL}/analyze" ` +
             `-H "Content-Type: application/json" ` +
+            authHeader +
             `-d '{"ticker": "${symbol}", "asset_type": "stock", "use_live_data": true}'`;
 
         const result = execSync(cmd, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
 
         if (!result) return null;
 
-        const data = JSON.parse(result);
+        // Parse HTTP status code from the last line
+        const lines = result.trim().split('\n');
+        const httpStatus = parseInt(lines[lines.length - 1], 10);
+        const body = lines.slice(0, -1).join('\n');
+
+        // Reject non-200 responses instead of silently treating them as LOW
+        if (httpStatus !== 200) {
+            console.log(`     Python AI backend returned HTTP ${httpStatus} for ${symbol}`);
+            return null;
+        }
+
+        if (!body) return null;
+
+        const data = JSON.parse(body);
+
+        // Validate that the response has the expected structure
+        // (prevents error responses like {"detail":"..."} from being misinterpreted)
+        if (!data.ticker && !data.risk_level) {
+            console.log(`     Python AI backend returned unexpected response for ${symbol}`);
+            return null;
+        }
 
         return {
             success: true,

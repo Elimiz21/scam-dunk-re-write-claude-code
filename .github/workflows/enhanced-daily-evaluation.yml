@@ -203,6 +203,8 @@ jobs:
           DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          AI_BACKEND_URL: ${{ secrets.AI_BACKEND_URL }}
+          AI_API_SECRET: ${{ secrets.AI_API_SECRET }}
         run: |
           MISSING=""
           if [ -z "$FMP_API_KEY" ]; then MISSING="$MISSING FMP_API_KEY"; fi
@@ -222,6 +224,9 @@ jobs:
           else
             echo "YOUTUBE_API_KEY configured for YouTube scanning"
           fi
+          if [ -n "$AI_BACKEND_URL" ] && [ -z "$AI_API_SECRET" ]; then
+            echo "::warning::AI_BACKEND_URL is set but AI_API_SECRET is missing - Python AI backend requests will fail auth"
+          fi
           echo "All required secrets are configured"
 
       - name: Determine evaluation date
@@ -240,6 +245,7 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AI_BACKEND_URL: ${{ secrets.AI_BACKEND_URL }}  # Python AI backend for full 4-layer analysis
+          AI_API_SECRET: ${{ secrets.AI_API_SECRET }}  # Auth key for Python AI backend
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}  # For YouTube social media scanning
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}  # For crash notification emails
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
