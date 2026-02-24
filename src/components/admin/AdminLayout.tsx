@@ -86,6 +86,7 @@ const navigationCategories: NavCategory[] = [
     name: "Market Intelligence",
     icon: BarChart3,
     items: [
+      { name: "Scan Status", href: "/admin/scan-status", icon: Activity },
       { name: "Scan Intelligence", href: "/admin/scan-intelligence", icon: Radar },
       { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
       { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
