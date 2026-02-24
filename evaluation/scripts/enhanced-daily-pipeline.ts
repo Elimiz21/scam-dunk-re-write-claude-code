@@ -784,10 +784,168 @@ function tickerResultToComprehensiveScan(result: TickerScanResult): Comprehensiv
     };
 }
 
+// ─── Scan Status Tracking ───────────────────────────────────────────
+// Captures phase-level completion, timing, and errors so the admin
+// dashboard can show exactly what ran (and what didn't).
+
+interface PhaseStatus {
+    name: string;
+    status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+    startedAt: string | null;
+    completedAt: string | null;
+    durationMs: number | null;
+    error: string | null;
+    details: Record<string, any>;
+}
+
+interface ScanStatus {
+    date: string;
+    pipelineStatus: 'running' | 'completed' | 'failed';
+    startedAt: string;
+    completedAt: string | null;
+    durationMinutes: number | null;
+    error: string | null;
+    failedAtPhase: string | null;
+    aiBackend: {
+        configured: boolean;
+        available: boolean;
+        layersUsed: string[];
+    };
+    phases: {
+        phase1_riskScoring: PhaseStatus;
+        phase2_sizeFiltering: PhaseStatus;
+        phase3_newsAnalysis: PhaseStatus;
+        phase4_socialMedia: PhaseStatus;
+        phase5_schemeTracking: PhaseStatus;
+    };
+    summary: {
+        totalStocks: number;
+        processed: number;
+        skippedNoData: number;
+        riskCounts: { LOW: number; MEDIUM: number; HIGH: number; INSUFFICIENT: number };
+        highRiskBeforeFilters: number;
+        filteredByMarketCap: number;
+        filteredByVolume: number;
+        filteredByNews: number;
+        remainingSuspicious: number;
+        newSchemes: number;
+        ongoingSchemes: number;
+        totalActiveSchemes: number;
+    };
+    socialMediaDetails: {
+        platformsUsed: string[];
+        platformResults: Array<{
+            platform: string;
+            scanner: string;
+            configured: boolean;
+            success: boolean;
+            mentionsFound: number;
+            error: string | null;
+        }>;
+        totalMentions: number;
+        tickersScanned: number;
+        tickersWithMentions: number;
+    };
+}
+
+function createInitialScanStatus(date: string): ScanStatus {
+    const emptyPhase = (name: string): PhaseStatus => ({
+        name,
+        status: 'pending',
+        startedAt: null,
+        completedAt: null,
+        durationMs: null,
+        error: null,
+        details: {},
+    });
+    return {
+        date,
+        pipelineStatus: 'running',
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        durationMinutes: null,
+        error: null,
+        failedAtPhase: null,
+        aiBackend: { configured: false, available: false, layersUsed: [] },
+        phases: {
+            phase1_riskScoring: emptyPhase('Risk Scoring All Stocks'),
+            phase2_sizeFiltering: emptyPhase('Size & Volume Filtering'),
+            phase3_newsAnalysis: emptyPhase('News & SEC Filing Analysis'),
+            phase4_socialMedia: emptyPhase('Social Media Scanning'),
+            phase5_schemeTracking: emptyPhase('Scheme Tracking & Numbering'),
+        },
+        summary: {
+            totalStocks: 0, processed: 0, skippedNoData: 0,
+            riskCounts: { LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 },
+            highRiskBeforeFilters: 0, filteredByMarketCap: 0,
+            filteredByVolume: 0, filteredByNews: 0,
+            remainingSuspicious: 0, newSchemes: 0, ongoingSchemes: 0,
+            totalActiveSchemes: 0,
+        },
+        socialMediaDetails: {
+            platformsUsed: [], platformResults: [],
+            totalMentions: 0, tickersScanned: 0, tickersWithMentions: 0,
+        },
+    };
+}
+
+function saveScanStatus(scanStatus: ScanStatus): void {
+    const statusPath = path.join(RESULTS_DIR, `scan-status-${scanStatus.date}.json`);
+    fs.writeFileSync(statusPath, JSON.stringify(scanStatus, null, 2));
+}
+
+function sendCrashNotification(scanStatus: ScanStatus): void {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+    if (!RESEND_API_KEY) {
+        console.log('RESEND_API_KEY not set – skipping crash email');
+        return;
+    }
+
+    const completedPhases = Object.values(scanStatus.phases)
+        .filter(p => p.status === 'completed')
+        .map(p => p.name);
+    const failedPhase = Object.values(scanStatus.phases)
+        .find(p => p.status === 'failed');
+
+    const phasesHtml = Object.values(scanStatus.phases).map(p => {
+        const icon = p.status === 'completed' ? '&#9989;' // green check
+            : p.status === 'failed' ? '&#10060;'          // red X
+            : p.status === 'running' ? '&#9203;'          // hourglass
+            : '&#9898;';                                   // white circle
+        const color = p.status === 'completed' ? '#16a34a'
+            : p.status === 'failed' ? '#dc2626'
+            : '#9ca3af';
+        return `<tr><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;">${icon}</td><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:${color};font-weight:600;">${p.status.toUpperCase()}</td><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;">${p.name}</td><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:#666;">${p.error || ''}</td></tr>`;
+    }).join('');
+
+    const body = JSON.stringify({
+        from: 'ScamDunk Alerts <noreply@scamdunk.com>',
+        to: ['elimizroch@gmail.com'],
+        subject: `[CRASH] Daily Scan FAILED – ${scanStatus.date}${failedPhase ? ` (${failedPhase.name})` : ''}`,
+        html: `<h2 style="color:#dc2626;">Daily Scan Pipeline Crashed</h2>
+<p><strong>Date:</strong> ${scanStatus.date}<br/><strong>Failed at:</strong> ${failedPhase?.name || 'Unknown'}<br/><strong>Error:</strong> <code>${scanStatus.error || 'Unknown error'}</code></p>
+<h3>Phase Status</h3>
+<table style="border-collapse:collapse;width:100%;font-size:14px;"><thead><tr style="background:#f9fafb;"><th style="padding:6px 12px;text-align:left;"></th><th style="padding:6px 12px;text-align:left;">Status</th><th style="padding:6px 12px;text-align:left;">Phase</th><th style="padding:6px 12px;text-align:left;">Error</th></tr></thead><tbody>${phasesHtml}</tbody></table>
+<p style="margin-top:20px;"><strong>Completed before crash:</strong> ${completedPhases.length > 0 ? completedPhases.join(', ') : 'None'}</p>
+<p style="color:#666;font-size:12px;margin-top:30px;">This alert was sent by the ScamDunk automated pipeline.</p>`,
+    });
+
+    try {
+        execSync(
+            `curl -s -X POST "https://api.resend.com/emails" -H "Authorization: Bearer ${RESEND_API_KEY}" -H "Content-Type: application/json" -d '${body.replace(/'/g, "'\\''")}'`,
+            { encoding: 'utf-8', timeout: 15000 }
+        );
+        console.log('Crash notification email sent to elimizroch@gmail.com');
+    } catch (emailErr: any) {
+        console.error('Failed to send crash notification:', emailErr?.message || emailErr);
+    }
+}
+
 // Main pipeline execution
 async function runEnhancedPipeline(): Promise<void> {
     const startTime = Date.now();
     const evaluationDate = getEvaluationDate();
+    const scanStatus = createInitialScanStatus(evaluationDate);
 
     console.log('='.repeat(80));
     console.log('ENHANCED DAILY SCANNING PIPELINE');
@@ -797,12 +955,17 @@ async function runEnhancedPipeline(): Promise<void> {
     // Validate API keys
     if (!FMP_API_KEY) {
         console.error('ERROR: FMP_API_KEY not set');
+        scanStatus.pipelineStatus = 'failed';
+        scanStatus.error = 'FMP_API_KEY not set';
+        saveScanStatus(scanStatus);
+        sendCrashNotification(scanStatus);
         process.exit(1);
     }
 
     // Load stocks
     const stocks = loadStockList();
     console.log(`\nLoaded ${stocks.length} US stocks for scanning\n`);
+    scanStatus.summary.totalStocks = stocks.length;
 
     // Load existing scheme database
     const schemeDB = loadSchemeDatabase();
@@ -824,9 +987,18 @@ async function runEnhancedPipeline(): Promise<void> {
     // Phase 1: Run all scans and collect risk scores
     console.log('PHASE 1: Risk Scoring All Stocks');
     console.log('-'.repeat(50));
+    scanStatus.phases.phase1_riskScoring.status = 'running';
+    scanStatus.phases.phase1_riskScoring.startedAt = new Date().toISOString();
 
     // Check Python AI Backend availability for full 4-layer analysis
     const pythonAIAvailable = await checkPythonAIHealth();
+    scanStatus.aiBackend = {
+        configured: !!AI_BACKEND_URL,
+        available: pythonAIAvailable,
+        layersUsed: pythonAIAvailable
+            ? ['Layer 1: Deterministic', 'Layer 2: Anomaly Detection', 'Layer 3: Random Forest', 'Layer 4: LSTM']
+            : ['Layer 1: Deterministic'],
+    };
     if (pythonAIAvailable) {
         console.log('✅ Python AI Backend ONLINE - Using ALL 4 AI Layers:');
         console.log('   Layer 1: Deterministic Signal Detection (rule-based)');
@@ -956,10 +1128,26 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log(`  Risk Distribution: LOW=${riskCounts.LOW} MEDIUM=${riskCounts.MEDIUM} HIGH=${riskCounts.HIGH}`);
     console.log(`  High-risk stocks to analyze: ${highRiskBeforeFilter.length}`);
 
+    scanStatus.phases.phase1_riskScoring.status = 'completed';
+    scanStatus.phases.phase1_riskScoring.completedAt = new Date().toISOString();
+    scanStatus.phases.phase1_riskScoring.durationMs = Date.now() - new Date(scanStatus.phases.phase1_riskScoring.startedAt!).getTime();
+    scanStatus.phases.phase1_riskScoring.details = {
+        processed: processedCount,
+        skippedNoData,
+        riskCounts: { ...riskCounts },
+        highRiskFound: highRiskBeforeFilter.length,
+    };
+    scanStatus.summary.processed = processedCount;
+    scanStatus.summary.skippedNoData = skippedNoData;
+    scanStatus.summary.riskCounts = { ...riskCounts };
+    scanStatus.summary.highRiskBeforeFilters = highRiskBeforeFilter.length;
+
     // Phase 2: Filter high-risk stocks
     console.log('\n' + '='.repeat(80));
     console.log('PHASE 2: Filtering High-Risk Stocks');
     console.log('-'.repeat(50));
+    scanStatus.phases.phase2_sizeFiltering.status = 'running';
+    scanStatus.phases.phase2_sizeFiltering.startedAt = new Date().toISOString();
 
     const afterSizeFilter: EnhancedStockResult[] = [];
 
@@ -984,10 +1172,23 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log(`  Filtered by volume: ${filteredByVolume}`);
     console.log(`  Remaining for news check: ${afterSizeFilter.length}`);
 
+    scanStatus.phases.phase2_sizeFiltering.status = 'completed';
+    scanStatus.phases.phase2_sizeFiltering.completedAt = new Date().toISOString();
+    scanStatus.phases.phase2_sizeFiltering.durationMs = Date.now() - new Date(scanStatus.phases.phase2_sizeFiltering.startedAt!).getTime();
+    scanStatus.phases.phase2_sizeFiltering.details = {
+        filteredByMarketCap,
+        filteredByVolume,
+        remainingForNewsCheck: afterSizeFilter.length,
+    };
+    scanStatus.summary.filteredByMarketCap = filteredByMarketCap;
+    scanStatus.summary.filteredByVolume = filteredByVolume;
+
     // Phase 3: News & SEC Filing Analysis
     console.log('\n' + '='.repeat(80));
     console.log('PHASE 3: News & SEC Filing Analysis');
     console.log('-'.repeat(50));
+    scanStatus.phases.phase3_newsAnalysis.status = 'running';
+    scanStatus.phases.phase3_newsAnalysis.startedAt = new Date().toISOString();
 
     const afterNewsFilter: EnhancedStockResult[] = [];
 
@@ -1051,11 +1252,23 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log(`\n  Filtered by legitimate news: ${filteredByNews}`);
     console.log(`  Remaining suspicious stocks: ${afterNewsFilter.length}`);
 
+    scanStatus.phases.phase3_newsAnalysis.status = 'completed';
+    scanStatus.phases.phase3_newsAnalysis.completedAt = new Date().toISOString();
+    scanStatus.phases.phase3_newsAnalysis.durationMs = Date.now() - new Date(scanStatus.phases.phase3_newsAnalysis.startedAt!).getTime();
+    scanStatus.phases.phase3_newsAnalysis.details = {
+        stocksAnalyzed: afterSizeFilter.length,
+        filteredByNews,
+        remainingSuspicious: afterNewsFilter.length,
+    };
+    scanStatus.summary.filteredByNews = filteredByNews;
+
     // Phase 4: Social Media Scanning (Modular Orchestrator)
     // Uses all configured scanners: Google CSE, Perplexity, Reddit OAuth, YouTube, StockTwits, Discord
     console.log('\n' + '='.repeat(80));
     console.log('PHASE 4: Social Media Scanning (Modular Orchestrator)');
     console.log('-'.repeat(50));
+    scanStatus.phases.phase4_socialMedia.status = 'running';
+    scanStatus.phases.phase4_socialMedia.startedAt = new Date().toISOString();
 
     if (afterNewsFilter.length > 0) {
         // Convert pipeline stocks to ScanTarget format for the modular orchestrator
@@ -1107,14 +1320,42 @@ async function runEnhancedPipeline(): Promise<void> {
 
             suspiciousStocks.push(result);
         }
+        // Capture social media platform-level details for scan status
+        scanStatus.socialMediaDetails = {
+            platformsUsed: scanRunResult.platformsUsed,
+            platformResults: scanRunResult.results.length > 0
+                ? scanRunResult.results[0].platforms.map(p => ({
+                    platform: p.platform,
+                    scanner: p.scanner,
+                    configured: true,
+                    success: p.success,
+                    mentionsFound: p.mentionsFound,
+                    error: p.error || null,
+                }))
+                : [],
+            totalMentions: scanRunResult.totalMentions,
+            tickersScanned: scanRunResult.tickersScanned,
+            tickersWithMentions: scanRunResult.tickersWithMentions,
+        };
     } else {
         console.log('  No suspicious stocks to scan.');
     }
+
+    scanStatus.phases.phase4_socialMedia.status = 'completed';
+    scanStatus.phases.phase4_socialMedia.completedAt = new Date().toISOString();
+    scanStatus.phases.phase4_socialMedia.durationMs = Date.now() - new Date(scanStatus.phases.phase4_socialMedia.startedAt!).getTime();
+    scanStatus.phases.phase4_socialMedia.details = {
+        tickersScanned: afterNewsFilter.length,
+        platformsUsed: scanStatus.socialMediaDetails.platformsUsed,
+        totalMentions: scanStatus.socialMediaDetails.totalMentions,
+    };
 
     // Phase 5: Scheme Tracking
     console.log('\n' + '='.repeat(80));
     console.log('PHASE 5: Scheme Tracking & Numbering');
     console.log('-'.repeat(50));
+    scanStatus.phases.phase5_schemeTracking.status = 'running';
+    scanStatus.phases.phase5_schemeTracking.startedAt = new Date().toISOString();
 
     let newSchemes = 0;
     let ongoingSchemes = 0;
@@ -1378,6 +1619,22 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log(`  Ongoing schemes updated: ${ongoingSchemes}`);
     console.log(`  Total active schemes: ${schemeDB.size}`);
 
+    scanStatus.phases.phase5_schemeTracking.status = 'completed';
+    scanStatus.phases.phase5_schemeTracking.completedAt = new Date().toISOString();
+    scanStatus.phases.phase5_schemeTracking.durationMs = Date.now() - new Date(scanStatus.phases.phase5_schemeTracking.startedAt!).getTime();
+    scanStatus.phases.phase5_schemeTracking.details = {
+        newSchemes,
+        ongoingSchemes,
+        coolingSchemes,
+        resolvedSchemes,
+        noScamSchemes,
+        totalActiveSchemes: schemeDB.size,
+    };
+    scanStatus.summary.remainingSuspicious = suspiciousStocks.length;
+    scanStatus.summary.newSchemes = newSchemes;
+    scanStatus.summary.ongoingSchemes = ongoingSchemes;
+    scanStatus.summary.totalActiveSchemes = schemeDB.size;
+
     // Generate reports
     const endTime = Date.now();
     const durationMinutes = Math.round((endTime - startTime) / 60000);
@@ -1536,6 +1793,12 @@ async function runEnhancedPipeline(): Promise<void> {
     const promotedPath = path.join(RESULTS_DIR, `promoted-stocks-${evaluationDate}.json`);
     fs.writeFileSync(promotedPath, JSON.stringify(promotedReport, null, 2));
 
+    // Save scan status (success)
+    scanStatus.pipelineStatus = 'completed';
+    scanStatus.completedAt = new Date().toISOString();
+    scanStatus.durationMinutes = durationMinutes;
+    saveScanStatus(scanStatus);
+
     // Print final summary
     console.log('\n' + '='.repeat(80));
     console.log('PIPELINE COMPLETE');
@@ -1602,5 +1865,44 @@ runEnhancedPipeline()
     })
     .catch((error) => {
         console.error('\n❌ Pipeline failed:', error);
+
+        // Attempt to save crash status and send notification
+        try {
+            const evaluationDate = getEvaluationDate();
+            const statusPath = path.join(RESULTS_DIR, `scan-status-${evaluationDate}.json`);
+            let scanStatus: ScanStatus;
+
+            // Try to load partial status (written during pipeline phases)
+            if (fs.existsSync(statusPath)) {
+                scanStatus = JSON.parse(fs.readFileSync(statusPath, 'utf-8'));
+            } else {
+                scanStatus = createInitialScanStatus(evaluationDate);
+            }
+
+            // Mark running phase as failed
+            for (const phase of Object.values(scanStatus.phases)) {
+                if (phase.status === 'running') {
+                    phase.status = 'failed';
+                    phase.error = error?.message || String(error);
+                    phase.completedAt = new Date().toISOString();
+                    if (phase.startedAt) {
+                        phase.durationMs = Date.now() - new Date(phase.startedAt).getTime();
+                    }
+                    scanStatus.failedAtPhase = phase.name;
+                    break;
+                }
+            }
+
+            scanStatus.pipelineStatus = 'failed';
+            scanStatus.completedAt = new Date().toISOString();
+            scanStatus.error = error?.message || String(error);
+            scanStatus.durationMinutes = Math.round((Date.now() - new Date(scanStatus.startedAt).getTime()) / 60000);
+            saveScanStatus(scanStatus);
+
+            sendCrashNotification(scanStatus);
+        } catch (crashErr) {
+            console.error('Failed to save crash status:', crashErr);
+        }
+
         process.exit(1);
     });

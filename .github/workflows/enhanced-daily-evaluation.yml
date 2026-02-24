@@ -241,6 +241,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AI_BACKEND_URL: ${{ secrets.AI_BACKEND_URL }}  # Python AI backend for full 4-layer analysis
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}  # For YouTube social media scanning
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}  # For crash notification emails
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
         run: |
@@ -296,6 +297,7 @@ jobs:
             ["fmp-summary"]="results/fmp-summary-${DATE}.json"
             ["social-media-scan"]="results/social-media-scan-${DATE}.json"
             ["promoted-stocks"]="results/promoted-stocks-${DATE}.json"
+            ["scan-status"]="results/scan-status-${DATE}.json"
             ["scheme-database"]="scheme-database/scheme-database.json"
           )
 
