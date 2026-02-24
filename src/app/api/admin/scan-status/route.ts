@@ -11,12 +11,15 @@ import { getSupabaseClient, EVALUATION_BUCKET } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
+    const requestedDate = searchParams.get("date"); // optional YYYY-MM-DD
 
     const supabase = getSupabaseClient();
 
@@ -26,7 +29,7 @@ export async function GET() {
       .list("", {
         search: "scan-status-",
         sortBy: { column: "name", order: "desc" },
-        limit: 7,
+        limit: 30,
       });
 
     if (statusListError) {
@@ -39,23 +42,10 @@ export async function GET() {
 
     if (!statusFiles || statusFiles.length === 0) {
       // Fall back to daily-report files if no scan-status exists yet
-      return await fallbackToDailyReport(supabase);
+      return await fallbackToDailyReport(supabase, requestedDate);
     }
 
-    // Fetch the latest scan-status
-    const latestFile = statusFiles[0];
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from(EVALUATION_BUCKET)
-      .download(latestFile.name);
-
-    if (downloadError || !fileData) {
-      console.error("Error downloading scan-status:", downloadError);
-      return await fallbackToDailyReport(supabase);
-    }
-
-    const scanStatus = JSON.parse(await fileData.text());
-
-    // Build history (last 7 days)
+    // Build history from all found files
     const history = statusFiles.map((f) => {
       const dateMatch = f.name.match(/scan-status-(\d{4}-\d{2}-\d{2})/);
       return {
@@ -63,6 +53,29 @@ export async function GET() {
         filename: f.name,
       };
     });
+
+    // Pick the file for the requested date, or fall back to the latest
+    let targetFile = statusFiles[0];
+    if (requestedDate) {
+      const match = statusFiles.find((f) => f.name.includes(requestedDate));
+      if (match) {
+        targetFile = match;
+      } else {
+        // Date not found in scan-status files — try daily-report fallback for that date
+        return await fallbackToDailyReport(supabase, requestedDate, history);
+      }
+    }
+
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from(EVALUATION_BUCKET)
+      .download(targetFile.name);
+
+    if (downloadError || !fileData) {
+      console.error("Error downloading scan-status:", downloadError);
+      return await fallbackToDailyReport(supabase, requestedDate, history);
+    }
+
+    const scanStatus = JSON.parse(await fileData.text());
 
     return NextResponse.json({
       available: true,
@@ -80,26 +93,48 @@ export async function GET() {
 }
 
 // Fall back to daily-report when scan-status files don't exist yet
-async function fallbackToDailyReport(supabase: ReturnType<typeof getSupabaseClient>) {
+async function fallbackToDailyReport(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  requestedDate?: string | null,
+  existingHistory?: Array<{ date: string; filename: string }>
+) {
   const { data: reportFiles } = await supabase.storage
     .from(EVALUATION_BUCKET)
     .list("", {
       search: "daily-report-",
       sortBy: { column: "name", order: "desc" },
-      limit: 7,
+      limit: 30,
     });
 
   if (!reportFiles || reportFiles.length === 0) {
     return NextResponse.json({
       available: false,
       error: "No scan status or daily report files found. The pipeline may not have run yet.",
+      history: existingHistory || [],
     });
   }
 
-  const latestFile = reportFiles[0];
+  // Pick the file for the requested date, or latest
+  let targetFile = reportFiles[0];
+  if (requestedDate) {
+    const match = reportFiles.find((f) => f.name.includes(requestedDate));
+    if (match) {
+      targetFile = match;
+    } else {
+      return NextResponse.json({
+        available: false,
+        error: `No scan data found for ${requestedDate}`,
+        history: existingHistory || reportFiles.map((f) => {
+          const m = f.name.match(/daily-report-(\d{4}-\d{2}-\d{2})/);
+          return { date: m ? m[1] : "unknown", filename: f.name };
+        }),
+      });
+    }
+  }
+
   const { data: fileData } = await supabase.storage
     .from(EVALUATION_BUCKET)
-    .download(latestFile.name);
+    .download(targetFile.name);
 
   if (!fileData) {
     return NextResponse.json({
@@ -109,12 +144,22 @@ async function fallbackToDailyReport(supabase: ReturnType<typeof getSupabaseClie
   }
 
   const report = JSON.parse(await fileData.text());
-  const dateMatch = latestFile.name.match(/daily-report-(\d{4}-\d{2}-\d{2})/);
+  const dateMatch = targetFile.name.match(/daily-report-(\d{4}-\d{2}-\d{2})/);
 
-  const history = reportFiles.map((f) => {
+  // Merge daily-report dates into the history if we have an existing one from scan-status
+  const reportHistory = reportFiles.map((f) => {
     const m = f.name.match(/daily-report-(\d{4}-\d{2}-\d{2})/);
     return { date: m ? m[1] : "unknown", filename: f.name };
   });
+
+  // Combine histories: scan-status dates + daily-report dates that aren't already listed
+  const combinedHistory = existingHistory ? [...existingHistory] : [];
+  for (const rh of reportHistory) {
+    if (!combinedHistory.some((h) => h.date === rh.date)) {
+      combinedHistory.push(rh);
+    }
+  }
+  combinedHistory.sort((a, b) => b.date.localeCompare(a.date));
 
   return NextResponse.json({
     available: true,
@@ -134,6 +179,6 @@ async function fallbackToDailyReport(supabase: ReturnType<typeof getSupabaseClie
       activeSchemes: report.activeSchemes || 0,
     },
     durationMinutes: report.processingTimeMinutes || null,
-    history,
+    history: combinedHistory,
   });
 }
