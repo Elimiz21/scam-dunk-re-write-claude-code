@@ -299,6 +299,31 @@ async function testCrowdTangle(): Promise<{ status: string; message?: string }> 
 }
 
 /**
+ * Test Python AI Backend connection
+ */
+async function testAIBackend(): Promise<{ status: string; message?: string }> {
+  if (!config.aiBackendUrl || config.aiBackendUrl === "http://localhost:8000") {
+    return { status: "ERROR", message: "AI_BACKEND_URL not configured (using default localhost)" };
+  }
+
+  try {
+    const response = await fetch(`${config.aiBackendUrl}/health`, {
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const rfStatus = data.rf_ready ? "RF ready" : "RF not loaded";
+      const lstmStatus = data.lstm_ready ? "LSTM ready" : "LSTM not loaded";
+      return { status: "CONNECTED", message: `${rfStatus}, ${lstmStatus}` };
+    }
+    return { status: "ERROR", message: `Backend returned ${response.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+/**
  * Test browser agent credential (just checks if username + password are set)
  */
 function testBrowserCredential(
@@ -370,6 +395,20 @@ const INTEGRATIONS = [
     getApiKey: () => process.env.DATABASE_URL,
     testConnection: testDatabase,
     documentation: "https://supabase.com/docs",
+  },
+  // Python AI Backend (ML models for scam detection)
+  {
+    name: "AI_BACKEND",
+    displayName: "Python AI Backend",
+    category: "API",
+    description: "Hybrid ML scam detection (Random Forest + LSTM + anomaly detection)",
+    getApiKey: () => config.aiApiSecret,
+    testConnection: testAIBackend,
+    documentation: "https://github.com/Elimiz21/scam-dunk-re-write-claude-code/tree/main/python_ai",
+    credentialFields: [
+      { key: "url", label: "Backend URL", envVar: "AI_BACKEND_URL", sensitive: false },
+      { key: "apiSecret", label: "API Secret", envVar: "AI_API_SECRET" },
+    ],
   },
   // Regulatory Data Integrations (free public APIs)
   {

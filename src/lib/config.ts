@@ -33,6 +33,7 @@ export const config = {
 
   // Python AI Backend (for full ML models)
   aiBackendUrl: process.env.AI_BACKEND_URL || "http://localhost:8000",
+  aiApiSecret: process.env.AI_API_SECRET || "",
 
   // Social Scan APIs
   youtubeApiKey: process.env.YOUTUBE_API_KEY || "",
