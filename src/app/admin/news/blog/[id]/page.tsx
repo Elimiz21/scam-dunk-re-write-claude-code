@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { ArrowLeft, Save, Trash2, Eye, Upload, Sparkles, Loader2, FileText, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Eye, Upload, Sparkles, Loader2, FileText, AlertCircle, EyeOff, PenLine } from "lucide-react";
 import mammoth from "mammoth";
+import ImageUploadModal from "@/components/admin/editor/ImageUploadModal";
+
+const RichTextEditor = lazy(() => import("@/components/admin/editor/RichTextEditor"));
 
 interface BlogPost {
     id?: string;
@@ -49,6 +52,8 @@ export default function AdminBlogEditorPage() {
     const [currentUserName, setCurrentUserName] = useState("Scam Dunk Team");
     const [visualSuggestion, setVisualSuggestion] = useState("");
     const [isDragging, setIsDragging] = useState(false);
+    const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+    const [coverImageModalOpen, setCoverImageModalOpen] = useState(false);
     const [post, setPost] = useState<BlogPost>({
         title: "",
         slug: "",
@@ -76,7 +81,6 @@ export default function AdminBlogEditorPage() {
                 const data = await res.json();
                 setTeamMembers(data.members || []);
                 setCurrentUserName(data.currentUserName || "Scam Dunk Team");
-                // Set default author to current user for new posts
                 if (isNew && data.currentUserName) {
                     setPost(prev => ({ ...prev, author: data.currentUserName }));
                 }
@@ -124,8 +128,6 @@ export default function AdminBlogEditorPage() {
         const file = event.target.files?.[0];
         if (!file) return;
         await processFile(file);
-
-        // Reset file input
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -135,7 +137,6 @@ export default function AdminBlogEditorPage() {
         const fileName = file.name.toLowerCase();
         const fileExt = fileName.split('.').pop() || '';
 
-        // Supported formats
         const textFormats = ['md', 'txt', 'markdown', 'text', 'rtf'];
         const htmlFormats = ['html', 'htm'];
         const docFormats = ['docx'];
@@ -150,33 +151,25 @@ export default function AdminBlogEditorPage() {
             return;
         }
 
-        setAnalyzing(true); // Show loading state while processing
+        setAnalyzing(true);
 
         try {
-            let text = '';
+            let htmlContent = '';
 
             if (isDocxFormat) {
-                // Handle .docx files using mammoth
                 const arrayBuffer = await file.arrayBuffer();
                 const result = await mammoth.convertToHtml({ arrayBuffer });
-                // Convert HTML to simple markdown-like text
-                text = convertHtmlToMarkdown(result.value);
-                if (result.messages.length > 0) {
-                    console.log('Mammoth conversion messages:', result.messages);
-                }
+                htmlContent = result.value;
             } else if (isHtmlFormat) {
-                // Handle HTML files
-                const htmlContent = await file.text();
-                text = convertHtmlToMarkdown(htmlContent);
+                htmlContent = await file.text();
             } else {
-                // Handle plain text formats
-                text = await file.text();
+                // Convert plain text/markdown to basic HTML
+                const text = await file.text();
+                htmlContent = textToHtml(text);
             }
 
-            setPost(prev => ({ ...prev, content: text }));
-
-            // Auto-analyze the imported content
-            await analyzeContent(text);
+            setPost(prev => ({ ...prev, content: htmlContent }));
+            await analyzeContent(htmlContent);
         } catch (error) {
             console.error("Failed to read file:", error);
             alert("Failed to read the file. Please try a different format.");
@@ -184,62 +177,52 @@ export default function AdminBlogEditorPage() {
         }
     }
 
-    function convertHtmlToMarkdown(html: string): string {
-        // Simple HTML to markdown conversion
-        let text = html;
-
-        // Remove script and style tags
-        text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-        text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    function textToHtml(text: string): string {
+        // Convert basic markdown/text to HTML for the rich editor
+        let html = text;
 
         // Convert headings
-        text = text.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n# $1\n');
-        text = text.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '\n## $1\n');
-        text = text.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n### $1\n');
-        text = text.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '\n#### $1\n');
-        text = text.replace(/<h5[^>]*>(.*?)<\/h5>/gi, '\n##### $1\n');
-        text = text.replace(/<h6[^>]*>(.*?)<\/h6>/gi, '\n###### $1\n');
-
-        // Convert paragraphs and line breaks
-        text = text.replace(/<p[^>]*>/gi, '\n\n');
-        text = text.replace(/<\/p>/gi, '');
-        text = text.replace(/<br\s*\/?>/gi, '\n');
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
 
         // Convert bold and italic
-        text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-        text = text.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
-        text = text.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
-        text = text.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
         // Convert links
-        text = text.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
-        // Convert lists
-        text = text.replace(/<ul[^>]*>/gi, '\n');
-        text = text.replace(/<\/ul>/gi, '\n');
-        text = text.replace(/<ol[^>]*>/gi, '\n');
-        text = text.replace(/<\/ol>/gi, '\n');
-        text = text.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
+        // Convert line breaks into paragraphs
+        const paragraphs = html.split(/\n\n+/);
+        html = paragraphs
+            .map(p => {
+                p = p.trim();
+                if (!p) return '';
+                if (p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<ol') || p.startsWith('<blockquote')) return p;
+                // Handle list items
+                if (p.match(/^[-*] /m)) {
+                    const items = p.split(/\n/).map(line =>
+                        `<li>${line.replace(/^[-*]\s*/, '')}</li>`
+                    ).join('');
+                    return `<ul>${items}</ul>`;
+                }
+                if (p.match(/^\d+\. /m)) {
+                    const items = p.split(/\n/).map(line =>
+                        `<li>${line.replace(/^\d+\.\s*/, '')}</li>`
+                    ).join('');
+                    return `<ol>${items}</ol>`;
+                }
+                // Blockquotes
+                if (p.startsWith('>')) {
+                    return `<blockquote><p>${p.replace(/^>\s*/gm, '')}</p></blockquote>`;
+                }
+                return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+            })
+            .filter(Boolean)
+            .join('\n');
 
-        // Convert blockquotes
-        text = text.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, '\n> $1\n');
-
-        // Remove remaining HTML tags
-        text = text.replace(/<[^>]+>/g, '');
-
-        // Decode HTML entities
-        text = text.replace(/&nbsp;/g, ' ');
-        text = text.replace(/&amp;/g, '&');
-        text = text.replace(/&lt;/g, '<');
-        text = text.replace(/&gt;/g, '>');
-        text = text.replace(/&quot;/g, '"');
-        text = text.replace(/&#39;/g, "'");
-
-        // Clean up extra whitespace
-        text = text.replace(/\n{3,}/g, '\n\n');
-        text = text.trim();
-
-        return text;
+        return html;
     }
 
     function handleDragOver(e: React.DragEvent) {
@@ -267,7 +250,9 @@ export default function AdminBlogEditorPage() {
 
     async function analyzeContent(contentToAnalyze?: string) {
         const content = contentToAnalyze || post.content;
-        if (!content.trim()) {
+        // Strip HTML tags for analysis
+        const textContent = content.replace(/<[^>]+>/g, '').trim();
+        if (!textContent) {
             alert("Please enter or import content first");
             return;
         }
@@ -277,7 +262,7 @@ export default function AdminBlogEditorPage() {
             const res = await fetch("/api/admin/news/blog/analyze", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ content }),
+                body: JSON.stringify({ content: textContent }),
             });
 
             if (res.ok) {
@@ -387,7 +372,7 @@ export default function AdminBlogEditorPage() {
                                 {isNew ? "New Blog Post" : "Edit Blog Post"}
                             </h1>
                             <p className="mt-1 text-sm text-muted-foreground">
-                                {isNew ? "Create a new blog post" : "Update your blog post"}
+                                {isNew ? "Create a new blog post with the rich editor" : "Update your blog post"}
                             </p>
                         </div>
                     </div>
@@ -447,17 +432,16 @@ export default function AdminBlogEditorPage() {
                                 <div className="flex items-start gap-4">
                                     <div className={`flex-shrink-0 p-3 rounded-xl transition-colors ${isDragging ? 'bg-primary/15' : 'bg-card/50'
                                         }`}>
-                                        <FileText className={`h-8 w-8 ${isDragging ? 'text-primary' : 'text-primary'
-                                            }`} />
+                                        <FileText className={`h-8 w-8 text-primary`} />
                                     </div>
                                     <div className="flex-1">
                                         <h3 className="text-base font-semibold text-foreground mb-1">
-                                            {isDragging ? '📄 Drop your file here!' : 'Import Blog Post'}
+                                            {isDragging ? 'Drop your file here!' : 'Import Blog Post'}
                                         </h3>
                                         <p className="text-sm text-muted-foreground mb-4">
                                             {isDragging
                                                 ? 'Release to import the file'
-                                                : 'Drag & drop a file here, or click to browse. You can drag files from Google Drive, Dropbox, or any folder. AI will extract the title, description, and suggest a visual.'
+                                                : 'Drag & drop a file here, or click to browse. AI will extract the title, description, and suggest a visual.'
                                             }
                                         </p>
                                         {!isDragging && (
@@ -540,17 +524,70 @@ export default function AdminBlogEditorPage() {
                                         placeholder="Brief summary of the post (shown in previews)"
                                     />
                                 </div>
+
+                                {/* Editor / Preview tabs */}
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground mb-1">
-                                        Content * (Markdown supported)
-                                    </label>
-                                    <textarea
-                                        value={post.content}
-                                        onChange={(e) => setPost({ ...post, content: e.target.value })}
-                                        rows={15}
-                                        className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50 font-mono text-sm"
-                                        placeholder="Write your blog post content here..."
-                                    />
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-medium text-foreground">
+                                            Content *
+                                        </label>
+                                        <div className="flex items-center bg-secondary rounded-xl p-0.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveTab("edit")}
+                                                className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                                                    activeTab === "edit"
+                                                        ? "bg-card text-foreground shadow-sm"
+                                                        : "text-muted-foreground hover:text-foreground"
+                                                }`}
+                                            >
+                                                <PenLine className="h-3 w-3 mr-1.5" />
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveTab("preview")}
+                                                className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                                                    activeTab === "preview"
+                                                        ? "bg-card text-foreground shadow-sm"
+                                                        : "text-muted-foreground hover:text-foreground"
+                                                }`}
+                                            >
+                                                <Eye className="h-3 w-3 mr-1.5" />
+                                                Preview
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {activeTab === "edit" ? (
+                                        <Suspense
+                                            fallback={
+                                                <div className="border border-border rounded-2xl bg-card p-8 flex items-center justify-center min-h-[400px]">
+                                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                                </div>
+                                            }
+                                        >
+                                            <RichTextEditor
+                                                content={post.content}
+                                                onChange={(html) => setPost(prev => ({ ...prev, content: html }))}
+                                                placeholder="Write your blog post content here... Type / for commands"
+                                            />
+                                        </Suspense>
+                                    ) : (
+                                        <div className="border border-border rounded-2xl bg-card min-h-[400px] p-6">
+                                            {post.content ? (
+                                                <div
+                                                    className="tiptap prose prose-sm sm:prose-base max-w-none"
+                                                    dangerouslySetInnerHTML={{ __html: post.content }}
+                                                />
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                                                    <EyeOff className="h-8 w-8 mb-2" />
+                                                    <p className="text-sm">No content to preview</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -635,27 +672,59 @@ export default function AdminBlogEditorPage() {
                             </div>
                         </div>
 
-                        {/* Featured Image */}
+                        {/* Cover Image */}
                         <div className="bg-card rounded-2xl shadow p-6">
                             <h3 className="text-sm font-medium text-foreground mb-4">Cover Image</h3>
                             <div>
-                                <input
-                                    type="url"
-                                    value={post.coverImage}
-                                    onChange={(e) => setPost({ ...post, coverImage: e.target.value })}
-                                    className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary/50 text-sm"
-                                    placeholder="https://example.com/image.jpg"
-                                />
-                                {post.coverImage && (
-                                    <img
-                                        src={post.coverImage}
-                                        alt="Cover preview"
-                                        className="mt-3 w-full h-32 object-cover rounded-2xl"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display = "none";
-                                        }}
-                                    />
+                                {post.coverImage ? (
+                                    <div className="relative group">
+                                        <img
+                                            src={post.coverImage}
+                                            alt="Cover preview"
+                                            className="w-full h-32 object-cover rounded-xl"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = "none";
+                                            }}
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setCoverImageModalOpen(true)}
+                                                className="px-3 py-1.5 text-xs font-medium text-white bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors"
+                                            >
+                                                Replace
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPost({ ...post, coverImage: "" })}
+                                                className="px-3 py-1.5 text-xs font-medium text-white bg-red-500/60 backdrop-blur rounded-lg hover:bg-red-500/80 transition-colors"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setCoverImageModalOpen(true)}
+                                        className="w-full border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/40 hover:bg-secondary/50 transition-all"
+                                    >
+                                        <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                                        <p className="text-sm font-medium text-foreground">Upload Cover Image</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Click to upload or enter URL</p>
+                                    </button>
                                 )}
+
+                                {/* Fallback URL input */}
+                                <div className="mt-3">
+                                    <input
+                                        type="url"
+                                        value={post.coverImage}
+                                        onChange={(e) => setPost({ ...post, coverImage: e.target.value })}
+                                        className="w-full px-3 py-2 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary/50 text-xs"
+                                        placeholder="Or paste image URL directly..."
+                                    />
+                                </div>
                             </div>
                             {/* AI Visual Suggestion */}
                             {visualSuggestion && (
@@ -673,6 +742,16 @@ export default function AdminBlogEditorPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Cover Image Upload Modal */}
+            <ImageUploadModal
+                isOpen={coverImageModalOpen}
+                onClose={() => setCoverImageModalOpen(false)}
+                onInsert={(url) => {
+                    setPost(prev => ({ ...prev, coverImage: url }));
+                }}
+                coverMode
+            />
         </AdminLayout>
     );
 }

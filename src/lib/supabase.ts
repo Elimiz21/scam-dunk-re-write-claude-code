@@ -3,6 +3,9 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 // Storage bucket name for evaluation data
 export const EVALUATION_BUCKET = "evaluation-data";
 
+// Storage bucket for news/blog media uploads
+export const NEWS_MEDIA_BUCKET = "news-media";
+
 // Lazy-initialized Supabase client
 let _supabase: SupabaseClient | null = null;
 

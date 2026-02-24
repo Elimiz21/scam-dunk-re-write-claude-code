@@ -10,6 +10,7 @@ module.exports = {
     fontFamily: {
       sans: ['var(--font-sans)', 'DM Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       display: ['var(--font-display)', 'Playfair Display', 'Georgia', 'serif'],
+      mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
     },
     extend: {
       colors: {

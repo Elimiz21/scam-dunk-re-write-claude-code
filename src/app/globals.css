@@ -613,3 +613,113 @@
 .stat-label {
   @apply text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-wider;
 }
+
+/* ============================================
+   TIPTAP RICH TEXT EDITOR
+   ============================================ */
+
+.tiptap {
+  outline: none;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap h1 {
+  @apply text-3xl font-bold mb-4 mt-6;
+}
+
+.tiptap h2 {
+  @apply text-2xl font-bold mb-3 mt-5;
+}
+
+.tiptap h3 {
+  @apply text-xl font-semibold mb-2 mt-4;
+}
+
+.tiptap p {
+  @apply mb-3 leading-relaxed;
+}
+
+.tiptap ul {
+  @apply list-disc pl-6 mb-3;
+}
+
+.tiptap ol {
+  @apply list-decimal pl-6 mb-3;
+}
+
+.tiptap li {
+  @apply mb-1;
+}
+
+.tiptap blockquote {
+  @apply border-l-4 border-primary/30 pl-4 py-1 italic text-muted-foreground my-4;
+}
+
+.tiptap pre {
+  @apply bg-secondary rounded-xl p-4 my-4 font-mono text-sm overflow-x-auto;
+}
+
+.tiptap code {
+  @apply bg-secondary px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+.tiptap pre code {
+  @apply bg-transparent p-0;
+}
+
+.tiptap hr {
+  @apply my-6 border-border;
+}
+
+.tiptap a {
+  @apply text-primary underline cursor-pointer hover:text-primary/80;
+}
+
+.tiptap img {
+  @apply rounded-xl max-w-full h-auto my-4 mx-auto block;
+}
+
+.tiptap mark {
+  @apply bg-yellow-200/60 rounded px-0.5;
+}
+
+/* Table styles */
+.tiptap table {
+  @apply border-collapse w-full my-4 rounded-xl overflow-hidden;
+}
+
+.tiptap th {
+  @apply border border-border px-3 py-2 text-sm font-semibold text-left;
+  background: hsl(var(--secondary));
+}
+
+.tiptap td {
+  @apply border border-border px-3 py-2 text-sm;
+}
+
+.tiptap tr:hover td {
+  background: hsl(var(--secondary) / 0.3);
+}
+
+/* Selected table cells */
+.tiptap .selectedCell {
+  background: hsl(var(--primary) / 0.1) !important;
+}
+
+/* YouTube embed responsive */
+.tiptap div[data-youtube-video] {
+  @apply my-4;
+}
+
+.tiptap div[data-youtube-video] iframe {
+  @apply rounded-xl w-full;
+  aspect-ratio: 16 / 9;
+  height: auto;
+}
