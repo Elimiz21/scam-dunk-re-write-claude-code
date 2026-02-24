@@ -145,7 +145,6 @@ jobs:
           echo "Uploaded $UPLOADED files to Supabase"
 
       - name: Checkout data repository
-        if: ${{ secrets.DATA_REPO_TOKEN != '' }}
         continue-on-error: true
         id: checkout-data
         uses: actions/checkout@v4
