@@ -85,6 +85,14 @@ export const config = {
   get browserTiktokPassword() { return env("BROWSER_TIKTOK_PASSWORD"); },
   get browserTiktok2faSecret() { return env("BROWSER_TIKTOK_2FA_SECRET"); },
   get browserSessionEncryptionKey() { return env("BROWSER_SESSION_ENCRYPTION_KEY"); },
+
+  // Credential Sync (bootstrap secrets for dashboard → Vercel/GitHub push)
+  get vercelApiToken() { return env("VERCEL_API_TOKEN"); },
+  get vercelProjectId() { return env("VERCEL_PROJECT_ID"); },
+  get vercelTeamId() { return env("VERCEL_TEAM_ID"); },
+  get githubSyncPat() { return env("GITHUB_SYNC_PAT"); },
+  get githubRepoOwner() { return env("GITHUB_REPO_OWNER"); },
+  get githubRepoName() { return env("GITHUB_REPO_NAME"); },
 };
 
 /**

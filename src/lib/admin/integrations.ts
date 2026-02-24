@@ -12,6 +12,12 @@ import { config } from "@/lib/config";
 import { testOTCMarketsConnection } from "@/lib/otcMarkets";
 import { testFINRAConnection } from "@/lib/finra";
 import { encryptCredentials, decryptCredentials } from "@/lib/admin/encryption";
+import {
+  syncCredentials,
+  unsyncCredentials,
+  shouldSync,
+  type SyncResults,
+} from "@/lib/admin/sync-credentials";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -344,6 +350,58 @@ async function testBrowserEncryptionKey(): Promise<{ status: string; message?: s
   return { status: "CONNECTED", message: "Key configured" };
 }
 
+async function testVercelSync(): Promise<{ status: string; message?: string }> {
+  if (!config.vercelApiToken || !config.vercelProjectId) {
+    return { status: "ERROR", message: "Vercel API token or project ID not configured" };
+  }
+  try {
+    const teamQuery = config.vercelTeamId ? `?teamId=${config.vercelTeamId}` : "";
+    const res = await fetch(
+      `https://api.vercel.com/v9/projects/${config.vercelProjectId}/env${teamQuery}`,
+      { headers: { Authorization: `Bearer ${config.vercelApiToken}` } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const count = data.envs?.length ?? 0;
+      return { status: "CONNECTED", message: `Access OK — ${count} env var(s) found` };
+    }
+    if (res.status === 401 || res.status === 403) {
+      return { status: "ERROR", message: "Invalid token or insufficient permissions" };
+    }
+    return { status: "ERROR", message: `Vercel API returned ${res.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
+async function testGitHubSync(): Promise<{ status: string; message?: string }> {
+  if (!config.githubSyncPat || !config.githubRepoOwner || !config.githubRepoName) {
+    return { status: "ERROR", message: "GitHub PAT, repo owner, or repo name not configured" };
+  }
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${config.githubRepoOwner}/${config.githubRepoName}/actions/secrets/public-key`,
+      {
+        headers: {
+          Authorization: `Bearer ${config.githubSyncPat}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
+    );
+    if (res.ok) return { status: "CONNECTED", message: "Access OK — can read/write secrets" };
+    if (res.status === 401 || res.status === 403) {
+      return { status: "ERROR", message: "Invalid PAT or missing repo scope" };
+    }
+    if (res.status === 404) {
+      return { status: "ERROR", message: "Repository not found — check owner/name" };
+    }
+    return { status: "ERROR", message: `GitHub API returned ${res.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Integration Definitions
 // ---------------------------------------------------------------------------
@@ -641,6 +699,35 @@ const INTEGRATIONS: IntegrationDefinition[] = [
       { key: "encryptionKey", label: "Encryption Key (min 32 chars)", envVar: "BROWSER_SESSION_ENCRYPTION_KEY" },
     ],
   },
+  // Credential Sync — bootstrap tokens (set once, enables dashboard → Vercel/GitHub push)
+  {
+    name: "SYNC_VERCEL",
+    displayName: "Vercel Sync",
+    category: "SYNC",
+    description: "Pushes credentials to Vercel env vars when saved in dashboard",
+    getApiKey: () => config.vercelApiToken,
+    testConnection: testVercelSync,
+    documentation: "https://vercel.com/docs/rest-api#endpoints/projects/create-one-or-more-environment-variables",
+    credentialFields: [
+      { key: "apiToken", label: "Vercel API Token", envVar: "VERCEL_API_TOKEN" },
+      { key: "projectId", label: "Project ID", envVar: "VERCEL_PROJECT_ID", sensitive: false },
+      { key: "teamId", label: "Team ID (optional)", envVar: "VERCEL_TEAM_ID", sensitive: false },
+    ],
+  },
+  {
+    name: "SYNC_GITHUB",
+    displayName: "GitHub Secrets Sync",
+    category: "SYNC",
+    description: "Pushes credentials to GitHub Actions secrets when saved in dashboard",
+    getApiKey: () => config.githubSyncPat,
+    testConnection: testGitHubSync,
+    documentation: "https://docs.github.com/en/rest/actions/secrets",
+    credentialFields: [
+      { key: "pat", label: "Personal Access Token (repo scope)", envVar: "GITHUB_SYNC_PAT" },
+      { key: "owner", label: "Repo Owner", envVar: "GITHUB_REPO_OWNER", sensitive: false },
+      { key: "repo", label: "Repo Name", envVar: "GITHUB_REPO_NAME", sensitive: false },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -783,11 +870,12 @@ export async function updateIntegrationConfig(
  * Save credentials for an integration.
  * Encrypts the values and stores them in IntegrationConfig.config.
  * Also injects them into process.env immediately so tests work.
+ * If Vercel/GitHub sync is configured, pushes the env vars there too.
  */
 export async function updateIntegrationCredentials(
   name: string,
   credentials: Record<string, string>
-) {
+): Promise<{ success: true; sync?: SyncResults }> {
   const definition = INTEGRATIONS.find((i) => i.name === name);
   if (!definition) {
     throw new Error("Unknown integration");
@@ -836,13 +924,31 @@ export async function updateIntegrationCredentials(
     },
   });
 
-  return { success: true };
+  // Sync to Vercel + GitHub (skip for the sync integrations themselves)
+  let sync: SyncResults | undefined;
+  if (shouldSync(name)) {
+    const envVarsToSync: Record<string, string> = {};
+    for (const field of definition.credentialFields) {
+      const value = merged[field.key];
+      if (value) {
+        envVarsToSync[field.envVar] = value;
+      }
+    }
+    if (Object.keys(envVarsToSync).length > 0) {
+      sync = await syncCredentials(envVarsToSync);
+    }
+  }
+
+  return { success: true, sync };
 }
 
 /**
  * Remove DB-stored credentials for an integration (revert to env-var-only).
+ * Also removes the env vars from Vercel + GitHub if sync is configured.
  */
-export async function clearIntegrationCredentials(name: string) {
+export async function clearIntegrationCredentials(
+  name: string
+): Promise<{ success: true; sync?: SyncResults }> {
   const definition = INTEGRATIONS.find((i) => i.name === name);
   if (!definition) {
     throw new Error("Unknown integration");
@@ -864,7 +970,16 @@ export async function clearIntegrationCredentials(name: string) {
     },
   });
 
-  return { success: true };
+  // Remove from Vercel + GitHub
+  let sync: SyncResults | undefined;
+  if (shouldSync(name)) {
+    const envVarKeys = definition.credentialFields.map((f) => f.envVar);
+    if (envVarKeys.length > 0) {
+      sync = await unsyncCredentials(envVarKeys);
+    }
+  }
+
+  return { success: true, sync };
 }
 
 /**

@@ -106,35 +106,47 @@ export async function PUT(request: NextRequest) {
     }
 
     if (clear) {
-      await clearIntegrationCredentials(name);
+      const result = await clearIntegrationCredentials(name);
 
       await prisma.adminAuditLog.create({
         data: {
           adminUserId: session.id,
           action: "CREDENTIALS_CLEARED",
           resource: name,
+          details: result.sync ? JSON.stringify({ sync: result.sync }) : undefined,
         },
       });
 
-      return NextResponse.json({ success: true, message: "Credentials cleared" });
+      return NextResponse.json({
+        success: true,
+        message: "Credentials cleared",
+        sync: result.sync,
+      });
     }
 
     if (!credentials || typeof credentials !== "object") {
       return NextResponse.json({ error: "Credentials object required" }, { status: 400 });
     }
 
-    await updateIntegrationCredentials(name, credentials);
+    const result = await updateIntegrationCredentials(name, credentials);
 
     await prisma.adminAuditLog.create({
       data: {
         adminUserId: session.id,
         action: "CREDENTIALS_UPDATED",
         resource: name,
-        details: JSON.stringify({ fields: Object.keys(credentials) }),
+        details: JSON.stringify({
+          fields: Object.keys(credentials),
+          ...(result.sync ? { sync: result.sync } : {}),
+        }),
       },
     });
 
-    return NextResponse.json({ success: true, message: "Credentials saved" });
+    return NextResponse.json({
+      success: true,
+      message: "Credentials saved",
+      sync: result.sync,
+    });
   } catch (error) {
     console.error("Update credentials error:", error);
     return NextResponse.json(
