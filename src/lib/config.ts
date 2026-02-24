@@ -58,7 +58,6 @@ export const config = {
   get perplexityApiKey() { return env("PERPLEXITY_API_KEY"); },
   get anthropicApiKey() { return env("ANTHROPIC_API_KEY"); },
   get discordBotToken() { return env("DISCORD_BOT_TOKEN"); },
-  get crowdtangleApiKey() { return env("CROWDTANGLE_API_KEY"); },
 
   // Email (Resend)
   get resendApiKey() { return env("RESEND_API_KEY"); },
