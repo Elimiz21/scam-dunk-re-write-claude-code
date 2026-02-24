@@ -107,7 +107,7 @@ async function testFMP(): Promise<{ status: string; message?: string }> {
   if (!config.fmpApiKey) return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch(
-      `https://financialmodelingprep.com/api/v3/quote/AAPL?apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/profile?symbol=AAPL&apikey=${config.fmpApiKey}`
     );
     if (response.ok) {
       const data = await response.json();
