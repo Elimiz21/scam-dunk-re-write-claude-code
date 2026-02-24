@@ -1,16 +1,77 @@
 /**
  * Admin Integrations Management
- * Functions for managing and testing API integrations
+ * Functions for managing and testing API integrations.
+ *
+ * Credentials are resolved with DB-first priority:
+ *   1. Encrypted credentials stored in IntegrationConfig.config (set via dashboard)
+ *   2. Fallback to environment variables (Vercel / .env)
  */
 
 import { prisma } from "@/lib/db";
 import { config } from "@/lib/config";
 import { testOTCMarketsConnection } from "@/lib/otcMarkets";
 import { testFINRAConnection } from "@/lib/finra";
+import { encryptCredentials, decryptCredentials } from "@/lib/admin/encryption";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface CredentialField {
+  key: string;       // internal key stored in encrypted JSON (e.g. "apiKey")
+  label: string;     // human-readable label for the form
+  envVar: string;    // corresponding environment variable name
+  sensitive?: boolean; // default true – false for usernames / emails
+}
+
+interface IntegrationDefinition {
+  name: string;
+  displayName: string;
+  category: string;
+  description: string;
+  getApiKey: () => string | undefined;
+  testConnection: () => Promise<{ status: string; message?: string }>;
+  rateLimit?: number;
+  documentation?: string;
+  showFullKey?: boolean;
+  credentialFields: CredentialField[];
+}
+
+// ---------------------------------------------------------------------------
+// DB Credential Loading
+// ---------------------------------------------------------------------------
 
 /**
- * Mask an API key for display (show first 4 and last 4 characters)
+ * Load encrypted credentials from the database and inject them into
+ * process.env so that config.ts getters pick them up transparently.
+ * DB values take priority over existing env vars.
  */
+async function loadDbCredentials() {
+  const records = await prisma.integrationConfig.findMany({
+    where: { config: { not: null } },
+    select: { name: true, config: true },
+  });
+
+  for (const record of records) {
+    const creds = decryptCredentials(record.config);
+    if (!creds) continue;
+
+    const def = INTEGRATIONS.find((i) => i.name === record.name);
+    if (!def) continue;
+
+    for (const field of def.credentialFields) {
+      const value = creds[field.key];
+      if (value) {
+        process.env[field.envVar] = value;
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function maskApiKey(key: string | undefined, showFull = false): string {
   if (!key || key.length === 0) return "Not configured";
   if (showFull) return key;
@@ -18,76 +79,71 @@ function maskApiKey(key: string | undefined, showFull = false): string {
   return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
 }
 
-/**
- * Test OpenAI connection
- */
-async function testOpenAI(): Promise<{ status: string; message?: string }> {
-  if (!config.openaiApiKey) {
-    return { status: "ERROR", message: "API key not configured" };
-  }
+// ---------------------------------------------------------------------------
+// Test Functions
+// ---------------------------------------------------------------------------
 
+async function testOpenAI(): Promise<{ status: string; message?: string }> {
+  if (!config.openaiApiKey) return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch("https://api.openai.com/v1/models", {
-      headers: {
-        Authorization: `Bearer ${config.openaiApiKey}`,
-      },
+      headers: { Authorization: `Bearer ${config.openaiApiKey}` },
     });
-
-    if (response.ok) {
-      return { status: "CONNECTED" };
-    } else {
-      const error = await response.json();
-      return { status: "ERROR", message: error.error?.message || "Connection failed" };
-    }
+    if (response.ok) return { status: "CONNECTED" };
+    const error = await response.json();
+    return { status: "ERROR", message: error.error?.message || "Connection failed" };
   } catch (error) {
     return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
 }
 
-/**
- * Test Alpha Vantage connection
- */
-async function testAlphaVantage(): Promise<{ status: string; message?: string }> {
-  if (!config.alphaVantageApiKey) {
-    return { status: "ERROR", message: "API key not configured" };
+async function testFMP(): Promise<{ status: string; message?: string }> {
+  if (!config.fmpApiKey) return { status: "ERROR", message: "API key not configured" };
+  try {
+    const response = await fetch(
+      `https://financialmodelingprep.com/api/v3/quote/AAPL?apikey=${config.fmpApiKey}`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) return { status: "CONNECTED" };
+      return { status: "ERROR", message: "API returned empty data — key may be invalid" };
+    }
+    if (response.status === 401 || response.status === 403) {
+      return { status: "ERROR", message: "Invalid or expired API key" };
+    }
+    return { status: "ERROR", message: `FMP returned ${response.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
+}
 
+async function testAlphaVantage(): Promise<{ status: string; message?: string }> {
+  if (!config.alphaVantageApiKey) return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch(
       `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=AAPL&apikey=${config.alphaVantageApiKey}`
     );
-
     if (response.ok) {
       const data = await response.json();
-      if (data["Error Message"]) {
-        return { status: "ERROR", message: data["Error Message"] };
-      }
-      if (data["Note"]) {
-        return { status: "ERROR", message: "Rate limit exceeded" };
-      }
+      if (data["Error Message"]) return { status: "ERROR", message: data["Error Message"] };
+      if (data["Note"]) return { status: "ERROR", message: "Rate limit exceeded" };
       return { status: "CONNECTED" };
-    } else {
-      return { status: "ERROR", message: "Connection failed" };
     }
+    return { status: "ERROR", message: "Connection failed" };
   } catch (error) {
     return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
 }
 
-/**
- * Test PayPal connection
- */
 async function testPayPal(): Promise<{ status: string; message?: string }> {
   if (!config.paypalClientId || !config.paypalClientSecret) {
     return { status: "ERROR", message: "API credentials not configured" };
   }
-
   try {
     const auth = Buffer.from(`${config.paypalClientId}:${config.paypalClientSecret}`).toString("base64");
     const baseUrl = config.paypalMode === "live"
       ? "https://api-m.paypal.com"
       : "https://api-m.sandbox.paypal.com";
-
     const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
       method: "POST",
       headers: {
@@ -96,21 +152,14 @@ async function testPayPal(): Promise<{ status: string; message?: string }> {
       },
       body: "grant_type=client_credentials",
     });
-
-    if (response.ok) {
-      return { status: "CONNECTED" };
-    } else {
-      const error = await response.json();
-      return { status: "ERROR", message: error.error_description || "Connection failed" };
-    }
+    if (response.ok) return { status: "CONNECTED" };
+    const error = await response.json();
+    return { status: "ERROR", message: error.error_description || "Connection failed" };
   } catch (error) {
     return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
 }
 
-/**
- * Test database connection
- */
 async function testDatabase(): Promise<{ status: string; message?: string }> {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -120,27 +169,30 @@ async function testDatabase(): Promise<{ status: string; message?: string }> {
   }
 }
 
-/**
- * Test OTC Markets connection (free public API — no key required)
- */
 async function testOTCMarkets(): Promise<{ status: string; message?: string }> {
   return testOTCMarketsConnection();
 }
 
-/**
- * Test FINRA BrokerCheck connection (free public API — no key required)
- */
 async function testFINRA(): Promise<{ status: string; message?: string }> {
   return testFINRAConnection();
 }
 
-/**
- * Test YouTube Data API v3
- */
-async function testYouTube(): Promise<{ status: string; message?: string }> {
-  if (!config.youtubeApiKey) {
-    return { status: "ERROR", message: "API key not configured" };
+async function testResend(): Promise<{ status: string; message?: string }> {
+  if (!config.resendApiKey) return { status: "ERROR", message: "API key not configured" };
+  try {
+    const response = await fetch("https://api.resend.com/domains", {
+      headers: { Authorization: `Bearer ${config.resendApiKey}` },
+    });
+    if (response.ok) return { status: "CONNECTED" };
+    if (response.status === 401) return { status: "ERROR", message: "Invalid API key" };
+    return { status: "ERROR", message: `Resend returned ${response.status}` };
+  } catch (error) {
+    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
+}
+
+async function testYouTube(): Promise<{ status: string; message?: string }> {
+  if (!config.youtubeApiKey) return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&maxResults=1&key=${config.youtubeApiKey}`
@@ -153,15 +205,12 @@ async function testYouTube(): Promise<{ status: string; message?: string }> {
   }
 }
 
-/**
- * Test Reddit Public JSON endpoint (no OAuth needed)
- */
 async function testRedditPublic(): Promise<{ status: string; message?: string }> {
   try {
     const response = await fetch("https://www.reddit.com/r/stocks/new.json?limit=1", {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)",
-        "Accept": "application/json",
+        Accept: "application/json",
       },
     });
     if (response.ok) {
@@ -171,18 +220,13 @@ async function testRedditPublic(): Promise<{ status: string; message?: string }>
       }
       return { status: "CONNECTED", message: "Endpoint reachable but returned no posts" };
     }
-    if (response.status === 429) {
-      return { status: "ERROR", message: "Rate limited — try again in a minute" };
-    }
+    if (response.status === 429) return { status: "ERROR", message: "Rate limited — try again in a minute" };
     return { status: "ERROR", message: `Reddit returned ${response.status}` };
   } catch (error) {
     return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
 }
 
-/**
- * Test Google Custom Search Engine
- */
 async function testGoogleCSE(): Promise<{ status: string; message?: string }> {
   if (!config.googleCseApiKey || !config.googleCseId) {
     return { status: "ERROR", message: "Google CSE API key or Search Engine ID not configured" };
@@ -199,13 +243,8 @@ async function testGoogleCSE(): Promise<{ status: string; message?: string }> {
   }
 }
 
-/**
- * Test Perplexity API
- */
 async function testPerplexity(): Promise<{ status: string; message?: string }> {
-  if (!config.perplexityApiKey) {
-    return { status: "ERROR", message: "API key not configured" };
-  }
+  if (!config.perplexityApiKey) return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch("https://api.perplexity.ai/chat/completions", {
       method: "POST",
@@ -227,13 +266,8 @@ async function testPerplexity(): Promise<{ status: string; message?: string }> {
   }
 }
 
-/**
- * Test Anthropic API
- */
 async function testAnthropic(): Promise<{ status: string; message?: string }> {
-  if (!config.anthropicApiKey) {
-    return { status: "ERROR", message: "API key not configured" };
-  }
+  if (!config.anthropicApiKey) return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -256,18 +290,11 @@ async function testAnthropic(): Promise<{ status: string; message?: string }> {
   }
 }
 
-/**
- * Test Discord Bot
- */
 async function testDiscordBot(): Promise<{ status: string; message?: string }> {
-  if (!config.discordBotToken) {
-    return { status: "ERROR", message: "Bot token not configured" };
-  }
+  if (!config.discordBotToken) return { status: "ERROR", message: "Bot token not configured" };
   try {
     const response = await fetch("https://discord.com/api/v10/users/@me", {
-      headers: {
-        Authorization: `Bot ${config.discordBotToken}`,
-      },
+      headers: { Authorization: `Bot ${config.discordBotToken}` },
     });
     if (response.ok) {
       const data = await response.json();
@@ -279,13 +306,8 @@ async function testDiscordBot(): Promise<{ status: string; message?: string }> {
   }
 }
 
-/**
- * Test CrowdTangle / Meta Content Library
- */
 async function testCrowdTangle(): Promise<{ status: string; message?: string }> {
-  if (!config.crowdtangleApiKey) {
-    return { status: "ERROR", message: "API token not configured" };
-  }
+  if (!config.crowdtangleApiKey) return { status: "ERROR", message: "API token not configured" };
   try {
     const response = await fetch(
       `https://api.crowdtangle.com/lists?token=${config.crowdtangleApiKey}`
@@ -298,9 +320,6 @@ async function testCrowdTangle(): Promise<{ status: string; message?: string }> 
   }
 }
 
-/**
- * Test browser agent credential (just checks if username + password are set)
- */
 function testBrowserCredential(
   usernameKey: keyof typeof config,
   passwordKey: keyof typeof config
@@ -315,9 +334,6 @@ function testBrowserCredential(
   };
 }
 
-/**
- * Test browser session encryption key
- */
 async function testBrowserEncryptionKey(): Promise<{ status: string; message?: string }> {
   if (!config.browserSessionEncryptionKey) {
     return { status: "ERROR", message: "Encryption key not configured" };
@@ -328,10 +344,11 @@ async function testBrowserEncryptionKey(): Promise<{ status: string; message?: s
   return { status: "CONNECTED", message: "Key configured" };
 }
 
-/**
- * Integration definitions with test functions
- */
-const INTEGRATIONS = [
+// ---------------------------------------------------------------------------
+// Integration Definitions
+// ---------------------------------------------------------------------------
+
+const INTEGRATIONS: IntegrationDefinition[] = [
   {
     name: "OPENAI",
     displayName: "OpenAI",
@@ -339,18 +356,37 @@ const INTEGRATIONS = [
     description: "Powers AI narrative generation for scan results",
     getApiKey: () => config.openaiApiKey,
     testConnection: testOpenAI,
-    rateLimit: 500, // requests per minute
+    rateLimit: 500,
     documentation: "https://platform.openai.com/docs",
+    credentialFields: [
+      { key: "apiKey", label: "API Key", envVar: "OPENAI_API_KEY" },
+    ],
+  },
+  {
+    name: "FMP",
+    displayName: "Financial Modeling Prep",
+    category: "API",
+    description: "Primary source for real-time stock quotes, financials, and company data",
+    getApiKey: () => config.fmpApiKey,
+    testConnection: testFMP,
+    rateLimit: 300,
+    documentation: "https://site.financialmodelingprep.com/developer/docs",
+    credentialFields: [
+      { key: "apiKey", label: "API Key", envVar: "FMP_API_KEY" },
+    ],
   },
   {
     name: "ALPHA_VANTAGE",
     displayName: "Alpha Vantage",
     category: "API",
-    description: "Provides real-time stock market data",
+    description: "Provides real-time stock market data (legacy fallback)",
     getApiKey: () => config.alphaVantageApiKey,
     testConnection: testAlphaVantage,
-    rateLimit: 5, // Free tier: 5 calls per minute
+    rateLimit: 5,
     documentation: "https://www.alphavantage.co/documentation/",
+    credentialFields: [
+      { key: "apiKey", label: "API Key", envVar: "ALPHA_VANTAGE_API_KEY" },
+    ],
   },
   {
     name: "PAYPAL",
@@ -361,6 +397,12 @@ const INTEGRATIONS = [
     testConnection: testPayPal,
     rateLimit: 100,
     documentation: "https://developer.paypal.com/docs/api/",
+    credentialFields: [
+      { key: "clientId", label: "Client ID", envVar: "PAYPAL_CLIENT_ID" },
+      { key: "clientSecret", label: "Client Secret", envVar: "PAYPAL_CLIENT_SECRET" },
+      { key: "planId", label: "Plan ID", envVar: "PAYPAL_PLAN_ID" },
+      { key: "webhookId", label: "Webhook ID", envVar: "PAYPAL_WEBHOOK_ID" },
+    ],
   },
   {
     name: "DATABASE",
@@ -370,6 +412,22 @@ const INTEGRATIONS = [
     getApiKey: () => process.env.DATABASE_URL,
     testConnection: testDatabase,
     documentation: "https://supabase.com/docs",
+    credentialFields: [
+      { key: "url", label: "Connection URL", envVar: "DATABASE_URL" },
+    ],
+  },
+  {
+    name: "RESEND",
+    displayName: "Resend (Email)",
+    category: "API",
+    description: "Sends transactional emails — password resets, scan alerts, admin notifications",
+    getApiKey: () => config.resendApiKey,
+    testConnection: testResend,
+    rateLimit: 100,
+    documentation: "https://resend.com/docs",
+    credentialFields: [
+      { key: "apiKey", label: "API Key", envVar: "RESEND_API_KEY" },
+    ],
   },
   // Regulatory Data Integrations (free public APIs)
   {
@@ -379,8 +437,11 @@ const INTEGRATIONS = [
     description: "Caveat Emptor flags, shell risk, tier data, compliance status (free public API)",
     getApiKey: () => config.otcMarketsApiKey || "FREE_PUBLIC_API",
     testConnection: testOTCMarkets,
-    rateLimit: 30, // Conservative limit for the free public endpoint
+    rateLimit: 30,
     documentation: "https://www.otcmarkets.com/market-data/overview",
+    credentialFields: [
+      { key: "apiKey", label: "API Key (optional)", envVar: "OTC_MARKETS_API_KEY" },
+    ],
   },
   {
     name: "FINRA",
@@ -389,8 +450,11 @@ const INTEGRATIONS = [
     description: "Firm disclosures, disciplinary actions, broker misconduct (free public API)",
     getApiKey: () => config.finraApiKey || "FREE_PUBLIC_API",
     testConnection: testFINRA,
-    rateLimit: 20, // Conservative limit for the free public endpoint
+    rateLimit: 20,
     documentation: "https://brokercheck.finra.org/",
+    credentialFields: [
+      { key: "apiKey", label: "API Key (optional)", envVar: "FINRA_API_KEY" },
+    ],
   },
   // Social Media Scan Integrations
   {
@@ -400,8 +464,11 @@ const INTEGRATIONS = [
     description: "Searches for stock promotion videos on YouTube (10,000 units/day free)",
     getApiKey: () => config.youtubeApiKey,
     testConnection: testYouTube,
-    rateLimit: 100, // 100 searches per day (each costs 100 units)
+    rateLimit: 100,
     documentation: "https://developers.google.com/youtube/v3",
+    credentialFields: [
+      { key: "apiKey", label: "API Key", envVar: "YOUTUBE_API_KEY" },
+    ],
   },
   {
     name: "REDDIT_PUBLIC",
@@ -412,6 +479,7 @@ const INTEGRATIONS = [
     testConnection: testRedditPublic,
     rateLimit: 10,
     documentation: "https://www.reddit.com/wiki/api/",
+    credentialFields: [],
   },
   {
     name: "GOOGLE_CSE",
@@ -420,8 +488,12 @@ const INTEGRATIONS = [
     description: "Searches all social media platforms via Google (100 free queries/day)",
     getApiKey: () => config.googleCseApiKey,
     testConnection: testGoogleCSE,
-    rateLimit: 100, // 100 queries per day on free tier
+    rateLimit: 100,
     documentation: "https://developers.google.com/custom-search/v1/overview",
+    credentialFields: [
+      { key: "apiKey", label: "API Key", envVar: "GOOGLE_CSE_API_KEY" },
+      { key: "searchEngineId", label: "Search Engine ID", envVar: "GOOGLE_CSE_ID", sensitive: false },
+    ],
   },
   {
     name: "PERPLEXITY",
@@ -430,8 +502,11 @@ const INTEGRATIONS = [
     description: "Web-grounded AI search for social media mentions with real citations",
     getApiKey: () => config.perplexityApiKey,
     testConnection: testPerplexity,
-    rateLimit: 600, // 600 queries per day
+    rateLimit: 600,
     documentation: "https://docs.perplexity.ai/",
+    credentialFields: [
+      { key: "apiKey", label: "API Key", envVar: "PERPLEXITY_API_KEY" },
+    ],
   },
   {
     name: "ANTHROPIC",
@@ -442,6 +517,9 @@ const INTEGRATIONS = [
     testConnection: testAnthropic,
     rateLimit: 1000,
     documentation: "https://docs.anthropic.com/",
+    credentialFields: [
+      { key: "apiKey", label: "API Key", envVar: "ANTHROPIC_API_KEY" },
+    ],
   },
   {
     name: "DISCORD_BOT",
@@ -451,6 +529,9 @@ const INTEGRATIONS = [
     getApiKey: () => config.discordBotToken,
     testConnection: testDiscordBot,
     documentation: "https://discord.com/developers/docs",
+    credentialFields: [
+      { key: "botToken", label: "Bot Token", envVar: "DISCORD_BOT_TOKEN" },
+    ],
   },
   {
     name: "CROWDTANGLE",
@@ -460,6 +541,9 @@ const INTEGRATIONS = [
     getApiKey: () => config.crowdtangleApiKey,
     testConnection: testCrowdTangle,
     documentation: "https://www.crowdtangle.com/",
+    credentialFields: [
+      { key: "apiKey", label: "API Token", envVar: "CROWDTANGLE_API_KEY" },
+    ],
   },
   // Browser Agent Platform Credentials (personal accounts)
   {
@@ -470,6 +554,11 @@ const INTEGRATIONS = [
     getApiKey: () => config.browserDiscordEmail,
     showFullKey: true,
     testConnection: testBrowserCredential("browserDiscordEmail", "browserDiscordPassword"),
+    credentialFields: [
+      { key: "email", label: "Email", envVar: "BROWSER_DISCORD_EMAIL", sensitive: false },
+      { key: "password", label: "Password", envVar: "BROWSER_DISCORD_PASSWORD" },
+      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_DISCORD_2FA_SECRET" },
+    ],
   },
   {
     name: "BROWSER_REDDIT",
@@ -479,6 +568,11 @@ const INTEGRATIONS = [
     getApiKey: () => config.browserRedditUsername,
     showFullKey: true,
     testConnection: testBrowserCredential("browserRedditUsername", "browserRedditPassword"),
+    credentialFields: [
+      { key: "username", label: "Username", envVar: "BROWSER_REDDIT_USERNAME", sensitive: false },
+      { key: "password", label: "Password", envVar: "BROWSER_REDDIT_PASSWORD" },
+      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_REDDIT_2FA_SECRET" },
+    ],
   },
   {
     name: "BROWSER_TWITTER",
@@ -488,6 +582,11 @@ const INTEGRATIONS = [
     getApiKey: () => config.browserTwitterUsername,
     showFullKey: true,
     testConnection: testBrowserCredential("browserTwitterUsername", "browserTwitterPassword"),
+    credentialFields: [
+      { key: "username", label: "Username", envVar: "BROWSER_TWITTER_USERNAME", sensitive: false },
+      { key: "password", label: "Password", envVar: "BROWSER_TWITTER_PASSWORD" },
+      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_TWITTER_2FA_SECRET" },
+    ],
   },
   {
     name: "BROWSER_INSTAGRAM",
@@ -497,6 +596,11 @@ const INTEGRATIONS = [
     getApiKey: () => config.browserInstagramUsername,
     showFullKey: true,
     testConnection: testBrowserCredential("browserInstagramUsername", "browserInstagramPassword"),
+    credentialFields: [
+      { key: "username", label: "Username", envVar: "BROWSER_INSTAGRAM_USERNAME", sensitive: false },
+      { key: "password", label: "Password", envVar: "BROWSER_INSTAGRAM_PASSWORD" },
+      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_INSTAGRAM_2FA_SECRET" },
+    ],
   },
   {
     name: "BROWSER_FACEBOOK",
@@ -506,6 +610,11 @@ const INTEGRATIONS = [
     getApiKey: () => config.browserFacebookEmail,
     showFullKey: true,
     testConnection: testBrowserCredential("browserFacebookEmail", "browserFacebookPassword"),
+    credentialFields: [
+      { key: "email", label: "Email", envVar: "BROWSER_FACEBOOK_EMAIL", sensitive: false },
+      { key: "password", label: "Password", envVar: "BROWSER_FACEBOOK_PASSWORD" },
+      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_FACEBOOK_2FA_SECRET" },
+    ],
   },
   {
     name: "BROWSER_TIKTOK",
@@ -515,6 +624,11 @@ const INTEGRATIONS = [
     getApiKey: () => config.browserTiktokUsername,
     showFullKey: true,
     testConnection: testBrowserCredential("browserTiktokUsername", "browserTiktokPassword"),
+    credentialFields: [
+      { key: "username", label: "Username", envVar: "BROWSER_TIKTOK_USERNAME", sensitive: false },
+      { key: "password", label: "Password", envVar: "BROWSER_TIKTOK_PASSWORD" },
+      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_TIKTOK_2FA_SECRET" },
+    ],
   },
   {
     name: "BROWSER_ENCRYPTION_KEY",
@@ -523,19 +637,30 @@ const INTEGRATIONS = [
     description: "AES-256 encryption key for browser cookie/session storage",
     getApiKey: () => config.browserSessionEncryptionKey,
     testConnection: testBrowserEncryptionKey,
+    credentialFields: [
+      { key: "encryptionKey", label: "Encryption Key (min 32 chars)", envVar: "BROWSER_SESSION_ENCRYPTION_KEY" },
+    ],
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 /**
- * Initialize or update integration configs in database
+ * Initialize or update integration configs in database.
+ * Also loads any DB-stored credentials into process.env.
  */
 export async function initializeIntegrations() {
+  // Load DB-stored credentials so env getters pick them up
+  await loadDbCredentials();
+
   for (const integration of INTEGRATIONS) {
     const existing = await prisma.integrationConfig.findUnique({
       where: { name: integration.name },
     });
 
-    const showFull = 'showFullKey' in integration && integration.showFullKey === true;
+    const showFull = integration.showFullKey === true;
 
     if (!existing) {
       await prisma.integrationConfig.create({
@@ -550,7 +675,6 @@ export async function initializeIntegrations() {
         },
       });
     } else {
-      // Update masked API key (or full username) if changed
       const newMasked = maskApiKey(integration.getApiKey(), showFull);
       if (existing.apiKeyMasked !== newMasked || existing.displayName !== integration.displayName) {
         await prisma.integrationConfig.update({
@@ -566,10 +690,9 @@ export async function initializeIntegrations() {
 }
 
 /**
- * Get all integrations with their current status
+ * Get all integrations with their current status.
  */
 export async function getIntegrations() {
-  // Ensure all integrations are in the database
   await initializeIntegrations();
 
   const integrations = await prisma.integrationConfig.findMany({
@@ -582,14 +705,19 @@ export async function getIntegrations() {
       ...integration,
       description: definition?.description || "",
       documentation: definition?.documentation || "",
+      credentialFields: definition?.credentialFields || [],
+      hasDbCredentials: !!integration.config,
     };
   });
 }
 
 /**
- * Test a specific integration
+ * Test a specific integration.
  */
 export async function testIntegration(name: string) {
+  // Make sure DB credentials are loaded before testing
+  await loadDbCredentials();
+
   const definition = INTEGRATIONS.find((i) => i.name === name);
   if (!definition) {
     return { status: "ERROR", message: "Unknown integration" };
@@ -597,7 +725,6 @@ export async function testIntegration(name: string) {
 
   const result = await definition.testConnection();
 
-  // Update database with result
   await prisma.integrationConfig.update({
     where: { name },
     data: {
@@ -611,20 +738,20 @@ export async function testIntegration(name: string) {
 }
 
 /**
- * Test all integrations
+ * Test all integrations.
  */
 export async function testAllIntegrations() {
-  const results: Record<string, { status: string; message?: string }> = {};
+  await loadDbCredentials();
 
+  const results: Record<string, { status: string; message?: string }> = {};
   for (const integration of INTEGRATIONS) {
     results[integration.name] = await testIntegration(integration.name);
   }
-
   return results;
 }
 
 /**
- * Update integration configuration
+ * Update integration configuration (enable/disable, budget, rate limit).
  */
 export async function updateIntegrationConfig(
   name: string,
@@ -653,18 +780,104 @@ export async function updateIntegrationConfig(
 }
 
 /**
- * Get integration health summary
+ * Save credentials for an integration.
+ * Encrypts the values and stores them in IntegrationConfig.config.
+ * Also injects them into process.env immediately so tests work.
+ */
+export async function updateIntegrationCredentials(
+  name: string,
+  credentials: Record<string, string>
+) {
+  const definition = INTEGRATIONS.find((i) => i.name === name);
+  if (!definition) {
+    throw new Error("Unknown integration");
+  }
+
+  // Validate that only known field keys are provided
+  const validKeys = new Set(definition.credentialFields.map((f) => f.key));
+  for (const key of Object.keys(credentials)) {
+    if (!validKeys.has(key)) {
+      throw new Error(`Unknown credential field: ${key}`);
+    }
+  }
+
+  // Merge with existing DB credentials (so partial updates work)
+  const existing = await prisma.integrationConfig.findUnique({
+    where: { name },
+    select: { config: true },
+  });
+  const existingCreds = decryptCredentials(existing?.config) || {};
+  const merged = { ...existingCreds, ...credentials };
+
+  // Remove empty values
+  for (const [k, v] of Object.entries(merged)) {
+    if (!v) delete merged[k];
+  }
+
+  const encrypted = Object.keys(merged).length > 0 ? encryptCredentials(merged) : null;
+
+  // Inject into process.env immediately
+  for (const field of definition.credentialFields) {
+    const value = merged[field.key];
+    if (value) {
+      process.env[field.envVar] = value;
+    }
+  }
+
+  // Update masked display value
+  const showFull = definition.showFullKey === true;
+  const newMasked = maskApiKey(definition.getApiKey(), showFull);
+
+  await prisma.integrationConfig.update({
+    where: { name },
+    data: {
+      config: encrypted,
+      apiKeyMasked: newMasked,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Remove DB-stored credentials for an integration (revert to env-var-only).
+ */
+export async function clearIntegrationCredentials(name: string) {
+  const definition = INTEGRATIONS.find((i) => i.name === name);
+  if (!definition) {
+    throw new Error("Unknown integration");
+  }
+
+  // Clear the injected env vars (revert to original env)
+  for (const field of definition.credentialFields) {
+    delete process.env[field.envVar];
+  }
+
+  const showFull = definition.showFullKey === true;
+  const newMasked = maskApiKey(definition.getApiKey(), showFull);
+
+  await prisma.integrationConfig.update({
+    where: { name },
+    data: {
+      config: null,
+      apiKeyMasked: newMasked,
+    },
+  });
+
+  return { success: true };
+}
+
+/**
+ * Get integration health summary.
  */
 export async function getIntegrationHealthSummary() {
   const integrations = await prisma.integrationConfig.findMany();
 
-  const summary = {
+  return {
     total: integrations.length,
     connected: integrations.filter((i) => i.status === "CONNECTED").length,
     errors: integrations.filter((i) => i.status === "ERROR").length,
     unknown: integrations.filter((i) => i.status === "UNKNOWN").length,
     disabled: integrations.filter((i) => !i.isEnabled).length,
   };
-
-  return summary;
 }
