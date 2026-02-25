@@ -68,6 +68,11 @@ export async function logScanHistory(data: {
   pitchProvided?: boolean;
   contextProvided?: boolean;
   ipAddress?: string;
+  // Segment classification for per-segment efficacy tracking
+  isOtc?: boolean;
+  isMicroCap?: boolean;
+  isHighVolume?: boolean;
+  usedAiBackend?: boolean;
 }) {
   try {
     await prisma.scanHistory.create({
@@ -85,6 +90,10 @@ export async function logScanHistory(data: {
         pitchProvided: data.pitchProvided ?? false,
         contextProvided: data.contextProvided ?? false,
         ipAddress: data.ipAddress,
+        isOtc: data.isOtc ?? false,
+        isMicroCap: data.isMicroCap ?? false,
+        isHighVolume: data.isHighVolume ?? false,
+        usedAiBackend: data.usedAiBackend ?? false,
       },
     });
 
@@ -647,4 +656,79 @@ export async function backfillAdminMetrics() {
     modelMetricsDays: dailyEntries.length,
     scanUsageEntries: usageEntries.length,
   };
+}
+
+/**
+ * Per-segment efficacy metrics
+ *
+ * Returns risk distribution and average scores broken down by segment:
+ * - OTC stocks
+ * - Micro-cap stocks (< $50M market cap)
+ * - High-volume-surge stocks (volume >= 3x average)
+ * - AI backend vs TypeScript fallback comparison
+ */
+export async function getSegmentEfficacyMetrics(days: number = 30) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  try {
+    // Helper: compute distribution for a where-clause
+    async function getSegmentStats(where: Record<string, unknown>) {
+      const baseWhere = { createdAt: { gte: startDate }, ...where };
+
+      const [total, byRisk, avgData] = await Promise.all([
+        prisma.scanHistory.count({ where: baseWhere }),
+        prisma.scanHistory.groupBy({
+          by: ["riskLevel"],
+          where: baseWhere,
+          _count: true,
+        }),
+        prisma.scanHistory.aggregate({
+          where: baseWhere,
+          _avg: { totalScore: true, processingTime: true },
+        }),
+      ]);
+
+      const riskMap: Record<string, number> = {};
+      for (const r of byRisk) {
+        riskMap[r.riskLevel] = r._count;
+      }
+
+      return {
+        totalScans: total,
+        lowRisk: riskMap["LOW"] || 0,
+        mediumRisk: riskMap["MEDIUM"] || 0,
+        highRisk: riskMap["HIGH"] || 0,
+        insufficient: riskMap["INSUFFICIENT"] || 0,
+        highRiskRate: total > 0 ? ((riskMap["HIGH"] || 0) / total) * 100 : 0,
+        avgScore: avgData._avg.totalScore || 0,
+        avgProcessingTime: Math.round(avgData._avg.processingTime || 0),
+      };
+    }
+
+    const [all, otc, microCap, highVolume, aiBackend, tsFallback] =
+      await Promise.all([
+        getSegmentStats({}),
+        getSegmentStats({ isOtc: true }),
+        getSegmentStats({ isMicroCap: true }),
+        getSegmentStats({ isHighVolume: true }),
+        getSegmentStats({ usedAiBackend: true }),
+        getSegmentStats({ usedAiBackend: false }),
+      ]);
+
+    return {
+      period: days,
+      segments: {
+        all,
+        otc,
+        microCap,
+        highVolume,
+        aiBackend,
+        tsFallback,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to get segment efficacy metrics:", error);
+    throw error;
+  }
 }

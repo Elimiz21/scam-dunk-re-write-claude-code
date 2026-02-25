@@ -426,6 +426,14 @@ export async function POST(request: NextRequest) {
 
     // Save scan to history and update model metrics for dashboard
     currentStep = "LOG_HISTORY";
+    // Derive segment classification from scoring signals and market data
+    const isOtcScan = marketData.isOTC || scoringResult.signals.some(s => s.code === "OTC_EXCHANGE");
+    const isMicroCapScan = (marketData.quote?.marketCap ?? 0) < 50_000_000
+      || scoringResult.signals.some(s => s.code === "SMALL_MARKET_CAP" || s.code === "MICRO_CAP");
+    const isHighVolumeScan = scoringResult.signals.some(
+      s => s.code === "VOLUME_EXPLOSION" || s.code === "VOLUME_ANOMALY"
+    );
+
     await logScanHistory({
       userId,
       ticker,
@@ -438,6 +446,10 @@ export async function POST(request: NextRequest) {
       pitchProvided: !!checkRequest.pitchText,
       contextProvided: Object.values(context).some(Boolean),
       ipAddress,
+      isOtc: isOtcScan,
+      isMicroCap: isMicroCapScan,
+      isHighVolume: isHighVolumeScan,
+      usedAiBackend: usedAIBackend,
     });
 
     // Build response

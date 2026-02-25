@@ -334,6 +334,40 @@ class ScamDetectionPipeline:
                 weight=3,
             ))
 
+        # ----- Window aggregate signals (multi-day context) -----
+        # These catch manipulation patterns that a single-day snapshot misses.
+        reversal_14d = feat.get('reversal_14d', 0)
+        if reversal_14d:
+            signals.append(SignalDetail(
+                code='REVERSAL_PATTERN', category='PATTERN',
+                description='14-day reversal detected (sharp rise followed by decline)',
+                weight=3,
+            ))
+
+        pump_days_30d = int(feat.get('pump_pattern_days_30d', 0))
+        if pump_days_30d >= 3:
+            signals.append(SignalDetail(
+                code='SUSTAINED_PUMP', category='PATTERN',
+                description=f'Pump pattern detected on {pump_days_30d} of last 30 days',
+                weight=3,
+            ))
+
+        overbought_days = int(feat.get('overbought_days_30d', 0))
+        if overbought_days >= 5:
+            signals.append(SignalDetail(
+                code='PERSISTENT_OVERBOUGHT', category='PATTERN',
+                description=f'Overbought (RSI>70) on {overbought_days} of last 30 days',
+                weight=2,
+            ))
+
+        vol_persistence = int(feat.get('high_volume_persistence_14d', 0))
+        if vol_persistence >= 5:
+            signals.append(SignalDetail(
+                code='PERSISTENT_HIGH_VOLUME', category='PATTERN',
+                description=f'Abnormally high volume on {vol_persistence} of last 14 days',
+                weight=2,
+            ))
+
         # ----- ALERT signals -----
         if sec_flagged:
             signals.append(SignalDetail(
@@ -640,14 +674,31 @@ class ScamDetectionPipeline:
 
         # Step 4: Random Forest prediction
         print("\n[Step 4] Running Random Forest prediction...")
-        if self.rf_available:
-            rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
-            print(f"   RF Probability: {rf_prob:.3f}")
-        else:
-            print("   RF model not available - training now...")
-            self.train_models(train_rf=True, train_lstm=False, save_models=True)
-            rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
-            print(f"   RF Probability: {rf_prob:.3f}")
+        rf_prob = 0.0
+        try:
+            if self.rf_available:
+                rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
+                print(f"   RF Probability: {rf_prob:.3f}")
+            else:
+                print("   RF model not available - training now...")
+                self.train_models(train_rf=True, train_lstm=False, save_models=True)
+                rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
+                print(f"   RF Probability: {rf_prob:.3f}")
+        except ValueError as e:
+            if "features" in str(e):
+                # Feature count mismatch (e.g. model trained with fewer features).
+                # Retrain on the fly with current feature set.
+                print(f"   RF feature mismatch ({e}) - retraining...")
+                self.train_models(train_rf=True, train_lstm=False, save_models=True)
+                try:
+                    rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
+                    print(f"   RF Probability after retrain: {rf_prob:.3f}")
+                except Exception as e2:
+                    print(f"   RF still failed after retrain: {e2} - using 0.0")
+                    rf_prob = 0.0
+            else:
+                print(f"   RF prediction failed: {e} - using 0.0")
+                rf_prob = 0.0
 
         # Step 5: LSTM prediction (if available)
         print("\n[Step 5] Running LSTM prediction...")
