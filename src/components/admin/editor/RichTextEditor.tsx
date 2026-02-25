@@ -125,7 +125,7 @@ export default function RichTextEditor({
                 const wrapperRect = editorWrapperRef.current.getBoundingClientRect();
                 setBubbleMenu({
                     top: start.top - wrapperRect.top - 44,
-                    left: (start.left + end.left) / 2 - wrapperRect.left - 100,
+                    left: (start.left + end.left) / 2 - wrapperRect.left - 160,
                 });
             } else {
                 setBubbleMenu(null);
@@ -327,6 +327,34 @@ export default function RichTextEditor({
                     style={{ top: bubbleMenu.top, left: Math.max(8, bubbleMenu.left) }}
                     onMouseDown={(e) => e.preventDefault()}
                 >
+                    <button
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 1 }).run(); }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                            editor.isActive("heading", { level: 1 }) ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary"
+                        }`}
+                    >
+                        <Heading1 size={14} />
+                    </button>
+                    <button
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                            editor.isActive("heading", { level: 2 }) ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary"
+                        }`}
+                    >
+                        <Heading2 size={14} />
+                    </button>
+                    <button
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                            editor.isActive("heading", { level: 3 }) ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-secondary"
+                        }`}
+                    >
+                        <Heading3 size={14} />
+                    </button>
+                    <div className="w-px h-5 bg-border mx-0.5" />
                     <button
                         type="button"
                         onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
