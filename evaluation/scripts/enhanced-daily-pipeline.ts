@@ -40,6 +40,7 @@ if (!fs.existsSync(SCHEME_DB_DIR)) fs.mkdirSync(SCHEME_DB_DIR, { recursive: true
 const FMP_API_KEY = process.env.FMP_API_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL || '';  // Python AI backend for full 4-layer analysis
+const AI_API_SECRET = process.env.AI_API_SECRET || '';  // Auth key for Python AI backend
 const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 // Note: Legacy v3 endpoints deprecated Aug 31, 2025 - now using stable API
 const FMP_DELAY_MS = 210;
@@ -444,15 +445,42 @@ async function callPythonAIBackend(symbol: string): Promise<PythonAIResult | nul
     }
 
     try {
-        const cmd = `curl -s --max-time 30 -X POST "${AI_BACKEND_URL}/analyze" ` +
+        // Build auth header if API secret is configured
+        const authHeader = AI_API_SECRET
+            ? `-H "X-API-Key: ${AI_API_SECRET}" `
+            : '';
+
+        // Use -w to append HTTP status code, separated by newline
+        const cmd = `curl -s --max-time 30 -w '\\n%{http_code}' -X POST "${AI_BACKEND_URL}/analyze" ` +
             `-H "Content-Type: application/json" ` +
+            authHeader +
             `-d '{"ticker": "${symbol}", "asset_type": "stock", "use_live_data": true}'`;
 
         const result = execSync(cmd, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
 
         if (!result) return null;
 
-        const data = JSON.parse(result);
+        // Parse HTTP status code from the last line
+        const lines = result.trim().split('\n');
+        const httpStatus = parseInt(lines[lines.length - 1], 10);
+        const body = lines.slice(0, -1).join('\n');
+
+        // Reject non-200 responses instead of silently treating them as LOW
+        if (httpStatus !== 200) {
+            console.log(`     Python AI backend returned HTTP ${httpStatus} for ${symbol}`);
+            return null;
+        }
+
+        if (!body) return null;
+
+        const data = JSON.parse(body);
+
+        // Validate that the response has the expected structure
+        // (prevents error responses like {"detail":"..."} from being misinterpreted)
+        if (!data.ticker && !data.risk_level) {
+            console.log(`     Python AI backend returned unexpected response for ${symbol}`);
+            return null;
+        }
 
         return {
             success: true,
@@ -1050,7 +1078,6 @@ async function runEnhancedPipeline(): Promise<void> {
             if (pythonAIAvailable) {
                 const pyResult = await callPythonAIBackend(stock.symbol);
                 if (pyResult && pyResult.success) {
-                    // Use Python AI results (all 4 layers)
                     // Cast signals to the expected type (Python backend returns compatible structure)
                     const typedSignals = pyResult.signals.map(s => ({
                         code: s.code,
@@ -1058,14 +1085,8 @@ async function runEnhancedPipeline(): Promise<void> {
                         weight: s.weight,
                         description: s.description
                     }));
-                    scoringResult = {
-                        riskLevel: pyResult.riskLevel as 'LOW' | 'MEDIUM' | 'HIGH' | 'INSUFFICIENT',
-                        totalScore: Math.round(pyResult.riskProbability * 20), // Convert probability to score
-                        signals: typedSignals,
-                        isLegitimate: false,
-                        isInsufficient: false
-                    };
 
+                    // Record AI layer data regardless of override decision
                     aiLayers = {
                         layer1_deterministic: aiLayers.layer1_deterministic,
                         layer2_anomaly: pyResult.anomaly_score,
@@ -1074,6 +1095,27 @@ async function runEnhancedPipeline(): Promise<void> {
                         combined: pyResult.riskProbability,
                         usedPythonBackend: true
                     };
+
+                    // SAFETY: Never let the Python AI backend downgrade the risk level.
+                    // TypeScript deterministic scoring is the trusted baseline.
+                    // The Python backend can only ELEVATE risk, never lower it.
+                    // This prevents a malfunctioning AI model from masking real threats.
+                    const riskOrder: Record<string, number> = { INSUFFICIENT: -1, LOW: 0, MEDIUM: 1, HIGH: 2 };
+                    const tsRiskRank = riskOrder[scoringResult.riskLevel] ?? 0;
+                    const pyRiskLevel = (pyResult.riskLevel || 'LOW') as 'LOW' | 'MEDIUM' | 'HIGH' | 'INSUFFICIENT';
+                    const pyRiskRank = riskOrder[pyRiskLevel] ?? 0;
+
+                    if (pyRiskRank >= tsRiskRank) {
+                        // Python agrees with or elevates risk — use Python's full result
+                        scoringResult = {
+                            riskLevel: pyRiskLevel,
+                            totalScore: Math.round(pyResult.riskProbability * 20),
+                            signals: typedSignals,
+                            isLegitimate: false,
+                            isInsufficient: false
+                        };
+                    }
+                    // Otherwise keep the TypeScript result (Python tried to downgrade — ignored)
                 }
             }
 
@@ -1127,6 +1169,26 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log(`  Skipped (no data): ${skippedNoData}`);
     console.log(`  Risk Distribution: LOW=${riskCounts.LOW} MEDIUM=${riskCounts.MEDIUM} HIGH=${riskCounts.HIGH}`);
     console.log(`  High-risk stocks to analyze: ${highRiskBeforeFilter.length}`);
+
+    // Sanity check: detect malfunctioning Python AI backend
+    if (pythonAIAvailable && processedCount > 100) {
+        const pyUsedCount = allResults.filter(r => r.aiLayers?.usedPythonBackend).length;
+        const pyAllLow = allResults.every(r => r.riskLevel === 'LOW');
+        const tsWouldHaveHigh = allResults.filter(r =>
+            (r.aiLayers?.layer1_deterministic ?? 0) >= 5
+        ).length;
+        const tsWouldHaveMedium = allResults.filter(r => {
+            const l1 = r.aiLayers?.layer1_deterministic ?? 0;
+            return l1 >= 2 && l1 < 5;
+        }).length;
+
+        if (pyUsedCount > 0 && pyAllLow && (tsWouldHaveHigh > 0 || tsWouldHaveMedium > 0)) {
+            console.log('\n  ⚠️  WARNING: Python AI backend may be malfunctioning!');
+            console.log(`     Python backend was used for ${pyUsedCount} stocks but ALL results are LOW.`);
+            console.log(`     TypeScript scorer would have flagged: ${tsWouldHaveHigh} HIGH, ${tsWouldHaveMedium} MEDIUM`);
+            console.log('     The no-downgrade safety rule preserved TypeScript scores.');
+        }
+    }
 
     scanStatus.phases.phase1_riskScoring.status = 'completed';
     scanStatus.phases.phase1_riskScoring.completedAt = new Date().toISOString();

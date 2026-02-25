@@ -43,6 +43,8 @@ export const config = {
   get nextAuthSecret() { return env("NEXTAUTH_SECRET"); },
 
   // Python AI Backend (for full ML models)
+  aiBackendUrl: process.env.AI_BACKEND_URL || "http://localhost:8000",
+  aiApiSecret: process.env.AI_API_SECRET || "",
   get aiBackendUrl() { return env("AI_BACKEND_URL", "http://localhost:8000"); },
 
   // Social Scan APIs
