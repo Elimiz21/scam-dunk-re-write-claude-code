@@ -673,7 +673,7 @@ export async function getSegmentEfficacyMetrics(days: number = 30) {
 
   try {
     // Helper: compute distribution for a where-clause
-    async function getSegmentStats(where: Record<string, unknown>) {
+    const getSegmentStats = async (where: Record<string, unknown>) => {
       const baseWhere = { createdAt: { gte: startDate }, ...where };
 
       const [total, byRisk, avgData] = await Promise.all([
@@ -704,7 +704,7 @@ export async function getSegmentEfficacyMetrics(days: number = 30) {
         avgScore: avgData._avg.totalScore || 0,
         avgProcessingTime: Math.round(avgData._avg.processingTime || 0),
       };
-    }
+    };
 
     const [all, otc, microCap, highVolume, aiBackend, tsFallback] =
       await Promise.all([
