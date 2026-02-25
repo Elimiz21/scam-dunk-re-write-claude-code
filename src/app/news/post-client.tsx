@@ -70,63 +70,6 @@ export default function BlogPostClient({ post }: BlogPostClientProps) {
     window.location.href = "/";
   };
 
-  function renderContent(content: string) {
-    const paragraphs = content.split(/\n\n+/);
-
-    return paragraphs.map((paragraph, index) => {
-      if (paragraph.startsWith("# ")) {
-        return (
-          <h1 key={index} className="text-3xl font-bold mt-8 mb-4">
-            {paragraph.slice(2)}
-          </h1>
-        );
-      }
-      if (paragraph.startsWith("## ")) {
-        return (
-          <h2 key={index} className="text-2xl font-bold mt-6 mb-3">
-            {paragraph.slice(3)}
-          </h2>
-        );
-      }
-      if (paragraph.startsWith("### ")) {
-        return (
-          <h3 key={index} className="text-xl font-semibold mt-5 mb-2">
-            {paragraph.slice(4)}
-          </h3>
-        );
-      }
-
-      if (paragraph.match(/^[-*] /m)) {
-        const items = paragraph.split(/\n/).filter((line) => line.match(/^[-*] /));
-        return (
-          <ul key={index} className="list-disc list-inside my-4 space-y-2">
-            {items.map((item, i) => (
-              <li key={i} className="text-muted-foreground">
-                {item.slice(2)}
-              </li>
-            ))}
-          </ul>
-        );
-      }
-
-      if (paragraph.startsWith("> ")) {
-        return (
-          <blockquote
-            key={index}
-            className="border-l-4 border-primary pl-4 my-4 italic text-muted-foreground"
-          >
-            {paragraph.slice(2)}
-          </blockquote>
-        );
-      }
-
-      return (
-        <p key={index} className="text-muted-foreground leading-relaxed mb-4">
-          {paragraph}
-        </p>
-      );
-    });
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -190,9 +133,10 @@ export default function BlogPostClient({ post }: BlogPostClientProps) {
               <p className="text-lg text-muted-foreground mb-6">{post.excerpt}</p>
             )}
 
-            <div className="prose prose-neutral dark:prose-invert max-w-none">
-              {renderContent(post.content)}
-            </div>
+            <div
+              className="tiptap prose prose-neutral dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
           </article>
 
           {post.tags && (
