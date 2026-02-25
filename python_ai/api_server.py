@@ -284,51 +284,32 @@ async def analyze_asset(request: AnalysisRequest):
             )
         )
 
-        # Build signal details from key indicators
+        # Use pipeline-computed signals directly (no more fragile string matching)
         signals = []
-        for indicator in assessment.key_indicators:
-            if "SEC" in indicator:
-                signals.append(SignalDetail(code="SEC_FLAGGED", category="ALERT", description=indicator, weight=5))
-            elif "OTC" in indicator or "Pink" in indicator:
-                signals.append(SignalDetail(code="OTC_EXCHANGE", category="STRUCTURAL", description=indicator, weight=3))
-            elif "pump" in indicator.lower() or "dump" in indicator.lower():
-                signals.append(SignalDetail(code="PUMP_DUMP_PATTERN", category="PATTERN", description=indicator, weight=4))
-            elif "volume" in indicator.lower():
-                signals.append(SignalDetail(code="VOLUME_ANOMALY", category="PATTERN", description=indicator, weight=3))
-            elif "price" in indicator.lower() or "%" in indicator:
-                signals.append(SignalDetail(code="PRICE_ANOMALY", category="PATTERN", description=indicator, weight=3))
-            elif "RSI" in indicator or "overbought" in indicator.lower():
-                signals.append(SignalDetail(code="OVERBOUGHT_RSI", category="PATTERN", description=indicator, weight=2))
-            elif "cap" in indicator.lower():
-                signals.append(SignalDetail(code="MICRO_CAP", category="STRUCTURAL", description=indicator, weight=2))
-            else:
-                signals.append(SignalDetail(code="OTHER", category="PATTERN", description=indicator, weight=1))
-
-        # Add anomaly types as signals
-        for anomaly_type in assessment.anomaly_types:
+        for sig in assessment.signals:
             signals.append(SignalDetail(
-                code=anomaly_type.upper().replace(" ", "_"),
-                category="PATTERN",
-                description=f"Anomaly: {anomaly_type.replace('_', ' ')}",
-                weight=2
+                code=sig.code,
+                category=sig.category,
+                description=sig.description,
+                weight=sig.weight,
             ))
+
+        total_score = assessment.signal_total_score
 
         # Build feature summary
         features = {}
         if assessment.detailed_report.get('feature_highlights'):
             features = assessment.detailed_report['feature_highlights']
 
-        # Get explanations
-        explanations = []
-        if assessment.explanation:
+        # Get explanations from key indicators and signal descriptions
+        explanations = [s.description for s in assessment.signals]
+        if not explanations and assessment.explanation:
             for line in assessment.explanation.split('\n'):
                 line = line.strip()
                 if line.startswith('-') or line.startswith('>'):
                     explanations.append(line.lstrip('->').strip())
                 elif line and not line.startswith('Risk') and not line.startswith('Key'):
                     explanations.append(line)
-
-        total_score = sum(s.weight for s in signals)
 
         # Extract stock info from detailed report
         data_summary = assessment.detailed_report.get('data_summary', {})

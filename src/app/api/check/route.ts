@@ -293,9 +293,16 @@ export async function POST(request: NextRequest) {
       currentStep = "MARKET_DATA_AI";
       marketData = await fetchMarketData(ticker, checkRequest.assetType);
 
+      // Use the signal-weight total_score from the AI backend directly
+      // instead of converting probability to score (which produced low values
+      // because the ML models were trained on synthetic data).
+      const aiTotalScore = aiResult.signals
+        ? aiResult.signals.reduce((sum: number, s: RiskSignal) => sum + s.weight, 0)
+        : 0;
+
       scoringResult = {
         riskLevel: aiResult.riskLevel as "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT",
-        totalScore: Math.round((aiResult.probability || 0) * 20), // Convert probability to score
+        totalScore: aiTotalScore,
         signals: aiResult.signals,
         isInsufficient: false,
         isLegitimate: aiResult.riskLevel === "LOW" && (aiResult.signals?.length || 0) === 0,
