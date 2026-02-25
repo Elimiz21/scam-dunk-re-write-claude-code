@@ -9,7 +9,10 @@ import { prisma } from "@/lib/db";
 import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // 5 minutes for large imports
+export const maxDuration = 600; // 10 minutes for large imports (enhanced pipeline produces ~6,500 stocks)
+
+// Batch size for createMany operations to avoid overwhelming the DB
+const BATCH_SIZE = 1000;
 
 interface EvaluationStock {
   symbol: string;
@@ -68,6 +71,15 @@ interface PromotedStocksReport {
   promotedStocks: PromotedStockData[];
 }
 
+/**
+ * Safely convert a number to an integer for Prisma Int fields.
+ * Returns null if the value is falsy/NaN.
+ */
+function toInt(value: number | null | undefined): number | null {
+  if (value == null || isNaN(value)) return null;
+  return Math.round(value);
+}
+
 async function fetchEvaluationFile(
   filename: string
 ): Promise<{ data: EvaluationStock[] | null; error?: string; errorType?: IngestionErrorType }> {
@@ -95,10 +107,24 @@ async function fetchEvaluationFile(
       };
     }
 
-    // Check content type
+    // Check content type - accept both application/json and application/octet-stream
+    // (Supabase may return octet-stream for some uploads)
     const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
+    const isJsonLike = contentType.includes("application/json") ||
+      contentType.includes("application/octet-stream") ||
+      contentType.includes("text/plain");
+
+    if (!isJsonLike) {
       const text = await response.text();
+      // Try to parse anyway - some storage backends don't set content-type correctly
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          return { data: parsed as EvaluationStock[] };
+        }
+      } catch {
+        // Not valid JSON
+      }
       return {
         data: null,
         errorType: "BAD_JSON",
@@ -106,9 +132,11 @@ async function fetchEvaluationFile(
       };
     }
 
+    // Read as text first, then parse - more reliable for large files
+    const text = await response.text();
     let data: unknown;
     try {
-      data = await response.json();
+      data = JSON.parse(text);
     } catch (error) {
       return {
         data: null,
@@ -156,13 +184,13 @@ async function fetchSummaryFile(
       return { data: null, error: `HTTP ${response.status}` };
     }
 
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      return { data: null, errorType: "BAD_JSON", error: `Expected JSON but got ${contentType}` };
+    const text = await response.text();
+    try {
+      const data = JSON.parse(text);
+      return { data };
+    } catch {
+      return { data: null, errorType: "BAD_JSON", error: "Invalid JSON in summary file" };
     }
-
-    const data = await response.json();
-    return { data };
   } catch (error) {
     return { data: null, errorType: "BAD_JSON", error: String(error) };
   }
@@ -190,16 +218,32 @@ async function fetchPromotedStocksFile(
       return { data: null, error: `HTTP ${response.status}` };
     }
 
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      return { data: null, errorType: "BAD_JSON", error: `Expected JSON but got ${contentType}` };
+    const text = await response.text();
+    try {
+      const data = JSON.parse(text);
+      return { data };
+    } catch {
+      return { data: null, errorType: "BAD_JSON", error: "Invalid JSON in promoted stocks file" };
     }
-
-    const data = await response.json();
-    return { data };
   } catch (error) {
     return { data: null, errorType: "BAD_JSON", error: String(error) };
   }
+}
+
+/**
+ * Process createMany in batches to avoid overwhelming the database
+ */
+async function batchCreateMany<T>(
+  createFn: (data: T[]) => Promise<{ count: number }>,
+  items: T[],
+): Promise<number> {
+  let totalCreated = 0;
+  for (let i = 0; i < items.length; i += BATCH_SIZE) {
+    const batch = items.slice(i, i + BATCH_SIZE);
+    const result = await createFn(batch);
+    totalCreated += result.count;
+  }
+  return totalCreated;
 }
 
 export async function POST(request: Request) {
@@ -219,6 +263,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Date required (YYYY-MM-DD)" }, { status: 400 });
     }
 
+    console.log(`[ingest] Starting ingestion for ${date}...`);
+
     // Fetch evaluation file from Supabase Storage
     // Try enhanced format first (new pipeline), fall back to legacy fmp format
     const enhancedEvalFilename = `enhanced-evaluation-${date}.json`;
@@ -227,6 +273,7 @@ export async function POST(request: Request) {
 
     let evaluationResult = await fetchEvaluationFile(enhancedEvalFilename);
     if (!evaluationResult.data) {
+      console.log(`[ingest] Enhanced file not found, trying legacy format...`);
       evaluationResult = await fetchEvaluationFile(legacyEvalFilename);
     }
     if (!evaluationResult.data) {
@@ -270,6 +317,8 @@ export async function POST(request: Request) {
     }
 
     const evaluationData = evaluationResult.data;
+    console.log(`[ingest] Loaded ${evaluationData.length} stocks from evaluation file`);
+
     const summaryResult = await fetchSummaryFile(summaryFilename);
     const summaryData = summaryResult.data;
 
@@ -286,14 +335,21 @@ export async function POST(request: Request) {
       (stock) => stock.symbol && stock.name && stock.exchange
     );
     const skippedCount = evaluationData.length - validStocks.length;
+    console.log(`[ingest] ${validStocks.length} valid stocks (${skippedCount} skipped)`);
 
-    // Step 1: Get all existing stocks in one query
+    // Step 1: Get all existing stocks - query in batches for large symbol lists
     const symbols = validStocks.map((s) => s.symbol);
-    const existingStocks = await prisma.trackedStock.findMany({
-      where: { symbol: { in: symbols } },
-      select: { id: true, symbol: true },
-    });
-    const existingStockMap = new Map(existingStocks.map((s) => [s.symbol, s.id]));
+    const existingStockMap = new Map<string, string>();
+
+    for (let i = 0; i < symbols.length; i += BATCH_SIZE) {
+      const batch = symbols.slice(i, i + BATCH_SIZE);
+      const existingStocks = await prisma.trackedStock.findMany({
+        where: { symbol: { in: batch } },
+        select: { id: true, symbol: true },
+      });
+      existingStocks.forEach((s) => existingStockMap.set(s.symbol, s.id));
+    }
+    console.log(`[ingest] Found ${existingStockMap.size} existing stocks in DB`);
 
     // Step 2: Identify stocks to create
     const stocksToCreate = validStocks.filter((s) => !existingStockMap.has(s.symbol));
@@ -301,37 +357,51 @@ export async function POST(request: Request) {
     // Step 3: Batch create new stocks
     let stocksCreated = 0;
     if (stocksToCreate.length > 0) {
-      await prisma.trackedStock.createMany({
-        data: stocksToCreate.map((stock) => ({
-          symbol: stock.symbol,
-          name: stock.name,
-          exchange: stock.exchange,
-          sector: stock.sector || null,
-          industry: stock.industry || null,
-          isOTC: stock.exchange === "OTC",
-        })),
-        skipDuplicates: true,
-      });
-      stocksCreated = stocksToCreate.length;
+      console.log(`[ingest] Creating ${stocksToCreate.length} new stocks...`);
+      stocksCreated = await batchCreateMany(
+        (batch) => prisma.trackedStock.createMany({
+          data: batch.map((stock) => ({
+            symbol: stock.symbol,
+            name: stock.name,
+            exchange: stock.exchange,
+            sector: stock.sector || null,
+            industry: stock.industry || null,
+            isOTC: stock.exchange === "OTC",
+          })),
+          skipDuplicates: true,
+        }),
+        stocksToCreate,
+      );
 
-      // Fetch the newly created stocks to get their IDs
-      const newStocks = await prisma.trackedStock.findMany({
-        where: { symbol: { in: stocksToCreate.map((s) => s.symbol) } },
-        select: { id: true, symbol: true },
-      });
-      newStocks.forEach((s) => existingStockMap.set(s.symbol, s.id));
+      // Fetch the newly created stocks to get their IDs - also in batches
+      const newSymbols = stocksToCreate.map((s) => s.symbol);
+      for (let i = 0; i < newSymbols.length; i += BATCH_SIZE) {
+        const batch = newSymbols.slice(i, i + BATCH_SIZE);
+        const newStocks = await prisma.trackedStock.findMany({
+          where: { symbol: { in: batch } },
+          select: { id: true, symbol: true },
+        });
+        newStocks.forEach((s) => existingStockMap.set(s.symbol, s.id));
+      }
+      console.log(`[ingest] Created ${stocksCreated} new stocks`);
     }
 
-    // Step 4: Check which snapshots already exist for this date
+    // Step 4: Check which snapshots already exist for this date - in batches
     const stockIds = Array.from(existingStockMap.values());
-    const existingSnapshots = await prisma.stockDailySnapshot.findMany({
-      where: {
-        stockId: { in: stockIds },
-        scanDate,
-      },
-      select: { stockId: true },
-    });
-    const existingSnapshotSet = new Set(existingSnapshots.map((s) => s.stockId));
+    const existingSnapshotSet = new Set<string>();
+
+    for (let i = 0; i < stockIds.length; i += BATCH_SIZE) {
+      const batch = stockIds.slice(i, i + BATCH_SIZE);
+      const existingSnapshots = await prisma.stockDailySnapshot.findMany({
+        where: {
+          stockId: { in: batch },
+          scanDate,
+        },
+        select: { stockId: true },
+      });
+      existingSnapshots.forEach((s) => existingSnapshotSet.add(s.stockId));
+    }
+    console.log(`[ingest] Found ${existingSnapshotSet.size} existing snapshots for ${date}`);
 
     // Step 5: Prepare snapshots to create (only for stocks without existing snapshots)
     const snapshotsToCreate = validStocks
@@ -349,18 +419,20 @@ export async function POST(request: Request) {
           evaluatedAt = scanDate;
         }
 
+        // Use toInt() for all Int? fields to prevent Prisma float-to-int errors
+        // FMP API and the enhanced pipeline may return floats for volume fields
         return {
           stockId,
           scanDate,
           riskLevel: stock.riskLevel || "UNKNOWN",
-          totalScore: stock.totalScore || 0,
+          totalScore: toInt(stock.totalScore) ?? 0,
           isLegitimate: stock.isLegitimate ?? true,
           isInsufficient: stock.isInsufficient || false,
           lastPrice: stock.lastPrice || null,
           previousClose: stock.previousClose || null,
           priceChangePct: stock.priceChangePct || null,
-          volume: stock.volume || null,
-          avgVolume: stock.avgVolume || stock.avgDailyVolume || null,
+          volume: toInt(stock.volume),
+          avgVolume: toInt(stock.avgVolume || stock.avgDailyVolume),
           volumeRatio: stock.volumeRatio || null,
           marketCap: stock.marketCap || null,
           signals: JSON.stringify(stock.signals || []),
@@ -374,11 +446,15 @@ export async function POST(request: Request) {
     // Step 6: Batch create snapshots
     let snapshotsCreated = 0;
     if (snapshotsToCreate.length > 0) {
-      await prisma.stockDailySnapshot.createMany({
-        data: snapshotsToCreate,
-        skipDuplicates: true,
-      });
-      snapshotsCreated = snapshotsToCreate.length;
+      console.log(`[ingest] Creating ${snapshotsToCreate.length} snapshots in batches of ${BATCH_SIZE}...`);
+      snapshotsCreated = await batchCreateMany(
+        (batch) => prisma.stockDailySnapshot.createMany({
+          data: batch,
+          skipDuplicates: true,
+        }),
+        snapshotsToCreate,
+      );
+      console.log(`[ingest] Created ${snapshotsCreated} snapshots`);
     }
 
     // Step 7: Create alerts for HIGH risk stocks (simplified - skip comparison for speed)
@@ -391,14 +467,18 @@ export async function POST(request: Request) {
         .map((s) => existingStockMap.get(s.symbol))
         .filter((id): id is string => !!id);
 
-      const existingAlerts = await prisma.stockRiskAlert.findMany({
-        where: {
-          stockId: { in: highRiskStockIds },
-          alertDate: scanDate,
-        },
-        select: { stockId: true },
-      });
-      const existingAlertSet = new Set(existingAlerts.map((a) => a.stockId));
+      const existingAlertSet = new Set<string>();
+      for (let i = 0; i < highRiskStockIds.length; i += BATCH_SIZE) {
+        const batch = highRiskStockIds.slice(i, i + BATCH_SIZE);
+        const existingAlerts = await prisma.stockRiskAlert.findMany({
+          where: {
+            stockId: { in: batch },
+            alertDate: scanDate,
+          },
+          select: { stockId: true },
+        });
+        existingAlerts.forEach((a) => existingAlertSet.add(a.stockId));
+      }
 
       const alertsToCreate = highRiskStocks
         .filter((stock) => {
@@ -410,18 +490,22 @@ export async function POST(request: Request) {
           alertDate: scanDate,
           alertType: "NEW_HIGH_RISK",
           newRiskLevel: stock.riskLevel,
-          newScore: stock.totalScore || 0,
+          newScore: toInt(stock.totalScore) ?? 0,
           priceAtAlert: stock.lastPrice || null,
-          volumeAtAlert: stock.volume || null,
+          volumeAtAlert: toInt(stock.volume),
           triggeringSignals: stock.signalSummary || null,
         }));
 
       if (alertsToCreate.length > 0) {
-        await prisma.stockRiskAlert.createMany({
-          data: alertsToCreate,
-          skipDuplicates: true,
-        });
-        alertsCreated = alertsToCreate.length;
+        console.log(`[ingest] Creating ${alertsToCreate.length} risk alerts...`);
+        alertsCreated = await batchCreateMany(
+          (batch) => prisma.stockRiskAlert.createMany({
+            data: batch,
+            skipDuplicates: true,
+          }),
+          alertsToCreate,
+        );
+        console.log(`[ingest] Created ${alertsCreated} risk alerts`);
       }
     }
 
@@ -512,6 +596,9 @@ export async function POST(request: Request) {
       }
     }
 
+    const durationMs = Date.now() - startTime;
+    console.log(`[ingest] Completed in ${Math.round(durationMs / 1000)}s`);
+
     if (sessionId) {
       await prisma.adminAuditLog.create({
         data: {
@@ -527,7 +614,7 @@ export async function POST(request: Request) {
             promotedStocksCreated,
             totalProcessed: validStocks.length,
             skipped: skippedCount,
-            durationMs: Date.now() - startTime,
+            durationMs,
           }),
         },
       });
