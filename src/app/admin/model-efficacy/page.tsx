@@ -42,6 +42,29 @@ interface ModelMetrics {
   avgScore: number;
 }
 
+interface SegmentStats {
+  totalScans: number;
+  lowRisk: number;
+  mediumRisk: number;
+  highRisk: number;
+  insufficient: number;
+  highRiskRate: number;
+  avgScore: number;
+  avgProcessingTime: number;
+}
+
+interface SegmentEfficacy {
+  period: number;
+  segments: {
+    all: SegmentStats;
+    otc: SegmentStats;
+    microCap: SegmentStats;
+    highVolume: SegmentStats;
+    aiBackend: SegmentStats;
+    tsFallback: SegmentStats;
+  };
+}
+
 interface Scan {
   id: string;
   ticker: string;
@@ -56,6 +79,7 @@ interface Scan {
 
 export default function ModelEfficacyPage() {
   const [metrics, setMetrics] = useState<ModelMetrics | null>(null);
+  const [segmentData, setSegmentData] = useState<SegmentEfficacy | null>(null);
   const [scans, setScans] = useState<Scan[]>([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -65,6 +89,7 @@ export default function ModelEfficacyPage() {
 
   useEffect(() => {
     fetchMetrics();
+    fetchSegments();
   }, [days]);
 
   useEffect(() => {
@@ -81,6 +106,17 @@ export default function ModelEfficacyPage() {
       setError(err instanceof Error ? err.message : "Failed to load metrics");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchSegments() {
+    try {
+      const res = await fetch(`/api/admin/model-efficacy/segments?days=${days}`);
+      if (!res.ok) return; // Non-critical, don't block the page
+      const data = await res.json();
+      setSegmentData(data);
+    } catch {
+      // Segment data is supplementary — don't show errors for it
     }
   }
 
@@ -314,6 +350,64 @@ export default function ModelEfficacyPage() {
                 color="#10b981"
               />
             </div>
+
+            {/* Segment Efficacy Dashboard */}
+            {segmentData && (
+              <div className="bg-card rounded-2xl shadow p-6">
+                <h3 className="text-lg font-medium text-foreground mb-2">Segment Efficacy</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Risk detection rates by stock segment and scoring engine
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-muted-foreground">
+                        <th className="pb-2 pr-4">Segment</th>
+                        <th className="pb-2 pr-4 text-right">Scans</th>
+                        <th className="pb-2 pr-4 text-right">HIGH %</th>
+                        <th className="pb-2 pr-4 text-right">MED %</th>
+                        <th className="pb-2 pr-4 text-right">LOW %</th>
+                        <th className="pb-2 pr-4 text-right">Avg Score</th>
+                        <th className="pb-2 text-right">Avg Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {([
+                        ["All Stocks", segmentData.segments.all],
+                        ["OTC Stocks", segmentData.segments.otc],
+                        ["Micro-Cap (<$50M)", segmentData.segments.microCap],
+                        ["High Volume Surge", segmentData.segments.highVolume],
+                        ["AI Backend", segmentData.segments.aiBackend],
+                        ["TS Fallback", segmentData.segments.tsFallback],
+                      ] as [string, SegmentStats][]).map(([label, seg]) => {
+                        const pctHigh = seg.totalScans > 0 ? (seg.highRisk / seg.totalScans) * 100 : 0;
+                        const pctMed = seg.totalScans > 0 ? (seg.mediumRisk / seg.totalScans) * 100 : 0;
+                        const pctLow = seg.totalScans > 0 ? (seg.lowRisk / seg.totalScans) * 100 : 0;
+                        return (
+                          <tr key={label}>
+                            <td className="py-2 pr-4 font-medium">{label}</td>
+                            <td className="py-2 pr-4 text-right tabular-nums">{seg.totalScans}</td>
+                            <td className="py-2 pr-4 text-right tabular-nums">
+                              <span className={pctHigh >= 30 ? "text-red-600 font-medium" : ""}>
+                                {pctHigh.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className="py-2 pr-4 text-right tabular-nums">
+                              <span className={pctMed >= 40 ? "text-yellow-600 font-medium" : ""}>
+                                {pctMed.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className="py-2 pr-4 text-right tabular-nums">{pctLow.toFixed(1)}%</td>
+                            <td className="py-2 pr-4 text-right tabular-nums">{seg.avgScore.toFixed(1)}</td>
+                            <td className="py-2 text-right tabular-nums">{seg.avgProcessingTime}ms</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Top Tickers */}
             <div className="bg-card rounded-2xl shadow p-6">

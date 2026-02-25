@@ -39,6 +39,20 @@ class ServiceUnavailableError extends Error {
 // Python AI backend URL (must match ai-analyze/route.ts and config.ts default)
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000";
 
+// No-downgrade guard: when enabled (default), if the AI backend returns a
+// LOWER risk level than the TypeScript deterministic baseline, we use the
+// baseline instead.  This ensures the AI backend is purely additive and
+// can never mask a high-risk finding.  Set AI_NO_DOWNGRADE_GUARD=false
+// to disable (e.g. during controlled experiments).
+const NO_DOWNGRADE_GUARD = process.env.AI_NO_DOWNGRADE_GUARD !== "false";
+
+const RISK_PRIORITY: Record<string, number> = {
+  INSUFFICIENT: -1,
+  LOW: 0,
+  MEDIUM: 1,
+  HIGH: 2,
+};
+
 // Request validation schema - only ticker is required
 const checkRequestSchema = z.object({
   ticker: z.string().min(1, "Ticker is required").max(10),
@@ -289,13 +303,20 @@ export async function POST(request: NextRequest) {
       aiStockInfo = aiResult.stockInfo;
       console.log(`Using Python AI backend for ${ticker}`);
 
-      // Fetch market data as fallback for stock summary if AI doesn't provide it
+      // Fetch market data (needed for stock summary and baseline comparison)
       currentStep = "MARKET_DATA_AI";
       marketData = await fetchMarketData(ticker, checkRequest.assetType);
 
+      // Use the signal-weight total_score from the AI backend directly
+      // instead of converting probability to score (which produced low values
+      // because the ML models were trained on synthetic data).
+      const aiTotalScore = aiResult.signals
+        ? aiResult.signals.reduce((sum: number, s: RiskSignal) => sum + s.weight, 0)
+        : 0;
+
       scoringResult = {
         riskLevel: aiResult.riskLevel as "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT",
-        totalScore: Math.round((aiResult.probability || 0) * 20), // Convert probability to score
+        totalScore: aiTotalScore,
         signals: aiResult.signals,
         isInsufficient: false,
         isLegitimate: aiResult.riskLevel === "LOW" && (aiResult.signals?.length || 0) === 0,
@@ -304,6 +325,42 @@ export async function POST(request: NextRequest) {
         lstmProbability: aiResult.lstmProbability,
         anomalyScore: aiResult.anomalyScore,
       };
+
+      // =====================================================
+      // NO-DOWNGRADE GUARD (recommended by all reviewers)
+      // Ensures AI backend is purely additive — can elevate
+      // risk but never mask a high-risk finding from the
+      // deterministic TypeScript baseline.
+      // =====================================================
+      if (NO_DOWNGRADE_GUARD && scoringResult.riskLevel !== "HIGH") {
+        // Only run baseline when AI isn't already HIGH (optimization: #3)
+        // If AI is already HIGH, baseline can't be higher so skip it.
+        currentStep = "BASELINE_COMPARISON";
+        try {
+          const baselineResult = await computeRiskScore({
+            marketData,
+            pitchText: checkRequest.pitchText || "",
+            context,
+          });
+
+          const aiPriority = RISK_PRIORITY[scoringResult.riskLevel] ?? 0;
+          const baselinePriority = RISK_PRIORITY[baselineResult.riskLevel] ?? 0;
+
+          if (baselinePriority > aiPriority) {
+            console.log(
+              `No-downgrade guard: AI=${scoringResult.riskLevel}(${scoringResult.totalScore}), ` +
+              `baseline=${baselineResult.riskLevel}(${baselineResult.totalScore}) → using baseline`
+            );
+            // Baseline wins — use its result and clear AI overrides
+            scoringResult = baselineResult;
+            usedAIBackend = false;
+            aiStockInfo = undefined;
+          }
+        } catch (baselineError) {
+          // Resilient: if baseline comparison fails, keep AI result (#2)
+          console.warn("Baseline comparison failed, keeping AI result:", baselineError);
+        }
+      }
     } else {
       // =====================================================
       // FALLBACK TO TYPESCRIPT SCORING
@@ -369,6 +426,14 @@ export async function POST(request: NextRequest) {
 
     // Save scan to history and update model metrics for dashboard
     currentStep = "LOG_HISTORY";
+    // Derive segment classification from scoring signals and market data
+    const isOtcScan = marketData.isOTC || scoringResult.signals.some(s => s.code === "OTC_EXCHANGE");
+    const isMicroCapScan = (marketData.quote?.marketCap ?? 0) < 50_000_000
+      || scoringResult.signals.some(s => s.code === "SMALL_MARKET_CAP" || s.code === "MICRO_CAP");
+    const isHighVolumeScan = scoringResult.signals.some(
+      s => s.code === "VOLUME_EXPLOSION" || s.code === "VOLUME_ANOMALY"
+    );
+
     await logScanHistory({
       userId,
       ticker,
@@ -381,6 +446,10 @@ export async function POST(request: NextRequest) {
       pitchProvided: !!checkRequest.pitchText,
       contextProvided: Object.values(context).some(Boolean),
       ipAddress,
+      isOtc: isOtcScan,
+      isMicroCap: isMicroCapScan,
+      isHighVolume: isHighVolumeScan,
+      usedAiBackend: usedAIBackend,
     });
 
     // Build response

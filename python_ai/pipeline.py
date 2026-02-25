@@ -41,6 +41,15 @@ from lstm_model import ScamDetectorLSTM
 
 
 @dataclass
+class SignalDetail:
+    """Individual risk signal with code, category, description, and weight."""
+    code: str
+    category: str  # STRUCTURAL, PATTERN, ALERT, BEHAVIORAL
+    description: str
+    weight: int
+
+
+@dataclass
 class RiskAssessment:
     """Container for the complete risk assessment output."""
     ticker: str
@@ -56,6 +65,8 @@ class RiskAssessment:
     key_indicators: List[str]
     explanation: str
     detailed_report: Dict
+    signals: List[SignalDetail] = field(default_factory=list)
+    signal_total_score: int = 0
     news_verification: Optional[Dict] = None
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -133,6 +144,240 @@ class ScamDetectionPipeline:
         else:
             return 'HIGH'
 
+    def compute_signals(
+        self,
+        features: np.ndarray,
+        feature_names: List[str],
+        fundamentals: Dict,
+        sec_flagged: bool,
+        anomaly_result: AnomalyResult,
+        price_data: pd.DataFrame,
+    ) -> List[SignalDetail]:
+        """
+        Compute risk signals directly from market features and fundamentals.
+
+        This mirrors the TypeScript scoring logic but is enhanced with the
+        Python backend's richer technical indicators (Z-scores, ATR, Keltner,
+        RSI, etc.).  Each signal carries a weight; the sum of weights is the
+        total risk score used for the final risk-level determination.
+
+        Returns:
+            List of SignalDetail objects.
+        """
+        signals: List[SignalDetail] = []
+        feat = dict(zip(feature_names, features))
+
+        # ----- STRUCTURAL signals -----
+        current_price = fundamentals.get('current_price') or (
+            float(price_data['Close'].iloc[-1]) if len(price_data) > 0 else 0
+        )
+        if 0 < current_price < 5:
+            signals.append(SignalDetail(
+                code='MICROCAP_PRICE', category='STRUCTURAL',
+                description=f'Stock price ${current_price:.2f} is below $5 – penny stock territory',
+                weight=2,
+            ))
+
+        market_cap = fundamentals.get('market_cap', 0)
+        if 0 < market_cap < MARKET_THRESHOLDS['small_cap']:
+            cap_str = f'${market_cap / 1e6:.1f}M'
+            signals.append(SignalDetail(
+                code='SMALL_MARKET_CAP', category='STRUCTURAL',
+                description=f'Small market cap ({cap_str}) – more vulnerable to manipulation',
+                weight=2,
+            ))
+
+        avg_volume = fundamentals.get('avg_daily_volume', 0)
+        if 0 < avg_volume < MARKET_THRESHOLDS['micro_liquidity']:
+            vol_k = f'${avg_volume / 1e3:.0f}K'
+            signals.append(SignalDetail(
+                code='MICRO_LIQUIDITY', category='STRUCTURAL',
+                description=f'Very low daily volume ({vol_k}) – easier to manipulate',
+                weight=2,
+            ))
+
+        is_otc = fundamentals.get('is_otc', False)
+        exchange = fundamentals.get('exchange', '')
+        if is_otc or exchange.upper() in OTC_EXCHANGES:
+            signals.append(SignalDetail(
+                code='OTC_EXCHANGE', category='STRUCTURAL',
+                description=f'Traded on OTC market ({exchange}) – less regulatory oversight',
+                weight=3,
+            ))
+
+        # ----- PATTERN signals -----
+        price_change_7d = feat.get('price_change_7d', 0) * 100  # to %
+        if abs(price_change_7d) >= 50:
+            signals.append(SignalDetail(
+                code='SPIKE_7D', category='PATTERN',
+                description=f'Extreme 7-day price move of {price_change_7d:+.0f}% – classic pump pattern',
+                weight=4,
+            ))
+        elif abs(price_change_7d) >= 25:
+            signals.append(SignalDetail(
+                code='SPIKE_7D', category='PATTERN',
+                description=f'Significant 7-day price move of {price_change_7d:+.0f}%',
+                weight=3,
+            ))
+
+        vol_surge = feat.get('volume_surge_factor', 1)
+        if vol_surge >= 5:
+            signals.append(SignalDetail(
+                code='VOLUME_EXPLOSION', category='PATTERN',
+                description=f'Volume {vol_surge:.1f}x the 30-day average – extreme unusual activity',
+                weight=3,
+            ))
+        elif vol_surge >= 3:
+            signals.append(SignalDetail(
+                code='VOLUME_EXPLOSION', category='PATTERN',
+                description=f'Volume {vol_surge:.1f}x the 30-day average – unusual activity',
+                weight=2,
+            ))
+
+        # Spike-then-drop (pump-and-dump classic)
+        if 'pump_and_dump_pattern' in anomaly_result.anomaly_types:
+            signals.append(SignalDetail(
+                code='SPIKE_THEN_DROP', category='PATTERN',
+                description='Price spiked then dropped sharply – classic pump-and-dump pattern',
+                weight=3,
+            ))
+
+        # Z-score based price anomaly
+        price_z = max(
+            abs(feat.get('return_zscore_short', 0)),
+            abs(feat.get('return_zscore_long', 0)),
+            abs(feat.get('price_zscore_long', 0)),
+        )
+        if price_z >= 3.0:
+            signals.append(SignalDetail(
+                code='PRICE_ANOMALY', category='PATTERN',
+                description=f'Extreme price anomaly (Z-score {price_z:.1f}) – statistically unusual',
+                weight=4,
+            ))
+        elif price_z >= 2.0:
+            signals.append(SignalDetail(
+                code='PRICE_ANOMALY', category='PATTERN',
+                description=f'Significant price anomaly (Z-score {price_z:.1f})',
+                weight=3,
+            ))
+        elif price_z >= 1.5:
+            signals.append(SignalDetail(
+                code='PRICE_ANOMALY', category='PATTERN',
+                description=f'Moderate price anomaly (Z-score {price_z:.1f})',
+                weight=2,
+            ))
+
+        # Volume Z-score anomaly
+        vol_z = max(
+            feat.get('volume_zscore_short', 0),
+            feat.get('volume_zscore_long', 0),
+        )
+        if vol_z >= 2.0:
+            signals.append(SignalDetail(
+                code='VOLUME_ANOMALY', category='PATTERN',
+                description=f'Abnormal volume (Z-score {vol_z:.1f}) – possible coordinated buying',
+                weight=2,
+            ))
+
+        # RSI overbought
+        rsi = feat.get('rsi_14', 50)
+        if rsi > 80:
+            signals.append(SignalDetail(
+                code='OVERBOUGHT_RSI', category='PATTERN',
+                description=f'Extremely overbought (RSI {rsi:.0f}) – price unsustainably high',
+                weight=2,
+            ))
+        elif rsi > 70:
+            signals.append(SignalDetail(
+                code='OVERBOUGHT_RSI', category='PATTERN',
+                description=f'Overbought (RSI {rsi:.0f})',
+                weight=1,
+            ))
+
+        # ATR-based high volatility
+        atr_pct = feat.get('atr_percent', 0)
+        if atr_pct > 10:
+            signals.append(SignalDetail(
+                code='HIGH_VOLATILITY', category='PATTERN',
+                description=f'Extreme volatility (ATR {atr_pct:.1f}% of price)',
+                weight=2,
+            ))
+        elif atr_pct > 5:
+            signals.append(SignalDetail(
+                code='HIGH_VOLATILITY', category='PATTERN',
+                description=f'High volatility (ATR {atr_pct:.1f}% of price)',
+                weight=1,
+            ))
+
+        # Pump pattern (price up + volume up simultaneously)
+        if feat.get('pump_pattern', 0) or 'pump_pattern_detected' in anomaly_result.anomaly_types:
+            signals.append(SignalDetail(
+                code='PUMP_PATTERN', category='PATTERN',
+                description='Combined price pump + volume explosion detected',
+                weight=3,
+            ))
+
+        # Keltner channel breakout
+        if feat.get('keltner_breakout_upper', 0):
+            signals.append(SignalDetail(
+                code='KELTNER_BREAKOUT', category='PATTERN',
+                description='Price broke above volatility envelope (Keltner upper breakout)',
+                weight=1,
+            ))
+
+        # Extreme surge (30-day)
+        price_change_30d = feat.get('price_change_30d', 0) * 100
+        if abs(price_change_30d) >= 100:
+            signals.append(SignalDetail(
+                code='EXTREME_SURGE', category='PATTERN',
+                description=f'Extreme 30-day move of {price_change_30d:+.0f}% – rapid appreciation',
+                weight=3,
+            ))
+
+        # ----- Window aggregate signals (multi-day context) -----
+        # These catch manipulation patterns that a single-day snapshot misses.
+        reversal_14d = feat.get('reversal_14d', 0)
+        if reversal_14d:
+            signals.append(SignalDetail(
+                code='REVERSAL_PATTERN', category='PATTERN',
+                description='14-day reversal detected (sharp rise followed by decline)',
+                weight=3,
+            ))
+
+        pump_days_30d = int(feat.get('pump_pattern_days_30d', 0))
+        if pump_days_30d >= 3:
+            signals.append(SignalDetail(
+                code='SUSTAINED_PUMP', category='PATTERN',
+                description=f'Pump pattern detected on {pump_days_30d} of last 30 days',
+                weight=3,
+            ))
+
+        overbought_days = int(feat.get('overbought_days_30d', 0))
+        if overbought_days >= 5:
+            signals.append(SignalDetail(
+                code='PERSISTENT_OVERBOUGHT', category='PATTERN',
+                description=f'Overbought (RSI>70) on {overbought_days} of last 30 days',
+                weight=2,
+            ))
+
+        vol_persistence = int(feat.get('high_volume_persistence_14d', 0))
+        if vol_persistence >= 5:
+            signals.append(SignalDetail(
+                code='PERSISTENT_HIGH_VOLUME', category='PATTERN',
+                description=f'Abnormally high volume on {vol_persistence} of last 14 days',
+                weight=2,
+            ))
+
+        # ----- ALERT signals -----
+        if sec_flagged:
+            signals.append(SignalDetail(
+                code='ALERT_LIST_HIT', category='ALERT',
+                description='Appears on SEC / regulatory alert or suspension list – extreme caution',
+                weight=5,
+            ))
+
+        return signals
+
     def combine_predictions(
         self,
         rf_prob: float,
@@ -146,11 +391,11 @@ class ScamDetectionPipeline:
         Combine predictions from multiple models.
 
         Decision logic:
-        1. If SEC flagged, immediately boost probability to HIGH risk
-        2. If anomaly detected, apply anomaly boost
-        3. Combine RF and LSTM using weighted average or max strategy
-        4. Apply floor based on severe anomalies
-        5. Apply additional boost for OTC + pattern combinations
+        1. Anomaly score is primary (statistical thresholds work on real data)
+        2. ML models provide supplementary boost (synthetic-trained, less reliable)
+        3. Structural priors enforce floors for known-risky configurations
+        4. Severe pattern floors guarantee HIGH for obvious manipulation
+        5. SEC flag overrides to near-certainty
 
         Args:
             rf_prob: Random Forest probability
@@ -163,70 +408,82 @@ class ScamDetectionPipeline:
         Returns:
             Combined probability score
         """
-        # Start with RF probability
-        combined = rf_prob
+        # --- Named floor constants (tune in one place) ---
+        SEC_FLAGGED_FLOOR = 0.85
+        OTC_MOVEMENT_FLOOR = 0.45        # OTC + notable price/volume move
+        OTC_MICRO_CAP_FLOOR = 0.50       # OTC + micro-cap even without patterns
+        SEVERE_PATTERN_FLOOR = 0.65       # Any severe anomaly pattern
+        OTC_SEVERE_FLOOR = 0.75           # OTC + severe pattern
+        OTC_MICRO_SEVERE_FLOOR = 0.80     # OTC + micro-cap + severe pattern
+        MICRO_SEVERE_FLOOR = 0.70         # Micro-cap + severe pattern (any exchange)
+        MULTI_FACTOR_3_FLOOR = 0.70       # 3+ risk factors present
+        MULTI_FACTOR_4_FLOOR = 0.80       # 4+ risk factors present
+        ANOMALY_WEIGHT = 0.7             # Weight for anomaly score in ensemble
+        ML_WEIGHT = 0.3                  # Weight for ML model in ensemble
 
-        # If LSTM is available, combine predictions
+        # Start with anomaly score as the primary signal (most reliable
+        # with real-world data because it uses statistical thresholds rather
+        # than models trained on synthetic distributions).
+        combined = anomaly_result.anomaly_score
+
+        # Blend in ML model probabilities as supplementary signal.
+        ml_prob = rf_prob
         if lstm_prob is not None:
             if ENSEMBLE_CONFIG['use_max_strategy']:
-                # Use maximum of both models
-                combined = max(rf_prob, lstm_prob)
+                ml_prob = max(rf_prob, lstm_prob)
             else:
-                # Weighted average
                 rf_weight = ENSEMBLE_CONFIG['rf_weight']
                 lstm_weight = ENSEMBLE_CONFIG['lstm_weight']
-                combined = (rf_prob * rf_weight + lstm_prob * lstm_weight)
+                ml_prob = (rf_prob * rf_weight + lstm_prob * lstm_weight)
 
-        # Apply anomaly boost if detected
-        if anomaly_result.is_anomaly:
-            anomaly_boost = anomaly_result.anomaly_score * 0.3
-            combined = min(combined + anomaly_boost, 1.0)
+        # Combine: anomaly score dominates, ML provides supplementary boost.
+        # Use max so ML models can only raise the score, never lower it.
+        combined = max(
+            combined,
+            anomaly_result.anomaly_score * ANOMALY_WEIGHT + ml_prob * ML_WEIGHT,
+        )
 
-        # SEC flag is a CRITICAL indicator - heavily boost probability
+        # --- Structural priors (consolidated, no duplicates) ---
+
+        # SEC flag is a CRITICAL indicator
         if sec_flagged:
-            # Minimum 0.85 probability if SEC flagged
-            combined = max(combined, 0.85)
+            combined = max(combined, SEC_FLAGGED_FLOOR)
 
-        # Early warning: OTC with any notable movement (new threshold-based logic)
-        # Research shows OTC + movement is highly suspicious even at lower thresholds
+        # OTC with any notable movement
         price_change_7d = anomaly_result.details.get('surge_analysis', {}).get('price_change_7d', 0) / 100
         volume_surge = anomaly_result.details.get('surge_analysis', {}).get('volume_surge_factor', 1)
 
         if is_otc and (abs(price_change_7d) > 0.15 or volume_surge > 2.5):
-            combined = max(combined, 0.45)  # Ensures at least upper-MEDIUM
+            combined = max(combined, OTC_MOVEMENT_FLOOR)
 
-        # Structural risk: OTC + micro-cap even without patterns
+        # OTC + micro-cap structural risk (even without patterns)
         if is_otc and is_micro_cap:
-            combined = max(combined, 0.50)  # High-risk structure
+            combined = max(combined, OTC_MICRO_CAP_FLOOR)
 
-        # Severe patterns detection
+        # --- Severe patterns detection ---
         severe_anomalies = ['pump_and_dump_pattern', 'pump_pattern_detected',
                           'extreme_volume_explosion', 'extreme_weekly_price_move',
                           'coordinated_volume_price_activity', 'extreme_volatility']
         has_severe_pattern = any(a in anomaly_result.anomaly_types for a in severe_anomalies)
 
-        # Apply floor for severe patterns (raised from 0.6 to 0.65 to guarantee HIGH with 0.55 threshold)
         if has_severe_pattern:
-            combined = max(combined, 0.65)
+            combined = max(combined, SEVERE_PATTERN_FLOOR)
 
-        # CRITICAL: OTC + severe pattern + micro-cap = HIGH risk
-        # This is the classic pump-and-dump setup
-        if has_severe_pattern and is_otc:
-            combined = max(combined, 0.75)
-        if has_severe_pattern and is_otc and is_micro_cap:
-            combined = max(combined, 0.80)
-
-        # Micro-cap with severe patterns is suspicious regardless of exchange
+        # Escalate for structural + pattern combinations
         if has_severe_pattern and is_micro_cap:
-            combined = max(combined, 0.70)
+            combined = max(combined, MICRO_SEVERE_FLOOR)
+        if has_severe_pattern and is_otc:
+            combined = max(combined, OTC_SEVERE_FLOOR)
+        if has_severe_pattern and is_otc and is_micro_cap:
+            combined = max(combined, OTC_MICRO_SEVERE_FLOOR)
 
-        # Additional boost for multiple risk factors
+        # Multi-factor boost
         risk_factor_count = sum([is_otc, is_micro_cap, has_severe_pattern,
                                  anomaly_result.is_anomaly, sec_flagged])
-        if risk_factor_count >= 3:
-            combined = max(combined, 0.70)
         if risk_factor_count >= 4:
-            combined = max(combined, 0.80)
+            combined = max(combined, MULTI_FACTOR_4_FLOOR)
+        elif risk_factor_count >= 3:
+            combined = max(combined, MULTI_FACTOR_3_FLOOR)
 
         return min(combined, 1.0)
 
@@ -417,14 +674,31 @@ class ScamDetectionPipeline:
 
         # Step 4: Random Forest prediction
         print("\n[Step 4] Running Random Forest prediction...")
-        if self.rf_available:
-            rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
-            print(f"   RF Probability: {rf_prob:.3f}")
-        else:
-            print("   RF model not available - training now...")
-            self.train_models(train_rf=True, train_lstm=False, save_models=True)
-            rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
-            print(f"   RF Probability: {rf_prob:.3f}")
+        rf_prob = 0.0
+        try:
+            if self.rf_available:
+                rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
+                print(f"   RF Probability: {rf_prob:.3f}")
+            else:
+                print("   RF model not available - training now...")
+                self.train_models(train_rf=True, train_lstm=False, save_models=True)
+                rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
+                print(f"   RF Probability: {rf_prob:.3f}")
+        except ValueError as e:
+            if "features" in str(e):
+                # Feature count mismatch (e.g. model trained with fewer features).
+                # Retrain on the fly with current feature set.
+                print(f"   RF feature mismatch ({e}) - retraining...")
+                self.train_models(train_rf=True, train_lstm=False, save_models=True)
+                try:
+                    rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
+                    print(f"   RF Probability after retrain: {rf_prob:.3f}")
+                except Exception as e2:
+                    print(f"   RF still failed after retrain: {e2} - using 0.0")
+                    rf_prob = 0.0
+            else:
+                print(f"   RF prediction failed: {e} - using 0.0")
+                rf_prob = 0.0
 
         # Step 5: LSTM prediction (if available)
         print("\n[Step 5] Running LSTM prediction...")
@@ -440,8 +714,31 @@ class ScamDetectionPipeline:
         else:
             print("   LSTM model not available (will use RF only)")
 
-        # Step 6: Combine predictions
-        print("\n[Step 6] Combining predictions...")
+        # Step 6: Compute direct risk signals (primary scoring method)
+        print("\n[Step 6] Computing risk signals...")
+        computed_signals = self.compute_signals(
+            features, feature_names, fundamentals, sec_flagged,
+            anomaly_result, price_data,
+        )
+        signal_total_score = sum(s.weight for s in computed_signals)
+        print(f"   Signals detected: {len(computed_signals)}")
+        print(f"   Signal total score: {signal_total_score}")
+        for sig in computed_signals[:5]:
+            print(f"     [{sig.category}] {sig.code} (weight {sig.weight})")
+
+        # Determine risk level from signal score (matches TS scoring thresholds)
+        has_alert = any(s.code == 'ALERT_LIST_HIT' for s in computed_signals)
+        if has_alert:
+            signal_risk_level = 'HIGH'
+        elif signal_total_score >= 5:
+            signal_risk_level = 'HIGH'
+        elif signal_total_score >= 2:
+            signal_risk_level = 'MEDIUM'
+        else:
+            signal_risk_level = 'LOW'
+
+        # Step 7: ML model ensemble (supplementary)
+        print("\n[Step 7] ML ensemble (supplementary)...")
         is_otc = fundamentals.get('is_otc', False)
         market_cap = fundamentals.get('market_cap', float('inf'))
         is_micro_cap = market_cap < MARKET_THRESHOLDS['micro_cap']
@@ -450,21 +747,30 @@ class ScamDetectionPipeline:
             rf_prob, lstm_prob, anomaly_result, sec_flagged,
             is_otc=is_otc, is_micro_cap=is_micro_cap
         )
-        risk_level = self.calibrate_probability(combined_prob)
-        print(f"   Combined probability: {combined_prob:.3f}")
-        print(f"   Risk level: {risk_level}")
+        ml_risk_level = self.calibrate_probability(combined_prob)
+        print(f"   ML combined probability: {combined_prob:.3f}")
+        print(f"   ML risk level: {ml_risk_level}")
 
-        # Step 7: Generate explanation
-        print("\n[Step 7] Generating explanation...")
+        # Final risk level: use the HIGHER of signal-based vs ML-based
+        # This ensures the AI backend is never less sensitive than the TS fallback
+        risk_priority = {'LOW': 0, 'MEDIUM': 1, 'HIGH': 2}
+        if risk_priority.get(signal_risk_level, 0) >= risk_priority.get(ml_risk_level, 0):
+            risk_level = signal_risk_level
+        else:
+            risk_level = ml_risk_level
+        print(f"\n   >>> Final risk level: {risk_level} (signal={signal_risk_level}, ml={ml_risk_level})")
+
+        # Step 8: Generate explanation
+        print("\n[Step 8] Generating explanation...")
         explanation, key_indicators = self.generate_explanation(
             context, features, feature_names, anomaly_result, combined_prob
         )
 
-        # Step 8: News verification for HIGH risk results
+        # Step 9: News verification for HIGH risk results
         # Check if legitimate news catalysts explain suspicious activity
         news_verification = None
         if risk_level == 'HIGH' and not use_synthetic:
-            print("\n[Step 8] Verifying HIGH risk - checking for legitimate catalysts...")
+            print("\n[Step 9] Verifying HIGH risk - checking for legitimate catalysts...")
             try:
                 from live_data import verify_legitimate_catalysts
                 news_verification = verify_legitimate_catalysts(ticker)
@@ -484,7 +790,7 @@ class ScamDetectionPipeline:
                 print(f"   Warning: News verification failed: {e}")
                 # Don't block the assessment if news verification fails
         elif risk_level == 'HIGH':
-            print("\n[Step 8] Skipping news verification (synthetic data mode)")
+            print("\n[Step 9] Skipping news verification (synthetic data mode)")
 
         # Build detailed report
         detailed_report = {
@@ -507,6 +813,9 @@ class ScamDetectionPipeline:
                 'lstm_probability': float(lstm_prob) if lstm_prob is not None else None,
                 'combined_probability': float(combined_prob),
                 'anomaly_score': float(anomaly_result.anomaly_score),
+                'signal_total_score': signal_total_score,
+                'signal_risk_level': signal_risk_level,
+                'ml_risk_level': ml_risk_level,
             },
             'anomaly_details': {
                 'is_anomaly': anomaly_result.is_anomaly,
@@ -540,6 +849,8 @@ class ScamDetectionPipeline:
             key_indicators=key_indicators,
             explanation=explanation,
             detailed_report=detailed_report,
+            signals=computed_signals,
+            signal_total_score=signal_total_score,
             news_verification=news_verification
         )
 

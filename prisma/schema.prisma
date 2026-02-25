@@ -226,12 +226,19 @@ model ScanHistory {
   pitchProvided   Boolean   @default(false)
   contextProvided Boolean   @default(false)
   ipAddress       String?
+  // Segment classification fields for per-segment efficacy tracking
+  isOtc           Boolean   @default(false)
+  isMicroCap      Boolean   @default(false)
+  isHighVolume    Boolean   @default(false)  // Volume surge >= 3x
+  usedAiBackend   Boolean   @default(false)
   createdAt       DateTime  @default(now())
 
   @@index([createdAt])
   @@index([riskLevel])
   @@index([ticker])
   @@index([userId])
+  @@index([isOtc])
+  @@index([isMicroCap])
 }
 
 model ModelMetrics {

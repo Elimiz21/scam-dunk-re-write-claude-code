@@ -397,6 +397,71 @@ def create_feature_vector(
     features['has_news'] = ctx_features.get('has_news', 0)
     features['sentiment_score'] = ctx_features.get('sentiment_score', 0)
 
+    # ---------------------------------------------------------------
+    # WINDOW AGGREGATE FEATURES (not just latest row)
+    # These capture multi-day context that single-snapshot features miss.
+    # Recommended by cross-review: use 7/14/30-day maxima, persistence,
+    # and reversal patterns so the RF model can see sustained manipulation
+    # even if the latest single row looks normal.
+    # ---------------------------------------------------------------
+    n = len(price_df)
+
+    # 7-day window aggregates
+    if n >= 7:
+        tail_7 = price_df.tail(7)
+        features['max_return_zscore_7d'] = float(tail_7['Return_ZScore_Short'].abs().max()) if 'Return_ZScore_Short' in tail_7.columns else 0
+        features['max_volume_zscore_7d'] = float(tail_7['Volume_ZScore_Short'].abs().max()) if 'Volume_ZScore_Short' in tail_7.columns else 0
+        features['pump_days_7d'] = int(tail_7['Is_Pumping_7d'].sum()) if 'Is_Pumping_7d' in tail_7.columns else 0
+        features['vol_explosion_days_7d'] = int(tail_7['Volume_Explosion_Moderate'].sum()) if 'Volume_Explosion_Moderate' in tail_7.columns else 0
+        features['keltner_breakout_days_7d'] = int(tail_7['Keltner_Breakout_Upper'].sum()) if 'Keltner_Breakout_Upper' in tail_7.columns else 0
+    else:
+        features['max_return_zscore_7d'] = 0
+        features['max_volume_zscore_7d'] = 0
+        features['pump_days_7d'] = 0
+        features['vol_explosion_days_7d'] = 0
+        features['keltner_breakout_days_7d'] = 0
+
+    # 14-day window aggregates
+    if n >= 14:
+        tail_14 = price_df.tail(14)
+        features['max_return_zscore_14d'] = float(tail_14['Return_ZScore_Long'].abs().max()) if 'Return_ZScore_Long' in tail_14.columns else 0
+        features['max_volume_zscore_14d'] = float(tail_14['Volume_ZScore_Long'].abs().max()) if 'Volume_ZScore_Long' in tail_14.columns else 0
+        # Persistence: how many of last 14 days had above-normal volume
+        features['high_volume_persistence_14d'] = int((tail_14['Volume_Surge_Factor'] > 2.0).sum()) if 'Volume_Surge_Factor' in tail_14.columns else 0
+        # Reversal: did price go up sharply then reverse?
+        if 'Close' in tail_14.columns and len(tail_14) >= 14:
+            first_half = tail_14.head(7)['Close']
+            second_half = tail_14.tail(7)['Close']
+            first_change = (first_half.iloc[-1] - first_half.iloc[0]) / max(first_half.iloc[0], 0.01)
+            second_change = (second_half.iloc[-1] - second_half.iloc[0]) / max(second_half.iloc[0], 0.01)
+            # Reversal pattern: first half up, second half down (or vice versa)
+            features['reversal_14d'] = 1 if (first_change > 0.10 and second_change < -0.05) else 0
+        else:
+            features['reversal_14d'] = 0
+    else:
+        features['max_return_zscore_14d'] = 0
+        features['max_volume_zscore_14d'] = 0
+        features['high_volume_persistence_14d'] = 0
+        features['reversal_14d'] = 0
+
+    # 30-day window aggregates
+    if n >= 30:
+        tail_30 = price_df.tail(30)
+        features['max_return_zscore_30d'] = float(tail_30['Return_ZScore_Long'].abs().max()) if 'Return_ZScore_Long' in tail_30.columns else 0
+        features['max_volume_zscore_30d'] = float(tail_30['Volume_ZScore_Long'].abs().max()) if 'Volume_ZScore_Long' in tail_30.columns else 0
+        # Max RSI in 30 days (captures peak overbought even if it cooled off)
+        features['max_rsi_30d'] = float(tail_30['RSI_14'].max()) if 'RSI_14' in tail_30.columns else 50
+        # Days above RSI 70 in last 30 days (overbought persistence)
+        features['overbought_days_30d'] = int((tail_30['RSI_14'] > 70).sum()) if 'RSI_14' in tail_30.columns else 0
+        # Pump pattern persistence
+        features['pump_pattern_days_30d'] = int(tail_30['Pump_Pattern'].sum()) if 'Pump_Pattern' in tail_30.columns else 0
+    else:
+        features['max_return_zscore_30d'] = 0
+        features['max_volume_zscore_30d'] = 0
+        features['max_rsi_30d'] = 50
+        features['overbought_days_30d'] = 0
+        features['pump_pattern_days_30d'] = 0
+
     # Convert to array
     feature_names = list(features.keys())
     feature_array = np.array([features[name] for name in feature_names])
