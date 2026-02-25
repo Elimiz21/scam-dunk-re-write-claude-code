@@ -357,11 +357,11 @@ class ScamDetectionPipeline:
         Combine predictions from multiple models.
 
         Decision logic:
-        1. If SEC flagged, immediately boost probability to HIGH risk
-        2. If anomaly detected, apply anomaly boost
-        3. Combine RF and LSTM using weighted average or max strategy
-        4. Apply floor based on severe anomalies
-        5. Apply additional boost for OTC + pattern combinations
+        1. Anomaly score is primary (statistical thresholds work on real data)
+        2. ML models provide supplementary boost (synthetic-trained, less reliable)
+        3. Structural priors enforce floors for known-risky configurations
+        4. Severe pattern floors guarantee HIGH for obvious manipulation
+        5. SEC flag overrides to near-certainty
 
         Args:
             rf_prob: Random Forest probability
@@ -374,15 +374,25 @@ class ScamDetectionPipeline:
         Returns:
             Combined probability score
         """
+        # --- Named floor constants (tune in one place) ---
+        SEC_FLAGGED_FLOOR = 0.85
+        OTC_MOVEMENT_FLOOR = 0.45        # OTC + notable price/volume move
+        OTC_MICRO_CAP_FLOOR = 0.50       # OTC + micro-cap even without patterns
+        SEVERE_PATTERN_FLOOR = 0.65       # Any severe anomaly pattern
+        OTC_SEVERE_FLOOR = 0.75           # OTC + severe pattern
+        OTC_MICRO_SEVERE_FLOOR = 0.80     # OTC + micro-cap + severe pattern
+        MICRO_SEVERE_FLOOR = 0.70         # Micro-cap + severe pattern (any exchange)
+        MULTI_FACTOR_3_FLOOR = 0.70       # 3+ risk factors present
+        MULTI_FACTOR_4_FLOOR = 0.80       # 4+ risk factors present
+        ANOMALY_WEIGHT = 0.7             # Weight for anomaly score in ensemble
+        ML_WEIGHT = 0.3                  # Weight for ML model in ensemble
+
         # Start with anomaly score as the primary signal (most reliable
         # with real-world data because it uses statistical thresholds rather
         # than models trained on synthetic distributions).
         combined = anomaly_result.anomaly_score
 
         # Blend in ML model probabilities as supplementary signal.
-        # ML models are trained on synthetic data so we give them lower
-        # weight to avoid them dragging the score down when they
-        # fail to recognise real-world patterns.
         ml_prob = rf_prob
         if lstm_prob is not None:
             if ENSEMBLE_CONFIG['use_max_strategy']:
@@ -392,59 +402,54 @@ class ScamDetectionPipeline:
                 lstm_weight = ENSEMBLE_CONFIG['lstm_weight']
                 ml_prob = (rf_prob * rf_weight + lstm_prob * lstm_weight)
 
-        # Combine: anomaly score dominates (70%), ML provides supplementary
-        # boost (30%).  Use max to ensure the ML models can only raise the
-        # score, never lower it below the anomaly-based floor.
+        # Combine: anomaly score dominates, ML provides supplementary boost.
+        # Use max so ML models can only raise the score, never lower it.
         combined = max(
             combined,
-            anomaly_result.anomaly_score * 0.7 + ml_prob * 0.3,
+            anomaly_result.anomaly_score * ANOMALY_WEIGHT + ml_prob * ML_WEIGHT,
         )
 
-        # SEC flag is a CRITICAL indicator - heavily boost probability
-        if sec_flagged:
-            # Minimum 0.85 probability if SEC flagged
-            combined = max(combined, 0.85)
+        # --- Structural priors (consolidated, no duplicates) ---
 
-        # Early warning: OTC with any notable movement (new threshold-based logic)
-        # Research shows OTC + movement is highly suspicious even at lower thresholds
+        # SEC flag is a CRITICAL indicator
+        if sec_flagged:
+            combined = max(combined, SEC_FLAGGED_FLOOR)
+
+        # OTC with any notable movement
         price_change_7d = anomaly_result.details.get('surge_analysis', {}).get('price_change_7d', 0) / 100
         volume_surge = anomaly_result.details.get('surge_analysis', {}).get('volume_surge_factor', 1)
 
         if is_otc and (abs(price_change_7d) > 0.15 or volume_surge > 2.5):
-            combined = max(combined, 0.45)  # Ensures at least upper-MEDIUM
+            combined = max(combined, OTC_MOVEMENT_FLOOR)
 
-        # Structural risk: OTC + micro-cap even without patterns
+        # OTC + micro-cap structural risk (even without patterns)
         if is_otc and is_micro_cap:
-            combined = max(combined, 0.50)  # High-risk structure
+            combined = max(combined, OTC_MICRO_CAP_FLOOR)
 
-        # Severe patterns detection
+        # --- Severe patterns detection ---
         severe_anomalies = ['pump_and_dump_pattern', 'pump_pattern_detected',
                           'extreme_volume_explosion', 'extreme_weekly_price_move',
                           'coordinated_volume_price_activity', 'extreme_volatility']
         has_severe_pattern = any(a in anomaly_result.anomaly_types for a in severe_anomalies)
 
-        # Apply floor for severe patterns (raised from 0.6 to 0.65 to guarantee HIGH with 0.55 threshold)
         if has_severe_pattern:
-            combined = max(combined, 0.65)
+            combined = max(combined, SEVERE_PATTERN_FLOOR)
 
-        # CRITICAL: OTC + severe pattern + micro-cap = HIGH risk
-        # This is the classic pump-and-dump setup
-        if has_severe_pattern and is_otc:
-            combined = max(combined, 0.75)
-        if has_severe_pattern and is_otc and is_micro_cap:
-            combined = max(combined, 0.80)
-
-        # Micro-cap with severe patterns is suspicious regardless of exchange
+        # Escalate for structural + pattern combinations
         if has_severe_pattern and is_micro_cap:
-            combined = max(combined, 0.70)
+            combined = max(combined, MICRO_SEVERE_FLOOR)
+        if has_severe_pattern and is_otc:
+            combined = max(combined, OTC_SEVERE_FLOOR)
+        if has_severe_pattern and is_otc and is_micro_cap:
+            combined = max(combined, OTC_MICRO_SEVERE_FLOOR)
 
-        # Additional boost for multiple risk factors
+        # Multi-factor boost
         risk_factor_count = sum([is_otc, is_micro_cap, has_severe_pattern,
                                  anomaly_result.is_anomaly, sec_flagged])
-        if risk_factor_count >= 3:
-            combined = max(combined, 0.70)
         if risk_factor_count >= 4:
-            combined = max(combined, 0.80)
+            combined = max(combined, MULTI_FACTOR_4_FLOOR)
+        elif risk_factor_count >= 3:
+            combined = max(combined, MULTI_FACTOR_3_FLOOR)
 
         return min(combined, 1.0)
 
