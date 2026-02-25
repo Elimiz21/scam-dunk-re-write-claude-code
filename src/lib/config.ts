@@ -42,10 +42,10 @@ export const config = {
   get nextAuthUrl() { return env("NEXTAUTH_URL", "http://localhost:3000"); },
   get nextAuthSecret() { return env("NEXTAUTH_SECRET"); },
 
-  // Python AI Backend (for full ML models)
-  aiBackendUrl: process.env.AI_BACKEND_URL || "http://localhost:8000",
-  aiApiSecret: process.env.AI_API_SECRET || "",
+    // Python AI Backend (for full ML models)
   get aiBackendUrl() { return env("AI_BACKEND_URL", "http://localhost:8000"); },
+  get aiApiSecret() { return env("AI_API_SECRET"); },
+
 
   // Social Scan APIs
   get youtubeApiKey() { return env("YOUTUBE_API_KEY"); },
