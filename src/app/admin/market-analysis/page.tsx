@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import StatCard from "@/components/admin/StatCard";
 import ChartCard from "@/components/admin/ChartCard";
@@ -53,6 +54,7 @@ interface MarketAnalysisData {
 }
 
 export default function MarketAnalysisPage() {
+  const router = useRouter();
   const [data, setData] = useState<MarketAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -312,9 +314,9 @@ export default function MarketAnalysisPage() {
                   </tr>
                 ) : (
                   data.highRiskStocks.map((stock) => (
-                    <tr key={stock.symbol} className="hover:bg-secondary">
+                    <tr key={stock.symbol} className="hover:bg-secondary cursor-pointer" onClick={() => router.push(`/admin/scan-intelligence/stock/${stock.symbol}`)}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-medium text-primary">{stock.symbol}</span>
+                        <button className="font-medium text-primary hover:underline">{stock.symbol}</button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground max-w-xs truncate">
                         {stock.name}
@@ -365,7 +367,7 @@ export default function MarketAnalysisPage() {
                 </thead>
                 <tbody className="bg-card divide-y divide-border">
                   {data.promotedStocks.map((stock, idx) => (
-                    <tr key={idx} className="hover:bg-secondary">
+                    <tr key={idx} className="hover:bg-secondary cursor-pointer" onClick={() => router.push(`/admin/scan-intelligence/stock/${stock.symbol}`)}>
                       <td className="px-6 py-4 whitespace-nowrap font-medium text-primary">
                         {stock.symbol}
                       </td>

@@ -11,6 +11,28 @@ import { getSupabaseClient, EVALUATION_BUCKET } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
+function buildSchemeSummary(summary: any = {}) {
+  const newSchemes = Number(summary.newSchemes || 0);
+  const ongoingSchemes = Number(summary.ongoingSchemes || 0);
+  const totalActiveSchemes = Number(
+    summary.totalActiveSchemes ?? summary.activeSchemes ?? (newSchemes + ongoingSchemes)
+  );
+
+  return {
+    ...summary,
+    newSchemes,
+    ongoingSchemes,
+    totalActiveSchemes,
+  };
+}
+
+const metricDefinitions = {
+  newSchemes: "Schemes first detected on this selected scan date.",
+  ongoingSchemes: "Previously detected schemes that remain active in this scan.",
+  totalActiveSchemes: "All active schemes for the scan date (NEW + ONGOING + COOLING statuses).",
+};
+
+
 export async function GET(request: Request) {
   try {
     const session = await getAdminSession();
@@ -81,6 +103,8 @@ export async function GET(request: Request) {
       available: true,
       source: "scan-status",
       ...scanStatus,
+      summary: buildSchemeSummary(scanStatus.summary),
+      metricDefinitions,
       history,
     });
   } catch (error) {
@@ -166,7 +190,7 @@ async function fallbackToDailyReport(
     source: "daily-report",
     date: dateMatch ? dateMatch[1] : report.date,
     pipelineStatus: "completed",
-    summary: {
+    summary: buildSchemeSummary({
       totalStocks: report.totalStocksScanned || 0,
       processed: report.totalStocksScanned || 0,
       riskCounts: report.byRiskLevel || { LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 },
@@ -177,7 +201,8 @@ async function fallbackToDailyReport(
       remainingSuspicious: report.remainingSuspicious || 0,
       newSchemes: report.newSchemes || 0,
       activeSchemes: report.activeSchemes || 0,
-    },
+    }),
+    metricDefinitions,
     durationMinutes: report.processingTimeMinutes || null,
     history: combinedHistory,
   });

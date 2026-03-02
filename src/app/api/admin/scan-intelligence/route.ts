@@ -26,6 +26,22 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function deriveSchemeMilestones(scheme: any) {
+  const floorPriceBeforePump = Math.min(scheme.priceAtDetection ?? 0, scheme.currentPrice ?? 0, scheme.peakPrice ?? 0);
+  const troughPriceAfterPeak = Math.min(scheme.currentPrice ?? 0, scheme.peakPrice ?? 0);
+  const daysFloorToPeak = Math.max(0, Math.round((scheme.daysActive || 0) * 0.4));
+  const daysPeakToTrough = Math.max(0, (scheme.daysActive || 0) - daysFloorToPeak);
+  const pumpPct = floorPriceBeforePump > 0 ? ((scheme.peakPrice - floorPriceBeforePump) / floorPriceBeforePump) * 100 : 0;
+  return {
+    floorPriceBeforePump,
+    troughPriceAfterPeak,
+    daysFloorToPeak,
+    daysPeakToTrough,
+    pumpPct,
+    weakPumpSignal: pumpPct < 5,
+  };
+}
+
 export async function GET(req: Request) {
   try {
     const session = await getAdminSession();
@@ -110,6 +126,7 @@ export async function GET(req: Request) {
           .filter((s) => s.status === "ONGOING" || s.status === "COOLING" || s.status === "NEW")
           .map((s) => ({
             ...s,
+            ...deriveSchemeMilestones(s),
             schemeName: generateSchemeName(s),
             promoterAccounts: s.promoterAccounts || [],
             coordinationIndicators: s.coordinationIndicators || [],
@@ -201,6 +218,14 @@ export async function GET(req: Request) {
       topStocksWithSocial: topStocks.filter((s) => Boolean(s.socialMediaScanned)).length,
       activeSchemesWithPromoters: activeSchemes.filter((s) => (s.promoterAccounts?.length || 0) > 0).length,
       activeSchemesWithoutPromoters: activeSchemes.filter((s) => (s.promoterAccounts?.length || 0) === 0).length,
+      definitions: {
+        topStocksWithSchemes: "Top suspicious stocks that are linked to a tracked scheme ID.",
+        topStocksWithSocial: "Top suspicious stocks where social scanning has been executed.",
+        activeSchemesWithPromoters: "Active schemes with at least one identified promoter account.",
+        activeSchemesWithoutPromoters: "Active schemes that still lack linked promoter accounts.",
+      },
+      source: "scan-intelligence aggregate (high-risk stocks + scheme database + social scan)",
+      generatedAt: new Date().toISOString(),
     };
 
     return NextResponse.json({
