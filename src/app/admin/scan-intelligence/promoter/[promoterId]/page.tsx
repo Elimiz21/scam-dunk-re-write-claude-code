@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
@@ -46,6 +46,17 @@ interface Promoter {
   isActive: boolean;
 }
 
+interface SocialMention {
+  id: string;
+  ticker: string;
+  platform: string;
+  title: string | null;
+  content: string | null;
+  url: string | null;
+  promotionScore: number;
+  postDate: string | null;
+}
+
 const riskColors: Record<string, { bg: string; text: string; label: string }> = {
   SERIAL_OFFENDER: { bg: "bg-red-500/10", text: "text-red-600", label: "SERIAL OFFENDER" },
   HIGH: { bg: "bg-red-500/10", text: "text-red-600", label: "HIGH RISK" },
@@ -63,9 +74,13 @@ const statusColors: Record<string, string> = {
 
 export default function PromoterDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const promoterId = params.promoterId as string;
+  const fallbackPlatform = searchParams.get("platform");
+  const fallbackIdentifier = searchParams.get("identifier");
   const [promoter, setPromoter] = useState<Promoter | null>(null);
+  const [mentions, setMentions] = useState<SocialMention[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,14 +90,28 @@ export default function PromoterDetailPage() {
         const res = await fetch("/api/admin/scan-intelligence/promoters");
         if (!res.ok) throw new Error("Failed to load");
         const data = await res.json();
-        const match = (data.promoters || []).find(
-          (p: Promoter) => p.promoterId === promoterId
-        );
+        const match =
+          (data.promoters || []).find((p: Promoter) => p.promoterId === promoterId) ||
+          (fallbackPlatform && fallbackIdentifier
+            ? (data.promoters || []).find(
+                (p: Promoter) =>
+                  p.platform.toLowerCase() === fallbackPlatform.toLowerCase() &&
+                  p.identifier.toLowerCase() === fallbackIdentifier.toLowerCase()
+              )
+            : null);
         if (!match) {
           setError("Promoter not found");
           return;
         }
         setPromoter(match);
+
+        const socialRes = await fetch(
+          `/api/admin/social-scan?author=${encodeURIComponent(match.identifier)}&platform=${encodeURIComponent(match.platform)}&promotionalOnly=true&limit=25`
+        );
+        if (socialRes.ok) {
+          const social = await socialRes.json();
+          setMentions(social.mentions || []);
+        }
       } catch {
         setError("Failed to load promoter data");
       } finally {
@@ -90,7 +119,7 @@ export default function PromoterDetailPage() {
       }
     }
     load();
-  }, [promoterId]);
+  }, [fallbackIdentifier, fallbackPlatform, promoterId]);
 
   if (loading) {
     return (
@@ -245,6 +274,47 @@ export default function PromoterDetailPage() {
                 );
               })}
           </div>
+        </div>
+
+        {/* Social Post Evidence */}
+        <div className="bg-card rounded-2xl border border-border p-5">
+          <h3 className="text-sm font-medium font-display italic text-foreground mb-4">
+            Social Posts by {promoter.identifier}
+          </h3>
+          {mentions.length > 0 ? (
+            <div className="space-y-2">
+              {mentions.slice(0, 12).map((mention) => (
+                <a
+                  key={mention.id}
+                  href={mention.url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`block rounded-lg border p-3 transition-colors ${
+                    mention.url
+                      ? "border-border hover:border-primary/30 hover:bg-secondary/30"
+                      : "border-border/60 opacity-70 cursor-default"
+                  }`}
+                  onClick={(event) => {
+                    if (!mention.url) event.preventDefault();
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      {mention.platform} · {mention.ticker}
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-600">
+                      score {mention.promotionScore}
+                    </span>
+                  </div>
+                  <p className="text-sm text-foreground mt-1 line-clamp-2">
+                    {mention.title || mention.content || "Post content unavailable"}
+                  </p>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No indexed post URLs were found for this promoter yet.</p>
+          )}
         </div>
 
         {/* Co-Promoter Network */}

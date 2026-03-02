@@ -89,6 +89,13 @@ interface DashboardData {
     mediumPromotion: number;
   } | null;
   topPromoted: PromotedStock[];
+  socialEvidence: SocialEvidence[];
+  coverage: {
+    topStocksWithSchemes: number;
+    topStocksWithSocial: number;
+    activeSchemesWithPromoters: number;
+    activeSchemesWithoutPromoters: number;
+  };
 }
 
 interface Stock {
@@ -164,6 +171,24 @@ interface PromotedStock {
   assessment: string;
 }
 
+interface SocialEvidence {
+  id: string;
+  ticker: string;
+  platform: string;
+  author: string | null;
+  title: string | null;
+  url: string | null;
+  promotionScore: number;
+  postDate: string | null;
+  createdAt: string;
+}
+
+interface StockListResponse {
+  date: string;
+  stocks: Stock[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
 interface HistoryEntry {
   date: string;
   format: string;
@@ -187,6 +212,15 @@ export default function ScanIntelligencePage() {
   const [stockFilter, setStockFilter] = useState("");
   const [showAllStocks, setShowAllStocks] = useState(false);
   const [promoters, setPromoters] = useState<PromoterSummary[]>([]);
+  const [stockList, setStockList] = useState<StockListResponse | null>(null);
+  const [stockListLoading, setStockListLoading] = useState(false);
+  const [stockListPage, setStockListPage] = useState(1);
+  const [stockListSearch, setStockListSearch] = useState("");
+  const [stockListRisk, setStockListRisk] = useState("");
+  const [stockListSort, setStockListSort] = useState("totalScore");
+  const [stockListMinScore, setStockListMinScore] = useState(12);
+  const [stockListPumpOnly, setStockListPumpOnly] = useState(false);
+  const [stockListUnfilteredOnly, setStockListUnfilteredOnly] = useState(true);
 
   const fetchData = useCallback(async (date?: string) => {
     try {
@@ -224,10 +258,62 @@ export default function ScanIntelligencePage() {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    if (!selectedDate) return;
+    let cancelled = false;
+
+    async function fetchStockList() {
+      try {
+        setStockListLoading(true);
+        const params = new URLSearchParams({
+          date: selectedDate,
+          page: String(stockListPage),
+          limit: "30",
+          sortBy: stockListSort,
+          minScore: String(stockListMinScore),
+          unfilteredOnly: String(stockListUnfilteredOnly),
+        });
+        if (stockListSearch.trim()) params.set("search", stockListSearch.trim());
+        if (stockListRisk) params.set("riskLevel", stockListRisk);
+        if (stockListPumpOnly) params.set("hasPumpPattern", "true");
+
+        const res = await fetch(`/api/admin/scan-intelligence/stocks?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch stock explorer list");
+        const result = await res.json();
+        if (!cancelled) setStockList(result);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to fetch stock explorer list");
+        }
+      } finally {
+        if (!cancelled) setStockListLoading(false);
+      }
+    }
+
+    fetchStockList();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedDate,
+    stockListMinScore,
+    stockListPage,
+    stockListPumpOnly,
+    stockListRisk,
+    stockListSearch,
+    stockListSort,
+    stockListUnfilteredOnly,
+  ]);
+
   function handleDateSelect(date: string) {
     setSelectedDate(date);
+    setStockListPage(1);
     fetchData(date);
   }
+
+  useEffect(() => {
+    setStockListPage(1);
+  }, [stockListSearch, stockListRisk, stockListSort, stockListMinScore, stockListPumpOnly, stockListUnfilteredOnly]);
 
   // ── Loading state ──────────────────────────────────────────────
 
@@ -355,6 +441,85 @@ export default function ScanIntelligencePage() {
           {/* AI Layers - 1/3 width */}
           <div className="bg-card rounded-2xl border border-border p-5">
             <AILayerPanel stats={data.aiStats} />
+          </div>
+        </div>
+
+        {/* ── Data Coverage + Evidence Feed ─────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="bg-card rounded-2xl border border-border p-5">
+            <h3 className="text-sm font-medium font-display italic text-foreground mb-4">
+              Data Coverage
+            </h3>
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Top stocks with scheme link</span>
+                <span className="font-semibold tabular-nums">
+                  {data.coverage?.topStocksWithSchemes ?? 0}/{data.topStocks.length}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Top stocks with social scan</span>
+                <span className="font-semibold tabular-nums">
+                  {data.coverage?.topStocksWithSocial ?? 0}/{data.topStocks.length}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Active schemes with promoters</span>
+                <span className="font-semibold tabular-nums">
+                  {data.coverage?.activeSchemesWithPromoters ?? 0}/{data.activeSchemes.length}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Schemes missing promoter links</span>
+                <span className="font-semibold tabular-nums text-amber-600">
+                  {data.coverage?.activeSchemesWithoutPromoters ?? 0}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 bg-card rounded-2xl border border-border p-5">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h3 className="text-sm font-medium font-display italic text-foreground">
+                Latest High-Priority Social Evidence
+              </h3>
+              <span className="text-xs text-muted-foreground">{data.socialEvidence?.length || 0} posts</span>
+            </div>
+            {data.socialEvidence && data.socialEvidence.length > 0 ? (
+              <div className="space-y-2">
+                {data.socialEvidence.slice(0, 6).map((mention) => (
+                  <a
+                    key={mention.id}
+                    href={mention.url || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`block rounded-lg border p-3 transition-colors ${
+                      mention.url
+                        ? "border-border hover:border-primary/30 hover:bg-secondary/30"
+                        : "border-border/60 opacity-70 cursor-default"
+                    }`}
+                    onClick={(event) => {
+                      if (!mention.url) event.preventDefault();
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-xs text-muted-foreground">
+                        {mention.platform} · {mention.ticker}
+                        {mention.author ? ` · @${mention.author}` : ""}
+                      </div>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-600">
+                        score {mention.promotionScore}
+                      </span>
+                    </div>
+                    <p className="text-sm text-foreground mt-1 line-clamp-1">
+                      {mention.title || "Untitled post"}
+                    </p>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No social evidence is currently indexed in the scan DB.</p>
+            )}
           </div>
         </div>
 
@@ -540,6 +705,152 @@ export default function ScanIntelligencePage() {
                 : `Show all ${filteredStocks.length} stocks`}
             </button>
           )}
+        </div>
+
+        {/* ── Stock Explorer ─────────────────────────────────────── */}
+        <div className="bg-card rounded-2xl border border-border p-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-sm font-medium font-display italic text-foreground">
+                Stock Explorer
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Search, filter, and interrogate the full suspicious-stock list for {selectedDate}
+              </p>
+            </div>
+            {stockListLoading ? (
+              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-2 mb-4">
+            <input
+              value={stockListSearch}
+              onChange={(e) => setStockListSearch(e.target.value)}
+              placeholder="Symbol or company"
+              className="px-3 py-2 text-xs rounded-lg border border-border bg-secondary"
+            />
+            <select
+              value={stockListRisk}
+              onChange={(e) => setStockListRisk(e.target.value)}
+              className="px-3 py-2 text-xs rounded-lg border border-border bg-secondary"
+            >
+              <option value="">All risk levels</option>
+              <option value="HIGH">HIGH</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="LOW">LOW</option>
+            </select>
+            <select
+              value={stockListSort}
+              onChange={(e) => setStockListSort(e.target.value)}
+              className="px-3 py-2 text-xs rounded-lg border border-border bg-secondary"
+            >
+              <option value="totalScore">Sort: Total score</option>
+              <option value="aiCombined">Sort: AI combined</option>
+              <option value="layer2">Sort: Layer2 anomaly</option>
+              <option value="signals">Sort: Signal count</option>
+              <option value="marketCap">Sort: Market cap</option>
+              <option value="symbol">Sort: Symbol</option>
+            </select>
+            <label className="flex items-center gap-2 px-3 py-2 text-xs rounded-lg border border-border bg-secondary">
+              <span className="text-muted-foreground">Min score</span>
+              <input
+                type="number"
+                value={stockListMinScore}
+                onChange={(e) => setStockListMinScore(Number(e.target.value || 0))}
+                className="w-14 bg-transparent outline-none"
+              />
+            </label>
+            <label className="flex items-center gap-2 px-3 py-2 text-xs rounded-lg border border-border bg-secondary">
+              <input
+                type="checkbox"
+                checked={stockListPumpOnly}
+                onChange={(e) => setStockListPumpOnly(e.target.checked)}
+              />
+              Pump/Dump pattern only
+            </label>
+            <label className="flex items-center gap-2 px-3 py-2 text-xs rounded-lg border border-border bg-secondary">
+              <input
+                type="checkbox"
+                checked={stockListUnfilteredOnly}
+                onChange={(e) => setStockListUnfilteredOnly(e.target.checked)}
+              />
+              Unfiltered only
+            </label>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">Symbol</th>
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">Company</th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">Score</th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">AI</th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">Signals</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(stockList?.stocks || []).map((stock) => (
+                  <tr key={`explorer-${stock.symbol}`} className="border-b border-border/50">
+                    <td className="py-2 px-2 font-semibold">{stock.symbol}</td>
+                    <td className="py-2 px-2 text-muted-foreground">{stock.name}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">{stock.totalScore}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">
+                      {stock.aiLayers?.combined != null ? `${Math.round(stock.aiLayers.combined * 100)}%` : "—"}
+                    </td>
+                    <td className="py-2 px-2 text-center">{stock.signals.length}</td>
+                    <td className="py-2 px-2">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => router.push(`/admin/scan-intelligence/stock/${stock.symbol}`)}
+                          className="text-[11px] text-primary hover:underline"
+                        >
+                          Stock
+                        </button>
+                        {stock.schemeId ? (
+                          <button
+                            onClick={() => router.push(`/admin/scan-intelligence/scheme/${stock.schemeId}`)}
+                            className="text-[11px] text-primary hover:underline"
+                          >
+                            Scheme
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">No scheme</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">
+              {stockList?.pagination?.total || 0} results
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setStockListPage((p) => Math.max(1, p - 1))}
+                disabled={!stockList?.pagination || stockList.pagination.page <= 1}
+                className="px-2 py-1 rounded border border-border disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="tabular-nums">
+                {stockList?.pagination?.page || 1}/{stockList?.pagination?.totalPages || 1}
+              </span>
+              <button
+                onClick={() => setStockListPage((p) => p + 1)}
+                disabled={!stockList?.pagination || stockList.pagination.page >= stockList.pagination.totalPages}
+                className="px-2 py-1 rounded border border-border disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* ── Active Schemes ──────────────────────────────────────── */}

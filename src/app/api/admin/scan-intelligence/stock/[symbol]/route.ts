@@ -11,6 +11,7 @@ import {
   getScanDates,
   getRepoTree,
   fetchPartialArray,
+  fetchLargeFile,
   fetchSmallFile,
   getHighRiskPath,
   getEvalPath,
@@ -20,6 +21,16 @@ import {
 } from "@/lib/admin/scan-data";
 
 export const dynamic = "force-dynamic";
+
+async function findStockInPath(path: string, symbol: string): Promise<EnhancedStock | null> {
+  const partial = await fetchPartialArray<EnhancedStock>(path, 3_000_000);
+  const partialMatch = partial.find((s) => s.symbol.toUpperCase() === symbol);
+  if (partialMatch) return partialMatch;
+
+  const full = await fetchLargeFile<EnhancedStock[]>(path);
+  if (!full) return null;
+  return full.find((s) => s.symbol.toUpperCase() === symbol) || null;
+}
 
 export async function GET(
   req: Request,
@@ -43,11 +54,14 @@ export async function GET(
     for (const date of dates.slice(0, 5)) {
       const highRiskPath = getHighRiskPath(date, files);
       const evalPath = getEvalPath(date, files);
-      const searchPath = highRiskPath || evalPath;
-      if (!searchPath) continue;
+      const searchPaths = [highRiskPath, evalPath].filter((p): p is string => Boolean(p));
+      if (searchPaths.length === 0) continue;
 
-      const stocks = await fetchPartialArray<EnhancedStock>(searchPath, 3_000_000);
-      const match = stocks.find((s) => s.symbol.toUpperCase() === upperSymbol);
+      let match: EnhancedStock | null = null;
+      for (const searchPath of searchPaths) {
+        match = await findStockInPath(searchPath, upperSymbol);
+        if (match) break;
+      }
       if (match) {
         latestStock = match;
         foundDate = date;

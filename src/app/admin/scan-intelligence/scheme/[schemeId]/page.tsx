@@ -36,12 +36,24 @@ interface Scheme {
   priceChangeFromDetection: number;
   priceChangeFromPeak: number;
   promotionPlatforms: string[];
-  promoterAccounts: { platform: string; identifier: string; postCount: number; confidence: string; firstSeen: string; lastSeen: string }[];
+  promoterAccounts: { promoterId?: string; platform: string; identifier: string; postCount: number; confidence: string; firstSeen: string; lastSeen: string }[];
   coordinationIndicators: string[];
   signalsDetected: string[];
   timeline: { date: string; event: string; category?: string; details?: string; significance?: string }[];
   notes: string[];
   investigationFlags: string[];
+}
+
+interface SocialMention {
+  id: string;
+  ticker: string;
+  platform: string;
+  author: string | null;
+  title: string | null;
+  content: string | null;
+  url: string | null;
+  promotionScore: number;
+  postDate: string | null;
 }
 
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
@@ -63,6 +75,7 @@ export default function SchemeDetailPage() {
   const router = useRouter();
   const schemeId = params.schemeId as string;
   const [scheme, setScheme] = useState<Scheme | null>(null);
+  const [socialMentions, setSocialMentions] = useState<SocialMention[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +92,14 @@ export default function SchemeDetailPage() {
           return;
         }
         setScheme(match);
+
+        const socialRes = await fetch(
+          `/api/admin/social-scan?ticker=${encodeURIComponent(match.symbol)}&promotionalOnly=true&limit=25`
+        );
+        if (socialRes.ok) {
+          const social = await socialRes.json();
+          setSocialMentions(social.mentions || []);
+        }
       } catch {
         setError("Failed to load scheme data");
       } finally {
@@ -365,12 +386,17 @@ export default function SchemeDetailPage() {
           {scheme.promoterAccounts.length > 0 ? (
             <div className="space-y-2">
               {scheme.promoterAccounts.map((promoter, i) => {
-                // Build a promoterId to link to the promoter detail page
-                const promoterId = `PROM-${promoter.platform.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 6)}-${promoter.identifier.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10)}`;
+                const promoterId =
+                  promoter.promoterId ||
+                  `PROM-${promoter.platform.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 6)}-${promoter.identifier.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10)}`;
                 return (
                   <button
                     key={i}
-                    onClick={() => router.push(`/admin/scan-intelligence/promoter/${promoterId}`)}
+                    onClick={() =>
+                      router.push(
+                        `/admin/scan-intelligence/promoter/${encodeURIComponent(promoterId)}?platform=${encodeURIComponent(promoter.platform)}&identifier=${encodeURIComponent(promoter.identifier)}`
+                      )
+                    }
                     className="w-full flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border hover:border-purple-500/30 hover:bg-purple-500/5 transition-all text-left"
                   >
                     <div className="flex items-center gap-3">
@@ -409,6 +435,50 @@ export default function SchemeDetailPage() {
                 specific accounts have not been linked
               </p>
             </div>
+          )}
+        </div>
+
+        {/* Linked Social Posts */}
+        <div className="bg-card rounded-2xl border border-border p-5">
+          <h3 className="text-sm font-medium font-display italic text-foreground mb-4">
+            Social Posts Linked to {scheme.symbol}
+          </h3>
+          {socialMentions.length > 0 ? (
+            <div className="space-y-2">
+              {socialMentions.slice(0, 12).map((mention) => (
+                <a
+                  key={mention.id}
+                  href={mention.url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`block rounded-lg border p-3 transition-colors ${
+                    mention.url
+                      ? "border-border hover:border-primary/30 hover:bg-secondary/30"
+                      : "border-border/60 opacity-70 cursor-default"
+                  }`}
+                  onClick={(event) => {
+                    if (!mention.url) event.preventDefault();
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs text-muted-foreground">
+                      {mention.platform} {mention.author ? `· @${mention.author}` : ""}
+                    </div>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-600">
+                      score {mention.promotionScore}
+                    </span>
+                  </div>
+                  <p className="text-sm text-foreground mt-1 line-clamp-2">
+                    {mention.title || mention.content || "Post content unavailable"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {mention.postDate ? new Date(mention.postDate).toLocaleString() : "Date unavailable"}
+                  </p>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No indexed social posts found for this symbol yet.</p>
           )}
         </div>
 

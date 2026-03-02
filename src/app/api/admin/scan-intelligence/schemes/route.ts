@@ -11,9 +11,14 @@ import {
   fetchSmallFile,
   generateSchemeName,
   type SchemeDatabase,
+  type PromoterDatabase,
 } from "@/lib/admin/scan-data";
 
 export const dynamic = "force-dynamic";
+
+function buildPromoterId(platform: string, identifier: string): string {
+  return `PROM-${platform.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 6)}-${identifier.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10)}`;
+}
 
 export async function GET() {
   try {
@@ -25,6 +30,9 @@ export async function GET() {
     const schemeDb = await fetchSmallFile<SchemeDatabase>(
       "scheme-tracking/scheme-database.json"
     );
+    const promoterDb = await fetchSmallFile<PromoterDatabase>(
+      "scheme-tracking/promoter-database.json"
+    );
 
     if (!schemeDb) {
       return NextResponse.json({
@@ -34,11 +42,25 @@ export async function GET() {
       });
     }
 
+    const promoterIdByAccount = new Map<string, string>();
+    if (promoterDb?.promoters) {
+      for (const promoter of Object.values(promoterDb.promoters)) {
+        const key = `${promoter.platform.toLowerCase()}::${promoter.identifier.toLowerCase()}`;
+        promoterIdByAccount.set(key, promoter.promoterId);
+      }
+    }
+
     // Add generated scheme names and ensure all fields are present
     const schemes = Object.values(schemeDb.schemes).map((s) => ({
       ...s,
       schemeName: generateSchemeName(s),
-      promoterAccounts: s.promoterAccounts || [],
+      promoterAccounts: (s.promoterAccounts || []).map((p) => {
+        const key = `${p.platform.toLowerCase()}::${p.identifier.toLowerCase()}`;
+        return {
+          ...p,
+          promoterId: promoterIdByAccount.get(key) || buildPromoterId(p.platform, p.identifier),
+        };
+      }),
       coordinationIndicators: s.coordinationIndicators || [],
       notes: s.notes || [],
       investigationFlags: s.investigationFlags || [],

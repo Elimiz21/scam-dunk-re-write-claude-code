@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20");
     const ticker = searchParams.get("ticker");
     const platform = searchParams.get("platform");
+    const author = searchParams.get("author");
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
     const promotionalOnly = searchParams.get("promotionalOnly") === "true";
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
     const mentionWhere: any = {};
     if (ticker) mentionWhere.ticker = { contains: ticker, mode: "insensitive" };
     if (platform) mentionWhere.platform = platform;
+    if (author) mentionWhere.author = { contains: author, mode: "insensitive" };
     if (promotionalOnly) mentionWhere.isPromotional = true;
     if (dateFrom || dateTo) {
       mentionWhere.createdAt = {};

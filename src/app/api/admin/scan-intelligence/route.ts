@@ -8,6 +8,7 @@
 
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
+import { prisma } from "@/lib/db";
 import {
   getRepoTree,
   getScanDates,
@@ -122,6 +123,56 @@ export async function GET(req: Request) {
           .slice(0, 10)
       : [];
 
+    // Recent high-priority social evidence (from DB if available)
+    let socialEvidence: Array<{
+      id: string;
+      ticker: string;
+      platform: string;
+      author: string | null;
+      title: string | null;
+      url: string | null;
+      promotionScore: number;
+      postDate: string | null;
+      createdAt: string;
+    }> = [];
+    try {
+      const mentions = await prisma.socialMention.findMany({
+        where: {
+          OR: [
+            { isPromotional: true },
+            { promotionScore: { gte: 50 } },
+          ],
+        },
+        orderBy: [{ promotionScore: "desc" }, { createdAt: "desc" }],
+        take: 15,
+        select: {
+          id: true,
+          ticker: true,
+          platform: true,
+          author: true,
+          title: true,
+          url: true,
+          promotionScore: true,
+          postDate: true,
+          createdAt: true,
+        },
+      });
+      socialEvidence = mentions.map((m) => ({
+        ...m,
+        postDate: m.postDate ? m.postDate.toISOString() : null,
+        createdAt: m.createdAt.toISOString(),
+      }));
+    } catch {
+      socialEvidence = [];
+    }
+
+    const coverage = {
+      topStocksWithSchemes: topStocks.filter((s) => Boolean(s.schemeId)).length,
+      topStocksWithSocial: topStocks.filter((s) => Boolean(s.socialMediaScanned)).length,
+      activeSchemesWithPromoters: activeSchemes.filter((s) => (s.promoterAccounts?.length || 0) > 0).length,
+      activeSchemesWithoutPromoters: activeSchemes.filter((s) => (s.promoterAccounts?.length || 0) === 0).length,
+    };
+
     return NextResponse.json({
       date: targetDate,
       previousDate: prevDate,
@@ -143,6 +194,8 @@ export async function GET(req: Request) {
         : null,
       socialSummary,
       topPromoted,
+      socialEvidence,
+      coverage,
     });
   } catch (error) {
     console.error("Scan intelligence error:", error);

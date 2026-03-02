@@ -607,8 +607,18 @@ export async function getRegulatoryDatabaseStatus(): Promise<{
     }),
   ]);
 
-  const syncMap = new Map(allSyncs.map(s => [s.source, s]));
-  const flagCountMap = new Map(flagCounts.map(f => [f.source, f._count]));
+  const syncMap = new Map<string, { lastSyncAt: Date | null; status: string }>(
+    allSyncs.map((s) => [
+      s.source,
+      {
+        lastSyncAt: s.lastSyncAt,
+        status: String(s.status),
+      },
+    ])
+  );
+  const flagCountMap = new Map<string, number>(
+    flagCounts.map((f) => [f.source, f._count])
+  );
 
   const result = sources.map(source => ({
     source,

@@ -5,7 +5,7 @@
  * with Supabase storage as fallback.
  */
 
-const DATA_REPO = "Elimiz21/scam-dunk-data";
+const DATA_REPO = process.env.SCAN_DATA_REPO || "Elimiz21/scam-dunk-data";
 const RAW_BASE = `https://raw.githubusercontent.com/${DATA_REPO}/main`;
 const API_BASE = `https://api.github.com/repos/${DATA_REPO}`;
 
