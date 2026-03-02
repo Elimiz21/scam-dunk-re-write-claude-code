@@ -6,6 +6,8 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { validateEmailConfig } from "@/lib/email";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const session = await getAdminSession();

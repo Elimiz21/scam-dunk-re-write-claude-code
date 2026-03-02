@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getUserSubscriptionInfo } from "@/lib/paypal";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/billing/paypal/subscription
  *
