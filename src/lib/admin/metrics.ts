@@ -174,98 +174,134 @@ async function updateDailyModelMetrics(
  * Get dashboard overview metrics
  */
 export async function getDashboardMetrics() {
-  const { monthKey, dayKey } = getDateKeys();
+  const { dayKey } = getDateKeys();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
 
   try {
     // Total users
     const totalUsers = await prisma.user.count();
 
-    // Active users (users with scans in the last 30 days)
-    const activeUsers = await prisma.scanUsage.groupBy({
-      by: ["userId"],
-      where: {
-        updatedAt: { gte: thirtyDaysAgo },
-      },
-    });
+    const [
+      activeUsers,
+      monthlyScans,
+      scansToday,
+      todayMetrics,
+      riskLevels,
+      dailyTrend,
+      usersByPlan,
+      newUsersToday,
+      newUsersThisMonth,
+    ] = await Promise.all([
+      // Active users (users with scans in the last 30 days)
+      prisma.scanHistory.groupBy({
+        by: ["userId"],
+        where: {
+          userId: { not: null },
+          createdAt: { gte: thirtyDaysAgo },
+        },
+      }),
 
-    // Total scans this month
-    const monthlyScans = await prisma.scanUsage.aggregate({
-      _sum: { scanCount: true },
-      where: { monthKey },
-    });
+      // Total scans this month
+      prisma.scanHistory.count({
+        where: {
+          createdAt: { gte: startOfMonth },
+        },
+      }),
 
-    // Scans today
-    const todayMetrics = await prisma.modelMetrics.findUnique({
-      where: { dateKey: dayKey },
-    });
+      // Scans today
+      prisma.scanHistory.count({
+        where: {
+          createdAt: { gte: startOfDay },
+        },
+      }),
 
-    // Paid vs Free users
-    const usersByPlan = await prisma.user.groupBy({
-      by: ["plan"],
-      _count: true,
-    });
+      // Processing time for today
+      prisma.scanHistory.aggregate({
+        where: {
+          createdAt: { gte: startOfDay },
+        },
+        _avg: {
+          processingTime: true,
+        },
+      }),
 
-    // Risk level distribution (last 30 days)
-    const recentMetrics = await prisma.modelMetrics.findMany({
-      where: {
-        dateKey: { gte: thirtyDaysAgo.toISOString().split("T")[0] },
-      },
-    });
+      // Risk level distribution (last 30 days)
+      prisma.scanHistory.groupBy({
+        by: ["riskLevel"],
+        where: {
+          createdAt: { gte: thirtyDaysAgo },
+        },
+        _count: true,
+      }),
 
-    const riskDistribution = recentMetrics.reduce(
-      (acc, m) => {
-        acc.low += m.lowRiskCount;
-        acc.medium += m.mediumRiskCount;
-        acc.high += m.highRiskCount;
-        acc.insufficient += m.insufficientCount;
+      // Daily scan trend (last 7 days)
+      prisma.modelMetrics.findMany({
+        where: {
+          dateKey: {
+            gte: (() => {
+              const sevenDaysAgo = new Date();
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+              return sevenDaysAgo.toISOString().split("T")[0];
+            })(),
+          },
+        },
+        orderBy: { dateKey: "asc" },
+        select: {
+          dateKey: true,
+          totalScans: true,
+        },
+      }),
+
+      // Paid vs Free users
+      prisma.user.groupBy({
+        by: ["plan"],
+        _count: true,
+      }),
+
+      // New users today
+      prisma.user.count({
+        where: { createdAt: { gte: startOfDay } },
+      }),
+
+      // New users this month
+      prisma.user.count({
+        where: { createdAt: { gte: startOfMonth } },
+      }),
+    ]);
+
+    const riskDistribution = riskLevels.reduce(
+      (acc, row) => {
+        if (row.riskLevel === "LOW") acc.low = row._count;
+        if (row.riskLevel === "MEDIUM") acc.medium = row._count;
+        if (row.riskLevel === "HIGH") acc.high = row._count;
+        if (row.riskLevel === "INSUFFICIENT") acc.insufficient = row._count;
         return acc;
       },
       { low: 0, medium: 0, high: 0, insufficient: 0 }
     );
 
-    // Daily scan trend (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const dailyTrend = await prisma.modelMetrics.findMany({
-      where: {
-        dateKey: { gte: sevenDaysAgo.toISOString().split("T")[0] },
-      },
-      orderBy: { dateKey: "asc" },
-      select: {
-        dateKey: true,
-        totalScans: true,
-      },
-    });
-
-    // New users today
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const newUsersToday = await prisma.user.count({
-      where: { createdAt: { gte: startOfDay } },
-    });
-
-    // New users this month
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const newUsersThisMonth = await prisma.user.count({
-      where: { createdAt: { gte: startOfMonth } },
-    });
+    const paidUsers = usersByPlan.find((u) => u.plan === "PAID")?._count ?? 0;
+    const freeUsers = totalUsers - paidUsers;
 
     return {
       totalUsers,
       activeUsers: activeUsers.length,
-      monthlyScans: monthlyScans._sum.scanCount || 0,
-      scansToday: todayMetrics?.totalScans || 0,
-      paidUsers: usersByPlan.find((u) => u.plan === "PAID")?._count || 0,
-      freeUsers: usersByPlan.find((u) => u.plan === "FREE")?._count || 0,
+      monthlyScans,
+      scansToday,
+      paidUsers,
+      freeUsers,
       riskDistribution,
       dailyTrend,
       newUsersToday,
       newUsersThisMonth,
-      avgProcessingTime: todayMetrics?.avgProcessingTime || 0,
+      avgProcessingTime: todayMetrics._avg.processingTime || 0,
     };
   } catch (error) {
     console.error("Failed to get dashboard metrics:", error);
