@@ -7,7 +7,6 @@ import ChartCard from "@/components/admin/ChartCard";
 import AlertBanner from "@/components/admin/AlertBanner";
 import {
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Activity,
   Target,
@@ -23,6 +22,9 @@ interface MarketAnalysisData {
     lowRiskCount: number;
     lastScanDate: string | null;
     promotedCount: number;
+    promotedChange: number;
+    promotedDirection: "up" | "down" | "flat";
+    hasMorePromotedStocks: boolean;
   };
   riskTrend: {
     date: string;
@@ -103,6 +105,15 @@ export default function MarketAnalysisPage() {
     value: d.high,
   }));
 
+  const highRiskDirection = data.stats.highRiskChange > 0 ? "up" : data.stats.highRiskChange < 0 ? "down" : "flat";
+
+  const promotedDirectionLabel =
+    data.stats.promotedDirection === "up"
+      ? "More promoted stocks than last week"
+      : data.stats.promotedDirection === "down"
+        ? "Fewer promoted stocks than last week"
+        : "Promoted stock activity unchanged vs last week";
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -152,7 +163,64 @@ export default function MarketAnalysisPage() {
             value={data.stats.promotedCount}
             icon={TrendingUp}
             color="purple"
+            change={data.stats.promotedChange !== 0 ? data.stats.promotedChange : undefined}
+            changeLabel="7d vs prior 7d"
           />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-card rounded-2xl shadow p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">Risk Pulse Summary</h3>
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                High-risk stock count is
+                <span className={`ml-1 font-semibold ${
+                  highRiskDirection === "up"
+                    ? "text-red-600"
+                    : highRiskDirection === "down"
+                      ? "text-green-600"
+                      : "text-muted-foreground"
+                }`}>
+                  {highRiskDirection === "up"
+                    ? "increasing"
+                    : highRiskDirection === "down"
+                      ? "decreasing"
+                      : "flat"}
+                </span>
+                {data.stats.highRiskChange !== 0 && (
+                  <span className="ml-1">({data.stats.highRiskChange > 0 ? "+" : ""}{data.stats.highRiskChange} vs yesterday)</span>
+                )}.
+              </p>
+              <p className="text-muted-foreground">
+                Promoted stock activity: 
+                <span className={`ml-1 font-semibold ${
+                  data.stats.promotedDirection === "up"
+                    ? "text-red-600"
+                    : data.stats.promotedDirection === "down"
+                      ? "text-green-600"
+                      : "text-muted-foreground"
+                }`}>
+                  {promotedDirectionLabel}
+                </span>
+                .
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-2xl shadow p-6">
+            <h3 className="text-lg font-medium text-foreground mb-4">Signal Source Coverage</h3>
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              <li>
+                <span className="font-medium text-foreground">Social Scan:</span> API-driven sweep for ticker mentions and promotional language scoring.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">Browser Agents:</span> Browser-session evidence capture for context, landing pages, and promotion artifacts by platform.
+              </li>
+              <li>
+                Use both views together: social scan detects narrative velocity, browser agents validate evidence quality.
+              </li>
+            </ul>
+          </div>
         </div>
 
         {/* Charts */}
