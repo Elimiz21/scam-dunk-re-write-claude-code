@@ -79,6 +79,28 @@ export async function GET(request: Request) {
       take: 10,
     });
 
+    const now = new Date();
+    const currentWindowStart = new Date(now);
+    currentWindowStart.setDate(currentWindowStart.getDate() - 7);
+    const previousWindowStart = new Date(currentWindowStart);
+    previousWindowStart.setDate(previousWindowStart.getDate() - 7);
+
+    const [currentPromotedCount, previousPromotedCount] = await Promise.all([
+      prisma.promotedStock.count({
+        where: {
+          addedDate: { gte: currentWindowStart },
+        },
+      }),
+      prisma.promotedStock.count({
+        where: {
+          addedDate: {
+            gte: previousWindowStart,
+            lt: currentWindowStart,
+          },
+        },
+      }),
+    ]);
+
     // Calculate aggregate stats
     const latestSummary = summaries[0];
     const previousSummary = summaries[1];
@@ -93,6 +115,14 @@ export async function GET(request: Request) {
       lowRiskCount: latestSummary?.lowRiskCount || 0,
       lastScanDate: latestSummary?.scanDate?.toISOString() || null,
       promotedCount: promotedStocks.length,
+      promotedChange: currentPromotedCount - previousPromotedCount,
+      promotedDirection:
+        currentPromotedCount > previousPromotedCount
+          ? "up"
+          : currentPromotedCount < previousPromotedCount
+            ? "down"
+            : "flat",
+      hasMorePromotedStocks: currentPromotedCount > previousPromotedCount,
     };
 
     return NextResponse.json({
