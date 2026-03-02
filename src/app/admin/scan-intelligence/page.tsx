@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AlertBanner from "@/components/admin/AlertBanner";
 import StatCard from "@/components/admin/StatCard";
@@ -220,7 +220,6 @@ interface HistoryEntry {
 
 export default function ScanIntelligencePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [data, setData] = useState<DashboardData | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -276,14 +275,16 @@ export default function ScanIntelligencePage() {
     fetchData();
   }, [fetchData]);
   useEffect(() => {
-    const dateParam = searchParams.get("date");
-    const schemeFilter = searchParams.get("schemeFilter") || "";
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get("date");
+    const schemeFilter = params.get("schemeFilter") || "";
     if (dateParam) {
       fetchData(dateParam);
     }
     if (schemeFilter === "new") setStockListSort("evaluatedAt");
     if (schemeFilter === "active" || schemeFilter === "ongoing") setStockListUnfilteredOnly(false);
-  }, [searchParams, fetchData]);
+  }, [fetchData]);
 
   useEffect(() => {
     if (!selectedDate) return;
