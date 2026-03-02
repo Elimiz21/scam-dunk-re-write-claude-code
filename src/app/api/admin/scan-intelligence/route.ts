@@ -63,17 +63,20 @@ export async function GET(req: Request) {
     // Fetch top suspicious stocks from the high-risk file (partial read)
     const highRiskPath = getHighRiskPath(targetDate, files);
     let topStocks: EnhancedStock[] = [];
+    let highRiskUnfiltered: EnhancedStock[] = [];
     if (highRiskPath) {
       const allHighRisk = await fetchPartialArray<EnhancedStock>(highRiskPath, 200_000);
+      highRiskUnfiltered = allHighRisk.filter((s) => !s.isFiltered);
       // Sort by totalScore descending, take top 30
-      topStocks = allHighRisk
-        .filter((s) => !s.isFiltered)
+      topStocks = highRiskUnfiltered
         .sort((a, b) => b.totalScore - a.totalScore || (b.aiLayers?.combined || 0) - (a.aiLayers?.combined || 0))
         .slice(0, 30);
     }
 
-    // Compute AI layer coverage stats from the top stocks sample
-    const aiStats = computeAIStats(topStocks);
+    // Compute AI layer coverage stats from the full unfiltered high-risk set.
+    // Using only the top-30 sample can make coverage percentages look disconnected
+    // from the underlying scan output.
+    const aiStats = computeAIStats(highRiskUnfiltered);
 
     // Compute risk funnel
     const funnel = {
