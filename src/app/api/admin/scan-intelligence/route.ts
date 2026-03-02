@@ -56,8 +56,14 @@ export async function GET(req: Request) {
 
     // Fetch previous date data for comparison
     let prevReport: DailyReport | null = null;
+    let prevSocialScan: SocialScanFile | null = null;
+    let prevPromotedStocks: PromotedStocksFile | null = null;
     if (prevDate) {
-      prevReport = await fetchSmallFile<DailyReport>(`reports/daily-report-${prevDate}.json`);
+      [prevReport, prevSocialScan, prevPromotedStocks] = await Promise.all([
+        fetchSmallFile<DailyReport>(`reports/daily-report-${prevDate}.json`),
+        fetchSmallFile<SocialScanFile>(`social-media-scans/social-media-scan-${prevDate}.json`).catch(() => null),
+        fetchSmallFile<PromotedStocksFile>(`promoted-stocks/promoted-stocks-${prevDate}.json`).catch(() => null),
+      ]);
     }
 
     // Fetch top suspicious stocks from the high-risk file (partial read)
@@ -116,6 +122,27 @@ export async function GET(req: Request) {
           totalScanned: socialScan.totalScanned,
           highPromotion: socialScan.highPromotionCount,
           mediumPromotion: socialScan.mediumPromotionCount,
+        }
+      : null;
+
+    const prevSocialSummary = prevSocialScan
+      ? {
+          totalScanned: prevSocialScan.totalScanned,
+          highPromotion: prevSocialScan.highPromotionCount,
+          mediumPromotion: prevSocialScan.mediumPromotionCount,
+        }
+      : null;
+
+    const promotionDeltas = prevSocialSummary
+      ? {
+          totalPromotions:
+            (socialSummary?.highPromotion || 0) +
+            (socialSummary?.mediumPromotion || 0) -
+            prevSocialSummary.highPromotion -
+            prevSocialSummary.mediumPromotion,
+          promotedStocks:
+            (promotedStocks?.promotedStocks.length || 0) -
+            (prevPromotedStocks?.promotedStocks.length || 0),
         }
       : null;
 
@@ -196,6 +223,8 @@ export async function GET(req: Request) {
           }
         : null,
       socialSummary,
+      prevSocialSummary,
+      promotionDeltas,
       topPromoted,
       socialEvidence,
       coverage,

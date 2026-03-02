@@ -88,6 +88,15 @@ interface DashboardData {
     highPromotion: number;
     mediumPromotion: number;
   } | null;
+  prevSocialSummary: {
+    totalScanned: number;
+    highPromotion: number;
+    mediumPromotion: number;
+  } | null;
+  promotionDeltas: {
+    totalPromotions: number;
+    promotedStocks: number;
+  } | null;
   topPromoted: PromotedStock[];
   socialEvidence: SocialEvidence[];
   coverage: {
@@ -315,6 +324,11 @@ export default function ScanIntelligencePage() {
     setStockListPage(1);
   }, [stockListSearch, stockListRisk, stockListSort, stockListMinScore, stockListPumpOnly, stockListUnfilteredOnly]);
 
+  function trendLabel(value: number | null | undefined, positiveLabel = "Up", negativeLabel = "Down") {
+    if (value == null || value === 0) return "Flat";
+    return value > 0 ? positiveLabel : negativeLabel;
+  }
+
   // ── Loading state ──────────────────────────────────────────────
 
   if (loading && !data) {
@@ -418,6 +432,55 @@ export default function ScanIntelligencePage() {
             change={data.deltas?.schemes}
             changeIsAbsolute
           />
+        </div>
+
+        {/* ── Executive Market Pulse ─────────────────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-card rounded-2xl border border-border p-5">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">High-risk trend</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">{trendLabel(data.deltas?.highRisk)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {data.deltas?.highRisk != null
+                ? `${Math.abs(data.deltas.highRisk)} vs previous scan`
+                : "No previous day comparison available"}
+            </p>
+          </div>
+
+          <div className="bg-card rounded-2xl border border-border p-5">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">More stocks promoted?</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">
+              {data.promotionDeltas?.promotedStocks == null
+                ? "Unknown"
+                : data.promotionDeltas.promotedStocks > 0
+                  ? "Yes"
+                  : "No"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {data.promotionDeltas?.promotedStocks != null
+                ? `${Math.abs(data.promotionDeltas.promotedStocks)} stock delta vs previous social scan`
+                : "Waiting for social scan history"}
+            </p>
+          </div>
+
+          <div className="bg-card rounded-2xl border border-border p-5">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Promotional activity trend</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">{trendLabel(data.promotionDeltas?.totalPromotions)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {data.promotionDeltas?.totalPromotions != null
+                ? `${Math.abs(data.promotionDeltas.totalPromotions)} high/medium promo mentions delta`
+                : "No prior social benchmark"}
+            </p>
+          </div>
+
+          <div className="bg-card rounded-2xl border border-border p-5">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Source boundaries</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">
+              Social Scan = API + feed monitoring
+            </p>
+            <p className="mt-1 text-sm font-semibold text-foreground">
+              Browser Agents = logged-in/manual web crawling
+            </p>
+          </div>
         </div>
 
         {/* ── Risk Funnel + AI Layers (2-col) ─────────────────────── */}
