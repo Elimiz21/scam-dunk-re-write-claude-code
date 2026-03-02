@@ -16,6 +16,11 @@ interface SchemeCardProps {
     peakPrice: number;
     currentPrice: number;
     priceChangeFromPeak: number;
+    floorPriceBeforePump?: number;
+    troughPriceAfterPeak?: number;
+    daysFloorToPeak?: number;
+    daysPeakToTrough?: number;
+    weakPumpSignal?: boolean;
     daysActive: number;
     firstDetected: string;
     lastSeen: string;
@@ -69,29 +74,18 @@ export default function SchemeCard({ scheme, onClick }: SchemeCardProps) {
       </div>
 
       {/* Price journey */}
-      <div className="flex items-center gap-3 mb-3 mt-3 text-xs">
-        <div className="flex-1">
-          <div className="text-muted-foreground">Detection</div>
-          <div className="font-medium tabular-nums">${scheme.priceAtDetection.toFixed(2)}</div>
-        </div>
-        <div className="flex-1">
-          <div className="text-muted-foreground">Peak</div>
-          <div className="font-medium tabular-nums">${scheme.peakPrice.toFixed(2)}</div>
-        </div>
-        <div className="flex-1">
-          <div className="text-muted-foreground">Current</div>
-          <div className="flex items-center gap-1">
-            <span className="font-medium tabular-nums">${scheme.currentPrice.toFixed(2)}</span>
-            {priceDown && <TrendingDown className="h-3 w-3 text-red-500" />}
-            {priceUp && <TrendingUp className="h-3 w-3 text-emerald-500" />}
-          </div>
-        </div>
-        {scheme.priceChangeFromPeak !== 0 && (
-          <div className={`text-sm font-bold tabular-nums ${priceDown ? "text-red-500" : priceUp ? "text-emerald-500" : "text-muted-foreground"}`}>
-            {scheme.priceChangeFromPeak > 0 ? "+" : ""}{scheme.priceChangeFromPeak.toFixed(1)}%
-          </div>
-        )}
+      <div className="grid grid-cols-4 gap-2 mb-2 mt-3 text-[11px]">
+        <div><div className="text-muted-foreground">Floor</div><div className="font-medium tabular-nums">${(scheme.floorPriceBeforePump ?? scheme.priceAtDetection).toFixed(2)}</div></div>
+        <div><div className="text-muted-foreground">Detect</div><div className="font-medium tabular-nums">${scheme.priceAtDetection.toFixed(2)}</div></div>
+        <div><div className="text-muted-foreground">Peak</div><div className="font-medium tabular-nums text-amber-600">${scheme.peakPrice.toFixed(2)}</div></div>
+        <div><div className="text-muted-foreground">Trough/Now</div><div className="flex items-center gap-1"><span className="font-medium tabular-nums">${(scheme.troughPriceAfterPeak ?? scheme.currentPrice).toFixed(2)}</span>{priceDown && <TrendingDown className="h-3 w-3 text-red-500" />}{priceUp && <TrendingUp className="h-3 w-3 text-emerald-500" />}</div></div>
       </div>
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2">
+        <span>Pump: {scheme.daysFloorToPeak ?? 0}d</span>
+        <span>Dump: {scheme.daysPeakToTrough ?? 0}d</span>
+        {scheme.priceChangeFromPeak !== 0 && (<span className={`font-bold tabular-nums ${priceDown ? "text-red-500" : priceUp ? "text-emerald-500" : "text-muted-foreground"}`}>{scheme.priceChangeFromPeak > 0 ? "+" : ""}{scheme.priceChangeFromPeak.toFixed(1)}%</span>)}
+      </div>
+      {scheme.weakPumpSignal && (<div className="text-[10px] text-amber-700 bg-amber-500/10 px-2 py-1 rounded mb-2">Weak/no pump signature detected</div>)}
 
       {/* Coordination indicators */}
       {coordination.length > 0 && (

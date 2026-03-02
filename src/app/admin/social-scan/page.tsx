@@ -65,6 +65,7 @@ interface Stats {
 }
 
 interface ScanData {
+  definitions?: Record<string, string>;
   scanRuns: ScanRun[];
   mentions: Mention[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
@@ -127,6 +128,8 @@ export default function SocialScanPage() {
   } | null>(null);
   const [settingUpDb, setSettingUpDb] = useState(false);
   const [dbSetupDone, setDbSetupDone] = useState(false);
+  const [capturedByMention, setCapturedByMention] = useState<Record<string, string>>({});
+  const [capturingMention, setCapturingMention] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -181,6 +184,26 @@ export default function SocialScanPage() {
       setError(err instanceof Error ? err.message : "Failed to trigger scan");
     } finally {
       setTriggering(false);
+    }
+  }
+
+
+  async function captureScreenshot(mention: Mention) {
+    if (!mention.url) return;
+    try {
+      setCapturingMention(mention.id);
+      const res = await fetch('/api/admin/social-scan/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mentionId: mention.id, url: mention.url, ticker: mention.ticker, platform: mention.platform }),
+      });
+      if (!res.ok) throw new Error('Failed to capture screenshot');
+      const json = await res.json();
+      setCapturedByMention((prev) => ({ ...prev, [mention.id]: json?.evidence?.screenshotUrl }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to capture screenshot');
+    } finally {
+      setCapturingMention(null);
     }
   }
 
@@ -422,6 +445,16 @@ export default function SocialScanPage() {
           </div>
         </div>
 
+        <div className="text-xs text-muted-foreground bg-secondary/30 border border-border rounded-lg p-3">
+          <p className="font-medium text-foreground mb-1">How these numbers are calculated</p>
+          <ul className="space-y-1 list-disc pl-4">
+            <li>Total Mentions: {data?.definitions?.totalMentions || "All indexed posts in current filter scope."}</li>
+            <li>Promotional: {data?.definitions?.promotionalCount || "Posts flagged as promotional."}</li>
+            <li>Avg Promotion Score: {data?.definitions?.avgPromotionScore || "Average 0-100 score."}</li>
+            <li>Tickers Tracked: {data?.definitions?.tickersTracked || "Distinct tickers in filtered posts."}</li>
+          </ul>
+        </div>
+
         {/* Recent Scan Runs */}
         {data?.scanRuns && data.scanRuns.length > 0 && (
           <div className="bg-card rounded-2xl shadow border border-border overflow-hidden">
@@ -434,8 +467,8 @@ export default function SocialScanPage() {
                   <tr className="border-b border-border bg-muted/30">
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Tickers</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Mentions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase" title={data?.definitions?.tickersScanned}>Tickers</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase" title={data?.definitions?.tickersWithMentions}>Mentions</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Platforms</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Duration</th>
                   </tr>
@@ -701,15 +734,29 @@ export default function SocialScanPage() {
                                       </span>
                                     </div>
                                     {mention.url && (
-                                      <a
-                                        href={mention.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                                      >
-                                        <ExternalLink className="h-3.5 w-3.5" />
-                                        View Original Post
-                                      </a>
+                                      <div className="flex items-center gap-3 flex-wrap">
+                                        <a
+                                          href={mention.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                                        >
+                                          <ExternalLink className="h-3.5 w-3.5" />
+                                          View Original Post
+                                        </a>
+                                        <button
+                                          onClick={(e) => { e.preventDefault(); captureScreenshot(mention); }}
+                                          className="text-xs px-2 py-1 rounded border border-border hover:bg-secondary"
+                                          disabled={capturingMention === mention.id}
+                                        >
+                                          {capturingMention === mention.id ? 'Capturing…' : 'Capture Screenshot'}
+                                        </button>
+                                        {capturedByMention[mention.id] && (
+                                          <a href={capturedByMention[mention.id]} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-700 hover:underline">
+                                            View captured screenshot
+                                          </a>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 </div>

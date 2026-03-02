@@ -104,6 +104,9 @@ interface DashboardData {
     topStocksWithSocial: number;
     activeSchemesWithPromoters: number;
     activeSchemesWithoutPromoters: number;
+    definitions?: Record<string, string>;
+    source?: string;
+    generatedAt?: string;
   };
 }
 
@@ -135,6 +138,11 @@ interface Stock {
 }
 
 interface Scheme {
+  floorPriceBeforePump?: number;
+  troughPriceAfterPeak?: number;
+  daysFloorToPeak?: number;
+  daysPeakToTrough?: number;
+  weakPumpSignal?: boolean;
   schemeId: string;
   symbol: string;
   name: string;
@@ -265,6 +273,17 @@ export default function ScanIntelligencePage() {
 
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get("date");
+    const schemeFilter = params.get("schemeFilter") || "";
+    if (dateParam) {
+      fetchData(dateParam);
+    }
+    if (schemeFilter === "new") setStockListSort("evaluatedAt");
+    if (schemeFilter === "active" || schemeFilter === "ongoing") setStockListUnfilteredOnly(false);
   }, [fetchData]);
 
   useEffect(() => {
@@ -513,31 +532,24 @@ export default function ScanIntelligencePage() {
             <h3 className="text-sm font-medium font-display italic text-foreground mb-4">
               Data Coverage
             </h3>
-            <div className="space-y-3 text-xs">
-              <div className="flex items-center justify-between">
+            <div className="space-y-2 text-xs">
+              <button onClick={() => setStockListUnfilteredOnly(false)} className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40">
                 <span className="text-muted-foreground">Top stocks with scheme link</span>
-                <span className="font-semibold tabular-nums">
-                  {data.coverage?.topStocksWithSchemes ?? 0}/{data.topStocks.length}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
+                <span className="font-semibold tabular-nums">{data.coverage?.topStocksWithSchemes ?? 0}/{data.topStocks.length}</span>
+              </button>
+              <button onClick={() => router.push('/admin/social-scan')} className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40">
                 <span className="text-muted-foreground">Top stocks with social scan</span>
-                <span className="font-semibold tabular-nums">
-                  {data.coverage?.topStocksWithSocial ?? 0}/{data.topStocks.length}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
+                <span className="font-semibold tabular-nums">{data.coverage?.topStocksWithSocial ?? 0}/{data.topStocks.length}</span>
+              </button>
+              <button onClick={() => setStockListPumpOnly(true)} className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40">
                 <span className="text-muted-foreground">Active schemes with promoters</span>
-                <span className="font-semibold tabular-nums">
-                  {data.coverage?.activeSchemesWithPromoters ?? 0}/{data.activeSchemes.length}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
+                <span className="font-semibold tabular-nums">{data.coverage?.activeSchemesWithPromoters ?? 0}/{data.activeSchemes.length}</span>
+              </button>
+              <button onClick={() => setStockListPumpOnly(false)} className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40">
                 <span className="text-muted-foreground">Schemes missing promoter links</span>
-                <span className="font-semibold tabular-nums text-amber-600">
-                  {data.coverage?.activeSchemesWithoutPromoters ?? 0}
-                </span>
-              </div>
+                <span className="font-semibold tabular-nums text-amber-600">{data.coverage?.activeSchemesWithoutPromoters ?? 0}</span>
+              </button>
+              {data.coverage?.source && <p className="text-[10px] text-muted-foreground mt-2">Source: {data.coverage.source}</p>}
             </div>
           </div>
 

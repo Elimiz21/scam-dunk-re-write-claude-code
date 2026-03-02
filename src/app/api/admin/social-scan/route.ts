@@ -21,7 +21,15 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({
+      definitions: {
+        totalMentions: "Total indexed social posts matching the current filters.",
+        promotionalCount: "Mentions flagged promotional (isPromotional=true).",
+        avgPromotionScore: "Average promotionScore (0-100) across filtered mentions.",
+        tickersTracked: "Unique ticker count across filtered mentions.",
+        tickersScanned: "Tickers submitted to scanner for a run.",
+        tickersWithMentions: "Submitted tickers that returned at least 1 mention.",
+      }, error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -103,6 +111,14 @@ export async function GET(request: NextRequest) {
     const platformBreakdown = val(results[6], [] as any[]);
 
     return NextResponse.json({
+      definitions: {
+        totalMentions: "Total indexed social posts matching the current filters.",
+        promotionalCount: "Mentions flagged promotional (isPromotional=true).",
+        avgPromotionScore: "Average promotionScore (0-100) across filtered mentions.",
+        tickersTracked: "Unique ticker count across filtered mentions.",
+        tickersScanned: "Tickers submitted to scanner for a run.",
+        tickersWithMentions: "Submitted tickers that returned at least 1 mention.",
+      },
       scanRuns: scanRuns.map((run: any) => ({
         ...run,
         platformsUsed: run.platformsUsed ? JSON.parse(run.platformsUsed) : [],
@@ -132,6 +148,14 @@ export async function GET(request: NextRequest) {
     console.error("Social scan GET error:", error);
     // Return empty state instead of 500 so the page still renders
     return NextResponse.json({
+      definitions: {
+        totalMentions: "Total indexed social posts matching the current filters.",
+        promotionalCount: "Mentions flagged promotional (isPromotional=true).",
+        avgPromotionScore: "Average promotionScore (0-100) across filtered mentions.",
+        tickersTracked: "Unique ticker count across filtered mentions.",
+        tickersScanned: "Tickers submitted to scanner for a run.",
+        tickersWithMentions: "Submitted tickers that returned at least 1 mention.",
+      },
       scanRuns: [],
       mentions: [],
       pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },

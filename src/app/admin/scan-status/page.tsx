@@ -23,7 +23,9 @@ import {
   RefreshCw,
   Zap,
   Calendar,
+  Info,
 } from "lucide-react";
+import Link from "next/link";
 
 // ─── Types matching scan-status-{DATE}.json ────────────────────────
 
@@ -73,6 +75,11 @@ interface ScanStatusData {
     ongoingSchemes?: number;
     totalActiveSchemes?: number;
     activeSchemes?: number;
+  };
+  metricDefinitions?: {
+    newSchemes?: string;
+    ongoingSchemes?: string;
+    totalActiveSchemes?: string;
   };
   socialMediaDetails?: {
     platformsUsed: string[];
@@ -917,20 +924,32 @@ export default function ScanStatusPage() {
             {/* Scheme tracking summary */}
             {(s.newSchemes != null || s.totalActiveSchemes != null || s.activeSchemes != null) && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-card rounded-2xl border border-border p-5">
+                <Link href={`/admin/scan-intelligence?date=${encodeURIComponent(selectedDate || "")}&schemeFilter=new`} className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:bg-secondary/20 transition-colors">
                   <p className="text-xs font-medium text-muted-foreground">New Schemes</p>
                   <p className="mt-1 text-2xl font-semibold text-foreground">{s.newSchemes ?? 0}</p>
-                </div>
-                <div className="bg-card rounded-2xl border border-border p-5">
+                  <p className="text-[11px] text-muted-foreground mt-1">{data.metricDefinitions?.newSchemes || "Detected for the first time on this scan date."}</p>
+                </Link>
+                <Link href={`/admin/scan-intelligence?date=${encodeURIComponent(selectedDate || "")}&schemeFilter=ongoing`} className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:bg-secondary/20 transition-colors">
                   <p className="text-xs font-medium text-muted-foreground">Ongoing Schemes</p>
                   <p className="mt-1 text-2xl font-semibold text-foreground">{s.ongoingSchemes ?? 0}</p>
-                </div>
-                <div className="bg-card rounded-2xl border border-border p-5">
+                  <p className="text-[11px] text-muted-foreground mt-1">{data.metricDefinitions?.ongoingSchemes || "Still active from prior scans and not yet resolved."}</p>
+                </Link>
+                <Link href={`/admin/scan-intelligence?date=${encodeURIComponent(selectedDate || "")}&schemeFilter=active`} className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:bg-secondary/20 transition-colors">
                   <p className="text-xs font-medium text-muted-foreground">Total Active Schemes</p>
                   <p className="mt-1 text-2xl font-semibold text-foreground">
                     {s.totalActiveSchemes ?? s.activeSchemes ?? 0}
                   </p>
-                </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">{data.metricDefinitions?.totalActiveSchemes || "All currently active statuses (NEW, ONGOING, COOLING)."}</p>
+                </Link>
+              </div>
+            )}
+
+            {((s.newSchemes ?? 0) + (s.ongoingSchemes ?? 0)) !== (s.totalActiveSchemes ?? s.activeSchemes ?? 0) && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 flex items-start gap-2">
+                <Info className="h-4 w-4 mt-0.5" />
+                <p>
+                  New + Ongoing does not equal Total Active because the sets can overlap or use different status windows (e.g. COOLING + NEW in the same run).
+                </p>
               </div>
             )}
 

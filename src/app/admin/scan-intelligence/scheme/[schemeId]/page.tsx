@@ -35,6 +35,11 @@ interface Scheme {
   currentPrice: number;
   priceChangeFromDetection: number;
   priceChangeFromPeak: number;
+  floorPriceBeforePump?: number;
+  troughPriceAfterPeak?: number;
+  daysFloorToPeak?: number;
+  daysPeakToTrough?: number;
+  weakPumpSignal?: boolean;
   promotionPlatforms: string[];
   promoterAccounts: { promoterId?: string; platform: string; identifier: string; postCount: number; confidence: string; firstSeen: string; lastSeen: string }[];
   coordinationIndicators: string[];
@@ -223,6 +228,11 @@ export default function SchemeDetailPage() {
               <div className="text-xs text-muted-foreground">Promoters</div>
               <div className="text-2xl font-bold tabular-nums">{scheme.promoterAccounts.length}</div>
               <div className="text-[10px] text-muted-foreground">accounts identified</div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>Pump duration: {scheme.daysFloorToPeak ?? 0}d</span>
+                <span>Dump duration: {scheme.daysPeakToTrough ?? 0}d</span>
+                {scheme.weakPumpSignal && <span className="text-amber-700">Weak/no pump signature</span>}
+              </div>
             </div>
           </div>
         </div>
@@ -271,6 +281,14 @@ export default function SchemeDetailPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <div className="text-muted-foreground">Floor before pump</div>
+                  <div className="text-lg font-bold tabular-nums">${(scheme.floorPriceBeforePump ?? scheme.priceAtDetection).toFixed(2)}</div>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/50">
+                  <div className="text-muted-foreground">Trough after peak</div>
+                  <div className="text-lg font-bold tabular-nums">${(scheme.troughPriceAfterPeak ?? scheme.currentPrice).toFixed(2)}</div>
+                </div>
                 <div className="p-3 rounded-lg bg-secondary/50">
                   <div className="text-muted-foreground">From Detection</div>
                   <div className={`text-lg font-bold tabular-nums ${scheme.priceChangeFromDetection > 0 ? "text-emerald-600" : "text-red-600"}`}>
@@ -348,12 +366,19 @@ export default function SchemeDetailPage() {
             <div>
               <h4 className="text-xs font-medium text-muted-foreground mb-2">Promotion Platforms</h4>
               <div className="space-y-2">
-                {scheme.promotionPlatforms.map((platform, i) => (
-                  <div key={i} className="flex items-center gap-2 p-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/10">
-                    <Globe className="h-4 w-4 text-indigo-600" />
-                    <span className="text-sm font-medium text-foreground">{platform}</span>
-                  </div>
-                ))}
+                {scheme.promotionPlatforms.map((platform, i) => {
+                  const platformMentions = socialMentions.filter((m) => m.platform.toLowerCase() === platform.toLowerCase());
+                  const firstUrl = platformMentions.find((m) => m.url)?.url;
+                  return (
+                    <a key={i} href={firstUrl || "#"} target="_blank" rel="noopener noreferrer" className={`flex items-center justify-between gap-2 p-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/10 ${firstUrl ? "hover:border-primary/30" : "opacity-70 cursor-default"}`} onClick={(e) => { if (!firstUrl) e.preventDefault(); }}>
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-indigo-600" />
+                        <span className="text-sm font-medium text-foreground">{platform}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{platformMentions.length} post(s)</span>
+                    </a>
+                  );
+                })}
               </div>
             </div>
 
