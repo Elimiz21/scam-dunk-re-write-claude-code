@@ -79,6 +79,7 @@
     "playwright-extra": "^4.3.6",
     "prisma": "^5.22.0",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "ts-jest": "^29.2.5"
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.21.0"
   }
 }
