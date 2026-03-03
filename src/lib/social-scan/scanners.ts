@@ -401,6 +401,7 @@ export class GoogleCSEScanner implements SocialScanner {
     const seenUrls = new Set<string>();
 
     let apiErrors = 0;
+    let lastApiError = '';
 
     for (const target of targets) {
       // Use a short query — the CSE itself should be configured to search social sites.
@@ -416,6 +417,13 @@ export class GoogleCSEScanner implements SocialScanner {
           const body = await res.text().catch(() => 'no body');
           console.error(`[Google CSE] API ${res.status} for ${target.ticker}: ${body}`);
           apiErrors++;
+
+          let parsedError = body;
+          try {
+            const json = JSON.parse(body);
+            parsedError = json.error?.message || json.error?.status || body;
+          } catch (e) { }
+          lastApiError = `Status ${res.status}: ${parsedError}`;
           continue;
         }
         const data = await res.json();
@@ -472,14 +480,14 @@ export class GoogleCSEScanner implements SocialScanner {
       ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
 
     const allFailed = apiErrors === targets.length;
-    if (allFailed) {
-      console.error(`[Google CSE] All ${targets.length} ticker queries failed. Check your GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID are valid.`);
+    if (apiErrors > 0) {
+      console.error(`[Google CSE] ${apiErrors}/${targets.length} ticker queries failed. Check your GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID are valid. Last error: ${lastApiError}`);
     }
 
     return [{
       platform: 'Multi-Platform (Google CSE)', scanner: this.name,
-      success: !allFailed,
-      error: allFailed ? `All ${apiErrors} API requests failed — check CSE credentials` : undefined,
+      success: apiErrors === 0,
+      error: apiErrors > 0 ? `${apiErrors}/${targets.length} API requests failed. Last error: ${lastApiError}` : undefined,
       mentionsFound: allMentions.length, mentions: allMentions,
       activityLevel: allMentions.length >= 20 ? 'high' : allMentions.length >= 5 ? 'medium' : allMentions.length > 0 ? 'low' : 'none',
       promotionRisk: avgScore >= 40 ? 'high' : avgScore >= 20 ? 'medium' : 'low',
