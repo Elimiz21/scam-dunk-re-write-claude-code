@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0c0e14;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#111318;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="softglow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="45"/></filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="930" cy="300" r="220" fill="#ef4444" opacity="0.04" filter="url(#softglow)"/>
+
+  <!-- Data table / heatmap (right side) -->
+  <g transform="translate(616, 50)">
+    <text x="270" y="26" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280" text-anchor="middle" font-weight="600" letter-spacing="1">NYSE MICRO-CAP RISK SCANNER — LIVE DATA</text>
+
+    <!-- Table header -->
+    <rect x="20" y="36" width="530" height="28" rx="6" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/>
+    <text x="56" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">TICKER</text>
+    <text x="140" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">FLOAT</text>
+    <text x="210" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">VOL/AVG</text>
+    <text x="290" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">PROMO</text>
+    <text x="370" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">INSIDER</text>
+    <text x="460" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">RISK SCORE</text>
+
+    <!-- Row data -->
+    <!-- High risk rows -->
+    <rect x="20" y="68" width="530" height="26" fill="#ef4444" fill-opacity="0.08"/>
+    <text x="56" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#e5e7eb" text-anchor="middle" font-weight="700">MCRX</text>
+    <text x="140" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">890K</text>
+    <text x="210" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">22×</text>
+    <text x="290" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">HIGH</text>
+    <text x="370" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">SELLING</text>
+    <rect x="424" y="74" width="72" height="16" rx="4" fill="#ef4444" fill-opacity="0.3"/>
+    <text x="460" y="86" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle" font-weight="700">94 / 100</text>
+
+    <rect x="20" y="96" width="530" height="26" fill="#ef4444" fill-opacity="0.06"/>
+    <text x="56" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#e5e7eb" text-anchor="middle" font-weight="700">BVNX</text>
+    <text x="140" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">1.2M</text>
+    <text x="210" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">18×</text>
+    <text x="290" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">HIGH</text>
+    <text x="370" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#f97316" text-anchor="middle">MIXED</text>
+    <rect x="424" y="102" width="72" height="16" rx="4" fill="#ef4444" fill-opacity="0.25"/>
+    <text x="460" y="114" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle" font-weight="700">88 / 100</text>
+
+    <rect x="20" y="124" width="530" height="26" fill="#f97316" fill-opacity="0.05"/>
+    <text x="56" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#e5e7eb" text-anchor="middle" font-weight="700">ZTLK</text>
+    <text x="140" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">2.1M</text>
+    <text x="210" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle">12×</text>
+    <text x="290" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle">MED</text>
+    <text x="370" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">SELLING</text>
+    <rect x="424" y="130" width="72" height="16" rx="4" fill="#f97316" fill-opacity="0.2"/>
+    <text x="460" y="142" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle" font-weight="700">81 / 100</text>
+
+    <rect x="20" y="152" width="530" height="26" fill="#f97316" fill-opacity="0.04"/>
+    <text x="56" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#e5e7eb" text-anchor="middle" font-weight="700">PROX</text>
+    <text x="140" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">3.4M</text>
+    <text x="210" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle">9×</text>
+    <text x="290" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle">MED</text>
+    <text x="370" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">NONE</text>
+    <rect x="424" y="158" width="72" height="16" rx="4" fill="#f97316" fill-opacity="0.15"/>
+    <text x="460" y="170" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle" font-weight="700">72 / 100</text>
+
+    <!-- Medium rows (grayed) -->
+    <text x="285" y="198" font-family="system-ui,sans-serif" font-size="9" fill="#4b5563" text-anchor="middle">· · · 106 more tickers in full report · · ·</text>
+
+    <!-- Stats boxes -->
+    <rect x="20" y="214" width="530" height="80" rx="10" fill="#ffffff" fill-opacity="0.02" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+    <g font-family="system-ui,sans-serif" text-anchor="middle">
+      <text x="95" y="244" font-size="28" font-weight="700" fill="#ef4444">110</text>
+      <text x="95" y="262" font-size="10" fill="#6b7280">active alerts</text>
+      <text x="215" y="244" font-size="28" font-weight="700" fill="#f97316">42</text>
+      <text x="215" y="262" font-size="10" fill="#6b7280">critical risk</text>
+      <text x="335" y="244" font-size="28" font-weight="700" fill="#3b82f6">18.4×</text>
+      <text x="335" y="262" font-size="10" fill="#6b7280">avg vol spike</text>
+      <text x="465" y="244" font-size="28" font-weight="700" fill="#10b981">$0</text>
+      <text x="465" y="262" font-size="10" fill="#6b7280">to access</text>
+    </g>
+    <text x="285" y="285" font-family="system-ui,sans-serif" font-size="9" fill="#4b5563" text-anchor="middle">Data updated daily · methodology at scamdunk.com/how-it-works</text>
+
+    <!-- Methodology note -->
+    <rect x="20" y="308" width="530" height="150" rx="10" fill="#ffffff" fill-opacity="0.015" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
+    <text x="40" y="328" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" font-weight="700">HOW TICKERS MAKE THIS LIST</text>
+    <g font-family="system-ui,sans-serif" font-size="10.5" fill="#6b7280">
+      <text x="40" y="350">🔴  Volume spike ≥ 5× 20-day average with no earnings or news catalyst</text>
+      <text x="40" y="370">🔴  Float below 5M shares — easily moved by small coordinated buying</text>
+      <text x="40" y="390">🔴  Active stock promotion detected via AI text-matching across social media</text>
+      <text x="40" y="410">🔴  CEO or insider Form 4 sales filed within 7 days of price peak</text>
+      <text x="40" y="430">🔴  Price gain ≥ 30% with no SEC-verified fundamental business event</text>
+      <text x="40" y="450">✅  All data sourced from SEC EDGAR, NYSE, and verified public filings</text>
+    </g>
+  </g>
+
+  <!-- Left content -->
+  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#brand)"/>
+  <rect x="80" y="172" width="72" height="72" rx="16" fill="url(#brand)" filter="url(#glow)"/>
+  <!-- Table/data icon -->
+  <g transform="translate(116,208)">
+    <rect x="-16" y="-14" width="32" height="28" rx="3" stroke="white" stroke-width="2" fill="none"/>
+    <line x1="-16" y1="-4" x2="16" y2="-4" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    <line x1="-16" y1="6" x2="16" y2="6" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    <line x1="-4" y1="-14" x2="-4" y2="14" stroke="white" stroke-width="1.5" opacity="0.5"/>
+    <rect x="-16" y="-14" width="12" height="10" rx="1" fill="white" fill-opacity="0.15"/>
+  </g>
+  <rect x="80" y="264" width="126" height="26" rx="13" fill="#ef4444" fill-opacity="0.15" stroke="#ef4444" stroke-opacity="0.4" stroke-width="1"/>
+  <text x="143" y="281" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#f87171" text-anchor="middle" letter-spacing="1">LIVE RESEARCH</text>
+  <text x="80" y="342" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#ffffff" letter-spacing="-1">110 Micro-Caps</text>
+  <text x="80" y="390" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#ffffff" letter-spacing="-1">Under Scrutiny</text>
+  <text x="80" y="432" font-family="system-ui,sans-serif" font-size="16" fill="#9ca3af">NYSE tickers showing active pump-and-dump patterns</text>
+  <g transform="translate(80,462)">
+    <rect width="130" height="36" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#f97316" text-anchor="middle">ScamDunk</text>
+  </g>
+  <g transform="translate(80,512)">
+    <rect width="100" height="22" rx="11" fill="#ef4444" fill-opacity="0.12" stroke="#ef4444" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="50" y="15" font-family="system-ui,sans-serif" font-size="11" fill="#f87171" text-anchor="middle">Case Studies</text>
+  </g>
+</svg>

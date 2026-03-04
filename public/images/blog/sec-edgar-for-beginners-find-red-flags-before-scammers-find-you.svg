@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1014;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#13161c;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="softglow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="45"/></filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="950" cy="250" r="200" fill="#3b82f6" opacity="0.04" filter="url(#softglow)"/>
+
+  <!-- SEC EDGAR document mockup (right side) -->
+  <g transform="translate(620, 55)">
+    <!-- Browser/document frame -->
+    <rect x="20" y="0" width="530" height="40" rx="10" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/>
+    <circle cx="44" cy="20" r="5" fill="#ef4444" opacity="0.4"/>
+    <circle cx="60" cy="20" r="5" fill="#f97316" opacity="0.4"/>
+    <circle cx="76" cy="20" r="5" fill="#10b981" opacity="0.4"/>
+    <rect x="100" y="12" width="300" height="16" rx="8" fill="#ffffff" fill-opacity="0.04"/>
+    <text x="250" y="24" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">efts.sec.gov/cgi-bin/browse-edgar · EDGAR Full-Text Search</text>
+
+    <!-- Document content area -->
+    <rect x="20" y="50" width="530" height="470" rx="0" fill="#ffffff" fill-opacity="0.02" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
+
+    <!-- EDGAR header -->
+    <rect x="20" y="50" width="530" height="44" fill="#1e3a5f" fill-opacity="0.3"/>
+    <text x="40" y="68" font-family="system-ui,sans-serif" font-size="11" fill="#93c5fd" font-weight="700">SEC EDGAR — Filing Search Results</text>
+    <text x="40" y="84" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">Company: MICRO HOLDINGS INC (MICRO) · 14 filings found</text>
+
+    <!-- Filing row 1 - S-1 (suspicious) -->
+    <rect x="20" y="100" width="530" height="52" fill="#ef4444" fill-opacity="0.05" stroke="#ef4444" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="40" y="118" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" font-weight="700">S-1/A · Registration Statement (Amendment)</text>
+    <text x="40" y="132" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">Filed: 2024-08-14 · 382 pages · Selling shareholders: 47 insiders · Lock-up: NONE</text>
+    <rect x="466" y="108" width="72" height="18" rx="4" fill="#ef4444" fill-opacity="0.15" stroke="#ef4444" stroke-opacity="0.4" stroke-width="1"/>
+    <text x="502" y="121" font-family="system-ui,sans-serif" font-size="8" fill="#f87171" text-anchor="middle" font-weight="700">🚩 RED FLAG</text>
+
+    <!-- Filing row 2 - 8-K (suspicious) -->
+    <rect x="20" y="158" width="530" height="52" fill="#f97316" fill-opacity="0.04" stroke="#f97316" stroke-opacity="0.08" stroke-width="1"/>
+    <text x="40" y="176" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" font-weight="700">8-K · Current Report · "Major Contract Announcement"</text>
+    <text x="40" y="190" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">Filed: 2024-09-03 · Filed same day as price spike · No financial details disclosed</text>
+    <rect x="466" y="166" width="72" height="18" rx="4" fill="#f97316" fill-opacity="0.12" stroke="#f97316" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="502" y="179" font-family="system-ui,sans-serif" font-size="8" fill="#fb923c" text-anchor="middle" font-weight="700">⚠ WATCH</text>
+
+    <!-- Filing row 3 - Form 4 (insider selling) -->
+    <rect x="20" y="216" width="530" height="52" fill="#ef4444" fill-opacity="0.05" stroke="#ef4444" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="40" y="234" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" font-weight="700">Form 4 · Insider Transaction — CEO sold 2.1M shares</text>
+    <text x="40" y="248" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">Filed: 2024-09-04 · 1 day after 8-K · Price at sale: $1.82 (near peak)</text>
+    <rect x="466" y="224" width="72" height="18" rx="4" fill="#ef4444" fill-opacity="0.15" stroke="#ef4444" stroke-opacity="0.4" stroke-width="1"/>
+    <text x="502" y="237" font-family="system-ui,sans-serif" font-size="8" fill="#f87171" text-anchor="middle" font-weight="700">🚩 RED FLAG</text>
+
+    <!-- Filing row 4 - 10-K (audit flag) -->
+    <rect x="20" y="274" width="530" height="52" fill="#8b5cf6" fill-opacity="0.04" stroke="#8b5cf6" stroke-opacity="0.08" stroke-width="1"/>
+    <text x="40" y="292" font-family="system-ui,sans-serif" font-size="10" fill="#c4b5fd" font-weight="700">10-K · Annual Report · Going Concern Doubt noted</text>
+    <text x="40" y="306" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">Filed: 2024-04-15 · Auditor: Acme CPA LLC (2 clients total) · Revenue: $0</text>
+    <rect x="466" y="282" width="72" height="18" rx="4" fill="#ef4444" fill-opacity="0.15" stroke="#ef4444" stroke-opacity="0.4" stroke-width="1"/>
+    <text x="502" y="295" font-family="system-ui,sans-serif" font-size="8" fill="#f87171" text-anchor="middle" font-weight="700">🚩 RED FLAG</text>
+
+    <!-- Summary box -->
+    <rect x="20" y="338" width="530" height="30" fill="#ef4444" fill-opacity="0.08" stroke="#ef4444" stroke-opacity="0.15" stroke-width="1"/>
+    <text x="285" y="357" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle" font-weight="700">⚡ EDGAR VERDICT: 4 red flags across 3 filing types — HIGH manipulation risk</text>
+
+    <!-- Key things to look for -->
+    <rect x="20" y="378" width="530" height="130" rx="0" fill="#ffffff" fill-opacity="0.01"/>
+    <text x="40" y="396" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" font-weight="700">WHAT TO CHECK IN EDGAR</text>
+    <g font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">
+      <text x="40" y="414">📄  S-1 with no lock-up = insiders can dump immediately after listing</text>
+      <text x="40" y="432">📢  8-K "announcements" filed same day as price spikes = manufactured news</text>
+      <text x="40" y="450">📤  Form 4 insider sales near pump peak = they knew and sold</text>
+      <text x="40" y="468">⚠  Going Concern + micro auditor + $0 revenue = shell company risk</text>
+      <text x="40" y="486">🔍  Search free at efts.sec.gov/cgi-bin/browse-edgar</text>
+    </g>
+  </g>
+
+  <!-- Left content -->
+  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#brand)"/>
+  <rect x="80" y="172" width="72" height="72" rx="16" fill="url(#brand)" filter="url(#glow)"/>
+  <!-- Document icon -->
+  <g transform="translate(116,208)">
+    <rect x="-12" y="-16" width="24" height="30" rx="3" stroke="white" stroke-width="2.5" fill="none"/>
+    <line x1="-7" y1="-6" x2="7" y2="-6" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+    <line x1="-7" y1="0" x2="7" y2="0" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+    <line x1="-7" y1="6" x2="2" y2="6" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  </g>
+  <rect x="80" y="264" width="120" height="26" rx="13" fill="#3b82f6" fill-opacity="0.15" stroke="#3b82f6" stroke-opacity="0.4" stroke-width="1"/>
+  <text x="140" y="281" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#60a5fa" text-anchor="middle" letter-spacing="1">BEGINNER GUIDE</text>
+  <text x="80" y="342" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="-1">SEC EDGAR</text>
+  <text x="80" y="394" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="-1">for Beginners</text>
+  <text x="80" y="436" font-family="system-ui,sans-serif" font-size="17" fill="#9ca3af">Find red flags in filings before scammers find you</text>
+  <g transform="translate(80,466)">
+    <rect width="130" height="36" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#f97316" text-anchor="middle">ScamDunk</text>
+  </g>
+  <g transform="translate(80,516)">
+    <rect width="88" height="22" rx="11" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f6" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="44" y="15" font-family="system-ui,sans-serif" font-size="11" fill="#60a5fa" text-anchor="middle">Guides</text>
+  </g>
+</svg>

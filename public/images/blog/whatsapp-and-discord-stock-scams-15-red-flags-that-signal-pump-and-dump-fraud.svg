@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0c0e16;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#12141e;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="softglow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="45"/></filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="950" cy="300" r="220" fill="#5865f2" opacity="0.04" filter="url(#softglow)"/>
+  <circle cx="750" cy="150" r="150" fill="#25d366" opacity="0.03" filter="url(#softglow)"/>
+
+  <!-- 15 red flags checklist (right side) -->
+  <g transform="translate(622, 45)">
+    <!-- Header -->
+    <rect x="20" y="0" width="530" height="36" rx="10" fill="#ef4444" fill-opacity="0.08" stroke="#ef4444" stroke-opacity="0.2" stroke-width="1"/>
+    <text x="285" y="22" font-family="system-ui,sans-serif" font-size="11" fill="#f87171" text-anchor="middle" font-weight="700" letter-spacing="1">15 RED FLAGS — WHATSAPP &amp; DISCORD STOCK SCAMS</text>
+
+    <!-- Two column flag list -->
+    <g font-family="system-ui,sans-serif" font-size="10.5">
+      <!-- Left column: flags 1-8 -->
+      <g fill="#6b7280">
+        <text x="30" y="58">🚩  1. Group added you without consent</text>
+        <text x="30" y="78">🚩  2. Admin-only posting (you can't ask questions)</text>
+        <text x="30" y="98">🚩  3. "Secret" or "exclusive" stock ticker disclosed</text>
+        <text x="30" y="118">🚩  4. Countdown timers on buy opportunities</text>
+        <text x="30" y="138">🚩  5. Fake screenshots of brokerage profits</text>
+        <text x="30" y="158">🚩  6. Members posting identical buy confirmations</text>
+        <text x="30" y="178">🚩  7. Claims of "insider source" at the company</text>
+        <text x="30" y="198">🚩  8. Promotion of OTC or pink sheet stocks only</text>
+      </g>
+
+      <!-- Right column: flags 9-15 -->
+      <g fill="#6b7280">
+        <text x="30" y="228">🚩  9. No disclosure of who runs or funds the group</text>
+        <text x="30" y="248">🚩  10. Group disappears after price crashes</text>
+        <text x="30" y="268">🚩  11. VIP "upgrade" requires crypto payment</text>
+        <text x="30" y="288">🚩  12. Admin sends "private alpha" DMs = phishing</text>
+        <text x="30" y="308">🚩  13. Group created in same week as ticker spike</text>
+        <text x="30" y="328">🚩  14. Members pressure others to "load up NOW"</text>
+        <text x="30" y="348">🚩  15. "Don't tell anyone" about the signal</text>
+      </g>
+    </g>
+
+    <!-- Divider -->
+    <line x1="20" y1="210" x2="550" y2="210" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+
+    <!-- Platform badges -->
+    <rect x="20" y="366" width="530" height="50" rx="10" fill="#ffffff" fill-opacity="0.02" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
+    <g transform="translate(40, 380)">
+      <circle cx="10" cy="10" r="10" fill="#25d366" fill-opacity="0.2"/>
+      <text x="10" y="14" font-family="system-ui,sans-serif" font-size="9" fill="#4ade80" text-anchor="middle">WA</text>
+      <text x="28" y="14" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">WhatsApp groups: 500 member limit, harder to trace</text>
+    </g>
+    <g transform="translate(40, 404)">
+      <circle cx="10" cy="6" r="10" fill="#5865f2" fill-opacity="0.2"/>
+      <text x="10" y="10" font-family="system-ui,sans-serif" font-size="9" fill="#818cf8" text-anchor="middle">DC</text>
+      <text x="28" y="10" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">Discord servers: unlimited members, bots automate all 15 flags</text>
+    </g>
+
+    <!-- Verdict -->
+    <rect x="20" y="426" width="530" height="42" rx="10" fill="#ef4444" fill-opacity="0.07" stroke="#ef4444" stroke-opacity="0.15" stroke-width="1"/>
+    <text x="285" y="446" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle" font-weight="700">If you see 3+ flags: LEAVE THE GROUP. Report to FBI IC3 at ic3.gov</text>
+    <text x="285" y="460" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280" text-anchor="middle">All pump-and-dump schemes are illegal under SEC Rule 10b-5</text>
+  </g>
+
+  <!-- Left content -->
+  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#brand)"/>
+  <rect x="80" y="172" width="72" height="72" rx="16" fill="url(#brand)" filter="url(#glow)"/>
+  <!-- Warning/flag icon -->
+  <g transform="translate(116,208)">
+    <rect x="-2" y="-18" width="3" height="36" rx="1" fill="white" opacity="0.8"/>
+    <polygon points="1,-18 20,-8 1,2" fill="white"/>
+    <rect x="-10" y="14" width="20" height="2.5" rx="1" fill="white" opacity="0.4"/>
+  </g>
+  <rect x="80" y="264" width="148" height="26" rx="13" fill="#ef4444" fill-opacity="0.15" stroke="#ef4444" stroke-opacity="0.4" stroke-width="1"/>
+  <text x="154" y="281" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#f87171" text-anchor="middle" letter-spacing="1">SECURITY TIPS</text>
+  <text x="80" y="342" font-family="Georgia,serif" font-size="36" font-weight="700" fill="#ffffff" letter-spacing="-1">WhatsApp &amp;</text>
+  <text x="80" y="384" font-family="Georgia,serif" font-size="36" font-weight="700" fill="#ffffff" letter-spacing="-1">Discord Scams</text>
+  <text x="80" y="426" font-family="system-ui,sans-serif" font-size="16" fill="#9ca3af">15 red flags that signal pump-and-dump fraud</text>
+  <g transform="translate(80,458)">
+    <rect width="130" height="36" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#f97316" text-anchor="middle">ScamDunk</text>
+  </g>
+  <g transform="translate(80,506)">
+    <rect width="88" height="22" rx="11" fill="#5865f2" fill-opacity="0.12" stroke="#5865f2" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="44" y="15" font-family="system-ui,sans-serif" font-size="11" fill="#818cf8" text-anchor="middle">Discord</text>
+  </g>
+  <g transform="translate(178,506)">
+    <rect width="100" height="22" rx="11" fill="#25d366" fill-opacity="0.1" stroke="#25d366" stroke-opacity="0.25" stroke-width="1"/>
+    <text x="50" y="15" font-family="system-ui,sans-serif" font-size="11" fill="#4ade80" text-anchor="middle">WhatsApp</text>
+  </g>
+</svg>
