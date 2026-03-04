@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Dark background gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0f13;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#1a1a24;stop-opacity:1"/>
+    </linearGradient>
+    <!-- Brand orange-red gradient -->
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1"/>
+    </linearGradient>
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Subtle glow for background circles -->
+    <filter id="softglow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="40" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+      </feMerge>
+    </filter>
+    <clipPath id="rounded">
+      <rect width="1200" height="630" rx="0"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Ambient glow orbs -->
+  <circle cx="900" cy="150" r="200" fill="#f97316" opacity="0.06" filter="url(#softglow)"/>
+  <circle cx="200" cy="480" r="160" fill="#ef4444" opacity="0.05" filter="url(#softglow)"/>
+
+  <!-- Grid lines (subtle) -->
+  <g stroke="#ffffff" stroke-opacity="0.03" stroke-width="1">
+    <line x1="0" y1="105" x2="1200" y2="105"/>
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="0" y1="525" x2="1200" y2="525"/>
+    <line x1="150" y1="0" x2="150" y2="630"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="450" y1="0" x2="450" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="750" y1="0" x2="750" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="1050" y1="0" x2="1050" y2="630"/>
+  </g>
+
+  <!-- Fake pump-and-dump chart in background (decorative) -->
+  <g opacity="0.12">
+    <!-- Chart baseline -->
+    <line x1="680" y1="500" x2="1160" y2="500" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <!-- Pump curve going up -->
+    <polyline points="700,490 750,470 800,440 840,390 870,310 890,240 900,200 910,230 920,300 940,400 960,460 990,490 1020,498 1060,500 1100,500"
+              stroke="#f97316" stroke-width="2.5" fill="none" opacity="0.9"/>
+    <!-- Dump fill area -->
+    <polygon points="900,200 910,230 920,300 940,400 960,460 990,490 1020,498 1060,500 1100,500 1100,500 1060,500 1020,498 900,500"
+             fill="#ef4444" opacity="0.08"/>
+    <!-- Volume bars -->
+    <rect x="700" y="510" width="12" height="20" fill="#4ade80" opacity="0.5"/>
+    <rect x="720" y="508" width="12" height="22" fill="#4ade80" opacity="0.5"/>
+    <rect x="740" y="500" width="12" height="30" fill="#4ade80" opacity="0.6"/>
+    <rect x="760" y="495" width="12" height="35" fill="#f97316" opacity="0.6"/>
+    <rect x="780" y="480" width="12" height="50" fill="#f97316" opacity="0.7"/>
+    <rect x="800" y="460" width="12" height="70" fill="#f97316" opacity="0.7"/>
+    <rect x="820" y="430" width="12" height="100" fill="#f97316" opacity="0.8"/>
+    <rect x="840" y="390" width="12" height="140" fill="#f97316" opacity="0.9"/>
+    <rect x="860" y="350" width="12" height="180" fill="#f97316" opacity="1"/>
+    <rect x="880" y="370" width="12" height="160" fill="#ef4444" opacity="0.9"/>
+    <rect x="900" y="410" width="12" height="120" fill="#ef4444" opacity="0.8"/>
+    <rect x="920" y="440" width="12" height="90" fill="#ef4444" opacity="0.7"/>
+    <rect x="940" y="470" width="12" height="60" fill="#ef4444" opacity="0.6"/>
+    <rect x="960" y="490" width="12" height="40" fill="#ef4444" opacity="0.5"/>
+    <rect x="980" y="498" width="12" height="32" fill="#4ade80" opacity="0.4"/>
+    <rect x="1000" y="500" width="12" height="30" fill="#4ade80" opacity="0.3"/>
+  </g>
+
+  <!-- Left accent bar -->
+  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#brand)"/>
+
+  <!-- Icon container -->
+  <rect x="80" y="172" width="72" height="72" rx="16" fill="url(#brand)" filter="url(#glow)"/>
+  <!-- Warning triangle icon -->
+  <g transform="translate(116, 208)" filter="url(#glow)">
+    <polygon points="0,-22 20,16 -20,16" stroke="white" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+    <line x1="0" y1="-10" x2="0" y2="4" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="0" cy="10" r="2" fill="white"/>
+  </g>
+
+  <!-- Category label -->
+  <rect x="80" y="264" width="140" height="26" rx="13" fill="#f97316" fill-opacity="0.15" stroke="#f97316" stroke-opacity="0.4" stroke-width="1"/>
+  <text x="150" y="281" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#f97316" text-anchor="middle" letter-spacing="1">GUIDE</text>
+
+  <!-- Main title -->
+  <text x="80" y="340" font-family="Georgia, serif" font-size="54" font-weight="700" fill="#ffffff" letter-spacing="-1">Types of</text>
+  <text x="80" y="406" font-family="Georgia, serif" font-size="54" font-weight="700" fill="#ffffff" letter-spacing="-1">Investment Fraud</text>
+
+  <!-- Subtitle -->
+  <text x="80" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#9ca3af" font-weight="400">Pump-and-dump schemes · Penny stock scams · Social engineering</text>
+
+  <!-- ScamDunk brand tag -->
+  <g transform="translate(80, 490)">
+    <rect width="130" height="36" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="65" y="23" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#f97316" text-anchor="middle" letter-spacing="0.5">ScamDunk</text>
+  </g>
+
+  <!-- Red flag badges (decorative) -->
+  <g transform="translate(80, 540)">
+    <rect width="82" height="22" rx="11" fill="#ef4444" fill-opacity="0.12" stroke="#ef4444" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="41" y="15" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#ef4444" text-anchor="middle">🚩 Red Flags</text>
+  </g>
+  <g transform="translate(172" y="540)">
+  </g>
+
+  <!-- Top-right decorative element: large faded triangle -->
+  <g opacity="0.04" transform="translate(1020, 60)">
+    <polygon points="90,-80 180,80 0,80" stroke="white" stroke-width="3" fill="none"/>
+    <line x1="90" y1="-40" x2="90" y2="40" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="90" cy="56" r="5" fill="white"/>
+  </g>
+</svg>
