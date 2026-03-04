@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0c0f18;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#111520;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="softglow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="45"/></filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="950" cy="200" r="200" fill="#2ca5e0" opacity="0.04" filter="url(#softglow)"/>
+  <circle cx="750" cy="500" r="160" fill="#ef4444" opacity="0.03" filter="url(#softglow)"/>
+
+  <!-- Telegram UI mockup (right side) -->
+  <g transform="translate(618, 55)">
+    <!-- Phone frame -->
+    <rect x="130" y="0" width="240" height="500" rx="20" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5"/>
+    <!-- Status bar -->
+    <rect x="130" y="0" width="240" height="36" rx="20" fill="#2ca5e0" fill-opacity="0.15"/>
+    <text x="250" y="22" font-family="system-ui,sans-serif" font-size="10" fill="#93c5fd" text-anchor="middle" font-weight="600">💬 Signals Pro VIP 🔥 (14,283)</text>
+
+    <!-- Message 1 - bot-looking pump -->
+    <rect x="142" y="48" width="210" height="72" rx="10" fill="#2ca5e0" fill-opacity="0.08" stroke="#2ca5e0" stroke-opacity="0.2" stroke-width="1"/>
+    <circle cx="160" cy="65" r="10" fill="#2ca5e0" fill-opacity="0.3"/>
+    <text x="160" y="69" font-family="system-ui,sans-serif" font-size="8" fill="#93c5fd" text-anchor="middle">🤖</text>
+    <text x="176" y="62" font-family="system-ui,sans-serif" font-size="9" fill="#e5e7eb" font-weight="700">SignalBot Alpha</text>
+    <text x="176" y="74" font-family="system-ui,sans-serif" font-size="9" fill="#fca5a5">🚀 BUY SIGNAL: $MICRO</text>
+    <text x="176" y="86" font-family="system-ui,sans-serif" font-size="9" fill="#fca5a5">Entry: $0.42 | Target: $2.10 | 5x</text>
+    <text x="152" y="110" font-family="system-ui,sans-serif" font-size="8" fill="#4b5563">🚩 Bot account · No track record</text>
+
+    <!-- Message 2 - fake testimonial -->
+    <rect x="142" y="132" width="210" height="70" rx="10" fill="#f97316" fill-opacity="0.06" stroke="#f97316" stroke-opacity="0.15" stroke-width="1"/>
+    <text x="152" y="150" font-family="system-ui,sans-serif" font-size="9" fill="#fb923c" font-weight="700">Mike_Trades_Pro 🏆</text>
+    <text x="152" y="164" font-family="system-ui,sans-serif" font-size="9" fill="#fdba74">"I made $8,400 in 2 days following</text>
+    <text x="152" y="176" font-family="system-ui,sans-serif" font-size="9" fill="#fdba74">these signals. Life changing!!! 🙏"</text>
+    <text x="152" y="194" font-family="system-ui,sans-serif" font-size="8" fill="#4b5563">🚩 Paid shill · Screenshot unverifiable</text>
+
+    <!-- Message 3 - urgency + invite -->
+    <rect x="142" y="214" width="210" height="80" rx="10" fill="#8b5cf6" fill-opacity="0.05" stroke="#8b5cf6" stroke-opacity="0.15" stroke-width="1"/>
+    <text x="152" y="232" font-family="system-ui,sans-serif" font-size="9" fill="#c4b5fd" font-weight="700">Admin_Official ✅</text>
+    <text x="152" y="246" font-family="system-ui,sans-serif" font-size="9" fill="#ddd6fe">⚡ LAST CHANCE — VIP closes in</text>
+    <text x="152" y="258" font-family="system-ui,sans-serif" font-size="9" fill="#ddd6fe">47 min. DM me to secure your spot.</text>
+    <text x="152" y="270" font-family="system-ui,sans-serif" font-size="9" fill="#ddd6fe">Fee: $299 USDT (non-refundable)</text>
+    <text x="152" y="286" font-family="system-ui,sans-serif" font-size="8" fill="#4b5563">🚩 Fake admin · Urgency · Crypto fee</text>
+
+    <!-- Message 4 - coordinated pump signal to all -->
+    <rect x="142" y="306" width="210" height="60" rx="10" fill="#ef4444" fill-opacity="0.07" stroke="#ef4444" stroke-opacity="0.2" stroke-width="1"/>
+    <text x="152" y="326" font-family="system-ui,sans-serif" font-size="9" fill="#f87171" font-weight="700">📢 GROUP BROADCAST</text>
+    <text x="152" y="340" font-family="system-ui,sans-serif" font-size="9" fill="#fca5a5">ALL MEMBERS: BUY $MICRO NOW</text>
+    <text x="152" y="354" font-family="system-ui,sans-serif" font-size="9" fill="#fca5a5">Coordinated buy in T-minus 5 min ⏱</text>
+    <text x="152" y="358" font-family="system-ui,sans-serif" font-size="8" fill="#4b5563">🚩 Coordinated pump · Securities fraud</text>
+
+    <!-- Member count badge -->
+    <rect x="142" y="378" width="210" height="34" rx="8" fill="#ffffff" fill-opacity="0.02" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+    <text x="247" y="399" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">👥 14,283 members · 99% silent observers</text>
+
+    <!-- Labels on side -->
+    <text x="50" y="84" font-family="system-ui,sans-serif" font-size="9" fill="#ef4444" text-anchor="end" opacity="0.7">Bot pump</text>
+    <text x="50" y="168" font-family="system-ui,sans-serif" font-size="9" fill="#f97316" text-anchor="end" opacity="0.7">Fake shill</text>
+    <text x="50" y="254" font-family="system-ui,sans-serif" font-size="9" fill="#8b5cf6" text-anchor="end" opacity="0.7">Admin scam</text>
+    <text x="50" y="336" font-family="system-ui,sans-serif" font-size="9" fill="#ef4444" text-anchor="end" opacity="0.7">Coord. fraud</text>
+    <line x1="52" y1="84" x2="128" y2="84" stroke="#ef4444" stroke-opacity="0.2" stroke-width="1"/>
+    <line x1="52" y1="168" x2="128" y2="168" stroke="#f97316" stroke-opacity="0.2" stroke-width="1"/>
+    <line x1="52" y1="254" x2="128" y2="254" stroke="#8b5cf6" stroke-opacity="0.2" stroke-width="1"/>
+    <line x1="52" y1="336" x2="128" y2="336" stroke="#ef4444" stroke-opacity="0.2" stroke-width="1"/>
+  </g>
+
+  <!-- Left content -->
+  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#brand)"/>
+  <rect x="80" y="172" width="72" height="72" rx="16" fill="url(#brand)" filter="url(#glow)"/>
+  <!-- Telegram paper plane icon -->
+  <g transform="translate(116,208)">
+    <polygon points="-18,-12 20,0 -18,12 -10,0" stroke="white" stroke-width="2" fill="none" stroke-linejoin="round"/>
+    <line x1="-10" y1="0" x2="-2" y2="10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <rect x="80" y="264" width="136" height="26" rx="13" fill="#f97316" fill-opacity="0.15" stroke="#f97316" stroke-opacity="0.4" stroke-width="1"/>
+  <text x="148" y="281" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#f97316" text-anchor="middle" letter-spacing="1">SECURITY TIPS</text>
+  <text x="80" y="342" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="-1">Telegram</text>
+  <text x="80" y="394" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="-1">Scam Patterns</text>
+  <text x="80" y="436" font-family="system-ui,sans-serif" font-size="17" fill="#9ca3af">Bots, fake signals, and coordinated pump groups</text>
+  <g transform="translate(80,466)">
+    <rect width="130" height="36" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#f97316" text-anchor="middle">ScamDunk</text>
+  </g>
+  <g transform="translate(80,516)">
+    <rect width="104" height="22" rx="11" fill="#2ca5e0" fill-opacity="0.12" stroke="#2ca5e0" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="52" y="15" font-family="system-ui,sans-serif" font-size="11" fill="#93c5fd" text-anchor="middle">Security Tips</text>
+  </g>
+</svg>
