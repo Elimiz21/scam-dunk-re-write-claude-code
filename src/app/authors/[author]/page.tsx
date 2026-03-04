@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Header } from "@/components/Header";
-import { Sidebar } from "@/components/Sidebar";
+import { PageLayout } from "@/components/PageLayout";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/JsonLd";
@@ -116,9 +115,7 @@ export default async function AuthorPage({ params }: { params: PageParams }) {
   return (
     <div className="min-h-screen bg-background">
       <JsonLd data={personSchema} />
-      <Sidebar isOpen={false} onToggle={() => {}} onNewScan={() => {}} />
-      <div className="flex flex-col min-h-screen">
-        <Header onSidebarToggle={() => {}} />
+      <PageLayout>
 
         <main className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full">
           <div className="mb-6">
@@ -171,7 +168,7 @@ export default async function AuthorPage({ params }: { params: PageParams }) {
             </div>
           )}
         </main>
-      </div>
+      </PageLayout>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Header } from "@/components/Header";
-import { Sidebar } from "@/components/Sidebar";
+import { PageLayout } from "@/components/PageLayout";
 import { Search, TrendingUp, AlertTriangle, CheckCircle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/JsonLd";
@@ -41,9 +40,7 @@ export default function HowToDetectStockScamsPage() {
   return (
     <div className="min-h-screen bg-background">
       <JsonLd data={articleSchema} />
-      <Sidebar isOpen={false} onToggle={() => {}} onNewScan={() => {}} />
-      <div className="flex flex-col min-h-screen">
-        <Header onSidebarToggle={() => {}} />
+      <PageLayout>
 
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
@@ -267,7 +264,7 @@ export default function HowToDetectStockScamsPage() {
             </section>
           </div>
         </main>
-      </div>
+      </PageLayout>
     </div>
   );
 }
