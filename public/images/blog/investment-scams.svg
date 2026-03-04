@@ -28,17 +28,61 @@
     <clipPath id="rounded">
       <rect width="1200" height="630" rx="0"/>
     </clipPath>
+  
+    <!-- BG 3 Gradients -->
+    <linearGradient id="bg-new" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#141210;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#1c1a17;stop-opacity:1"/>
+    </linearGradient>
+    <radialGradient id="mesh-1" cx="25%" cy="40%" r="55%">
+      <stop offset="0%" style="stop-color:#F57C00;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#F57C00;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="mesh-2" cx="75%" cy="25%" r="50%">
+      <stop offset="0%" style="stop-color:#2A9D8F;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#2A9D8F;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="mesh-3" cx="50%" cy="75%" r="50%">
+      <stop offset="0%" style="stop-color:#FFB74D;stop-opacity:0.10"/>
+      <stop offset="100%" style="stop-color:#FFB74D;stop-opacity:0"/>
+    </radialGradient>
+    <!-- Brand Square Gradients -->
+    <linearGradient id="square-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B4A;stop-opacity:1"/>
+      <stop offset="40%" style="stop-color:#FF9F1C;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#2A9D8F;stop-opacity:1"/>
+    </linearGradient>
+    <radialGradient id="green-dot" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1"/>
+    </radialGradient>
+    <!-- Filters -->
+    <filter id="square-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="15" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="dot-glow" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
   </defs>
 
+  
   <!-- Background -->
-  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#bg-new)"/>
+  <rect width="1200" height="630" fill="url(#mesh-1)"/>
+  <rect width="1200" height="630" fill="url(#mesh-2)"/>
+  <rect width="1200" height="630" fill="url(#mesh-3)"/>
+
+  
 
   <!-- Ambient glow orbs -->
   <circle cx="900" cy="150" r="200" fill="#f97316" opacity="0.06" filter="url(#softglow)"/>
   <circle cx="200" cy="480" r="160" fill="#ef4444" opacity="0.05" filter="url(#softglow)"/>
 
   <!-- Grid lines (subtle) -->
-  <g stroke="#ffffff" stroke-opacity="0.03" stroke-width="1">
+  <g stroke="#ebe9e5" stroke-opacity="0.03" stroke-width="1">
     <line x1="0" y1="105" x2="1200" y2="105"/>
     <line x1="0" y1="210" x2="1200" y2="210"/>
     <line x1="0" y1="315" x2="1200" y2="315"/>
@@ -83,15 +127,25 @@
   </g>
 
   <!-- Left accent bar -->
-  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#brand)"/>
+  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#square-grad)"/>
 
-  <!-- Icon container -->
-  <rect x="80" y="172" width="72" height="72" rx="16" fill="url(#brand)" filter="url(#glow)"/>
+  
+  <!-- New Option C Icon Container -->
+  <g transform="translate(80, 168)">
+    <rect x="0" y="0" width="80" height="80" rx="20" fill="url(#square-grad)" opacity="0.3" filter="url(#square-glow)"/>
+    <rect x="0" y="0" width="80" height="80" rx="20" fill="url(#square-grad)"/>
+  </g>
+  <g transform="translate(160, 248)" filter="url(#dot-glow)">
+    <circle cx="0" cy="0" r="14" fill="#141210" stroke="#141210" stroke-width="2"/>
+    <circle cx="0" cy="0" r="10" fill="url(#green-dot)"/>
+    <circle cx="-2" cy="-2" r="3" fill="#ebe9e5" opacity="0.6"/>
+  </g>
+
   <!-- Warning triangle icon -->
   <g transform="translate(116, 208)" filter="url(#glow)">
-    <polygon points="0,-22 20,16 -20,16" stroke="white" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
-    <line x1="0" y1="-10" x2="0" y2="4" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-    <circle cx="0" cy="10" r="2" fill="white"/>
+    <polygon points="0,-22 20,16 -20,16" stroke="#ebe9e5" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+    <line x1="0" y1="-10" x2="0" y2="4" stroke="#ebe9e5" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="0" cy="10" r="2" fill="#ebe9e5"/>
   </g>
 
   <!-- Category label -->
@@ -99,16 +153,16 @@
   <text x="150" y="281" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#f97316" text-anchor="middle" letter-spacing="1">GUIDE</text>
 
   <!-- Main title -->
-  <text x="80" y="340" font-family="Georgia, serif" font-size="54" font-weight="700" fill="#ffffff" letter-spacing="-1">Types of</text>
-  <text x="80" y="406" font-family="Georgia, serif" font-size="54" font-weight="700" fill="#ffffff" letter-spacing="-1">Investment Fraud</text>
+  <text x="80" y="340" font-family="Georgia, serif" font-size="54" font-weight="700" fill="#ebe9e5" letter-spacing="-1">Types of</text>
+  <text x="80" y="406" font-family="Georgia, serif" font-size="54" font-weight="700" fill="#ebe9e5" letter-spacing="-1">Investment Fraud</text>
 
   <!-- Subtitle -->
-  <text x="80" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#9ca3af" font-weight="400">Pump-and-dump schemes · Penny stock scams · Social engineering</text>
+  <text x="80" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#918b87" font-weight="400">Pump-and-dump schemes · Penny stock scams · Social engineering</text>
 
   <!-- ScamDunk brand tag -->
   <g transform="translate(80, 490)">
-    <rect width="130" height="36" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
-    <text x="65" y="23" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#f97316" text-anchor="middle" letter-spacing="0.5">ScamDunk</text>
+    <rect width="130" height="36" rx="8" fill="#ebe9e5" fill-opacity="0.06" stroke="#ebe9e5" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="65" y="23" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#FF9F1C" text-anchor="middle"    letter-spacing="0.5">ScamDunk</text>
   </g>
 
   <!-- Red flag badges (decorative) -->
@@ -121,8 +175,8 @@
 
   <!-- Top-right decorative element: large faded triangle -->
   <g opacity="0.04" transform="translate(1020, 60)">
-    <polygon points="90,-80 180,80 0,80" stroke="white" stroke-width="3" fill="none"/>
-    <line x1="90" y1="-40" x2="90" y2="40" stroke="white" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="90" cy="56" r="5" fill="white"/>
+    <polygon points="90,-80 180,80 0,80" stroke="#ebe9e5" stroke-width="3" fill="none"/>
+    <line x1="90" y1="-40" x2="90" y2="40" stroke="#ebe9e5" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="90" cy="56" r="5" fill="#ebe9e5"/>
   </g>
 </svg>

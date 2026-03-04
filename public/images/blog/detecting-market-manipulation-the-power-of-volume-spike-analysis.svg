@@ -11,8 +11,52 @@
     <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <filter id="spikeglow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <filter id="softglow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="50"/></filter>
+  
+    <!-- BG 3 Gradients -->
+    <linearGradient id="bg-new" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#141210;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#1c1a17;stop-opacity:1"/>
+    </linearGradient>
+    <radialGradient id="mesh-1" cx="25%" cy="40%" r="55%">
+      <stop offset="0%" style="stop-color:#F57C00;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#F57C00;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="mesh-2" cx="75%" cy="25%" r="50%">
+      <stop offset="0%" style="stop-color:#2A9D8F;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#2A9D8F;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="mesh-3" cx="50%" cy="75%" r="50%">
+      <stop offset="0%" style="stop-color:#FFB74D;stop-opacity:0.10"/>
+      <stop offset="100%" style="stop-color:#FFB74D;stop-opacity:0"/>
+    </radialGradient>
+    <!-- Brand Square Gradients -->
+    <linearGradient id="square-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B4A;stop-opacity:1"/>
+      <stop offset="40%" style="stop-color:#FF9F1C;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#2A9D8F;stop-opacity:1"/>
+    </linearGradient>
+    <radialGradient id="green-dot" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1"/>
+    </radialGradient>
+    <!-- Filters -->
+    <filter id="square-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="15" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="dot-glow" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
   </defs>
-  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg-new)"/>
+  <rect width="1200" height="630" fill="url(#mesh-1)"/>
+  <rect width="1200" height="630" fill="url(#mesh-2)"/>
+  <rect width="1200" height="630" fill="url(#mesh-3)"/>
+
   <circle cx="950" cy="250" r="200" fill="#f97316" opacity="0.04" filter="url(#softglow)"/>
 
   <!-- Volume + Price chart (right side) -->
@@ -20,7 +64,7 @@
     <text x="270" y="28" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280" text-anchor="middle" font-weight="600" letter-spacing="1">VOLUME SPIKE ANALYSIS</text>
 
     <!-- Chart container -->
-    <rect x="20" y="40" width="530" height="270" rx="12" fill="#ffffff" fill-opacity="0.02" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1"/>
+    <rect x="20" y="40" width="530" height="270" rx="12" fill="#ebe9e5" fill-opacity="0.02" stroke="#ebe9e5" stroke-opacity="0.06" stroke-width="1"/>
 
     <!-- Price line (top portion) -->
     <text x="30" y="60" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">PRICE</text>
@@ -33,7 +77,7 @@
     <text x="262" y="62" font-family="system-ui,sans-serif" font-size="9" fill="#f87171">PEAK</text>
 
     <!-- Divider line -->
-    <line x1="20" y1="200" x2="550" y2="200" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+    <line x1="20" y1="200" x2="550" y2="200" stroke="#ebe9e5" stroke-opacity="0.05" stroke-width="1"/>
     <text x="30" y="218" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">VOLUME</text>
 
     <!-- Normal volume bars -->
@@ -82,8 +126,8 @@
     <text x="30" y="256" font-family="system-ui,sans-serif" font-size="8" fill="#6b7280">normal range</text>
 
     <!-- Key signals list -->
-    <rect x="20" y="320" width="530" height="130" rx="10" fill="#ffffff" fill-opacity="0.02" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
-    <text x="40" y="342" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" font-weight="700">VOLUME SPIKE SIGNALS TO WATCH</text>
+    <rect x="20" y="320" width="530" height="130" rx="10" fill="#ebe9e5" fill-opacity="0.02" stroke="#ebe9e5" stroke-opacity="0.04" stroke-width="1"/>
+    <text x="40" y="342" font-family="system-ui,sans-serif" font-size="10" fill="#918b87" font-weight="700">VOLUME SPIKE SIGNALS TO WATCH</text>
     <g font-family="system-ui,sans-serif" font-size="11" fill="#6b7280">
       <text x="40" y="362">⚡  Volume 5× or more above 20-day average = primary alert</text>
       <text x="40" y="380">📈  Price up 20%+ with no news = probable artificial buying</text>
@@ -94,23 +138,34 @@
   </g>
 
   <!-- Left content -->
-  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#brand)"/>
-  <rect x="80" y="172" width="72" height="72" rx="16" fill="url(#brand)" filter="url(#glow)"/>
+  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#square-grad)"/>
+  
+  <!-- New Option C Icon Container -->
+  <g transform="translate(80, 168)">
+    <rect x="0" y="0" width="80" height="80" rx="20" fill="url(#square-grad)" opacity="0.3" filter="url(#square-glow)"/>
+    <rect x="0" y="0" width="80" height="80" rx="20" fill="url(#square-grad)"/>
+  </g>
+  <g transform="translate(160, 248)" filter="url(#dot-glow)">
+    <circle cx="0" cy="0" r="14" fill="#141210" stroke="#141210" stroke-width="2"/>
+    <circle cx="0" cy="0" r="10" fill="url(#green-dot)"/>
+    <circle cx="-2" cy="-2" r="3" fill="#ebe9e5" opacity="0.6"/>
+  </g>
+
   <!-- Volume bar icon -->
   <g transform="translate(116,208)">
-    <rect x="-14" y="8" width="8" height="10" rx="1" fill="white" opacity="0.6"/>
-    <rect x="-3" y="0" width="8" height="18" rx="1" fill="white" opacity="0.8"/>
-    <rect x="8" y="-14" width="8" height="32" rx="1" fill="white" filter="url(#glow)"/>
-    <line x1="-18" y1="18" x2="20" y2="18" stroke="white" stroke-width="1.5" opacity="0.4"/>
+    <rect x="-14" y="8" width="8" height="10" rx="1" fill="#ebe9e5" opacity="0.6"/>
+    <rect x="-3" y="0" width="8" height="18" rx="1" fill="#ebe9e5" opacity="0.8"/>
+    <rect x="8" y="-14" width="8" height="32" rx="1" fill="#ebe9e5" filter="url(#glow)"/>
+    <line x1="-18" y1="18" x2="20" y2="18" stroke="#ebe9e5" stroke-width="1.5" opacity="0.4"/>
   </g>
   <rect x="80" y="264" width="148" height="26" rx="13" fill="#f97316" fill-opacity="0.15" stroke="#f97316" stroke-opacity="0.4" stroke-width="1"/>
   <text x="154" y="281" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#f97316" text-anchor="middle" letter-spacing="1">DETECTION GUIDE</text>
-  <text x="80" y="340" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="-1">Volume Spike</text>
-  <text x="80" y="392" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="-1">Analysis</text>
-  <text x="80" y="434" font-family="system-ui,sans-serif" font-size="17" fill="#9ca3af">Detecting market manipulation through abnormal trading</text>
+  <text x="80" y="340" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ebe9e5" letter-spacing="-1">Volume Spike</text>
+  <text x="80" y="392" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ebe9e5" letter-spacing="-1">Analysis</text>
+  <text x="80" y="434" font-family="system-ui,sans-serif" font-size="17" fill="#918b87">Detecting market manipulation through abnormal trading</text>
   <g transform="translate(80,466)">
-    <rect width="130" height="36" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
-    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#f97316" text-anchor="middle">ScamDunk</text>
+    <rect width="130" height="36" rx="8" fill="#ebe9e5" fill-opacity="0.06" stroke="#ebe9e5" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#FF9F1C" text-anchor="middle"   >ScamDunk</text>
   </g>
   <g transform="translate(80,516)">
     <rect width="104" height="22" rx="11" fill="#f97316" fill-opacity="0.12" stroke="#f97316" stroke-opacity="0.3" stroke-width="1"/>

@@ -1,4 +1,4 @@
-// Run from Mac: node scripts/update-cover-images.mjs
+// Run from Mac: node --env-file=.env scripts/update-cover-images.mjs
 // Updates coverImage field for all 13 blog posts
 
 import { PrismaClient } from '@prisma/client';

@@ -10,8 +10,52 @@
     </linearGradient>
     <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <filter id="softglow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="45"/></filter>
+  
+    <!-- BG 3 Gradients -->
+    <linearGradient id="bg-new" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#141210;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#1c1a17;stop-opacity:1"/>
+    </linearGradient>
+    <radialGradient id="mesh-1" cx="25%" cy="40%" r="55%">
+      <stop offset="0%" style="stop-color:#F57C00;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#F57C00;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="mesh-2" cx="75%" cy="25%" r="50%">
+      <stop offset="0%" style="stop-color:#2A9D8F;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#2A9D8F;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="mesh-3" cx="50%" cy="75%" r="50%">
+      <stop offset="0%" style="stop-color:#FFB74D;stop-opacity:0.10"/>
+      <stop offset="100%" style="stop-color:#FFB74D;stop-opacity:0"/>
+    </radialGradient>
+    <!-- Brand Square Gradients -->
+    <linearGradient id="square-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B4A;stop-opacity:1"/>
+      <stop offset="40%" style="stop-color:#FF9F1C;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#2A9D8F;stop-opacity:1"/>
+    </linearGradient>
+    <radialGradient id="green-dot" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1"/>
+    </radialGradient>
+    <!-- Filters -->
+    <filter id="square-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="15" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="dot-glow" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
   </defs>
-  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg-new)"/>
+  <rect width="1200" height="630" fill="url(#mesh-1)"/>
+  <rect width="1200" height="630" fill="url(#mesh-2)"/>
+  <rect width="1200" height="630" fill="url(#mesh-3)"/>
+
   <circle cx="930" cy="300" r="220" fill="#ef4444" opacity="0.04" filter="url(#softglow)"/>
 
   <!-- Data table / heatmap (right side) -->
@@ -19,19 +63,19 @@
     <text x="270" y="26" font-family="system-ui,sans-serif" font-size="11" fill="#6b7280" text-anchor="middle" font-weight="600" letter-spacing="1">NYSE MICRO-CAP RISK SCANNER — LIVE DATA</text>
 
     <!-- Table header -->
-    <rect x="20" y="36" width="530" height="28" rx="6" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/>
-    <text x="56" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">TICKER</text>
-    <text x="140" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">FLOAT</text>
-    <text x="210" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">VOL/AVG</text>
-    <text x="290" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">PROMO</text>
-    <text x="370" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">INSIDER</text>
-    <text x="460" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af" font-weight="700" text-anchor="middle">RISK SCORE</text>
+    <rect x="20" y="36" width="530" height="28" rx="6" fill="#ebe9e5" fill-opacity="0.04" stroke="#ebe9e5" stroke-opacity="0.07" stroke-width="1"/>
+    <text x="56" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#918b87" font-weight="700" text-anchor="middle">TICKER</text>
+    <text x="140" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#918b87" font-weight="700" text-anchor="middle">FLOAT</text>
+    <text x="210" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#918b87" font-weight="700" text-anchor="middle">VOL/AVG</text>
+    <text x="290" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#918b87" font-weight="700" text-anchor="middle">PROMO</text>
+    <text x="370" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#918b87" font-weight="700" text-anchor="middle">INSIDER</text>
+    <text x="460" y="54" font-family="system-ui,sans-serif" font-size="9" fill="#918b87" font-weight="700" text-anchor="middle">RISK SCORE</text>
 
     <!-- Row data -->
     <!-- High risk rows -->
     <rect x="20" y="68" width="530" height="26" fill="#ef4444" fill-opacity="0.08"/>
     <text x="56" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#e5e7eb" text-anchor="middle" font-weight="700">MCRX</text>
-    <text x="140" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">890K</text>
+    <text x="140" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#918b87" text-anchor="middle">890K</text>
     <text x="210" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">22×</text>
     <text x="290" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">HIGH</text>
     <text x="370" y="85" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">SELLING</text>
@@ -40,7 +84,7 @@
 
     <rect x="20" y="96" width="530" height="26" fill="#ef4444" fill-opacity="0.06"/>
     <text x="56" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#e5e7eb" text-anchor="middle" font-weight="700">BVNX</text>
-    <text x="140" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">1.2M</text>
+    <text x="140" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#918b87" text-anchor="middle">1.2M</text>
     <text x="210" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">18×</text>
     <text x="290" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">HIGH</text>
     <text x="370" y="113" font-family="system-ui,sans-serif" font-size="10" fill="#f97316" text-anchor="middle">MIXED</text>
@@ -49,7 +93,7 @@
 
     <rect x="20" y="124" width="530" height="26" fill="#f97316" fill-opacity="0.05"/>
     <text x="56" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#e5e7eb" text-anchor="middle" font-weight="700">ZTLK</text>
-    <text x="140" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">2.1M</text>
+    <text x="140" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#918b87" text-anchor="middle">2.1M</text>
     <text x="210" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle">12×</text>
     <text x="290" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle">MED</text>
     <text x="370" y="141" font-family="system-ui,sans-serif" font-size="10" fill="#f87171" text-anchor="middle">SELLING</text>
@@ -58,10 +102,10 @@
 
     <rect x="20" y="152" width="530" height="26" fill="#f97316" fill-opacity="0.04"/>
     <text x="56" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#e5e7eb" text-anchor="middle" font-weight="700">PROX</text>
-    <text x="140" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">3.4M</text>
+    <text x="140" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#918b87" text-anchor="middle">3.4M</text>
     <text x="210" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle">9×</text>
     <text x="290" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle">MED</text>
-    <text x="370" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">NONE</text>
+    <text x="370" y="169" font-family="system-ui,sans-serif" font-size="10" fill="#918b87" text-anchor="middle">NONE</text>
     <rect x="424" y="158" width="72" height="16" rx="4" fill="#f97316" fill-opacity="0.15"/>
     <text x="460" y="170" font-family="system-ui,sans-serif" font-size="10" fill="#fb923c" text-anchor="middle" font-weight="700">72 / 100</text>
 
@@ -69,7 +113,7 @@
     <text x="285" y="198" font-family="system-ui,sans-serif" font-size="9" fill="#4b5563" text-anchor="middle">· · · 106 more tickers in full report · · ·</text>
 
     <!-- Stats boxes -->
-    <rect x="20" y="214" width="530" height="80" rx="10" fill="#ffffff" fill-opacity="0.02" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+    <rect x="20" y="214" width="530" height="80" rx="10" fill="#ebe9e5" fill-opacity="0.02" stroke="#ebe9e5" stroke-opacity="0.05" stroke-width="1"/>
     <g font-family="system-ui,sans-serif" text-anchor="middle">
       <text x="95" y="244" font-size="28" font-weight="700" fill="#ef4444">110</text>
       <text x="95" y="262" font-size="10" fill="#6b7280">active alerts</text>
@@ -83,8 +127,8 @@
     <text x="285" y="285" font-family="system-ui,sans-serif" font-size="9" fill="#4b5563" text-anchor="middle">Data updated daily · methodology at scamdunk.com/how-it-works</text>
 
     <!-- Methodology note -->
-    <rect x="20" y="308" width="530" height="150" rx="10" fill="#ffffff" fill-opacity="0.015" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
-    <text x="40" y="328" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" font-weight="700">HOW TICKERS MAKE THIS LIST</text>
+    <rect x="20" y="308" width="530" height="150" rx="10" fill="#ebe9e5" fill-opacity="0.015" stroke="#ebe9e5" stroke-opacity="0.04" stroke-width="1"/>
+    <text x="40" y="328" font-family="system-ui,sans-serif" font-size="10" fill="#918b87" font-weight="700">HOW TICKERS MAKE THIS LIST</text>
     <g font-family="system-ui,sans-serif" font-size="10.5" fill="#6b7280">
       <text x="40" y="350">🔴  Volume spike ≥ 5× 20-day average with no earnings or news catalyst</text>
       <text x="40" y="370">🔴  Float below 5M shares — easily moved by small coordinated buying</text>
@@ -96,24 +140,35 @@
   </g>
 
   <!-- Left content -->
-  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#brand)"/>
-  <rect x="80" y="172" width="72" height="72" rx="16" fill="url(#brand)" filter="url(#glow)"/>
+  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#square-grad)"/>
+  
+  <!-- New Option C Icon Container -->
+  <g transform="translate(80, 168)">
+    <rect x="0" y="0" width="80" height="80" rx="20" fill="url(#square-grad)" opacity="0.3" filter="url(#square-glow)"/>
+    <rect x="0" y="0" width="80" height="80" rx="20" fill="url(#square-grad)"/>
+  </g>
+  <g transform="translate(160, 248)" filter="url(#dot-glow)">
+    <circle cx="0" cy="0" r="14" fill="#141210" stroke="#141210" stroke-width="2"/>
+    <circle cx="0" cy="0" r="10" fill="url(#green-dot)"/>
+    <circle cx="-2" cy="-2" r="3" fill="#ebe9e5" opacity="0.6"/>
+  </g>
+
   <!-- Table/data icon -->
   <g transform="translate(116,208)">
-    <rect x="-16" y="-14" width="32" height="28" rx="3" stroke="white" stroke-width="2" fill="none"/>
-    <line x1="-16" y1="-4" x2="16" y2="-4" stroke="white" stroke-width="1.5" opacity="0.7"/>
-    <line x1="-16" y1="6" x2="16" y2="6" stroke="white" stroke-width="1.5" opacity="0.7"/>
-    <line x1="-4" y1="-14" x2="-4" y2="14" stroke="white" stroke-width="1.5" opacity="0.5"/>
-    <rect x="-16" y="-14" width="12" height="10" rx="1" fill="white" fill-opacity="0.15"/>
+    <rect x="-16" y="-14" width="32" height="28" rx="3" stroke="#ebe9e5" stroke-width="2" fill="none"/>
+    <line x1="-16" y1="-4" x2="16" y2="-4" stroke="#ebe9e5" stroke-width="1.5" opacity="0.7"/>
+    <line x1="-16" y1="6" x2="16" y2="6" stroke="#ebe9e5" stroke-width="1.5" opacity="0.7"/>
+    <line x1="-4" y1="-14" x2="-4" y2="14" stroke="#ebe9e5" stroke-width="1.5" opacity="0.5"/>
+    <rect x="-16" y="-14" width="12" height="10" rx="1" fill="#ebe9e5" fill-opacity="0.15"/>
   </g>
   <rect x="80" y="264" width="126" height="26" rx="13" fill="#ef4444" fill-opacity="0.15" stroke="#ef4444" stroke-opacity="0.4" stroke-width="1"/>
   <text x="143" y="281" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#f87171" text-anchor="middle" letter-spacing="1">LIVE RESEARCH</text>
-  <text x="80" y="342" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#ffffff" letter-spacing="-1">110 Micro-Caps</text>
-  <text x="80" y="390" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#ffffff" letter-spacing="-1">Under Scrutiny</text>
-  <text x="80" y="432" font-family="system-ui,sans-serif" font-size="16" fill="#9ca3af">NYSE tickers showing active pump-and-dump patterns</text>
+  <text x="80" y="342" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#ebe9e5" letter-spacing="-1">110 Micro-Caps</text>
+  <text x="80" y="390" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#ebe9e5" letter-spacing="-1">Under Scrutiny</text>
+  <text x="80" y="432" font-family="system-ui,sans-serif" font-size="16" fill="#918b87">NYSE tickers showing active pump-and-dump patterns</text>
   <g transform="translate(80,462)">
-    <rect width="130" height="36" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
-    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#f97316" text-anchor="middle">ScamDunk</text>
+    <rect width="130" height="36" rx="8" fill="#ebe9e5" fill-opacity="0.06" stroke="#ebe9e5" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#FF9F1C" text-anchor="middle"   >ScamDunk</text>
   </g>
   <g transform="translate(80,512)">
     <rect width="100" height="22" rx="11" fill="#ef4444" fill-opacity="0.12" stroke="#ef4444" stroke-opacity="0.3" stroke-width="1"/>
