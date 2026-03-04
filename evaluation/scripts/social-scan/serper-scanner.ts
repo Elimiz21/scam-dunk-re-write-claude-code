@@ -1,13 +1,11 @@
 /**
- * Google Custom Search Engine Scanner
+ * Serper.dev Scanner
  *
- * Uses Google Programmable Search Engine to find stock mentions
+ * Uses Serper to find stock mentions
  * across ALL social media platforms in a single API call.
  *
- * Free: 100 queries/day, then $5 per 1,000 queries
- * Setup: https://programmablesearchengine.google.com/
- *
- * Env: GOOGLE_CSE_API_KEY, GOOGLE_CSE_ID
+ * Setup: https://serper.dev/
+ * Env: SERPER_API_KEY
  */
 
 import {
@@ -16,7 +14,7 @@ import {
 } from './types';
 import type { PlatformName } from './platform-patterns';
 
-const GOOGLE_CSE_URL = 'https://www.googleapis.com/customsearch/v1';
+const SERPER_URL = 'https://google.serper.dev/search';
 
 // Social media domains to target
 const SOCIAL_DOMAINS = [
@@ -96,59 +94,54 @@ function detectSource(url: string): string {
   try { return new URL(url).hostname; } catch { return 'Unknown'; }
 }
 
-async function googleSearch(
+async function serperSearch(
   apiKey: string,
-  cseId: string,
-  query: string,
-  siteRestrict?: string
+  query: string
 ): Promise<any[]> {
-  const params = new URLSearchParams({
-    key: apiKey,
-    cx: cseId,
-    q: query,
-    num: '10',
-    sort: 'date',
-    dateRestrict: 'w1', // Past week
-  });
-
-  if (siteRestrict) {
-    params.set('siteSearch', siteRestrict);
-  }
-
   try {
-    const response = await fetch(`${GOOGLE_CSE_URL}?${params}`);
+    const response = await fetch(SERPER_URL, {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        q: query,
+        num: 20,
+        tbs: 'qdr:w'
+      })
+    });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      console.error(`Google CSE error ${response.status}:`, error.error?.message);
+      console.error(`Serper error ${response.status}:`, error.message || error.error);
       return [];
     }
     const data = await response.json();
-    return data.items || [];
+    return data.organic || [];
   } catch (error) {
-    console.error('Google CSE request failed:', error);
+    console.error('Serper request failed:', error);
     return [];
   }
 }
 
-export class GoogleCSEScanner implements SocialScanner {
-  name = 'google_cse';
+export class SerperScanner implements SocialScanner {
+  name = 'serper_dev';
   platform = 'Multi-Platform';
 
   isConfigured(): boolean {
-    return !!(process.env.GOOGLE_CSE_API_KEY && process.env.GOOGLE_CSE_ID);
+    return !!process.env.SERPER_API_KEY;
   }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
-    const apiKey = process.env.GOOGLE_CSE_API_KEY;
-    const cseId = process.env.GOOGLE_CSE_ID;
+    const apiKey = process.env.SERPER_API_KEY;
 
-    if (!apiKey || !cseId) {
+    if (!apiKey) {
       return [{
-        platform: 'Multi-Platform (Google CSE)',
+        platform: 'Multi-Platform (Serper)',
         scanner: this.name,
         success: false,
-        error: 'Google CSE API key or Search Engine ID not configured',
+        error: 'SERPER_API_KEY not configured',
         mentionsFound: 0,
         mentions: [],
         activityLevel: 'none',
@@ -157,7 +150,7 @@ export class GoogleCSEScanner implements SocialScanner {
       }];
     }
 
-    console.log(`  [Google CSE] Searching ${targets.length} tickers across social media...`);
+    console.log(`  [Serper] Searching ${targets.length} tickers across social media...`);
 
     const allMentions: SocialMention[] = [];
     const seenUrls = new Set<string>();
@@ -167,10 +160,10 @@ export class GoogleCSEScanner implements SocialScanner {
 
       // Build a site-restricted query targeting social media domains
       const siteQueries = SOCIAL_DOMAINS.map(d => `site:${d}`).join(' OR ');
-      const query = `"${target.ticker}" stock (${siteQueries})`;
+      const query = `("$${target.ticker}" OR "${target.ticker} stock") (${siteQueries})`;
 
       try {
-        const results = await googleSearch(apiKey, cseId, query);
+        const results = await serperSearch(apiKey, query);
 
         for (const result of results) {
           const url = result.link || '';
@@ -203,23 +196,18 @@ export class GoogleCSEScanner implements SocialScanner {
           }
           const adjustedScore = Math.min(score + platformBonus, 100);
 
-          // Parse date from metadata
-          let postDate = new Date().toISOString();
-          if (result.pagemap?.metatags?.[0]) {
-            const meta = result.pagemap.metatags[0];
-            postDate = meta['article:published_time'] || meta['og:updated_time'] || postDate;
-          }
+          let postDate = result.date || new Date().toISOString();
 
           allMentions.push({
             platform,
             source,
-            discoveredVia: 'google_cse',
+            discoveredVia: 'serper_dev',
             title: title.substring(0, 300),
             content: snippet.substring(0, 500),
             url,
-            author: 'unknown', // CSE doesn't provide author info
+            author: 'unknown',
             postDate,
-            engagement: {}, // CSE doesn't provide engagement metrics
+            engagement: {},
             sentiment: adjustedScore > 25 ? 'bullish' : 'neutral',
             isPromotional: adjustedScore >= 25,
             promotionScore: adjustedScore,
@@ -227,11 +215,10 @@ export class GoogleCSEScanner implements SocialScanner {
           });
         }
       } catch (error: any) {
-        console.error(`Google CSE error for ${target.ticker}:`, error.message);
+        console.error(`Serper error for ${target.ticker}:`, error.message);
       }
 
-      // Rate limit: 100 free queries/day
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 100)); // Serper handles more load, but gentle pause
     }
 
     const avgScore = allMentions.length > 0
@@ -239,14 +226,14 @@ export class GoogleCSEScanner implements SocialScanner {
       : 0;
 
     return [{
-      platform: 'Multi-Platform (Google CSE)',
+      platform: 'Multi-Platform (Serper.dev)',
       scanner: this.name,
       success: true,
       mentionsFound: allMentions.length,
       mentions: allMentions,
       activityLevel: allMentions.length >= 20 ? 'high'
         : allMentions.length >= 5 ? 'medium'
-        : allMentions.length > 0 ? 'low' : 'none',
+          : allMentions.length > 0 ? 'low' : 'none',
       promotionRisk: avgScore >= 40 ? 'high'
         : avgScore >= 20 ? 'medium' : 'low',
       scanDuration: Date.now() - startTime,

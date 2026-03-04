@@ -22,7 +22,7 @@ import {
 import { RedditOAuthScanner } from './reddit-oauth-scanner';
 import { YouTubeScanner } from './youtube-scanner';
 import { PerplexityResearcher } from './perplexity-researcher';
-import { GoogleCSEScanner } from './google-cse-scanner';
+import { SerperScanner } from './serper-scanner';
 import { StockTwitsScanner } from './stocktwits-scanner';
 import { DiscordBotScanner } from './discord-bot-scanner';
 
@@ -32,7 +32,7 @@ const RESULTS_DIR = path.join(__dirname, '..', '..', 'results');
 function getConfiguredScanners(): SocialScanner[] {
   const allScanners: SocialScanner[] = [
     // Layer 1: Broad sweep
-    new GoogleCSEScanner(),
+    new SerperScanner(),
     new PerplexityResearcher(),
     // Layer 2: Platform-specific
     new RedditOAuthScanner(),

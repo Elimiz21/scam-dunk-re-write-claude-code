@@ -345,7 +345,7 @@ export class StockTwitsScanner implements SocialScanner {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Google Custom Search Engine Scanner
+// Serper.dev Scanner (Google Search Alternative)
 // ─────────────────────────────────────────────────────────────
 
 const SOCIAL_DOMAINS = [
@@ -387,16 +387,15 @@ function detectSource(url: string): string {
   try { return new URL(url).hostname; } catch { return 'Unknown'; }
 }
 
-export class GoogleCSEScanner implements SocialScanner {
-  name = 'google_cse';
+export class SerperScanner implements SocialScanner {
+  name = 'serper_dev';
   platform = 'Multi-Platform';
 
-  isConfigured() { return !!(process.env.GOOGLE_CSE_API_KEY && process.env.GOOGLE_CSE_ID); }
+  isConfigured() { return !!process.env.SERPER_API_KEY; }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
-    const apiKey = process.env.GOOGLE_CSE_API_KEY!;
-    const cseId = process.env.GOOGLE_CSE_ID!;
+    const apiKey = process.env.SERPER_API_KEY!;
     const allMentions: SocialMention[] = [];
     const seenUrls = new Set<string>();
 
@@ -404,31 +403,42 @@ export class GoogleCSEScanner implements SocialScanner {
     let lastApiError = '';
 
     for (const target of targets) {
-      // Use a short query — the CSE itself should be configured to search social sites.
-      // Long site: OR chains get truncated by the API and return 0 results.
-      const query = `"$${target.ticker}" OR "${target.ticker} stock"`;
+      // Use site: search constraints specifically targeting social media
+      const domains = SOCIAL_DOMAINS.map(d => `site:${d}`).join(' OR ');
+      const query = `("$${target.ticker}" OR "${target.ticker} stock") (${domains})`;
 
       try {
-        const params = new URLSearchParams({
-          key: apiKey, cx: cseId, q: query, num: '10', sort: 'date', dateRestrict: 'w1',
+        const res = await fetch('https://google.serper.dev/search', {
+          method: 'POST',
+          headers: {
+            'X-API-KEY': apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            q: query,
+            num: 20, // get top 20 results
+            tbs: 'qdr:w' // Past week
+          })
         });
-        const res = await fetch(`https://www.googleapis.com/customsearch/v1?${params}`);
+
         if (!res.ok) {
           const body = await res.text().catch(() => 'no body');
-          console.error(`[Google CSE] API ${res.status} for ${target.ticker}: ${body}`);
+          console.error(`[Serper] API ${res.status} for ${target.ticker}: ${body}`);
           apiErrors++;
 
           let parsedError = body;
           try {
             const json = JSON.parse(body);
-            parsedError = json.error?.message || json.error?.status || body;
+            parsedError = json.message || json.error || body;
           } catch (e) { }
           lastApiError = `Status ${res.status}: ${parsedError}`;
           continue;
         }
-        const data = await res.json();
 
-        for (const result of (data.items || [])) {
+        const data = await res.json();
+        const results = data.organic || [];
+
+        for (const result of results) {
           const url = result.link || '';
           if (seenUrls.has(url)) continue;
           seenUrls.add(url);
@@ -449,43 +459,41 @@ export class GoogleCSEScanner implements SocialScanner {
             'StockTwits': 'stocktwits', 'Discord': 'discord_telegram', 'TikTok': 'tiktok',
           };
           const platformKey = platformMap[platform];
-          let cseScore = score;
+          let finalScore = score;
           if (platformKey) {
             const { scoreBonus, flags: pFlags } = calculatePlatformSpecificScore(`${title} ${snippet}`, platformKey);
             flags.push(...pFlags);
-            cseScore = Math.min(score + scoreBonus, 100);
+            finalScore = Math.min(score + scoreBonus, 100);
           }
 
-          let postDate = new Date().toISOString();
-          if (result.pagemap?.metatags?.[0]) {
-            const meta = result.pagemap.metatags[0];
-            postDate = meta['article:published_time'] || meta['og:updated_time'] || postDate;
-          }
+          let postDate = result.date || new Date().toISOString();
+          // Process string formats like "1 day ago", "Oct 12, 2024", etc could be possible if we parse further,
+          // but relying on fallback for now works safely.
 
           allMentions.push({
-            platform, source, discoveredVia: 'google_cse',
+            platform, source, discoveredVia: 'serper_dev',
             title: title.substring(0, 300), content: snippet.substring(0, 500),
             url, author: 'unknown', postDate, engagement: {},
-            sentiment: cseScore > 25 ? 'bullish' : 'neutral',
-            isPromotional: cseScore >= 20, promotionScore: cseScore, redFlags: flags,
+            sentiment: finalScore > 25 ? 'bullish' : 'neutral',
+            isPromotional: finalScore >= 20, promotionScore: finalScore, redFlags: flags,
           });
         }
       } catch (error: any) {
-        console.error(`[Google CSE] Error for ${target.ticker}:`, error.message);
+        console.error(`[Serper] Error for ${target.ticker}:`, error.message);
       }
-      await sleep(500);
+      await sleep(100); // Serper is faster, gentle throttle
     }
 
     const avgScore = allMentions.length > 0
       ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
 
-    const allFailed = apiErrors === targets.length;
+    const allFailed = apiErrors === targets.length && targets.length > 0;
     if (apiErrors > 0) {
-      console.error(`[Google CSE] ${apiErrors}/${targets.length} ticker queries failed. Check your GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID are valid. Last error: ${lastApiError}`);
+      console.error(`[Serper] ${apiErrors}/${targets.length} ticker queries failed. Check your SERPER_API_KEY. Last error: ${lastApiError}`);
     }
 
     return [{
-      platform: 'Multi-Platform (Google CSE)', scanner: this.name,
+      platform: 'Multi-Platform (Serper)', scanner: this.name,
       success: apiErrors === 0,
       error: apiErrors > 0 ? `${apiErrors}/${targets.length} API requests failed. Last error: ${lastApiError}` : undefined,
       mentionsFound: allMentions.length, mentions: allMentions,
@@ -745,7 +753,7 @@ export class DiscordBotScanner implements SocialScanner {
 export function getConfiguredScanners(): SocialScanner[] {
   const all: SocialScanner[] = [
     // Layer 1: Broad sweep
-    new GoogleCSEScanner(),
+    new SerperScanner(),
     new PerplexityScanner(),
     // Layer 2: Platform-specific
     new RedditScanner(),
@@ -760,7 +768,7 @@ export function getConfiguredScanners(): SocialScanner[] {
   console.log(`[Social Scan] Configured scanners (${configured.length}/${all.length}): ${configured.map(s => s.name).join(', ')}`);
   if (skipped.length > 0) {
     const envHints: Record<string, string> = {
-      google_cse: 'GOOGLE_CSE_API_KEY + GOOGLE_CSE_ID',
+      serper_dev: 'SERPER_API_KEY',
       perplexity: 'PERPLEXITY_API_KEY',
       youtube_api: 'YOUTUBE_API_KEY',
       discord_bot: 'DISCORD_BOT_TOKEN',

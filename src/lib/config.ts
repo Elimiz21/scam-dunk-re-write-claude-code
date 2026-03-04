@@ -42,7 +42,7 @@ export const config = {
   get nextAuthUrl() { return env("NEXTAUTH_URL", "http://localhost:3000"); },
   get nextAuthSecret() { return env("NEXTAUTH_SECRET"); },
 
-    // Python AI Backend (for full ML models)
+  // Python AI Backend (for full ML models)
   get aiBackendUrl() { return env("AI_BACKEND_URL", "http://localhost:8000"); },
   get aiApiSecret() { return env("AI_API_SECRET"); },
 
@@ -55,8 +55,7 @@ export const config = {
   get redditClientSecret() { return env("REDDIT_CLIENT_SECRET"); },
   get redditUsername() { return env("REDDIT_USERNAME"); },
   get redditPassword() { return env("REDDIT_PASSWORD"); },
-  get googleCseApiKey() { return env("GOOGLE_CSE_API_KEY"); },
-  get googleCseId() { return env("GOOGLE_CSE_ID"); },
+  get serperApiKey() { return env("SERPER_API_KEY"); },
   get perplexityApiKey() { return env("PERPLEXITY_API_KEY"); },
   get anthropicApiKey() { return env("ANTHROPIC_API_KEY"); },
   get discordBotToken() { return env("DISCORD_BOT_TOKEN"); },

@@ -233,17 +233,22 @@ async function testRedditPublic(): Promise<{ status: string; message?: string }>
   }
 }
 
-async function testGoogleCSE(): Promise<{ status: string; message?: string }> {
-  if (!config.googleCseApiKey || !config.googleCseId) {
-    return { status: "ERROR", message: "Google CSE API key or Search Engine ID not configured" };
+async function testSerperDev(): Promise<{ status: string; message?: string }> {
+  if (!config.serperApiKey) {
+    return { status: "ERROR", message: "Serper API key not configured" };
   }
   try {
-    const response = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${config.googleCseApiKey}&cx=${config.googleCseId}&q=test&num=1`
-    );
+    const response = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": config.serperApiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ q: "apple inc", num: 1 })
+    });
     if (response.ok) return { status: "CONNECTED" };
     const error = await response.json();
-    return { status: "ERROR", message: error.error?.message || "Connection failed" };
+    return { status: "ERROR", message: error.message || "Connection failed" };
   } catch (error) {
     return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
   }
@@ -569,17 +574,16 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     credentialFields: [],
   },
   {
-    name: "GOOGLE_CSE",
-    displayName: "Google Custom Search",
+    name: "SERPER_DEV",
+    displayName: "Serper.dev",
     category: "SOCIAL_SCAN",
-    description: "Searches all social media platforms via Google (100 free queries/day)",
-    getApiKey: () => config.googleCseApiKey,
-    testConnection: testGoogleCSE,
+    description: "Searches all social media platforms via Google (2,500 free queries)",
+    getApiKey: () => config.serperApiKey,
+    testConnection: testSerperDev,
     rateLimit: 100,
-    documentation: "https://developers.google.com/custom-search/v1/overview",
+    documentation: "https://serper.dev/",
     credentialFields: [
-      { key: "apiKey", label: "API Key", envVar: "GOOGLE_CSE_API_KEY" },
-      { key: "searchEngineId", label: "Search Engine ID", envVar: "GOOGLE_CSE_ID", sensitive: false },
+      { key: "apiKey", label: "API Key", envVar: "SERPER_API_KEY" },
     ],
   },
   {
