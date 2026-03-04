@@ -1,0 +1,152 @@
+================================================================================
+                        SEO IMPLEMENTATION - FILE MANIFEST
+================================================================================
+
+ABSOLUTE FILE PATHS FOR REFERENCE
+Generated: March 3, 2026
+
+================================================================================
+                            MODIFIED FILES (5)
+================================================================================
+
+1. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/layout.tsx
+   Changes: Favicon SVG config, GA4 setup comments
+   Lines modified: ~22
+
+2. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/about/page.tsx
+   Changes: Organization schema, JsonLd injection
+   Lines added: ~25
+
+3. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/news/[slug]/page.tsx
+   Changes: Article schema generation, related posts fetch, OG image config
+   Lines added: ~50
+
+4. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/news/post-client.tsx
+   Changes: JsonLd injection, related articles UI, author page links
+   Lines added: ~60
+
+5. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/sitemap.ts
+   Changes: Added 3 hub pages to sitemap routes
+   Lines added: ~3
+
+================================================================================
+                        NEW CODE FILES (6)
+================================================================================
+
+1. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/authors/[author]/page.tsx
+   Purpose: Dynamic author bio pages
+   Lines: 170
+   
+2. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/investment-scams/page.tsx
+   Purpose: Topical hub page (investment fraud types)
+   Lines: 280
+   
+3. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/social-media-scams/page.tsx
+   Purpose: Topical hub page (social media scams)
+   Lines: 280
+   
+4. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/how-to-detect-stock-scams/page.tsx
+   Purpose: Topical hub page (detection guide)
+   Lines: 320
+   
+5. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/opengraph-image.tsx
+   Purpose: Dynamic OG image generation (root)
+   Lines: 80
+   
+6. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/src/app/news/[slug]/opengraph-image.tsx
+   Purpose: Dynamic OG image generation (blog posts)
+   Lines: 70
+
+================================================================================
+                        PUBLIC ASSETS (3)
+================================================================================
+
+1. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/public/favicon.svg
+   Format: SVG
+   Size: Scalable
+   Design: Shield + checkmark, brand gradient
+   
+2. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/public/favicon.ico
+   Format: ICO placeholder
+   Size: N/A (placeholder file)
+   Note: Can be replaced with proper 16x16/32x32 ICO
+   
+3. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/public/apple-touch-icon.png
+   Format: PNG placeholder
+   Size: N/A (placeholder file)
+   Note: Should be replaced with 180x180 PNG
+
+================================================================================
+                        DOCUMENTATION FILES (2)
+================================================================================
+
+1. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/SEO-EXTERNAL-SETUP.md
+   Purpose: Step-by-step external setup instructions
+   Content: GSC, robots.txt, GA4, OG image creation
+   Lines: 250+
+   
+2. /sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/SEO-IMPLEMENTATION-STATUS.md
+   Purpose: Comprehensive project status and implementation details
+   Content: Task summaries, changes made, verification steps
+   Lines: 350+
+
+================================================================================
+                        REFERENCE FILES
+================================================================================
+
+This Manifest File:
+/sessions/zen-youthful-fermi/mnt/scam-dunk-re-write-claude-code/SEO-FILES-MANIFEST.txt
+   Purpose: Quick reference for all file paths
+
+Summary File:
+/tmp/FINAL_SUMMARY.txt
+   Purpose: Executive summary (in system temp directory)
+
+================================================================================
+                        USAGE INSTRUCTIONS
+================================================================================
+
+To reference any file created or modified:
+
+1. MODIFIED FILES - Review and test before deployment
+   Use paths listed in "MODIFIED FILES (5)" section
+
+2. NEW CODE FILES - Already production-ready
+   Use paths listed in "NEW CODE FILES (6)" section
+
+3. PUBLIC ASSETS - May require user action
+   - favicon.svg: Ready to use
+   - favicon.ico: Placeholder (optional replacement)
+   - apple-touch-icon.png: Placeholder (optional replacement)
+
+4. DOCUMENTATION - Read before deployment
+   - SEO-EXTERNAL-SETUP.md: MUST READ before launch
+   - SEO-IMPLEMENTATION-STATUS.md: Full reference guide
+
+================================================================================
+                        QUICK DEPLOYMENT REFERENCE
+================================================================================
+
+Files that need Git commit:
+✓ src/app/layout.tsx
+✓ src/app/about/page.tsx
+✓ src/app/news/[slug]/page.tsx
+✓ src/app/news/post-client.tsx
+✓ src/app/sitemap.ts
+✓ src/app/authors/[author]/page.tsx
+✓ src/app/investment-scams/page.tsx
+✓ src/app/social-media-scams/page.tsx
+✓ src/app/how-to-detect-stock-scams/page.tsx
+✓ src/app/opengraph-image.tsx
+✓ src/app/news/[slug]/opengraph-image.tsx
+✓ public/favicon.svg
+✓ public/favicon.ico
+✓ public/apple-touch-icon.png
+✓ SEO-EXTERNAL-SETUP.md
+✓ SEO-IMPLEMENTATION-STATUS.md
+
+Files that need user action:
+→ Replace /public/og-image.png with actual image (1200x630 PNG)
+→ Follow steps in SEO-EXTERNAL-SETUP.md for GSC, GA4, robots.txt
+
+================================================================================

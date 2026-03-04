@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { JsonLd } from "@/components/JsonLd";
 import { ArrowLeft, Calendar, User, Tag, Share2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -21,11 +22,25 @@ interface BlogPost {
   updatedAt: string;
 }
 
+interface RelatedPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  publishedAt: string | null;
+}
+
 type BlogPostClientProps = {
   post: BlogPost;
+  articleSchema?: Record<string, unknown>;
+  relatedPosts?: RelatedPost[];
 };
 
-export default function BlogPostClient({ post }: BlogPostClientProps) {
+export default function BlogPostClient({
+  post,
+  articleSchema,
+  relatedPosts = [],
+}: BlogPostClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   function formatDate(dateValue: string | null) {
@@ -73,6 +88,7 @@ export default function BlogPostClient({ post }: BlogPostClientProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {articleSchema && <JsonLd data={articleSchema} />}
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -109,10 +125,12 @@ export default function BlogPostClient({ post }: BlogPostClientProps) {
             <h1 className="text-3xl md:text-4xl font-bold mb-4">{post.title}</h1>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6">
-              <span className="inline-flex items-center gap-1">
-                <User className="h-4 w-4" />
-                {post.author}
-              </span>
+              <Link href={`/authors/${post.author.toLowerCase().replace(/\s+/g, "-")}`}>
+                <span className="inline-flex items-center gap-1 hover:text-primary cursor-pointer">
+                  <User className="h-4 w-4" />
+                  {post.author}
+                </span>
+              </Link>
               {post.publishedAt && (
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
@@ -155,6 +173,38 @@ export default function BlogPostClient({ post }: BlogPostClientProps) {
               Share this post
             </Button>
           </div>
+
+          {/* Related Articles Section */}
+          {relatedPosts.length > 0 && (
+            <section className="mt-16 pt-12 border-t border-border">
+              <h2 className="text-2xl font-bold mb-8">Related Articles</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {relatedPosts.map((relatedPost) => (
+                  <Link key={relatedPost.id} href={`/news/${relatedPost.slug}`}>
+                    <div className="card-elevated rounded-xl p-5 h-full hover:shadow-lg transition-shadow cursor-pointer">
+                      <h3 className="font-semibold text-lg mb-2 line-clamp-2 hover:text-primary">
+                        {relatedPost.title}
+                      </h3>
+                      {relatedPost.excerpt && (
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                          {relatedPost.excerpt}
+                        </p>
+                      )}
+                      {relatedPost.publishedAt && (
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(relatedPost.publishedAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
         </main>
       </div>
     </div>

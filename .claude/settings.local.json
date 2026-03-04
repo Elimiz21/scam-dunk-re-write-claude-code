@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(npx skills add:*)",
+      "WebFetch(domain:scamdunk.com)",
+      "Bash(curl:*)"
+    ]
+  }
+}

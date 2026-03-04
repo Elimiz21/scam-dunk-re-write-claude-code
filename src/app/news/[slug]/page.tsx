@@ -85,7 +85,9 @@ export async function generateMetadata({
       url: `${siteUrl}${canonical}`,
       title: post.title,
       description,
-      images: post.coverImage ? [{ url: post.coverImage }] : undefined,
+      images: post.coverImage
+        ? [{ url: post.coverImage }]
+        : [{ url: `${siteUrl}/news/${params.slug}/opengraph-image` }],
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt?.toISOString(),
       siteName: "ScamDunk",
@@ -133,11 +135,75 @@ export default async function BlogPostPage({ params }: { params: PageParams }) {
     notFound();
   }
 
+  // Fetch related posts (same category, excluding current, most recent first)
+  let relatedPosts: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    excerpt: string | null;
+    publishedAt: string | null;
+  }> = [];
+
+  try {
+    const rawRelatedPosts = await prisma.blogPost.findMany({
+      where: {
+        isPublished: true,
+        category: post.category,
+        NOT: { id: post.id },
+      },
+      orderBy: { publishedAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        publishedAt: true,
+      },
+    });
+
+    relatedPosts = rawRelatedPosts.map((p) => ({
+      ...p,
+      publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch related posts:", error);
+  }
+
   const serializedPost = {
     ...post,
     publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
     updatedAt: post.updatedAt.toISOString(),
   };
 
-  return <BlogPostClient post={serializedPost} />;
+  // Extract plain text from HTML content for articleBody
+  const stripHtmlTags = (html: string) => {
+    return html.replace(/<[^>]*>/g, "").trim();
+  };
+
+  const articleBody = stripHtmlTags(post.content);
+
+  // Generate Article schema
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.excerpt || post.title,
+    image: post.coverImage || undefined,
+    datePublished: post.publishedAt?.toISOString() || undefined,
+    dateModified: post.updatedAt?.toISOString(),
+    author: {
+      "@type": "Person",
+      name: post.author,
+    },
+    articleBody: articleBody.substring(0, 5000), // Limit to 5000 chars for schema
+  };
+
+  return (
+    <BlogPostClient
+      post={serializedPost}
+      articleSchema={articleSchema}
+      relatedPosts={relatedPosts}
+    />
+  );
 }
