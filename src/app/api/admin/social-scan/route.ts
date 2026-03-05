@@ -121,7 +121,15 @@ export async function GET(request: NextRequest) {
       },
       scanRuns: scanRuns.map((run: any) => ({
         ...run,
-        platformsUsed: run.platformsUsed ? JSON.parse(run.platformsUsed) : [],
+        platformsUsed: (() => {
+          if (!run.platformsUsed) return [];
+          const parsed = JSON.parse(run.platformsUsed);
+          // Handle new format: { scanners: [...], stats: {...} }
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.scanners) {
+            return parsed.scanners;
+          }
+          return Array.isArray(parsed) ? parsed : [];
+        })(),
         errors: run.errors ? JSON.parse(run.errors) : [],
       })),
       mentions: mentions.map((m: any) => ({
