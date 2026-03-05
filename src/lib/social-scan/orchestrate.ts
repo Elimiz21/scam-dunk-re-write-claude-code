@@ -195,16 +195,18 @@ export async function runSocialScanAndStore(options: {
   const platformsUsed: string[] = [];
 
   console.log(`[Social Scan] Running ${scanners.length} scanner(s) in parallel...`);
-  const SCANNER_TIMEOUT = 240_000; // 4 min max per scanner (leaves 1 min for aggregation + DB writes)
+  const SCANNER_TIMEOUT = 120_000; // 2 min per scanner — leaves 3 min for aggregation + batch DB write
   const settled = await Promise.allSettled(
     scanners.map(async (scanner) => {
       console.log(`[Social Scan] Starting ${scanner.name}...`);
+      let timer: ReturnType<typeof setTimeout>;
       const results = await Promise.race([
         scanner.scan(targets),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`${scanner.name} timed out after ${SCANNER_TIMEOUT / 1000}s`)), SCANNER_TIMEOUT)
-        ),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`${scanner.name} timed out after ${SCANNER_TIMEOUT / 1000}s`)), SCANNER_TIMEOUT);
+        }),
       ]);
+      clearTimeout(timer!);
       return { scanner, results };
     })
   );
@@ -249,57 +251,69 @@ export async function runSocialScanAndStore(options: {
   const status = errors.length > 0 && platformsUsed.length === 0 ? 'FAILED'
     : errors.length > 0 ? 'PARTIAL' : 'COMPLETED';
 
-  // Step 6: Store mentions in DB
+  // Step 6: Store mentions in DB (batch write — single query instead of hundreds)
+  function parsePostDate(dateStr: string | undefined | null): Date | null {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+    // Handle relative dates from Serper ("2 days ago", "1 hour ago", etc.)
+    const rel = dateStr.match(/(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i);
+    if (rel) {
+      const n = parseInt(rel[1]);
+      const unit = rel[2].toLowerCase();
+      const now = new Date();
+      if (unit === 'second') now.setSeconds(now.getSeconds() - n);
+      else if (unit === 'minute') now.setMinutes(now.getMinutes() - n);
+      else if (unit === 'hour') now.setHours(now.getHours() - n);
+      else if (unit === 'day') now.setDate(now.getDate() - n);
+      else if (unit === 'week') now.setDate(now.getDate() - n * 7);
+      else if (unit === 'month') now.setMonth(now.getMonth() - n);
+      else if (unit === 'year') now.setFullYear(now.getFullYear() - n);
+      return now;
+    }
+    return null;
+  }
+
+  const mentionRows = tickerResults.flatMap(tickerResult =>
+    tickerResult.platforms.flatMap(platform =>
+      platform.mentions.map(mention => ({
+        scanRunId,
+        ticker: tickerResult.ticker,
+        stockName: tickerResult.name || null,
+        platform: mention.platform,
+        source: mention.source,
+        discoveredVia: mention.discoveredVia,
+        title: (mention.title || '').substring(0, 500) || null,
+        content: (mention.content || '').substring(0, 2000) || null,
+        url: (mention.url || '').substring(0, 2000) || null,
+        author: mention.author || null,
+        postDate: parsePostDate(mention.postDate),
+        engagement: JSON.stringify(mention.engagement || {}),
+        sentiment: mention.sentiment || null,
+        isPromotional: mention.isPromotional || false,
+        promotionScore: mention.promotionScore || 0,
+        redFlags: JSON.stringify(mention.redFlags || []),
+      }))
+    )
+  );
+
   let mentionsStored = 0;
-  for (const tickerResult of tickerResults) {
-    for (const platform of tickerResult.platforms) {
-      for (const mention of platform.mentions) {
-        try {
-          await prisma.socialMention.create({
-            data: {
-              scanRunId,
-              ticker: tickerResult.ticker,
-              stockName: tickerResult.name || null,
-              platform: mention.platform,
-              source: mention.source,
-              discoveredVia: mention.discoveredVia,
-              title: mention.title || null,
-              content: mention.content || null,
-              url: mention.url || null,
-              author: mention.author || null,
-              postDate: (() => {
-                if (!mention.postDate) return null;
-                const d = new Date(mention.postDate);
-                if (!isNaN(d.getTime())) return d;
-                // Handle relative dates from Serper ("2 days ago", "1 hour ago", etc.)
-                const rel = mention.postDate.match(/(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i);
-                if (rel) {
-                  const n = parseInt(rel[1]);
-                  const unit = rel[2].toLowerCase();
-                  const now = new Date();
-                  if (unit === 'second') now.setSeconds(now.getSeconds() - n);
-                  else if (unit === 'minute') now.setMinutes(now.getMinutes() - n);
-                  else if (unit === 'hour') now.setHours(now.getHours() - n);
-                  else if (unit === 'day') now.setDate(now.getDate() - n);
-                  else if (unit === 'week') now.setDate(now.getDate() - n * 7);
-                  else if (unit === 'month') now.setMonth(now.getMonth() - n);
-                  else if (unit === 'year') now.setFullYear(now.getFullYear() - n);
-                  return now;
-                }
-                return null; // Unparseable — store null rather than crash
-              })(),
-              engagement: JSON.stringify(mention.engagement || {}),
-              sentiment: mention.sentiment || null,
-              isPromotional: mention.isPromotional || false,
-              promotionScore: mention.promotionScore || 0,
-              redFlags: JSON.stringify(mention.redFlags || []),
-            },
-          });
-          mentionsStored++;
-        } catch (error: any) {
-          console.error(`[Social Scan] Failed to store mention:`, error.message);
-        }
-      }
+  try {
+    if (mentionRows.length > 0) {
+      const result = await prisma.socialMention.createMany({
+        data: mentionRows,
+        skipDuplicates: true,
+      });
+      mentionsStored = result.count;
+    }
+  } catch (error: any) {
+    console.error(`[Social Scan] Batch write failed, falling back to individual writes:`, error.message);
+    // Fallback: write individually so partial data is saved
+    for (const row of mentionRows) {
+      try {
+        await prisma.socialMention.create({ data: row });
+        mentionsStored++;
+      } catch { /* skip failed individual row */ }
     }
   }
 

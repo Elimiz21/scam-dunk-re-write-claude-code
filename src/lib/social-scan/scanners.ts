@@ -19,7 +19,7 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 // ─────────────────────────────────────────────────────────────
 
 const REDDIT_USER_AGENT = 'Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)';
-const REDDIT_DELAY_MS = 6500;
+const REDDIT_DELAY_MS = 2000; // 2s between requests (was 6.5s — too slow for 50 tickers)
 
 async function redditGet(url: string): Promise<any> {
   const headers: Record<string, string> = { 'User-Agent': REDDIT_USER_AGENT, 'Accept': 'application/json' };
