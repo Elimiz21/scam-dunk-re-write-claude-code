@@ -119,19 +119,28 @@ export async function GET(request: NextRequest) {
         tickersScanned: "Tickers submitted to scanner for a run.",
         tickersWithMentions: "Submitted tickers that returned at least 1 mention.",
       },
-      scanRuns: scanRuns.map((run: any) => ({
-        ...run,
-        platformsUsed: (() => {
-          if (!run.platformsUsed) return [];
-          const parsed = JSON.parse(run.platformsUsed);
-          // Handle new format: { scanners: [...], stats: {...} }
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.scanners) {
-            return parsed.scanners;
+      scanRuns: scanRuns.map((run: any) => {
+        let platformsUsed: string[] = [];
+        let errors: string[] = [];
+        try {
+          if (run.platformsUsed) {
+            const parsed = JSON.parse(run.platformsUsed);
+            if (Array.isArray(parsed)) platformsUsed = parsed;
+            else if (parsed?.scanners) platformsUsed = parsed.scanners;
           }
-          return Array.isArray(parsed) ? parsed : [];
-        })(),
-        errors: run.errors ? JSON.parse(run.errors) : [],
-      })),
+        } catch { /* corrupt JSON — use empty array */ }
+        try {
+          if (run.errors) errors = JSON.parse(run.errors);
+        } catch { /* corrupt JSON — use empty array */ }
+        return {
+          ...run,
+          tickersScanned: run.tickersScanned ?? 0,
+          tickersWithMentions: run.tickersWithMentions ?? 0,
+          totalMentions: run.totalMentions ?? 0,
+          platformsUsed,
+          errors,
+        };
+      }),
       mentions: mentions.map((m: any) => ({
         ...m,
         engagement: m.engagement ? JSON.parse(m.engagement as string) : {},
