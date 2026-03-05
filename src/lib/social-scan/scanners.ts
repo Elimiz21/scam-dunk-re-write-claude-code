@@ -22,16 +22,56 @@ const REDDIT_USER_AGENT = 'Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research
 const REDDIT_DELAY_MS = 6500;
 
 async function redditGet(url: string): Promise<any> {
-  const headers = { 'User-Agent': REDDIT_USER_AGENT, 'Accept': 'application/json' };
-  let response = await fetch(url, { headers });
+  const headers: Record<string, string> = { 'User-Agent': REDDIT_USER_AGENT, 'Accept': 'application/json' };
+  const fetchOpts: RequestInit = { headers, redirect: 'follow' };
 
-  if (response.status === 429) {
-    await sleep(10000);
-    response = await fetch(url, { headers });
-    if (!response.ok) throw new Error(`Reddit ${response.status} after retry`);
+  // Try the given URL first, then old.reddit.com as fallback
+  const urls = [url];
+  if (url.includes('www.reddit.com')) {
+    urls.push(url.replace('www.reddit.com', 'old.reddit.com'));
   }
-  if (!response.ok) throw new Error(`Reddit ${response.status}: ${response.statusText}`);
-  return response.json();
+
+  for (const tryUrl of urls) {
+    try {
+      let response = await fetch(tryUrl, fetchOpts);
+
+      if (response.status === 429) {
+        await sleep(10000);
+        response = await fetch(tryUrl, fetchOpts);
+      }
+
+      if (!response.ok) {
+        console.warn(`[Reddit] ${response.status} from ${tryUrl.split('?')[0]}`);
+        continue; // Try fallback URL
+      }
+
+      const text = await response.text();
+
+      // Detect HTML login/block pages that Reddit returns instead of JSON
+      if (text.startsWith('<') || text.includes('<!DOCTYPE') || text.includes('<html')) {
+        console.warn(`[Reddit] Got HTML instead of JSON from ${tryUrl.split('?')[0]} (blocked or redirected to login)`);
+        continue; // Try fallback URL
+      }
+
+      try {
+        const data = JSON.parse(text);
+        if (data.error) {
+          console.warn(`[Reddit] API error ${data.error} from ${tryUrl.split('?')[0]}: ${data.message || ''}`);
+          continue;
+        }
+        return data;
+      } catch {
+        console.warn(`[Reddit] Invalid JSON from ${tryUrl.split('?')[0]} (starts with: ${text.substring(0, 60)})`);
+        continue;
+      }
+    } catch (error: any) {
+      console.warn(`[Reddit] Fetch error from ${tryUrl.split('?')[0]}: ${error.message}`);
+      continue;
+    }
+  }
+
+  // All URLs failed
+  return null;
 }
 
 export class RedditScanner implements SocialScanner {
@@ -53,6 +93,7 @@ export class RedditScanner implements SocialScanner {
         try {
           const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25`;
           const data = await redditGet(url);
+          if (!data) continue; // All URLs failed for this query
 
           for (const post of (data?.data?.children || [])) {
             const d = post.data;
@@ -104,6 +145,7 @@ export class RedditScanner implements SocialScanner {
     for (const sub of topSubs) {
       try {
         const data = await redditGet(`https://www.reddit.com/r/${sub}/new.json?limit=100`);
+        if (!data) continue; // Reddit blocked this request
         for (const post of (data?.data?.children || [])) {
           const d = post.data;
           const title = d.title || '';
@@ -348,12 +390,6 @@ export class StockTwitsScanner implements SocialScanner {
 // Serper.dev Scanner (Google Search Alternative)
 // ─────────────────────────────────────────────────────────────
 
-const SOCIAL_DOMAINS = [
-  'reddit.com', 'twitter.com', 'x.com', 'youtube.com', 'stocktwits.com',
-  'tiktok.com', 'discord.com', 'facebook.com', 'instagram.com', 'threads.net',
-  'seekingalpha.com', 'investorshub.advfn.com', 'finance.yahoo.com',
-];
-
 function detectPlatform(url: string): SocialMention['platform'] {
   const lower = url.toLowerCase();
   if (lower.includes('reddit.com')) return 'Reddit';
@@ -403,9 +439,10 @@ export class SerperScanner implements SocialScanner {
     let lastApiError = '';
 
     for (const target of targets) {
-      // Use site: search constraints specifically targeting social media
-      const domains = SOCIAL_DOMAINS.map(d => `site:${d}`).join(' OR ');
-      const query = `("$${target.ticker}" OR "${target.ticker} stock") (${domains})`;
+      // Search broadly — don't cram 13 site: operators into one query
+      // which causes Google to return 0 results for obscure tickers.
+      // Instead, search for the ticker generally and filter by platform from the URL.
+      const query = `"$${target.ticker}" OR "${target.ticker}" stock promotion`;
 
       try {
         const res = await fetch('https://google.serper.dev/search', {
@@ -416,7 +453,7 @@ export class SerperScanner implements SocialScanner {
           },
           body: JSON.stringify({
             q: query,
-            num: 20, // get top 20 results
+            num: 20,
             tbs: 'qdr:w' // Past week
           })
         });
@@ -480,6 +517,8 @@ export class SerperScanner implements SocialScanner {
         }
       } catch (error: any) {
         console.error(`[Serper] Error for ${target.ticker}:`, error.message);
+        apiErrors++;
+        lastApiError = `Network error: ${error.message}`;
       }
       await sleep(100); // Serper is faster, gentle throttle
     }
@@ -487,7 +526,6 @@ export class SerperScanner implements SocialScanner {
     const avgScore = allMentions.length > 0
       ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
 
-    const allFailed = apiErrors === targets.length && targets.length > 0;
     if (apiErrors > 0) {
       console.error(`[Serper] ${apiErrors}/${targets.length} ticker queries failed. Check your SERPER_API_KEY. Last error: ${lastApiError}`);
     }
@@ -518,6 +556,8 @@ export class PerplexityScanner implements SocialScanner {
     const startTime = Date.now();
     const apiKey = process.env.PERPLEXITY_API_KEY!;
     const allMentions: SocialMention[] = [];
+    let apiErrors = 0;
+    let lastApiError = '';
 
     const batchSize = 5;
     for (let i = 0; i < targets.length; i += batchSize) {
@@ -546,51 +586,75 @@ IMPORTANT: Only REAL mentions with actual URLs. Return [] if none found. Return 
         });
 
         if (!res.ok) {
-          console.error(`[Perplexity] API ${res.status}: ${await res.text().catch(() => 'no body')}`);
+          const body = await res.text().catch(() => 'no body');
+          console.error(`[Perplexity] API ${res.status}: ${body}`);
+          apiErrors++;
+          lastApiError = `Status ${res.status}: ${body.substring(0, 200)}`;
           continue;
         }
         const data = await res.json();
         const content = data.choices?.[0]?.message?.content || '';
         const citations: string[] = data.citations || [];
 
-        // Parse JSON response
+        // Parse JSON response — try multiple extraction strategies
+        let parsed: any[] | null = null;
+
+        // Strategy 1: Extract JSON array from response
         const jsonMatch = content.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
           try {
-            const parsed = JSON.parse(jsonMatch[0]);
-            if (Array.isArray(parsed)) {
-              for (const item of parsed) {
-                if (!item.url && !item.platform) continue;
-
-                let platform: SocialMention['platform'] = 'Web';
-                const url = (item.url || '').toLowerCase();
-                if (url.includes('reddit.com')) platform = 'Reddit';
-                else if (url.includes('youtube.com') || url.includes('youtu.be')) platform = 'YouTube';
-                else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'Twitter';
-                else if (url.includes('stocktwits.com')) platform = 'StockTwits';
-                else if (url.includes('tiktok.com')) platform = 'TikTok';
-                else if (url.includes('discord.com')) platform = 'Discord';
-
-                const text = `${item.title || ''} ${item.content || item.summary || ''}`;
-                const { score, flags } = calculatePromotionScore(text);
-
-                allMentions.push({
-                  platform, source: item.source || item.subreddit || item.channel || String(platform),
-                  discoveredVia: 'perplexity', title: item.title || '',
-                  content: (item.content || item.summary || '').substring(0, 500),
-                  url: item.url || '', author: item.author || item.username || 'unknown',
-                  postDate: item.date || item.posted || new Date().toISOString(),
-                  engagement: {
-                    upvotes: item.upvotes || item.score || undefined,
-                    comments: item.comments || item.replies || undefined,
-                    views: item.views || undefined, likes: item.likes || undefined,
-                  },
-                  sentiment: score > 30 ? 'bullish' : (item.sentiment as any) || 'neutral',
-                  isPromotional: score >= 20, promotionScore: score, redFlags: flags,
-                });
-              }
+            const result = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(result)) parsed = result;
+          } catch {
+            // Strategy 2: Try fixing common LLM JSON issues (trailing commas, unescaped quotes)
+            try {
+              const cleaned = jsonMatch[0]
+                .replace(/,\s*]/g, ']')       // trailing commas before ]
+                .replace(/,\s*}/g, '}')        // trailing commas before }
+                .replace(/[\u201c\u201d]/g, '"'); // smart quotes
+              const result = JSON.parse(cleaned);
+              if (Array.isArray(result)) parsed = result;
+            } catch {
+              console.warn(`[Perplexity] JSON parse failed for batch "${tickerList}". Content starts with: ${content.substring(0, 150)}`);
+              apiErrors++;
+              lastApiError = `JSON parse failed for batch "${tickerList}"`;
             }
-          } catch { /* parse error — skip */ }
+          }
+        } else if (content.trim().length > 0 && content.trim() !== '[]') {
+          console.warn(`[Perplexity] No JSON array found in response for "${tickerList}". Content starts with: ${content.substring(0, 150)}`);
+        }
+
+        if (parsed) {
+          for (const item of parsed) {
+            if (!item.url && !item.platform) continue;
+
+            let platform: SocialMention['platform'] = 'Web';
+            const url = (item.url || '').toLowerCase();
+            if (url.includes('reddit.com')) platform = 'Reddit';
+            else if (url.includes('youtube.com') || url.includes('youtu.be')) platform = 'YouTube';
+            else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'Twitter';
+            else if (url.includes('stocktwits.com')) platform = 'StockTwits';
+            else if (url.includes('tiktok.com')) platform = 'TikTok';
+            else if (url.includes('discord.com')) platform = 'Discord';
+
+            const text = `${item.title || ''} ${item.content || item.summary || ''}`;
+            const { score, flags } = calculatePromotionScore(text);
+
+            allMentions.push({
+              platform, source: item.source || item.subreddit || item.channel || String(platform),
+              discoveredVia: 'perplexity', title: item.title || '',
+              content: (item.content || item.summary || '').substring(0, 500),
+              url: item.url || '', author: item.author || item.username || 'unknown',
+              postDate: item.date || item.posted || new Date().toISOString(),
+              engagement: {
+                upvotes: item.upvotes || item.score || undefined,
+                comments: item.comments || item.replies || undefined,
+                views: item.views || undefined, likes: item.likes || undefined,
+              },
+              sentiment: score > 30 ? 'bullish' : (item.sentiment as any) || 'neutral',
+              isPromotional: score >= 20, promotionScore: score, redFlags: flags,
+            });
+          }
         }
 
         // Add citations not already captured
@@ -620,14 +684,23 @@ IMPORTANT: Only REAL mentions with actual URLs. Return [] if none found. Return 
         await sleep(1000);
       } catch (error: any) {
         console.error(`[Perplexity] Error:`, error.message);
+        apiErrors++;
+        lastApiError = `Network error: ${error.message}`;
       }
+    }
+
+    const totalBatches = Math.ceil(targets.length / batchSize);
+    if (apiErrors > 0) {
+      console.error(`[Perplexity] ${apiErrors}/${totalBatches} batch queries failed. Last error: ${lastApiError}`);
     }
 
     const avgScore = allMentions.length > 0
       ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
 
     return [{
-      platform: 'Multi-Platform (Perplexity)', scanner: this.name, success: true,
+      platform: 'Multi-Platform (Perplexity)', scanner: this.name,
+      success: apiErrors === 0,
+      error: apiErrors > 0 ? `${apiErrors}/${totalBatches} batch requests failed. Last error: ${lastApiError}` : undefined,
       mentionsFound: allMentions.length, mentions: allMentions,
       activityLevel: allMentions.length >= 15 ? 'high' : allMentions.length >= 5 ? 'medium' : allMentions.length > 0 ? 'low' : 'none',
       promotionRisk: avgScore >= 40 ? 'high' : avgScore >= 20 ? 'medium' : 'low',

@@ -134,7 +134,7 @@ export async function runSocialScanAndStore(options: {
     targets = manualTickers;
     scanDateStr = new Date().toISOString().split('T')[0];
   } else {
-    const { targets: dbTargets, scanDate } = await getScanTargetsFromLatestDailyScan(30);
+    const { targets: dbTargets, scanDate } = await getScanTargetsFromLatestDailyScan(50);
     targets = dbTargets;
     scanDateStr = scanDate || new Date().toISOString().split('T')[0];
   }
@@ -189,31 +189,51 @@ export async function runSocialScanAndStore(options: {
   console.log(`[Social Scan] Starting scan of ${targets.length} tickers with ${scanners.length} scanner(s): ${scanners.map(s => s.name).join(', ')}`);
   console.log(`[Social Scan] Tickers: ${targets.map(t => `${t.ticker} (score: ${t.riskScore})`).join(', ')}`);
 
-  // Step 4: Run all scanners sequentially
+  // Step 4: Run all scanners in parallel (each queries a different API)
   const allPlatformResults: PlatformScanResult[] = [];
   const errors: string[] = [];
   const platformsUsed: string[] = [];
 
-  for (const scanner of scanners) {
-    try {
-      console.log(`[Social Scan] Running ${scanner.name}...`);
+  console.log(`[Social Scan] Running ${scanners.length} scanner(s) in parallel...`);
+  const settled = await Promise.allSettled(
+    scanners.map(async (scanner) => {
+      console.log(`[Social Scan] Starting ${scanner.name}...`);
       const results = await scanner.scan(targets);
+      return { scanner, results };
+    })
+  );
+
+  const scannerStats: Record<string, { mentions: number; success: boolean; error?: string }> = {};
+
+  for (const outcome of settled) {
+    if (outcome.status === 'fulfilled') {
+      const { scanner, results } = outcome.value;
       allPlatformResults.push(...results);
       platformsUsed.push(scanner.name);
 
+      let scannerMentions = 0;
       for (const r of results) {
+        scannerMentions += r.mentionsFound;
         if (r.success) {
           console.log(`[Social Scan] ${scanner.name}: ${r.mentionsFound} mentions (${r.activityLevel} activity)`);
         } else if (r.error) {
           errors.push(`${scanner.name}: ${r.error}`);
         }
       }
-    } catch (error: any) {
-      const msg = `${scanner.name} failed: ${error.message}`;
+      scannerStats[scanner.name] = {
+        mentions: scannerMentions,
+        success: results.every(r => r.success),
+        error: results.find(r => r.error)?.error,
+      };
+    } else {
+      // Promise rejected — scanner threw an unhandled error
+      const msg = `Scanner failed: ${outcome.reason?.message || outcome.reason}`;
       console.error(`[Social Scan] ${msg}`);
       errors.push(msg);
     }
   }
+
+  console.log(`[Social Scan] Pre-aggregation scanner breakdown:`, JSON.stringify(scannerStats));
 
   // Step 5: Aggregate results per ticker
   const tickerResults = aggregateResults(targets, allPlatformResults);
@@ -266,7 +286,7 @@ export async function runSocialScanAndStore(options: {
       tickersScanned: targets.length,
       tickersWithMentions: tickersWithMentions,
       totalMentions: mentionsStored,
-      platformsUsed: JSON.stringify(platformsUsed),
+      platformsUsed: JSON.stringify({ scanners: platformsUsed, stats: scannerStats }),
       duration,
       errors: JSON.stringify(errors),
     },

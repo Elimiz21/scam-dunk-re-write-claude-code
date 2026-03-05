@@ -19,7 +19,7 @@ const PUMP_SIGNALS = [
 ];
 
 export async function getScanTargetsFromLatestDailyScan(
-  maxTargets: number = 30
+  maxTargets: number = 50
 ): Promise<{ targets: ScanTarget[]; scanDate: string | null }> {
   // Find the most recent scan date that has data
   const latestSnapshot = await prisma.stockDailySnapshot.findFirst({
