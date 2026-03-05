@@ -195,10 +195,16 @@ export async function runSocialScanAndStore(options: {
   const platformsUsed: string[] = [];
 
   console.log(`[Social Scan] Running ${scanners.length} scanner(s) in parallel...`);
+  const SCANNER_TIMEOUT = 240_000; // 4 min max per scanner (leaves 1 min for aggregation + DB writes)
   const settled = await Promise.allSettled(
     scanners.map(async (scanner) => {
       console.log(`[Social Scan] Starting ${scanner.name}...`);
-      const results = await scanner.scan(targets);
+      const results = await Promise.race([
+        scanner.scan(targets),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`${scanner.name} timed out after ${SCANNER_TIMEOUT / 1000}s`)), SCANNER_TIMEOUT)
+        ),
+      ]);
       return { scanner, results };
     })
   );
