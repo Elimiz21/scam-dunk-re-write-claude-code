@@ -10,21 +10,65 @@
     </linearGradient>
     <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <filter id="softglow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="40"/></filter>
+  
+    <!-- BG 3 Gradients -->
+    <linearGradient id="bg-new" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#141210;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#1c1a17;stop-opacity:1"/>
+    </linearGradient>
+    <radialGradient id="mesh-1" cx="25%" cy="40%" r="55%">
+      <stop offset="0%" style="stop-color:#F57C00;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#F57C00;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="mesh-2" cx="75%" cy="25%" r="50%">
+      <stop offset="0%" style="stop-color:#2A9D8F;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#2A9D8F;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="mesh-3" cx="50%" cy="75%" r="50%">
+      <stop offset="0%" style="stop-color:#FFB74D;stop-opacity:0.10"/>
+      <stop offset="100%" style="stop-color:#FFB74D;stop-opacity:0"/>
+    </radialGradient>
+    <!-- Brand Square Gradients -->
+    <linearGradient id="square-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B4A;stop-opacity:1"/>
+      <stop offset="40%" style="stop-color:#FF9F1C;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#2A9D8F;stop-opacity:1"/>
+    </linearGradient>
+    <radialGradient id="green-dot" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1"/>
+    </radialGradient>
+    <!-- Filters -->
+    <filter id="square-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="15" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="dot-glow" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
   </defs>
-  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg-new)"/>
+  <rect width="1200" height="630" fill="url(#mesh-1)"/>
+  <rect width="1200" height="630" fill="url(#mesh-2)"/>
+  <rect width="1200" height="630" fill="url(#mesh-3)"/>
+
   <circle cx="950" cy="200" r="220" fill="#f97316" opacity="0.05" filter="url(#softglow)"/>
 
   <!-- Phase diagram: 4 phases of pump-and-dump -->
   <g transform="translate(620, 80)" opacity="0.85">
     <!-- Phase labels -->
-    <text x="60" y="30" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">ACCUMULATE</text>
-    <text x="195" y="30" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af" text-anchor="middle">PROMOTE</text>
+    <text x="60" y="30" font-family="system-ui,sans-serif" font-size="10" fill="#918b87" text-anchor="middle">ACCUMULATE</text>
+    <text x="195" y="30" font-family="system-ui,sans-serif" font-size="10" fill="#918b87" text-anchor="middle">PROMOTE</text>
     <text x="330" y="30" font-family="system-ui,sans-serif" font-size="10" fill="#f97316" text-anchor="middle" font-weight="700">PUMP</text>
     <text x="450" y="30" font-family="system-ui,sans-serif" font-size="10" fill="#ef4444" text-anchor="middle" font-weight="700">DUMP</text>
     <!-- Chart area -->
-    <rect x="20" y="40" width="530" height="340" rx="12" fill="#ffffff" fill-opacity="0.02" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1"/>
+    <rect x="20" y="40" width="530" height="340" rx="12" fill="#ebe9e5" fill-opacity="0.02" stroke="#ebe9e5" stroke-opacity="0.06" stroke-width="1"/>
     <!-- Grid lines -->
-    <g stroke="#ffffff" stroke-opacity="0.04" stroke-width="1">
+    <g stroke="#ebe9e5" stroke-opacity="0.04" stroke-width="1">
       <line x1="20" y1="155" x2="550" y2="155"/>
       <line x1="20" y1="270" x2="550" y2="270"/>
       <line x1="155" y1="40" x2="155" y2="380"/>
@@ -62,33 +106,44 @@
       <rect x="370" y="340" width="10" height="90" fill="#ef4444" fill-opacity="0.4"/>
       <rect x="390" y="340" width="10" height="70" fill="#ef4444" fill-opacity="0.35"/>
       <rect x="410" y="345" width="10" height="51" fill="#ef4444" fill-opacity="0.25"/>
-      <rect x="430" y="352" width="10" height="24" fill="#9ca3af" fill-opacity="0.2"/>
-      <rect x="450" y="355" width="10" height="21" fill="#9ca3af" fill-opacity="0.15"/>
-      <rect x="470" y="358" width="10" height="18" fill="#9ca3af" fill-opacity="0.12"/>
-      <rect x="490" y="360" width="10" height="16" fill="#9ca3af" fill-opacity="0.1"/>
+      <rect x="430" y="352" width="10" height="24" fill="#918b87" fill-opacity="0.2"/>
+      <rect x="450" y="355" width="10" height="21" fill="#918b87" fill-opacity="0.15"/>
+      <rect x="470" y="358" width="10" height="18" fill="#918b87" fill-opacity="0.12"/>
+      <rect x="490" y="360" width="10" height="16" fill="#918b87" fill-opacity="0.1"/>
     </g>
     <!-- Volume label -->
     <text x="30" y="395" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">VOLUME</text>
   </g>
 
   <!-- Left content -->
-  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#brand)"/>
-  <rect x="80" y="172" width="72" height="72" rx="16" fill="url(#brand)" filter="url(#glow)"/>
+  <rect x="64" y="180" width="4" height="280" rx="2" fill="url(#square-grad)"/>
+  
+  <!-- New Option C Icon Container -->
+  <g transform="translate(80, 168)">
+    <rect x="0" y="0" width="80" height="80" rx="20" fill="url(#square-grad)" opacity="0.3" filter="url(#square-glow)"/>
+    <rect x="0" y="0" width="80" height="80" rx="20" fill="url(#square-grad)"/>
+  </g>
+  <g transform="translate(160, 248)" filter="url(#dot-glow)">
+    <circle cx="0" cy="0" r="14" fill="#141210" stroke="#141210" stroke-width="2"/>
+    <circle cx="0" cy="0" r="10" fill="url(#green-dot)"/>
+    <circle cx="-2" cy="-2" r="3" fill="#ebe9e5" opacity="0.6"/>
+  </g>
+
   <!-- Magnifying glass over chart icon -->
   <g transform="translate(116,208)">
-    <circle cx="-4" cy="-6" r="11" stroke="white" stroke-width="2.5" fill="none"/>
-    <line x1="5" y1="4" x2="13" y2="12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-    <line x1="-10" y1="-6" x2="2" y2="-6" stroke="white" stroke-width="1.5" opacity="0.7"/>
-    <line x1="-4" y1="-12" x2="-4" y2="0" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    <circle cx="-4" cy="-6" r="11" stroke="#ebe9e5" stroke-width="2.5" fill="none"/>
+    <line x1="5" y1="4" x2="13" y2="12" stroke="#ebe9e5" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="-10" y1="-6" x2="2" y2="-6" stroke="#ebe9e5" stroke-width="1.5" opacity="0.7"/>
+    <line x1="-4" y1="-12" x2="-4" y2="0" stroke="#ebe9e5" stroke-width="1.5" opacity="0.7"/>
   </g>
   <rect x="80" y="264" width="136" height="26" rx="13" fill="#f97316" fill-opacity="0.15" stroke="#f97316" stroke-opacity="0.4" stroke-width="1"/>
   <text x="148" y="281" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="#f97316" text-anchor="middle" letter-spacing="1">CASE STUDY</text>
-  <text x="80" y="344" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="-1">Pump-and-Dump</text>
-  <text x="80" y="396" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ffffff" letter-spacing="-1">Mechanics Exposed</text>
-  <text x="80" y="440" font-family="system-ui,sans-serif" font-size="18" fill="#9ca3af">Forensic breakdown of accumulate → promote → pump → dump</text>
+  <text x="80" y="344" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ebe9e5" letter-spacing="-1">Pump-and-Dump</text>
+  <text x="80" y="396" font-family="Georgia,serif" font-size="44" font-weight="700" fill="#ebe9e5" letter-spacing="-1">Mechanics Exposed</text>
+  <text x="80" y="440" font-family="system-ui,sans-serif" font-size="18" fill="#918b87">Forensic breakdown of accumulate → promote → pump → dump</text>
   <g transform="translate(80,474)">
-    <rect width="130" height="36" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"/>
-    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#f97316" text-anchor="middle">ScamDunk</text>
+    <rect width="130" height="36" rx="8" fill="#ebe9e5" fill-opacity="0.06" stroke="#ebe9e5" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="65" y="23" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#FF9F1C" text-anchor="middle"   >ScamDunk</text>
   </g>
   <g transform="translate(80,524)">
     <rect width="94" height="22" rx="11" fill="#ef4444" fill-opacity="0.12" stroke="#ef4444" stroke-opacity="0.3" stroke-width="1"/>
