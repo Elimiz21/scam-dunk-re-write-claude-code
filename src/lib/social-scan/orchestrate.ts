@@ -261,7 +261,27 @@ export async function runSocialScanAndStore(options: {
               content: mention.content || null,
               url: mention.url || null,
               author: mention.author || null,
-              postDate: mention.postDate ? new Date(mention.postDate) : null,
+              postDate: (() => {
+                if (!mention.postDate) return null;
+                const d = new Date(mention.postDate);
+                if (!isNaN(d.getTime())) return d;
+                // Handle relative dates from Serper ("2 days ago", "1 hour ago", etc.)
+                const rel = mention.postDate.match(/(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i);
+                if (rel) {
+                  const n = parseInt(rel[1]);
+                  const unit = rel[2].toLowerCase();
+                  const now = new Date();
+                  if (unit === 'second') now.setSeconds(now.getSeconds() - n);
+                  else if (unit === 'minute') now.setMinutes(now.getMinutes() - n);
+                  else if (unit === 'hour') now.setHours(now.getHours() - n);
+                  else if (unit === 'day') now.setDate(now.getDate() - n);
+                  else if (unit === 'week') now.setDate(now.getDate() - n * 7);
+                  else if (unit === 'month') now.setMonth(now.getMonth() - n);
+                  else if (unit === 'year') now.setFullYear(now.getFullYear() - n);
+                  return now;
+                }
+                return null; // Unparseable — store null rather than crash
+              })(),
               engagement: JSON.stringify(mention.engagement || {}),
               sentiment: mention.sentiment || null,
               isPromotional: mention.isPromotional || false,
