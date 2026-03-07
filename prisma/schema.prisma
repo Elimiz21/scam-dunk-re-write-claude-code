@@ -1053,3 +1053,139 @@ model PromoterNetwork {
   @@index([confidenceScore])
   @@index([dumpRate])
 }
+
+// ─────────────────────────────────────────────────────────────
+// Growth Engine Models
+// ─────────────────────────────────────────────────────────────
+
+model GrowthOpportunity {
+  id        String   @id @default(cuid())
+  platform  String   // "reddit" or "x"
+  source    String   // subreddit name or X search query
+  postUrl   String   @unique // direct URL to the original post/tweet
+  postTitle String?  @db.Text
+  postBody  String?  @db.Text
+  author    String?
+  postDate  DateTime?
+  engagement Json?   // { upvotes, comments, likes, retweets }
+
+  // Discovery metadata
+  discoveredVia String   // "serper", "perplexity", "reddit_json", "x_api"
+  searchQuery   String?  // the query that found this
+
+  // Scoring
+  relevanceScore  Int     @default(0) // 0-100, how relevant to scam/DD topics
+  engagementScore Int     @default(0) // 0-100, potential for engagement
+  urgencyScore    Int     @default(0) // 0-100, how time-sensitive
+  overallScore    Int     @default(0) // weighted composite
+
+  // Status
+  status    String   @default("discovered") // discovered, draft_ready, approved, posted, skipped, expired
+
+  // Relations
+  drafts    GrowthDraft[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([platform])
+  @@index([status])
+  @@index([overallScore])
+  @@index([createdAt])
+}
+
+model GrowthDraft {
+  id             String   @id @default(cuid())
+  opportunityId  String
+  opportunity    GrowthOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  replyText      String   @db.Text // the generated reply
+  includesLink   Boolean  @default(false) // whether ScamDunk link is included
+  variant        Int      @default(1) // draft variant number (1, 2, etc.)
+
+  // Status
+  status         String   @default("pending") // pending, approved, posted, skipped, edited
+  editedText     String?  @db.Text // user-edited version (if modified before posting)
+
+  // Posting metadata
+  postedAt       DateTime?
+  postedUrl      String?  // URL of the posted reply (for X auto-posts)
+
+  // Engagement tracking (updated by monitoring agent)
+  engagement     GrowthEngagement[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([opportunityId])
+  @@index([status])
+}
+
+model GrowthEngagement {
+  id        String   @id @default(cuid())
+  draftId   String
+  draft     GrowthDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  checkedAt DateTime @default(now())
+
+  // Metrics
+  upvotes   Int?
+  downvotes Int?
+  comments  Int?
+  likes     Int?
+  retweets  Int?
+  replies   Int?
+  views     Int?
+
+  // Alerts
+  isTrending Boolean @default(false)
+  needsFollowUp Boolean @default(false)
+
+  @@index([draftId])
+  @@index([checkedAt])
+}
+
+model GrowthVoiceTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique // "default", "educational", "casual", etc.
+  isActive    Boolean  @default(true)
+
+  // Voice definition
+  tone        String   @db.Text // description of tone
+  vocabulary  String[] // preferred words/phrases
+  avoidWords  String[] // words to never use
+  exampleReplies String[] // example replies for few-shot prompting
+
+  // ScamDunk reference rules
+  linkFrequency Float  @default(0.4) // 0.0-1.0, how often to include link
+  linkStyle     String @default("natural") // "natural", "cta", "screenshot_prompt"
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GrowthConfig {
+  id    String @id @default("singleton")
+
+  // Reddit discovery settings
+  redditSubreddits   String[] // target subreddits
+  redditSearchTerms  String[] // search queries
+
+  // X discovery settings
+  xSearchTerms       String[] // X search queries
+  xHashtags          String[] // hashtags to monitor
+
+  // Scheduling
+  discoveryIntervalHours  Int @default(4)
+  monitoringIntervalHours Int @default(12)
+  maxDailyDiscoveries     Int @default(30)
+  maxDailyPosts           Int @default(10)
+
+  // Feature flags
+  autoPostX          Boolean @default(false) // auto-post approved X replies
+  discoveryEnabled   Boolean @default(true)
+  draftingEnabled    Boolean @default(true)
+  monitoringEnabled  Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+}

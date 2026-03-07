@@ -34,6 +34,7 @@ import {
   Home,
   Radio,
   Monitor,
+  Megaphone,
   LucideIcon,
 } from "lucide-react";
 
@@ -80,6 +81,16 @@ const navigationCategories: NavCategory[] = [
       { name: "Landing Page", href: "/admin/homepage", icon: Home },
       { name: "News", href: "/admin/news", icon: Newspaper },
       { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
+    ],
+  },
+  {
+    name: "Growth Engine",
+    icon: Megaphone,
+    items: [
+      { name: "Growth Dashboard", href: "/admin/growth", icon: Megaphone },
+      { name: "Review Queue", href: "/admin/growth/queue", icon: MessageSquare },
+      { name: "Engagement", href: "/admin/growth/history", icon: TrendingUp },
+      { name: "Growth Settings", href: "/admin/growth/settings", icon: Settings },
     ],
   },
   {
