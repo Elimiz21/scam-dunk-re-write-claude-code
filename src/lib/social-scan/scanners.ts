@@ -356,7 +356,7 @@ export class StockTwitsScanner implements SocialScanner {
           allMentions.push({
             platform: 'StockTwits', source: 'StockTwits Feed', discoveredVia: 'stocktwits',
             title: '', content: body.substring(0, 500),
-            url: `https://stocktwits.com/symbol/${target.ticker}`,
+            url: msg.id ? `https://stocktwits.com/${msg.user?.username || 'unknown'}/message/${msg.id}` : `https://stocktwits.com/symbol/${target.ticker}`,
             author: msg.user?.username || 'unknown',
             postDate: msg.created_at || new Date().toISOString(),
             engagement: { likes: msg.likes?.total || 0 },
