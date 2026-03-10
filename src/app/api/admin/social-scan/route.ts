@@ -13,7 +13,7 @@ import { prisma } from "@/lib/db";
 import { runSocialScanAndStore } from "@/lib/social-scan/orchestrate";
 import { ScanTarget } from "@/lib/social-scan/types";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes — scanning takes time
 
 // GET - Fetch social scan runs and mentions
@@ -21,15 +21,24 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({
-      definitions: {
-        totalMentions: "Total indexed social posts matching the current filters.",
-        promotionalCount: "Mentions flagged promotional (isPromotional=true).",
-        avgPromotionScore: "Average promotionScore (0-100) across filtered mentions.",
-        tickersTracked: "Unique ticker count across filtered mentions.",
-        tickersScanned: "Tickers submitted to scanner for a run.",
-        tickersWithMentions: "Submitted tickers that returned at least 1 mention.",
-      }, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        {
+          definitions: {
+            totalMentions:
+              "Total indexed social posts matching the current filters.",
+            promotionalCount:
+              "Mentions flagged promotional (isPromotional=true).",
+            avgPromotionScore:
+              "Average promotionScore (0-100) across filtered mentions.",
+            tickersTracked: "Unique ticker count across filtered mentions.",
+            tickersScanned: "Tickers submitted to scanner for a run.",
+            tickersWithMentions:
+              "Submitted tickers that returned at least 1 mention.",
+          },
+          error: "Unauthorized",
+        },
+        { status: 401 },
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -61,9 +70,16 @@ export async function GET(request: NextRequest) {
         orderBy: { scanDate: "desc" },
         take: 10,
         select: {
-          id: true, scanDate: true, status: true, tickersScanned: true,
-          tickersWithMentions: true, totalMentions: true, platformsUsed: true,
-          duration: true, errors: true, createdAt: true,
+          id: true,
+          scanDate: true,
+          status: true,
+          tickersScanned: true,
+          tickersWithMentions: true,
+          totalMentions: true,
+          platformsUsed: true,
+          duration: true,
+          errors: true,
+          createdAt: true,
         },
       }),
       prisma.socialMention.findMany({
@@ -72,30 +88,58 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
         select: {
-          id: true, ticker: true, stockName: true, platform: true, source: true,
-          discoveredVia: true, title: true, content: true, url: true,
-          author: true, postDate: true, engagement: true, sentiment: true,
-          isPromotional: true, promotionScore: true, redFlags: true,
-          createdAt: true, scanRun: { select: { scanDate: true } },
+          id: true,
+          ticker: true,
+          stockName: true,
+          platform: true,
+          source: true,
+          discoveredVia: true,
+          title: true,
+          content: true,
+          url: true,
+          author: true,
+          postDate: true,
+          engagement: true,
+          sentiment: true,
+          isPromotional: true,
+          promotionScore: true,
+          redFlags: true,
+          createdAt: true,
+          scanRun: { select: { scanDate: true } },
         },
       }),
       prisma.socialMention.count({ where: mentionWhere }),
-      prisma.socialMention.aggregate({ _count: true, _avg: { promotionScore: true } }),
+      prisma.socialMention.aggregate({
+        _count: true,
+        _avg: { promotionScore: true },
+      }),
       prisma.socialMention.count({ where: { isPromotional: true } }),
       prisma.socialMention.groupBy({
-        by: ["ticker"], _count: true,
-        orderBy: { _count: { ticker: "desc" } }, take: 20,
+        by: ["ticker"],
+        _count: true,
+        orderBy: { _count: { ticker: "desc" } },
+        take: 20,
       }),
       prisma.socialMention.groupBy({
-        by: ["platform"], _count: true, _avg: { promotionScore: true },
+        by: ["platform"],
+        _count: true,
+        _avg: { promotionScore: true },
       }),
     ]);
 
-    const val = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
+    const val = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
       r.status === "fulfilled" ? r.value : fallback;
 
     // Log any failures for debugging (table missing, etc.)
-    const labels = ["scanRuns", "mentions", "mentionCount", "stats", "promoCount", "tickers", "platforms"];
+    const labels = [
+      "scanRuns",
+      "mentions",
+      "mentionCount",
+      "stats",
+      "promoCount",
+      "tickers",
+      "platforms",
+    ];
     results.forEach((r, i) => {
       if (r.status === "rejected") {
         console.error(`Social scan query failed [${labels[i]}]:`, r.reason);
@@ -105,19 +149,25 @@ export async function GET(request: NextRequest) {
     const scanRuns = val(results[0], [] as any[]);
     const mentions = val(results[1], [] as any[]);
     const totalMentions = val(results[2], 0 as number);
-    const statsAgg = val(results[3], { _count: 0, _avg: { promotionScore: null } } as any);
+    const statsAgg = val(results[3], {
+      _count: 0,
+      _avg: { promotionScore: null },
+    } as any);
     const promotionalCount = val(results[4], 0 as number);
     const uniqueTickers = val(results[5], [] as any[]);
     const platformBreakdown = val(results[6], [] as any[]);
 
     return NextResponse.json({
       definitions: {
-        totalMentions: "Total indexed social posts matching the current filters.",
+        totalMentions:
+          "Total indexed social posts matching the current filters.",
         promotionalCount: "Mentions flagged promotional (isPromotional=true).",
-        avgPromotionScore: "Average promotionScore (0-100) across filtered mentions.",
+        avgPromotionScore:
+          "Average promotionScore (0-100) across filtered mentions.",
         tickersTracked: "Unique ticker count across filtered mentions.",
         tickersScanned: "Tickers submitted to scanner for a run.",
-        tickersWithMentions: "Submitted tickers that returned at least 1 mention.",
+        tickersWithMentions:
+          "Submitted tickers that returned at least 1 mention.",
       },
       scanRuns: scanRuns.map((run: any) => {
         let platformsUsed: string[] = [];
@@ -128,10 +178,14 @@ export async function GET(request: NextRequest) {
             if (Array.isArray(parsed)) platformsUsed = parsed;
             else if (parsed?.scanners) platformsUsed = parsed.scanners;
           }
-        } catch { /* corrupt JSON — use empty array */ }
+        } catch {
+          /* corrupt JSON — use empty array */
+        }
         try {
           if (run.errors) errors = JSON.parse(run.errors);
-        } catch { /* corrupt JSON — use empty array */ }
+        } catch {
+          /* corrupt JSON — use empty array */
+        }
         return {
           ...run,
           tickersScanned: run.tickersScanned ?? 0,
@@ -147,16 +201,22 @@ export async function GET(request: NextRequest) {
         redFlags: m.redFlags ? JSON.parse(m.redFlags as string) : [],
       })),
       pagination: {
-        page, limit, total: totalMentions,
+        page,
+        limit,
+        total: totalMentions,
         totalPages: Math.ceil(totalMentions / limit),
       },
       stats: {
         totalMentions: statsAgg._count || 0,
         avgPromotionScore: Math.round(statsAgg._avg?.promotionScore || 0),
         promotionalCount,
-        uniqueTickers: uniqueTickers.map((t: any) => ({ ticker: t.ticker, count: t._count })),
+        uniqueTickers: uniqueTickers.map((t: any) => ({
+          ticker: t.ticker,
+          count: t._count,
+        })),
         platformBreakdown: platformBreakdown.map((p: any) => ({
-          platform: p.platform, count: p._count,
+          platform: p.platform,
+          count: p._count,
           avgScore: Math.round(p._avg?.promotionScore || 0),
         })),
       },
@@ -166,19 +226,25 @@ export async function GET(request: NextRequest) {
     // Return empty state instead of 500 so the page still renders
     return NextResponse.json({
       definitions: {
-        totalMentions: "Total indexed social posts matching the current filters.",
+        totalMentions:
+          "Total indexed social posts matching the current filters.",
         promotionalCount: "Mentions flagged promotional (isPromotional=true).",
-        avgPromotionScore: "Average promotionScore (0-100) across filtered mentions.",
+        avgPromotionScore:
+          "Average promotionScore (0-100) across filtered mentions.",
         tickersTracked: "Unique ticker count across filtered mentions.",
         tickersScanned: "Tickers submitted to scanner for a run.",
-        tickersWithMentions: "Submitted tickers that returned at least 1 mention.",
+        tickersWithMentions:
+          "Submitted tickers that returned at least 1 mention.",
       },
       scanRuns: [],
       mentions: [],
       pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
       stats: {
-        totalMentions: 0, avgPromotionScore: 0, promotionalCount: 0,
-        uniqueTickers: [], platformBreakdown: [],
+        totalMentions: 0,
+        avgPromotionScore: 0,
+        promotionalCount: 0,
+        uniqueTickers: [],
+        platformBreakdown: [],
       },
     });
   }
@@ -193,7 +259,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -206,9 +275,9 @@ export async function POST(request: NextRequest) {
     if (tickers && Array.isArray(tickers) && tickers.length > 0) {
       manualTickers = tickers.map((t: string) => ({
         ticker: t.trim().toUpperCase(),
-        name: '',
+        name: "",
         riskScore: 0,
-        riskLevel: 'HIGH' as const,
+        riskLevel: "HIGH" as const,
         signals: [],
       }));
     }
@@ -229,7 +298,8 @@ export async function POST(request: NextRequest) {
         action: "SOCIAL_SCAN_TRIGGERED",
         resource: scanRun.id,
         details: JSON.stringify({
-          tickers: manualTickers?.map(t => t.ticker) || 'auto-from-daily-scan',
+          tickers:
+            manualTickers?.map((t) => t.ticker) || "auto-from-daily-scan",
           date: scanDate,
         }),
       },
@@ -251,14 +321,15 @@ export async function POST(request: NextRequest) {
       platformsUsed: result.platformsUsed,
       errors: result.errors,
       duration: result.duration,
-      message: result.tickersScanned === 0
-        ? "No high-risk tickers found in the latest daily scan. Run the enhanced daily pipeline first, or provide tickers manually."
-        : `Scan complete: ${result.totalMentions} mentions found across ${result.tickersWithMentions} ticker(s).`,
+      message:
+        result.tickersScanned === 0
+          ? "No high-risk tickers found in the latest daily scan. Run the enhanced daily pipeline first, or provide tickers manually."
+          : `Scan complete: ${result.totalMentions} mentions found across ${result.tickersWithMentions} ticker(s).`,
     });
   } catch (error: any) {
     console.error("Social scan POST error:", error);
     // Give specific error message if table doesn't exist
-    const msg = error?.message?.includes('does not exist')
+    const msg = error?.message?.includes("does not exist")
       ? "Database tables not set up. Click 'Setup Database' above to create them automatically."
       : "Failed to run social scan";
     return NextResponse.json({ error: msg }, { status: 500 });

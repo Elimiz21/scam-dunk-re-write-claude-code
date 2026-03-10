@@ -6,20 +6,28 @@
  * Conservative limits to protect personal accounts.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { DEFAULT_PLATFORM_CONFIGS, type PlatformName } from './types';
+import * as fs from "fs";
+import * as path from "path";
+import { DEFAULT_PLATFORM_CONFIGS, type PlatformName } from "./types";
 
 interface PlatformUsage {
   platform: PlatformName;
   pagesUsedToday: number;
   actionsThisMinute: number;
-  minuteStartedAt: number;  // timestamp
-  lastActionAt: number;     // timestamp
-  date: string;             // YYYY-MM-DD for daily reset
+  minuteStartedAt: number; // timestamp
+  lastActionAt: number; // timestamp
+  date: string; // YYYY-MM-DD for daily reset
 }
 
-const USAGE_FILE = path.join(__dirname, '..', '..', '..', 'evaluation', 'browser-sessions', '.rate-limits.json');
+const USAGE_FILE = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "evaluation",
+  "browser-sessions",
+  ".rate-limits.json",
+);
 
 export class RateLimiter {
   private usage: Map<PlatformName, PlatformUsage> = new Map();
@@ -38,7 +46,9 @@ export class RateLimiter {
 
     // Daily page limit
     if (usage.pagesUsedToday >= config.maxPagesPerDay) {
-      console.log(`    Rate limited: ${platform} at daily max (${config.maxPagesPerDay} pages)`);
+      console.log(
+        `    Rate limited: ${platform} at daily max (${config.maxPagesPerDay} pages)`,
+      );
       return false;
     }
 
@@ -51,7 +61,9 @@ export class RateLimiter {
     }
 
     if (usage.actionsThisMinute >= config.maxActionsPerMinute) {
-      console.log(`    Rate limited: ${platform} at ${config.maxActionsPerMinute} actions/min`);
+      console.log(
+        `    Rate limited: ${platform} at ${config.maxActionsPerMinute} actions/min`,
+      );
       return false;
     }
 
@@ -75,7 +87,10 @@ export class RateLimiter {
    */
   getRequiredDelay(platform: PlatformName): number {
     const config = DEFAULT_PLATFORM_CONFIGS[platform];
-    return config.minDelayMs + Math.random() * (config.maxDelayMs - config.minDelayMs);
+    return (
+      config.minDelayMs +
+      Math.random() * (config.maxDelayMs - config.minDelayMs)
+    );
   }
 
   /**
@@ -88,7 +103,7 @@ export class RateLimiter {
 
     if (timeSinceLastAction < delay) {
       const remainingDelay = delay - timeSinceLastAction;
-      await new Promise(resolve => setTimeout(resolve, remainingDelay));
+      await new Promise((resolve) => setTimeout(resolve, remainingDelay));
     }
   }
 
@@ -104,8 +119,14 @@ export class RateLimiter {
   /**
    * Get usage summary for all platforms.
    */
-  getSummary(): Record<PlatformName, { used: number; limit: number; remaining: number }> {
-    const summary: Record<string, { used: number; limit: number; remaining: number }> = {};
+  getSummary(): Record<
+    PlatformName,
+    { used: number; limit: number; remaining: number }
+  > {
+    const summary: Record<
+      string,
+      { used: number; limit: number; remaining: number }
+    > = {};
     for (const [platform, config] of Object.entries(DEFAULT_PLATFORM_CONFIGS)) {
       const usage = this.getUsage(platform as PlatformName);
       summary[platform] = {
@@ -114,13 +135,16 @@ export class RateLimiter {
         remaining: Math.max(0, config.maxPagesPerDay - usage.pagesUsedToday),
       };
     }
-    return summary as Record<PlatformName, { used: number; limit: number; remaining: number }>;
+    return summary as Record<
+      PlatformName,
+      { used: number; limit: number; remaining: number }
+    >;
   }
 
   // ─── Internal ──────────────────────────────────────────────────────────
 
   private getUsage(platform: PlatformName): PlatformUsage {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     let usage = this.usage.get(platform);
 
     // Reset if new day
@@ -142,7 +166,7 @@ export class RateLimiter {
   private loadUsage(): void {
     try {
       if (fs.existsSync(USAGE_FILE)) {
-        const data = JSON.parse(fs.readFileSync(USAGE_FILE, 'utf-8'));
+        const data = JSON.parse(fs.readFileSync(USAGE_FILE, "utf-8"));
         for (const [platform, usage] of Object.entries(data)) {
           this.usage.set(platform as PlatformName, usage as PlatformUsage);
         }

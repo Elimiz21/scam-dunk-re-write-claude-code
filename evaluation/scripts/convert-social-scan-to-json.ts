@@ -8,10 +8,10 @@
  *   npx ts-node scripts/convert-social-scan-to-json.ts [date]
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
-const RESULTS_DIR = path.join(__dirname, '..', 'results');
+const RESULTS_DIR = path.join(__dirname, "..", "results");
 
 interface PromotedStock {
   symbol: string;
@@ -38,7 +38,10 @@ interface SocialMediaScanReport {
   }[];
 }
 
-function parseMarkdownReport(content: string, date: string): SocialMediaScanReport {
+function parseMarkdownReport(
+  content: string,
+  date: string,
+): SocialMediaScanReport {
   const report: SocialMediaScanReport = {
     date,
     totalHighRiskStocks: 0,
@@ -53,50 +56,71 @@ function parseMarkdownReport(content: string, date: string): SocialMediaScanRepo
   }
 
   // Parse platform summary table
-  const platformTableMatch = content.match(/\| Platform \| Evidence Found \| Notable Stocks \|([\s\S]*?)\n\n/);
+  const platformTableMatch = content.match(
+    /\| Platform \| Evidence Found \| Notable Stocks \|([\s\S]*?)\n\n/,
+  );
   if (platformTableMatch) {
-    const rows = platformTableMatch[1].split('\n').filter(row => row.includes('|') && !row.includes('---'));
+    const rows = platformTableMatch[1]
+      .split("\n")
+      .filter((row) => row.includes("|") && !row.includes("---"));
     for (const row of rows) {
-      const cells = row.split('|').map(c => c.trim()).filter(c => c);
+      const cells = row
+        .split("|")
+        .map((c) => c.trim())
+        .filter((c) => c);
       if (cells.length >= 3) {
         report.platformSummary.push({
           platform: cells[0],
           evidenceFound: cells[1],
-          notableStocks: cells[2].split(',').map(s => s.trim()),
+          notableStocks: cells[2].split(",").map((s) => s.trim()),
         });
       }
     }
   }
 
   // Parse Tier 1: High Concern stocks
-  const tier1Match = content.match(/### Tier 1: High Concern[\s\S]*?(?=### Tier 2:|### Tier 3:|## |$)/);
+  const tier1Match = content.match(
+    /### Tier 1: High Concern[\s\S]*?(?=### Tier 2:|### Tier 3:|## |$)/,
+  );
   if (tier1Match) {
-    const stocks = parseStockSections(tier1Match[0], 'HIGH');
+    const stocks = parseStockSections(tier1Match[0], "HIGH");
     report.promotedStocks.push(...stocks);
   }
 
   // Parse Tier 2: Moderate Concern stocks
-  const tier2Match = content.match(/### Tier 2: Moderate Concern[\s\S]*?(?=### Tier 3:|## |$)/);
+  const tier2Match = content.match(
+    /### Tier 2: Moderate Concern[\s\S]*?(?=### Tier 3:|## |$)/,
+  );
   if (tier2Match) {
-    const stocks = parseStockSections(tier2Match[0], 'MODERATE');
+    const stocks = parseStockSections(tier2Match[0], "MODERATE");
     report.promotedStocks.push(...stocks);
   }
 
   // Parse Tier 3 table if present
-  const tier3TableMatch = content.match(/### Tier 3: Structural Risk[\s\S]*?\| Ticker \| Company \|[\s\S]*?(?=\n\n##|\n\n---|\n\n$|$)/);
+  const tier3TableMatch = content.match(
+    /### Tier 3: Structural Risk[\s\S]*?\| Ticker \| Company \|[\s\S]*?(?=\n\n##|\n\n---|\n\n$|$)/,
+  );
   if (tier3TableMatch) {
-    const rows = tier3TableMatch[0].split('\n').filter(row => row.includes('|') && !row.includes('---') && !row.includes('Ticker'));
+    const rows = tier3TableMatch[0]
+      .split("\n")
+      .filter(
+        (row) =>
+          row.includes("|") && !row.includes("---") && !row.includes("Ticker"),
+      );
     for (const row of rows) {
-      const cells = row.split('|').map(c => c.trim()).filter(c => c);
+      const cells = row
+        .split("|")
+        .map((c) => c.trim())
+        .filter((c) => c);
       if (cells.length >= 6) {
         report.promotedStocks.push({
           symbol: cells[0],
           name: cells[1],
           riskScore: parseInt(cells[2]) || 0,
-          price: parseFloat(cells[3].replace('$', '')) || null,
+          price: parseFloat(cells[3].replace("$", "")) || null,
           marketCap: cells[4],
           dailyMove: null,
-          tier: 'STRUCTURAL',
+          tier: "STRUCTURAL",
           platforms: [],
           redFlags: [cells[5]],
           sources: [],
@@ -123,30 +147,39 @@ function parseStockSections(content: string, tier: string): PromotedStock[] {
 
     // Extract price, market cap, daily move
     const priceMatch = details.match(/\*\*Price:\*\*\s*\$?([\d.]+)/);
-    const marketCapMatch = details.match(/\*\*Market Cap:\*\*\s*([\$\d.]+[BMK]?)/);
-    const dailyMoveMatch = details.match(/\*\*Daily Move:\*\*\s*([+-]?[\d.]+%|Volatile)/);
+    const marketCapMatch = details.match(
+      /\*\*Market Cap:\*\*\s*([\$\d.]+[BMK]?)/,
+    );
+    const dailyMoveMatch = details.match(
+      /\*\*Daily Move:\*\*\s*([+-]?[\d.]+%|Volatile)/,
+    );
     const scoreMatch = details.match(/Risk Score:\s*(\d+)/);
 
     // Extract red flags
     const redFlags: string[] = [];
-    const redFlagMatch = details.match(/\*\*Red Flags:\*\*([\s\S]*?)(?=\*\*Source|\*\*Assessment|$)/);
+    const redFlagMatch = details.match(
+      /\*\*Red Flags:\*\*([\s\S]*?)(?=\*\*Source|\*\*Assessment|$)/,
+    );
     if (redFlagMatch) {
       const flags = redFlagMatch[1].match(/-\s*([^\n]+)/g);
       if (flags) {
-        redFlags.push(...flags.map(f => f.replace(/^-\s*/, '').trim()));
+        redFlags.push(...flags.map((f) => f.replace(/^-\s*/, "").trim()));
       }
     }
 
     // Extract platforms
     const platforms: string[] = [];
-    const platformMatch = details.match(/\*\*Social Media Activity:\*\*\s*([^\n]+)/);
+    const platformMatch = details.match(
+      /\*\*Social Media Activity:\*\*\s*([^\n]+)/,
+    );
     if (platformMatch) {
       const text = platformMatch[1].toLowerCase();
-      if (text.includes('reddit')) platforms.push('Reddit');
-      if (text.includes('twitter') || text.includes('fintwit')) platforms.push('Twitter');
-      if (text.includes('stocktwits')) platforms.push('StockTwits');
-      if (text.includes('discord')) platforms.push('Discord');
-      if (text.includes('telegram')) platforms.push('Telegram');
+      if (text.includes("reddit")) platforms.push("Reddit");
+      if (text.includes("twitter") || text.includes("fintwit"))
+        platforms.push("Twitter");
+      if (text.includes("stocktwits")) platforms.push("StockTwits");
+      if (text.includes("discord")) platforms.push("Discord");
+      if (text.includes("telegram")) platforms.push("Telegram");
     }
 
     // Extract sources
@@ -187,15 +220,21 @@ async function convertReport(date: string) {
   }
 
   console.log(`Converting ${mdPath}...`);
-  const content = fs.readFileSync(mdPath, 'utf-8');
+  const content = fs.readFileSync(mdPath, "utf-8");
   const report = parseMarkdownReport(content, date);
 
   fs.writeFileSync(jsonPath, JSON.stringify(report, null, 2));
   console.log(`Created ${jsonPath}`);
   console.log(`  - Total promoted stocks: ${report.promotedStocks.length}`);
-  console.log(`  - Tier HIGH: ${report.promotedStocks.filter(s => s.tier === 'HIGH').length}`);
-  console.log(`  - Tier MODERATE: ${report.promotedStocks.filter(s => s.tier === 'MODERATE').length}`);
-  console.log(`  - Tier STRUCTURAL: ${report.promotedStocks.filter(s => s.tier === 'STRUCTURAL').length}`);
+  console.log(
+    `  - Tier HIGH: ${report.promotedStocks.filter((s) => s.tier === "HIGH").length}`,
+  );
+  console.log(
+    `  - Tier MODERATE: ${report.promotedStocks.filter((s) => s.tier === "MODERATE").length}`,
+  );
+  console.log(
+    `  - Tier STRUCTURAL: ${report.promotedStocks.filter((s) => s.tier === "STRUCTURAL").length}`,
+  );
 
   return report;
 }
@@ -203,9 +242,11 @@ async function convertReport(date: string) {
 async function main() {
   const args = process.argv.slice(2);
 
-  if (args[0] === '--all') {
+  if (args[0] === "--all") {
     // Convert all available markdown reports
-    const files = fs.readdirSync(RESULTS_DIR).filter(f => f.startsWith('social-media-scan-report-'));
+    const files = fs
+      .readdirSync(RESULTS_DIR)
+      .filter((f) => f.startsWith("social-media-scan-report-"));
     for (const file of files) {
       const dateMatch = file.match(/(\d{4}-\d{2}-\d{2})/);
       if (dateMatch) {
@@ -213,7 +254,7 @@ async function main() {
       }
     }
   } else {
-    const date = args[0] || new Date().toISOString().split('T')[0];
+    const date = args[0] || new Date().toISOString().split("T")[0];
     await convertReport(date);
   }
 }

@@ -17,15 +17,17 @@
  *   BROWSER_AGENT_DISCORD_ENABLED=true/false  Per-platform toggles
  */
 
-import * as dotenv from 'dotenv';
-import * as path from 'path';
+import * as dotenv from "dotenv";
+import * as path from "path";
 
-dotenv.config({ path: path.join(__dirname, '..', '..', '..', '..', '.env.local') });
-dotenv.config({ path: path.join(__dirname, '..', '..', '..', '..', '.env') });
+dotenv.config({
+  path: path.join(__dirname, "..", "..", "..", "..", ".env.local"),
+});
+dotenv.config({ path: path.join(__dirname, "..", "..", "..", "..", ".env") });
 
-import type { ScanTarget } from '../types';
-import { runParallelBrowserScan } from './browser-orchestrator';
-import { EvidenceCollector } from './evidence-collector';
+import type { ScanTarget } from "../types";
+import { runParallelBrowserScan } from "./browser-orchestrator";
+import { EvidenceCollector } from "./evidence-collector";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -33,24 +35,30 @@ async function main(): Promise<void> {
   // Parse arguments
   let tickers: string[] = [];
   let platforms: string[] = [];
-  let date = new Date().toISOString().split('T')[0];
+  let date = new Date().toISOString().split("T")[0];
   let force = false;
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
-      case '--tickers':
-        tickers = (args[++i] || '').split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+      case "--tickers":
+        tickers = (args[++i] || "")
+          .split(",")
+          .map((t) => t.trim().toUpperCase())
+          .filter(Boolean);
         break;
-      case '--platforms':
-        platforms = (args[++i] || '').split(',').map(p => p.trim().toLowerCase()).filter(Boolean);
+      case "--platforms":
+        platforms = (args[++i] || "")
+          .split(",")
+          .map((p) => p.trim().toLowerCase())
+          .filter(Boolean);
         break;
-      case '--date':
+      case "--date":
         date = args[++i] || date;
         break;
-      case '--force':
+      case "--force":
         force = true;
         break;
-      case '--help':
+      case "--help":
         printHelp();
         process.exit(0);
     }
@@ -58,48 +66,57 @@ async function main(): Promise<void> {
 
   // Validate
   if (tickers.length === 0) {
-    console.error('Error: --tickers is required');
+    console.error("Error: --tickers is required");
     printHelp();
     process.exit(1);
   }
 
   // Check master switch
-  if (!force && process.env.BROWSER_AGENT_ENABLED !== 'true') {
-    console.error('Error: BROWSER_AGENT_ENABLED is not set to true');
-    console.error('Set BROWSER_AGENT_ENABLED=true in .env.local or use --force');
+  if (!force && process.env.BROWSER_AGENT_ENABLED !== "true") {
+    console.error("Error: BROWSER_AGENT_ENABLED is not set to true");
+    console.error(
+      "Set BROWSER_AGENT_ENABLED=true in .env.local or use --force",
+    );
     process.exit(1);
   }
 
   // Override platform toggles if specified
   if (platforms.length > 0) {
-    const allPlatforms = ['discord', 'reddit', 'twitter', 'instagram', 'facebook', 'tiktok'];
+    const allPlatforms = [
+      "discord",
+      "reddit",
+      "twitter",
+      "instagram",
+      "facebook",
+      "tiktok",
+    ];
     for (const p of allPlatforms) {
       const envKey = `BROWSER_AGENT_${p.toUpperCase()}_ENABLED`;
-      process.env[envKey] = platforms.includes(p) ? 'true' : 'false';
+      process.env[envKey] = platforms.includes(p) ? "true" : "false";
     }
   }
 
   if (force) {
-    process.env.BROWSER_AGENT_ENABLED = 'true';
+    process.env.BROWSER_AGENT_ENABLED = "true";
   }
 
   // Build scan targets
-  const targets: ScanTarget[] = tickers.map(ticker => ({
+  const targets: ScanTarget[] = tickers.map((ticker) => ({
     ticker,
-    name: '',
+    name: "",
     riskScore: 0,
-    riskLevel: 'HIGH' as const,
+    riskLevel: "HIGH" as const,
     signals: [],
   }));
 
-  console.log('='.repeat(70));
-  console.log('BROWSER AGENT SCAN');
+  console.log("=".repeat(70));
+  console.log("BROWSER AGENT SCAN");
   console.log(`Date: ${date}`);
-  console.log(`Tickers: ${tickers.join(', ')}`);
+  console.log(`Tickers: ${tickers.join(", ")}`);
   if (platforms.length > 0) {
-    console.log(`Platforms: ${platforms.join(', ')}`);
+    console.log(`Platforms: ${platforms.join(", ")}`);
   }
-  console.log('='.repeat(70));
+  console.log("=".repeat(70));
 
   const startTime = Date.now();
 
@@ -112,16 +129,18 @@ async function main(): Promise<void> {
     evidenceCollector.saveEvidenceFile(date);
 
     // Print results
-    console.log('\n' + '='.repeat(70));
-    console.log('SCAN RESULTS');
-    console.log('='.repeat(70));
+    console.log("\n" + "=".repeat(70));
+    console.log("SCAN RESULTS");
+    console.log("=".repeat(70));
 
     let totalMentions = 0;
     for (const result of results) {
       if (result.success) {
         console.log(`\n  ${result.platform} (${result.scanner}):`);
         console.log(`    Mentions found: ${result.mentionsFound}`);
-        console.log(`    Activity: ${result.activityLevel} | Promotion risk: ${result.promotionRisk}`);
+        console.log(
+          `    Activity: ${result.activityLevel} | Promotion risk: ${result.promotionRisk}`,
+        );
         totalMentions += result.mentionsFound;
 
         // Print top mentions
@@ -130,10 +149,17 @@ async function main(): Promise<void> {
           .slice(0, 5);
 
         for (const mention of topMentions) {
-          const flag = mention.promotionScore >= 50 ? '🔴' : mention.promotionScore >= 30 ? '🟡' : '🟢';
-          console.log(`    ${flag} [${mention.promotionScore}/100] @${mention.author}: ${mention.title.substring(0, 60)}`);
+          const flag =
+            mention.promotionScore >= 50
+              ? "🔴"
+              : mention.promotionScore >= 30
+                ? "🟡"
+                : "🟢";
+          console.log(
+            `    ${flag} [${mention.promotionScore}/100] @${mention.author}: ${mention.title.substring(0, 60)}`,
+          );
           if (mention.redFlags.length > 0) {
-            console.log(`       Flags: ${mention.redFlags.join(', ')}`);
+            console.log(`       Flags: ${mention.redFlags.join(", ")}`);
           }
         }
       } else {
@@ -142,12 +168,11 @@ async function main(): Promise<void> {
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`\n${'─'.repeat(70)}`);
+    console.log(`\n${"─".repeat(70)}`);
     console.log(`Total mentions: ${totalMentions} | Duration: ${duration}s`);
-    console.log('─'.repeat(70));
+    console.log("─".repeat(70));
 
     process.exit(0);
-
   } catch (error: any) {
     console.error(`\nScan failed: ${error.message}`);
     process.exit(1);

@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       stocks:
-        description: 'Comma-separated stock symbols (e.g., NUWE,QNCX,MSGY)'
+        description: "Comma-separated stock symbols (e.g., NUWE,QNCX,MSGY)"
         required: false
-        default: 'NUWE,QNCX,MSGY,MDCXW,TIRX,YJ,KXIN,XHLD,ECDA,DAICW,CAPTW,BNAIW,BATL,VGAS,MRNO,MOBBW,PIII,SQFTP,LSH,WLDSW'
+        default: "NUWE,QNCX,MSGY,MDCXW,TIRX,YJ,KXIN,XHLD,ECDA,DAICW,CAPTW,BNAIW,BATL,VGAS,MRNO,MOBBW,PIII,SQFTP,LSH,WLDSW"
         type: string
 
 permissions:
@@ -27,8 +27,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci

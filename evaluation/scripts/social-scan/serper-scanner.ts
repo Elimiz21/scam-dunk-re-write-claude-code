@@ -9,124 +9,144 @@
  */
 
 import {
-  ScanTarget, PlatformScanResult, SocialMention,
-  calculatePromotionScore, calculatePlatformSpecificScore, SocialScanner
-} from './types';
-import type { PlatformName } from './platform-patterns';
+  ScanTarget,
+  PlatformScanResult,
+  SocialMention,
+  calculatePromotionScore,
+  calculatePlatformSpecificScore,
+  SocialScanner,
+} from "./types";
+import type { PlatformName } from "./platform-patterns";
 
-const SERPER_URL = 'https://google.serper.dev/search';
+const SERPER_URL = "https://google.serper.dev/search";
 
 // Social media domains to target
 const SOCIAL_DOMAINS = [
-  'reddit.com',
-  'twitter.com',
-  'x.com',
-  'youtube.com',
-  'stocktwits.com',
-  'tiktok.com',
-  'discord.com',
-  'facebook.com',
-  'instagram.com',
-  'threads.net',
-  'seekingalpha.com',
-  'investorshub.advfn.com',
-  'finance.yahoo.com',
+  "reddit.com",
+  "twitter.com",
+  "x.com",
+  "youtube.com",
+  "stocktwits.com",
+  "tiktok.com",
+  "discord.com",
+  "facebook.com",
+  "instagram.com",
+  "threads.net",
+  "seekingalpha.com",
+  "investorshub.advfn.com",
+  "finance.yahoo.com",
 ];
 
-function detectPlatform(url: string): SocialMention['platform'] {
+function detectPlatform(url: string): SocialMention["platform"] {
   const lower = url.toLowerCase();
-  if (lower.includes('reddit.com')) return 'Reddit';
-  if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'YouTube';
-  if (lower.includes('twitter.com') || lower.includes('x.com')) return 'Twitter';
-  if (lower.includes('stocktwits.com')) return 'StockTwits';
-  if (lower.includes('tiktok.com')) return 'TikTok';
-  if (lower.includes('discord.com') || lower.includes('discord.gg')) return 'Discord';
-  if (lower.includes('facebook.com') || lower.includes('fb.com')) return 'Web';
-  if (lower.includes('instagram.com')) return 'Web';
-  if (lower.includes('threads.net')) return 'Web';
-  return 'Forum';
+  if (lower.includes("reddit.com")) return "Reddit";
+  if (lower.includes("youtube.com") || lower.includes("youtu.be"))
+    return "YouTube";
+  if (lower.includes("twitter.com") || lower.includes("x.com"))
+    return "Twitter";
+  if (lower.includes("stocktwits.com")) return "StockTwits";
+  if (lower.includes("tiktok.com")) return "TikTok";
+  if (lower.includes("discord.com") || lower.includes("discord.gg"))
+    return "Discord";
+  if (lower.includes("facebook.com") || lower.includes("fb.com")) return "Web";
+  if (lower.includes("instagram.com")) return "Web";
+  if (lower.includes("threads.net")) return "Web";
+  return "Forum";
 }
 
 /** Map social mention platform to our platform-specific pattern key */
-function toPlatformPatternName(platform: SocialMention['platform']): PlatformName | null {
+function toPlatformPatternName(
+  platform: SocialMention["platform"],
+): PlatformName | null {
   switch (platform) {
-    case 'Reddit': return 'reddit';
-    case 'YouTube': return 'youtube';
-    case 'Twitter': return 'twitter';
-    case 'StockTwits': return 'stocktwits';
-    case 'TikTok': return 'tiktok';
-    case 'Discord': return 'discord_telegram';
-    default: return null;
+    case "Reddit":
+      return "reddit";
+    case "YouTube":
+      return "youtube";
+    case "Twitter":
+      return "twitter";
+    case "StockTwits":
+      return "stocktwits";
+    case "TikTok":
+      return "tiktok";
+    case "Discord":
+      return "discord_telegram";
+    default:
+      return null;
   }
 }
 
 function detectSource(url: string): string {
   const lower = url.toLowerCase();
-  if (lower.includes('reddit.com/r/')) {
+  if (lower.includes("reddit.com/r/")) {
     const match = url.match(/reddit\.com\/r\/([^\/]+)/i);
-    return match ? `r/${match[1]}` : 'Reddit';
+    return match ? `r/${match[1]}` : "Reddit";
   }
-  if (lower.includes('youtube.com')) return 'YouTube';
-  if (lower.includes('twitter.com') || lower.includes('x.com')) {
+  if (lower.includes("youtube.com")) return "YouTube";
+  if (lower.includes("twitter.com") || lower.includes("x.com")) {
     const match = url.match(/(?:twitter|x)\.com\/([^\/]+)/i);
-    return match ? `@${match[1]}` : 'Twitter/X';
+    return match ? `@${match[1]}` : "Twitter/X";
   }
-  if (lower.includes('stocktwits.com')) return 'StockTwits';
-  if (lower.includes('tiktok.com')) {
+  if (lower.includes("stocktwits.com")) return "StockTwits";
+  if (lower.includes("tiktok.com")) {
     const match = url.match(/tiktok\.com\/@([^\/]+)/i);
-    return match ? `@${match[1]}` : 'TikTok';
+    return match ? `@${match[1]}` : "TikTok";
   }
-  if (lower.includes('seekingalpha.com')) return 'Seeking Alpha';
-  if (lower.includes('finance.yahoo.com')) return 'Yahoo Finance';
-  if (lower.includes('investorshub')) return 'InvestorsHub';
-  if (lower.includes('facebook.com')) {
+  if (lower.includes("seekingalpha.com")) return "Seeking Alpha";
+  if (lower.includes("finance.yahoo.com")) return "Yahoo Finance";
+  if (lower.includes("investorshub")) return "InvestorsHub";
+  if (lower.includes("facebook.com")) {
     const match = url.match(/facebook\.com\/(?:groups\/)?([^\/]+)/i);
-    return match ? `Facebook: ${match[1]}` : 'Facebook';
+    return match ? `Facebook: ${match[1]}` : "Facebook";
   }
-  if (lower.includes('instagram.com')) {
+  if (lower.includes("instagram.com")) {
     const match = url.match(/instagram\.com\/([^\/]+)/i);
-    return match ? `@${match[1]} (Instagram)` : 'Instagram';
+    return match ? `@${match[1]} (Instagram)` : "Instagram";
   }
-  if (lower.includes('threads.net')) {
+  if (lower.includes("threads.net")) {
     const match = url.match(/threads\.net\/@([^\/]+)/i);
-    return match ? `@${match[1]} (Threads)` : 'Threads';
+    return match ? `@${match[1]} (Threads)` : "Threads";
   }
-  try { return new URL(url).hostname; } catch { return 'Unknown'; }
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "Unknown";
+  }
 }
 
-async function serperSearch(
-  apiKey: string,
-  query: string
-): Promise<any[]> {
+async function serperSearch(apiKey: string, query: string): Promise<any[]> {
   try {
     const response = await fetch(SERPER_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'X-API-KEY': apiKey,
-        'Content-Type': 'application/json'
+        "X-API-KEY": apiKey,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         q: query,
         num: 20,
-        tbs: 'qdr:w'
-      })
+        tbs: "qdr:w",
+      }),
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      console.error(`Serper error ${response.status}:`, error.message || error.error);
+      console.error(
+        `Serper error ${response.status}:`,
+        error.message || error.error,
+      );
       return [];
     }
     const data = await response.json();
     return data.organic || [];
   } catch (error) {
-    console.error('Serper request failed:', error);
+    console.error("Serper request failed:", error);
     return [];
   }
 }
 
 export class SerperScanner implements SocialScanner {
-  name = 'serper_dev';
-  platform = 'Multi-Platform';
+  name = "serper_dev";
+  platform = "Multi-Platform";
 
   isConfigured(): boolean {
     return !!process.env.SERPER_API_KEY;
@@ -137,20 +157,24 @@ export class SerperScanner implements SocialScanner {
     const apiKey = process.env.SERPER_API_KEY;
 
     if (!apiKey) {
-      return [{
-        platform: 'Multi-Platform (Serper)',
-        scanner: this.name,
-        success: false,
-        error: 'SERPER_API_KEY not configured',
-        mentionsFound: 0,
-        mentions: [],
-        activityLevel: 'none',
-        promotionRisk: 'low',
-        scanDuration: Date.now() - startTime,
-      }];
+      return [
+        {
+          platform: "Multi-Platform (Serper)",
+          scanner: this.name,
+          success: false,
+          error: "SERPER_API_KEY not configured",
+          mentionsFound: 0,
+          mentions: [],
+          activityLevel: "none",
+          promotionRisk: "low",
+          scanDuration: Date.now() - startTime,
+        },
+      ];
     }
 
-    console.log(`  [Serper] Searching ${targets.length} tickers across social media...`);
+    console.log(
+      `  [Serper] Searching ${targets.length} tickers across social media...`,
+    );
 
     const allMentions: SocialMention[] = [];
     const seenUrls = new Set<string>();
@@ -159,25 +183,28 @@ export class SerperScanner implements SocialScanner {
       console.log(`    Searching for ${target.ticker}...`);
 
       // Build a site-restricted query targeting social media domains
-      const siteQueries = SOCIAL_DOMAINS.map(d => `site:${d}`).join(' OR ');
+      const siteQueries = SOCIAL_DOMAINS.map((d) => `site:${d}`).join(" OR ");
       const query = `("$${target.ticker}" OR "${target.ticker} stock") (${siteQueries})`;
 
       try {
         const results = await serperSearch(apiKey, query);
 
         for (const result of results) {
-          const url = result.link || '';
+          const url = result.link || "";
           if (seenUrls.has(url)) continue;
           seenUrls.add(url);
 
-          const title = result.title || '';
-          const snippet = result.snippet || '';
+          const title = result.title || "";
+          const snippet = result.snippet || "";
           const combinedText = `${title} ${snippet}`;
 
           // Verify ticker is actually mentioned
           const lower = combinedText.toLowerCase();
           const tickerLower = target.ticker.toLowerCase();
-          if (!lower.includes(tickerLower) && !lower.includes(`$${tickerLower}`)) {
+          if (
+            !lower.includes(tickerLower) &&
+            !lower.includes(`$${tickerLower}`)
+          ) {
             continue;
           }
 
@@ -201,14 +228,14 @@ export class SerperScanner implements SocialScanner {
           allMentions.push({
             platform,
             source,
-            discoveredVia: 'serper_dev',
+            discoveredVia: "serper_dev",
             title: title.substring(0, 300),
             content: snippet.substring(0, 500),
             url,
-            author: 'unknown',
+            author: "unknown",
             postDate,
             engagement: {},
-            sentiment: adjustedScore > 25 ? 'bullish' : 'neutral',
+            sentiment: adjustedScore > 25 ? "bullish" : "neutral",
             isPromotional: adjustedScore >= 25,
             promotionScore: adjustedScore,
             redFlags: flags,
@@ -218,25 +245,34 @@ export class SerperScanner implements SocialScanner {
         console.error(`Serper error for ${target.ticker}:`, error.message);
       }
 
-      await new Promise(r => setTimeout(r, 100)); // Serper handles more load, but gentle pause
+      await new Promise((r) => setTimeout(r, 100)); // Serper handles more load, but gentle pause
     }
 
-    const avgScore = allMentions.length > 0
-      ? allMentions.reduce((sum, m) => sum + m.promotionScore, 0) / allMentions.length
-      : 0;
+    const avgScore =
+      allMentions.length > 0
+        ? allMentions.reduce((sum, m) => sum + m.promotionScore, 0) /
+          allMentions.length
+        : 0;
 
-    return [{
-      platform: 'Multi-Platform (Serper.dev)',
-      scanner: this.name,
-      success: true,
-      mentionsFound: allMentions.length,
-      mentions: allMentions,
-      activityLevel: allMentions.length >= 20 ? 'high'
-        : allMentions.length >= 5 ? 'medium'
-          : allMentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 40 ? 'high'
-        : avgScore >= 20 ? 'medium' : 'low',
-      scanDuration: Date.now() - startTime,
-    }];
+    return [
+      {
+        platform: "Multi-Platform (Serper.dev)",
+        scanner: this.name,
+        success: true,
+        mentionsFound: allMentions.length,
+        mentions: allMentions,
+        activityLevel:
+          allMentions.length >= 20
+            ? "high"
+            : allMentions.length >= 5
+              ? "medium"
+              : allMentions.length > 0
+                ? "low"
+                : "none",
+        promotionRisk:
+          avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
+        scanDuration: Date.now() - startTime,
+      },
+    ];
   }
 }

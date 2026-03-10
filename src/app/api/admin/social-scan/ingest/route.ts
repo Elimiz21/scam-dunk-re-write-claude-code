@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,13 +29,23 @@ export async function POST(request: NextRequest) {
     if (rawText.length > MAX_BODY_SIZE) {
       return NextResponse.json(
         { error: "Request body too large" },
-        { status: 413 }
+        { status: 413 },
       );
     }
 
     const body = JSON.parse(rawText);
-    const { scanId, scanDate, status, tickersScanned, tickersWithMentions,
-            totalMentions, platformsUsed, results, errors, duration } = body;
+    const {
+      scanId,
+      scanDate,
+      status,
+      tickersScanned,
+      tickersWithMentions,
+      totalMentions,
+      platformsUsed,
+      results,
+      errors,
+      duration,
+    } = body;
 
     // Create or update the scan run
     const scanRun = await prisma.socialScanRun.upsert({
@@ -66,8 +76,8 @@ export async function POST(request: NextRequest) {
     let mentionsIngested = 0;
     if (results && Array.isArray(results)) {
       for (const tickerResult of results) {
-        for (const platform of (tickerResult.platforms || [])) {
-          for (const mention of (platform.mentions || [])) {
+        for (const platform of tickerResult.platforms || []) {
+          for (const mention of platform.mentions || []) {
             await prisma.socialMention.create({
               data: {
                 scanRunId: scanRun.id,
@@ -112,7 +122,7 @@ export async function POST(request: NextRequest) {
     console.error("Social scan ingest error:", error);
     return NextResponse.json(
       { error: "Failed to ingest scan results" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -7,11 +7,15 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const session = await getAdminSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { mentionId, url, ticker, platform } = await request.json();
     if (!mentionId || !url || !ticker || !platform) {
-      return NextResponse.json({ error: "mentionId, url, ticker, and platform are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "mentionId, url, ticker, and platform are required" },
+        { status: 400 },
+      );
     }
 
     const today = new Date();
@@ -61,6 +65,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, evidence });
   } catch (error) {
     console.error("Capture screenshot error:", error);
-    return NextResponse.json({ error: "Failed to capture screenshot" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to capture screenshot" },
+      { status: 500 },
+    );
   }
 }

@@ -7,12 +7,20 @@
  * or saved locally.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import type { BrowserSession, PlatformName, BrowserEvidence } from './types';
+import * as fs from "fs";
+import * as path from "path";
+import type { BrowserSession, PlatformName, BrowserEvidence } from "./types";
 
-const EVIDENCE_DIR = path.join(__dirname, '..', '..', '..', 'evaluation', 'results', 'browser-evidence');
-const SCREENSHOT_DIR = path.join(EVIDENCE_DIR, 'screenshots');
+const EVIDENCE_DIR = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "evaluation",
+  "results",
+  "browser-evidence",
+);
+const SCREENSHOT_DIR = path.join(EVIDENCE_DIR, "screenshots");
 
 export class EvidenceCollector {
   private evidence: BrowserEvidence[] = [];
@@ -36,11 +44,11 @@ export class EvidenceCollector {
     session: BrowserSession,
     url: string,
     ticker: string,
-    platform: PlatformName
+    platform: PlatformName,
   ): Promise<string | null> {
     try {
       this.screenshotCount++;
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const filename = `${platform}-${ticker}-${timestamp}.png`;
       const filepath = path.join(SCREENSHOT_DIR, filename);
 
@@ -65,19 +73,26 @@ export class EvidenceCollector {
    * Save all collected evidence to a JSON file for this scan date.
    */
   saveEvidenceFile(scanDate: string): string {
-    const outputPath = path.join(EVIDENCE_DIR, `browser-evidence-${scanDate}.json`);
+    const outputPath = path.join(
+      EVIDENCE_DIR,
+      `browser-evidence-${scanDate}.json`,
+    );
 
     // Append to existing file if it exists
     let existing: BrowserEvidence[] = [];
     if (fs.existsSync(outputPath)) {
       try {
-        existing = JSON.parse(fs.readFileSync(outputPath, 'utf-8'));
-      } catch { /* start fresh */ }
+        existing = JSON.parse(fs.readFileSync(outputPath, "utf-8"));
+      } catch {
+        /* start fresh */
+      }
     }
 
     const combined = [...existing, ...this.evidence];
     fs.writeFileSync(outputPath, JSON.stringify(combined, null, 2));
-    console.log(`  Evidence saved: ${outputPath} (${combined.length} items, ${this.screenshotCount} screenshots)`);
+    console.log(
+      `  Evidence saved: ${outputPath} (${combined.length} items, ${this.screenshotCount} screenshots)`,
+    );
 
     return outputPath;
   }
@@ -85,7 +100,11 @@ export class EvidenceCollector {
   /**
    * Get summary of collected evidence.
    */
-  getSummary(): { totalEvidence: number; totalScreenshots: number; byPlatform: Record<string, number> } {
+  getSummary(): {
+    totalEvidence: number;
+    totalScreenshots: number;
+    byPlatform: Record<string, number>;
+  } {
     const byPlatform: Record<string, number> = {};
     for (const ev of this.evidence) {
       byPlatform[ev.platform] = (byPlatform[ev.platform] || 0) + 1;
