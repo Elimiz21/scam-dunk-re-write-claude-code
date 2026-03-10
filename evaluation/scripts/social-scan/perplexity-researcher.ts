@@ -9,11 +9,14 @@
  */
 
 import {
-  ScanTarget, PlatformScanResult, SocialMention,
-  calculatePromotionScore, SocialScanner
-} from './types';
+  ScanTarget,
+  PlatformScanResult,
+  SocialMention,
+  calculatePromotionScore,
+  SocialScanner,
+} from "./types";
 
-const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
+const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 interface PerplexityResponse {
   choices: Array<{
@@ -24,23 +27,27 @@ interface PerplexityResponse {
   citations?: string[];
 }
 
-async function queryPerplexity(apiKey: string, prompt: string): Promise<PerplexityResponse | null> {
+async function queryPerplexity(
+  apiKey: string,
+  prompt: string,
+): Promise<PerplexityResponse | null> {
   try {
     const response = await fetch(PERPLEXITY_API_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'sonar',
+        model: "sonar",
         messages: [
           {
-            role: 'system',
-            content: 'You are a stock market social media researcher. Find REAL, CURRENT social media mentions of specific stock tickers. Only report mentions you can verify with actual URLs. Respond ONLY in valid JSON format.',
+            role: "system",
+            content:
+              "You are a stock market social media researcher. Find REAL, CURRENT social media mentions of specific stock tickers. Only report mentions you can verify with actual URLs. Respond ONLY in valid JSON format.",
           },
           {
-            role: 'user',
+            role: "user",
             content: prompt,
           },
         ],
@@ -58,7 +65,7 @@ async function queryPerplexity(apiKey: string, prompt: string): Promise<Perplexi
 
     return response.json();
   } catch (error) {
-    console.error('Perplexity query error:', error);
+    console.error("Perplexity query error:", error);
     return null;
   }
 }
@@ -66,12 +73,12 @@ async function queryPerplexity(apiKey: string, prompt: string): Promise<Perplexi
 function parsePerplexityResponse(
   response: PerplexityResponse,
   ticker: string,
-  citations: string[]
+  citations: string[],
 ): SocialMention[] {
   const mentions: SocialMention[] = [];
 
   try {
-    const content = response.choices[0]?.message?.content || '';
+    const content = response.choices[0]?.message?.content || "";
 
     // Try to parse as JSON
     const jsonMatch = content.match(/\[[\s\S]*\]/);
@@ -84,36 +91,39 @@ function parsePerplexityResponse(
       if (!item.url && !item.platform) continue;
 
       // Determine platform from URL or stated platform
-      let platform: SocialMention['platform'] = 'Web';
-      const url = (item.url || '').toLowerCase();
-      if (url.includes('reddit.com')) platform = 'Reddit';
-      else if (url.includes('youtube.com') || url.includes('youtu.be')) platform = 'YouTube';
-      else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'Twitter';
-      else if (url.includes('stocktwits.com')) platform = 'StockTwits';
-      else if (url.includes('tiktok.com')) platform = 'TikTok';
-      else if (url.includes('discord.com') || url.includes('discord.gg')) platform = 'Discord';
+      let platform: SocialMention["platform"] = "Web";
+      const url = (item.url || "").toLowerCase();
+      if (url.includes("reddit.com")) platform = "Reddit";
+      else if (url.includes("youtube.com") || url.includes("youtu.be"))
+        platform = "YouTube";
+      else if (url.includes("twitter.com") || url.includes("x.com"))
+        platform = "Twitter";
+      else if (url.includes("stocktwits.com")) platform = "StockTwits";
+      else if (url.includes("tiktok.com")) platform = "TikTok";
+      else if (url.includes("discord.com") || url.includes("discord.gg"))
+        platform = "Discord";
       else if (item.platform) {
         const p = item.platform.toLowerCase();
-        if (p.includes('reddit')) platform = 'Reddit';
-        else if (p.includes('youtube')) platform = 'YouTube';
-        else if (p.includes('twitter') || p.includes('x')) platform = 'Twitter';
-        else if (p.includes('stocktwits')) platform = 'StockTwits';
-        else if (p.includes('tiktok')) platform = 'TikTok';
-        else if (p.includes('discord')) platform = 'Discord';
-        else platform = 'Forum';
+        if (p.includes("reddit")) platform = "Reddit";
+        else if (p.includes("youtube")) platform = "YouTube";
+        else if (p.includes("twitter") || p.includes("x")) platform = "Twitter";
+        else if (p.includes("stocktwits")) platform = "StockTwits";
+        else if (p.includes("tiktok")) platform = "TikTok";
+        else if (p.includes("discord")) platform = "Discord";
+        else platform = "Forum";
       }
 
-      const text = `${item.title || ''} ${item.content || item.summary || ''}`;
+      const text = `${item.title || ""} ${item.content || item.summary || ""}`;
       const { score, flags } = calculatePromotionScore(text);
 
       mentions.push({
         platform,
         source: item.source || item.subreddit || item.channel || platform,
-        discoveredVia: 'perplexity',
-        title: item.title || '',
-        content: (item.content || item.summary || '').substring(0, 500),
-        url: item.url || '',
-        author: item.author || item.username || 'unknown',
+        discoveredVia: "perplexity",
+        title: item.title || "",
+        content: (item.content || item.summary || "").substring(0, 500),
+        url: item.url || "",
+        author: item.author || item.username || "unknown",
         postDate: item.date || item.posted || new Date().toISOString(),
         engagement: {
           upvotes: item.upvotes || item.score || undefined,
@@ -121,41 +131,42 @@ function parsePerplexityResponse(
           views: item.views || undefined,
           likes: item.likes || undefined,
         },
-        sentiment: score > 30 ? 'bullish' : item.sentiment || 'neutral',
+        sentiment: score > 30 ? "bullish" : item.sentiment || "neutral",
         isPromotional: score >= 25,
         promotionScore: score,
         redFlags: flags,
       });
     }
   } catch (error) {
-    console.error('Failed to parse Perplexity response:', error);
+    console.error("Failed to parse Perplexity response:", error);
   }
 
   // Also create mentions from citations that weren't in the parsed JSON
   for (const citationUrl of citations) {
-    const alreadyHasUrl = mentions.some(m => m.url === citationUrl);
+    const alreadyHasUrl = mentions.some((m) => m.url === citationUrl);
     if (alreadyHasUrl) continue;
 
-    let platform: SocialMention['platform'] = 'Web';
+    let platform: SocialMention["platform"] = "Web";
     const url = citationUrl.toLowerCase();
-    if (url.includes('reddit.com')) platform = 'Reddit';
-    else if (url.includes('youtube.com')) platform = 'YouTube';
-    else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'Twitter';
-    else if (url.includes('stocktwits.com')) platform = 'StockTwits';
-    else if (url.includes('tiktok.com')) platform = 'TikTok';
+    if (url.includes("reddit.com")) platform = "Reddit";
+    else if (url.includes("youtube.com")) platform = "YouTube";
+    else if (url.includes("twitter.com") || url.includes("x.com"))
+      platform = "Twitter";
+    else if (url.includes("stocktwits.com")) platform = "StockTwits";
+    else if (url.includes("tiktok.com")) platform = "TikTok";
     else continue; // Skip non-social-media citations
 
     mentions.push({
       platform,
       source: platform,
-      discoveredVia: 'perplexity',
+      discoveredVia: "perplexity",
       title: `${ticker} mention found via web search`,
       content: `Social media mention found at: ${citationUrl}`,
       url: citationUrl,
-      author: 'unknown',
+      author: "unknown",
       postDate: new Date().toISOString(),
       engagement: {},
-      sentiment: 'neutral',
+      sentiment: "neutral",
       isPromotional: false,
       promotionScore: 0,
       redFlags: [],
@@ -166,8 +177,8 @@ function parsePerplexityResponse(
 }
 
 export class PerplexityResearcher implements SocialScanner {
-  name = 'perplexity';
-  platform = 'Multi-Platform';
+  name = "perplexity";
+  platform = "Multi-Platform";
 
   isConfigured(): boolean {
     return !!process.env.PERPLEXITY_API_KEY;
@@ -178,20 +189,24 @@ export class PerplexityResearcher implements SocialScanner {
     const apiKey = process.env.PERPLEXITY_API_KEY;
 
     if (!apiKey) {
-      return [{
-        platform: 'Multi-Platform (Perplexity)',
-        scanner: this.name,
-        success: false,
-        error: 'Perplexity API key not configured',
-        mentionsFound: 0,
-        mentions: [],
-        activityLevel: 'none',
-        promotionRisk: 'low',
-        scanDuration: Date.now() - startTime,
-      }];
+      return [
+        {
+          platform: "Multi-Platform (Perplexity)",
+          scanner: this.name,
+          success: false,
+          error: "Perplexity API key not configured",
+          mentionsFound: 0,
+          mentions: [],
+          activityLevel: "none",
+          promotionRisk: "low",
+          scanDuration: Date.now() - startTime,
+        },
+      ];
     }
 
-    console.log(`  [Perplexity] Researching ${targets.length} tickers across social media...`);
+    console.log(
+      `  [Perplexity] Researching ${targets.length} tickers across social media...`,
+    );
 
     const allMentions: SocialMention[] = [];
 
@@ -199,13 +214,15 @@ export class PerplexityResearcher implements SocialScanner {
     const batchSize = 5;
     for (let i = 0; i < targets.length; i += batchSize) {
       const batch = targets.slice(i, i + batchSize);
-      const tickerList = batch.map(t => `$${t.ticker} (${t.name})`).join(', ');
+      const tickerList = batch
+        .map((t) => `$${t.ticker} (${t.name})`)
+        .join(", ");
 
       const prompt = `Search for recent social media mentions (past 7 days) of these stock tickers: ${tickerList}
 
 Look on these platforms specifically:
 - Reddit (especially r/wallstreetbets, r/pennystocks, r/shortsqueeze, r/stocks)
-- Twitter/X (cashtags like $${batch.map(t => t.ticker).join(', $')})
+- Twitter/X (cashtags like $${batch.map((t) => t.ticker).join(", $")})
 - YouTube (stock analysis/promotion videos)
 - StockTwits
 - TikTok (stock tips)
@@ -231,15 +248,21 @@ IMPORTANT: Only include REAL mentions with actual URLs. Do not fabricate or gues
 
 Return ONLY the JSON array, no other text.`;
 
-      console.log(`    Batch ${Math.floor(i / batchSize) + 1}: ${batch.map(t => t.ticker).join(', ')}...`);
+      console.log(
+        `    Batch ${Math.floor(i / batchSize) + 1}: ${batch.map((t) => t.ticker).join(", ")}...`,
+      );
 
       const response = await queryPerplexity(apiKey, prompt);
       if (response) {
         const citations = response.citations || [];
         for (const target of batch) {
-          const mentions = parsePerplexityResponse(response, target.ticker, citations);
+          const mentions = parsePerplexityResponse(
+            response,
+            target.ticker,
+            citations,
+          );
           // Filter to only mentions relevant to this ticker
-          const relevant = mentions.filter(m => {
+          const relevant = mentions.filter((m) => {
             const text = `${m.title} ${m.content} ${m.url}`.toLowerCase();
             return text.includes(target.ticker.toLowerCase());
           });
@@ -248,25 +271,34 @@ Return ONLY the JSON array, no other text.`;
       }
 
       // Rate limit
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
     }
 
-    const avgScore = allMentions.length > 0
-      ? allMentions.reduce((sum, m) => sum + m.promotionScore, 0) / allMentions.length
-      : 0;
+    const avgScore =
+      allMentions.length > 0
+        ? allMentions.reduce((sum, m) => sum + m.promotionScore, 0) /
+          allMentions.length
+        : 0;
 
-    return [{
-      platform: 'Multi-Platform (Perplexity)',
-      scanner: this.name,
-      success: true,
-      mentionsFound: allMentions.length,
-      mentions: allMentions,
-      activityLevel: allMentions.length >= 15 ? 'high'
-        : allMentions.length >= 5 ? 'medium'
-        : allMentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 40 ? 'high'
-        : avgScore >= 20 ? 'medium' : 'low',
-      scanDuration: Date.now() - startTime,
-    }];
+    return [
+      {
+        platform: "Multi-Platform (Perplexity)",
+        scanner: this.name,
+        success: true,
+        mentionsFound: allMentions.length,
+        mentions: allMentions,
+        activityLevel:
+          allMentions.length >= 15
+            ? "high"
+            : allMentions.length >= 5
+              ? "medium"
+              : allMentions.length > 0
+                ? "low"
+                : "none",
+        promotionRisk:
+          avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
+        scanDuration: Date.now() - startTime,
+      },
+    ];
   }
 }

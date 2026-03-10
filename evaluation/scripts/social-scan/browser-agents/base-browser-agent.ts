@@ -12,22 +12,39 @@
  * - Evidence collection (screenshots for high-score findings)
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import type { SocialScanner, ScanTarget, PlatformScanResult, SocialMention } from '../types';
-import { calculatePromotionScore } from '../types';
-import { createBrowserProvider, randomDelay } from './browser-provider';
-import { SessionManager } from './session-manager';
-import { RateLimiter } from './rate-limiter';
-import { CostTracker } from './cost-tracker';
-import { EvidenceCollector } from './evidence-collector';
-import type { BrowserProvider, BrowserSession, PlatformName, AgentProgress } from './types';
+import * as fs from "fs";
+import * as path from "path";
+import type {
+  SocialScanner,
+  ScanTarget,
+  PlatformScanResult,
+  SocialMention,
+} from "../types";
+import { calculatePromotionScore } from "../types";
+import { createBrowserProvider, randomDelay } from "./browser-provider";
+import { SessionManager } from "./session-manager";
+import { RateLimiter } from "./rate-limiter";
+import { CostTracker } from "./cost-tracker";
+import { EvidenceCollector } from "./evidence-collector";
+import type {
+  BrowserProvider,
+  BrowserSession,
+  PlatformName,
+  AgentProgress,
+} from "./types";
 
-const PROGRESS_DIR = path.join(__dirname, '..', '..', '..', 'evaluation', 'browser-sessions');
+const PROGRESS_DIR = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "evaluation",
+  "browser-sessions",
+);
 
 export abstract class BaseBrowserAgent implements SocialScanner {
-  abstract name: string;      // e.g., "browser_discord"
-  abstract platform: string;  // e.g., "Discord"
+  abstract name: string; // e.g., "browser_discord"
+  abstract platform: string; // e.g., "Discord"
 
   protected abstract platformName: PlatformName; // e.g., "discord"
   protected provider: BrowserProvider;
@@ -36,7 +53,7 @@ export abstract class BaseBrowserAgent implements SocialScanner {
   protected rateLimiter: RateLimiter;
   protected costTracker: CostTracker;
   protected evidenceCollector: EvidenceCollector;
-  private sessionId: string = '';
+  private sessionId: string = "";
 
   constructor() {
     this.provider = createBrowserProvider();
@@ -54,10 +71,10 @@ export abstract class BaseBrowserAgent implements SocialScanner {
     const enabled = process.env[envKey];
     // Default enabled status comes from the platform config
     if (enabled === undefined) {
-      const { DEFAULT_PLATFORM_CONFIGS } = require('./types');
+      const { DEFAULT_PLATFORM_CONFIGS } = require("./types");
       return DEFAULT_PLATFORM_CONFIGS[this.platformName]?.enabled ?? false;
     }
-    return enabled === 'true';
+    return enabled === "true";
   }
 
   /**
@@ -70,8 +87,10 @@ export abstract class BaseBrowserAgent implements SocialScanner {
 
     // Check daily budget
     if (!this.costTracker.hasBudget()) {
-      console.log(`  ${this.platform}: Daily budget exhausted (${this.costTracker.getRemainingMinutes().toFixed(1)} min remaining)`);
-      return [this.buildErrorResult('Daily budget exhausted', startTime)];
+      console.log(
+        `  ${this.platform}: Daily budget exhausted (${this.costTracker.getRemainingMinutes().toFixed(1)} min remaining)`,
+      );
+      return [this.buildErrorResult("Daily budget exhausted", startTime)];
     }
 
     this.costTracker.startSession(this.sessionId);
@@ -84,7 +103,9 @@ export abstract class BaseBrowserAgent implements SocialScanner {
         const saved = this.loadProgress();
         completedMentions = saved.mentionsSoFar;
         remaining = saved.remainingTickers;
-        console.log(`  ${this.platform}: Resuming - ${saved.completedTickers.length} tickers done, ${remaining.length} remaining`);
+        console.log(
+          `  ${this.platform}: Resuming - ${saved.completedTickers.length} tickers done, ${remaining.length} remaining`,
+        );
       }
 
       // Launch browser
@@ -92,9 +113,12 @@ export abstract class BaseBrowserAgent implements SocialScanner {
       this.session = await this.provider.launch();
 
       // Login (load cookies first, re-auth if needed)
-      const loggedIn = await this.sessionManager.ensureLoggedIn(this.session, this.platformName);
+      const loggedIn = await this.sessionManager.ensureLoggedIn(
+        this.session,
+        this.platformName,
+      );
       if (!loggedIn) {
-        return [this.buildErrorResult('Login failed', startTime)];
+        return [this.buildErrorResult("Login failed", startTime)];
       }
 
       // Scan each ticker
@@ -122,26 +146,32 @@ export abstract class BaseBrowserAgent implements SocialScanner {
           this.rateLimiter.recordAction(this.platformName);
 
           // Take screenshots for high-score findings
-          for (const mention of mentions.filter(m => m.promotionScore >= 40)) {
+          for (const mention of mentions.filter(
+            (m) => m.promotionScore >= 40,
+          )) {
             await this.evidenceCollector.captureScreenshot(
               this.session,
               mention.url,
               target.ticker,
-              this.platformName
+              this.platformName,
             );
           }
         } catch (error: any) {
-          console.error(`    Error scanning ${target.ticker} on ${this.platform}: ${error.message}`);
+          console.error(
+            `    Error scanning ${target.ticker} on ${this.platform}: ${error.message}`,
+          );
         }
 
         // Remove from remaining
-        remaining = remaining.filter(t => t.ticker !== target.ticker);
+        remaining = remaining.filter((t) => t.ticker !== target.ticker);
 
         // Save progress checkpoint (crash-safe)
         this.saveProgress({
           platform: this.platformName,
           startedAt: new Date(startTime).toISOString(),
-          completedTickers: targets.filter(t => !remaining.some(r => r.ticker === t.ticker)).map(t => t.ticker),
+          completedTickers: targets
+            .filter((t) => !remaining.some((r) => r.ticker === t.ticker))
+            .map((t) => t.ticker),
           remainingTickers: remaining,
           mentionsSoFar: completedMentions,
           browserMinutesUsed: (Date.now() - startTime) / 60000,
@@ -158,26 +188,33 @@ export abstract class BaseBrowserAgent implements SocialScanner {
       this.clearProgress();
 
       return [this.buildSuccessResult(completedMentions, startTime)];
-
     } catch (error: any) {
       console.error(`  ${this.platform} agent error: ${error.message}`);
       // Save progress before returning error -- mentions so far are preserved
-      return [this.buildErrorResult(error.message, startTime, completedMentions)];
-
+      return [
+        this.buildErrorResult(error.message, startTime, completedMentions),
+      ];
     } finally {
       // Save cookies and close browser
       if (this.session) {
         try {
           const cookies = await this.session.getCookies();
           this.sessionManager.saveCookies(this.platformName, cookies);
-        } catch { /* non-critical */ }
+        } catch {
+          /* non-critical */
+        }
         await this.session.close();
         this.session = null;
       }
       await this.provider.close();
 
-      const durationMin = this.costTracker.endSession(this.sessionId, this.platformName);
-      console.log(`  ${this.platform}: Done (${durationMin.toFixed(1)} min, ${completedMentions.length} mentions)`);
+      const durationMin = this.costTracker.endSession(
+        this.sessionId,
+        this.platformName,
+      );
+      console.log(
+        `  ${this.platform}: Done (${durationMin.toFixed(1)} min, ${completedMentions.length} mentions)`,
+      );
     }
   }
 
@@ -198,14 +235,19 @@ export abstract class BaseBrowserAgent implements SocialScanner {
   }
 
   loadProgress(): AgentProgress {
-    const raw = fs.readFileSync(this.getProgressPath(), 'utf-8');
+    const raw = fs.readFileSync(this.getProgressPath(), "utf-8");
     return JSON.parse(raw);
   }
 
   saveProgress(progress: AgentProgress): void {
     try {
-      fs.writeFileSync(this.getProgressPath(), JSON.stringify(progress, null, 2));
-    } catch { /* non-critical */ }
+      fs.writeFileSync(
+        this.getProgressPath(),
+        JSON.stringify(progress, null, 2),
+      );
+    } catch {
+      /* non-critical */
+    }
   }
 
   clearProgress(): void {
@@ -214,15 +256,22 @@ export abstract class BaseBrowserAgent implements SocialScanner {
       if (fs.existsSync(progressPath)) {
         fs.unlinkSync(progressPath);
       }
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }
 
   // ─── Result Builders ───────────────────────────────────────────────────
 
-  protected buildSuccessResult(mentions: SocialMention[], startTime: number): PlatformScanResult {
-    const avgScore = mentions.length > 0
-      ? mentions.reduce((sum, m) => sum + m.promotionScore, 0) / mentions.length
-      : 0;
+  protected buildSuccessResult(
+    mentions: SocialMention[],
+    startTime: number,
+  ): PlatformScanResult {
+    const avgScore =
+      mentions.length > 0
+        ? mentions.reduce((sum, m) => sum + m.promotionScore, 0) /
+          mentions.length
+        : 0;
 
     return {
       platform: this.platform,
@@ -230,13 +279,25 @@ export abstract class BaseBrowserAgent implements SocialScanner {
       success: true,
       mentionsFound: mentions.length,
       mentions,
-      activityLevel: mentions.length >= 10 ? 'high' : mentions.length >= 3 ? 'medium' : mentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 50 ? 'high' : avgScore >= 25 ? 'medium' : 'low',
+      activityLevel:
+        mentions.length >= 10
+          ? "high"
+          : mentions.length >= 3
+            ? "medium"
+            : mentions.length > 0
+              ? "low"
+              : "none",
+      promotionRisk:
+        avgScore >= 50 ? "high" : avgScore >= 25 ? "medium" : "low",
       scanDuration: Date.now() - startTime,
     };
   }
 
-  protected buildErrorResult(error: string, startTime: number, partialMentions?: SocialMention[]): PlatformScanResult {
+  protected buildErrorResult(
+    error: string,
+    startTime: number,
+    partialMentions?: SocialMention[],
+  ): PlatformScanResult {
     return {
       platform: this.platform,
       scanner: this.name,
@@ -244,8 +305,8 @@ export abstract class BaseBrowserAgent implements SocialScanner {
       error,
       mentionsFound: partialMentions?.length || 0,
       mentions: partialMentions || [],
-      activityLevel: 'none',
-      promotionRisk: 'low',
+      activityLevel: "none",
+      promotionRisk: "low",
       scanDuration: Date.now() - startTime,
     };
   }
@@ -255,11 +316,14 @@ export abstract class BaseBrowserAgent implements SocialScanner {
   /**
    * Score text content for promotional language using the existing scoring system.
    */
-  protected scoreContent(text: string, context?: {
-    isPromotionSubreddit?: boolean;
-    isNewAccount?: boolean;
-    hasHighEngagement?: boolean;
-  }): { score: number; flags: string[]; isPromotional: boolean } {
+  protected scoreContent(
+    text: string,
+    context?: {
+      isPromotionSubreddit?: boolean;
+      isNewAccount?: boolean;
+      hasHighEngagement?: boolean;
+    },
+  ): { score: number; flags: string[]; isPromotional: boolean } {
     const { score, flags } = calculatePromotionScore(text, context);
     return { score, flags, isPromotional: score >= 30 };
   }
@@ -274,13 +338,13 @@ export abstract class BaseBrowserAgent implements SocialScanner {
     author: string;
     postDate: string;
     source: string;
-    engagement?: SocialMention['engagement'];
+    engagement?: SocialMention["engagement"];
   }): SocialMention {
     const fullText = `${data.title} ${data.content}`;
     const { score, flags, isPromotional } = this.scoreContent(fullText);
 
     return {
-      platform: this.platform as SocialMention['platform'],
+      platform: this.platform as SocialMention["platform"],
       source: data.source,
       discoveredVia: this.name,
       title: data.title,
@@ -299,10 +363,31 @@ export abstract class BaseBrowserAgent implements SocialScanner {
   /**
    * Simple sentiment inference from text.
    */
-  private inferSentiment(text: string): 'bullish' | 'bearish' | 'neutral' {
+  private inferSentiment(text: string): "bullish" | "bearish" | "neutral" {
     const lower = text.toLowerCase();
-    const bullishWords = ['buy', 'moon', 'rocket', 'bullish', 'long', 'squeeze', 'undervalued', 'gem', 'explode', 'gains'];
-    const bearishWords = ['sell', 'short', 'dump', 'bearish', 'overvalued', 'scam', 'avoid', 'crash', 'fraud'];
+    const bullishWords = [
+      "buy",
+      "moon",
+      "rocket",
+      "bullish",
+      "long",
+      "squeeze",
+      "undervalued",
+      "gem",
+      "explode",
+      "gains",
+    ];
+    const bearishWords = [
+      "sell",
+      "short",
+      "dump",
+      "bearish",
+      "overvalued",
+      "scam",
+      "avoid",
+      "crash",
+      "fraud",
+    ];
 
     let bullishCount = 0;
     let bearishCount = 0;
@@ -314,8 +399,8 @@ export abstract class BaseBrowserAgent implements SocialScanner {
       if (lower.includes(word)) bearishCount++;
     }
 
-    if (bullishCount > bearishCount + 1) return 'bullish';
-    if (bearishCount > bullishCount + 1) return 'bearish';
-    return 'neutral';
+    if (bullishCount > bearishCount + 1) return "bullish";
+    if (bearishCount > bullishCount + 1) return "bearish";
+    return "neutral";
   }
 }

@@ -8,8 +8,18 @@
  * which browser engine is underneath.
  */
 
-import { chromium, type Page, type BrowserContext, type Cookie, type ElementHandle } from 'playwright';
-import type { BrowserProvider, BrowserSession, BrowserLaunchOptions } from './types';
+import {
+  chromium,
+  type Page,
+  type BrowserContext,
+  type Cookie,
+  type ElementHandle,
+} from "playwright";
+import type {
+  BrowserProvider,
+  BrowserSession,
+  BrowserLaunchOptions,
+} from "./types";
 
 // ─── Playwright Provider (free, local) ───────────────────────────────────────
 
@@ -22,28 +32,28 @@ export class PlaywrightProvider implements BrowserProvider {
 
     try {
       // Try to use playwright-extra with stealth plugin for anti-detection
-      const { chromium: stealthChromium } = await import('playwright-extra');
-      const StealthPlugin = await import('puppeteer-extra-plugin-stealth');
+      const { chromium: stealthChromium } = await import("playwright-extra");
+      const StealthPlugin = await import("puppeteer-extra-plugin-stealth");
       stealthChromium.use(StealthPlugin.default());
       browser = await stealthChromium.launch({
         headless: options?.headless ?? true,
         args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-blink-features=AutomationControlled',
-          '--disable-dev-shm-usage',
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-blink-features=AutomationControlled",
+          "--disable-dev-shm-usage",
         ],
       });
     } catch {
       // Fallback to standard Playwright if stealth plugin not available
-      console.warn('  Stealth plugin not available, using standard Playwright');
+      console.warn("  Stealth plugin not available, using standard Playwright");
       browser = await chromium.launch({
         headless: options?.headless ?? true,
         args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-blink-features=AutomationControlled',
-          '--disable-dev-shm-usage',
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-blink-features=AutomationControlled",
+          "--disable-dev-shm-usage",
         ],
       });
     }
@@ -51,8 +61,8 @@ export class PlaywrightProvider implements BrowserProvider {
     this.context = await browser.newContext({
       userAgent: options?.userAgent || getRandomUserAgent(),
       viewport: options?.viewport || { width: 1366, height: 768 },
-      locale: options?.locale || 'en-US',
-      timezoneId: options?.timezoneId || 'America/New_York',
+      locale: options?.locale || "en-US",
+      timezoneId: options?.timezoneId || "America/New_York",
       ...(options?.proxy ? { proxy: options.proxy } : {}),
     });
 
@@ -83,9 +93,12 @@ class PlaywrightSession implements BrowserSession {
     this.context = context;
   }
 
-  async goto(url: string, options?: { waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' }): Promise<void> {
+  async goto(
+    url: string,
+    options?: { waitUntil?: "load" | "domcontentloaded" | "networkidle" },
+  ): Promise<void> {
     await this.page.goto(url, {
-      waitUntil: options?.waitUntil || 'domcontentloaded',
+      waitUntil: options?.waitUntil || "domcontentloaded",
       timeout: 30000,
     });
   }
@@ -94,25 +107,35 @@ class PlaywrightSession implements BrowserSession {
     await this.page.click(selector, { timeout: options?.timeout || 10000 });
   }
 
-  async type(selector: string, text: string, options?: { delay?: number }): Promise<void> {
-    await this.page.fill(selector, '');
+  async type(
+    selector: string,
+    text: string,
+    options?: { delay?: number },
+  ): Promise<void> {
+    await this.page.fill(selector, "");
     await this.page.type(selector, text, { delay: options?.delay || 50 });
   }
 
-  async waitForSelector(selector: string, options?: { timeout?: number; state?: 'visible' | 'attached' }): Promise<void> {
+  async waitForSelector(
+    selector: string,
+    options?: { timeout?: number; state?: "visible" | "attached" },
+  ): Promise<void> {
     await this.page.waitForSelector(selector, {
       timeout: options?.timeout || 10000,
-      state: options?.state || 'visible',
+      state: options?.state || "visible",
     });
   }
 
   async extractText(selector: string): Promise<string> {
     const element = await this.page.$(selector);
-    if (!element) return '';
-    return (await element.textContent()) || '';
+    if (!element) return "";
+    return (await element.textContent()) || "";
   }
 
-  async extractAll<T>(selector: string, extractor: (element: ElementHandle) => Promise<T>): Promise<T[]> {
+  async extractAll<T>(
+    selector: string,
+    extractor: (element: ElementHandle) => Promise<T>,
+  ): Promise<T[]> {
     const elements = await this.page.$$(selector);
     const results: T[] = [];
     for (const el of elements) {
@@ -147,11 +170,11 @@ class PlaywrightSession implements BrowserSession {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const USER_AGENTS = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
 ];
 
 function getRandomUserAgent(): string {
@@ -161,7 +184,7 @@ function getRandomUserAgent(): string {
 /** Random delay between min and max ms (human-like jitter) */
 export function randomDelay(minMs: number, maxMs: number): Promise<void> {
   const delay = minMs + Math.random() * (maxMs - minMs);
-  return new Promise(resolve => setTimeout(resolve, delay));
+  return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
 /** Get the provider based on environment config */

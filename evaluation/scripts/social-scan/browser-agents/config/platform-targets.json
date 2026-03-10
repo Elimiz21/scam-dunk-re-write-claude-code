@@ -22,7 +22,12 @@
   },
   "instagram": {
     "description": "Instagram hashtag patterns to search",
-    "hashtagPatterns": ["{TICKER}", "{TICKER}stock", "{TICKER}trading", "{TICKER}investment"]
+    "hashtagPatterns": [
+      "{TICKER}",
+      "{TICKER}stock",
+      "{TICKER}trading",
+      "{TICKER}investment"
+    ]
   },
   "facebook": {
     "description": "Facebook groups to monitor (DISABLED by default)",

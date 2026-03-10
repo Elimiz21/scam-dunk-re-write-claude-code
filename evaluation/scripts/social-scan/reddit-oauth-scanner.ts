@@ -13,37 +13,45 @@
  */
 
 import {
-  ScanTarget, PlatformScanResult, SocialMention,
-  PROMOTION_SUBREDDITS, calculatePromotionScore, calculatePlatformSpecificScore, SocialScanner
-} from './types';
+  ScanTarget,
+  PlatformScanResult,
+  SocialMention,
+  PROMOTION_SUBREDDITS,
+  calculatePromotionScore,
+  calculatePlatformSpecificScore,
+  SocialScanner,
+} from "./types";
 
-const USER_AGENT = 'Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)';
+const USER_AGENT =
+  "Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)";
 const REQUEST_DELAY_MS = 6500; // ~9 req/min — safely under the 10/min unauthenticated limit
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function redditPublicGet(url: string): Promise<any> {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': USER_AGENT,
-      'Accept': 'application/json',
+      "User-Agent": USER_AGENT,
+      Accept: "application/json",
     },
   });
 
   if (response.status === 429) {
     // Rate limited — wait and retry once
-    console.warn('    [Reddit] Rate limited, waiting 10s and retrying...');
+    console.warn("    [Reddit] Rate limited, waiting 10s and retrying...");
     await sleep(10000);
     const retry = await fetch(url, {
       headers: {
-        'User-Agent': USER_AGENT,
-        'Accept': 'application/json',
+        "User-Agent": USER_AGENT,
+        Accept: "application/json",
       },
     });
     if (!retry.ok) {
-      throw new Error(`Reddit ${retry.status} after rate-limit retry: ${retry.statusText}`);
+      throw new Error(
+        `Reddit ${retry.status} after rate-limit retry: ${retry.statusText}`,
+      );
     }
     return retry.json();
   }
@@ -56,16 +64,16 @@ async function redditPublicGet(url: string): Promise<any> {
 }
 
 async function searchRedditForTicker(
-  target: ScanTarget
+  target: ScanTarget,
 ): Promise<SocialMention[]> {
   const mentions: SocialMention[] = [];
   const { ticker } = target;
 
   // Search with multiple queries for better coverage
   const queries = [
-    ticker,                    // Direct ticker match
-    `$${ticker}`,             // Cashtag format
-    `${ticker} stock`,        // With "stock" keyword
+    ticker, // Direct ticker match
+    `$${ticker}`, // Cashtag format
+    `${ticker} stock`, // With "stock" keyword
   ];
 
   const seenUrls = new Set<string>();
@@ -83,14 +91,17 @@ async function searchRedditForTicker(
         const permalink = `https://reddit.com${d.permalink}`;
         if (seenUrls.has(permalink)) continue;
 
-        const subreddit = (d.subreddit || '').toLowerCase();
-        const title = d.title || '';
-        const selftext = d.selftext || '';
+        const subreddit = (d.subreddit || "").toLowerCase();
+        const title = d.title || "";
+        const selftext = d.selftext || "";
         const combinedText = `${title} ${selftext}`.toLowerCase();
 
         // Verify the ticker is actually mentioned
         const tickerLower = ticker.toLowerCase();
-        if (!combinedText.includes(tickerLower) && !combinedText.includes(`$${tickerLower}`)) {
+        if (
+          !combinedText.includes(tickerLower) &&
+          !combinedText.includes(`$${tickerLower}`)
+        ) {
           continue;
         }
 
@@ -100,7 +111,8 @@ async function searchRedditForTicker(
         const accountCreatedUtc = d.author_created_utc;
         let isNewAccount = false;
         if (accountCreatedUtc) {
-          const ageDays = (Date.now() / 1000 - accountCreatedUtc) / (60 * 60 * 24);
+          const ageDays =
+            (Date.now() / 1000 - accountCreatedUtc) / (60 * 60 * 24);
           isNewAccount = ageDays < 90;
         }
 
@@ -112,25 +124,25 @@ async function searchRedditForTicker(
 
         // Layer on Reddit-specific pattern detection
         const { scoreBonus: platformBonus, flags: platformFlags } =
-          calculatePlatformSpecificScore(combinedText, 'reddit');
+          calculatePlatformSpecificScore(combinedText, "reddit");
         flags.push(...platformFlags);
 
         const finalScore = Math.min(score + platformBonus, 100);
 
         mentions.push({
-          platform: 'Reddit',
+          platform: "Reddit",
           source: `r/${d.subreddit}`,
-          discoveredVia: 'reddit_public',
+          discoveredVia: "reddit_public",
           title,
           content: (selftext || title).substring(0, 500),
           url: permalink,
-          author: d.author || 'unknown',
+          author: d.author || "unknown",
           postDate: new Date(d.created_utc * 1000).toISOString(),
           engagement: {
             upvotes: d.score,
             comments: d.num_comments,
           },
-          sentiment: finalScore > 30 ? 'bullish' : 'neutral',
+          sentiment: finalScore > 30 ? "bullish" : "neutral",
           isPromotional: finalScore >= 30,
           promotionScore: finalScore,
           redFlags: flags,
@@ -148,7 +160,7 @@ async function searchRedditForTicker(
 
 async function scanSubredditForTickers(
   subreddit: string,
-  targets: ScanTarget[]
+  targets: ScanTarget[],
 ): Promise<SocialMention[]> {
   const mentions: SocialMention[] = [];
   const promotionSubreddits = new Set(PROMOTION_SUBREDDITS);
@@ -161,43 +173,48 @@ async function scanSubredditForTickers(
 
     for (const post of posts) {
       const d = post.data;
-      const title = d.title || '';
-      const selftext = d.selftext || '';
+      const title = d.title || "";
+      const selftext = d.selftext || "";
       const combinedText = `${title} ${selftext}`.toLowerCase();
 
       // Check if any of our target tickers are mentioned
       for (const target of targets) {
         const tickerLower = target.ticker.toLowerCase();
-        if (!combinedText.includes(tickerLower) && !combinedText.includes(`$${tickerLower}`)) {
+        if (
+          !combinedText.includes(tickerLower) &&
+          !combinedText.includes(`$${tickerLower}`)
+        ) {
           continue;
         }
 
         const { score, flags } = calculatePromotionScore(combinedText, {
-          isPromotionSubreddit: promotionSubreddits.has(subreddit.toLowerCase()),
+          isPromotionSubreddit: promotionSubreddits.has(
+            subreddit.toLowerCase(),
+          ),
           hasHighEngagement: d.score > 50,
         });
 
         // Layer on Reddit-specific pattern detection
         const { scoreBonus: platformBonus, flags: platformFlags } =
-          calculatePlatformSpecificScore(combinedText, 'reddit');
+          calculatePlatformSpecificScore(combinedText, "reddit");
         flags.push(...platformFlags);
 
         const finalScore = Math.min(score + platformBonus, 100);
 
         mentions.push({
-          platform: 'Reddit',
+          platform: "Reddit",
           source: `r/${subreddit}`,
-          discoveredVia: 'reddit_public',
+          discoveredVia: "reddit_public",
           title,
           content: (selftext || title).substring(0, 500),
           url: `https://reddit.com${d.permalink}`,
-          author: d.author || 'unknown',
+          author: d.author || "unknown",
           postDate: new Date(d.created_utc * 1000).toISOString(),
           engagement: {
             upvotes: d.score,
             comments: d.num_comments,
           },
-          sentiment: finalScore > 30 ? 'bullish' : 'neutral',
+          sentiment: finalScore > 30 ? "bullish" : "neutral",
           isPromotional: finalScore >= 30,
           promotionScore: finalScore,
           redFlags: flags,
@@ -205,15 +222,18 @@ async function scanSubredditForTickers(
       }
     }
   } catch (error) {
-    console.error(`    [Reddit] Subreddit scan error for r/${subreddit}:`, error);
+    console.error(
+      `    [Reddit] Subreddit scan error for r/${subreddit}:`,
+      error,
+    );
   }
 
   return mentions;
 }
 
 export class RedditOAuthScanner implements SocialScanner {
-  name = 'reddit_public';
-  platform = 'Reddit';
+  name = "reddit_public";
+  platform = "Reddit";
 
   isConfigured(): boolean {
     // No credentials needed — always configured
@@ -224,7 +244,9 @@ export class RedditOAuthScanner implements SocialScanner {
     const startTime = Date.now();
     const results: PlatformScanResult[] = [];
 
-    console.log(`  [Reddit Public JSON] Scanning ${targets.length} tickers (no OAuth required)...`);
+    console.log(
+      `  [Reddit Public JSON] Scanning ${targets.length} tickers (no OAuth required)...`,
+    );
 
     // Strategy 1: Direct search for each ticker
     const allMentions: SocialMention[] = [];
@@ -237,12 +259,18 @@ export class RedditOAuthScanner implements SocialScanner {
     }
 
     // Strategy 2: Scan top promotion subreddits for any of our tickers
-    const topSubreddits = ['wallstreetbets', 'pennystocks', 'shortsqueeze', 'smallstreetbets', 'daytrading'];
+    const topSubreddits = [
+      "wallstreetbets",
+      "pennystocks",
+      "shortsqueeze",
+      "smallstreetbets",
+      "daytrading",
+    ];
     for (const sub of topSubreddits) {
       console.log(`    Monitoring r/${sub}...`);
       const subMentions = await scanSubredditForTickers(sub, targets);
       // Deduplicate by URL
-      const existingUrls = new Set(allMentions.map(m => m.url));
+      const existingUrls = new Set(allMentions.map((m) => m.url));
       for (const mention of subMentions) {
         if (!existingUrls.has(mention.url)) {
           allMentions.push(mention);
@@ -269,21 +297,28 @@ export class RedditOAuthScanner implements SocialScanner {
     }
 
     // Build result
-    const avgScore = allMentions.length > 0
-      ? allMentions.reduce((sum, m) => sum + m.promotionScore, 0) / allMentions.length
-      : 0;
+    const avgScore =
+      allMentions.length > 0
+        ? allMentions.reduce((sum, m) => sum + m.promotionScore, 0) /
+          allMentions.length
+        : 0;
 
     results.push({
-      platform: 'Reddit',
+      platform: "Reddit",
       scanner: this.name,
       success: true,
       mentionsFound: allMentions.length,
       mentions: allMentions,
-      activityLevel: allMentions.length >= 20 ? 'high'
-        : allMentions.length >= 5 ? 'medium'
-        : allMentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 50 ? 'high'
-        : avgScore >= 25 ? 'medium' : 'low',
+      activityLevel:
+        allMentions.length >= 20
+          ? "high"
+          : allMentions.length >= 5
+            ? "medium"
+            : allMentions.length > 0
+              ? "low"
+              : "none",
+      promotionRisk:
+        avgScore >= 50 ? "high" : avgScore >= 25 ? "medium" : "low",
       scanDuration: Date.now() - startTime,
     });
 

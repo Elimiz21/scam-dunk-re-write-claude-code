@@ -9,13 +9,17 @@ import { prisma } from "@/lib/db";
 import { getConfiguredScanners } from "./scanners";
 import { getScanTargetsFromLatestDailyScan } from "./get-scan-targets";
 import {
-  ScanTarget, SocialMention, PlatformScanResult,
-  TickerScanResult, ScanRunResult,
+  ScanTarget,
+  SocialMention,
+  PlatformScanResult,
+  TickerScanResult,
+  ScanRunResult,
 } from "./types";
+import { screenMentionsWithAI } from "./ai-screener";
 
 function aggregateResults(
   targets: ScanTarget[],
-  platformResults: PlatformScanResult[]
+  platformResults: PlatformScanResult[],
 ): TickerScanResult[] {
   const results: TickerScanResult[] = [];
 
@@ -26,31 +30,68 @@ function aggregateResults(
     const tickerMentions: SocialMention[] = [];
     for (const platform of platformResults) {
       for (const mention of platform.mentions) {
-        const text = `${mention.title} ${mention.content} ${mention.url}`.toLowerCase();
+        const text =
+          `${mention.title} ${mention.content} ${mention.url}`.toLowerCase();
         if (text.includes(tickerLower) || text.includes(`$${tickerLower}`)) {
           tickerMentions.push(mention);
         }
       }
     }
 
-    // Deduplicate by URL (keep mentions without URLs)
-    const seenUrls = new Set<string>();
-    const uniqueMentions = tickerMentions.filter(m => {
-      if (!m.url) return true; // Keep mentions without URLs (e.g. StockTwits)
-      if (seenUrls.has(m.url)) return false;
-      seenUrls.add(m.url);
-      return true;
-    });
+    // Deduplicate by URL — when multiple scanners find the same URL,
+    // keep the version with the higher score and merge redFlags from all sources.
+    // This preserves AI reasoning from Perplexity even when Serper found the URL first.
+    const urlMentionMap = new Map<string, SocialMention>();
+    const noUrlMentions: SocialMention[] = [];
+    for (const m of tickerMentions) {
+      if (!m.url) {
+        noUrlMentions.push(m); // Keep all mentions without URLs (e.g. StockTwits)
+        continue;
+      }
+      const existing = urlMentionMap.get(m.url);
+      if (!existing) {
+        urlMentionMap.set(m.url, m);
+      } else {
+        // Merge: keep the higher-scoring version, combine redFlags
+        const winner =
+          m.promotionScore > existing.promotionScore ? m : existing;
+        const loser = winner === m ? existing : m;
+        const mergedFlags = Array.from(
+          new Set([...winner.redFlags, ...loser.redFlags]),
+        );
+        urlMentionMap.set(m.url, {
+          ...winner,
+          redFlags: mergedFlags,
+          promotionScore: Math.max(winner.promotionScore, loser.promotionScore),
+          isPromotional: winner.isPromotional || loser.isPromotional,
+        });
+      }
+    }
+    const uniqueMentions = [
+      ...Array.from(urlMentionMap.values()),
+      ...noUrlMentions,
+    ];
 
-    const overallPromotionScore = uniqueMentions.length > 0
-      ? Math.round(uniqueMentions.reduce((sum, m) => sum + m.promotionScore, 0) / uniqueMentions.length)
-      : 0;
+    const overallPromotionScore =
+      uniqueMentions.length > 0
+        ? Math.round(
+            uniqueMentions.reduce((sum, m) => sum + m.promotionScore, 0) /
+              uniqueMentions.length,
+          )
+        : 0;
 
     // Find top promoters
-    const authorMap = new Map<string, { platform: string; count: number; totalScore: number }>();
-    for (const mention of uniqueMentions.filter(m => m.isPromotional)) {
+    const authorMap = new Map<
+      string,
+      { platform: string; count: number; totalScore: number }
+    >();
+    for (const mention of uniqueMentions.filter((m) => m.isPromotional)) {
       const key = `${mention.author}@${mention.platform}`;
-      const existing = authorMap.get(key) || { platform: mention.platform, count: 0, totalScore: 0 };
+      const existing = authorMap.get(key) || {
+        platform: mention.platform,
+        count: 0,
+        totalScore: 0,
+      };
       existing.count++;
       existing.totalScore += mention.promotionScore;
       authorMap.set(key, existing);
@@ -58,57 +99,86 @@ function aggregateResults(
     const topPromoters = Array.from(authorMap.entries())
       .map(([key, data]) => ({
         platform: data.platform,
-        username: key.split('@')[0],
+        username: key.split("@")[0],
         postCount: data.count,
         avgPromotionScore: Math.round(data.totalScore / data.count),
       }))
-      .sort((a, b) => b.postCount - a.postCount || b.avgPromotionScore - a.avgPromotionScore)
+      .sort(
+        (a, b) =>
+          b.postCount - a.postCount ||
+          b.avgPromotionScore - a.avgPromotionScore,
+      )
       .slice(0, 10);
 
-    const platformsWithMentionsSet = new Set(uniqueMentions.map(m => m.platform));
+    const platformsWithMentionsSet = new Set(
+      uniqueMentions.map((m) => m.platform),
+    );
     const platformsWithMentions = Array.from(platformsWithMentionsSet);
-    const highRiskPlatforms = platformsWithMentions.filter(p => {
-      const pMentions = uniqueMentions.filter(m => m.platform === p);
-      const avgScore = pMentions.reduce((s, m) => s + m.promotionScore, 0) / pMentions.length;
+    const highRiskPlatforms = platformsWithMentions.filter((p) => {
+      const pMentions = uniqueMentions.filter((m) => m.platform === p);
+      const avgScore =
+        pMentions.reduce((s, m) => s + m.promotionScore, 0) / pMentions.length;
       return avgScore >= 25;
     });
 
-    const riskLevel = highRiskPlatforms.length >= 2 ? 'high'
-      : highRiskPlatforms.length >= 1 || overallPromotionScore >= 30 ? 'medium' : 'low';
+    const riskLevel =
+      highRiskPlatforms.length >= 2
+        ? "high"
+        : highRiskPlatforms.length >= 1 || overallPromotionScore >= 30
+          ? "medium"
+          : "low";
 
-    let summary = '';
+    let summary = "";
     if (uniqueMentions.length === 0) {
       summary = `No social media mentions found for ${target.ticker}.`;
     } else if (overallPromotionScore >= 50) {
-      summary = `HIGH promotional activity for ${target.ticker}: ${uniqueMentions.length} mentions across ${platformsWithMentions.length} platform(s) (${platformsWithMentions.join(', ')}). Avg promotion score: ${overallPromotionScore}/100.`;
+      summary = `HIGH promotional activity for ${target.ticker}: ${uniqueMentions.length} mentions across ${platformsWithMentions.length} platform(s) (${platformsWithMentions.join(", ")}). Avg promotion score: ${overallPromotionScore}/100.`;
     } else {
-      summary = `${uniqueMentions.length} mention(s) found for ${target.ticker} on ${platformsWithMentions.join(', ')}. Promotion score: ${overallPromotionScore}/100.`;
+      summary = `${uniqueMentions.length} mention(s) found for ${target.ticker} on ${platformsWithMentions.join(", ")}. Promotion score: ${overallPromotionScore}/100.`;
     }
 
     // Group mentions by platform
     const platformBreakdown: PlatformScanResult[] = [];
     for (const platformName of platformsWithMentions) {
-      const pMentions = uniqueMentions.filter(m => m.platform === platformName);
-      const pAvg = pMentions.reduce((s, m) => s + m.promotionScore, 0) / pMentions.length;
+      const pMentions = uniqueMentions.filter(
+        (m) => m.platform === platformName,
+      );
+      const pAvg =
+        pMentions.reduce((s, m) => s + m.promotionScore, 0) / pMentions.length;
       platformBreakdown.push({
-        platform: platformName, scanner: pMentions[0]?.discoveredVia || 'unknown',
-        success: true, mentionsFound: pMentions.length, mentions: pMentions,
-        activityLevel: pMentions.length >= 10 ? 'high' : pMentions.length >= 3 ? 'medium' : 'low',
-        promotionRisk: pAvg >= 50 ? 'high' : pAvg >= 25 ? 'medium' : 'low',
+        platform: platformName,
+        scanner: pMentions[0]?.discoveredVia || "unknown",
+        success: true,
+        mentionsFound: pMentions.length,
+        mentions: pMentions,
+        activityLevel:
+          pMentions.length >= 10
+            ? "high"
+            : pMentions.length >= 3
+              ? "medium"
+              : "low",
+        promotionRisk: pAvg >= 50 ? "high" : pAvg >= 25 ? "medium" : "low",
         scanDuration: 0,
       });
     }
 
     results.push({
-      ticker: target.ticker, name: target.name,
-      scanDate: new Date().toISOString(), platforms: platformBreakdown,
-      totalMentions: uniqueMentions.length, overallPromotionScore, riskLevel,
-      hasRealEvidence: uniqueMentions.some(m => m.isPromotional && m.url),
-      topPromoters, summary,
+      ticker: target.ticker,
+      name: target.name,
+      scanDate: new Date().toISOString(),
+      platforms: platformBreakdown,
+      totalMentions: uniqueMentions.length,
+      overallPromotionScore,
+      riskLevel,
+      hasRealEvidence: uniqueMentions.some((m) => m.isPromotional && m.url),
+      topPromoters,
+      summary,
     });
   }
 
-  return results.sort((a, b) => b.overallPromotionScore - a.overallPromotionScore);
+  return results.sort(
+    (a, b) => b.overallPromotionScore - a.overallPromotionScore,
+  );
 }
 
 /**
@@ -132,29 +202,37 @@ export async function runSocialScanAndStore(options: {
 
   if (manualTickers && manualTickers.length > 0) {
     targets = manualTickers;
-    scanDateStr = new Date().toISOString().split('T')[0];
+    scanDateStr = new Date().toISOString().split("T")[0];
   } else {
-    const { targets: dbTargets, scanDate } = await getScanTargetsFromLatestDailyScan(50);
+    const { targets: dbTargets, scanDate } =
+      await getScanTargetsFromLatestDailyScan(50);
     targets = dbTargets;
-    scanDateStr = scanDate || new Date().toISOString().split('T')[0];
+    scanDateStr = scanDate || new Date().toISOString().split("T")[0];
   }
 
   if (targets.length === 0) {
     await prisma.socialScanRun.update({
       where: { id: scanRunId },
       data: {
-        status: 'COMPLETED',
+        status: "COMPLETED",
         tickersScanned: 0,
-        errors: JSON.stringify(['No high-risk tickers found in the latest daily scan to scan for social media promotion.']),
+        errors: JSON.stringify([
+          "No high-risk tickers found in the latest daily scan to scan for social media promotion.",
+        ]),
         duration: Date.now() - startTime,
       },
     });
 
     return {
-      scanId: scanRunId, scanDate: scanDateStr, status: 'COMPLETED',
-      tickersScanned: 0, tickersWithMentions: 0, totalMentions: 0,
-      platformsUsed: [], results: [],
-      errors: ['No high-risk tickers found in the latest daily scan'],
+      scanId: scanRunId,
+      scanDate: scanDateStr,
+      status: "COMPLETED",
+      tickersScanned: 0,
+      tickersWithMentions: 0,
+      totalMentions: 0,
+      platformsUsed: [],
+      results: [],
+      errors: ["No high-risk tickers found in the latest daily scan"],
       duration: Date.now() - startTime,
     };
   }
@@ -171,30 +249,43 @@ export async function runSocialScanAndStore(options: {
     await prisma.socialScanRun.update({
       where: { id: scanRunId },
       data: {
-        status: 'FAILED',
-        errors: JSON.stringify(['No scanners configured. Set up API keys for YouTube, Google CSE, Perplexity, or Discord Bot.']),
+        status: "FAILED",
+        errors: JSON.stringify([
+          "No scanners configured. Set up API keys for YouTube, Google CSE, Perplexity, or Discord Bot.",
+        ]),
         duration: Date.now() - startTime,
       },
     });
 
     return {
-      scanId: scanRunId, scanDate: scanDateStr, status: 'FAILED',
-      tickersScanned: targets.length, tickersWithMentions: 0, totalMentions: 0,
-      platformsUsed: [], results: [],
-      errors: ['No scanners configured'],
+      scanId: scanRunId,
+      scanDate: scanDateStr,
+      status: "FAILED",
+      tickersScanned: targets.length,
+      tickersWithMentions: 0,
+      totalMentions: 0,
+      platformsUsed: [],
+      results: [],
+      errors: ["No scanners configured"],
       duration: Date.now() - startTime,
     };
   }
 
-  console.log(`[Social Scan] Starting scan of ${targets.length} tickers with ${scanners.length} scanner(s): ${scanners.map(s => s.name).join(', ')}`);
-  console.log(`[Social Scan] Tickers: ${targets.map(t => `${t.ticker} (score: ${t.riskScore})`).join(', ')}`);
+  console.log(
+    `[Social Scan] Starting scan of ${targets.length} tickers with ${scanners.length} scanner(s): ${scanners.map((s) => s.name).join(", ")}`,
+  );
+  console.log(
+    `[Social Scan] Tickers: ${targets.map((t) => `${t.ticker} (score: ${t.riskScore})`).join(", ")}`,
+  );
 
   // Step 4: Run all scanners in parallel (each queries a different API)
   const allPlatformResults: PlatformScanResult[] = [];
   const errors: string[] = [];
   const platformsUsed: string[] = [];
 
-  console.log(`[Social Scan] Running ${scanners.length} scanner(s) in parallel...`);
+  console.log(
+    `[Social Scan] Running ${scanners.length} scanner(s) in parallel...`,
+  );
   const SCANNER_TIMEOUT = 120_000; // 2 min per scanner — leaves 3 min for aggregation + batch DB write
   const settled = await Promise.allSettled(
     scanners.map(async (scanner) => {
@@ -203,18 +294,29 @@ export async function runSocialScanAndStore(options: {
       const results = await Promise.race([
         scanner.scan(targets),
         new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error(`${scanner.name} timed out after ${SCANNER_TIMEOUT / 1000}s`)), SCANNER_TIMEOUT);
+          timer = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `${scanner.name} timed out after ${SCANNER_TIMEOUT / 1000}s`,
+                ),
+              ),
+            SCANNER_TIMEOUT,
+          );
         }),
       ]);
       clearTimeout(timer!);
       return { scanner, results };
-    })
+    }),
   );
 
-  const scannerStats: Record<string, { mentions: number; success: boolean; error?: string }> = {};
+  const scannerStats: Record<
+    string,
+    { mentions: number; success: boolean; error?: string }
+  > = {};
 
   for (const outcome of settled) {
-    if (outcome.status === 'fulfilled') {
+    if (outcome.status === "fulfilled") {
       const { scanner, results } = outcome.value;
       allPlatformResults.push(...results);
       platformsUsed.push(scanner.name);
@@ -223,15 +325,17 @@ export async function runSocialScanAndStore(options: {
       for (const r of results) {
         scannerMentions += r.mentionsFound;
         if (r.success) {
-          console.log(`[Social Scan] ${scanner.name}: ${r.mentionsFound} mentions (${r.activityLevel} activity)`);
+          console.log(
+            `[Social Scan] ${scanner.name}: ${r.mentionsFound} mentions (${r.activityLevel} activity)`,
+          );
         } else if (r.error) {
           errors.push(`${scanner.name}: ${r.error}`);
         }
       }
       scannerStats[scanner.name] = {
         mentions: scannerMentions,
-        success: results.every(r => r.success),
-        error: results.find(r => r.error)?.error,
+        success: results.every((r) => r.success),
+        error: results.find((r) => r.error)?.error,
       };
     } else {
       // Promise rejected — scanner threw an unhandled error
@@ -241,15 +345,79 @@ export async function runSocialScanAndStore(options: {
     }
   }
 
-  console.log(`[Social Scan] Pre-aggregation scanner breakdown:`, JSON.stringify(scannerStats));
+  console.log(
+    `[Social Scan] Pre-aggregation scanner breakdown:`,
+    JSON.stringify(scannerStats),
+  );
 
   // Step 5: Aggregate results per ticker
   const tickerResults = aggregateResults(targets, allPlatformResults);
-  const tickersWithMentions = tickerResults.filter(r => r.totalMentions > 0).length;
-  const totalMentions = tickerResults.reduce((sum, r) => sum + r.totalMentions, 0);
 
-  const status = errors.length > 0 && platformsUsed.length === 0 ? 'FAILED'
-    : errors.length > 0 ? 'PARTIAL' : 'COMPLETED';
+  // Step 5b: AI Screening — classify high-scoring mentions as scam vs legitimate
+  // This reduces false positives from pattern matching (e.g. legitimate trader lingo)
+  try {
+    const AI_SCREEN_TIMEOUT = 180_000; // 180s for AI screening — needs enough time for 100+ mentions
+    const allMentions = tickerResults.flatMap((tr) =>
+      tr.platforms.flatMap((p) => p.mentions),
+    );
+
+    if (allMentions.length > 0) {
+      console.log(
+        `[Social Scan] Running AI screening on ${allMentions.length} mentions...`,
+      );
+      const screenedMentions = await Promise.race([
+        screenMentionsWithAI(allMentions),
+        new Promise<SocialMention[]>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("AI screening timed out after 180s")),
+            AI_SCREEN_TIMEOUT,
+          ),
+        ),
+      ]);
+
+      // Apply screened scores back to tickerResults
+      let idx = 0;
+      for (const tr of tickerResults) {
+        for (const platform of tr.platforms) {
+          for (let i = 0; i < platform.mentions.length; i++) {
+            if (idx < screenedMentions.length) {
+              platform.mentions[i] = screenedMentions[idx];
+            }
+            idx++;
+          }
+        }
+        // Recalculate ticker-level stats after AI screening
+        const allTickerMentions = tr.platforms.flatMap((p) => p.mentions);
+        tr.totalMentions = allTickerMentions.length;
+        tr.overallPromotionScore =
+          allTickerMentions.length > 0
+            ? Math.round(
+                allTickerMentions.reduce((s, m) => s + m.promotionScore, 0) /
+                  allTickerMentions.length,
+              )
+            : 0;
+      }
+    }
+  } catch (error: any) {
+    // AI screening is non-blocking — if it fails, we keep pattern-based scores
+    console.error(`[Social Scan] AI screening failed: ${error.message}`);
+    errors.push(`AI screening: ${error.message}`);
+  }
+
+  const tickersWithMentions = tickerResults.filter(
+    (r) => r.totalMentions > 0,
+  ).length;
+  const totalMentions = tickerResults.reduce(
+    (sum, r) => sum + r.totalMentions,
+    0,
+  );
+
+  const status =
+    errors.length > 0 && platformsUsed.length === 0
+      ? "FAILED"
+      : errors.length > 0
+        ? "PARTIAL"
+        : "COMPLETED";
 
   // Step 6: Store mentions in DB (batch write — single query instead of hundreds)
   function parsePostDate(dateStr: string | undefined | null): Date | null {
@@ -257,35 +425,37 @@ export async function runSocialScanAndStore(options: {
     const d = new Date(dateStr);
     if (!isNaN(d.getTime())) return d;
     // Handle relative dates from Serper ("2 days ago", "1 hour ago", etc.)
-    const rel = dateStr.match(/(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i);
+    const rel = dateStr.match(
+      /(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/i,
+    );
     if (rel) {
       const n = parseInt(rel[1]);
       const unit = rel[2].toLowerCase();
       const now = new Date();
-      if (unit === 'second') now.setSeconds(now.getSeconds() - n);
-      else if (unit === 'minute') now.setMinutes(now.getMinutes() - n);
-      else if (unit === 'hour') now.setHours(now.getHours() - n);
-      else if (unit === 'day') now.setDate(now.getDate() - n);
-      else if (unit === 'week') now.setDate(now.getDate() - n * 7);
-      else if (unit === 'month') now.setMonth(now.getMonth() - n);
-      else if (unit === 'year') now.setFullYear(now.getFullYear() - n);
+      if (unit === "second") now.setSeconds(now.getSeconds() - n);
+      else if (unit === "minute") now.setMinutes(now.getMinutes() - n);
+      else if (unit === "hour") now.setHours(now.getHours() - n);
+      else if (unit === "day") now.setDate(now.getDate() - n);
+      else if (unit === "week") now.setDate(now.getDate() - n * 7);
+      else if (unit === "month") now.setMonth(now.getMonth() - n);
+      else if (unit === "year") now.setFullYear(now.getFullYear() - n);
       return now;
     }
     return null;
   }
 
-  const mentionRows = tickerResults.flatMap(tickerResult =>
-    tickerResult.platforms.flatMap(platform =>
-      platform.mentions.map(mention => ({
+  const mentionRows = tickerResults.flatMap((tickerResult) =>
+    tickerResult.platforms.flatMap((platform) =>
+      platform.mentions.map((mention) => ({
         scanRunId,
         ticker: tickerResult.ticker,
         stockName: tickerResult.name || null,
         platform: mention.platform,
         source: mention.source,
         discoveredVia: mention.discoveredVia,
-        title: (mention.title || '').substring(0, 500) || null,
-        content: (mention.content || '').substring(0, 2000) || null,
-        url: (mention.url || '').substring(0, 2000) || null,
+        title: (mention.title || "").substring(0, 500) || null,
+        content: (mention.content || "").substring(0, 2000) || null,
+        url: (mention.url || "").substring(0, 2000) || null,
         author: mention.author || null,
         postDate: parsePostDate(mention.postDate),
         engagement: JSON.stringify(mention.engagement || {}),
@@ -293,8 +463,8 @@ export async function runSocialScanAndStore(options: {
         isPromotional: mention.isPromotional || false,
         promotionScore: mention.promotionScore || 0,
         redFlags: JSON.stringify(mention.redFlags || []),
-      }))
-    )
+      })),
+    ),
   );
 
   let mentionsStored = 0;
@@ -307,13 +477,18 @@ export async function runSocialScanAndStore(options: {
       mentionsStored = result.count;
     }
   } catch (error: any) {
-    console.error(`[Social Scan] Batch write failed, falling back to individual writes:`, error.message);
+    console.error(
+      `[Social Scan] Batch write failed, falling back to individual writes:`,
+      error.message,
+    );
     // Fallback: write individually so partial data is saved
     for (const row of mentionRows) {
       try {
         await prisma.socialMention.create({ data: row });
         mentionsStored++;
-      } catch { /* skip failed individual row */ }
+      } catch {
+        /* skip failed individual row */
+      }
     }
   }
 
@@ -326,17 +501,29 @@ export async function runSocialScanAndStore(options: {
       tickersScanned: targets.length,
       tickersWithMentions: tickersWithMentions,
       totalMentions: mentionsStored,
-      platformsUsed: JSON.stringify({ scanners: platformsUsed, stats: scannerStats }),
+      platformsUsed: JSON.stringify({
+        scanners: platformsUsed,
+        stats: scannerStats,
+      }),
       duration,
       errors: JSON.stringify(errors),
     },
   });
 
-  console.log(`[Social Scan] Complete: ${mentionsStored} mentions stored, ${tickersWithMentions}/${targets.length} tickers with mentions, ${status}`);
+  console.log(
+    `[Social Scan] Complete: ${mentionsStored} mentions stored, ${tickersWithMentions}/${targets.length} tickers with mentions, ${status}`,
+  );
 
   return {
-    scanId: scanRunId, scanDate: scanDateStr, status: status as any,
-    tickersScanned: targets.length, tickersWithMentions, totalMentions: mentionsStored,
-    platformsUsed, results: tickerResults, errors, duration,
+    scanId: scanRunId,
+    scanDate: scanDateStr,
+    status: status as any,
+    tickersScanned: targets.length,
+    tickersWithMentions,
+    totalMentions: mentionsStored,
+    platformsUsed,
+    results: tickerResults,
+    errors,
+    duration,
   };
 }

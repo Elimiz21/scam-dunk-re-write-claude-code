@@ -8,12 +8,12 @@
  *   Layer 3: Hard Cap (fall back to sequential if everything is over budget)
  */
 
-import * as os from 'os';
-import type { ScanTarget, PlatformScanResult, SocialMention } from '../types';
-import type { PlatformName, AgentRunStatus, OrchestratorResult } from './types';
-import { loadBrowserAgentConfig } from './types';
-import { BaseBrowserAgent } from './base-browser-agent';
-import { DiscordBrowserAgent } from './discord-browser-agent';
+import * as os from "os";
+import type { ScanTarget, PlatformScanResult, SocialMention } from "../types";
+import type { PlatformName, AgentRunStatus, OrchestratorResult } from "./types";
+import { loadBrowserAgentConfig } from "./types";
+import { BaseBrowserAgent } from "./base-browser-agent";
+import { DiscordBrowserAgent } from "./discord-browser-agent";
 // Future agents: import as they are implemented
 // import { RedditBrowserAgent } from './reddit-browser-agent';
 // import { TwitterBrowserAgent } from './twitter-browser-agent';
@@ -34,7 +34,7 @@ function getEnabledBrowserAgents(): BaseBrowserAgent[] {
     // new TikTokBrowserAgent(),     // Phase 4
   ];
 
-  return allAgents.filter(a => a.isConfigured());
+  return allAgents.filter((a) => a.isConfigured());
 }
 
 /**
@@ -49,7 +49,10 @@ function getSystemMemoryUsageMb(): number {
 /**
  * Check if we can launch another browser without exceeding memory budget.
  */
-function canLaunchBrowser(config: ReturnType<typeof loadBrowserAgentConfig>, runningCount: number): boolean {
+function canLaunchBrowser(
+  config: ReturnType<typeof loadBrowserAgentConfig>,
+  runningCount: number,
+): boolean {
   const currentUsage = getSystemMemoryUsageMb();
   const projectedUsage = currentUsage + config.perBrowserEstimateMb;
 
@@ -66,18 +69,22 @@ function canLaunchBrowser(config: ReturnType<typeof loadBrowserAgentConfig>, run
  * This is the main entry point called from the pipeline.
  */
 export async function runParallelBrowserScan(
-  targets: ScanTarget[]
+  targets: ScanTarget[],
 ): Promise<PlatformScanResult[]> {
   const config = loadBrowserAgentConfig();
   const enabledAgents = getEnabledBrowserAgents();
 
   if (enabledAgents.length === 0) {
-    console.log('  No browser agents enabled');
+    console.log("  No browser agents enabled");
     return [];
   }
 
-  console.log(`\n  Browser Orchestrator: ${enabledAgents.length} agents enabled, max ${config.maxParallel} parallel`);
-  console.log(`  Memory budget: ${config.maxMemoryMb}MB | Daily budget: ${config.maxDailyMinutes} min`);
+  console.log(
+    `\n  Browser Orchestrator: ${enabledAgents.length} agents enabled, max ${config.maxParallel} parallel`,
+  );
+  console.log(
+    `  Memory budget: ${config.maxMemoryMb}MB | Daily budget: ${config.maxDailyMinutes} min`,
+  );
 
   const allResults: PlatformScanResult[] = [];
   const agentStatuses: AgentRunStatus[] = [];
@@ -86,14 +93,17 @@ export async function runParallelBrowserScan(
 
   // Queue of agents waiting to run
   const queue: BaseBrowserAgent[] = [...enabledAgents];
-  const running: Map<string, { agent: BaseBrowserAgent; promise: Promise<PlatformScanResult[]> }> = new Map();
+  const running: Map<
+    string,
+    { agent: BaseBrowserAgent; promise: Promise<PlatformScanResult[]> }
+  > = new Map();
   const completed: Set<string> = new Set();
 
   // Initialize status tracking
   for (const agent of enabledAgents) {
     agentStatuses.push({
-      platform: agent.name.replace('browser_', '') as PlatformName,
-      status: 'queued',
+      platform: agent.name.replace("browser_", "") as PlatformName,
+      status: "queued",
       tickersCompleted: 0,
       tickersTotal: targets.length,
       mentionsFound: 0,
@@ -107,44 +117,56 @@ export async function runParallelBrowserScan(
   function launchNext(): void {
     while (queue.length > 0 && canLaunchBrowser(config, running.size)) {
       const agent = queue.shift()!;
-      const status = agentStatuses.find(s => s.platform === agent.name.replace('browser_', ''));
+      const status = agentStatuses.find(
+        (s) => s.platform === agent.name.replace("browser_", ""),
+      );
 
-      console.log(`  Launching ${agent.platform} agent (${running.size + 1} running, ${queue.length} queued)`);
+      console.log(
+        `  Launching ${agent.platform} agent (${running.size + 1} running, ${queue.length} queued)`,
+      );
 
       if (status) {
-        status.status = 'running';
+        status.status = "running";
         status.startedAt = new Date().toISOString();
       }
 
-      const promise = agent.scan(targets).then(results => {
-        // Agent completed successfully
-        if (status) {
-          status.status = 'completed';
-          status.completedAt = new Date().toISOString();
-          status.mentionsFound = results.reduce((sum, r) => sum + r.mentionsFound, 0);
-          status.tickersCompleted = targets.length;
-        }
-        return results;
-      }).catch(error => {
-        // Agent failed
-        if (status) {
-          status.status = 'failed';
-          status.error = error.message;
-          status.completedAt = new Date().toISOString();
-        }
-        console.error(`  ${agent.platform} agent failed: ${error.message}`);
-        return [{
-          platform: agent.platform,
-          scanner: agent.name,
-          success: false,
-          error: error.message,
-          mentionsFound: 0,
-          mentions: [] as SocialMention[],
-          activityLevel: 'none' as const,
-          promotionRisk: 'low' as const,
-          scanDuration: 0,
-        }];
-      });
+      const promise = agent
+        .scan(targets)
+        .then((results) => {
+          // Agent completed successfully
+          if (status) {
+            status.status = "completed";
+            status.completedAt = new Date().toISOString();
+            status.mentionsFound = results.reduce(
+              (sum, r) => sum + r.mentionsFound,
+              0,
+            );
+            status.tickersCompleted = targets.length;
+          }
+          return results;
+        })
+        .catch((error) => {
+          // Agent failed
+          if (status) {
+            status.status = "failed";
+            status.error = error.message;
+            status.completedAt = new Date().toISOString();
+          }
+          console.error(`  ${agent.platform} agent failed: ${error.message}`);
+          return [
+            {
+              platform: agent.platform,
+              scanner: agent.name,
+              success: false,
+              error: error.message,
+              mentionsFound: 0,
+              mentions: [] as SocialMention[],
+              activityLevel: "none" as const,
+              promotionRisk: "low" as const,
+              scanDuration: 0,
+            },
+          ];
+        });
 
       running.set(agent.name, { agent, promise });
     }
@@ -165,8 +187,8 @@ export async function runParallelBrowserScan(
     const entries = Array.from(running.entries());
     const raceResult = await Promise.race(
       entries.map(([name, { promise }]) =>
-        promise.then(results => ({ name, results }))
-      )
+        promise.then((results) => ({ name, results })),
+      ),
     );
 
     // Process completed agent
@@ -175,7 +197,9 @@ export async function runParallelBrowserScan(
     running.delete(name);
     completed.add(name);
 
-    console.log(`  ${name} completed (${running.size} still running, ${queue.length} queued)`);
+    console.log(
+      `  ${name} completed (${running.size} still running, ${queue.length} queued)`,
+    );
 
     // Track memory
     const currentMemory = getSystemMemoryUsageMb();
@@ -204,19 +228,23 @@ export async function runParallelBrowserScan(
  */
 export function shouldRunBrowserAgents(
   result: { totalScore: number },
-  socialFindings: { overallPromotionScore: number } | null
+  socialFindings: { overallPromotionScore: number } | null,
 ): boolean {
   // Master switch
-  if (process.env.BROWSER_AGENT_ENABLED !== 'true') return false;
+  if (process.env.BROWSER_AGENT_ENABLED !== "true") return false;
 
   // Manual override
-  if (process.env.FORCE_BROWSER_SCAN === 'true') return true;
+  if (process.env.FORCE_BROWSER_SCAN === "true") return true;
 
   // Condition 1: API scanners found high promotion → confirm and gather more evidence
   if (socialFindings && socialFindings.overallPromotionScore >= 50) return true;
 
   // Condition 2: Very high financial risk but no social evidence → check non-API platforms
-  if (result.totalScore >= 15 && (!socialFindings || socialFindings.overallPromotionScore < 20)) return true;
+  if (
+    result.totalScore >= 15 &&
+    (!socialFindings || socialFindings.overallPromotionScore < 20)
+  )
+    return true;
 
   return false;
 }

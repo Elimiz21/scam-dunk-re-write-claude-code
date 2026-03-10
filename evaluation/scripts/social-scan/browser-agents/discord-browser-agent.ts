@@ -9,26 +9,26 @@
  * Selectors target Discord's web app DOM structure.
  */
 
-import type { ScanTarget, SocialMention } from '../types';
-import { BaseBrowserAgent } from './base-browser-agent';
-import { randomDelay } from './browser-provider';
-import type { PlatformName } from './types';
-import * as fs from 'fs';
-import * as path from 'path';
+import type { ScanTarget, SocialMention } from "../types";
+import { BaseBrowserAgent } from "./base-browser-agent";
+import { randomDelay } from "./browser-provider";
+import type { PlatformName } from "./types";
+import * as fs from "fs";
+import * as path from "path";
 
 // Discord server IDs to monitor (loaded from config)
 interface DiscordTarget {
   serverId: string;
   serverName: string;
-  channels?: string[];  // If empty, search whole server
+  channels?: string[]; // If empty, search whole server
 }
 
-const CONFIG_PATH = path.join(__dirname, 'config', 'platform-targets.json');
+const CONFIG_PATH = path.join(__dirname, "config", "platform-targets.json");
 
 export class DiscordBrowserAgent extends BaseBrowserAgent {
-  name = 'browser_discord';
-  platform = 'Discord';
-  protected platformName: PlatformName = 'discord';
+  name = "browser_discord";
+  platform = "Discord";
+  protected platformName: PlatformName = "discord";
 
   private targets: DiscordTarget[] = [];
 
@@ -40,7 +40,7 @@ export class DiscordBrowserAgent extends BaseBrowserAgent {
   private loadTargets(): void {
     try {
       if (fs.existsSync(CONFIG_PATH)) {
-        const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+        const config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
         this.targets = config.discord?.servers || [];
       }
     } catch {
@@ -69,7 +69,9 @@ export class DiscordBrowserAgent extends BaseBrowserAgent {
           const results = await this.searchServer(ticker, server);
           mentions.push(...results);
         } catch (error: any) {
-          console.log(`      Error searching ${server.serverName}: ${error.message}`);
+          console.log(
+            `      Error searching ${server.serverName}: ${error.message}`,
+          );
         }
 
         // Delay between servers
@@ -88,15 +90,15 @@ export class DiscordBrowserAgent extends BaseBrowserAgent {
 
     try {
       // Navigate to Discord app
-      await this.session.goto('https://discord.com/app');
+      await this.session.goto("https://discord.com/app");
       await this.session.page.waitForTimeout(3000);
 
       // Click on search or use keyboard shortcut
-      await this.session.page.keyboard.press('Control+k'); // Quick switcher / search
+      await this.session.page.keyboard.press("Control+k"); // Quick switcher / search
       await this.session.page.waitForTimeout(1000);
 
       // Close quick switcher if opened, and use the search bar instead
-      await this.session.page.keyboard.press('Escape');
+      await this.session.page.keyboard.press("Escape");
       await this.session.page.waitForTimeout(500);
 
       // Try clicking the search icon in the top bar
@@ -107,17 +109,18 @@ export class DiscordBrowserAgent extends BaseBrowserAgent {
       }
 
       // Type the ticker in the search box
-      const searchInput = await this.session.page.$('input[aria-label*="Search"]');
+      const searchInput = await this.session.page.$(
+        'input[aria-label*="Search"]',
+      );
       if (searchInput) {
-        await searchInput.fill('');
+        await searchInput.fill("");
         await searchInput.type(ticker, { delay: 80 });
-        await this.session.page.keyboard.press('Enter');
+        await this.session.page.keyboard.press("Enter");
         await this.session.page.waitForTimeout(3000);
       }
 
       // Extract search results
-      return await this.extractSearchResults(ticker, 'Discord Global Search');
-
+      return await this.extractSearchResults(ticker, "Discord Global Search");
     } catch (error: any) {
       console.log(`      Discord global search error: ${error.message}`);
       return [];
@@ -127,12 +130,17 @@ export class DiscordBrowserAgent extends BaseBrowserAgent {
   /**
    * Navigate to a specific server and search for the ticker.
    */
-  private async searchServer(ticker: string, server: DiscordTarget): Promise<SocialMention[]> {
+  private async searchServer(
+    ticker: string,
+    server: DiscordTarget,
+  ): Promise<SocialMention[]> {
     if (!this.session) return [];
 
     try {
       // Navigate directly to the server
-      await this.session.goto(`https://discord.com/channels/${server.serverId}`);
+      await this.session.goto(
+        `https://discord.com/channels/${server.serverId}`,
+      );
       await this.session.page.waitForTimeout(3000);
 
       // Click the search icon in the top bar
@@ -142,29 +150,38 @@ export class DiscordBrowserAgent extends BaseBrowserAgent {
         await this.session.page.waitForTimeout(1000);
       } else {
         // Try keyboard shortcut
-        await this.session.page.keyboard.press('Control+f');
+        await this.session.page.keyboard.press("Control+f");
         await this.session.page.waitForTimeout(1000);
       }
 
       // Type search query
       // Use focused search to find the input
-      const searchInputs = await this.session.page.$$('input[type="text"], input[placeholder*="Search"]');
+      const searchInputs = await this.session.page.$$(
+        'input[type="text"], input[placeholder*="Search"]',
+      );
       for (const input of searchInputs) {
-        const placeholder = await input.getAttribute('placeholder');
-        if (placeholder && (placeholder.includes('Search') || placeholder.includes('search'))) {
-          await input.fill('');
+        const placeholder = await input.getAttribute("placeholder");
+        if (
+          placeholder &&
+          (placeholder.includes("Search") || placeholder.includes("search"))
+        ) {
+          await input.fill("");
           await input.type(ticker, { delay: 80 });
-          await this.session.page.keyboard.press('Enter');
+          await this.session.page.keyboard.press("Enter");
           break;
         }
       }
 
       await this.session.page.waitForTimeout(3000);
 
-      return await this.extractSearchResults(ticker, `Discord: ${server.serverName}`);
-
+      return await this.extractSearchResults(
+        ticker,
+        `Discord: ${server.serverName}`,
+      );
     } catch (error: any) {
-      console.log(`      Error in server ${server.serverName}: ${error.message}`);
+      console.log(
+        `      Error in server ${server.serverName}: ${error.message}`,
+      );
       return [];
     }
   }
@@ -173,7 +190,10 @@ export class DiscordBrowserAgent extends BaseBrowserAgent {
    * Extract messages from Discord search results.
    * Discord renders messages in a specific DOM structure.
    */
-  private async extractSearchResults(ticker: string, source: string): Promise<SocialMention[]> {
+  private async extractSearchResults(
+    ticker: string,
+    source: string,
+  ): Promise<SocialMention[]> {
     if (!this.session) return [];
 
     const mentions: SocialMention[] = [];
@@ -196,45 +216,59 @@ export class DiscordBrowserAgent extends BaseBrowserAgent {
 
       if (messageElements.length === 0) {
         // Try getting visible message content in a broader way
-        const allText = await this.session.page.textContent('body');
+        const allText = await this.session.page.textContent("body");
         if (allText && allText.toLowerCase().includes(ticker.toLowerCase())) {
           // Page contains the ticker but we couldn't parse individual messages
           // Create a single mention representing the search results
-          mentions.push(this.createMention({
-            title: `${ticker} mentioned on Discord`,
-            content: `Search results found for ${ticker} on Discord. Manual review recommended.`,
-            url: this.session.page.url(),
-            author: 'unknown',
-            postDate: new Date().toISOString(),
-            source,
-          }));
+          mentions.push(
+            this.createMention({
+              title: `${ticker} mentioned on Discord`,
+              content: `Search results found for ${ticker} on Discord. Manual review recommended.`,
+              url: this.session.page.url(),
+              author: "unknown",
+              postDate: new Date().toISOString(),
+              source,
+            }),
+          );
         }
         return mentions;
       }
 
       // Extract data from each message element
-      for (const element of messageElements.slice(0, 20)) { // Cap at 20 results
+      for (const element of messageElements.slice(0, 20)) {
+        // Cap at 20 results
         try {
           // Try to extract message content
-          const contentEl = await element.$('[class*="content"], [class*="messageContent"]');
-          const content = contentEl ? (await contentEl.textContent()) || '' : '';
+          const contentEl = await element.$(
+            '[class*="content"], [class*="messageContent"]',
+          );
+          const content = contentEl
+            ? (await contentEl.textContent()) || ""
+            : "";
 
           // Only include messages that mention the ticker
           if (!content.toLowerCase().includes(ticker.toLowerCase())) continue;
 
           // Extract author
-          const authorEl = await element.$('[class*="username"], [class*="headerText"] span');
-          const author = authorEl ? (await authorEl.textContent()) || 'unknown' : 'unknown';
+          const authorEl = await element.$(
+            '[class*="username"], [class*="headerText"] span',
+          );
+          const author = authorEl
+            ? (await authorEl.textContent()) || "unknown"
+            : "unknown";
 
           // Extract timestamp
-          const timeEl = await element.$('time');
+          const timeEl = await element.$("time");
           const postDate = timeEl
-            ? (await timeEl.getAttribute('datetime')) || new Date().toISOString()
+            ? (await timeEl.getAttribute("datetime")) ||
+              new Date().toISOString()
             : new Date().toISOString();
 
           // Extract channel name if visible
           const channelEl = await element.$('[class*="channelName"]');
-          const channel = channelEl ? (await channelEl.textContent()) || '' : '';
+          const channel = channelEl
+            ? (await channelEl.textContent()) || ""
+            : "";
           const fullSource = channel ? `${source} / #${channel}` : source;
 
           // Try to get reaction/engagement data
@@ -244,24 +278,24 @@ export class DiscordBrowserAgent extends BaseBrowserAgent {
           // Build message URL (Discord message links)
           const messageLink = this.session.page.url();
 
-          mentions.push(this.createMention({
-            title: `${author} on Discord`,
-            content: content.substring(0, 1000), // Cap content length
-            url: messageLink,
-            author,
-            postDate,
-            source: fullSource,
-            engagement: {
-              reactions,
-            },
-          }));
-
+          mentions.push(
+            this.createMention({
+              title: `${author} on Discord`,
+              content: content.substring(0, 1000), // Cap content length
+              url: messageLink,
+              author,
+              postDate,
+              source: fullSource,
+              engagement: {
+                reactions,
+              },
+            }),
+          );
         } catch {
           // Skip messages that fail extraction
           continue;
         }
       }
-
     } catch (error: any) {
       console.log(`      Error extracting Discord results: ${error.message}`);
     }

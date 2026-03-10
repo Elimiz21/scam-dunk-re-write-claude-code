@@ -6,29 +6,37 @@
  */
 
 import {
-  ScanTarget, PlatformScanResult, SocialMention,
-  SocialScanner, calculatePromotionScore, PROMOTION_SUBREDDITS,
+  ScanTarget,
+  PlatformScanResult,
+  SocialMention,
+  SocialScanner,
+  calculatePromotionScore,
+  PROMOTION_SUBREDDITS,
   calculatePlatformSpecificScore,
-} from './types';
-import type { PlatformName } from './platform-patterns';
+} from "./types";
+import type { PlatformName } from "./platform-patterns";
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ─────────────────────────────────────────────────────────────
 // Reddit Public JSON Scanner (no OAuth needed)
 // ─────────────────────────────────────────────────────────────
 
-const REDDIT_USER_AGENT = 'Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)';
+const REDDIT_USER_AGENT =
+  "Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)";
 const REDDIT_DELAY_MS = 2000; // 2s between requests (was 6.5s — too slow for 50 tickers)
 
 async function redditGet(url: string): Promise<any> {
-  const headers: Record<string, string> = { 'User-Agent': REDDIT_USER_AGENT, 'Accept': 'application/json' };
-  const fetchOpts: RequestInit = { headers, redirect: 'follow' };
+  const headers: Record<string, string> = {
+    "User-Agent": REDDIT_USER_AGENT,
+    Accept: "application/json",
+  };
+  const fetchOpts: RequestInit = { headers, redirect: "follow" };
 
   // Try the given URL first, then old.reddit.com as fallback
   const urls = [url];
-  if (url.includes('www.reddit.com')) {
-    urls.push(url.replace('www.reddit.com', 'old.reddit.com'));
+  if (url.includes("www.reddit.com")) {
+    urls.push(url.replace("www.reddit.com", "old.reddit.com"));
   }
 
   for (const tryUrl of urls) {
@@ -41,31 +49,45 @@ async function redditGet(url: string): Promise<any> {
       }
 
       if (!response.ok) {
-        console.warn(`[Reddit] ${response.status} from ${tryUrl.split('?')[0]}`);
+        console.warn(
+          `[Reddit] ${response.status} from ${tryUrl.split("?")[0]}`,
+        );
         continue; // Try fallback URL
       }
 
       const text = await response.text();
 
       // Detect HTML login/block pages that Reddit returns instead of JSON
-      if (text.startsWith('<') || text.includes('<!DOCTYPE') || text.includes('<html')) {
-        console.warn(`[Reddit] Got HTML instead of JSON from ${tryUrl.split('?')[0]} (blocked or redirected to login)`);
+      if (
+        text.startsWith("<") ||
+        text.includes("<!DOCTYPE") ||
+        text.includes("<html")
+      ) {
+        console.warn(
+          `[Reddit] Got HTML instead of JSON from ${tryUrl.split("?")[0]} (blocked or redirected to login)`,
+        );
         continue; // Try fallback URL
       }
 
       try {
         const data = JSON.parse(text);
         if (data.error) {
-          console.warn(`[Reddit] API error ${data.error} from ${tryUrl.split('?')[0]}: ${data.message || ''}`);
+          console.warn(
+            `[Reddit] API error ${data.error} from ${tryUrl.split("?")[0]}: ${data.message || ""}`,
+          );
           continue;
         }
         return data;
       } catch {
-        console.warn(`[Reddit] Invalid JSON from ${tryUrl.split('?')[0]} (starts with: ${text.substring(0, 60)})`);
+        console.warn(
+          `[Reddit] Invalid JSON from ${tryUrl.split("?")[0]} (starts with: ${text.substring(0, 60)})`,
+        );
         continue;
       }
     } catch (error: any) {
-      console.warn(`[Reddit] Fetch error from ${tryUrl.split('?')[0]}: ${error.message}`);
+      console.warn(
+        `[Reddit] Fetch error from ${tryUrl.split("?")[0]}: ${error.message}`,
+      );
       continue;
     }
   }
@@ -75,106 +97,142 @@ async function redditGet(url: string): Promise<any> {
 }
 
 export class RedditScanner implements SocialScanner {
-  name = 'reddit_public';
-  platform = 'Reddit';
+  name = "reddit_public";
+  platform = "Reddit";
 
-  isConfigured() { return true; }
+  isConfigured() {
+    return true;
+  }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
     const allMentions: SocialMention[] = [];
     const promotionSubs = new Set(PROMOTION_SUBREDDITS);
 
+    // Single combined query per ticker to avoid timeout with 50+ tickers
+    // Serper's site:reddit.com query provides additional Reddit coverage
+    const seenUrls = new Set<string>();
+
     for (const target of targets) {
-      const queries = [target.ticker, `$${target.ticker}`, `${target.ticker} stock`];
-      const seenUrls = new Set<string>();
+      try {
+        const query = `${target.ticker} OR $${target.ticker}`;
+        const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=50`;
+        const data = await redditGet(url);
+        if (!data) continue;
 
-      for (const query of queries) {
-        try {
-          const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=25`;
-          const data = await redditGet(url);
-          if (!data) continue; // All URLs failed for this query
+        for (const post of data?.data?.children || []) {
+          const d = post.data;
+          const permalink = `https://reddit.com${d.permalink}`;
+          if (seenUrls.has(permalink)) continue;
 
-          for (const post of (data?.data?.children || [])) {
-            const d = post.data;
-            const permalink = `https://reddit.com${d.permalink}`;
-            if (seenUrls.has(permalink)) continue;
+          const subreddit = (d.subreddit || "").toLowerCase();
+          const title = d.title || "";
+          const selftext = d.selftext || "";
+          const combined = `${title} ${selftext}`.toLowerCase();
+          const tickerLower = target.ticker.toLowerCase();
 
-            const subreddit = (d.subreddit || '').toLowerCase();
-            const title = d.title || '';
-            const selftext = d.selftext || '';
-            const combined = `${title} ${selftext}`.toLowerCase();
-            const tickerLower = target.ticker.toLowerCase();
+          if (
+            !combined.includes(tickerLower) &&
+            !combined.includes(`$${tickerLower}`)
+          )
+            continue;
+          seenUrls.add(permalink);
 
-            if (!combined.includes(tickerLower) && !combined.includes(`$${tickerLower}`)) continue;
-            seenUrls.add(permalink);
+          const accountCreatedUtc = d.author_created_utc;
+          const isNewAccount = accountCreatedUtc
+            ? (Date.now() / 1000 - accountCreatedUtc) / 86400 < 90
+            : false;
 
-            const accountCreatedUtc = d.author_created_utc;
-            const isNewAccount = accountCreatedUtc
-              ? (Date.now() / 1000 - accountCreatedUtc) / 86400 < 90
-              : false;
-
-            const { score, flags } = calculatePromotionScore(`${title} ${selftext}`, {
+          const { score, flags } = calculatePromotionScore(
+            `${title} ${selftext}`,
+            {
               isPromotionSubreddit: promotionSubs.has(subreddit),
               isNewAccount,
               hasHighEngagement: d.score > 100,
-            });
-            const { scoreBonus: platformBonus, flags: platformFlags } = calculatePlatformSpecificScore(`${title} ${selftext}`, 'reddit');
-            flags.push(...platformFlags);
-            const finalScore = Math.min(score + platformBonus, 100);
+            },
+          );
+          const { scoreBonus: platformBonus, flags: platformFlags } =
+            calculatePlatformSpecificScore(`${title} ${selftext}`, "reddit");
+          flags.push(...platformFlags);
+          const finalScore = Math.min(score + platformBonus, 100);
 
-            allMentions.push({
-              platform: 'Reddit', source: `r/${d.subreddit}`, discoveredVia: 'reddit_public',
-              title, content: (selftext || title).substring(0, 500), url: permalink,
-              author: d.author || 'unknown',
-              postDate: new Date(d.created_utc * 1000).toISOString(),
-              engagement: { upvotes: d.score, comments: d.num_comments },
-              sentiment: finalScore > 30 ? 'bullish' : 'neutral',
-              isPromotional: finalScore >= 20, promotionScore: finalScore, redFlags: flags,
-            });
-          }
-          await sleep(REDDIT_DELAY_MS);
-        } catch (error: any) {
-          console.error(`[Reddit] Search error for "${query}":`, error.message);
+          allMentions.push({
+            platform: "Reddit",
+            source: `r/${d.subreddit}`,
+            discoveredVia: "reddit_public",
+            title,
+            content: (selftext || title).substring(0, 500),
+            url: permalink,
+            author: d.author || "unknown",
+            postDate: new Date(d.created_utc * 1000).toISOString(),
+            engagement: { upvotes: d.score, comments: d.num_comments },
+            sentiment: finalScore > 30 ? "bullish" : "neutral",
+            isPromotional: finalScore >= 20,
+            promotionScore: finalScore,
+            redFlags: flags,
+          });
         }
+        await sleep(REDDIT_DELAY_MS);
+      } catch (error: any) {
+        console.error(
+          `[Reddit] Search error for "${target.ticker}":`,
+          error.message,
+        );
       }
     }
 
-    // Also scan top subreddits
-    const topSubs = ['wallstreetbets', 'pennystocks', 'shortsqueeze', 'smallstreetbets', 'daytrading'];
+    // Scan top pump-and-dump subreddits (reduced from 5 to 3 for speed)
+    const topSubs = ["wallstreetbets", "pennystocks", "shortsqueeze"];
     for (const sub of topSubs) {
       try {
-        const data = await redditGet(`https://www.reddit.com/r/${sub}/new.json?limit=100`);
+        const data = await redditGet(
+          `https://www.reddit.com/r/${sub}/new.json?limit=100`,
+        );
         if (!data) continue; // Reddit blocked this request
-        for (const post of (data?.data?.children || [])) {
+        for (const post of data?.data?.children || []) {
           const d = post.data;
-          const title = d.title || '';
-          const selftext = d.selftext || '';
+          const title = d.title || "";
+          const selftext = d.selftext || "";
           const combined = `${title} ${selftext}`.toLowerCase();
 
           for (const target of targets) {
             const tickerLower = target.ticker.toLowerCase();
-            if (!combined.includes(tickerLower) && !combined.includes(`$${tickerLower}`)) continue;
+            if (
+              !combined.includes(tickerLower) &&
+              !combined.includes(`$${tickerLower}`)
+            )
+              continue;
 
             const permalink = `https://reddit.com${d.permalink}`;
-            if (allMentions.some(m => m.url === permalink)) continue;
+            if (seenUrls.has(permalink)) continue;
+            seenUrls.add(permalink);
 
-            const { score, flags } = calculatePromotionScore(`${title} ${selftext}`, {
-              isPromotionSubreddit: promotionSubs.has(sub),
-              hasHighEngagement: d.score > 50,
-            });
-            const { scoreBonus: subPlatformBonus, flags: subPlatformFlags } = calculatePlatformSpecificScore(`${title} ${selftext}`, 'reddit');
+            const { score, flags } = calculatePromotionScore(
+              `${title} ${selftext}`,
+              {
+                isPromotionSubreddit: promotionSubs.has(sub),
+                hasHighEngagement: d.score > 50,
+              },
+            );
+            const { scoreBonus: subPlatformBonus, flags: subPlatformFlags } =
+              calculatePlatformSpecificScore(`${title} ${selftext}`, "reddit");
             flags.push(...subPlatformFlags);
             const subFinalScore = Math.min(score + subPlatformBonus, 100);
 
             allMentions.push({
-              platform: 'Reddit', source: `r/${sub}`, discoveredVia: 'reddit_public',
-              title, content: (selftext || title).substring(0, 500), url: permalink,
-              author: d.author || 'unknown',
+              platform: "Reddit",
+              source: `r/${sub}`,
+              discoveredVia: "reddit_public",
+              title,
+              content: (selftext || title).substring(0, 500),
+              url: permalink,
+              author: d.author || "unknown",
               postDate: new Date(d.created_utc * 1000).toISOString(),
               engagement: { upvotes: d.score, comments: d.num_comments },
-              sentiment: subFinalScore > 30 ? 'bullish' : 'neutral',
-              isPromotional: subFinalScore >= 20, promotionScore: subFinalScore, redFlags: flags,
+              sentiment: subFinalScore > 30 ? "bullish" : "neutral",
+              isPromotional: subFinalScore >= 20,
+              promotionScore: subFinalScore,
+              redFlags: flags,
             });
             break;
           }
@@ -185,16 +243,32 @@ export class RedditScanner implements SocialScanner {
       }
     }
 
-    const avgScore = allMentions.length > 0
-      ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
+    const avgScore =
+      allMentions.length > 0
+        ? allMentions.reduce((s, m) => s + m.promotionScore, 0) /
+          allMentions.length
+        : 0;
 
-    return [{
-      platform: 'Reddit', scanner: this.name, success: true,
-      mentionsFound: allMentions.length, mentions: allMentions,
-      activityLevel: allMentions.length >= 20 ? 'high' : allMentions.length >= 5 ? 'medium' : allMentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 50 ? 'high' : avgScore >= 25 ? 'medium' : 'low',
-      scanDuration: Date.now() - startTime,
-    }];
+    return [
+      {
+        platform: "Reddit",
+        scanner: this.name,
+        success: true,
+        mentionsFound: allMentions.length,
+        mentions: allMentions,
+        activityLevel:
+          allMentions.length >= 20
+            ? "high"
+            : allMentions.length >= 5
+              ? "medium"
+              : allMentions.length > 0
+                ? "low"
+                : "none",
+        promotionRisk:
+          avgScore >= 50 ? "high" : avgScore >= 25 ? "medium" : "low",
+        scanDuration: Date.now() - startTime,
+      },
+    ];
   }
 }
 
@@ -202,13 +276,15 @@ export class RedditScanner implements SocialScanner {
 // YouTube Data API v3 Scanner
 // ─────────────────────────────────────────────────────────────
 
-const YT_API_BASE = 'https://www.googleapis.com/youtube/v3';
+const YT_API_BASE = "https://www.googleapis.com/youtube/v3";
 
 export class YouTubeScanner implements SocialScanner {
-  name = 'youtube_api';
-  platform = 'YouTube';
+  name = "youtube_api";
+  platform = "YouTube";
 
-  isConfigured() { return !!process.env.YOUTUBE_API_KEY; }
+  isConfigured() {
+    return !!process.env.YOUTUBE_API_KEY;
+  }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
@@ -221,13 +297,19 @@ export class YouTubeScanner implements SocialScanner {
     for (const target of targets) {
       try {
         const params = new URLSearchParams({
-          part: 'snippet', q: `${target.ticker} stock`, type: 'video',
-          order: 'date', publishedAfter: oneWeekAgo.toISOString(),
-          maxResults: '25', key: apiKey,
+          part: "snippet",
+          q: `${target.ticker} stock`,
+          type: "video",
+          order: "date",
+          publishedAfter: oneWeekAgo.toISOString(),
+          maxResults: "25",
+          key: apiKey,
         });
         const res = await fetch(`${YT_API_BASE}/search?${params}`);
         if (!res.ok) {
-          console.error(`[YouTube] API ${res.status} for ${target.ticker}: ${await res.text().catch(() => 'no body')}`);
+          console.error(
+            `[YouTube] API ${res.status} for ${target.ticker}: ${await res.text().catch(() => "no body")}`,
+          );
           continue;
         }
         const data = await res.json();
@@ -238,49 +320,74 @@ export class YouTubeScanner implements SocialScanner {
         const statsMap = new Map<string, any>();
         if (videoIds.length > 0) {
           const statsParams = new URLSearchParams({
-            part: 'statistics', id: videoIds.join(','), key: apiKey,
+            part: "statistics",
+            id: videoIds.join(","),
+            key: apiKey,
           });
           const statsRes = await fetch(`${YT_API_BASE}/videos?${statsParams}`);
           if (statsRes.ok) {
             const statsData = await statsRes.json();
-            for (const item of (statsData.items || [])) statsMap.set(item.id, item.statistics);
+            for (const item of statsData.items || [])
+              statsMap.set(item.id, item.statistics);
           }
         }
 
         for (const video of videos) {
           const snippet = video.snippet;
           if (!snippet) continue;
-          const title = snippet.title || '';
-          const description = snippet.description || '';
+          const title = snippet.title || "";
+          const description = snippet.description || "";
           const combined = `${title} ${description}`.toLowerCase();
           if (!combined.includes(target.ticker.toLowerCase())) continue;
 
-          const { score, flags } = calculatePromotionScore(`${title} ${description}`);
-          const { scoreBonus: platformBonus, flags: platformFlags } = calculatePlatformSpecificScore(`${title} ${description}`, 'youtube');
+          const { score, flags } = calculatePromotionScore(
+            `${title} ${description}`,
+          );
+          const { scoreBonus: platformBonus, flags: platformFlags } =
+            calculatePlatformSpecificScore(
+              `${title} ${description}`,
+              "youtube",
+            );
           flags.push(...platformFlags);
-          if (title.includes('🚀') || title.includes('💰') || title.includes('🔥') || title.includes('💎'))
-            flags.push('Clickbait emojis in title');
-          const capsRatio = (title.match(/[A-Z]/g) || []).length / Math.max(title.length, 1);
-          if (capsRatio > 0.6) flags.push('Excessive caps in title');
+          if (
+            title.includes("🚀") ||
+            title.includes("💰") ||
+            title.includes("🔥") ||
+            title.includes("💎")
+          )
+            flags.push("Clickbait emojis in title");
+          const capsRatio =
+            (title.match(/[A-Z]/g) || []).length / Math.max(title.length, 1);
+          if (capsRatio > 0.6) flags.push("Excessive caps in title");
 
-          const finalScore = Math.min(score + platformBonus + (flags.includes('Clickbait emojis in title') ? 10 : 0) + (flags.includes('Excessive caps in title') ? 10 : 0), 100);
+          const finalScore = Math.min(
+            score +
+              platformBonus +
+              (flags.includes("Clickbait emojis in title") ? 10 : 0) +
+              (flags.includes("Excessive caps in title") ? 10 : 0),
+            100,
+          );
           const videoId = video.id?.videoId;
           const stats = videoId ? statsMap.get(videoId) : null;
 
           allMentions.push({
-            platform: 'YouTube', source: snippet.channelTitle || 'Unknown Channel',
-            discoveredVia: 'youtube_api', title,
+            platform: "YouTube",
+            source: snippet.channelTitle || "Unknown Channel",
+            discoveredVia: "youtube_api",
+            title,
             content: description.substring(0, 500),
-            url: videoId ? `https://youtube.com/watch?v=${videoId}` : '',
-            author: snippet.channelTitle || 'unknown',
+            url: videoId ? `https://youtube.com/watch?v=${videoId}` : "",
+            author: snippet.channelTitle || "unknown",
             postDate: snippet.publishedAt || new Date().toISOString(),
             engagement: {
-              views: stats ? parseInt(stats.viewCount || '0') : undefined,
-              likes: stats ? parseInt(stats.likeCount || '0') : undefined,
-              comments: stats ? parseInt(stats.commentCount || '0') : undefined,
+              views: stats ? parseInt(stats.viewCount || "0") : undefined,
+              likes: stats ? parseInt(stats.likeCount || "0") : undefined,
+              comments: stats ? parseInt(stats.commentCount || "0") : undefined,
             },
-            sentiment: finalScore > 25 ? 'bullish' : 'neutral',
-            isPromotional: finalScore >= 20, promotionScore: finalScore, redFlags: flags,
+            sentiment: finalScore > 25 ? "bullish" : "neutral",
+            isPromotional: finalScore >= 20,
+            promotionScore: finalScore,
+            redFlags: flags,
           });
         }
         await sleep(200);
@@ -289,16 +396,32 @@ export class YouTubeScanner implements SocialScanner {
       }
     }
 
-    const avgScore = allMentions.length > 0
-      ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
+    const avgScore =
+      allMentions.length > 0
+        ? allMentions.reduce((s, m) => s + m.promotionScore, 0) /
+          allMentions.length
+        : 0;
 
-    return [{
-      platform: 'YouTube', scanner: this.name, success: true,
-      mentionsFound: allMentions.length, mentions: allMentions,
-      activityLevel: allMentions.length >= 10 ? 'high' : allMentions.length >= 3 ? 'medium' : allMentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 40 ? 'high' : avgScore >= 20 ? 'medium' : 'low',
-      scanDuration: Date.now() - startTime,
-    }];
+    return [
+      {
+        platform: "YouTube",
+        scanner: this.name,
+        success: true,
+        mentionsFound: allMentions.length,
+        mentions: allMentions,
+        activityLevel:
+          allMentions.length >= 10
+            ? "high"
+            : allMentions.length >= 3
+              ? "medium"
+              : allMentions.length > 0
+                ? "low"
+                : "none",
+        promotionRisk:
+          avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
+        scanDuration: Date.now() - startTime,
+      },
+    ];
   }
 }
 
@@ -307,10 +430,12 @@ export class YouTubeScanner implements SocialScanner {
 // ─────────────────────────────────────────────────────────────
 
 export class StockTwitsScanner implements SocialScanner {
-  name = 'stocktwits';
-  platform = 'StockTwits';
+  name = "stocktwits";
+  platform = "StockTwits";
 
-  isConfigured() { return true; }
+  isConfigured() {
+    return true;
+  }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
@@ -322,67 +447,113 @@ export class StockTwitsScanner implements SocialScanner {
         const url = `https://api.stocktwits.com/api/2/streams/symbol/${encodeURIComponent(target.ticker)}.json`;
         const response = await fetch(url, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-            'Accept': 'application/json',
+            "User-Agent":
+              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            Accept: "application/json",
           },
         });
 
-        if (!response.ok) { hasErrors = true; continue; }
+        if (!response.ok) {
+          hasErrors = true;
+          continue;
+        }
         const text = await response.text();
-        if (text.startsWith('<')) { hasErrors = true; continue; }
+        if (text.startsWith("<")) {
+          hasErrors = true;
+          continue;
+        }
 
         const data = JSON.parse(text);
         if (data.response?.status !== 200) continue;
 
-        for (const msg of (data.messages || [])) {
-          const body = msg.body || '';
+        for (const msg of data.messages || []) {
+          const body = msg.body || "";
           const { score, flags } = calculatePromotionScore(body);
-          const { scoreBonus: platformBonus, flags: platformFlags } = calculatePlatformSpecificScore(body, 'stocktwits');
+          const { scoreBonus: platformBonus, flags: platformFlags } =
+            calculatePlatformSpecificScore(body, "stocktwits");
           flags.push(...platformFlags);
 
           const followers = msg.user?.followers || 0;
-          if (followers < 10) flags.push('Low follower account');
+          if (followers < 10) flags.push("Low follower account");
           if (msg.user?.join_date) {
-            const daysSince = (Date.now() - new Date(msg.user.join_date).getTime()) / 86400000;
-            if (daysSince < 30) flags.push('Account < 30 days old');
+            const daysSince =
+              (Date.now() - new Date(msg.user.join_date).getTime()) / 86400000;
+            if (daysSince < 30) flags.push("Account < 30 days old");
           }
 
           const stSentiment = msg.entities?.sentiment?.basic;
-          const sentiment = stSentiment === 'Bullish' ? 'bullish' as const
-            : stSentiment === 'Bearish' ? 'bearish' as const : 'neutral' as const;
+          const sentiment =
+            stSentiment === "Bullish"
+              ? ("bullish" as const)
+              : stSentiment === "Bearish"
+                ? ("bearish" as const)
+                : ("neutral" as const);
 
-          const finalScore = Math.min(score + platformBonus + (followers < 10 ? 10 : 0) + (flags.includes('Account < 30 days old') ? 15 : 0), 100);
+          const finalScore = Math.min(
+            score +
+              platformBonus +
+              (followers < 10 ? 10 : 0) +
+              (flags.includes("Account < 30 days old") ? 15 : 0),
+            100,
+          );
 
           allMentions.push({
-            platform: 'StockTwits', source: 'StockTwits Feed', discoveredVia: 'stocktwits',
-            title: '', content: body.substring(0, 500),
-            url: msg.id ? `https://stocktwits.com/${msg.user?.username || 'unknown'}/message/${msg.id}` : `https://stocktwits.com/symbol/${target.ticker}`,
-            author: msg.user?.username || 'unknown',
+            platform: "StockTwits",
+            source: "StockTwits Feed",
+            discoveredVia: "stocktwits",
+            title: "",
+            content: body.substring(0, 500),
+            url: msg.id
+              ? `https://stocktwits.com/${msg.user?.username || "unknown"}/message/${msg.id}`
+              : `https://stocktwits.com/symbol/${target.ticker}`,
+            author: msg.user?.username || "unknown",
             postDate: msg.created_at || new Date().toISOString(),
             engagement: { likes: msg.likes?.total || 0 },
-            sentiment, isPromotional: finalScore >= 20,
-            promotionScore: finalScore, redFlags: flags,
+            sentiment,
+            isPromotional: finalScore >= 20,
+            promotionScore: finalScore,
+            redFlags: flags,
           });
         }
         await sleep(2000);
       } catch (error: any) {
-        console.error(`[StockTwits] Error for ${target.ticker}:`, error.message);
+        console.error(
+          `[StockTwits] Error for ${target.ticker}:`,
+          error.message,
+        );
         hasErrors = true;
       }
     }
 
-    const avgScore = allMentions.length > 0
-      ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
+    const avgScore =
+      allMentions.length > 0
+        ? allMentions.reduce((s, m) => s + m.promotionScore, 0) /
+          allMentions.length
+        : 0;
 
-    return [{
-      platform: 'StockTwits', scanner: this.name,
-      success: allMentions.length > 0 || !hasErrors,
-      error: hasErrors ? 'Some tickers failed (possibly rate limited)' : undefined,
-      mentionsFound: allMentions.length, mentions: allMentions,
-      activityLevel: allMentions.length >= 30 ? 'high' : allMentions.length >= 10 ? 'medium' : allMentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 40 ? 'high' : avgScore >= 20 ? 'medium' : 'low',
-      scanDuration: Date.now() - startTime,
-    }];
+    return [
+      {
+        platform: "StockTwits",
+        scanner: this.name,
+        success: allMentions.length > 0 || !hasErrors,
+        error: hasErrors
+          ? "Some tickers failed (possibly rate limited)"
+          : undefined,
+        mentionsFound: allMentions.length,
+        mentions: allMentions,
+        activityLevel:
+          allMentions.length >= 30
+            ? "high"
+            : allMentions.length >= 10
+              ? "medium"
+              : allMentions.length > 0
+                ? "low"
+                : "none",
+        promotionRisk:
+          avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
+        scanDuration: Date.now() - startTime,
+      },
+    ];
   }
 }
 
@@ -390,44 +561,53 @@ export class StockTwitsScanner implements SocialScanner {
 // Serper.dev Scanner (Google Search Alternative)
 // ─────────────────────────────────────────────────────────────
 
-function detectPlatform(url: string): SocialMention['platform'] {
+function detectPlatform(url: string): SocialMention["platform"] {
   const lower = url.toLowerCase();
-  if (lower.includes('reddit.com')) return 'Reddit';
-  if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'YouTube';
-  if (lower.includes('twitter.com') || lower.includes('x.com')) return 'Twitter';
-  if (lower.includes('stocktwits.com')) return 'StockTwits';
-  if (lower.includes('tiktok.com')) return 'TikTok';
-  if (lower.includes('discord.com') || lower.includes('discord.gg')) return 'Discord';
-  return 'Forum';
+  if (lower.includes("reddit.com")) return "Reddit";
+  if (lower.includes("youtube.com") || lower.includes("youtu.be"))
+    return "YouTube";
+  if (lower.includes("twitter.com") || lower.includes("x.com"))
+    return "Twitter";
+  if (lower.includes("stocktwits.com")) return "StockTwits";
+  if (lower.includes("tiktok.com")) return "TikTok";
+  if (lower.includes("discord.com") || lower.includes("discord.gg"))
+    return "Discord";
+  return "Forum";
 }
 
 function detectSource(url: string): string {
   const lower = url.toLowerCase();
-  if (lower.includes('reddit.com/r/')) {
+  if (lower.includes("reddit.com/r/")) {
     const match = url.match(/reddit\.com\/r\/([^\/]+)/i);
-    return match ? `r/${match[1]}` : 'Reddit';
+    return match ? `r/${match[1]}` : "Reddit";
   }
-  if (lower.includes('youtube.com')) return 'YouTube';
-  if (lower.includes('twitter.com') || lower.includes('x.com')) {
+  if (lower.includes("youtube.com")) return "YouTube";
+  if (lower.includes("twitter.com") || lower.includes("x.com")) {
     const match = url.match(/(?:twitter|x)\.com\/([^\/]+)/i);
-    return match ? `@${match[1]}` : 'Twitter/X';
+    return match ? `@${match[1]}` : "Twitter/X";
   }
-  if (lower.includes('stocktwits.com')) return 'StockTwits';
-  if (lower.includes('tiktok.com')) {
+  if (lower.includes("stocktwits.com")) return "StockTwits";
+  if (lower.includes("tiktok.com")) {
     const match = url.match(/tiktok\.com\/@([^\/]+)/i);
-    return match ? `@${match[1]}` : 'TikTok';
+    return match ? `@${match[1]}` : "TikTok";
   }
-  if (lower.includes('seekingalpha.com')) return 'Seeking Alpha';
-  if (lower.includes('finance.yahoo.com')) return 'Yahoo Finance';
-  if (lower.includes('investorshub')) return 'InvestorsHub';
-  try { return new URL(url).hostname; } catch { return 'Unknown'; }
+  if (lower.includes("seekingalpha.com")) return "Seeking Alpha";
+  if (lower.includes("finance.yahoo.com")) return "Yahoo Finance";
+  if (lower.includes("investorshub")) return "InvestorsHub";
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "Unknown";
+  }
 }
 
 export class SerperScanner implements SocialScanner {
-  name = 'serper_dev';
-  platform = 'Multi-Platform';
+  name = "serper_dev";
+  platform = "Multi-Platform";
 
-  isConfigured() { return !!process.env.SERPER_API_KEY; }
+  isConfigured() {
+    return !!process.env.SERPER_API_KEY;
+  }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
@@ -436,109 +616,158 @@ export class SerperScanner implements SocialScanner {
     const seenUrls = new Set<string>();
 
     let apiErrors = 0;
-    let lastApiError = '';
+    let lastApiError = "";
+
+    // Two targeted queries per ticker:
+    // 1. Scam language query — surfaces pump-and-dump, alert service, and manipulation content
+    // 2. Social platform query — surfaces discussions on Reddit, StockTwits, Discord specifically
+    const buildQueries = (ticker: string): string[] => [
+      `"$${ticker}" OR "${ticker}" ("buy now" OR "guaranteed" OR "alert service" OR "pump" OR "100x" OR "join our" OR "moon")`,
+      `"$${ticker}" OR "${ticker}" site:reddit.com OR site:stocktwits.com OR site:youtube.com`,
+    ];
 
     for (const target of targets) {
-      // Search broadly — don't cram 13 site: operators into one query
-      // which causes Google to return 0 results for obscure tickers.
-      // Instead, search for the ticker generally and filter by platform from the URL.
-      const query = `"$${target.ticker}" OR "${target.ticker}" stock promotion`;
+      const queries = buildQueries(target.ticker);
 
-      try {
-        const res = await fetch('https://google.serper.dev/search', {
-          method: 'POST',
-          headers: {
-            'X-API-KEY': apiKey,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            q: query,
-            num: 20,
-            tbs: 'qdr:w' // Past week
-          })
-        });
+      for (const query of queries) {
+        try {
+          const res = await fetch("https://google.serper.dev/search", {
+            method: "POST",
+            headers: {
+              "X-API-KEY": apiKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              q: query,
+              num: 15,
+              tbs: "qdr:w", // Past week
+            }),
+          });
 
-        if (!res.ok) {
-          const body = await res.text().catch(() => 'no body');
-          console.error(`[Serper] API ${res.status} for ${target.ticker}: ${body}`);
-          apiErrors++;
+          if (!res.ok) {
+            const body = await res.text().catch(() => "no body");
+            console.error(
+              `[Serper] API ${res.status} for ${target.ticker}: ${body}`,
+            );
+            apiErrors++;
 
-          let parsedError = body;
-          try {
-            const json = JSON.parse(body);
-            parsedError = json.message || json.error || body;
-          } catch (e) { }
-          lastApiError = `Status ${res.status}: ${parsedError}`;
-          continue;
-        }
-
-        const data = await res.json();
-        const results = data.organic || [];
-
-        for (const result of results) {
-          const url = result.link || '';
-          if (seenUrls.has(url)) continue;
-          seenUrls.add(url);
-
-          const title = result.title || '';
-          const snippet = result.snippet || '';
-          const combined = `${title} ${snippet}`.toLowerCase();
-          const tickerLower = target.ticker.toLowerCase();
-          if (!combined.includes(tickerLower) && !combined.includes(`$${tickerLower}`)) continue;
-
-          const platform = detectPlatform(url);
-          const source = detectSource(url);
-          const { score, flags } = calculatePromotionScore(`${title} ${snippet}`);
-
-          // Apply platform-specific scoring based on detected platform
-          const platformMap: Record<string, PlatformName> = {
-            'Reddit': 'reddit', 'YouTube': 'youtube', 'Twitter': 'twitter',
-            'StockTwits': 'stocktwits', 'Discord': 'discord_telegram', 'TikTok': 'tiktok',
-          };
-          const platformKey = platformMap[platform];
-          let finalScore = score;
-          if (platformKey) {
-            const { scoreBonus, flags: pFlags } = calculatePlatformSpecificScore(`${title} ${snippet}`, platformKey);
-            flags.push(...pFlags);
-            finalScore = Math.min(score + scoreBonus, 100);
+            let parsedError = body;
+            try {
+              const json = JSON.parse(body);
+              parsedError = json.message || json.error || body;
+            } catch (e) {}
+            lastApiError = `Status ${res.status}: ${parsedError}`;
+            continue;
           }
 
-          let postDate = result.date || new Date().toISOString();
-          // Process string formats like "1 day ago", "Oct 12, 2024", etc could be possible if we parse further,
-          // but relying on fallback for now works safely.
+          const data = await res.json();
+          const results = data.organic || [];
 
-          allMentions.push({
-            platform, source, discoveredVia: 'serper_dev',
-            title: title.substring(0, 300), content: snippet.substring(0, 500),
-            url, author: 'unknown', postDate, engagement: {},
-            sentiment: finalScore > 25 ? 'bullish' : 'neutral',
-            isPromotional: finalScore >= 20, promotionScore: finalScore, redFlags: flags,
-          });
+          for (const result of results) {
+            const url = result.link || "";
+            if (seenUrls.has(url)) continue;
+            seenUrls.add(url);
+
+            const title = result.title || "";
+            const snippet = result.snippet || "";
+            const combined = `${title} ${snippet}`.toLowerCase();
+            const tickerLower = target.ticker.toLowerCase();
+            if (
+              !combined.includes(tickerLower) &&
+              !combined.includes(`$${tickerLower}`)
+            )
+              continue;
+
+            const platform = detectPlatform(url);
+            const source = detectSource(url);
+            const { score, flags } = calculatePromotionScore(
+              `${title} ${snippet}`,
+            );
+
+            // Apply platform-specific scoring based on detected platform
+            const platformMap: Record<string, PlatformName> = {
+              Reddit: "reddit",
+              YouTube: "youtube",
+              Twitter: "twitter",
+              StockTwits: "stocktwits",
+              Discord: "discord_telegram",
+              TikTok: "tiktok",
+            };
+            const platformKey = platformMap[platform];
+            let finalScore = score;
+            if (platformKey) {
+              const { scoreBonus, flags: pFlags } =
+                calculatePlatformSpecificScore(
+                  `${title} ${snippet}`,
+                  platformKey,
+                );
+              flags.push(...pFlags);
+              finalScore = Math.min(score + scoreBonus, 100);
+            }
+
+            let postDate = result.date || new Date().toISOString();
+
+            allMentions.push({
+              platform,
+              source,
+              discoveredVia: "serper_dev",
+              title: title.substring(0, 300),
+              content: snippet.substring(0, 500),
+              url,
+              author: "unknown",
+              postDate,
+              engagement: {},
+              sentiment: finalScore > 25 ? "bullish" : "neutral",
+              isPromotional: finalScore >= 20,
+              promotionScore: finalScore,
+              redFlags: flags,
+            });
+          }
+        } catch (error: any) {
+          console.error(`[Serper] Error for ${target.ticker}:`, error.message);
+          apiErrors++;
+          lastApiError = `Network error: ${error.message}`;
         }
-      } catch (error: any) {
-        console.error(`[Serper] Error for ${target.ticker}:`, error.message);
-        apiErrors++;
-        lastApiError = `Network error: ${error.message}`;
+        await sleep(100); // Serper is faster, gentle throttle
       }
-      await sleep(100); // Serper is faster, gentle throttle
     }
 
-    const avgScore = allMentions.length > 0
-      ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
+    const avgScore =
+      allMentions.length > 0
+        ? allMentions.reduce((s, m) => s + m.promotionScore, 0) /
+          allMentions.length
+        : 0;
 
     if (apiErrors > 0) {
-      console.error(`[Serper] ${apiErrors}/${targets.length} ticker queries failed. Check your SERPER_API_KEY. Last error: ${lastApiError}`);
+      console.error(
+        `[Serper] ${apiErrors}/${targets.length} ticker queries failed. Check your SERPER_API_KEY. Last error: ${lastApiError}`,
+      );
     }
 
-    return [{
-      platform: 'Multi-Platform (Serper)', scanner: this.name,
-      success: apiErrors === 0,
-      error: apiErrors > 0 ? `${apiErrors}/${targets.length} API requests failed. Last error: ${lastApiError}` : undefined,
-      mentionsFound: allMentions.length, mentions: allMentions,
-      activityLevel: allMentions.length >= 20 ? 'high' : allMentions.length >= 5 ? 'medium' : allMentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 40 ? 'high' : avgScore >= 20 ? 'medium' : 'low',
-      scanDuration: Date.now() - startTime,
-    }];
+    return [
+      {
+        platform: "Multi-Platform (Serper)",
+        scanner: this.name,
+        success: apiErrors === 0,
+        error:
+          apiErrors > 0
+            ? `${apiErrors}/${targets.length} API requests failed. Last error: ${lastApiError}`
+            : undefined,
+        mentionsFound: allMentions.length,
+        mentions: allMentions,
+        activityLevel:
+          allMentions.length >= 20
+            ? "high"
+            : allMentions.length >= 5
+              ? "medium"
+              : allMentions.length > 0
+                ? "low"
+                : "none",
+        promotionRisk:
+          avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
+        scanDuration: Date.now() - startTime,
+      },
+    ];
   }
 }
 
@@ -547,53 +776,83 @@ export class SerperScanner implements SocialScanner {
 // ─────────────────────────────────────────────────────────────
 
 export class PerplexityScanner implements SocialScanner {
-  name = 'perplexity';
-  platform = 'Multi-Platform';
+  name = "perplexity";
+  platform = "Multi-Platform";
 
-  isConfigured() { return !!process.env.PERPLEXITY_API_KEY; }
+  isConfigured() {
+    return !!process.env.PERPLEXITY_API_KEY;
+  }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
     const apiKey = process.env.PERPLEXITY_API_KEY!;
     const allMentions: SocialMention[] = [];
     let apiErrors = 0;
-    let lastApiError = '';
+    let lastApiError = "";
 
     const batchSize = 5;
     for (let i = 0; i < targets.length; i += batchSize) {
       const batch = targets.slice(i, i + batchSize);
-      const tickerList = batch.map(t => `$${t.ticker} (${t.name})`).join(', ');
+      const tickerList = batch
+        .map((t) => `$${t.ticker} (${t.name})`)
+        .join(", ");
+      const signalsSummary = batch
+        .map((t) => `$${t.ticker}: ${t.signals.join(", ") || "HIGH risk"}`)
+        .join("; ");
 
-      const prompt = `Search for recent social media mentions (past 7 days) of these stock tickers: ${tickerList}
+      const prompt = `Investigate these HIGH-RISK stocks for signs of social media pump-and-dump schemes or coordinated scam promotion (past 7 days): ${tickerList}
 
-Look on: Reddit (r/wallstreetbets, r/pennystocks, r/shortsqueeze, r/stocks), Twitter/X (cashtags $${batch.map(t => t.ticker).join(', $')}), YouTube, StockTwits, TikTok, Discord.
+These stocks were flagged by our risk engine for suspicious price/volume patterns:
+${signalsSummary}
 
-For each mention, return a JSON array: [{"ticker":"SYMBOL","platform":"Reddit|Twitter|YouTube|StockTwits|TikTok|Discord","source":"specific subreddit/channel/account","title":"post title","content":"brief summary","url":"actual URL","author":"username","date":"ISO date","upvotes":null,"comments":null,"views":null,"sentiment":"bullish|bearish|neutral"}]
+Now find the SOCIAL MEDIA SIDE of potential manipulation. Look specifically for:
+- Paid alert services promoting these tickers (Discord, Telegram, StockTwits groups)
+- YouTube videos with clickbait pump titles about these tickers
+- Reddit posts with fake "DD" designed to lure buyers into buying
+- Twitter/X accounts spamming cashtags ($${batch.map((t) => t.ticker).join(", $")}) with hype language
+- TikTok "fintok" creators pushing these as "life-changing" or "next 100x" buys
+- Coordinated posting patterns (multiple accounts pushing same ticker simultaneously)
+- Accounts with suspicious patterns (new accounts, copy-pasted text, bot-like behavior)
+- "Guru" accounts selling courses/memberships while pumping these tickers
+- Posts using urgency ("buy before it's too late"), fake scarcity, or guaranteed returns language
 
-IMPORTANT: Only REAL mentions with actual URLs. Return [] if none found. Return ONLY the JSON array.`;
+For each SUSPICIOUS mention found, return a JSON array:
+[{"ticker":"SYMBOL","platform":"Reddit|Twitter|YouTube|StockTwits|TikTok|Discord","source":"specific subreddit/channel/account","title":"post title","content":"brief summary of the suspicious content","url":"actual URL","author":"username","date":"ISO date","upvotes":null,"comments":null,"views":null,"sentiment":"bullish|bearish|neutral","suspicionLevel":"high|medium|low","suspicionReason":"why this looks like a scam or pump scheme"}]
+
+IMPORTANT: Only REAL posts with actual URLs. Focus on content that looks MANIPULATIVE or designed to pump the stock — not legitimate stock discussion or news coverage. Return [] if nothing suspicious found. Return ONLY the JSON array.`;
 
       try {
-        const res = await fetch('https://api.perplexity.ai/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        const res = await fetch("https://api.perplexity.ai/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            model: 'sonar', temperature: 0.1, max_tokens: 2000, return_citations: true,
+            model: "sonar",
+            temperature: 0.1,
+            max_tokens: 2000,
+            return_citations: true,
             messages: [
-              { role: 'system', content: 'You are a stock market social media researcher. Find REAL, CURRENT social media mentions. Only report verified mentions with actual URLs. Respond ONLY in valid JSON format.' },
-              { role: 'user', content: prompt },
+              {
+                role: "system",
+                content:
+                  "You are a financial fraud investigator specializing in stock market pump-and-dump schemes and social media manipulation. Your job is to find SUSPICIOUS promotional activity — coordinated pumps, paid alert services, fake due diligence, boiler room language, and scam indicators. You are NOT looking for legitimate stock discussion or news. You are looking for content that appears designed to manipulate retail investors into buying a stock so the promoter can dump their shares. Respond ONLY in valid JSON format.",
+              },
+              { role: "user", content: prompt },
             ],
           }),
         });
 
         if (!res.ok) {
-          const body = await res.text().catch(() => 'no body');
+          const body = await res.text().catch(() => "no body");
           console.error(`[Perplexity] API ${res.status}: ${body}`);
           apiErrors++;
           lastApiError = `Status ${res.status}: ${body.substring(0, 200)}`;
           continue;
         }
         const data = await res.json();
-        const content = data.choices?.[0]?.message?.content || '';
+        const content = data.choices?.[0]?.message?.content || "";
         const citations: string[] = data.citations || [];
 
         // Parse JSON response — try multiple extraction strategies
@@ -609,75 +868,134 @@ IMPORTANT: Only REAL mentions with actual URLs. Return [] if none found. Return 
             // Strategy 2: Try fixing common LLM JSON issues (trailing commas, unescaped quotes)
             try {
               const cleaned = jsonMatch[0]
-                .replace(/,\s*]/g, ']')       // trailing commas before ]
-                .replace(/,\s*}/g, '}')        // trailing commas before }
+                .replace(/,\s*]/g, "]") // trailing commas before ]
+                .replace(/,\s*}/g, "}") // trailing commas before }
                 .replace(/[\u201c\u201d]/g, '"'); // smart quotes
               const result = JSON.parse(cleaned);
               if (Array.isArray(result)) parsed = result;
             } catch {
-              console.warn(`[Perplexity] JSON parse failed for batch "${tickerList}". Content starts with: ${content.substring(0, 150)}`);
+              console.warn(
+                `[Perplexity] JSON parse failed for batch "${tickerList}". Content starts with: ${content.substring(0, 150)}`,
+              );
               apiErrors++;
               lastApiError = `JSON parse failed for batch "${tickerList}"`;
             }
           }
-        } else if (content.trim().length > 0 && content.trim() !== '[]') {
-          console.warn(`[Perplexity] No JSON array found in response for "${tickerList}". Content starts with: ${content.substring(0, 150)}`);
+        } else if (content.trim().length > 0 && content.trim() !== "[]") {
+          console.warn(
+            `[Perplexity] No JSON array found in response for "${tickerList}". Content starts with: ${content.substring(0, 150)}`,
+          );
         }
 
         if (parsed) {
           for (const item of parsed) {
             if (!item.url && !item.platform) continue;
 
-            let platform: SocialMention['platform'] = 'Web';
-            const url = (item.url || '').toLowerCase();
-            if (url.includes('reddit.com')) platform = 'Reddit';
-            else if (url.includes('youtube.com') || url.includes('youtu.be')) platform = 'YouTube';
-            else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'Twitter';
-            else if (url.includes('stocktwits.com')) platform = 'StockTwits';
-            else if (url.includes('tiktok.com')) platform = 'TikTok';
-            else if (url.includes('discord.com')) platform = 'Discord';
+            const platform = item.url
+              ? detectPlatform(item.url)
+              : (item.platform as SocialMention["platform"]) || "Web";
 
-            const text = `${item.title || ''} ${item.content || item.summary || ''}`;
+            const text = `${item.title || ""} ${item.content || item.summary || ""}`;
             const { score, flags } = calculatePromotionScore(text);
 
+            // Apply platform-specific scoring (was missing for Perplexity)
+            const platformMap: Record<string, PlatformName> = {
+              Reddit: "reddit",
+              YouTube: "youtube",
+              Twitter: "twitter",
+              StockTwits: "stocktwits",
+              Discord: "discord_telegram",
+              TikTok: "tiktok",
+            };
+            const platformKey = platformMap[platform];
+            let platformBonus = 0;
+            if (platformKey) {
+              const { scoreBonus, flags: pFlags } =
+                calculatePlatformSpecificScore(text, platformKey);
+              flags.push(...pFlags);
+              platformBonus = scoreBonus;
+            }
+
+            // Map Perplexity's suspicion reasoning into redFlags
+            const suspicionLevel = item.suspicionLevel || "";
+            const suspicionReason = item.suspicionReason || "";
+            const suspicionBonus =
+              suspicionLevel === "high"
+                ? 25
+                : suspicionLevel === "medium"
+                  ? 10
+                  : 0;
+            if (suspicionReason) {
+              flags.push(`[AI] ${suspicionReason}`);
+            } else if (suspicionLevel === "high") {
+              // Only add generic flag as fallback when no specific reason provided
+              flags.push("[AI] High suspicion — likely pump/scam");
+            }
+
+            const finalScore = Math.min(
+              score + platformBonus + suspicionBonus,
+              100,
+            );
+
             allMentions.push({
-              platform, source: item.source || item.subreddit || item.channel || String(platform),
-              discoveredVia: 'perplexity', title: item.title || '',
-              content: (item.content || item.summary || '').substring(0, 500),
-              url: item.url || '', author: item.author || item.username || 'unknown',
+              platform,
+              source:
+                item.source ||
+                item.subreddit ||
+                item.channel ||
+                String(platform),
+              discoveredVia: "perplexity",
+              title: item.title || "",
+              content: (item.content || item.summary || "").substring(0, 500),
+              url: item.url || "",
+              author: item.author || item.username || "unknown",
               postDate: item.date || item.posted || new Date().toISOString(),
               engagement: {
                 upvotes: item.upvotes || item.score || undefined,
                 comments: item.comments || item.replies || undefined,
-                views: item.views || undefined, likes: item.likes || undefined,
+                views: item.views || undefined,
+                likes: item.likes || undefined,
               },
-              sentiment: score > 30 ? 'bullish' : (item.sentiment as any) || 'neutral',
-              isPromotional: score >= 20, promotionScore: score, redFlags: flags,
+              sentiment:
+                finalScore > 30
+                  ? "bullish"
+                  : item.sentiment === "bullish" ||
+                      item.sentiment === "bearish" ||
+                      item.sentiment === "neutral"
+                    ? item.sentiment
+                    : "neutral",
+              isPromotional: finalScore >= 20,
+              promotionScore: finalScore,
+              redFlags: flags,
             });
           }
         }
 
         // Add citations not already captured
         for (const citationUrl of citations) {
-          if (allMentions.some(m => m.url === citationUrl)) continue;
-          let platform: SocialMention['platform'] = 'Web';
-          const url = citationUrl.toLowerCase();
-          if (url.includes('reddit.com')) platform = 'Reddit';
-          else if (url.includes('youtube.com')) platform = 'YouTube';
-          else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'Twitter';
-          else if (url.includes('stocktwits.com')) platform = 'StockTwits';
-          else if (url.includes('tiktok.com')) platform = 'TikTok';
-          else continue;
+          if (allMentions.some((m) => m.url === citationUrl)) continue;
+          const platform = detectPlatform(citationUrl);
+          // Skip non-social-media citations (Forum/generic web results)
+          if (platform === "Forum") continue;
 
           const citationText = `Stock mention found via web search at ${citationUrl}`;
-          const { score: citScore, flags: citFlags } = calculatePromotionScore(citationText);
+          const { score: citScore, flags: citFlags } =
+            calculatePromotionScore(citationText);
 
           allMentions.push({
-            platform, source: String(platform), discoveredVia: 'perplexity',
-            title: `Stock mention found via web search`, content: `Social media mention found at: ${citationUrl}`,
-            url: citationUrl, author: 'unknown', postDate: new Date().toISOString(),
-            engagement: {}, sentiment: citScore > 20 ? 'bullish' : 'neutral',
-            isPromotional: citScore >= 20, promotionScore: citScore, redFlags: citFlags,
+            platform,
+            source: String(platform),
+            discoveredVia: "perplexity",
+            title: `Stock mention found via web search`,
+            content: `Social media mention found at: ${citationUrl}`,
+            url: citationUrl,
+            author: "unknown",
+            postDate: new Date().toISOString(),
+            engagement: {},
+            sentiment: citScore > 20 ? "bullish" : "neutral",
+            isPromotional: citScore >= 20,
+            promotionScore: citScore,
+            redFlags: citFlags,
           });
         }
 
@@ -691,21 +1009,54 @@ IMPORTANT: Only REAL mentions with actual URLs. Return [] if none found. Return 
 
     const totalBatches = Math.ceil(targets.length / batchSize);
     if (apiErrors > 0) {
-      console.error(`[Perplexity] ${apiErrors}/${totalBatches} batch queries failed. Last error: ${lastApiError}`);
+      console.error(
+        `[Perplexity] ${apiErrors}/${totalBatches} batch queries failed. Last error: ${lastApiError}`,
+      );
     }
 
-    const avgScore = allMentions.length > 0
-      ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
+    console.log(
+      `[Perplexity] Raw mentions found: ${allMentions.length} (${apiErrors} batch errors). Mentions by platform: ${
+        allMentions.length > 0
+          ? Array.from(new Set(allMentions.map((m) => m.platform)))
+              .map(
+                (p) =>
+                  `${p}: ${allMentions.filter((m) => m.platform === p).length}`,
+              )
+              .join(", ")
+          : "none"
+      }`,
+    );
 
-    return [{
-      platform: 'Multi-Platform (Perplexity)', scanner: this.name,
-      success: apiErrors === 0,
-      error: apiErrors > 0 ? `${apiErrors}/${totalBatches} batch requests failed. Last error: ${lastApiError}` : undefined,
-      mentionsFound: allMentions.length, mentions: allMentions,
-      activityLevel: allMentions.length >= 15 ? 'high' : allMentions.length >= 5 ? 'medium' : allMentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 40 ? 'high' : avgScore >= 20 ? 'medium' : 'low',
-      scanDuration: Date.now() - startTime,
-    }];
+    const avgScore =
+      allMentions.length > 0
+        ? allMentions.reduce((s, m) => s + m.promotionScore, 0) /
+          allMentions.length
+        : 0;
+
+    return [
+      {
+        platform: "Multi-Platform (Perplexity)",
+        scanner: this.name,
+        success: apiErrors === 0,
+        error:
+          apiErrors > 0
+            ? `${apiErrors}/${totalBatches} batch requests failed. Last error: ${lastApiError}`
+            : undefined,
+        mentionsFound: allMentions.length,
+        mentions: allMentions,
+        activityLevel:
+          allMentions.length >= 15
+            ? "high"
+            : allMentions.length >= 5
+              ? "medium"
+              : allMentions.length > 0
+                ? "low"
+                : "none",
+        promotionRisk:
+          avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
+        scanDuration: Date.now() - startTime,
+      },
+    ];
   }
 }
 
@@ -714,10 +1065,12 @@ IMPORTANT: Only REAL mentions with actual URLs. Return [] if none found. Return 
 // ─────────────────────────────────────────────────────────────
 
 export class DiscordBotScanner implements SocialScanner {
-  name = 'discord_bot';
-  platform = 'Discord';
+  name = "discord_bot";
+  platform = "Discord";
 
-  isConfigured() { return !!process.env.DISCORD_BOT_TOKEN; }
+  isConfigured() {
+    return !!process.env.DISCORD_BOT_TOKEN;
+  }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
@@ -726,96 +1079,162 @@ export class DiscordBotScanner implements SocialScanner {
 
     const discordGet = async (endpoint: string) => {
       const res = await fetch(`https://discord.com/api/v10${endpoint}`, {
-        headers: { 'Authorization': `Bot ${token}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bot ${token}`,
+          "Content-Type": "application/json",
+        },
       });
       if (!res.ok) throw new Error(`Discord API ${res.status}`);
       return res.json();
     };
 
     try {
-      const guilds = await discordGet('/users/@me/guilds');
+      const guilds = await discordGet("/users/@me/guilds");
 
       if (!guilds || guilds.length === 0) {
-        console.warn('[Discord] Bot is not in any servers. Invite it to stock-related Discord servers for scanning to work.');
-        return [{
-          platform: 'Discord', scanner: this.name, success: false,
-          error: 'Bot is not in any Discord servers — invite it to stock-related servers first',
-          mentionsFound: 0, mentions: [], activityLevel: 'none', promotionRisk: 'low',
-          scanDuration: Date.now() - startTime,
-        }];
+        console.warn(
+          "[Discord] Bot is not in any servers. Invite it to stock-related Discord servers for scanning to work.",
+        );
+        return [
+          {
+            platform: "Discord",
+            scanner: this.name,
+            success: false,
+            error:
+              "Bot is not in any Discord servers — invite it to stock-related servers first",
+            mentionsFound: 0,
+            mentions: [],
+            activityLevel: "none",
+            promotionRisk: "low",
+            scanDuration: Date.now() - startTime,
+          },
+        ];
       }
 
-      console.log(`[Discord] Bot is in ${guilds.length} server(s): ${guilds.map((g: any) => g.name).join(', ')}`);
+      console.log(
+        `[Discord] Bot is in ${guilds.length} server(s): ${guilds.map((g: any) => g.name).join(", ")}`,
+      );
 
-      const tickerPatterns = targets.map(t => ({
-        target: t, regex: new RegExp(`\\b\\$?${t.ticker}\\b`, 'i'),
+      const tickerPatterns = targets.map((t) => ({
+        target: t,
+        regex: new RegExp(`\\b\\$?${t.ticker}\\b`, "i"),
       }));
 
       for (const guild of guilds) {
         try {
           const channels = await discordGet(`/guilds/${guild.id}/channels`);
-          const textChannels = channels.filter((c: any) => c.type === 0).slice(0, 10);
+          const textChannels = channels
+            .filter((c: any) => c.type === 0)
+            .slice(0, 10);
 
           for (const channel of textChannels) {
             try {
-              const messages = await discordGet(`/channels/${channel.id}/messages?limit=100`);
+              const messages = await discordGet(
+                `/channels/${channel.id}/messages?limit=100`,
+              );
               for (const msg of messages) {
-                const content = msg.content || '';
+                const content = msg.content || "";
                 if (!content) continue;
 
                 for (const { target, regex } of tickerPatterns) {
                   if (!regex.test(content)) continue;
 
                   const { score, flags } = calculatePromotionScore(content);
-                  const { scoreBonus: discordBonus, flags: discordFlags } = calculatePlatformSpecificScore(content, 'discord_telegram');
+                  const { scoreBonus: discordBonus, flags: discordFlags } =
+                    calculatePlatformSpecificScore(content, "discord_telegram");
                   flags.push(...discordFlags);
                   const memberSince = msg.member?.joined_at;
                   if (memberSince) {
-                    const daysSince = (Date.now() - new Date(memberSince).getTime()) / 86400000;
-                    if (daysSince < 7) flags.push('Recently joined server');
+                    const daysSince =
+                      (Date.now() - new Date(memberSince).getTime()) / 86400000;
+                    if (daysSince < 7) flags.push("Recently joined server");
                   }
-                  const finalScore = Math.min(score + discordBonus + (flags.includes('Recently joined server') ? 15 : 0), 100);
+                  const finalScore = Math.min(
+                    score +
+                      discordBonus +
+                      (flags.includes("Recently joined server") ? 15 : 0),
+                    100,
+                  );
 
                   allMentions.push({
-                    platform: 'Discord', source: `${guild.name} / #${channel.name}`,
-                    discoveredVia: 'discord_bot', title: '', content: content.substring(0, 500),
+                    platform: "Discord",
+                    source: `${guild.name} / #${channel.name}`,
+                    discoveredVia: "discord_bot",
+                    title: "",
+                    content: content.substring(0, 500),
                     url: `https://discord.com/channels/${guild.id}/${channel.id}/${msg.id}`,
-                    author: msg.author?.username || 'unknown',
+                    author: msg.author?.username || "unknown",
                     postDate: msg.timestamp || new Date().toISOString(),
-                    engagement: { likes: msg.reactions?.reduce((s: number, r: any) => s + (r.count || 0), 0) || 0 },
-                    sentiment: finalScore > 30 ? 'bullish' : 'neutral',
-                    isPromotional: finalScore >= 20, promotionScore: finalScore, redFlags: flags,
+                    engagement: {
+                      likes:
+                        msg.reactions?.reduce(
+                          (s: number, r: any) => s + (r.count || 0),
+                          0,
+                        ) || 0,
+                    },
+                    sentiment: finalScore > 30 ? "bullish" : "neutral",
+                    isPromotional: finalScore >= 20,
+                    promotionScore: finalScore,
+                    redFlags: flags,
                   });
                   break;
                 }
               }
               await sleep(500);
-            } catch { /* skip unreadable channels */ }
+            } catch {
+              /* skip unreadable channels */
+            }
           }
           await sleep(1000);
         } catch (error: any) {
-          console.error(`[Discord] Guild error for ${guild.name}:`, error.message);
+          console.error(
+            `[Discord] Guild error for ${guild.name}:`,
+            error.message,
+          );
         }
       }
     } catch (error: any) {
-      return [{
-        platform: 'Discord', scanner: this.name, success: false,
-        error: `Discord API error: ${error.message}`,
-        mentionsFound: 0, mentions: [], activityLevel: 'none', promotionRisk: 'low',
-        scanDuration: Date.now() - startTime,
-      }];
+      return [
+        {
+          platform: "Discord",
+          scanner: this.name,
+          success: false,
+          error: `Discord API error: ${error.message}`,
+          mentionsFound: 0,
+          mentions: [],
+          activityLevel: "none",
+          promotionRisk: "low",
+          scanDuration: Date.now() - startTime,
+        },
+      ];
     }
 
-    const avgScore = allMentions.length > 0
-      ? allMentions.reduce((s, m) => s + m.promotionScore, 0) / allMentions.length : 0;
+    const avgScore =
+      allMentions.length > 0
+        ? allMentions.reduce((s, m) => s + m.promotionScore, 0) /
+          allMentions.length
+        : 0;
 
-    return [{
-      platform: 'Discord', scanner: this.name, success: true,
-      mentionsFound: allMentions.length, mentions: allMentions,
-      activityLevel: allMentions.length >= 15 ? 'high' : allMentions.length >= 5 ? 'medium' : allMentions.length > 0 ? 'low' : 'none',
-      promotionRisk: avgScore >= 40 ? 'high' : avgScore >= 20 ? 'medium' : 'low',
-      scanDuration: Date.now() - startTime,
-    }];
+    return [
+      {
+        platform: "Discord",
+        scanner: this.name,
+        success: true,
+        mentionsFound: allMentions.length,
+        mentions: allMentions,
+        activityLevel:
+          allMentions.length >= 15
+            ? "high"
+            : allMentions.length >= 5
+              ? "medium"
+              : allMentions.length > 0
+                ? "low"
+                : "none",
+        promotionRisk:
+          avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
+        scanDuration: Date.now() - startTime,
+      },
+    ];
   }
 }
 
@@ -835,20 +1254,24 @@ export function getConfiguredScanners(): SocialScanner[] {
     new DiscordBotScanner(),
   ];
 
-  const configured = all.filter(s => s.isConfigured());
-  const skipped = all.filter(s => !s.isConfigured());
+  const configured = all.filter((s) => s.isConfigured());
+  const skipped = all.filter((s) => !s.isConfigured());
 
-  console.log(`[Social Scan] Configured scanners (${configured.length}/${all.length}): ${configured.map(s => s.name).join(', ')}`);
+  console.log(
+    `[Social Scan] Configured scanners (${configured.length}/${all.length}): ${configured.map((s) => s.name).join(", ")}`,
+  );
   if (skipped.length > 0) {
     const envHints: Record<string, string> = {
-      serper_dev: 'SERPER_API_KEY',
-      perplexity: 'PERPLEXITY_API_KEY',
-      youtube_api: 'YOUTUBE_API_KEY',
-      discord_bot: 'DISCORD_BOT_TOKEN',
+      serper_dev: "SERPER_API_KEY",
+      perplexity: "PERPLEXITY_API_KEY",
+      youtube_api: "YOUTUBE_API_KEY",
+      discord_bot: "DISCORD_BOT_TOKEN",
     };
     for (const s of skipped) {
-      const hint = envHints[s.name] || 'unknown env var';
-      console.warn(`[Social Scan] SKIPPED ${s.name} (${s.platform}) — missing env: ${hint}`);
+      const hint = envHints[s.name] || "unknown env var";
+      console.warn(
+        `[Social Scan] SKIPPED ${s.name} (${s.platform}) — missing env: ${hint}`,
+      );
     }
   }
 

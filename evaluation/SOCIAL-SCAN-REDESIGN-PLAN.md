@@ -5,12 +5,14 @@
 ### What Exists Today
 
 **1. Legacy Scanner** (`evaluation/scripts/social-media-scan.ts`)
-- Uses OpenAI to **simulate/predict** what social media activity *might* look like
+
+- Uses OpenAI to **simulate/predict** what social media activity _might_ look like
 - Does NOT fetch real data from any platform
 - Essentially asks GPT "what would Reddit posts about this stock look like?"
 - Useless for actual detection
 
 **2. Real Scanner** (`evaluation/scripts/real-social-scanner.ts`)
+
 - Attempts real API calls to 3 platforms: Reddit (public JSON), StockTwits, YouTube
 - Reddit: Limited to 10 req/min without OAuth, frequently rate-limited/blocked
 - StockTwits: Often blocked by Cloudflare, unreliable
@@ -18,6 +20,7 @@
 - Excludes Twitter/X, Discord, Telegram, TikTok, Facebook/Instagram entirely
 
 ### Why It Fails
+
 1. No API keys configured (YouTube key missing)
 2. Reddit public JSON endpoint is heavily rate-limited and unreliable
 3. StockTwits blocks automated requests via Cloudflare
@@ -25,20 +28,21 @@
 5. The "AI simulation" approach in the legacy scanner produces fabricated data, not evidence
 
 ### What We Need
+
 A system that takes a daily list of suspicious/high-risk stock tickers and finds **real evidence** of social media promotion across as many platforms as possible. Coverage matters more than depth on any single platform.
 
 ---
 
 ## Available Resources
 
-| Resource | Status | Details |
-|----------|--------|---------|
-| Reddit account | Available | User can provide credentials for authenticated access |
-| Discord account | Available | User can provide credentials or create a bot |
-| YouTube API Key | Available | 10,000 units/day free tier |
-| OpenAI API Key | Available | Pay-as-you-go |
-| Anthropic API Key | Available | Pay-as-you-go |
-| FMP API Key | Available | Already used for stock data |
+| Resource          | Status    | Details                                               |
+| ----------------- | --------- | ----------------------------------------------------- |
+| Reddit account    | Available | User can provide credentials for authenticated access |
+| Discord account   | Available | User can provide credentials or create a bot          |
+| YouTube API Key   | Available | 10,000 units/day free tier                            |
+| OpenAI API Key    | Available | Pay-as-you-go                                         |
+| Anthropic API Key | Available | Pay-as-you-go                                         |
+| FMP API Key       | Available | Already used for stock data                           |
 
 ---
 
@@ -51,6 +55,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 **Concept**: Use search engines as a universal proxy to find mentions across ALL social media platforms simultaneously, without needing individual platform APIs.
 
 **How It Works**:
+
 1. Create a Google Programmable Search Engine (PSE) restricted to social media domains
 2. For each suspicious ticker, run targeted searches like:
    - `"$AAPL" site:reddit.com`
@@ -63,6 +68,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 4. Use AI (Claude/GPT) to analyze the aggregated snippets for pump-and-dump indicators
 
 **Platform Coverage**:
+
 - Reddit (via Google index of public posts)
 - Twitter/X (via Google index of public tweets)
 - YouTube (via Google index of video titles/descriptions)
@@ -74,17 +80,20 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 - Any other indexed web content mentioning the ticker
 
 **APIs Required**:
+
 - **Google Custom Search JSON API**: Free 100 queries/day, then $5 per 1,000 queries
 - **Alternative/Supplement: SerpAPI** (~$50/mo for 5,000 searches) - provides structured search results from Google
 - **Alternative/Supplement: Bing Web Search API** - Free 1,000 transactions/month
 - OpenAI or Anthropic for analysis of results
 
 **Cost Estimate**:
+
 - Scanning 30 tickers/day x 3 search variations = 90 queries/day = free tier covers it
 - With SerpAPI as backup: ~$50/month for reliable structured results
 - AI analysis: ~$0.50-1.00/day for snippet analysis
 
 **Architecture**:
+
 ```
 [Suspicious Tickers List]
         |
@@ -113,6 +122,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 ```
 
 **Strengths**:
+
 - Broadest possible coverage from a single API
 - Covers platforms that have no public API at all (TikTok, Facebook)
 - Google already does the crawling/indexing work
@@ -120,6 +130,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 - Simple to implement
 
 **Weaknesses**:
+
 - Google doesn't index everything (private groups, ephemeral content)
 - Results are delayed (Google crawl lag, typically hours to days)
 - Limited to what search engines choose to index
@@ -135,6 +146,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 **How It Works**:
 
 **Reddit (Authenticated OAuth)**:
+
 1. Register a Reddit "script" app at reddit.com/prefs/apps using the user's account
 2. This gives OAuth2 credentials (client_id, client_secret) tied to the account
 3. Authenticated access provides: 60 requests/min (6x the current unauthenticated rate), full search API, access to specific subreddit feeds, user profile data, comment threads
@@ -145,6 +157,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 5. For each suspicious ticker, search across Reddit AND pull recent posts from monitored subreddits
 
 **Discord (Bot Account)**:
+
 1. Create a Discord bot via the Discord Developer Portal
 2. Join the bot to stock-related Discord servers (manually, since bot must be invited):
    - Public stock trading servers
@@ -155,22 +168,26 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 4. Discord API provides: message search within joined servers, real-time message monitoring, user information, server metadata
 
 **YouTube (Data API v3)**:
+
 1. Already have API key
 2. Search for videos mentioning ticker symbols (100 searches/day on free tier)
 3. Also monitor specific channels known for stock promotion
 4. Pull video statistics (views, likes, comments) for context
 
 **StockTwits (Enhanced)**:
+
 1. Keep existing scanner but add retry logic and Cloudflare bypass (cookie rotation)
 2. Add StockTwits trending endpoint to detect surging mention volume
 
 **RSS Feed Monitoring**:
+
 1. Subscribe to RSS feeds for key subreddits (Reddit provides RSS for every subreddit)
 2. Monitor financial forum RSS feeds (Seeking Alpha, Yahoo Finance discussions)
 3. YouTube channel RSS feeds for known stock promotion channels
 4. Process feeds every hour for new mentions
 
 **Architecture**:
+
 ```
 [Suspicious Tickers List]
         |
@@ -205,6 +222,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 ```
 
 **Strengths**:
+
 - Real-time data from Reddit and Discord (where pump-and-dump coordination actually happens)
 - Full engagement metrics (upvotes, comments, reactions)
 - User profile data (account age, posting history) for promoter identification
@@ -212,6 +230,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 - High confidence -- this is actual evidence, not search engine snippets
 
 **Weaknesses**:
+
 - Requires account setup and management (Reddit app registration, Discord bot creation)
 - Discord bot must be invited to each server manually
 - Twitter/X still excluded ($100/mo API minimum)
@@ -220,6 +239,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 - Reddit OAuth tokens need periodic refresh
 
 **Setup Steps**:
+
 1. Go to https://www.reddit.com/prefs/apps -> "Create app" -> script type
 2. Note client_id and client_secret
 3. Go to https://discord.com/developers/applications -> "New Application" -> Bot
@@ -235,6 +255,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 **Concept**: Deploy an AI agent (Claude or GPT) that acts like a human research analyst, using web search and browsing tools to investigate each suspicious ticker across all public social media.
 
 **How It Works**:
+
 1. For each batch of suspicious tickers, spawn an AI agent with web search/browsing capabilities
 2. The agent receives structured instructions:
    - "Search for any mentions of $TICKER on Reddit, Twitter, YouTube, TikTok, StockTwits, Discord, and financial forums"
@@ -246,18 +267,21 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 **Implementation Options**:
 
 **Option A: Anthropic Claude with Tool Use**
+
 - Use Claude API with custom tools: `web_search`, `fetch_url`
 - Claude conducts multi-step research autonomously
 - Returns structured JSON with findings
 - Cost: ~$0.05-0.15 per ticker investigation (depending on depth)
 
 **Option B: OpenAI Assistants with Web Browsing**
+
 - Use OpenAI's Assistants API with the browsing tool
 - GPT-4 browses the web, searching for and reading social media posts
 - Can navigate Reddit threads, read Twitter posts, watch YouTube descriptions
 - Cost: ~$0.10-0.20 per ticker investigation
 
 **Option C: Perplexity API**
+
 - Perplexity provides web-grounded AI responses
 - Ask: "Find recent social media mentions of $TICKER stock on Reddit, Twitter, YouTube, and StockTwits. Focus on promotional content and pump-and-dump indicators."
 - Returns sourced, cited answers with actual URLs
@@ -265,11 +289,13 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 - Most cost-effective for this specific use case
 
 **Option D: Hybrid Agent Approach**
+
 - Use Perplexity for initial broad search (cheap, fast, grounded)
 - Use Claude/GPT for deep analysis of the most suspicious findings
 - Best of both worlds
 
 **Architecture**:
+
 ```
 [Suspicious Tickers List]
         |
@@ -304,6 +330,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 ```
 
 **Strengths**:
+
 - Most flexible -- can adapt to any platform without specific API integration
 - Covers Twitter/X, TikTok, Facebook, Instagram (via public web view)
 - Understands context and nuance (AI can distinguish genuine discussion from promotion)
@@ -313,6 +340,7 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 - Perplexity option is extremely cost-effective
 
 **Weaknesses**:
+
 - AI can hallucinate findings (mitigated by requiring URLs as evidence)
 - Slower per-ticker than direct API calls
 - Costs scale linearly with number of tickers
@@ -327,18 +355,21 @@ A system that takes a daily list of suspicious/high-risk stock tickers and finds
 The three routes are not mutually exclusive. The optimal system combines them in layers:
 
 ### Layer 1: Search Engine Sweep (Route 1)
+
 - Run first, every day, for ALL suspicious tickers
 - Cheap, fast, broad coverage
 - Produces initial mentions list and platform-specific hit counts
 - Identifies which tickers have ANY social media presence
 
 ### Layer 2: Authenticated Deep Scan (Route 2)
+
 - Run for tickers that showed activity in Layer 1
 - Reddit OAuth + Discord Bot + YouTube API + StockTwits
 - Gets real engagement data, full post content, user profiles
 - Produces detailed evidence with metrics
 
 ### Layer 3: AI Investigation (Route 3)
+
 - Run for the top 10-15 most suspicious tickers after Layers 1 & 2
 - Perplexity for broad web-grounded search
 - Claude for deep analysis and cross-platform correlation
@@ -346,6 +377,7 @@ The three routes are not mutually exclusive. The optimal system combines them in
 - Covers platforms missed by Layers 1 & 2
 
 ### Daily Flow:
+
 ```
 Morning:
   1. Enhanced Daily Pipeline produces suspicious ticker list
@@ -360,6 +392,7 @@ Morning:
 ## Implementation Priority
 
 ### Phase 1 (Start here - highest impact, lowest effort)
+
 1. **Perplexity API integration** (Route 3, Option C)
    - Single API, broad coverage, grounded results with URLs
    - $20/month for 600 queries/day
@@ -375,6 +408,7 @@ Morning:
    - Scanner code already exists in real-social-scanner.ts
 
 ### Phase 2 (High value additions)
+
 4. **Google Custom Search integration** (Route 1)
    - Covers Twitter/X, TikTok, Facebook without their APIs
    - Free 100 queries/day, expandable
@@ -388,6 +422,7 @@ Morning:
    - Cross-platform correlation and narrative assessment
 
 ### Phase 3 (Polish and optimization)
+
 7. **Promoter tracking database** - Track accounts identified across scans
 8. **Real-time alerting** - Notify when a suspicious ticker suddenly surges on social media
 9. **Historical pattern matching** - Compare current promotion patterns to past confirmed pump-and-dumps

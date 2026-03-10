@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
   Radio,
@@ -20,7 +20,24 @@ import {
   Youtube,
   Hash,
   Eye,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
+
+type SortDirection = "asc" | "desc";
+type SortField =
+  | "ticker"
+  | "platform"
+  | "discoveredVia"
+  | "author"
+  | "promotionScore"
+  | "postDate";
+
+interface SortColumn {
+  field: SortField;
+  direction: SortDirection;
+}
 
 interface ScanRun {
   id: string;
@@ -61,14 +78,23 @@ interface Stats {
   avgPromotionScore: number;
   promotionalCount: number;
   uniqueTickers: Array<{ ticker: string; count: number }>;
-  platformBreakdown: Array<{ platform: string; count: number; avgScore: number }>;
+  platformBreakdown: Array<{
+    platform: string;
+    count: number;
+    avgScore: number;
+  }>;
 }
 
 interface ScanData {
   definitions?: Record<string, string>;
   scanRuns: ScanRun[];
   mentions: Mention[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
   stats: Stats;
 }
 
@@ -128,8 +154,87 @@ export default function SocialScanPage() {
   } | null>(null);
   const [settingUpDb, setSettingUpDb] = useState(false);
   const [dbSetupDone, setDbSetupDone] = useState(false);
-  const [capturedByMention, setCapturedByMention] = useState<Record<string, string>>({});
+  const [capturedByMention, setCapturedByMention] = useState<
+    Record<string, string>
+  >({});
   const [capturingMention, setCapturingMention] = useState<string | null>(null);
+  const [sortColumns, setSortColumns] = useState<SortColumn[]>([]);
+
+  // Multi-column sort: click to add/toggle, shift info shown in header
+  const handleSort = (field: SortField) => {
+    setSortColumns((prev) => {
+      const existingIndex = prev.findIndex((s) => s.field === field);
+      if (existingIndex >= 0) {
+        // Toggle direction, or remove if already desc
+        const existing = prev[existingIndex];
+        if (existing.direction === "asc") {
+          const updated = [...prev];
+          updated[existingIndex] = { field, direction: "desc" };
+          return updated;
+        }
+        // Remove this column from sort
+        return prev.filter((_, i) => i !== existingIndex);
+      }
+      // Add as new sort column (stacked sorting)
+      return [...prev, { field, direction: "asc" }];
+    });
+  };
+
+  const clearSort = () => setSortColumns([]);
+
+  // Client-side multi-column sort on current page data
+  const sortedMentions = useMemo(() => {
+    if (!data?.mentions || sortColumns.length === 0)
+      return data?.mentions || [];
+    return [...data.mentions].sort((a, b) => {
+      for (const { field, direction } of sortColumns) {
+        let cmp = 0;
+        switch (field) {
+          case "ticker":
+            cmp = (a.ticker || "").localeCompare(b.ticker || "");
+            break;
+          case "platform":
+            cmp = (a.platform || "").localeCompare(b.platform || "");
+            break;
+          case "discoveredVia":
+            cmp = (a.discoveredVia || "").localeCompare(b.discoveredVia || "");
+            break;
+          case "author":
+            cmp = (a.author || "").localeCompare(b.author || "");
+            break;
+          case "promotionScore":
+            cmp = a.promotionScore - b.promotionScore;
+            break;
+          case "postDate": {
+            const dateA = a.postDate || a.createdAt || "";
+            const dateB = b.postDate || b.createdAt || "";
+            cmp = new Date(dateA).getTime() - new Date(dateB).getTime();
+            break;
+          }
+        }
+        if (cmp !== 0) return direction === "asc" ? cmp : -cmp;
+      }
+      return 0;
+    });
+  }, [data?.mentions, sortColumns]);
+
+  const getSortIcon = (field: SortField) => {
+    const col = sortColumns.find((s) => s.field === field);
+    if (!col) return <ArrowUpDown className="h-3 w-3 opacity-30" />;
+    const priority = sortColumns.indexOf(col) + 1;
+    return (
+      <span className="inline-flex items-center gap-0.5">
+        {col.direction === "asc" ? (
+          <ArrowUp className="h-3 w-3 text-primary" />
+        ) : (
+          <ArrowDown className="h-3 w-3 text-primary" />
+        )}
+        {sortColumns.length > 1 && (
+          <span className="text-[10px] font-bold text-primary">{priority}</span>
+        )}
+      </span>
+    );
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -163,7 +268,10 @@ export default function SocialScanPage() {
     try {
       // If manual tickers provided, send them. Otherwise, auto-pull from daily scan.
       const tickerList = manualTickers.trim()
-        ? manualTickers.split(",").map(t => t.trim().toUpperCase()).filter(Boolean)
+        ? manualTickers
+            .split(",")
+            .map((t) => t.trim().toUpperCase())
+            .filter(Boolean)
         : undefined;
       const res = await fetch("/api/admin/social-scan", {
         method: "POST",
@@ -187,21 +295,30 @@ export default function SocialScanPage() {
     }
   }
 
-
   async function captureScreenshot(mention: Mention) {
     if (!mention.url) return;
     try {
       setCapturingMention(mention.id);
-      const res = await fetch('/api/admin/social-scan/capture', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mentionId: mention.id, url: mention.url, ticker: mention.ticker, platform: mention.platform }),
+      const res = await fetch("/api/admin/social-scan/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mentionId: mention.id,
+          url: mention.url,
+          ticker: mention.ticker,
+          platform: mention.platform,
+        }),
       });
-      if (!res.ok) throw new Error('Failed to capture screenshot');
+      if (!res.ok) throw new Error("Failed to capture screenshot");
       const json = await res.json();
-      setCapturedByMention((prev) => ({ ...prev, [mention.id]: json?.evidence?.screenshotUrl }));
+      setCapturedByMention((prev) => ({
+        ...prev,
+        [mention.id]: json?.evidence?.screenshotUrl,
+      }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to capture screenshot');
+      setError(
+        err instanceof Error ? err.message : "Failed to capture screenshot",
+      );
     } finally {
       setCapturingMention(null);
     }
@@ -218,13 +335,19 @@ export default function SocialScanPage() {
       // Refresh data now that tables exist
       await fetchData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to set up database");
+      setError(
+        err instanceof Error ? err.message : "Failed to set up database",
+      );
     } finally {
       setSettingUpDb(false);
     }
   }
 
-  const isDbSetupError = error.toLowerCase().includes("table") && (error.toLowerCase().includes("not set up") || error.toLowerCase().includes("not exist") || error.toLowerCase().includes("does not exist"));
+  const isDbSetupError =
+    error.toLowerCase().includes("table") &&
+    (error.toLowerCase().includes("not set up") ||
+      error.toLowerCase().includes("not exist") ||
+      error.toLowerCase().includes("does not exist"));
 
   function getStatusBadge(status: string) {
     switch (status) {
@@ -259,12 +382,24 @@ export default function SocialScanPage() {
 
   function getPromotionBadge(score: number) {
     if (score >= 60) {
-      return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">{score}</span>;
+      return (
+        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+          {score}
+        </span>
+      );
     }
     if (score >= 30) {
-      return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">{score}</span>;
+      return (
+        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">
+          {score}
+        </span>
+      );
     }
-    return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{score}</span>;
+    return (
+      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+        {score}
+      </span>
+    );
   }
 
   if (loading) {
@@ -289,7 +424,9 @@ export default function SocialScanPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Social Media Scan</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Social Media Scan
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Monitor social media for suspicious stock promotion activity
             </p>
@@ -308,7 +445,9 @@ export default function SocialScanPage() {
               disabled={triggering}
               className="gradient-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
             >
-              <Radio className={`h-4 w-4 ${triggering ? "animate-pulse" : ""}`} />
+              <Radio
+                className={`h-4 w-4 ${triggering ? "animate-pulse" : ""}`}
+              />
               {triggering ? "Scanning..." : "Run Scan"}
             </button>
           </div>
@@ -320,40 +459,59 @@ export default function SocialScanPage() {
             <div>
               <p className="font-medium">Social media scan in progress...</p>
               <p className="text-xs mt-1 text-blue-600">
-                Scanning Reddit, YouTube, StockTwits, Google, Perplexity, and Discord for high-risk tickers from the latest daily scan. This may take 2-5 minutes.
+                Scanning Reddit, YouTube, StockTwits, Google, Perplexity, and
+                Discord for high-risk tickers from the latest daily scan. This
+                may take 2-5 minutes.
               </p>
             </div>
           </div>
         )}
 
         {scanResult && !triggering && (
-          <div className={`border rounded-lg p-4 text-sm ${
-            scanResult.status === 'COMPLETED' ? 'bg-green-50 border-green-200 text-green-700' :
-            scanResult.status === 'PARTIAL' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
-            'bg-red-50 border-red-200 text-red-700'
-          }`}>
+          <div
+            className={`border rounded-lg p-4 text-sm ${
+              scanResult.status === "COMPLETED"
+                ? "bg-green-50 border-green-200 text-green-700"
+                : scanResult.status === "PARTIAL"
+                  ? "bg-yellow-50 border-yellow-200 text-yellow-700"
+                  : "bg-red-50 border-red-200 text-red-700"
+            }`}
+          >
             <div className="flex items-start gap-3">
-              {scanResult.status === 'COMPLETED' ? <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" /> :
-               scanResult.status === 'PARTIAL' ? <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" /> :
-               <XCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />}
+              {scanResult.status === "COMPLETED" ? (
+                <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              ) : scanResult.status === "PARTIAL" ? (
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              )}
               <div className="space-y-1">
                 <p className="font-medium">{scanResult.message}</p>
                 <div className="flex flex-wrap gap-3 text-xs opacity-80">
                   <span>{scanResult.tickersScanned} tickers scanned</span>
                   <span>{scanResult.tickersWithMentions} with mentions</span>
                   <span>{scanResult.totalMentions} total mentions</span>
-                  {scanResult.duration > 0 && <span>{(scanResult.duration / 1000).toFixed(0)}s</span>}
+                  {scanResult.duration > 0 && (
+                    <span>{(scanResult.duration / 1000).toFixed(0)}s</span>
+                  )}
                 </div>
                 {scanResult.platformsUsed.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {scanResult.platformsUsed.map(p => (
-                      <span key={p} className="px-1.5 py-0.5 rounded text-xs bg-white/50">{p}</span>
+                    {scanResult.platformsUsed.map((p) => (
+                      <span
+                        key={p}
+                        className="px-1.5 py-0.5 rounded text-xs bg-white/50"
+                      >
+                        {p}
+                      </span>
                     ))}
                   </div>
                 )}
                 {scanResult.errors.length > 0 && (
                   <div className="mt-1 text-xs opacity-70">
-                    {scanResult.errors.map((e, i) => <p key={i}>{e}</p>)}
+                    {scanResult.errors.map((e, i) => (
+                      <p key={i}>{e}</p>
+                    ))}
                   </div>
                 )}
               </div>
@@ -372,9 +530,16 @@ export default function SocialScanPage() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p>{isDbSetupError ? "Database tables need to be created before you can run scans." : error}</p>
+                <p>
+                  {isDbSetupError
+                    ? "Database tables need to be created before you can run scans."
+                    : error}
+                </p>
                 {isDbSetupError && (
-                  <p className="text-xs mt-1 opacity-70">Click the button to automatically create the required tables.</p>
+                  <p className="text-xs mt-1 opacity-70">
+                    Click the button to automatically create the required
+                    tables.
+                  </p>
                 )}
               </div>
               {isDbSetupError && (
@@ -405,8 +570,12 @@ export default function SocialScanPage() {
                 <Radio className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Mentions</p>
-                <p className="text-2xl font-bold text-foreground">{data?.stats.totalMentions || 0}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Total Mentions
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {data?.stats.totalMentions || 0}
+                </p>
               </div>
             </div>
           </div>
@@ -416,8 +585,12 @@ export default function SocialScanPage() {
                 <AlertTriangle className="h-5 w-5 text-red-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Promotional</p>
-                <p className="text-2xl font-bold text-foreground">{data?.stats.promotionalCount || 0}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Promotional
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {data?.stats.promotionalCount || 0}
+                </p>
               </div>
             </div>
           </div>
@@ -427,8 +600,12 @@ export default function SocialScanPage() {
                 <TrendingUp className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Avg Promotion Score</p>
-                <p className="text-2xl font-bold text-foreground">{data?.stats.avgPromotionScore || 0}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Avg Promotion Score
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {data?.stats.avgPromotionScore || 0}
+                </p>
               </div>
             </div>
           </div>
@@ -438,20 +615,41 @@ export default function SocialScanPage() {
                 <Search className="h-5 w-5 text-purple-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">Tickers Tracked</p>
-                <p className="text-2xl font-bold text-foreground">{data?.stats.uniqueTickers?.length || 0}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  Tickers Tracked
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {data?.stats.uniqueTickers?.length || 0}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
         <div className="text-xs text-muted-foreground bg-secondary/30 border border-border rounded-lg p-3">
-          <p className="font-medium text-foreground mb-1">How these numbers are calculated</p>
+          <p className="font-medium text-foreground mb-1">
+            How these numbers are calculated
+          </p>
           <ul className="space-y-1 list-disc pl-4">
-            <li>Total Mentions: {data?.definitions?.totalMentions || "All indexed posts in current filter scope."}</li>
-            <li>Promotional: {data?.definitions?.promotionalCount || "Posts flagged as promotional."}</li>
-            <li>Avg Promotion Score: {data?.definitions?.avgPromotionScore || "Average 0-100 score."}</li>
-            <li>Tickers Tracked: {data?.definitions?.tickersTracked || "Distinct tickers in filtered posts."}</li>
+            <li>
+              Total Mentions:{" "}
+              {data?.definitions?.totalMentions ||
+                "All indexed posts in current filter scope."}
+            </li>
+            <li>
+              Promotional:{" "}
+              {data?.definitions?.promotionalCount ||
+                "Posts flagged as promotional."}
+            </li>
+            <li>
+              Avg Promotion Score:{" "}
+              {data?.definitions?.avgPromotionScore || "Average 0-100 score."}
+            </li>
+            <li>
+              Tickers Tracked:{" "}
+              {data?.definitions?.tickersTracked ||
+                "Distinct tickers in filtered posts."}
+            </li>
           </ul>
         </div>
 
@@ -459,42 +657,75 @@ export default function SocialScanPage() {
         {data?.scanRuns && data.scanRuns.length > 0 && (
           <div className="bg-card rounded-2xl shadow border border-border overflow-hidden">
             <div className="px-6 py-4 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">Recent Scan Runs</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Recent Scan Runs
+              </h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase" title={data?.definitions?.tickersScanned}>Tickers</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase" title={data?.definitions?.tickersWithMentions}>Mentions</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Platforms</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Duration</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Status
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase"
+                      title={data?.definitions?.tickersScanned}
+                    >
+                      Tickers
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase"
+                      title={data?.definitions?.tickersWithMentions}
+                    >
+                      Mentions
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Platforms
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Duration
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.scanRuns.map((run) => (
-                    <tr key={run.id} className="border-b border-border hover:bg-muted/20 transition-colors">
+                    <tr
+                      key={run.id}
+                      className="border-b border-border hover:bg-muted/20 transition-colors"
+                    >
                       <td className="px-4 py-3 text-sm text-foreground">
                         {new Date(run.scanDate).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3">{getStatusBadge(run.status)}</td>
-                      <td className="px-4 py-3 text-sm text-foreground">
-                        {run.tickersWithMentions}/{run.tickersScanned} with mentions
+                      <td className="px-4 py-3">
+                        {getStatusBadge(run.status)}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-foreground">{run.totalMentions}</td>
+                      <td className="px-4 py-3 text-sm text-foreground">
+                        {run.tickersWithMentions}/{run.tickersScanned} with
+                        mentions
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-foreground">
+                        {run.totalMentions}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {run.platformsUsed.map((p) => (
-                            <span key={p} className="px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground">
+                            <span
+                              key={p}
+                              className="px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground"
+                            >
                               {scannerLabels[p] || p}
                             </span>
                           ))}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {run.duration ? `${(run.duration / 1000).toFixed(0)}s` : "—"}
+                        {run.duration
+                          ? `${(run.duration / 1000).toFixed(0)}s`
+                          : "—"}
                       </td>
                     </tr>
                   ))}
@@ -505,31 +736,45 @@ export default function SocialScanPage() {
         )}
 
         {/* Platform Breakdown */}
-        {data?.stats.platformBreakdown && data.stats.platformBreakdown.length > 0 && (
-          <div className="bg-card rounded-2xl shadow border border-border p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Platform Breakdown</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {data.stats.platformBreakdown.map((p) => {
-                const Icon = platformIcons[p.platform] || Globe;
-                const colorClass = platformColors[p.platform] || "bg-gray-100 text-gray-700";
-                return (
-                  <div
-                    key={p.platform}
-                    className="flex flex-col items-center p-3 rounded-xl border border-border hover:shadow-sm transition-shadow cursor-pointer"
-                    onClick={() => setFilterPlatform(filterPlatform === p.platform ? "" : p.platform)}
-                  >
-                    <div className={`p-2 rounded-lg ${colorClass}`}>
-                      <Icon className="h-5 w-5" />
+        {data?.stats.platformBreakdown &&
+          data.stats.platformBreakdown.length > 0 && (
+            <div className="bg-card rounded-2xl shadow border border-border p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4">
+                Platform Breakdown
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {data.stats.platformBreakdown.map((p) => {
+                  const Icon = platformIcons[p.platform] || Globe;
+                  const colorClass =
+                    platformColors[p.platform] || "bg-gray-100 text-gray-700";
+                  return (
+                    <div
+                      key={p.platform}
+                      className="flex flex-col items-center p-3 rounded-xl border border-border hover:shadow-sm transition-shadow cursor-pointer"
+                      onClick={() =>
+                        setFilterPlatform(
+                          filterPlatform === p.platform ? "" : p.platform,
+                        )
+                      }
+                    >
+                      <div className={`p-2 rounded-lg ${colorClass}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <span className="text-sm font-medium text-foreground mt-2">
+                        {p.platform}
+                      </span>
+                      <span className="text-lg font-bold text-foreground">
+                        {p.count}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        avg score: {p.avgScore}
+                      </span>
                     </div>
-                    <span className="text-sm font-medium text-foreground mt-2">{p.platform}</span>
-                    <span className="text-lg font-bold text-foreground">{p.count}</span>
-                    <span className="text-xs text-muted-foreground">avg score: {p.avgScore}</span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Filters */}
         <div className="bg-card rounded-2xl shadow border border-border p-4">
@@ -541,13 +786,19 @@ export default function SocialScanPage() {
                 type="text"
                 placeholder="Filter by ticker..."
                 value={filterTicker}
-                onChange={(e) => { setFilterTicker(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  setFilterTicker(e.target.value);
+                  setPage(1);
+                }}
                 className="pl-9 pr-3 py-1.5 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <select
               value={filterPlatform}
-              onChange={(e) => { setFilterPlatform(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterPlatform(e.target.value);
+                setPage(1);
+              }}
               className="px-3 py-1.5 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">All Platforms</option>
@@ -563,19 +814,30 @@ export default function SocialScanPage() {
               <input
                 type="checkbox"
                 checked={promotionalOnly}
-                onChange={(e) => { setPromotionalOnly(e.target.checked); setPage(1); }}
+                onChange={(e) => {
+                  setPromotionalOnly(e.target.checked);
+                  setPage(1);
+                }}
                 className="rounded border-border"
               />
               Promotional only
             </label>
             <button
-              onClick={() => { setFilterTicker(""); setFilterPlatform(""); setPromotionalOnly(false); setPage(1); }}
+              onClick={() => {
+                setFilterTicker("");
+                setFilterPlatform("");
+                setPromotionalOnly(false);
+                setPage(1);
+              }}
               className="text-sm text-primary hover:underline"
             >
               Clear filters
             </button>
             <div className="ml-auto">
-              <button onClick={fetchData} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+              <button
+                onClick={fetchData}
+                className="p-1.5 hover:bg-muted rounded-lg transition-colors"
+              >
                 <RefreshCw className="h-4 w-4 text-muted-foreground" />
               </button>
             </div>
@@ -595,11 +857,15 @@ export default function SocialScanPage() {
             </h2>
           </div>
 
-          {(!data?.mentions || data.mentions.length === 0) ? (
+          {!data?.mentions || data.mentions.length === 0 ? (
             <div className="p-12 text-center">
               <Radio className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">No social media mentions found yet.</p>
-              <p className="text-sm text-muted-foreground mt-1">Run a scan to detect stock promotion activity.</p>
+              <p className="text-muted-foreground">
+                No social media mentions found yet.
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Run a scan to detect stock promotion activity.
+              </p>
             </div>
           ) : (
             <>
@@ -607,20 +873,75 @@ export default function SocialScanPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
-                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Ticker</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Platform</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Found Via</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Content</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Author</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Score</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Link</th>
+                      {(
+                        [
+                          { field: "ticker" as SortField, label: "Ticker" },
+                          { field: "platform" as SortField, label: "Platform" },
+                          {
+                            field: "discoveredVia" as SortField,
+                            label: "Found Via",
+                          },
+                          { field: null, label: "Content" },
+                          { field: "author" as SortField, label: "Author" },
+                          {
+                            field: "promotionScore" as SortField,
+                            label: "Score",
+                          },
+                          { field: "postDate" as SortField, label: "Date" },
+                          { field: null, label: "Link" },
+                        ] as const
+                      ).map(({ field, label }) => (
+                        <th
+                          key={label}
+                          className={`px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase ${field ? "cursor-pointer select-none hover:text-foreground transition-colors" : ""}`}
+                          onClick={field ? () => handleSort(field) : undefined}
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            {label}
+                            {field && getSortIcon(field)}
+                          </span>
+                        </th>
+                      ))}
                     </tr>
+                    {sortColumns.length > 0 && (
+                      <tr className="border-b border-border bg-primary/5">
+                        <td colSpan={8} className="px-4 py-1.5">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>Sorting by:</span>
+                            {sortColumns.map((col, i) => (
+                              <span
+                                key={col.field}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-medium"
+                              >
+                                {i + 1}.{" "}
+                                {col.field === "promotionScore"
+                                  ? "Score"
+                                  : col.field === "postDate"
+                                    ? "Date"
+                                    : col.field === "discoveredVia"
+                                      ? "Found Via"
+                                      : col.field.charAt(0).toUpperCase() +
+                                        col.field.slice(1)}
+                                {col.direction === "asc" ? " ↑" : " ↓"}
+                              </span>
+                            ))}
+                            <button
+                              onClick={clearSort}
+                              className="text-[11px] text-muted-foreground hover:text-foreground underline ml-1"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </thead>
                   <tbody>
-                    {data.mentions.map((mention) => {
+                    {sortedMentions.map((mention) => {
                       const Icon = platformIcons[mention.platform] || Globe;
-                      const colorClass = platformColors[mention.platform] || "bg-gray-100 text-gray-700";
+                      const colorClass =
+                        platformColors[mention.platform] ||
+                        "bg-gray-100 text-gray-700";
                       const isExpanded = expandedMention === mention.id;
 
                       return (
@@ -630,42 +951,63 @@ export default function SocialScanPage() {
                             className={`border-b border-border hover:bg-muted/20 transition-colors cursor-pointer ${
                               mention.isPromotional ? "bg-red-50/30" : ""
                             }`}
-                            onClick={() => setExpandedMention(isExpanded ? null : mention.id)}
+                            onClick={() =>
+                              setExpandedMention(isExpanded ? null : mention.id)
+                            }
                           >
                             <td className="px-4 py-3">
-                              <span className="font-mono font-bold text-sm text-foreground">${mention.ticker}</span>
+                              <span className="font-mono font-bold text-sm text-foreground">
+                                ${mention.ticker}
+                              </span>
                               {mention.stockName && (
-                                <p className="text-xs text-muted-foreground truncate max-w-[120px]">{mention.stockName}</p>
+                                <p className="text-xs text-muted-foreground truncate max-w-[120px]">
+                                  {mention.stockName}
+                                </p>
                               )}
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-1.5">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}
+                                >
                                   <Icon className="h-3 w-3" />
                                   {mention.platform}
                                 </span>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[140px]">{mention.source}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[140px]">
+                                {mention.source}
+                              </p>
                             </td>
                             <td className="px-4 py-3">
                               <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                                {scannerLabels[mention.discoveredVia] || mention.discoveredVia}
+                                {scannerLabels[mention.discoveredVia] ||
+                                  mention.discoveredVia}
                               </span>
                             </td>
                             <td className="px-4 py-3 max-w-[300px]">
                               {mention.title && (
-                                <p className="text-sm font-medium text-foreground truncate">{mention.title}</p>
+                                <p className="text-sm font-medium text-foreground truncate">
+                                  {mention.title}
+                                </p>
                               )}
                               <p className="text-xs text-muted-foreground truncate">
                                 {mention.content?.substring(0, 100)}
                               </p>
                             </td>
-                            <td className="px-4 py-3 text-sm text-foreground">{mention.author || "—"}</td>
-                            <td className="px-4 py-3">{getPromotionBadge(mention.promotionScore)}</td>
+                            <td className="px-4 py-3 text-sm text-foreground">
+                              {mention.author || "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              {getPromotionBadge(mention.promotionScore)}
+                            </td>
                             <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                               {mention.postDate
-                                ? new Date(mention.postDate).toLocaleDateString()
-                                : new Date(mention.createdAt).toLocaleDateString()}
+                                ? new Date(
+                                    mention.postDate,
+                                  ).toLocaleDateString()
+                                : new Date(
+                                    mention.createdAt,
+                                  ).toLocaleDateString()}
                             </td>
                             <td className="px-4 py-3">
                               {mention.url ? (
@@ -684,52 +1026,81 @@ export default function SocialScanPage() {
                             </td>
                           </tr>
                           {isExpanded && (
-                            <tr key={`${mention.id}-detail`} className="border-b border-border bg-muted/10">
+                            <tr
+                              key={`${mention.id}-detail`}
+                              className="border-b border-border bg-muted/10"
+                            >
                               <td colSpan={8} className="px-6 py-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div>
-                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Full Content</h4>
+                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                                      Full Content
+                                    </h4>
                                     <p className="text-sm text-foreground whitespace-pre-wrap">
-                                      {mention.content || "No content available"}
+                                      {mention.content ||
+                                        "No content available"}
                                     </p>
                                   </div>
                                   <div className="space-y-3">
                                     <div>
-                                      <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Engagement</h4>
+                                      <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                                        Engagement
+                                      </h4>
                                       <div className="flex flex-wrap gap-2">
-                                        {Object.entries(mention.engagement || {}).map(([key, val]) =>
+                                        {Object.entries(
+                                          mention.engagement || {},
+                                        ).map(([key, val]) =>
                                           val ? (
-                                            <span key={key} className="text-xs px-2 py-1 rounded bg-muted text-foreground">
+                                            <span
+                                              key={key}
+                                              className="text-xs px-2 py-1 rounded bg-muted text-foreground"
+                                            >
                                               {key}: {val.toLocaleString()}
                                             </span>
-                                          ) : null
+                                          ) : null,
                                         )}
-                                        {Object.keys(mention.engagement || {}).length === 0 && (
-                                          <span className="text-xs text-muted-foreground">No engagement data</span>
+                                        {Object.keys(mention.engagement || {})
+                                          .length === 0 && (
+                                          <span className="text-xs text-muted-foreground">
+                                            No engagement data
+                                          </span>
                                         )}
                                       </div>
                                     </div>
                                     <div>
-                                      <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Red Flags</h4>
+                                      <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                                        Red Flags
+                                      </h4>
                                       <div className="flex flex-wrap gap-1">
                                         {mention.redFlags.length > 0 ? (
                                           mention.redFlags.map((flag, i) => (
-                                            <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                                            <span
+                                              key={i}
+                                              className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700"
+                                            >
                                               {flag}
                                             </span>
                                           ))
                                         ) : (
-                                          <span className="text-xs text-muted-foreground">None detected</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            None detected
+                                          </span>
                                         )}
                                       </div>
                                     </div>
                                     <div>
-                                      <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Sentiment</h4>
-                                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                        mention.sentiment === "bullish" ? "bg-green-100 text-green-700" :
-                                        mention.sentiment === "bearish" ? "bg-red-100 text-red-700" :
-                                        "bg-gray-100 text-gray-700"
-                                      }`}>
+                                      <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                                        Sentiment
+                                      </h4>
+                                      <span
+                                        className={`text-xs px-2 py-0.5 rounded-full ${
+                                          mention.sentiment === "bullish"
+                                            ? "bg-green-100 text-green-700"
+                                            : mention.sentiment === "bearish"
+                                              ? "bg-red-100 text-red-700"
+                                              : "bg-gray-100 text-gray-700"
+                                        }`}
+                                      >
                                         {mention.sentiment || "neutral"}
                                       </span>
                                     </div>
@@ -745,14 +1116,26 @@ export default function SocialScanPage() {
                                           View Original Post
                                         </a>
                                         <button
-                                          onClick={(e) => { e.preventDefault(); captureScreenshot(mention); }}
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            captureScreenshot(mention);
+                                          }}
                                           className="text-xs px-2 py-1 rounded border border-border hover:bg-secondary"
-                                          disabled={capturingMention === mention.id}
+                                          disabled={
+                                            capturingMention === mention.id
+                                          }
                                         >
-                                          {capturingMention === mention.id ? 'Capturing…' : 'Capture Screenshot'}
+                                          {capturingMention === mention.id
+                                            ? "Capturing…"
+                                            : "Capture Screenshot"}
                                         </button>
                                         {capturedByMention[mention.id] && (
-                                          <a href={capturedByMention[mention.id]} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-700 hover:underline">
+                                          <a
+                                            href={capturedByMention[mention.id]}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-emerald-700 hover:underline"
+                                          >
                                             View captured screenshot
                                           </a>
                                         )}
@@ -774,12 +1157,17 @@ export default function SocialScanPage() {
               {data.pagination && data.pagination.totalPages > 1 && (
                 <div className="px-6 py-4 border-t border-border flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Showing {(data.pagination.page - 1) * data.pagination.limit + 1}–
-                    {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of {data.pagination.total}
+                    Showing{" "}
+                    {(data.pagination.page - 1) * data.pagination.limit + 1}–
+                    {Math.min(
+                      data.pagination.page * data.pagination.limit,
+                      data.pagination.total,
+                    )}{" "}
+                    of {data.pagination.total}
                   </p>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page <= 1}
                       className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
@@ -789,7 +1177,11 @@ export default function SocialScanPage() {
                       {data.pagination.page} / {data.pagination.totalPages}
                     </span>
                     <button
-                      onClick={() => setPage(p => Math.min(data!.pagination.totalPages, p + 1))}
+                      onClick={() =>
+                        setPage((p) =>
+                          Math.min(data!.pagination.totalPages, p + 1),
+                        )
+                      }
                       disabled={page >= data.pagination.totalPages}
                       className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
@@ -805,12 +1197,17 @@ export default function SocialScanPage() {
         {/* Top Tickers */}
         {data?.stats.uniqueTickers && data.stats.uniqueTickers.length > 0 && (
           <div className="bg-card rounded-2xl shadow border border-border p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Most Mentioned Tickers</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Most Mentioned Tickers
+            </h2>
             <div className="flex flex-wrap gap-2">
               {data.stats.uniqueTickers.map((t) => (
                 <button
                   key={t.ticker}
-                  onClick={() => { setFilterTicker(t.ticker); setPage(1); }}
+                  onClick={() => {
+                    setFilterTicker(t.ticker);
+                    setPage(1);
+                  }}
                   className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
                     filterTicker === t.ticker
                       ? "gradient-brand text-white border-transparent"

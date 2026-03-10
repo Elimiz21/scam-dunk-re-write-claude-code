@@ -5,12 +5,12 @@
  * Optionally tracks LLM tokens if Stagehand is used later.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import type { PlatformName } from './types';
+import * as fs from "fs";
+import * as path from "path";
+import type { PlatformName } from "./types";
 
 interface DailyUsage {
-  date: string;             // YYYY-MM-DD
+  date: string; // YYYY-MM-DD
   totalBrowserMinutes: number;
   platformBreakdown: Record<string, number>; // platform -> minutes
   sessionCount: number;
@@ -18,7 +18,15 @@ interface DailyUsage {
   suspensionCount: number;
 }
 
-const COST_FILE = path.join(__dirname, '..', '..', '..', 'evaluation', 'browser-sessions', '.cost-tracker.json');
+const COST_FILE = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "evaluation",
+  "browser-sessions",
+  ".cost-tracker.json",
+);
 
 export class CostTracker {
   private dailyUsage: DailyUsage;
@@ -26,7 +34,9 @@ export class CostTracker {
   private maxDailyMinutes: number;
 
   constructor() {
-    this.maxDailyMinutes = parseInt(process.env.BROWSER_AGENT_MAX_DAILY_MINUTES || '60');
+    this.maxDailyMinutes = parseInt(
+      process.env.BROWSER_AGENT_MAX_DAILY_MINUTES || "60",
+    );
     this.dailyUsage = this.loadOrCreateDailyUsage();
   }
 
@@ -41,7 +51,10 @@ export class CostTracker {
    * Get remaining budget in minutes.
    */
   getRemainingMinutes(): number {
-    return Math.max(0, this.maxDailyMinutes - this.dailyUsage.totalBrowserMinutes);
+    return Math.max(
+      0,
+      this.maxDailyMinutes - this.dailyUsage.totalBrowserMinutes,
+    );
   }
 
   /**
@@ -93,7 +106,10 @@ export class CostTracker {
   /**
    * Get today's usage summary.
    */
-  getSummary(): DailyUsage & { maxDailyMinutes: number; remainingMinutes: number } {
+  getSummary(): DailyUsage & {
+    maxDailyMinutes: number;
+    remainingMinutes: number;
+  } {
     return {
       ...this.dailyUsage,
       maxDailyMinutes: this.maxDailyMinutes,
@@ -104,11 +120,13 @@ export class CostTracker {
   // ─── Persistence ───────────────────────────────────────────────────────
 
   private loadOrCreateDailyUsage(): DailyUsage {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
 
     try {
       if (fs.existsSync(COST_FILE)) {
-        const data = JSON.parse(fs.readFileSync(COST_FILE, 'utf-8')) as DailyUsage;
+        const data = JSON.parse(
+          fs.readFileSync(COST_FILE, "utf-8"),
+        ) as DailyUsage;
         if (data.date === today) {
           return data;
         }
