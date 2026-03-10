@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
     const author = searchParams.get("author");
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
+    const scanRunId = searchParams.get("scanRunId");
     const promotionalOnly = searchParams.get("promotionalOnly") === "true";
 
     // Build mention filters
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
     if (ticker) mentionWhere.ticker = { contains: ticker, mode: "insensitive" };
     if (platform) mentionWhere.platform = platform;
     if (author) mentionWhere.author = { contains: author, mode: "insensitive" };
+    if (scanRunId) mentionWhere.scanRunId = scanRunId;
     if (promotionalOnly) mentionWhere.isPromotional = true;
     if (dateFrom || dateTo) {
       mentionWhere.createdAt = {};
@@ -79,6 +81,7 @@ export async function GET(request: NextRequest) {
           platformsUsed: true,
           duration: true,
           errors: true,
+          triggeredBy: true,
           createdAt: true,
         },
       }),
@@ -251,18 +254,28 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Trigger a new social scan
+// Accepts admin session auth (dashboard) OR API key auth (daily pipeline)
 export async function POST(request: NextRequest) {
   try {
+    // Auth: accept admin session OR API key for automated pipeline calls
+    let triggeredBy = "pipeline";
     const session = await getAdminSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 },
-      );
+    if (session) {
+      if (!hasRole(session, ["OWNER", "ADMIN"])) {
+        return NextResponse.json(
+          { error: "Insufficient permissions" },
+          { status: 403 },
+        );
+      }
+      triggeredBy = session.id;
+    } else {
+      // Fall back to API key auth for CLI/pipeline triggers
+      const authHeader = request.headers.get("authorization");
+      const apiKey = process.env.SOCIAL_SCAN_API_KEY;
+      if (!apiKey || authHeader !== `Bearer ${apiKey}`) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      triggeredBy = "daily-pipeline";
     }
 
     const body = await request.json();
@@ -271,15 +284,29 @@ export async function POST(request: NextRequest) {
     const scanDate = date || new Date().toISOString().split("T")[0];
 
     // Build manual ticker list if provided
+    // Accepts either simple strings ["AAPL"] or objects [{ticker, name, riskScore, signals}]
     let manualTickers: ScanTarget[] | undefined;
     if (tickers && Array.isArray(tickers) && tickers.length > 0) {
-      manualTickers = tickers.map((t: string) => ({
-        ticker: t.trim().toUpperCase(),
-        name: "",
-        riskScore: 0,
-        riskLevel: "HIGH" as const,
-        signals: [],
-      }));
+      manualTickers = tickers.map((t: string | Record<string, any>) => {
+        if (typeof t === "string") {
+          return {
+            ticker: t.trim().toUpperCase(),
+            name: "",
+            riskScore: 0,
+            riskLevel: "HIGH" as const,
+            signals: [],
+          };
+        }
+        return {
+          ticker: String(t.ticker || "")
+            .trim()
+            .toUpperCase(),
+          name: String(t.name || ""),
+          riskScore: Number(t.riskScore) || 0,
+          riskLevel: (t.riskLevel as "HIGH" | "MEDIUM" | "LOW") || "HIGH",
+          signals: Array.isArray(t.signals) ? t.signals : [],
+        };
+      });
     }
 
     // Create scan run record
@@ -287,28 +314,30 @@ export async function POST(request: NextRequest) {
       data: {
         scanDate: new Date(scanDate),
         status: "RUNNING",
-        triggeredBy: session.id,
+        triggeredBy,
       },
     });
 
-    // Log the action
-    await prisma.adminAuditLog.create({
-      data: {
-        adminUserId: session.id,
-        action: "SOCIAL_SCAN_TRIGGERED",
-        resource: scanRun.id,
-        details: JSON.stringify({
-          tickers:
-            manualTickers?.map((t) => t.ticker) || "auto-from-daily-scan",
-          date: scanDate,
-        }),
-      },
-    });
+    // Log the action (only if admin session — pipeline calls don't need audit logs)
+    if (session) {
+      await prisma.adminAuditLog.create({
+        data: {
+          adminUserId: session.id,
+          action: "SOCIAL_SCAN_TRIGGERED",
+          resource: scanRun.id,
+          details: JSON.stringify({
+            tickers:
+              manualTickers?.map((t) => t.ticker) || "auto-from-daily-scan",
+            date: scanDate,
+          }),
+        },
+      });
+    }
 
     // Run the actual scan (this takes time — up to a few minutes)
     const result = await runSocialScanAndStore({
       scanRunId: scanRun.id,
-      triggeredBy: session.id,
+      triggeredBy,
       manualTickers,
     });
 

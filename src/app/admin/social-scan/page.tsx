@@ -49,6 +49,7 @@ interface ScanRun {
   platformsUsed: string[];
   duration: number | null;
   errors: string[];
+  triggeredBy: string | null;
   createdAt: string;
 }
 
@@ -159,6 +160,9 @@ export default function SocialScanPage() {
   >({});
   const [capturingMention, setCapturingMention] = useState<string | null>(null);
   const [sortColumns, setSortColumns] = useState<SortColumn[]>([]);
+  const [filterScanRunId, setFilterScanRunId] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
 
   // Multi-column sort: click to add/toggle, shift info shown in header
   const handleSort = (field: SortField) => {
@@ -236,6 +240,30 @@ export default function SocialScanPage() {
     );
   };
 
+  // Extract AI classification from redFlags (e.g. "[AI] Confirmed scam: reason")
+  const getAIClassification = (
+    redFlags: string[],
+  ): { label: string; reason: string } | null => {
+    for (const flag of redFlags) {
+      if (flag.startsWith("[AI] Confirmed scam:"))
+        return {
+          label: "scam",
+          reason: flag.replace("[AI] Confirmed scam: ", ""),
+        };
+      if (flag.startsWith("[AI] Suspicious:"))
+        return {
+          label: "suspicious",
+          reason: flag.replace("[AI] Suspicious: ", ""),
+        };
+      if (flag.startsWith("[AI] Classified as legitimate:"))
+        return {
+          label: "legitimate",
+          reason: flag.replace("[AI] Classified as legitimate: ", ""),
+        };
+    }
+    return null;
+  };
+
   const fetchData = useCallback(async () => {
     try {
       const params = new URLSearchParams({
@@ -245,6 +273,9 @@ export default function SocialScanPage() {
       if (filterTicker) params.set("ticker", filterTicker);
       if (filterPlatform) params.set("platform", filterPlatform);
       if (promotionalOnly) params.set("promotionalOnly", "true");
+      if (filterScanRunId) params.set("scanRunId", filterScanRunId);
+      if (filterDateFrom) params.set("dateFrom", filterDateFrom);
+      if (filterDateTo) params.set("dateTo", filterDateTo);
 
       const res = await fetch(`/api/admin/social-scan?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
@@ -255,7 +286,15 @@ export default function SocialScanPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, filterTicker, filterPlatform, promotionalOnly]);
+  }, [
+    page,
+    filterTicker,
+    filterPlatform,
+    promotionalOnly,
+    filterScanRunId,
+    filterDateFrom,
+    filterDateTo,
+  ]);
 
   useEffect(() => {
     fetchData();
@@ -687,48 +726,81 @@ export default function SocialScanPage() {
                       Platforms
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Source
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                       Duration
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.scanRuns.map((run) => (
-                    <tr
-                      key={run.id}
-                      className="border-b border-border hover:bg-muted/20 transition-colors"
-                    >
-                      <td className="px-4 py-3 text-sm text-foreground">
-                        {new Date(run.scanDate).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        {getStatusBadge(run.status)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-foreground">
-                        {run.tickersWithMentions}/{run.tickersScanned} with
-                        mentions
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-foreground">
-                        {run.totalMentions}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {run.platformsUsed.map((p) => (
-                            <span
-                              key={p}
-                              className="px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground"
-                            >
-                              {scannerLabels[p] || p}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {run.duration
-                          ? `${(run.duration / 1000).toFixed(0)}s`
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                  {data.scanRuns.map((run) => {
+                    const isSelectedRun = filterScanRunId === run.id;
+                    const triggeredLabel =
+                      run.triggeredBy === "daily-pipeline"
+                        ? "Daily Pipeline"
+                        : run.triggeredBy === "pipeline"
+                          ? "Pipeline"
+                          : "Dashboard";
+                    const triggeredColor =
+                      run.triggeredBy === "daily-pipeline" ||
+                      run.triggeredBy === "pipeline"
+                        ? "bg-violet-100 text-violet-700"
+                        : "bg-emerald-100 text-emerald-700";
+                    return (
+                      <tr
+                        key={run.id}
+                        className={`border-b border-border hover:bg-muted/20 transition-colors cursor-pointer ${isSelectedRun ? "bg-primary/5 ring-1 ring-primary/20" : ""}`}
+                        onClick={() => {
+                          setFilterScanRunId(isSelectedRun ? "" : run.id);
+                          setPage(1);
+                        }}
+                        title={
+                          isSelectedRun
+                            ? "Click to clear scan run filter"
+                            : "Click to filter mentions to this scan run"
+                        }
+                      >
+                        <td className="px-4 py-3 text-sm text-foreground">
+                          {new Date(run.scanDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          {getStatusBadge(run.status)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-foreground">
+                          {run.tickersWithMentions}/{run.tickersScanned} with
+                          mentions
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-foreground">
+                          {run.totalMentions}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {run.platformsUsed.map((p) => (
+                              <span
+                                key={p}
+                                className="px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground"
+                              >
+                                {scannerLabels[p] || p}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${triggeredColor}`}
+                          >
+                            {triggeredLabel}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {run.duration
+                            ? `${(run.duration / 1000).toFixed(0)}s`
+                            : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -809,6 +881,7 @@ export default function SocialScanPage() {
               <option value="StockTwits">StockTwits</option>
               <option value="TikTok">TikTok</option>
               <option value="Web">Web</option>
+              <option value="Forum">Forum</option>
             </select>
             <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
               <input
@@ -822,17 +895,56 @@ export default function SocialScanPage() {
               />
               Promotional only
             </label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">From:</span>
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => {
+                  setFilterDateFrom(e.target.value);
+                  setPage(1);
+                }}
+                className="px-2 py-1 text-xs border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              <span className="text-xs text-muted-foreground">To:</span>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => {
+                  setFilterDateTo(e.target.value);
+                  setPage(1);
+                }}
+                className="px-2 py-1 text-xs border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
             <button
               onClick={() => {
                 setFilterTicker("");
                 setFilterPlatform("");
                 setPromotionalOnly(false);
+                setFilterScanRunId("");
+                setFilterDateFrom("");
+                setFilterDateTo("");
                 setPage(1);
               }}
               className="text-sm text-primary hover:underline"
             >
               Clear filters
             </button>
+            {filterScanRunId && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                Filtered to scan run
+                <button
+                  onClick={() => {
+                    setFilterScanRunId("");
+                    setPage(1);
+                  }}
+                  className="hover:text-foreground"
+                >
+                  x
+                </button>
+              </span>
+            )}
             <div className="ml-auto">
               <button
                 onClick={fetchData}
@@ -998,7 +1110,33 @@ export default function SocialScanPage() {
                               {mention.author || "—"}
                             </td>
                             <td className="px-4 py-3">
-                              {getPromotionBadge(mention.promotionScore)}
+                              <div className="flex items-center gap-1.5">
+                                {getPromotionBadge(mention.promotionScore)}
+                                {(() => {
+                                  const ai = getAIClassification(
+                                    mention.redFlags,
+                                  );
+                                  if (!ai) return null;
+                                  const cls =
+                                    ai.label === "scam"
+                                      ? "bg-red-600 text-white"
+                                      : ai.label === "legitimate"
+                                        ? "bg-green-600 text-white"
+                                        : "bg-yellow-500 text-white";
+                                  return (
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${cls}`}
+                                      title={ai.reason}
+                                    >
+                                      {ai.label === "scam"
+                                        ? "AI:SCAM"
+                                        : ai.label === "legitimate"
+                                          ? "AI:OK"
+                                          : "AI:SUS"}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                               {mention.postDate
@@ -1104,6 +1242,35 @@ export default function SocialScanPage() {
                                         {mention.sentiment || "neutral"}
                                       </span>
                                     </div>
+                                    {(() => {
+                                      const ai = getAIClassification(
+                                        mention.redFlags,
+                                      );
+                                      if (!ai) return null;
+                                      const cls =
+                                        ai.label === "scam"
+                                          ? "bg-red-50 border-red-200 text-red-700"
+                                          : ai.label === "legitimate"
+                                            ? "bg-green-50 border-green-200 text-green-700"
+                                            : "bg-yellow-50 border-yellow-200 text-yellow-700";
+                                      return (
+                                        <div>
+                                          <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                                            AI Classification
+                                          </h4>
+                                          <div
+                                            className={`text-xs px-3 py-2 rounded-lg border ${cls}`}
+                                          >
+                                            <span className="font-bold uppercase">
+                                              {ai.label}
+                                            </span>
+                                            <span className="ml-1.5">
+                                              &mdash; {ai.reason}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
                                     {mention.url && (
                                       <div className="flex items-center gap-3 flex-wrap">
                                         <a

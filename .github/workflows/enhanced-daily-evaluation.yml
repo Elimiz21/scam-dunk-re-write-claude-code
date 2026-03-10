@@ -5,36 +5,35 @@ on:
   # This allows time for after-hours data to settle and ensures we have complete daily data
   # Only runs on weekdays; holiday check is done in the job
   schedule:
-    - cron: '0 23 * * 1-5'  # Monday through Friday at 11 PM UTC
-
+    - cron: "0 23 * * 1-5" # Monday through Friday at 11 PM UTC
 
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
     inputs:
       upload_only:
-        description: 'Only upload existing results (skip evaluation)'
+        description: "Only upload existing results (skip evaluation)"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       force_run:
-        description: 'Force run even on holidays'
+        description: "Force run even on holidays"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       date_override:
-        description: 'Run evaluation for a specific date (YYYY-MM-DD)'
+        description: "Run evaluation for a specific date (YYYY-MM-DD)"
         required: false
-        default: ''
+        default: ""
         type: string
       test_mode:
-        description: 'Run in test mode (process only 100 stocks)'
+        description: "Run in test mode (process only 100 stocks)"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       skip_social_scan:
-        description: 'Skip social media scanning phase'
+        description: "Skip social media scanning phase"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
 
 # Grant write permissions for issue creation on failure
@@ -180,7 +179,7 @@ jobs:
     needs: check-trading-day
     if: ${{ needs.check-trading-day.outputs.is_trading_day == 'true' || github.event.inputs.force_run == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 480  # 8 hours max for comprehensive evaluation
+    timeout-minutes: 480 # 8 hours max for comprehensive evaluation
 
     steps:
       - name: Checkout repository
@@ -191,8 +190,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -205,6 +204,8 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           AI_BACKEND_URL: ${{ secrets.AI_BACKEND_URL }}
           AI_API_SECRET: ${{ secrets.AI_API_SECRET }}
+          SOCIAL_SCAN_APP_URL: ${{ secrets.SOCIAL_SCAN_APP_URL }}
+          SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
         run: |
           MISSING=""
           if [ -z "$FMP_API_KEY" ]; then MISSING="$MISSING FMP_API_KEY"; fi
@@ -219,10 +220,10 @@ jobs:
           else
             echo "OPENAI_API_KEY configured for AI-powered analysis"
           fi
-          if [ -z "$YOUTUBE_API_KEY" ]; then
-            echo "::warning::YOUTUBE_API_KEY not set - YouTube scanning will be skipped"
+          if [ -n "$SOCIAL_SCAN_APP_URL" ] && [ -n "$SOCIAL_SCAN_API_KEY" ]; then
+            echo "Social scan: Deployed API configured → results go to Supabase + AI screening"
           else
-            echo "YOUTUBE_API_KEY configured for YouTube scanning"
+            echo "::warning::SOCIAL_SCAN_APP_URL or SOCIAL_SCAN_API_KEY not set - social scan will use local fallback (JSON only, no AI screening)"
           fi
           if [ -n "$AI_BACKEND_URL" ] && [ -z "$AI_API_SECRET" ]; then
             echo "::warning::AI_BACKEND_URL is set but AI_API_SECRET is missing - Python AI backend requests will fail auth"
@@ -244,10 +245,12 @@ jobs:
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          AI_BACKEND_URL: ${{ secrets.AI_BACKEND_URL }}  # Python AI backend for full 4-layer analysis
-          AI_API_SECRET: ${{ secrets.AI_API_SECRET }}  # Auth key for Python AI backend
-          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}  # For YouTube social media scanning
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}  # For crash notification emails
+          AI_BACKEND_URL: ${{ secrets.AI_BACKEND_URL }}
+          AI_API_SECRET: ${{ secrets.AI_API_SECRET }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SOCIAL_SCAN_APP_URL: ${{ secrets.SOCIAL_SCAN_APP_URL }}
+          SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
         run: |
@@ -255,25 +258,21 @@ jobs:
           echo "Starting Enhanced Daily Pipeline for $EVALUATION_DATE..."
           echo "Test Mode: $TEST_MODE"
 
-          # Check if Python AI backend is configured
           if [ -n "$AI_BACKEND_URL" ]; then
             echo "Python AI Backend: $AI_BACKEND_URL (full 4-layer analysis)"
           else
             echo "Python AI Backend: Not configured (using Layer 1 only)"
           fi
 
-          # Check if YouTube API is configured
-          if [ -n "$YOUTUBE_API_KEY" ]; then
-            echo "YouTube API: Configured for social media scanning"
+          if [ -n "$SOCIAL_SCAN_APP_URL" ] && [ -n "$SOCIAL_SCAN_API_KEY" ]; then
+            echo "Social Scan: Deployed API → Supabase + AI screening"
           else
-            echo "YouTube API: Not configured (YouTube scanning will be skipped)"
+            echo "Social Scan: Local fallback (JSON only)"
           fi
-          
-          # Run the enhanced pipeline
-          npx ts-node scripts/enhanced-daily-pipeline.ts
-          
-          echo "Enhanced pipeline complete"
 
+          npx ts-node scripts/enhanced-daily-pipeline.ts
+
+          echo "Enhanced pipeline complete"
 
       - name: Generate Scheme Report
         if: ${{ github.event.inputs.upload_only != 'true' }}
@@ -398,7 +397,7 @@ jobs:
 
           cd evaluation
           UPLOADED=0
-          
+
           # Upload all result files
           for file in results/*-${DATE}*.json results/*-${DATE}*.md; do
             if [ -f "$file" ]; then
@@ -419,7 +418,7 @@ jobs:
               fi
             fi
           done
-          
+
           # Upload scheme database
           if [ -f "scheme-database/scheme-database.json" ]; then
             echo "Uploading scheme database..."
@@ -471,7 +470,7 @@ jobs:
           # Copy enhanced evaluation results
           cp evaluation/results/enhanced-evaluation-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
           cp evaluation/results/enhanced-high-risk-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
-          
+
           # Copy legacy format for backwards compatibility
           cp evaluation/results/fmp-evaluation-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
           cp evaluation/results/fmp-high-risk-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
@@ -480,7 +479,7 @@ jobs:
           # Copy suspicious stocks and scheme data
           cp evaluation/results/suspicious-stocks-${DATE}.json data-repo/suspicious-stocks/ 2>/dev/null || true
           cp evaluation/results/daily-report-${DATE}.json data-repo/reports/ 2>/dev/null || true
-          
+
           # Copy scheme tracking data (scheme + promoter databases)
           cp evaluation/scheme-database/scheme-database.json data-repo/scheme-tracking/ 2>/dev/null || true
           cp evaluation/scheme-database/promoter-database.json data-repo/scheme-tracking/ 2>/dev/null || true
@@ -544,7 +543,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Date:** ${DATE}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ -f "evaluation/results/daily-report-${DATE}.json" ]; then
             echo "### Results" >> $GITHUB_STEP_SUMMARY
             cat evaluation/results/daily-report-${DATE}.json | jq -r '
@@ -559,7 +558,7 @@ jobs:
               "- **Processing Time:** \(.processingTimeMinutes) minutes"
             ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Unable to parse report" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "See artifacts for full results." >> $GITHUB_STEP_SUMMARY
 
