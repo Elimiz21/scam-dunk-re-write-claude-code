@@ -331,10 +331,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: `Analysis failed: ${errorMessage}` },
+      { error: "Analysis failed. Please try again later." },
       { status: 500 },
     );
   }

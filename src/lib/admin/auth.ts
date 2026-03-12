@@ -110,16 +110,23 @@ export async function adminLogin(
       },
     });
 
-    // Set cookie
+    // Set cookie scoped to admin and admin API paths
     const cookieStore = await cookies();
-    // Path remains "/" because admin pages make client-side fetches to /api/admin/*
-    // which doesn't match a /admin path prefix. SameSite strict prevents cross-site leakage.
-    cookieStore.set(ADMIN_SESSION_COOKIE, token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "strict" as const,
       expires: expiresAt,
-      path: "/",
+    };
+    // Set cookie for admin pages
+    cookieStore.set(ADMIN_SESSION_COOKIE, token, {
+      ...cookieOptions,
+      path: "/admin",
+    });
+    // Set same cookie for admin API routes (browser sends based on path match)
+    cookieStore.set(ADMIN_SESSION_COOKIE, token, {
+      ...cookieOptions,
+      path: "/api/admin",
     });
 
     return {

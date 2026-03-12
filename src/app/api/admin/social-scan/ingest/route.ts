@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 
@@ -15,10 +16,18 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      // Also accept a simple API key for CLI ingestion
+      // Also accept a simple API key for CLI ingestion (timing-safe comparison)
       const authHeader = request.headers.get("authorization");
       const apiKey = process.env.SOCIAL_SCAN_INGEST_KEY;
-      if (!apiKey || authHeader !== `Bearer ${apiKey}`) {
+      if (!apiKey || !authHeader) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const expected = Buffer.from(`Bearer ${apiKey}`, "utf8");
+      const provided = Buffer.from(authHeader, "utf8");
+      if (
+        expected.length !== provided.length ||
+        !crypto.timingSafeEqual(expected, provided)
+      ) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
     }

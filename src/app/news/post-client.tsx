@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import DOMPurify from "isomorphic-dompurify";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { JsonLd } from "@/components/JsonLd";
@@ -148,7 +149,9 @@ export default function BlogPostClient({
 
             <div
               className="tiptap prose prose-neutral dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(post.content),
+              }}
             />
           </article>
 
