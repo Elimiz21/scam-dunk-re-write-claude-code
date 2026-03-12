@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
 
     // Only OWNER can view audit logs
     if (!hasRole(session, ["OWNER"])) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
     console.error("Get audit logs error:", error);
     return NextResponse.json(
       { error: "Failed to fetch audit logs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

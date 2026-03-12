@@ -51,7 +51,7 @@ export function ThemeToggle() {
                     "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-smooth",
                     theme === option.value
                       ? "bg-secondary"
-                      : "hover:bg-secondary"
+                      : "hover:bg-secondary",
                   )}
                 >
                   <OptionIcon className="h-4 w-4" />

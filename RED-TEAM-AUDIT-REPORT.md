@@ -27,6 +27,7 @@ import { JsonLd } from "@/components/JsonLd";
 `JsonLd` is a server component (no "use client" directive in `/src/components/JsonLd.tsx`). Client components **cannot render server components** directly in Next.js 14.
 
 **Current JsonLd.tsx:**
+
 ```typescript
 export function JsonLd({ data }: { data: Record<string, unknown> | Record<string, unknown>[] }) {
   return (
@@ -39,12 +40,14 @@ export function JsonLd({ data }: { data: Record<string, unknown> | Record<string
 ```
 
 **Error Message (Expected at Runtime):**
+
 ```
 Error: Cannot render server component in a client component
 ```
 
 **Fix Required:**
 Either:
+
 1. Add `"use client"` to JsonLd.tsx (allows use in client components), OR
 2. Remove JsonLd rendering from post-client.tsx and move it to the parent server component, OR
 3. Move the JSON-LD script injection to the parent server component
@@ -56,6 +59,7 @@ Either:
 ### 🔴 CRITICAL BUG #2: Missing onNewScan Handler Parameter in Hub Pages
 
 **Files:**
+
 - `src/app/investment-scams/page.tsx`
 - `src/app/social-media-scams/page.tsx`
 - `src/app/how-to-detect-stock-scams/page.tsx`
@@ -82,10 +86,12 @@ const handleNewScan = () => {
 The hub pages pass empty handler `() => {}` which **prevents navigation when user clicks "New Scan"** button in sidebar.
 
 **Impact:**
+
 - Users on hub pages cannot initiate a new scan from the sidebar
 - Silent failure - no error logged, feature just doesn't work
 
 **Fix Required:**
+
 ```typescript
 // Instead of:
 onNewScan={() => {}}
@@ -107,19 +113,25 @@ onNewScan={() => window.location.href = "/"}
 **Issue - Slug Transformation Mismatch:**
 
 The page transforms the author name from slug to display format:
+
 ```typescript
 const authorSlug = decodeURIComponent(params.author); // e.g., "scam-dunk-team"
-const authorName = authorSlug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+const authorName = authorSlug
+  .split("-")
+  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+  .join(" ");
 // Result: "Scam Dunk Team"
 ```
 
 However, the Prisma query searches for the **author field** using `authorName`:
+
 ```typescript
 author: authorName,  // Searches for "Scam Dunk Team"
 ```
 
 **The Problem:**
 In the schema, `author` field default is `"Scam Dunk Team"`. But what if:
+
 - The database contains posts with author: "John Smith"
 - User tries to access `/authors/john-smith`
 - authorName becomes "John Smith" ✓
@@ -130,6 +142,7 @@ If a blog post's author field uses different casing than the slug transformation
 
 **Fix Required:**
 Make the Prisma query case-insensitive:
+
 ```typescript
 where: {
   isPublished: true,
@@ -142,6 +155,7 @@ where: {
 
 **Secondary Issue:**
 The `authorBios` object is hardcoded with slugs:
+
 ```typescript
 const authorBios: Record<string, string> = {
   "scam-dunk-team": "...",
@@ -156,6 +170,7 @@ If a real author ("John Smith") writes posts but isn't in `authorBios`, the page
 ### 🟠 ISSUE #4: Hub Pages - Sidebar/Header Props Don't Match Component Signature
 
 **Files:**
+
 - `src/app/investment-scams/page.tsx`
 - `src/app/social-media-scams/page.tsx`
 - `src/app/how-to-detect-stock-scams/page.tsx`
@@ -173,6 +188,7 @@ Hub pages are server components but use Sidebar/Header with no state management:
 ```
 
 **Problem:**
+
 - `isOpen={false}` is hardcoded, but `onToggle` does nothing
 - User clicks sidebar toggle → does nothing (silent failure)
 - Sidebar UI shows closed state but is unresponsive
@@ -181,6 +197,7 @@ Hub pages are server components but use Sidebar/Header with no state management:
 **Comparison to Working Pages:**
 
 In HomeContent and AboutContent (client components with state):
+
 ```typescript
 const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -197,6 +214,7 @@ Hub pages are static server components, not client components. They cannot manag
 
 **Fix Required:**
 Option 1: Move hub page content to a client component wrapper:
+
 ```typescript
 // page.tsx (server component)
 import HubPageClient from './hub-page-client';
@@ -232,6 +250,7 @@ Option 2: Create a wrapper component that handles this automatically.
 **Issue:**
 
 The Related Articles section uses:
+
 ```typescript
 {relatedPosts.length > 0 && (
   <section className="mt-16 pt-12 border-t border-border">
@@ -246,6 +265,7 @@ The Related Articles section uses:
 ```
 
 **The Problem:**
+
 - Grid uses `lg:grid-cols-3` (3 columns)
 - If only 1 post returned: shows 1 item in a 3-column grid (ugly, lots of white space)
 - If 2 posts returned: shows 2 items in a 3-column grid (awkward alignment)
@@ -254,6 +274,7 @@ The Related Articles section uses:
 News post has category "Investment Fraud" but only 2 other published posts in that category. Grid renders with 1 empty column on desktop. Layout is not responsive to actual item count.
 
 **Fix Required:**
+
 ```typescript
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-cols-max">
   {relatedPosts.map((relatedPost) => (
@@ -281,26 +302,31 @@ News post has category "Investment Fraud" but only 2 other published posts in th
 **Issue:**
 
 Related posts fetch logic:
+
 ```typescript
 const rawRelatedPosts = await prisma.blogPost.findMany({
   where: {
     isPublished: true,
-    category: post.category,  // <-- Searches by category
+    category: post.category, // <-- Searches by category
     NOT: { id: post.id },
   },
   orderBy: { publishedAt: "desc" },
   take: 3,
-  select: { /* ... */ },
+  select: {
+    /* ... */
+  },
 });
 ```
 
 **The Problem:**
 From the schema:
+
 ```prisma
 category    String    @default("General")
 ```
 
 Every post **must** have a category (defaults to "General"). But what if:
+
 1. A post's category is "General" (the default)
 2. There are 50 other posts with category "General"
 3. The related posts query returns a random 3 of those 50
@@ -311,6 +337,7 @@ This means **unrelated content** appears as "related". A post about "Pump and Du
 
 **Fix Required:**
 Add a secondary sort or filter to improve relevancy:
+
 ```typescript
 // Option 1: Include tags in matching
 where: {
@@ -335,6 +362,7 @@ where: {
 **Issue:**
 
 The `generateStaticParams` uses hardcoded `authorBios`:
+
 ```typescript
 export async function generateStaticParams(): Promise<PageParams[]> {
   return Object.keys(authorBios).map((author) => ({ author }));
@@ -342,6 +370,7 @@ export async function generateStaticParams(): Promise<PageParams[]> {
 ```
 
 This means:
+
 - Only 2 pages generated: `scam-dunk-team` and `security-analyst`
 - If you add a new blog post by "John Smith", the author page won't exist
 - The route will 404 because it's not in static params
@@ -349,12 +378,13 @@ This means:
 
 **Fix Required:**
 Query the database for actual authors:
+
 ```typescript
 export async function generateStaticParams(): Promise<PageParams[]> {
   if (!process.env.DATABASE_URL) {
     return Object.keys(authorBios).map((author) => ({ author }));
   }
-  
+
   try {
     const { prisma } = await import("@/lib/db");
     const posts = await prisma.blogPost.findMany({
@@ -362,7 +392,7 @@ export async function generateStaticParams(): Promise<PageParams[]> {
       select: { author: true },
       distinct: ["author"],
     });
-    
+
     return posts.map((post) => ({
       author: post.author.toLowerCase().replace(/\s+/g, "-"),
     }));
@@ -380,6 +410,7 @@ export async function generateStaticParams(): Promise<PageParams[]> {
 ### ✅ PASS: All Lucide Icons Imported Are Available
 
 **Files Checked:**
+
 - investment-scams: AlertTriangle, TrendingUp, Shield, CheckCircle ✓
 - social-media-scams: MessageCircle, AlertTriangle, Shield, CheckCircle ✓
 - how-to-detect-stock-scams: Search, TrendingUp, AlertTriangle, CheckCircle, Shield ✓
@@ -400,6 +431,7 @@ export async function generateStaticParams(): Promise<PageParams[]> {
 ### ✅ PASS: Header and Sidebar Components Exist
 
 **Locations:**
+
 - Header: `src/components/Header.tsx` ✓
 - Sidebar: `src/components/Sidebar.tsx` ✓
 
@@ -421,12 +453,14 @@ export async function generateStaticParams(): Promise<PageParams[]> {
 ### ✅ PASS: OG Image Files Use Correct Next.js 14 API
 
 **File:** `src/app/opengraph-image.tsx`
+
 - Exports `async` function named `Image` ✓
 - Sets `runtime = "edge"` ✓
 - Returns `ImageResponse` ✓
 - Sets size and contentType ✓
 
 **File:** `src/app/news/[slug]/opengraph-image.tsx`
+
 - Exports `async` function named `Image` ✓
 - Has `generateImageMetadata` function
 - Uses Prisma query inside edge runtime (OK with node build output)
@@ -438,8 +472,16 @@ The function is defined but Next.js 14's Image Generation API doesn't use `gener
 
 ```typescript
 // This function is never called - can be removed
-export async function generateImageMetadata({ params }: { params: PageParams }) {
-  return [{ /* ... */ }];
+export async function generateImageMetadata({
+  params,
+}: {
+  params: PageParams;
+}) {
+  return [
+    {
+      /* ... */
+    },
+  ];
 }
 ```
 
@@ -454,6 +496,7 @@ export async function generateImageMetadata({ params }: { params: PageParams }) 
 **File:** `src/app/sitemap.ts`
 
 Routes defined in sitemap:
+
 - `/investment-scams` → `src/app/investment-scams/page.tsx` ✓
 - `/social-media-scams` → `src/app/social-media-scams/page.tsx` ✓
 - `/how-to-detect-stock-scams` → `src/app/how-to-detect-stock-scams/page.tsx` ✓
@@ -467,6 +510,7 @@ Routes defined in sitemap:
 ### ✅ PASS: BlogPost Schema Matches Query Usage
 
 **Schema fields used:**
+
 - `id` ✓
 - `title` ✓
 - `slug` ✓
@@ -486,34 +530,38 @@ Routes defined in sitemap:
 
 ## SUMMARY TABLE
 
-| # | Issue | Severity | File | Type | Status |
-|---|-------|----------|------|------|--------|
-| 1 | "use client" boundary violation (JsonLd) | CRITICAL | post-client.tsx | Runtime Error | MUST FIX |
-| 2 | Empty onNewScan handler in hub pages | CRITICAL | 4 hub pages | Feature Break | MUST FIX |
-| 3 | Author slug case sensitivity mismatch | HIGH | authors/[author]/page.tsx | Logic Error | SHOULD FIX |
-| 4 | Static params hardcoded in authors page | MEDIUM | authors/[author]/page.tsx | Content Issue | SHOULD FIX |
-| 5 | Hub pages Sidebar/Header non-functional | MEDIUM | 4 hub pages | UX/Architecture | SHOULD FIX |
-| 6 | Related posts grid layout for <3 items | LOW | post-client.tsx | UI Layout | NICE TO FIX |
-| 7 | Related posts relevancy (all "General") | MEDIUM | news/[slug]/page.tsx | Logic Error | SHOULD FIX |
-| 8 | Unused generateImageMetadata function | LOW | news/[slug]/opengraph-image.tsx | Code Quality | NICE TO FIX |
+| #   | Issue                                    | Severity | File                            | Type            | Status      |
+| --- | ---------------------------------------- | -------- | ------------------------------- | --------------- | ----------- |
+| 1   | "use client" boundary violation (JsonLd) | CRITICAL | post-client.tsx                 | Runtime Error   | MUST FIX    |
+| 2   | Empty onNewScan handler in hub pages     | CRITICAL | 4 hub pages                     | Feature Break   | MUST FIX    |
+| 3   | Author slug case sensitivity mismatch    | HIGH     | authors/[author]/page.tsx       | Logic Error     | SHOULD FIX  |
+| 4   | Static params hardcoded in authors page  | MEDIUM   | authors/[author]/page.tsx       | Content Issue   | SHOULD FIX  |
+| 5   | Hub pages Sidebar/Header non-functional  | MEDIUM   | 4 hub pages                     | UX/Architecture | SHOULD FIX  |
+| 6   | Related posts grid layout for <3 items   | LOW      | post-client.tsx                 | UI Layout       | NICE TO FIX |
+| 7   | Related posts relevancy (all "General")  | MEDIUM   | news/[slug]/page.tsx            | Logic Error     | SHOULD FIX  |
+| 8   | Unused generateImageMetadata function    | LOW      | news/[slug]/opengraph-image.tsx | Code Quality    | NICE TO FIX |
 
 ---
 
 ## QUICK FIX CHECKLIST
 
 ### CRITICAL (Must fix before deploy):
+
 - [ ] Add `"use client"` to `src/components/JsonLd.tsx`
 - [ ] Fix `onNewScan={() => {}}` to `onNewScan={() => window.location.href = "/"}` in all 4 hub pages
 
 ### HIGH Priority (Fix before merge):
+
 - [ ] Add case-insensitive search in authors page Prisma query
 - [ ] Query database for actual authors in generateStaticParams
 
 ### MEDIUM Priority (Fix in next sprint):
+
 - [ ] Refactor hub pages to use client component wrapper for interactive features
 - [ ] Improve related posts matching logic
 
 ### LOW Priority (Nice to have):
+
 - [ ] Remove unused generateImageMetadata function
 - [ ] Improve grid layout for <3 related articles
 
@@ -535,4 +583,3 @@ The new routes have **good SEO structure and proper component setup** but suffer
 3. **Architecture mismatch** (server components using interactive UI patterns)
 
 These must be resolved before deployment.
-

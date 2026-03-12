@@ -5,39 +5,39 @@
  * to help monitor system health and identify issues with login/signup flows.
  */
 
-import { prisma } from './db';
+import { prisma } from "./db";
 
 export type AuthErrorType =
-  | 'SIGNUP_FAILED'
-  | 'LOGIN_FAILED'
-  | 'VERIFICATION_FAILED'
-  | 'PASSWORD_RESET_FAILED'
-  | 'EMAIL_SEND_FAILED';
+  | "SIGNUP_FAILED"
+  | "LOGIN_FAILED"
+  | "VERIFICATION_FAILED"
+  | "PASSWORD_RESET_FAILED"
+  | "EMAIL_SEND_FAILED";
 
 export type AuthErrorCode =
   // Signup errors
-  | 'EMAIL_ALREADY_EXISTS'
-  | 'INVALID_EMAIL'
-  | 'WEAK_PASSWORD'
-  | 'CAPTCHA_FAILED'
-  | 'RATE_LIMITED'
+  | "EMAIL_ALREADY_EXISTS"
+  | "INVALID_EMAIL"
+  | "WEAK_PASSWORD"
+  | "CAPTCHA_FAILED"
+  | "RATE_LIMITED"
   // Login errors
-  | 'INVALID_CREDENTIALS'
-  | 'EMAIL_NOT_VERIFIED'
-  | 'ACCOUNT_DISABLED'
-  | 'USER_NOT_FOUND'
+  | "INVALID_CREDENTIALS"
+  | "EMAIL_NOT_VERIFIED"
+  | "ACCOUNT_DISABLED"
+  | "USER_NOT_FOUND"
   // Verification errors
-  | 'TOKEN_EXPIRED'
-  | 'TOKEN_INVALID'
-  | 'TOKEN_ALREADY_USED'
+  | "TOKEN_EXPIRED"
+  | "TOKEN_INVALID"
+  | "TOKEN_ALREADY_USED"
   // Email errors
-  | 'RESEND_API_ERROR'
-  | 'INVALID_FROM_ADDRESS'
-  | 'RECIPIENT_REJECTED'
+  | "RESEND_API_ERROR"
+  | "INVALID_FROM_ADDRESS"
+  | "RECIPIENT_REJECTED"
   // General errors
-  | 'DATABASE_ERROR'
-  | 'NETWORK_ERROR'
-  | 'UNKNOWN_ERROR';
+  | "DATABASE_ERROR"
+  | "NETWORK_ERROR"
+  | "UNKNOWN_ERROR";
 
 export interface AuthErrorContext {
   email?: string;
@@ -60,7 +60,7 @@ export interface AuthErrorDetails {
  */
 export async function logAuthError(
   context: AuthErrorContext,
-  errorDetails: AuthErrorDetails
+  errorDetails: AuthErrorDetails,
 ): Promise<void> {
   try {
     // Create the error log entry
@@ -72,7 +72,9 @@ export async function logAuthError(
         userId: context.userId,
         endpoint: context.endpoint,
         message: errorDetails.message,
-        details: errorDetails.details ? JSON.stringify(errorDetails.details) : null,
+        details: errorDetails.details
+          ? JSON.stringify(errorDetails.details)
+          : null,
         stackTrace: errorDetails.error?.stack || null,
         ipAddress: context.ipAddress,
         userAgent: context.userAgent,
@@ -86,8 +88,8 @@ export async function logAuthError(
     await checkErrorThresholds(errorDetails.errorType);
   } catch (loggingError) {
     // Don't let logging errors break the main flow
-    console.error('Failed to log auth error:', loggingError);
-    console.error('Original error:', errorDetails);
+    console.error("Failed to log auth error:", loggingError);
+    console.error("Original error:", errorDetails);
   }
 }
 
@@ -95,9 +97,9 @@ export async function logAuthError(
  * Mask email for privacy (e.g., "t***@example.com")
  */
 function maskEmail(email: string): string {
-  const [local, domain] = email.split('@');
-  if (!domain) return '***';
-  const maskedLocal = local.charAt(0) + '***';
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  const maskedLocal = local.charAt(0) + "***";
   return `${maskedLocal}@${domain}`;
 }
 
@@ -105,14 +107,14 @@ function maskEmail(email: string): string {
  * Update the daily error summary
  */
 async function updateDailySummary(errorType: AuthErrorType): Promise<void> {
-  const dateKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const dateKey = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
   const fieldMap: Record<AuthErrorType, string> = {
-    SIGNUP_FAILED: 'signupErrors',
-    LOGIN_FAILED: 'loginErrors',
-    VERIFICATION_FAILED: 'verificationErrors',
-    PASSWORD_RESET_FAILED: 'passwordResetErrors',
-    EMAIL_SEND_FAILED: 'emailSendErrors',
+    SIGNUP_FAILED: "signupErrors",
+    LOGIN_FAILED: "loginErrors",
+    VERIFICATION_FAILED: "verificationErrors",
+    PASSWORD_RESET_FAILED: "passwordResetErrors",
+    EMAIL_SEND_FAILED: "emailSendErrors",
   };
 
   const field = fieldMap[errorType];
@@ -133,7 +135,7 @@ async function updateDailySummary(errorType: AuthErrorType): Promise<void> {
  * Check if error thresholds have been exceeded and log warnings
  */
 async function checkErrorThresholds(errorType: AuthErrorType): Promise<void> {
-  const dateKey = new Date().toISOString().split('T')[0];
+  const dateKey = new Date().toISOString().split("T")[0];
 
   // Define thresholds for alerting
   const ALERT_THRESHOLDS: Record<AuthErrorType, number> = {
@@ -151,11 +153,11 @@ async function checkErrorThresholds(errorType: AuthErrorType): Promise<void> {
   if (!summary) return;
 
   const fieldMap: Record<AuthErrorType, keyof typeof summary> = {
-    SIGNUP_FAILED: 'signupErrors',
-    LOGIN_FAILED: 'loginErrors',
-    VERIFICATION_FAILED: 'verificationErrors',
-    PASSWORD_RESET_FAILED: 'passwordResetErrors',
-    EMAIL_SEND_FAILED: 'emailSendErrors',
+    SIGNUP_FAILED: "signupErrors",
+    LOGIN_FAILED: "loginErrors",
+    VERIFICATION_FAILED: "verificationErrors",
+    PASSWORD_RESET_FAILED: "passwordResetErrors",
+    EMAIL_SEND_FAILED: "emailSendErrors",
   };
 
   const count = summary[fieldMap[errorType]] as number;
@@ -163,7 +165,7 @@ async function checkErrorThresholds(errorType: AuthErrorType): Promise<void> {
 
   if (count >= threshold) {
     console.warn(
-      `[AUTH ALERT] ${errorType} threshold exceeded: ${count} errors today (threshold: ${threshold})`
+      `[AUTH ALERT] ${errorType} threshold exceeded: ${count} errors today (threshold: ${threshold})`,
     );
   }
 }
@@ -178,13 +180,7 @@ export async function getRecentAuthErrors(options: {
   startDate?: Date;
   endDate?: Date;
 }) {
-  const {
-    limit = 50,
-    errorType,
-    isResolved,
-    startDate,
-    endDate,
-  } = options;
+  const { limit = 50, errorType, isResolved, startDate, endDate } = options;
 
   const where: Record<string, unknown> = {};
 
@@ -208,7 +204,7 @@ export async function getRecentAuthErrors(options: {
 
   return prisma.authErrorLog.findMany({
     where,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: limit,
     select: {
       id: true,
@@ -229,8 +225,8 @@ export async function getRecentAuthErrors(options: {
  * Get error summary for a date range
  */
 export async function getAuthErrorSummary(startDate: Date, endDate: Date) {
-  const startKey = startDate.toISOString().split('T')[0];
-  const endKey = endDate.toISOString().split('T')[0];
+  const startKey = startDate.toISOString().split("T")[0];
+  const endKey = endDate.toISOString().split("T")[0];
 
   return prisma.authErrorSummary.findMany({
     where: {
@@ -239,7 +235,7 @@ export async function getAuthErrorSummary(startDate: Date, endDate: Date) {
         lte: endKey,
       },
     },
-    orderBy: { dateKey: 'desc' },
+    orderBy: { dateKey: "desc" },
   });
 }
 
@@ -247,7 +243,7 @@ export async function getAuthErrorSummary(startDate: Date, endDate: Date) {
  * Get error statistics for the current day
  */
 export async function getTodayErrorStats() {
-  const dateKey = new Date().toISOString().split('T')[0];
+  const dateKey = new Date().toISOString().split("T")[0];
 
   const summary = await prisma.authErrorSummary.findUnique({
     where: { dateKey },
@@ -283,7 +279,7 @@ export async function getTodayErrorStats() {
 export async function resolveAuthError(
   errorId: string,
   resolvedBy: string,
-  resolution?: string
+  resolution?: string,
 ) {
   return prisma.authErrorLog.update({
     where: { id: errorId },
@@ -301,19 +297,19 @@ export async function resolveAuthError(
  */
 export async function getErrorBreakdown(
   errorType: AuthErrorType,
-  days: number = 7
+  days: number = 7,
 ) {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
   const errors = await prisma.authErrorLog.groupBy({
-    by: ['errorCode'],
+    by: ["errorCode"],
     where: {
       errorType,
       createdAt: { gte: startDate },
     },
     _count: { errorCode: true },
-    orderBy: { _count: { errorCode: 'desc' } },
+    orderBy: { _count: { errorCode: "desc" } },
     take: 10,
   });
 

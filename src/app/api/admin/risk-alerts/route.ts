@@ -55,10 +55,13 @@ export async function GET(request: Request) {
       _count: true,
     });
 
-    const countsByType = alertCounts.reduce((acc, curr) => {
-      acc[curr.alertType] = curr._count;
-      return acc;
-    }, {} as Record<string, number>);
+    const countsByType = alertCounts.reduce(
+      (acc, curr) => {
+        acc[curr.alertType] = curr._count;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     // Get unacknowledged count
     const unacknowledgedCount = await prisma.stockRiskAlert.count({
@@ -92,7 +95,7 @@ export async function GET(request: Request) {
     console.error("Risk alerts error:", error);
     return NextResponse.json(
       { error: "Failed to fetch risk alerts" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -124,7 +127,7 @@ export async function PATCH(request: Request) {
     console.error("Update alert error:", error);
     return NextResponse.json(
       { error: "Failed to update alert" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

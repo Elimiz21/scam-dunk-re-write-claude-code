@@ -133,29 +133,61 @@
 .gradient-mesh {
   position: relative;
   background:
-    radial-gradient(ellipse at 25% 40%, hsl(var(--brand-gradient-from) / 0.10) 0%, transparent 55%),
-    radial-gradient(ellipse at 75% 25%, hsl(var(--brand-gradient-to) / 0.07) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 75%, hsl(var(--brand-mid) / 0.06) 0%, transparent 50%);
+    radial-gradient(
+      ellipse at 25% 40%,
+      hsl(var(--brand-gradient-from) / 0.1) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 75% 25%,
+      hsl(var(--brand-gradient-to) / 0.07) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 50% 75%,
+      hsl(var(--brand-mid) / 0.06) 0%,
+      transparent 50%
+    );
 }
 
 .gradient-mesh::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, hsl(var(--foreground) / 0.04) 1px, transparent 1px);
+  background-image: radial-gradient(
+    circle,
+    hsl(var(--foreground) / 0.04) 1px,
+    transparent 1px
+  );
   background-size: 28px 28px;
   pointer-events: none;
 }
 
 .dark .gradient-mesh {
   background:
-    radial-gradient(ellipse at 25% 40%, hsl(var(--brand-gradient-from) / 0.06) 0%, transparent 55%),
-    radial-gradient(ellipse at 75% 25%, hsl(var(--brand-gradient-to) / 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 75%, hsl(var(--brand-mid) / 0.03) 0%, transparent 50%);
+    radial-gradient(
+      ellipse at 25% 40%,
+      hsl(var(--brand-gradient-from) / 0.06) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 75% 25%,
+      hsl(var(--brand-gradient-to) / 0.04) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 50% 75%,
+      hsl(var(--brand-mid) / 0.03) 0%,
+      transparent 50%
+    );
 }
 
 .dark .gradient-mesh::before {
-  background-image: radial-gradient(circle, hsl(var(--foreground) / 0.025) 1px, transparent 1px);
+  background-image: radial-gradient(
+    circle,
+    hsl(var(--foreground) / 0.025) 1px,
+    transparent 1px
+  );
 }
 
 /* ============================================
@@ -179,7 +211,10 @@
    ============================================ */
 
 /* Admin layout: ensure form elements have visible text on white/card backgrounds */
-.admin-layout input:not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+.admin-layout
+  input:not([type="submit"]):not([type="button"]):not([type="reset"]):not(
+    [type="file"]
+  ):not([type="checkbox"]):not([type="radio"]),
 .admin-layout textarea,
 .admin-layout select {
   color: hsl(var(--foreground)) !important;
@@ -194,63 +229,122 @@
 
 /* Apple-style animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes slideIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideOut {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(16px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes subtlePulse {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
-  50% { box-shadow: 0 0 0 8px hsl(var(--primary) / 0.1); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
+  }
+  50% {
+    box-shadow: 0 0 0 8px hsl(var(--primary) / 0.1);
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes gentleFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 @keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 /* Spring easing: cubic-bezier(0.16, 1, 0.3, 1) — natural deceleration */
@@ -311,10 +405,22 @@
 }
 
 /* Stagger delay utilities */
-.delay-1 { animation-delay: 0.1s; animation-fill-mode: both; }
-.delay-2 { animation-delay: 0.2s; animation-fill-mode: both; }
-.delay-3 { animation-delay: 0.3s; animation-fill-mode: both; }
-.delay-4 { animation-delay: 0.4s; animation-fill-mode: both; }
+.delay-1 {
+  animation-delay: 0.1s;
+  animation-fill-mode: both;
+}
+.delay-2 {
+  animation-delay: 0.2s;
+  animation-fill-mode: both;
+}
+.delay-3 {
+  animation-delay: 0.3s;
+  animation-fill-mode: both;
+}
+.delay-4 {
+  animation-delay: 0.4s;
+  animation-fill-mode: both;
+}
 
 /* ============================================
    FOCUS & ACCESSIBILITY
@@ -387,7 +493,7 @@
 }
 
 .feature-highlight::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
@@ -431,7 +537,11 @@
 .feature-new-badge {
   @apply absolute -top-1 -right-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider;
   @apply text-white rounded-full;
-  background: linear-gradient(135deg, hsl(var(--brand-gradient-from)), hsl(var(--brand-gradient-to)));
+  background: linear-gradient(
+    135deg,
+    hsl(var(--brand-gradient-from)),
+    hsl(var(--brand-gradient-to))
+  );
   @apply animate-subtle-pulse;
 }
 
@@ -567,10 +677,22 @@
 }
 
 @keyframes taglineFadeInOut {
-  0% { opacity: 0; transform: translateY(6px); }
-  12% { opacity: 1; transform: translateY(0); }
-  88% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-6px); }
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  88% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 .tagline-animate {

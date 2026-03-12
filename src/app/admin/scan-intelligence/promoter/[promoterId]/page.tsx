@@ -57,12 +57,25 @@ interface SocialMention {
   postDate: string | null;
 }
 
-const riskColors: Record<string, { bg: string; text: string; label: string }> = {
-  SERIAL_OFFENDER: { bg: "bg-red-500/10", text: "text-red-600", label: "SERIAL OFFENDER" },
-  HIGH: { bg: "bg-red-500/10", text: "text-red-600", label: "HIGH RISK" },
-  MEDIUM: { bg: "bg-amber-500/10", text: "text-amber-600", label: "MEDIUM RISK" },
-  LOW: { bg: "bg-emerald-500/10", text: "text-emerald-600", label: "LOW RISK" },
-};
+const riskColors: Record<string, { bg: string; text: string; label: string }> =
+  {
+    SERIAL_OFFENDER: {
+      bg: "bg-red-500/10",
+      text: "text-red-600",
+      label: "SERIAL OFFENDER",
+    },
+    HIGH: { bg: "bg-red-500/10", text: "text-red-600", label: "HIGH RISK" },
+    MEDIUM: {
+      bg: "bg-amber-500/10",
+      text: "text-amber-600",
+      label: "MEDIUM RISK",
+    },
+    LOW: {
+      bg: "bg-emerald-500/10",
+      text: "text-emerald-600",
+      label: "LOW RISK",
+    },
+  };
 
 const statusColors: Record<string, string> = {
   ONGOING: "text-red-600 bg-red-500/10",
@@ -91,12 +104,15 @@ export default function PromoterDetailPage() {
         if (!res.ok) throw new Error("Failed to load");
         const data = await res.json();
         const match =
-          (data.promoters || []).find((p: Promoter) => p.promoterId === promoterId) ||
+          (data.promoters || []).find(
+            (p: Promoter) => p.promoterId === promoterId,
+          ) ||
           (fallbackPlatform && fallbackIdentifier
             ? (data.promoters || []).find(
                 (p: Promoter) =>
                   p.platform.toLowerCase() === fallbackPlatform.toLowerCase() &&
-                  p.identifier.toLowerCase() === fallbackIdentifier.toLowerCase()
+                  p.identifier.toLowerCase() ===
+                    fallbackIdentifier.toLowerCase(),
               )
             : null);
         if (!match) {
@@ -106,7 +122,7 @@ export default function PromoterDetailPage() {
         setPromoter(match);
 
         const socialRes = await fetch(
-          `/api/admin/social-scan?author=${encodeURIComponent(match.identifier)}&platform=${encodeURIComponent(match.platform)}&promotionalOnly=true&limit=25`
+          `/api/admin/social-scan?author=${encodeURIComponent(match.identifier)}&platform=${encodeURIComponent(match.platform)}&promotionalOnly=true&limit=25`,
         );
         if (socialRes.ok) {
           const social = await socialRes.json();
@@ -135,8 +151,13 @@ export default function PromoterDetailPage() {
     return (
       <AdminLayout>
         <div className="text-center py-20">
-          <p className="text-muted-foreground">{error || "Promoter not found"}</p>
-          <button onClick={() => router.back()} className="mt-4 text-sm text-primary hover:underline">
+          <p className="text-muted-foreground">
+            {error || "Promoter not found"}
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="mt-4 text-sm text-primary hover:underline"
+          >
             Go back
           </button>
         </div>
@@ -159,11 +180,15 @@ export default function PromoterDetailPage() {
         </button>
 
         {/* Header */}
-        <div className={`rounded-2xl border p-6 ${
-          promoter.riskLevel === "SERIAL_OFFENDER" ? "bg-red-500/5 border-red-500/20" :
-          promoter.riskLevel === "HIGH" ? "bg-amber-500/5 border-amber-500/20" :
-          "bg-card border-border"
-        }`}>
+        <div
+          className={`rounded-2xl border p-6 ${
+            promoter.riskLevel === "SERIAL_OFFENDER"
+              ? "bg-red-500/5 border-red-500/20"
+              : promoter.riskLevel === "HIGH"
+                ? "bg-amber-500/5 border-amber-500/20"
+                : "bg-card border-border"
+          }`}
+        >
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3 mb-1">
@@ -171,7 +196,9 @@ export default function PromoterDetailPage() {
                 <h1 className="text-2xl font-bold font-display text-foreground">
                   {promoter.identifier}
                 </h1>
-                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${risk.bg} ${risk.text}`}>
+                <span
+                  className={`text-xs font-semibold px-3 py-1 rounded-full ${risk.bg} ${risk.text}`}
+                >
                   {risk.label}
                 </span>
                 {promoter.isActive && (
@@ -193,14 +220,24 @@ export default function PromoterDetailPage() {
           {/* Key metrics */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-5">
             <div>
-              <div className="text-xs text-muted-foreground">Stocks Promoted</div>
-              <div className="text-2xl font-bold tabular-nums">{promoter.stocksPromoted.length}</div>
-              <div className="text-[10px] text-muted-foreground">across all time</div>
+              <div className="text-xs text-muted-foreground">
+                Stocks Promoted
+              </div>
+              <div className="text-2xl font-bold tabular-nums">
+                {promoter.stocksPromoted.length}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                across all time
+              </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Total Posts</div>
-              <div className="text-2xl font-bold tabular-nums">{promoter.totalPosts}</div>
-              <div className="text-[10px] text-muted-foreground">promotional</div>
+              <div className="text-2xl font-bold tabular-nums">
+                {promoter.totalPosts}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                promotional
+              </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Co-Promoters</div>
@@ -208,16 +245,26 @@ export default function PromoterDetailPage() {
                 <Link2 className="h-4 w-4 text-muted-foreground" />
                 {promoter.coPromoters.length}
               </div>
-              <div className="text-[10px] text-muted-foreground">linked accounts</div>
+              <div className="text-[10px] text-muted-foreground">
+                linked accounts
+              </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Confidence</div>
-              <div className={`text-lg font-bold ${
-                promoter.confidence === "high" ? "text-red-600" :
-                promoter.confidence === "medium" ? "text-amber-600" :
-                "text-muted-foreground"
-              }`}>{promoter.confidence.toUpperCase()}</div>
-              <div className="text-[10px] text-muted-foreground">detection level</div>
+              <div
+                className={`text-lg font-bold ${
+                  promoter.confidence === "high"
+                    ? "text-red-600"
+                    : promoter.confidence === "medium"
+                      ? "text-amber-600"
+                      : "text-muted-foreground"
+                }`}
+              >
+                {promoter.confidence.toUpperCase()}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                detection level
+              </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Active Period</div>
@@ -225,7 +272,9 @@ export default function PromoterDetailPage() {
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 {promoter.firstSeen}
               </div>
-              <div className="text-[10px] text-muted-foreground">to {promoter.lastSeen}</div>
+              <div className="text-[10px] text-muted-foreground">
+                to {promoter.lastSeen}
+              </div>
             </div>
           </div>
         </div>
@@ -241,32 +290,52 @@ export default function PromoterDetailPage() {
             {promoter.stocksPromoted
               .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
               .map((stock, i) => {
-                const statusColor = statusColors[stock.schemeStatus] || "text-muted-foreground bg-muted";
+                const statusColor =
+                  statusColors[stock.schemeStatus] ||
+                  "text-muted-foreground bg-muted";
                 return (
                   <button
                     key={i}
-                    onClick={() => router.push(`/admin/scan-intelligence/scheme/${stock.schemeId}`)}
+                    onClick={() =>
+                      router.push(
+                        `/admin/scan-intelligence/scheme/${stock.schemeId}`,
+                      )
+                    }
                     className="w-full flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border hover:border-primary/30 hover:bg-secondary/50 transition-all text-left"
                   >
                     <div className="flex items-center gap-4">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold font-display text-foreground">{stock.symbol}</span>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>
+                          <span className="text-lg font-bold font-display text-foreground">
+                            {stock.symbol}
+                          </span>
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor}`}
+                          >
                             {stock.schemeStatus.replace(/_/g, " ")}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{stock.schemeName}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                          {stock.schemeName}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 flex-shrink-0">
                       <div className="text-right">
-                        <div className="text-sm font-bold tabular-nums">{stock.postCount}</div>
-                        <div className="text-[10px] text-muted-foreground">posts</div>
+                        <div className="text-sm font-bold tabular-nums">
+                          {stock.postCount}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          posts
+                        </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[10px] text-muted-foreground">{stock.firstSeen}</div>
-                        <div className="text-[10px] text-muted-foreground">to {stock.lastSeen}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {stock.firstSeen}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          to {stock.lastSeen}
+                        </div>
                       </div>
                       <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
@@ -307,13 +376,17 @@ export default function PromoterDetailPage() {
                     </span>
                   </div>
                   <p className="text-sm text-foreground mt-1 line-clamp-2">
-                    {mention.title || mention.content || "Post content unavailable"}
+                    {mention.title ||
+                      mention.content ||
+                      "Post content unavailable"}
                   </p>
                 </a>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No indexed post URLs were found for this promoter yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No indexed post URLs were found for this promoter yet.
+            </p>
           )}
         </div>
 
@@ -331,7 +404,11 @@ export default function PromoterDetailPage() {
                 .map((co, i) => (
                   <button
                     key={i}
-                    onClick={() => router.push(`/admin/scan-intelligence/promoter/${co.promoterId}`)}
+                    onClick={() =>
+                      router.push(
+                        `/admin/scan-intelligence/promoter/${co.promoterId}`,
+                      )
+                    }
                     className="w-full flex items-center justify-between p-3 rounded-xl bg-purple-500/5 border border-purple-500/10 hover:border-purple-500/30 transition-all text-left"
                   >
                     <div className="flex items-center gap-3">
@@ -339,7 +416,9 @@ export default function PromoterDetailPage() {
                         <Users className="h-4 w-4 text-purple-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-foreground">{co.identifier}</div>
+                        <div className="text-sm font-medium text-foreground">
+                          {co.identifier}
+                        </div>
                         <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Globe className="h-3 w-3" />
                           {co.platform}
@@ -349,11 +428,15 @@ export default function PromoterDetailPage() {
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <div className="text-right">
                         <div className="text-xs font-bold text-foreground">
-                          {co.sharedStocks.length} shared stock{co.sharedStocks.length !== 1 ? "s" : ""}
+                          {co.sharedStocks.length} shared stock
+                          {co.sharedStocks.length !== 1 ? "s" : ""}
                         </div>
                         <div className="flex gap-1 mt-0.5 justify-end">
                           {co.sharedStocks.map((s, j) => (
-                            <span key={j} className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 font-medium">
+                            <span
+                              key={j}
+                              className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 font-medium"
+                            >
                               {s}
                             </span>
                           ))}
@@ -369,7 +452,8 @@ export default function PromoterDetailPage() {
               <Link2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No co-promoters detected</p>
               <p className="text-xs mt-1">
-                Co-promoters are identified when multiple accounts promote the same stocks
+                Co-promoters are identified when multiple accounts promote the
+                same stocks
               </p>
             </div>
           )}
@@ -384,14 +468,33 @@ export default function PromoterDetailPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="p-4 rounded-xl bg-secondary/30">
-              <div className="text-xs text-muted-foreground mb-1">Track Record</div>
-              <div className="text-sm text-foreground">
-                Promoted <span className="font-bold">{promoter.stocksPromoted.length}</span> stock{promoter.stocksPromoted.length !== 1 ? "s" : ""}
-                {" "}with <span className="font-bold">{promoter.totalPosts}</span> total posts
+              <div className="text-xs text-muted-foreground mb-1">
+                Track Record
               </div>
-              {promoter.stocksPromoted.filter(s => s.schemeStatus === "PUMP_AND_DUMP_ENDED").length > 0 && (
+              <div className="text-sm text-foreground">
+                Promoted{" "}
+                <span className="font-bold">
+                  {promoter.stocksPromoted.length}
+                </span>{" "}
+                stock{promoter.stocksPromoted.length !== 1 ? "s" : ""} with{" "}
+                <span className="font-bold">{promoter.totalPosts}</span> total
+                posts
+              </div>
+              {promoter.stocksPromoted.filter(
+                (s) => s.schemeStatus === "PUMP_AND_DUMP_ENDED",
+              ).length > 0 && (
                 <div className="text-xs text-red-600 mt-1 font-medium">
-                  {promoter.stocksPromoted.filter(s => s.schemeStatus === "PUMP_AND_DUMP_ENDED").length} confirmed pump & dump{promoter.stocksPromoted.filter(s => s.schemeStatus === "PUMP_AND_DUMP_ENDED").length !== 1 ? "s" : ""}
+                  {
+                    promoter.stocksPromoted.filter(
+                      (s) => s.schemeStatus === "PUMP_AND_DUMP_ENDED",
+                    ).length
+                  }{" "}
+                  confirmed pump & dump
+                  {promoter.stocksPromoted.filter(
+                    (s) => s.schemeStatus === "PUMP_AND_DUMP_ENDED",
+                  ).length !== 1
+                    ? "s"
+                    : ""}
                 </div>
               )}
             </div>
@@ -400,8 +503,7 @@ export default function PromoterDetailPage() {
               <div className="text-sm text-foreground">
                 {promoter.coPromoters.length > 0
                   ? `Connected to ${promoter.coPromoters.length} other promoter${promoter.coPromoters.length !== 1 ? "s" : ""}`
-                  : "No coordinated network detected"
-                }
+                  : "No coordinated network detected"}
               </div>
               {promoter.coPromoters.length > 0 && (
                 <div className="text-xs text-amber-600 mt-1 font-medium">
@@ -410,12 +512,18 @@ export default function PromoterDetailPage() {
               )}
             </div>
             <div className="p-4 rounded-xl bg-secondary/30">
-              <div className="text-xs text-muted-foreground mb-1">Detection Confidence</div>
-              <div className={`text-sm font-medium ${
-                promoter.confidence === "high" ? "text-red-600" :
-                promoter.confidence === "medium" ? "text-amber-600" :
-                "text-muted-foreground"
-              }`}>
+              <div className="text-xs text-muted-foreground mb-1">
+                Detection Confidence
+              </div>
+              <div
+                className={`text-sm font-medium ${
+                  promoter.confidence === "high"
+                    ? "text-red-600"
+                    : promoter.confidence === "medium"
+                      ? "text-amber-600"
+                      : "text-muted-foreground"
+                }`}
+              >
                 {promoter.confidence.toUpperCase()} confidence
               </div>
               <div className="text-xs text-muted-foreground mt-1">

@@ -11,7 +11,11 @@ export const contentType = "image/png";
 
 type PageParams = { slug: string };
 
-export async function generateImageMetadata({ params }: { params: PageParams }) {
+export async function generateImageMetadata({
+  params,
+}: {
+  params: PageParams;
+}) {
   return [
     {
       contentType: "image/png",
@@ -43,65 +47,64 @@ export default async function Image({ params }: { params: PageParams }) {
   }
 
   // Truncate title if too long
-  const displayTitle = postTitle.length > 60 ? postTitle.substring(0, 57) + "..." : postTitle;
+  const displayTitle =
+    postTitle.length > 60 ? postTitle.substring(0, 57) + "..." : postTitle;
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        fontSize: 48,
+        background: "linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%)",
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        color: "white",
+        padding: "60px 40px",
+        gap: "30px",
+      }}
+    >
+      {/* Small ScamDunk badge */}
       <div
         style={{
-          fontSize: 48,
-          background: "linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%)",
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "system-ui, -apple-system, sans-serif",
-          color: "white",
-          padding: "60px 40px",
-          gap: "30px",
+          fontSize: 24,
+          color: "rgba(255, 255, 255, 0.7)",
+          textTransform: "uppercase",
+          letterSpacing: "2px",
         }}
       >
-        {/* Small ScamDunk badge */}
-        <div
-          style={{
-            fontSize: 24,
-            color: "rgba(255, 255, 255, 0.7)",
-            textTransform: "uppercase",
-            letterSpacing: "2px",
-          }}
-        >
-          ScamDunk Blog
-        </div>
-
-        {/* Post title */}
-        <div
-          style={{
-            fontSize: 56,
-            fontWeight: "bold",
-            textAlign: "center",
-            lineHeight: "1.2",
-            maxWidth: "90%",
-          }}
-        >
-          {displayTitle}
-        </div>
-
-        {/* Tagline */}
-        <div
-          style={{
-            fontSize: 28,
-            color: "rgba(255, 255, 255, 0.6)",
-            textAlign: "center",
-          }}
-        >
-          Investment fraud detection and analysis
-        </div>
+        ScamDunk Blog
       </div>
-    ),
+
+      {/* Post title */}
+      <div
+        style={{
+          fontSize: 56,
+          fontWeight: "bold",
+          textAlign: "center",
+          lineHeight: "1.2",
+          maxWidth: "90%",
+        }}
+      >
+        {displayTitle}
+      </div>
+
+      {/* Tagline */}
+      <div
+        style={{
+          fontSize: 28,
+          color: "rgba(255, 255, 255, 0.6)",
+          textAlign: "center",
+        }}
+      >
+        Investment fraud detection and analysis
+      </div>
+    </div>,
     {
       ...size,
-    }
+    },
   );
 }

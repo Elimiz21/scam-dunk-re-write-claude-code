@@ -4,13 +4,13 @@
 
 ## Overview
 
-| Metric | Value |
-|--------|-------|
-| **Report Date** | January 16, 2026 |
-| **FMP Scan Date** | January 17, 2026 (runtime) |
-| **Stocks Evaluated** | 6,550 / 6,970 |
-| **HIGH Risk Identified** | 1,454 |
-| **Scan Duration** | 95 minutes |
+| Metric                   | Value                      |
+| ------------------------ | -------------------------- |
+| **Report Date**          | January 16, 2026           |
+| **FMP Scan Date**        | January 17, 2026 (runtime) |
+| **Stocks Evaluated**     | 6,550 / 6,970              |
+| **HIGH Risk Identified** | 1,454                      |
+| **Scan Duration**        | 95 minutes                 |
 
 ---
 
@@ -29,28 +29,28 @@
 ### Risk Distribution
 
 | Risk Level | Count | Percentage |
-|------------|-------|------------|
-| **HIGH** | 1,454 | 22.2% |
-| **MEDIUM** | 1,913 | 29.2% |
-| **LOW** | 3,183 | 48.6% |
+| ---------- | ----- | ---------- |
+| **HIGH**   | 1,454 | 22.2%      |
+| **MEDIUM** | 1,913 | 29.2%      |
+| **LOW**    | 3,183 | 48.6%      |
 
 ### By Exchange
 
-| Exchange | Total | HIGH | MEDIUM | LOW |
-|----------|-------|------|--------|-----|
-| NASDAQ | 3,978 | 1,287 | 1,263 | 1,428 |
-| NYSE | 2,340 | 75 | 547 | 1,718 |
-| AMEX | 227 | 87 | 103 | 37 |
-| OTC | 5 | 5 | 0 | 0 |
+| Exchange | Total | HIGH  | MEDIUM | LOW   |
+| -------- | ----- | ----- | ------ | ----- |
+| NASDAQ   | 3,978 | 1,287 | 1,263  | 1,428 |
+| NYSE     | 2,340 | 75    | 547    | 1,718 |
+| AMEX     | 227   | 87    | 103    | 37    |
+| OTC      | 5     | 5     | 0      | 0     |
 
 ### Top HIGH Risk Stocks
 
-| Symbol | Score | Key Signals |
-|--------|-------|-------------|
-| **EVTV** | 16 | SPIKE_7D (+609%), SPIKE_THEN_DROP, VOLUME_EXPLOSION |
-| BCARW | 16 | Full pattern - SPAC warrant |
-| PTHL | 15 | Micro-cap IPO pump |
-| XAIR | 15 | Medical device penny stock |
+| Symbol   | Score | Key Signals                                         |
+| -------- | ----- | --------------------------------------------------- |
+| **EVTV** | 16    | SPIKE_7D (+609%), SPIKE_THEN_DROP, VOLUME_EXPLOSION |
+| BCARW    | 16    | Full pattern - SPAC warrant                         |
+| PTHL     | 15    | Micro-cap IPO pump                                  |
+| XAIR     | 15    | Medical device penny stock                          |
 
 ---
 
@@ -58,22 +58,23 @@
 
 ### Discord Status
 
-| Metric | Value |
-|--------|-------|
-| **Status** | OPEN (Reopened January 15, 2026) |
-| **Members** | 17,258 |
-| **Activity Level** | EXTREME |
+| Metric             | Value                            |
+| ------------------ | -------------------------------- |
+| **Status**         | OPEN (Reopened January 15, 2026) |
+| **Members**        | 17,258                           |
+| **Activity Level** | EXTREME                          |
 
 ### Tracked Stock Performance
 
-| Symbol | Alert Date | Alert Price | Current/Peak | Return | FMP Status |
-|--------|------------|-------------|--------------|--------|------------|
-| **ANPA** | Jan 13 | $24.40 | $180.63 | **+640%** | Not in universe |
-| **EVTV** | Jan 13 | $0.78 | $3.55 | **+355%** | HIGH (Score 16) |
-| **SPHL** | Jan 12 | $2.17 | $25.11 | **+1,057%** | Not in universe |
-| **MRNO** | Jan 13 | $0.55 | $1.83 | **+233%** | Not in universe |
+| Symbol   | Alert Date | Alert Price | Current/Peak | Return      | FMP Status      |
+| -------- | ---------- | ----------- | ------------ | ----------- | --------------- |
+| **ANPA** | Jan 13     | $24.40      | $180.63      | **+640%**   | Not in universe |
+| **EVTV** | Jan 13     | $0.78       | $3.55        | **+355%**   | HIGH (Score 16) |
+| **SPHL** | Jan 12     | $2.17       | $25.11       | **+1,057%** | Not in universe |
+| **MRNO** | Jan 13     | $0.55       | $1.83        | **+233%**   | Not in universe |
 
 ### Key Finding
+
 **EVTV** is the first SCHEME-001 stock confirmed in the FMP HIGH risk list with the maximum risk score of 16. All quantitative signals align perfectly with the pump promotion pattern.
 
 ---
@@ -82,19 +83,19 @@
 
 ### Category 1: Confirmed Pump Activity
 
-| Symbol | Price Action | Catalyst | Assessment |
-|--------|--------------|----------|------------|
-| **SPHL** | +1,057% | Non-binding MOU | CLASSIC PUMP |
-| **VERO** | +700% | 91% stake/delisting | EXTREME RISK |
-| **JFBR** | +230% | Defense deal | NEWS-DRIVEN SPIKE |
+| Symbol   | Price Action | Catalyst            | Assessment        |
+| -------- | ------------ | ------------------- | ----------------- |
+| **SPHL** | +1,057%      | Non-binding MOU     | CLASSIC PUMP      |
+| **VERO** | +700%        | 91% stake/delisting | EXTREME RISK      |
+| **JFBR** | +230%        | Defense deal        | NEWS-DRIVEN SPIKE |
 
 ### Category 2: Reddit/Stocktwits Trending
 
-| Symbol | Status | Notes |
-|--------|--------|-------|
-| MLGO | Monitoring | Short squeeze candidate |
-| JTAI | Monitoring | Acquisition news +350% |
-| RGTI | DUMP PHASE | Post-crash after 200% pump |
+| Symbol | Status     | Notes                      |
+| ------ | ---------- | -------------------------- |
+| MLGO   | Monitoring | Short squeeze candidate    |
+| JTAI   | Monitoring | Acquisition news +350%     |
+| RGTI   | DUMP PHASE | Post-crash after 200% pump |
 
 ---
 
@@ -104,11 +105,11 @@
 
 Stocks showing coordinated news-based pumping NOT linked to SCHEME-001:
 
-| Symbol | Catalyst | Suspicious Elements |
-|--------|----------|---------------------|
-| VERO | 91% stake + delisting | Extreme volatility |
-| JFBR | Distribution deal | Volume 150x average |
-| SMX | Debt conversion | Repeated 100%+ moves |
+| Symbol | Catalyst              | Suspicious Elements  |
+| ------ | --------------------- | -------------------- |
+| VERO   | 91% stake + delisting | Extreme volatility   |
+| JFBR   | Distribution deal     | Volume 150x average  |
+| SMX    | Debt conversion       | Repeated 100%+ moves |
 
 **Status**: Under investigation - no common promoter identified yet
 
@@ -120,9 +121,9 @@ Stocks showing coordinated news-based pumping NOT linked to SCHEME-001:
 
 Many social media promoted stocks are NOT in the FMP universe (likely OTC/micro-cap):
 
-| Status | Stocks |
-|--------|--------|
-| **In FMP HIGH Risk** | EVTV |
+| Status                  | Stocks                                                         |
+| ----------------------- | -------------------------------------------------------------- |
+| **In FMP HIGH Risk**    | EVTV                                                           |
 | **Not in FMP Universe** | SPHL, VERO, JFBR, ANPA, MRNO, MLGO, JTAI, SMX, SIDU, SXTC, VLN |
 
 **Implication**: Pump schemes deliberately target stocks outside standard market data coverage for detection avoidance.
@@ -133,12 +134,12 @@ Many social media promoted stocks are NOT in the FMP universe (likely OTC/micro-
 
 ### Stocks by Manipulation Risk
 
-| Risk Level | Stocks |
-|------------|--------|
-| CRITICAL | EVTV, SPHL, VERO, ANPA |
-| HIGH | JFBR, MRNO, MLGO, BCARW |
-| ELEVATED | JTAI, SIDU, PTHL, XAIR |
-| DUMP PHASE | RGTI, LVRO, DVLT |
+| Risk Level | Stocks                  |
+| ---------- | ----------------------- |
+| CRITICAL   | EVTV, SPHL, VERO, ANPA  |
+| HIGH       | JFBR, MRNO, MLGO, BCARW |
+| ELEVATED   | JTAI, SIDU, PTHL, XAIR  |
+| DUMP PHASE | RGTI, LVRO, DVLT        |
 
 ### Common Red Flags Identified
 
@@ -155,6 +156,7 @@ Many social media promoted stocks are NOT in the FMP universe (likely OTC/micro-
 ## Action Items
 
 ### Immediate
+
 - [x] FMP scan completed (1,454 HIGH risk)
 - [x] General social media scan completed
 - [x] Targeted HIGH risk social media scan completed
@@ -162,6 +164,7 @@ Many social media promoted stocks are NOT in the FMP universe (likely OTC/micro-
 - [ ] Track SPHL reversal timeline
 
 ### Ongoing Investigation
+
 - [ ] Identify promoter for SCHEME-004 candidates
 - [ ] Determine if VERO has Discord coordination
 - [ ] Expand data coverage to OTC stocks
@@ -170,14 +173,14 @@ Many social media promoted stocks are NOT in the FMP universe (likely OTC/micro-
 
 ## Files Generated
 
-| File | Description |
-|------|-------------|
-| `fmp-evaluation-2026-01-17.json` | Full evaluation results |
-| `fmp-high-risk-2026-01-17.json` | 1,454 HIGH risk stocks |
-| `fmp-summary-2026-01-17.json` | Evaluation summary |
-| `2026-01-16_general_social_media_scan.md` | General social media scan |
-| `2026-01-16_high_risk_social_media_scan.md` | Targeted HIGH risk scan |
-| `2026-01-16_daily_summary.md` | This summary |
+| File                                        | Description               |
+| ------------------------------------------- | ------------------------- |
+| `fmp-evaluation-2026-01-17.json`            | Full evaluation results   |
+| `fmp-high-risk-2026-01-17.json`             | 1,454 HIGH risk stocks    |
+| `fmp-summary-2026-01-17.json`               | Evaluation summary        |
+| `2026-01-16_general_social_media_scan.md`   | General social media scan |
+| `2026-01-16_high_risk_social_media_scan.md` | Targeted HIGH risk scan   |
+| `2026-01-16_daily_summary.md`               | This summary              |
 
 ---
 
@@ -219,7 +222,6 @@ Many social media promoted stocks are NOT in the FMP universe (likely OTC/micro-
 
 ---
 
-*Report generated: January 16, 2026*
-*ScamDunk Daily Summary v1.0*
-*FMP Data: January 17, 2026*
-
+_Report generated: January 16, 2026_
+_ScamDunk Daily Summary v1.0_
+_FMP Data: January 17, 2026_

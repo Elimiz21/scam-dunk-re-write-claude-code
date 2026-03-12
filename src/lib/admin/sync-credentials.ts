@@ -13,8 +13,18 @@ import { syncToVercel, removeFromVercel } from "./sync-vercel";
 import { syncToGitHub, removeFromGitHub } from "./sync-github";
 
 export interface SyncResults {
-  vercel: { success: boolean; message: string; updated: string[]; errors: string[] };
-  github: { success: boolean; message: string; updated: string[]; errors: string[] };
+  vercel: {
+    success: boolean;
+    message: string;
+    updated: string[];
+    errors: string[];
+  };
+  github: {
+    success: boolean;
+    message: string;
+    updated: string[];
+    errors: string[];
+  };
 }
 
 // Integration names whose credentials are meta/bootstrap and should NOT be
@@ -33,7 +43,7 @@ export function shouldSync(integrationName: string): boolean {
  * Push a set of env vars to both Vercel and GitHub in parallel.
  */
 export async function syncCredentials(
-  envVars: Record<string, string>
+  envVars: Record<string, string>,
 ): Promise<SyncResults> {
   const [vercel, github] = await Promise.all([
     syncToVercel(envVars),
@@ -46,7 +56,7 @@ export async function syncCredentials(
  * Remove env vars from both Vercel and GitHub in parallel.
  */
 export async function unsyncCredentials(
-  envVarKeys: string[]
+  envVarKeys: string[],
 ): Promise<SyncResults> {
   const [vercel, github] = await Promise.all([
     removeFromVercel(envVarKeys),

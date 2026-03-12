@@ -57,16 +57,24 @@ interface HealthSummary {
 
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
-  const [healthSummary, setHealthSummary] = useState<HealthSummary | null>(null);
+  const [healthSummary, setHealthSummary] = useState<HealthSummary | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [testing, setTesting] = useState<string | null>(null);
-  const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
-  const [credentialsIntegration, setCredentialsIntegration] = useState<Integration | null>(null);
-  const [credentialValues, setCredentialValues] = useState<Record<string, string>>({});
+  const [editingIntegration, setEditingIntegration] =
+    useState<Integration | null>(null);
+  const [credentialsIntegration, setCredentialsIntegration] =
+    useState<Integration | null>(null);
+  const [credentialValues, setCredentialValues] = useState<
+    Record<string, string>
+  >({});
   const [savingCredentials, setSavingCredentials] = useState(false);
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>(
+    {},
+  );
 
   useEffect(() => {
     fetchIntegrations();
@@ -80,7 +88,9 @@ export default function IntegrationsPage() {
       setIntegrations(data.integrations);
       setHealthSummary(data.healthSummary);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load integrations");
+      setError(
+        err instanceof Error ? err.message : "Failed to load integrations",
+      );
     } finally {
       setLoading(false);
     }
@@ -176,14 +186,20 @@ export default function IntegrationsPage() {
       setCredentialValues({});
       await fetchIntegrations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save credentials");
+      setError(
+        err instanceof Error ? err.message : "Failed to save credentials",
+      );
     } finally {
       setSavingCredentials(false);
     }
   }
 
   async function clearCredentials(integration: Integration) {
-    if (!confirm(`Clear all stored credentials for ${integration.displayName}? It will revert to environment variables.`)) {
+    if (
+      !confirm(
+        `Clear all stored credentials for ${integration.displayName}? It will revert to environment variables.`,
+      )
+    ) {
       return;
     }
     try {
@@ -197,7 +213,9 @@ export default function IntegrationsPage() {
       setSuccess(`Credentials cleared for ${integration.displayName}`);
       await fetchIntegrations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to clear credentials");
+      setError(
+        err instanceof Error ? err.message : "Failed to clear credentials",
+      );
     }
   }
 
@@ -230,7 +248,7 @@ export default function IntegrationsPage() {
       acc[category].push(integration);
       return acc;
     },
-    {} as Record<string, Integration[]>
+    {} as Record<string, Integration[]>,
   );
 
   return (
@@ -259,35 +277,57 @@ export default function IntegrationsPage() {
         </div>
 
         {error && (
-          <AlertBanner type="error" title="Error" message={error} onDismiss={() => setError("")} />
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
         )}
         {success && (
-          <AlertBanner type="success" title="Success" message={success} onDismiss={() => setSuccess("")} />
+          <AlertBanner
+            type="success"
+            title="Success"
+            message={success}
+            onDismiss={() => setSuccess("")}
+          />
         )}
 
         {/* Health Summary */}
         {healthSummary && (
           <div className="bg-card rounded-2xl shadow p-6">
-            <h2 className="text-lg font-medium text-foreground mb-4">Connection Health</h2>
+            <h2 className="text-lg font-medium text-foreground mb-4">
+              Connection Health
+            </h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center">
-                <p className="text-3xl font-bold text-foreground">{healthSummary.total}</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {healthSummary.total}
+                </p>
                 <p className="text-sm text-muted-foreground">Total</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-green-600">{healthSummary.connected}</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {healthSummary.connected}
+                </p>
                 <p className="text-sm text-muted-foreground">Connected</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-red-600">{healthSummary.errors}</p>
+                <p className="text-3xl font-bold text-red-600">
+                  {healthSummary.errors}
+                </p>
                 <p className="text-sm text-muted-foreground">Errors</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-muted-foreground">{healthSummary.unknown}</p>
+                <p className="text-3xl font-bold text-muted-foreground">
+                  {healthSummary.unknown}
+                </p>
                 <p className="text-sm text-muted-foreground">Unknown</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-muted-foreground">{healthSummary.disabled}</p>
+                <p className="text-3xl font-bold text-muted-foreground">
+                  {healthSummary.disabled}
+                </p>
                 <p className="text-sm text-muted-foreground">Disabled</p>
               </div>
             </div>
@@ -298,7 +338,10 @@ export default function IntegrationsPage() {
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-card rounded-2xl shadow h-40 animate-pulse" />
+              <div
+                key={i}
+                className="bg-card rounded-2xl shadow h-40 animate-pulse"
+              />
             ))}
           </div>
         ) : (
@@ -313,7 +356,8 @@ export default function IntegrationsPage() {
               </h2>
               {category === "BROWSER_AGENT" && (
                 <p className="text-sm text-muted-foreground -mt-2">
-                  Your personal social media accounts used by browser agents to scan platforms that don&apos;t have public APIs.
+                  Your personal social media accounts used by browser agents to
+                  scan platforms that don&apos;t have public APIs.
                 </p>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -338,19 +382,22 @@ export default function IntegrationsPage() {
                                 Bot
                               </span>
                             )}
-                            {integration.category === "BROWSER_AGENT" && integration.name !== "BROWSER_ENCRYPTION_KEY" && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                <User className="h-3 w-3" />
-                                Personal
-                              </span>
-                            )}
+                            {integration.category === "BROWSER_AGENT" &&
+                              integration.name !== "BROWSER_ENCRYPTION_KEY" && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  <User className="h-3 w-3" />
+                                  Personal
+                                </span>
+                              )}
                           </div>
-                          <p className="text-sm text-muted-foreground">{integration.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {integration.description}
+                          </p>
                         </div>
                       </div>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                          integration.status
+                          integration.status,
                         )}`}
                       >
                         {integration.status}
@@ -358,17 +405,23 @@ export default function IntegrationsPage() {
                     </div>
 
                     {/* Special notes for specific integrations */}
-                    {integration.name === "DISCORD_BOT" && integration.apiKeyMasked !== "Not configured" && (
-                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800 flex items-start gap-2">
-                        <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        <span>Bot is set up but not linked to any Discord servers yet. Invite the bot to target servers to start monitoring.</span>
-                      </div>
-                    )}
+                    {integration.name === "DISCORD_BOT" &&
+                      integration.apiKeyMasked !== "Not configured" && (
+                        <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800 flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <span>
+                            Bot is set up but not linked to any Discord servers
+                            yet. Invite the bot to target servers to start
+                            monitoring.
+                          </span>
+                        </div>
+                      )}
 
                     <div className="mt-4 space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">
-                          {integration.category === "BROWSER_AGENT" && integration.name !== "BROWSER_ENCRYPTION_KEY"
+                          {integration.category === "BROWSER_AGENT" &&
+                          integration.name !== "BROWSER_ENCRYPTION_KEY"
                             ? "Account"
                             : integration.name === "DISCORD_BOT"
                               ? "Bot Token"
@@ -381,24 +434,33 @@ export default function IntegrationsPage() {
                               : integration.apiKeyMasked || "Not configured"}
                           </span>
                           {/* Source indicator */}
-                          {integration.apiKeyMasked && integration.apiKeyMasked !== "Not configured" && (
-                            <span
-                              title={integration.hasDbCredentials ? "Stored in database (set via dashboard)" : "From environment variable"}
-                              className="inline-flex items-center"
-                            >
-                              {integration.hasDbCredentials ? (
-                                <Database className="h-3.5 w-3.5 text-blue-500" />
-                              ) : (
-                                <Cloud className="h-3.5 w-3.5 text-gray-400" />
-                              )}
-                            </span>
-                          )}
+                          {integration.apiKeyMasked &&
+                            integration.apiKeyMasked !== "Not configured" && (
+                              <span
+                                title={
+                                  integration.hasDbCredentials
+                                    ? "Stored in database (set via dashboard)"
+                                    : "From environment variable"
+                                }
+                                className="inline-flex items-center"
+                              >
+                                {integration.hasDbCredentials ? (
+                                  <Database className="h-3.5 w-3.5 text-blue-500" />
+                                ) : (
+                                  <Cloud className="h-3.5 w-3.5 text-gray-400" />
+                                )}
+                              </span>
+                            )}
                         </div>
                       </div>
                       {integration.rateLimit && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Rate Limit</span>
-                          <span className="text-foreground">{integration.rateLimit}/min</span>
+                          <span className="text-muted-foreground">
+                            Rate Limit
+                          </span>
+                          <span className="text-foreground">
+                            {integration.rateLimit}/min
+                          </span>
                         </div>
                       )}
                       {integration.errorMessage && (
@@ -469,18 +531,26 @@ export default function IntegrationsPage() {
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">Enabled</span>
+                  <span className="text-sm font-medium text-foreground">
+                    Enabled
+                  </span>
                   <button
                     onClick={() =>
-                      updateIntegration({ isEnabled: !editingIntegration.isEnabled })
+                      updateIntegration({
+                        isEnabled: !editingIntegration.isEnabled,
+                      })
                     }
                     className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                      editingIntegration.isEnabled ? "gradient-brand" : "bg-secondary"
+                      editingIntegration.isEnabled
+                        ? "gradient-brand"
+                        : "bg-secondary"
                     }`}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                        editingIntegration.isEnabled ? "translate-x-6" : "translate-x-1"
+                        editingIntegration.isEnabled
+                          ? "translate-x-6"
+                          : "translate-x-1"
                       }`}
                     />
                   </button>
@@ -521,7 +591,7 @@ export default function IntegrationsPage() {
                 <p className="text-xs text-muted-foreground">
                   {editingIntegration.category === "REGULATORY"
                     ? "Note: Uses free public APIs by default. Set API key for paid tier access."
-                    : "Use the \"Set Credentials\" button on the card to update API keys."}
+                    : 'Use the "Set Credentials" button on the card to update API keys.'}
                 </p>
               </div>
               <div className="mt-6 flex justify-end space-x-3">
@@ -574,7 +644,10 @@ export default function IntegrationsPage() {
               {credentialsIntegration.hasDbCredentials && (
                 <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800 flex items-start gap-2">
                   <Database className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span>This integration has credentials stored in the database. New values will overwrite them.</span>
+                  <span>
+                    This integration has credentials stored in the database. New
+                    values will overwrite them.
+                  </span>
                 </div>
               )}
 
@@ -629,8 +702,9 @@ export default function IntegrationsPage() {
               </div>
 
               <p className="mt-4 text-xs text-muted-foreground">
-                Credentials are encrypted with AES-256-GCM and stored in the database. They take
-                priority over environment variables. Leave a field empty to keep its current value.
+                Credentials are encrypted with AES-256-GCM and stored in the
+                database. They take priority over environment variables. Leave a
+                field empty to keep its current value.
               </p>
 
               <div className="mt-6 flex justify-end space-x-3">
@@ -648,7 +722,9 @@ export default function IntegrationsPage() {
                   disabled={savingCredentials}
                   className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50 inline-flex items-center"
                 >
-                  {savingCredentials && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {savingCredentials && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
                   Save Credentials
                 </button>
               </div>

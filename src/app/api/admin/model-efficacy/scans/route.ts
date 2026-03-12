@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     console.error("Get scans error:", error);
     return NextResponse.json(
       { error: "Failed to fetch scans" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

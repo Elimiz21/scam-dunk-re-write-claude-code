@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { getModelEfficacyMetrics } from "@/lib/admin/metrics";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     console.error("Model efficacy error:", error);
     return NextResponse.json(
       { error: "Failed to fetch model efficacy metrics" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     console.error("Get scan message history error:", error);
     return NextResponse.json(
       { error: "Failed to fetch scan message history" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     if (!historyId) {
       return NextResponse.json(
         { error: "historyId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     if (!historyMessage) {
       return NextResponse.json(
         { error: "History message not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -96,21 +96,23 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the action (non-critical)
-    prisma.adminAuditLog.create({
-      data: {
-        adminUserId: session.id,
-        action: "SCAN_MESSAGE_RESTORED",
-        resource: restoredMessage.id,
-        details: JSON.stringify({ headline: restoredMessage.headline }),
-      },
-    }).catch(() => {});
+    prisma.adminAuditLog
+      .create({
+        data: {
+          adminUserId: session.id,
+          action: "SCAN_MESSAGE_RESTORED",
+          resource: restoredMessage.id,
+          details: JSON.stringify({ headline: restoredMessage.headline }),
+        },
+      })
+      .catch(() => {});
 
     return NextResponse.json(restoredMessage);
   } catch (error) {
     console.error("Restore scan message error:", error);
     return NextResponse.json(
       { error: "Failed to restore scan message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

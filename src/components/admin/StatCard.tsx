@@ -25,7 +25,9 @@ export default function StatCard({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="mt-1 text-3xl font-semibold text-foreground">{value.toLocaleString()}</p>
+          <p className="mt-1 text-3xl font-semibold text-foreground">
+            {value.toLocaleString()}
+          </p>
           {change !== undefined && (
             <div className="mt-2 flex items-center text-sm">
               {change >= 0 ? (
@@ -33,11 +35,18 @@ export default function StatCard({
               ) : (
                 <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
               )}
-              <span className={change >= 0 ? "text-emerald-600" : "text-red-600"}>
+              <span
+                className={change >= 0 ? "text-emerald-600" : "text-red-600"}
+              >
                 {change >= 0 ? "+" : ""}
-                {change}{changeIsAbsolute ? "" : "%"}
+                {change}
+                {changeIsAbsolute ? "" : "%"}
               </span>
-              {changeLabel && <span className="text-muted-foreground ml-1">{changeLabel}</span>}
+              {changeLabel && (
+                <span className="text-muted-foreground ml-1">
+                  {changeLabel}
+                </span>
+              )}
             </div>
           )}
         </div>

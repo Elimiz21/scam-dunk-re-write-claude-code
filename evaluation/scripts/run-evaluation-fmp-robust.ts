@@ -12,33 +12,38 @@
  *   npx tsx run-evaluation-fmp-robust.ts --date 2026-01-16
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync } from 'child_process';
-import { computeRiskScore, MarketData, PriceHistory, StockQuote } from './standalone-scorer';
+import * as fs from "fs";
+import * as path from "path";
+import { execSync } from "child_process";
+import {
+  computeRiskScore,
+  MarketData,
+  PriceHistory,
+  StockQuote,
+} from "./standalone-scorer";
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const RESULTS_DIR = path.join(__dirname, '..', 'results');
+const DATA_DIR = path.join(__dirname, "..", "data");
+const RESULTS_DIR = path.join(__dirname, "..", "results");
 
 // FMP API settings
-const FMP_API_KEY = process.env.FMP_API_KEY || '';
-const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
+const FMP_API_KEY = process.env.FMP_API_KEY || "";
+const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 const FMP_DELAY_MS = 210;
 const FMP_BATCH_SIZE = 50;
 const REQUEST_TIMEOUT_MS = 15000;
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const dateIndex = args.indexOf('--date');
+const dateIndex = args.indexOf("--date");
 const TARGET_DATE = dateIndex !== -1 ? args[dateIndex + 1] : null;
 
 if (!TARGET_DATE) {
-  console.error('ERROR: --date argument required');
+  console.error("ERROR: --date argument required");
   process.exit(1);
 }
 
 if (!/^\d{4}-\d{2}-\d{2}$/.test(TARGET_DATE)) {
-  console.error('ERROR: Date must be in YYYY-MM-DD format');
+  console.error("ERROR: Date must be in YYYY-MM-DD format");
   process.exit(1);
 }
 
@@ -64,7 +69,12 @@ interface EvaluationResult {
   totalScore: number;
   isLegitimate: boolean;
   isInsufficient: boolean;
-  signals: { code: string; category: string; weight: number; description: string }[];
+  signals: {
+    code: string;
+    category: string;
+    weight: number;
+    description: string;
+  }[];
   signalSummary: string;
   evaluatedAt: string;
   asOfDate: string;
@@ -83,20 +93,23 @@ interface LightCheckpoint {
     LOW: number;
     INSUFFICIENT: number;
   };
-  byExchange: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number }>;
+  byExchange: Record<
+    string,
+    { total: number; LOW: number; MEDIUM: number; HIGH: number }
+  >;
   startTime: string;
 }
 
 // Utility functions
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function curlFetch(url: string): string | null {
   try {
     const result = execSync(
       `curl -s --max-time ${REQUEST_TIMEOUT_MS / 1000} -H "User-Agent: Mozilla/5.0" "${url}"`,
-      { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 }
+      { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 },
     );
     return result;
   } catch {
@@ -105,19 +118,24 @@ function curlFetch(url: string): string | null {
 }
 
 // Fetch FMP profile
-function fetchFMPProfile(symbol: string): { sector: string; industry: string; companyName: string; exchange: string } | null {
+function fetchFMPProfile(symbol: string): {
+  sector: string;
+  industry: string;
+  companyName: string;
+  exchange: string;
+} | null {
   const url = `${FMP_BASE_URL}/profile?symbol=${encodeURIComponent(symbol)}&apikey=${FMP_API_KEY}`;
   const response = curlFetch(url);
   if (!response) return null;
 
   try {
     const data = JSON.parse(response);
-    if (!data || data.length === 0 || data['Error Message']) return null;
+    if (!data || data.length === 0 || data["Error Message"]) return null;
     return {
-      sector: data[0].sector || 'Unknown',
-      industry: data[0].industry || 'Unknown',
+      sector: data[0].sector || "Unknown",
+      industry: data[0].industry || "Unknown",
       companyName: data[0].companyName || symbol,
-      exchange: data[0].exchange || 'Unknown',
+      exchange: data[0].exchange || "Unknown",
     };
   } catch {
     return null;
@@ -125,14 +143,17 @@ function fetchFMPProfile(symbol: string): { sector: string; industry: string; co
 }
 
 // Fetch and filter historical price data
-function fetchFMPHistoryFiltered(symbol: string, targetDate: string): PriceHistory[] {
+function fetchFMPHistoryFiltered(
+  symbol: string,
+  targetDate: string,
+): PriceHistory[] {
   const url = `${FMP_BASE_URL}/historical-price-eod/full?symbol=${encodeURIComponent(symbol)}&apikey=${FMP_API_KEY}`;
   const response = curlFetch(url);
   if (!response) return [];
 
   try {
     const data = JSON.parse(response);
-    if (!data || data.length === 0 || data['Error Message']) return [];
+    if (!data || data.length === 0 || data["Error Message"]) return [];
 
     const filtered = data.filter((day: any) => day.date <= targetDate);
     return filtered
@@ -152,7 +173,10 @@ function fetchFMPHistoryFiltered(symbol: string, targetDate: string): PriceHisto
 }
 
 // Build market data for a specific date
-async function fetchStockDataForDate(symbol: string, targetDate: string): Promise<{ marketData: MarketData; profile: any } | null> {
+async function fetchStockDataForDate(
+  symbol: string,
+  targetDate: string,
+): Promise<{ marketData: MarketData; profile: any } | null> {
   const profile = fetchFMPProfile(symbol);
   if (!profile) return null;
 
@@ -163,7 +187,9 @@ async function fetchStockDataForDate(symbol: string, targetDate: string): Promis
 
   const lastDay = priceHistory[priceHistory.length - 1];
   const last30Days = priceHistory.slice(-30);
-  const avgVolume30d = last30Days.reduce((sum, day) => sum + day.volume, 0) / Math.max(last30Days.length, 1);
+  const avgVolume30d =
+    last30Days.reduce((sum, day) => sum + day.volume, 0) /
+    Math.max(last30Days.length, 1);
 
   const quote: StockQuote & { sector?: string; industry?: string } = {
     ticker: symbol.toUpperCase(),
@@ -177,8 +203,10 @@ async function fetchStockDataForDate(symbol: string, targetDate: string): Promis
     industry: profile.industry,
   };
 
-  const otcExchanges = ['OTC', 'OTCQX', 'OTCQB', 'PINK', 'OTC Markets'];
-  const isOTC = otcExchanges.some(exc => profile.exchange.toUpperCase().includes(exc.toUpperCase()));
+  const otcExchanges = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets"];
+  const isOTC = otcExchanges.some((exc) =>
+    profile.exchange.toUpperCase().includes(exc.toUpperCase()),
+  );
 
   return {
     marketData: { quote, priceHistory, isOTC, dataAvailable: true },
@@ -200,7 +228,7 @@ function loadCheckpoint(): LightCheckpoint | null {
   const cp = getCheckpointPath();
   if (!fs.existsSync(cp)) return null;
   try {
-    const data = JSON.parse(fs.readFileSync(cp, 'utf-8'));
+    const data = JSON.parse(fs.readFileSync(cp, "utf-8"));
     if (data.targetDate !== TARGET_DATE) return null;
     return data;
   } catch {
@@ -209,33 +237,33 @@ function loadCheckpoint(): LightCheckpoint | null {
 }
 
 function saveCheckpoint(checkpoint: LightCheckpoint): void {
-  const tmp = getCheckpointPath() + '.tmp';
+  const tmp = getCheckpointPath() + ".tmp";
   fs.writeFileSync(tmp, JSON.stringify(checkpoint));
   fs.renameSync(tmp, getCheckpointPath());
 }
 
 function appendResult(result: EvaluationResult): void {
-  fs.appendFileSync(getJSONLPath(), JSON.stringify(result) + '\n');
+  fs.appendFileSync(getJSONLPath(), JSON.stringify(result) + "\n");
 }
 
 // Stock list loading
 function loadStockList(): StockTicker[] {
-  const stockListPath = path.join(DATA_DIR, 'us-stocks.json');
+  const stockListPath = path.join(DATA_DIR, "us-stocks.json");
   if (!fs.existsSync(stockListPath)) {
-    console.error('Stock list not found.');
+    console.error("Stock list not found.");
     process.exit(1);
   }
-  return JSON.parse(fs.readFileSync(stockListPath, 'utf-8'));
+  return JSON.parse(fs.readFileSync(stockListPath, "utf-8"));
 }
 
 // Main evaluation
 async function runEvaluation(): Promise<void> {
-  console.log('='.repeat(70));
+  console.log("=".repeat(70));
   console.log(`FMP Stock Risk Evaluation - As of ${TARGET_DATE}`);
-  console.log('='.repeat(70));
+  console.log("=".repeat(70));
 
   if (!FMP_API_KEY) {
-    console.error('ERROR: FMP_API_KEY not set');
+    console.error("ERROR: FMP_API_KEY not set");
     process.exit(1);
   }
 
@@ -247,14 +275,26 @@ async function runEvaluation(): Promise<void> {
   const processedSet = new Set<string>();
 
   if (checkpoint) {
-    checkpoint.processedSymbols.forEach(s => processedSet.add(s));
-    console.log(`\nResuming from checkpoint: ${processedSet.size} stocks already processed`);
-    console.log(`  HIGH: ${checkpoint.counts.HIGH}, MEDIUM: ${checkpoint.counts.MEDIUM}, LOW: ${checkpoint.counts.LOW}`);
+    checkpoint.processedSymbols.forEach((s) => processedSet.add(s));
+    console.log(
+      `\nResuming from checkpoint: ${processedSet.size} stocks already processed`,
+    );
+    console.log(
+      `  HIGH: ${checkpoint.counts.HIGH}, MEDIUM: ${checkpoint.counts.MEDIUM}, LOW: ${checkpoint.counts.LOW}`,
+    );
   } else {
     checkpoint = {
       processedSymbols: [],
       targetDate: TARGET_DATE!,
-      counts: { evaluated: 0, skippedNoData: 0, apiCallsMade: 0, HIGH: 0, MEDIUM: 0, LOW: 0, INSUFFICIENT: 0 },
+      counts: {
+        evaluated: 0,
+        skippedNoData: 0,
+        apiCallsMade: 0,
+        HIGH: 0,
+        MEDIUM: 0,
+        LOW: 0,
+        INSUFFICIENT: 0,
+      },
       byExchange: {},
       startTime: new Date().toISOString(),
     };
@@ -265,22 +305,29 @@ async function runEvaluation(): Promise<void> {
 
   const remaining = stocks.length - processedSet.size;
   const estimatedMinutes = Math.ceil((remaining * FMP_DELAY_MS * 2) / 60000);
-  console.log(`\nEstimated time remaining: ${estimatedMinutes} minutes (~${(estimatedMinutes / 60).toFixed(1)} hours)`);
-  console.log(`Rate: ~${Math.floor(60000 / (FMP_DELAY_MS * 2))} stocks/minute\n`);
+  console.log(
+    `\nEstimated time remaining: ${estimatedMinutes} minutes (~${(estimatedMinutes / 60).toFixed(1)} hours)`,
+  );
+  console.log(
+    `Rate: ~${Math.floor(60000 / (FMP_DELAY_MS * 2))} stocks/minute\n`,
+  );
 
   for (let i = 0; i < stocks.length; i++) {
     const stock = stocks[i];
     if (processedSet.has(stock.symbol)) continue;
 
-    const progress = ((processedSet.size + 1) / stocks.length * 100).toFixed(1);
+    const progress = (((processedSet.size + 1) / stocks.length) * 100).toFixed(
+      1,
+    );
     const elapsed = (Date.now() - startTime) / 60000;
-    const processed = processedSet.size - (checkpoint.processedSymbols?.length || 0) + 1;
+    const processed =
+      processedSet.size - (checkpoint.processedSymbols?.length || 0) + 1;
     const rate = processed / Math.max(elapsed, 0.01);
     const eta = (stocks.length - processedSet.size) / Math.max(rate, 0.1);
 
     process.stdout.write(
       `\r[${progress}%] ${processedSet.size + 1}/${stocks.length} | ${stock.symbol.padEnd(6)} | ` +
-      `${checkpoint.counts.HIGH} HIGH | ETA: ${eta.toFixed(0)}min    `
+        `${checkpoint.counts.HIGH} HIGH | ETA: ${eta.toFixed(0)}min    `,
     );
 
     try {
@@ -299,8 +346,8 @@ async function runEvaluation(): Promise<void> {
           symbol: stock.symbol,
           name: profile.companyName || stock.name,
           exchange: profile.exchange || stock.exchange,
-          sector: profile.sector || 'Unknown',
-          industry: profile.industry || 'Unknown',
+          sector: profile.sector || "Unknown",
+          industry: profile.industry || "Unknown",
           marketCap: marketData.quote?.marketCap || null,
           lastPrice: marketData.quote?.lastPrice || null,
           riskLevel: scoringResult.riskLevel,
@@ -308,10 +355,10 @@ async function runEvaluation(): Promise<void> {
           isLegitimate: scoringResult.isLegitimate,
           isInsufficient: scoringResult.isInsufficient,
           signals: scoringResult.signals,
-          signalSummary: scoringResult.signals.map(s => s.code).join(', '),
+          signalSummary: scoringResult.signals.map((s) => s.code).join(", "),
           evaluatedAt: new Date().toISOString(),
           asOfDate: TARGET_DATE!,
-          priceDataSource: 'FMP-Historical',
+          priceDataSource: "FMP-Historical",
         };
 
         // Stream to JSONL - don't accumulate in memory
@@ -323,11 +370,18 @@ async function runEvaluation(): Promise<void> {
 
         const exchange = evalResult.exchange;
         if (!checkpoint.byExchange[exchange]) {
-          checkpoint.byExchange[exchange] = { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0 };
+          checkpoint.byExchange[exchange] = {
+            total: 0,
+            LOW: 0,
+            MEDIUM: 0,
+            HIGH: 0,
+          };
         }
         checkpoint.byExchange[exchange].total++;
-        if (scoringResult.riskLevel !== 'INSUFFICIENT') {
-          checkpoint.byExchange[exchange][scoringResult.riskLevel as 'LOW' | 'MEDIUM' | 'HIGH']++;
+        if (scoringResult.riskLevel !== "INSUFFICIENT") {
+          checkpoint.byExchange[exchange][
+            scoringResult.riskLevel as "LOW" | "MEDIUM" | "HIGH"
+          ]++;
         }
 
         processedSet.add(stock.symbol);
@@ -342,7 +396,6 @@ async function runEvaluation(): Promise<void> {
       }
 
       await sleep(FMP_DELAY_MS);
-
     } catch (error: any) {
       // Never crash on individual stock errors
       console.error(`\n  Error on ${stock.symbol}: ${error.message || error}`);
@@ -357,14 +410,19 @@ async function runEvaluation(): Promise<void> {
   saveCheckpoint(checkpoint);
 
   // Build final output files from JSONL
-  console.log('\n\nBuilding final output files...');
+  console.log("\n\nBuilding final output files...");
   const jsonlPath = getJSONLPath();
   const allResults: EvaluationResult[] = [];
 
   if (fs.existsSync(jsonlPath)) {
-    const lines = fs.readFileSync(jsonlPath, 'utf-8').split('\n').filter(l => l.trim());
+    const lines = fs
+      .readFileSync(jsonlPath, "utf-8")
+      .split("\n")
+      .filter((l) => l.trim());
     for (const line of lines) {
-      try { allResults.push(JSON.parse(line)); } catch {}
+      try {
+        allResults.push(JSON.parse(line));
+      } catch {}
     }
   }
 
@@ -374,14 +432,20 @@ async function runEvaluation(): Promise<void> {
   const finalResults = Array.from(deduped.values());
 
   // Write final files
-  const resultsPath = path.join(RESULTS_DIR, `fmp-evaluation-${TARGET_DATE}.json`);
+  const resultsPath = path.join(
+    RESULTS_DIR,
+    `fmp-evaluation-${TARGET_DATE}.json`,
+  );
   const summaryPath = path.join(RESULTS_DIR, `fmp-summary-${TARGET_DATE}.json`);
-  const highRiskPath = path.join(RESULTS_DIR, `fmp-high-risk-${TARGET_DATE}.json`);
+  const highRiskPath = path.join(
+    RESULTS_DIR,
+    `fmp-high-risk-${TARGET_DATE}.json`,
+  );
 
   fs.writeFileSync(resultsPath, JSON.stringify(finalResults, null, 2));
 
   const highRisk = finalResults
-    .filter(r => r.riskLevel === 'HIGH')
+    .filter((r) => r.riskLevel === "HIGH")
     .sort((a, b) => b.totalScore - a.totalScore);
   fs.writeFileSync(highRiskPath, JSON.stringify(highRisk, null, 2));
 
@@ -405,18 +469,20 @@ async function runEvaluation(): Promise<void> {
   };
   fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
 
-  console.log('\n' + '='.repeat(70));
+  console.log("\n" + "=".repeat(70));
   console.log(`EVALUATION COMPLETE - As of ${TARGET_DATE}`);
-  console.log('='.repeat(70));
+  console.log("=".repeat(70));
   console.log(`Total evaluated: ${checkpoint.counts.evaluated}`);
   console.log(`Skipped: ${checkpoint.counts.skippedNoData}`);
-  console.log(`HIGH: ${checkpoint.counts.HIGH} | MEDIUM: ${checkpoint.counts.MEDIUM} | LOW: ${checkpoint.counts.LOW}`);
+  console.log(
+    `HIGH: ${checkpoint.counts.HIGH} | MEDIUM: ${checkpoint.counts.MEDIUM} | LOW: ${checkpoint.counts.LOW}`,
+  );
 
   // Clean up JSONL
   if (fs.existsSync(jsonlPath)) fs.unlinkSync(jsonlPath);
 }
 
-runEvaluation().catch(err => {
-  console.error('\nFATAL ERROR:', err);
+runEvaluation().catch((err) => {
+  console.error("\nFATAL ERROR:", err);
   process.exit(1);
 });

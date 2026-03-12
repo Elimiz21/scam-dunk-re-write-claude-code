@@ -23,6 +23,14 @@ export function formatPrice(price: number): string {
 }
 
 /**
+ * Extract the value from a settled promise, returning a fallback on rejection.
+ * Useful with Promise.allSettled to safely unwrap results.
+ */
+export function settledVal<T>(result: PromiseSettledResult<T>, fallback: T): T {
+  return result.status === "fulfilled" ? result.value : fallback;
+}
+
+/**
  * Format a date string as a short locale date (e.g., "Jan 15, 2026")
  */
 export function formatDate(dateValue: string | null | undefined): string {

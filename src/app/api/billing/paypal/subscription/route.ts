@@ -23,7 +23,7 @@ export async function GET() {
     console.error("Error getting subscription info:", error);
     return NextResponse.json(
       { error: "Failed to get subscription info" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

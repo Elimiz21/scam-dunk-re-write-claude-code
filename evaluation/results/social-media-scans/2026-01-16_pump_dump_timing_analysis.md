@@ -6,11 +6,11 @@
 
 ## Executive Summary
 
-| Scheme | Avg Pump Duration | Avg Pump Gain | Avg Drop from Peak | Dump Duration |
-|--------|-------------------|---------------|--------------------| --------------|
-| **SCHEME-001** | 2-3 days | +450% | -35% | 2-5 days |
-| **Non-Attributed Pumps** | 1 day | +85% | -40% | Same day |
-| **Post-Crash (MTEN/THH/SXTC)** | <1 day | +100-200% | -61% to -97% | 1-3 days |
+| Scheme                         | Avg Pump Duration | Avg Pump Gain | Avg Drop from Peak | Dump Duration |
+| ------------------------------ | ----------------- | ------------- | ------------------ | ------------- |
+| **SCHEME-001**                 | 2-3 days          | +450%         | -35%               | 2-5 days      |
+| **Non-Attributed Pumps**       | 1 day             | +85%          | -40%               | Same day      |
+| **Post-Crash (MTEN/THH/SXTC)** | <1 day            | +100-200%     | -61% to -97%       | 1-3 days      |
 
 ---
 
@@ -18,17 +18,17 @@
 
 ### Detailed Timeline Analysis
 
-| Stock | Alert Date | Alert Price | Peak Date | Peak Price | Pump Days | Peak Gain | Current | Drop from Peak |
-|-------|------------|-------------|-----------|------------|-----------|-----------|---------|----------------|
-| **LVRO** | Dec 31 | $0.21 | Jan 2 | $1.49 | **2 days** | +609% | $1.10 | -26% |
-| **EVTV** | Jan 12 | $0.78 | Jan 12-13 | $4.87 | **1-2 days** | +524% | $3.55 | -27% |
-| **SPHL** | Jan 12 | $2.17 | Jan 15 | $25.11 | **3 days** | +1,057% | $7.43 | **-70%** |
-| **ANPA** | Jan 7 | $24.40 | Jan 9 | $180.63 | **2-8 days** | +640% | $99.66 | -45% |
-| **MRNO** | Dec 30 | ~$0.55 | Jan 13 | $2.45 | **14 days** | +345% | $1.60 | -35% |
-| **SIDU** | Pre-Jan | $0.90 | - | $4.44 | **~7 days** | +393% | $3.37 | -24% |
-| **CGTL** | Jan 8 | $1.85 | Jan 15 | $5.47 | **7 days** | +196% | $4.84 | -12% |
-| **GRDX** | Pre-Jan | $1.95 | - | $5.25 | **~5 days** | +169% | $3.92 | -25% |
-| **BNAI** | Pre-Jan | $1.22 | - | $4.25 | **~5 days** | +248% | $6.35 | +49% ✓ |
+| Stock    | Alert Date | Alert Price | Peak Date | Peak Price | Pump Days    | Peak Gain | Current | Drop from Peak |
+| -------- | ---------- | ----------- | --------- | ---------- | ------------ | --------- | ------- | -------------- |
+| **LVRO** | Dec 31     | $0.21       | Jan 2     | $1.49      | **2 days**   | +609%     | $1.10   | -26%           |
+| **EVTV** | Jan 12     | $0.78       | Jan 12-13 | $4.87      | **1-2 days** | +524%     | $3.55   | -27%           |
+| **SPHL** | Jan 12     | $2.17       | Jan 15    | $25.11     | **3 days**   | +1,057%   | $7.43   | **-70%**       |
+| **ANPA** | Jan 7      | $24.40      | Jan 9     | $180.63    | **2-8 days** | +640%     | $99.66  | -45%           |
+| **MRNO** | Dec 30     | ~$0.55      | Jan 13    | $2.45      | **14 days**  | +345%     | $1.60   | -35%           |
+| **SIDU** | Pre-Jan    | $0.90       | -         | $4.44      | **~7 days**  | +393%     | $3.37   | -24%           |
+| **CGTL** | Jan 8      | $1.85       | Jan 15    | $5.47      | **7 days**   | +196%     | $4.84   | -12%           |
+| **GRDX** | Pre-Jan    | $1.95       | -         | $5.25      | **~5 days**  | +169%     | $3.92   | -25%           |
+| **BNAI** | Pre-Jan    | $1.22       | -         | $4.25      | **~5 days**  | +248%     | $6.35   | +49% ✓         |
 
 ### SCHEME-001 Statistics
 
@@ -68,36 +68,36 @@ Day 0 (Alert)     Day 1-3 (Pump)      Day 3-5 (Peak)      Day 5-10 (Dump)
 
 ### VLN (Valens Semiconductor) - Social Media Pump
 
-| Metric | Value |
-|--------|-------|
-| **Pump Date** | January 9, 2026 |
-| **Pump Duration** | 1 day |
-| **Pump Gain** | +65% |
-| **Catalyst** | "No tangible news" - social media driven |
-| **CES 2026** | Company was at CES, minor design win announced |
-| **Current** | $1.978 (down from ~$2.66 peak) |
-| **Drop** | ~-26% from intraday peak |
+| Metric            | Value                                          |
+| ----------------- | ---------------------------------------------- |
+| **Pump Date**     | January 9, 2026                                |
+| **Pump Duration** | 1 day                                          |
+| **Pump Gain**     | +65%                                           |
+| **Catalyst**      | "No tangible news" - social media driven       |
+| **CES 2026**      | Company was at CES, minor design win announced |
+| **Current**       | $1.978 (down from ~$2.66 peak)                 |
+| **Drop**          | ~-26% from intraday peak                       |
 
 ### ROLR (High Roller Technologies) - Retail Pump
 
-| Metric | Value |
-|--------|-------|
-| **Pump Date** | January 14, 2026 |
-| **Pump Duration** | 1-2 days |
-| **Pump Gain** | +500% |
-| **Catalyst** | Crypto.com partnership LOI |
-| **Warning** | "Vulnerable to pump-and-dump behavior" |
-| **Volume** | 580% spike in Stocktwits followers |
+| Metric            | Value                                  |
+| ----------------- | -------------------------------------- |
+| **Pump Date**     | January 14, 2026                       |
+| **Pump Duration** | 1-2 days                               |
+| **Pump Gain**     | +500%                                  |
+| **Catalyst**      | Crypto.com partnership LOI             |
+| **Warning**       | "Vulnerable to pump-and-dump behavior" |
+| **Volume**        | 580% spike in Stocktwits followers     |
 
 ### SEGG (Lottery.com) - News-Driven Spike
 
-| Metric | Value |
-|--------|-------|
-| **Pump Date** | January 14, 2026 |
-| **Pump Duration** | 1 day |
-| **Pump Gain** | +102% |
-| **Catalyst** | Triggy.AI acquisition announcement |
-| **Volume** | 331M vs 196K avg (1,689x normal) |
+| Metric            | Value                              |
+| ----------------- | ---------------------------------- |
+| **Pump Date**     | January 14, 2026                   |
+| **Pump Duration** | 1 day                              |
+| **Pump Gain**     | +102%                              |
+| **Catalyst**      | Triggy.AI acquisition announcement |
+| **Volume**        | 331M vs 196K avg (1,689x normal)   |
 
 ---
 
@@ -142,11 +142,11 @@ TIMELINE:
 
 ### Comparison Table: Crashed Stocks
 
-| Stock | Peak | Crash Start | Days to Crash | Total Drop | Dump Speed |
-|-------|------|-------------|---------------|------------|------------|
-| **THH** | $55.05 | Jan 14 | 1 day | -61% | FAST |
-| **MTEN** | ~$1.25 | Jan 9 | Same day | -78% → -97% | INSTANT |
-| **SXTC** | ~$3.16 | Jan 8 | Same day | -37% → -95% | INSTANT |
+| Stock    | Peak   | Crash Start | Days to Crash | Total Drop  | Dump Speed |
+| -------- | ------ | ----------- | ------------- | ----------- | ---------- |
+| **THH**  | $55.05 | Jan 14      | 1 day         | -61%        | FAST       |
+| **MTEN** | ~$1.25 | Jan 9       | Same day      | -78% → -97% | INSTANT    |
+| **SXTC** | ~$3.16 | Jan 8       | Same day      | -37% → -95% | INSTANT    |
 
 ---
 
@@ -184,20 +184,20 @@ TIMELINE:
 
 ### 2. Non-Discord Pumps Are Faster and More Dangerous
 
-| Pattern | Pump Duration | Dump Duration | Predictability |
-|---------|---------------|---------------|----------------|
-| SCHEME-001 | 2-3 days | 2-5 days | HIGH (alert visible) |
-| Social Media | 1 day | 1-2 days | MEDIUM |
-| Intraday P&D | Hours | Hours | LOW (too fast) |
+| Pattern      | Pump Duration | Dump Duration | Predictability       |
+| ------------ | ------------- | ------------- | -------------------- |
+| SCHEME-001   | 2-3 days      | 2-5 days      | HIGH (alert visible) |
+| Social Media | 1 day         | 1-2 days      | MEDIUM               |
+| Intraday P&D | Hours         | Hours         | LOW (too fast)       |
 
 ### 3. Warning Signs Timeline
 
-| Days Before Peak | Signal |
-|------------------|--------|
-| 0-1 days | SPIKE_7D appears |
-| 0-1 days | VOLUME_EXPLOSION appears |
-| 0-2 days | OVERBOUGHT_RSI appears |
-| 1-3 days after peak | SPIKE_THEN_DROP appears |
+| Days Before Peak    | Signal                   |
+| ------------------- | ------------------------ |
+| 0-1 days            | SPIKE_7D appears         |
+| 0-1 days            | VOLUME_EXPLOSION appears |
+| 0-2 days            | OVERBOUGHT_RSI appears   |
+| 1-3 days after peak | SPIKE_THEN_DROP appears  |
 
 ---
 
@@ -205,13 +205,13 @@ TIMELINE:
 
 ### How Early Can We Detect?
 
-| Stock | First HIGH Rating | Peak Date | Warning Days |
-|-------|-------------------|-----------|--------------|
-| MTEN | Jan 11 | Jan 9 | **AFTER** (too late) |
-| SXTC | Jan 11 | Jan 8 | **AFTER** (too late) |
-| THH | Jan 11 | Jan 13 | 2 days before |
-| SPHL | - | Jan 15 | - |
-| EVTV | Jan 11 | Jan 12-13 | 1-2 days before |
+| Stock | First HIGH Rating | Peak Date | Warning Days         |
+| ----- | ----------------- | --------- | -------------------- |
+| MTEN  | Jan 11            | Jan 9     | **AFTER** (too late) |
+| SXTC  | Jan 11            | Jan 8     | **AFTER** (too late) |
+| THH   | Jan 11            | Jan 13    | 2 days before        |
+| SPHL  | -                 | Jan 15    | -                    |
+| EVTV  | Jan 11            | Jan 12-13 | 1-2 days before      |
 
 ### Improvement Needed
 
@@ -234,28 +234,28 @@ IDEAL DETECTION:
 
 ### SCHEME-001 (Grandmaster-Obi Discord)
 
-| Metric | Value |
-|--------|-------|
-| Stocks Confirmed | 13+ |
-| Average Pump Duration | 2-3 days |
-| Average Peak Gain | +465% |
-| Average Drop from Peak | -35% |
-| Worst Drop | -70% (SPHL) |
-| Dump Duration | 2-5 days |
-| Detection Rate | 100% (all flagged HIGH) |
-| Early Detection | ~50% (flagged before peak) |
+| Metric                 | Value                      |
+| ---------------------- | -------------------------- |
+| Stocks Confirmed       | 13+                        |
+| Average Pump Duration  | 2-3 days                   |
+| Average Peak Gain      | +465%                      |
+| Average Drop from Peak | -35%                       |
+| Worst Drop             | -70% (SPHL)                |
+| Dump Duration          | 2-5 days                   |
+| Detection Rate         | 100% (all flagged HIGH)    |
+| Early Detection        | ~50% (flagged before peak) |
 
 ### All Other Pumps
 
-| Metric | Value |
-|--------|-------|
-| Stocks Identified | 5 |
-| Average Pump Duration | <1 day |
-| Average Peak Gain | +85% |
-| Average Drop | -40% to -97% |
-| Dump Duration | Same day to 3 days |
-| Detection Rate | 100% (all flagged HIGH) |
-| Early Detection | ~20% (too fast) |
+| Metric                | Value                   |
+| --------------------- | ----------------------- |
+| Stocks Identified     | 5                       |
+| Average Pump Duration | <1 day                  |
+| Average Peak Gain     | +85%                    |
+| Average Drop          | -40% to -97%            |
+| Dump Duration         | Same day to 3 days      |
+| Detection Rate        | 100% (all flagged HIGH) |
+| Early Detection       | ~20% (too fast)         |
 
 ---
 
@@ -316,5 +316,5 @@ IDEAL DETECTION:
 
 ---
 
-*Report generated: January 16, 2026*
-*ScamDunk Pump-Dump Timing Analysis v1.0*
+_Report generated: January 16, 2026_
+_ScamDunk Pump-Dump Timing Analysis v1.0_

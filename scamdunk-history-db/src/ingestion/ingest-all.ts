@@ -10,41 +10,40 @@
  *   npm run ingest:all -- --date 2026-01-11
  */
 
-import { execSync } from 'child_process';
-import { join } from 'path';
+import { execSync } from "child_process";
+import { join } from "path";
 
 async function main() {
-  const args = process.argv.slice(2).join(' ');
+  const args = process.argv.slice(2).join(" ");
 
-  console.log('🚀 ScamDunk History DB - Full Ingestion');
-  console.log('=======================================\n');
+  console.log("🚀 ScamDunk History DB - Full Ingestion");
+  console.log("=======================================\n");
 
   try {
     // Run daily evaluation ingestion
-    console.log('📊 Step 1: Ingesting daily evaluation data...');
-    console.log('─'.repeat(50));
-    execSync(`tsx ${join(__dirname, 'ingest-daily-evaluation.ts')} ${args}`, {
-      stdio: 'inherit',
+    console.log("📊 Step 1: Ingesting daily evaluation data...");
+    console.log("─".repeat(50));
+    execSync(`tsx ${join(__dirname, "ingest-daily-evaluation.ts")} ${args}`, {
+      stdio: "inherit",
       cwd: process.cwd(),
     });
 
-    console.log('\n');
+    console.log("\n");
 
     // Run social media scan ingestion
-    console.log('📱 Step 2: Ingesting social media scan data...');
-    console.log('─'.repeat(50));
-    execSync(`tsx ${join(__dirname, 'ingest-social-media-scan.ts')} ${args}`, {
-      stdio: 'inherit',
+    console.log("📱 Step 2: Ingesting social media scan data...");
+    console.log("─".repeat(50));
+    execSync(`tsx ${join(__dirname, "ingest-social-media-scan.ts")} ${args}`, {
+      stdio: "inherit",
       cwd: process.cwd(),
     });
 
-    console.log('\n');
-    console.log('═'.repeat(50));
-    console.log('✅ All ingestion complete!');
-    console.log('═'.repeat(50));
-
+    console.log("\n");
+    console.log("═".repeat(50));
+    console.log("✅ All ingestion complete!");
+    console.log("═".repeat(50));
   } catch (error) {
-    console.error('\n❌ Ingestion failed:', error);
+    console.error("\n❌ Ingestion failed:", error);
     process.exit(1);
   }
 }

@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { getDashboardMetrics } from "@/lib/admin/metrics";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -25,7 +25,7 @@ export async function GET() {
     console.error("Dashboard metrics error:", error);
     return NextResponse.json(
       { error: "Failed to fetch dashboard metrics" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

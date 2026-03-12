@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     console.error("Segment efficacy error:", error);
     return NextResponse.json(
       { error: "Failed to fetch segment efficacy metrics" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

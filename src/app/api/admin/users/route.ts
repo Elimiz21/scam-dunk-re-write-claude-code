@@ -5,12 +5,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
-import { createPasswordResetToken, createEmailVerificationToken } from "@/lib/tokens";
+import {
+  createPasswordResetToken,
+  createEmailVerificationToken,
+} from "@/lib/tokens";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-const ALLOWED_SORT_FIELDS = ["createdAt", "email", "name", "plan", "updatedAt"] as const;
+const ALLOWED_SORT_FIELDS = [
+  "createdAt",
+  "email",
+  "name",
+  "plan",
+  "updatedAt",
+] as const;
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,12 +29,22 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20));
+    const page = Math.max(
+      1,
+      parseInt(searchParams.get("page") || "1", 10) || 1,
+    );
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20),
+    );
     const search = searchParams.get("search") || "";
     const plan = searchParams.get("plan") || "";
     const rawSortBy = searchParams.get("sortBy") || "createdAt";
-    const sortBy = (ALLOWED_SORT_FIELDS as readonly string[]).includes(rawSortBy) ? rawSortBy : "createdAt";
+    const sortBy = (ALLOWED_SORT_FIELDS as readonly string[]).includes(
+      rawSortBy,
+    )
+      ? rawSortBy
+      : "createdAt";
     const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
 
     // Build where clause
@@ -66,7 +85,9 @@ export async function GET(request: NextRequest) {
 
     // Format users with additional data
     const formattedUsers = users.map((user) => {
-      const currentUsage = user.scanUsages.find((u) => u.monthKey === currentMonthKey);
+      const currentUsage = user.scanUsages.find(
+        (u) => u.monthKey === currentMonthKey,
+      );
       return {
         id: user.id,
         email: user.email,
@@ -92,7 +113,9 @@ export async function GET(request: NextRequest) {
       prisma.user.count(),
       prisma.user.count({ where: { formerPro: true } }),
       prisma.user.count({
-        where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+        where: {
+          createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        },
       }),
     ]);
 
@@ -116,7 +139,7 @@ export async function GET(request: NextRequest) {
     console.error("Get users error:", error);
     return NextResponse.json(
       { error: "Failed to fetch users" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -129,14 +152,20 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
     const { userId, action, value } = body;
 
     if (!userId || !action) {
-      return NextResponse.json({ error: "User ID and action required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User ID and action required" },
+        { status: 400 },
+      );
     }
 
     const user = await prisma.user.findUnique({
@@ -175,7 +204,10 @@ export async function PATCH(request: NextRequest) {
 
       case "setScans":
         if (typeof value !== "number") {
-          return NextResponse.json({ error: "Scan count value required" }, { status: 400 });
+          return NextResponse.json(
+            { error: "Scan count value required" },
+            { status: 400 },
+          );
         }
         const nowForSet = new Date();
         const monthKeyForSet = `${nowForSet.getFullYear()}-${String(nowForSet.getMonth() + 1).padStart(2, "0")}`;
@@ -190,7 +222,10 @@ export async function PATCH(request: NextRequest) {
 
       case "updateName":
         if (typeof value !== "string") {
-          return NextResponse.json({ error: "Name value required" }, { status: 400 });
+          return NextResponse.json(
+            { error: "Name value required" },
+            { status: 400 },
+          );
         }
         updateData = { name: value };
         logDetails = `Updated user's name to "${value}"`;
@@ -200,11 +235,14 @@ export async function PATCH(request: NextRequest) {
         // Send password reset email to user
         try {
           const resetToken = await createPasswordResetToken(user.email);
-          const emailSent = await sendPasswordResetEmail(user.email, resetToken);
+          const emailSent = await sendPasswordResetEmail(
+            user.email,
+            resetToken,
+          );
           if (!emailSent) {
             return NextResponse.json(
               { error: "Failed to send password reset email" },
-              { status: 500 }
+              { status: 500 },
             );
           }
           logDetails = `Sent password reset email to ${user.email}`;
@@ -212,7 +250,7 @@ export async function PATCH(request: NextRequest) {
           console.error("Password reset email error:", emailError);
           return NextResponse.json(
             { error: "Failed to send password reset email" },
-            { status: 500 }
+            { status: 500 },
           );
         }
         break;
@@ -221,8 +259,12 @@ export async function PATCH(request: NextRequest) {
         // Delete user and all related data
         try {
           // Delete related data first (in order of dependencies)
-          await prisma.emailVerificationToken.deleteMany({ where: { email: user.email } });
-          await prisma.passwordResetToken.deleteMany({ where: { email: user.email } });
+          await prisma.emailVerificationToken.deleteMany({
+            where: { email: user.email },
+          });
+          await prisma.passwordResetToken.deleteMany({
+            where: { email: user.email },
+          });
           await prisma.scanUsage.deleteMany({ where: { userId } });
           await prisma.scanHistory.deleteMany({ where: { userId } });
           await prisma.session.deleteMany({ where: { userId } });
@@ -237,7 +279,10 @@ export async function PATCH(request: NextRequest) {
               adminUserId: session.id,
               action: "USER_DELETE",
               resource: userId,
-              details: JSON.stringify({ userEmail: user.email, details: logDetails }),
+              details: JSON.stringify({
+                userEmail: user.email,
+                details: logDetails,
+              }),
             },
           });
 
@@ -246,7 +291,7 @@ export async function PATCH(request: NextRequest) {
           console.error("Delete user error:", deleteError);
           return NextResponse.json(
             { error: "Failed to delete user" },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
@@ -260,16 +305,23 @@ export async function PATCH(request: NextRequest) {
           });
 
           // Delete any existing verification tokens for this email
-          await prisma.emailVerificationToken.deleteMany({ where: { email: user.email } });
+          await prisma.emailVerificationToken.deleteMany({
+            where: { email: user.email },
+          });
 
           // Create new verification token and send email
-          const verificationToken = await createEmailVerificationToken(user.email);
-          const emailSent = await sendVerificationEmail(user.email, verificationToken);
+          const verificationToken = await createEmailVerificationToken(
+            user.email,
+          );
+          const emailSent = await sendVerificationEmail(
+            user.email,
+            verificationToken,
+          );
 
           if (!emailSent) {
             return NextResponse.json(
               { error: "Failed to send verification email" },
-              { status: 500 }
+              { status: 500 },
             );
           }
           logDetails = `Reset verification and sent new verification email to ${user.email}`;
@@ -277,7 +329,7 @@ export async function PATCH(request: NextRequest) {
           console.error("Reset verification error:", verifyError);
           return NextResponse.json(
             { error: "Failed to reset verification" },
-            { status: 500 }
+            { status: 500 },
           );
         }
         break;
@@ -300,7 +352,12 @@ export async function PATCH(request: NextRequest) {
         adminUserId: session.id,
         action: `USER_${action.toUpperCase()}`,
         resource: userId,
-        details: JSON.stringify({ action, value, userEmail: user.email, details: logDetails }),
+        details: JSON.stringify({
+          action,
+          value,
+          userEmail: user.email,
+          details: logDetails,
+        }),
       },
     });
 
@@ -309,7 +366,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Update user error:", error);
     return NextResponse.json(
       { error: "Failed to update user" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

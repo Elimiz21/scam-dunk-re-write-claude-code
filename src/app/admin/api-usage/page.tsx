@@ -80,7 +80,11 @@ export default function ApiUsagePage() {
       });
       if (!res.ok) throw new Error("Failed to create alert");
       setShowAddAlert(false);
-      setNewAlert({ service: "ALL", alertType: "COST_THRESHOLD", threshold: 100 });
+      setNewAlert({
+        service: "ALL",
+        alertType: "COST_THRESHOLD",
+        threshold: 100,
+      });
       fetchData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create alert");
@@ -108,7 +112,8 @@ export default function ApiUsagePage() {
     {
       key: "requests",
       header: "Requests",
-      render: (item: ApiUsageData["usageByService"][0]) => item.requests.toLocaleString(),
+      render: (item: ApiUsageData["usageByService"][0]) =>
+        item.requests.toLocaleString(),
     },
     {
       key: "tokensUsed",
@@ -119,12 +124,14 @@ export default function ApiUsagePage() {
     {
       key: "cost",
       header: "Est. Cost",
-      render: (item: ApiUsageData["usageByService"][0]) => `$${item.cost.toFixed(2)}`,
+      render: (item: ApiUsageData["usageByService"][0]) =>
+        `$${item.cost.toFixed(2)}`,
     },
     {
       key: "avgResponseTime",
       header: "Avg Response",
-      render: (item: ApiUsageData["usageByService"][0]) => `${item.avgResponseTime}ms`,
+      render: (item: ApiUsageData["usageByService"][0]) =>
+        `${item.avgResponseTime}ms`,
     },
   ];
 
@@ -140,7 +147,9 @@ export default function ApiUsagePage() {
       key: "threshold",
       header: "Threshold",
       render: (item: ApiUsageData["activeAlerts"][0]) =>
-        item.alertType === "COST_THRESHOLD" ? `$${item.threshold}` : item.threshold.toLocaleString(),
+        item.alertType === "COST_THRESHOLD"
+          ? `$${item.threshold}`
+          : item.threshold.toLocaleString(),
     },
     {
       key: "status",
@@ -177,7 +186,9 @@ export default function ApiUsagePage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">API Usage & Costs</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              API Usage & Costs
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Monitor API usage, costs, and set up alerts
             </p>
@@ -185,7 +196,9 @@ export default function ApiUsagePage() {
           <div className="flex items-center space-x-4">
             <select
               value={period}
-              onChange={(e) => setPeriod(e.target.value as "day" | "week" | "month")}
+              onChange={(e) =>
+                setPeriod(e.target.value as "day" | "week" | "month")
+              }
               className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
             >
               <option value="day">Today</option>
@@ -196,7 +209,12 @@ export default function ApiUsagePage() {
         </div>
 
         {error && (
-          <AlertBanner type="error" title="Error" message={error} onDismiss={() => setError("")} />
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
         )}
 
         {/* Triggered Alerts Warning */}
@@ -212,7 +230,10 @@ export default function ApiUsagePage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-card rounded-2xl shadow h-32 animate-pulse" />
+              <div
+                key={i}
+                className="bg-card rounded-2xl shadow h-32 animate-pulse"
+              />
             ))}
           </div>
         ) : data ? (
@@ -246,14 +267,18 @@ export default function ApiUsagePage() {
 
             {/* Usage by Service */}
             <div>
-              <h2 className="text-lg font-medium text-foreground mb-4">Usage by Service</h2>
+              <h2 className="text-lg font-medium text-foreground mb-4">
+                Usage by Service
+              </h2>
               <DataTable columns={serviceColumns} data={data.usageByService} />
             </div>
 
             {/* Alerts Section */}
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-foreground">Cost Alerts</h2>
+                <h2 className="text-lg font-medium text-foreground">
+                  Cost Alerts
+                </h2>
                 <button
                   onClick={() => setShowAddAlert(true)}
                   className="inline-flex items-center px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90"
@@ -267,13 +292,22 @@ export default function ApiUsagePage() {
               {showAddAlert && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                   <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-md">
-                    <h3 className="text-lg font-medium text-foreground mb-4">Create Alert</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">
+                      Create Alert
+                    </h3>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-foreground">Service</label>
+                        <label className="block text-sm font-medium text-foreground">
+                          Service
+                        </label>
                         <select
                           value={newAlert.service}
-                          onChange={(e) => setNewAlert({ ...newAlert, service: e.target.value })}
+                          onChange={(e) =>
+                            setNewAlert({
+                              ...newAlert,
+                              service: e.target.value,
+                            })
+                          }
                           className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                         >
                           <option value="ALL">All Services</option>
@@ -283,26 +317,41 @@ export default function ApiUsagePage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground">Alert Type</label>
+                        <label className="block text-sm font-medium text-foreground">
+                          Alert Type
+                        </label>
                         <select
                           value={newAlert.alertType}
-                          onChange={(e) => setNewAlert({ ...newAlert, alertType: e.target.value })}
+                          onChange={(e) =>
+                            setNewAlert({
+                              ...newAlert,
+                              alertType: e.target.value,
+                            })
+                          }
                           className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                         >
                           <option value="COST_THRESHOLD">Cost Threshold</option>
-                          <option value="RATE_LIMIT">Rate Limit (per hour)</option>
+                          <option value="RATE_LIMIT">
+                            Rate Limit (per hour)
+                          </option>
                           <option value="ERROR_RATE">Error Rate (%)</option>
                         </select>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-foreground">
-                          Threshold {newAlert.alertType === "COST_THRESHOLD" ? "(USD)" : ""}
+                          Threshold{" "}
+                          {newAlert.alertType === "COST_THRESHOLD"
+                            ? "(USD)"
+                            : ""}
                         </label>
                         <input
                           type="number"
                           value={newAlert.threshold}
                           onChange={(e) =>
-                            setNewAlert({ ...newAlert, threshold: parseFloat(e.target.value) })
+                            setNewAlert({
+                              ...newAlert,
+                              threshold: parseFloat(e.target.value),
+                            })
                           }
                           className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                         />

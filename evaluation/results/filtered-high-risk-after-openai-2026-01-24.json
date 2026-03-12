@@ -1,9 +1,6 @@
 {
   "filterMethod": "OpenAI GPT-4o-mini classification",
-  "scanDates": [
-    "2026-01-15",
-    "2026-01-16"
-  ],
+  "scanDates": ["2026-01-15", "2026-01-16"],
   "originalHighRisk": 831,
   "removedLegitimate": 286,
   "remainingSuspicious": 535,
@@ -3115,11 +3112,7 @@
       "sector": "Industrials",
       "lastPrice": 99.66,
       "totalScore": 7,
-      "signals": [
-        "SPIKE_7D",
-        "VOLUME_EXPLOSION",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "VOLUME_EXPLOSION", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 9
@@ -3131,11 +3124,7 @@
       "sector": "Financial Services",
       "lastPrice": 12.65,
       "totalScore": 7,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 7
@@ -3164,11 +3153,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.2878,
       "totalScore": 7,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 7
@@ -3197,11 +3182,7 @@
       "sector": "Communication Services",
       "lastPrice": 81.1,
       "totalScore": 7,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -3230,11 +3211,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 7.43,
       "totalScore": 7,
-      "signals": [
-        "SPIKE_7D",
-        "VOLUME_EXPLOSION",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "VOLUME_EXPLOSION", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 9
@@ -3246,11 +3223,7 @@
       "sector": "Healthcare",
       "lastPrice": 3.11,
       "totalScore": 7,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 7
@@ -3262,11 +3235,7 @@
       "sector": "Energy",
       "lastPrice": 5.07,
       "totalScore": 7,
-      "signals": [
-        "SPIKE_7D",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3278,11 +3247,7 @@
       "sector": "Financial Services",
       "lastPrice": 2.75,
       "totalScore": 7,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -3294,11 +3259,7 @@
       "sector": "Communication Services",
       "lastPrice": 1.48,
       "totalScore": 7,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 7
@@ -3310,11 +3271,7 @@
       "sector": "Technology",
       "lastPrice": 7.05,
       "totalScore": 7,
-      "signals": [
-        "SPIKE_7D",
-        "VOLUME_EXPLOSION",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "VOLUME_EXPLOSION", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -3326,11 +3283,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.0525,
       "totalScore": 7,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "SPIKE_THEN_DROP"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "SPIKE_THEN_DROP"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 7
@@ -3359,11 +3312,7 @@
       "sector": "Financial Services",
       "lastPrice": 55.23,
       "totalScore": 7,
-      "signals": [
-        "SPIKE_7D",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 7
@@ -3460,11 +3409,7 @@
       "sector": "Healthcare",
       "lastPrice": 1.25,
       "totalScore": 7,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "SPIKE_THEN_DROP"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "SPIKE_THEN_DROP"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 7
@@ -3476,11 +3421,7 @@
       "sector": "Basic Materials",
       "lastPrice": 42,
       "totalScore": 6,
-      "signals": [
-        "MICRO_LIQUIDITY",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICRO_LIQUIDITY", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3492,11 +3433,7 @@
       "sector": "Healthcare",
       "lastPrice": 23.86,
       "totalScore": 6,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3508,11 +3445,7 @@
       "sector": "Technology",
       "lastPrice": 2.12,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3524,11 +3457,7 @@
       "sector": "Basic Materials",
       "lastPrice": 17.65,
       "totalScore": 6,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -3540,11 +3469,7 @@
       "sector": "Real Estate",
       "lastPrice": 23.65,
       "totalScore": 6,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -3556,11 +3481,7 @@
       "sector": "Technology",
       "lastPrice": 21.55,
       "totalScore": 6,
-      "signals": [
-        "VOLUME_EXPLOSION",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["VOLUME_EXPLOSION", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3572,11 +3493,7 @@
       "sector": "Technology",
       "lastPrice": 1.61,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3588,11 +3505,7 @@
       "sector": "Healthcare",
       "lastPrice": 3.33,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3604,11 +3517,7 @@
       "sector": "Financial Services",
       "lastPrice": 1.5,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3620,11 +3529,7 @@
       "sector": "Technology",
       "lastPrice": 1.34,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3636,11 +3541,7 @@
       "sector": "Industrials",
       "lastPrice": 3.37,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3652,11 +3553,7 @@
       "sector": "Technology",
       "lastPrice": 3.53,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -3668,11 +3565,7 @@
       "sector": "Communication Services",
       "lastPrice": 5.29,
       "totalScore": 6,
-      "signals": [
-        "MICRO_LIQUIDITY",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICRO_LIQUIDITY", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -3684,11 +3577,7 @@
       "sector": "Technology",
       "lastPrice": 1.71,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3700,11 +3589,7 @@
       "sector": "Energy",
       "lastPrice": 4.33,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3716,11 +3601,7 @@
       "sector": "Industrials",
       "lastPrice": 1.14,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -3732,11 +3613,7 @@
       "sector": "Healthcare",
       "lastPrice": 1.44,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 7
@@ -3748,11 +3625,7 @@
       "sector": "Industrials",
       "lastPrice": 6.4,
       "totalScore": 6,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3764,11 +3637,7 @@
       "sector": "Healthcare",
       "lastPrice": 2.07,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3780,11 +3649,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 2.02,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3796,11 +3661,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 4,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3812,11 +3673,7 @@
       "sector": "Technology",
       "lastPrice": 2.24,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3828,11 +3685,7 @@
       "sector": "Industrials",
       "lastPrice": 2.4,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3844,11 +3697,7 @@
       "sector": "Technology",
       "lastPrice": 13.49,
       "totalScore": 6,
-      "signals": [
-        "VOLUME_EXPLOSION",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["VOLUME_EXPLOSION", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3860,11 +3709,7 @@
       "sector": "Basic Materials",
       "lastPrice": 1.1,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3876,11 +3721,7 @@
       "sector": "Healthcare",
       "lastPrice": 1.8,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -3892,11 +3733,7 @@
       "sector": "Healthcare",
       "lastPrice": 1.53,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -3908,11 +3745,7 @@
       "sector": "Technology",
       "lastPrice": 1.63,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3924,11 +3757,7 @@
       "sector": "Energy",
       "lastPrice": 0.9478,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -3940,11 +3769,7 @@
       "sector": "Healthcare",
       "lastPrice": 2.2,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -3956,11 +3781,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.5604,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -3972,11 +3793,7 @@
       "sector": "Financial Services",
       "lastPrice": 2.09,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -3988,11 +3805,7 @@
       "sector": "Basic Materials",
       "lastPrice": 0.1952,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4004,11 +3817,7 @@
       "sector": "Technology",
       "lastPrice": 2.37,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4037,11 +3846,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.302,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4053,11 +3858,7 @@
       "sector": "Technology",
       "lastPrice": 0.7443,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4069,11 +3870,7 @@
       "sector": "Communication Services",
       "lastPrice": 3.58,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4085,11 +3882,7 @@
       "sector": "Technology",
       "lastPrice": 0.4102,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4101,11 +3894,7 @@
       "sector": "Industrials",
       "lastPrice": 1.2,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4117,11 +3906,7 @@
       "sector": "Real Estate",
       "lastPrice": 0.166,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4133,11 +3918,7 @@
       "sector": "Technology",
       "lastPrice": 2.28,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4149,11 +3930,7 @@
       "sector": "Basic Materials",
       "lastPrice": 0.54,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 9
@@ -4165,11 +3942,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.3349,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 9
@@ -4181,11 +3954,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 1.32,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4197,11 +3966,7 @@
       "sector": "Communication Services",
       "lastPrice": 1.23,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -4213,11 +3978,7 @@
       "sector": "Industrials",
       "lastPrice": 1,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4229,11 +3990,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3965,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4245,11 +4002,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.896,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4261,11 +4014,7 @@
       "sector": "Technology",
       "lastPrice": 6.35,
       "totalScore": 6,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4277,11 +4026,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 3.07,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4293,11 +4038,7 @@
       "sector": "Industrials",
       "lastPrice": 0.393,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4309,11 +4050,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.238,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -4325,11 +4062,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.446,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4341,11 +4074,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.1025,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4357,11 +4086,7 @@
       "sector": "Technology",
       "lastPrice": 1.42,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4373,11 +4098,7 @@
       "sector": "Industrials",
       "lastPrice": 3.69,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4389,11 +4110,7 @@
       "sector": "Technology",
       "lastPrice": 0.363,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4405,11 +4122,7 @@
       "sector": "Industrials",
       "lastPrice": 0.3013,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4421,11 +4134,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.222,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 9
@@ -4437,11 +4146,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.3391,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4453,11 +4158,7 @@
       "sector": "Communication Services",
       "lastPrice": 3.91,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4469,11 +4170,7 @@
       "sector": "Communication Services",
       "lastPrice": 1.51,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4485,11 +4182,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.444,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4501,11 +4194,7 @@
       "sector": "Industrials",
       "lastPrice": 1.33,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4517,11 +4206,7 @@
       "sector": "Technology",
       "lastPrice": 0.4001,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4533,11 +4218,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.1903,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4549,11 +4230,7 @@
       "sector": "Industrials",
       "lastPrice": 2,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 9
@@ -4565,11 +4242,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.3328,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4581,11 +4254,7 @@
       "sector": "Basic Materials",
       "lastPrice": 1.41,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4597,11 +4266,7 @@
       "sector": "Healthcare",
       "lastPrice": 1.07,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4613,11 +4278,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.5044,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4646,11 +4307,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2791,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "OTC_EXCHANGE",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "OTC_EXCHANGE", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 9
@@ -4662,11 +4319,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.2,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4678,11 +4331,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 3.22,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4694,11 +4343,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.2225,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -4710,11 +4355,7 @@
       "sector": "Technology",
       "lastPrice": 0.752,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4726,11 +4367,7 @@
       "sector": "Industrials",
       "lastPrice": 0.1279,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4742,11 +4379,7 @@
       "sector": "Industrials",
       "lastPrice": 1.29,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4758,11 +4391,7 @@
       "sector": "Industrials",
       "lastPrice": 1.15,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4774,11 +4403,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.306,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 9
@@ -4790,11 +4415,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 1.93,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4806,11 +4427,7 @@
       "sector": "Communication Services",
       "lastPrice": 1.66,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4822,11 +4439,7 @@
       "sector": "Industrials",
       "lastPrice": 0.8468,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4838,11 +4451,7 @@
       "sector": "Financial Services",
       "lastPrice": 15.08,
       "totalScore": 6,
-      "signals": [
-        "MICRO_LIQUIDITY",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICRO_LIQUIDITY", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4854,11 +4463,7 @@
       "sector": "Financial Services",
       "lastPrice": 11.51,
       "totalScore": 6,
-      "signals": [
-        "MICRO_LIQUIDITY",
-        "VOLUME_EXPLOSION",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICRO_LIQUIDITY", "VOLUME_EXPLOSION", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4887,11 +4492,7 @@
       "sector": "Technology",
       "lastPrice": 1.08,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4903,11 +4504,7 @@
       "sector": "Technology",
       "lastPrice": 8.07,
       "totalScore": 6,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4919,11 +4516,7 @@
       "sector": "Energy",
       "lastPrice": 2.87,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4935,11 +4528,7 @@
       "sector": "Industrials",
       "lastPrice": 0.297,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4951,11 +4540,7 @@
       "sector": "Industrials",
       "lastPrice": 1.9,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -4967,11 +4552,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.2932,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4983,11 +4564,7 @@
       "sector": "Industrials",
       "lastPrice": 0.4192,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -4999,11 +4576,7 @@
       "sector": "Industrials",
       "lastPrice": 0.206,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -5015,11 +4588,7 @@
       "sector": "Technology",
       "lastPrice": 0.7117,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -5031,11 +4600,7 @@
       "sector": "Industrials",
       "lastPrice": 4.95,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -5047,11 +4612,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.1952,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -5063,11 +4624,7 @@
       "sector": "Energy",
       "lastPrice": 0.7921,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -5079,11 +4636,7 @@
       "sector": "Financial Services",
       "lastPrice": 1.44,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -5095,11 +4648,7 @@
       "sector": "Financial Services",
       "lastPrice": 73.91,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -5111,10 +4660,7 @@
       "sector": "Technology",
       "lastPrice": 15.84,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5126,10 +4672,7 @@
       "sector": "Real Estate",
       "lastPrice": 10,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5141,11 +4684,7 @@
       "sector": "Financial Services",
       "lastPrice": 1.59,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5157,11 +4696,7 @@
       "sector": "Communication Services",
       "lastPrice": 3.35,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5173,11 +4708,7 @@
       "sector": "Industrials",
       "lastPrice": 1.28,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5189,11 +4720,7 @@
       "sector": "Technology",
       "lastPrice": 0.3784,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -5205,11 +4732,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 5.3,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5221,10 +4744,7 @@
       "sector": "Technology",
       "lastPrice": 12.05,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5236,11 +4756,7 @@
       "sector": "Healthcare",
       "lastPrice": 2.99,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5252,10 +4768,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 3.84,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5267,11 +4780,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 2.87,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5283,11 +4792,7 @@
       "sector": "Industrials",
       "lastPrice": 2.53,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5299,11 +4804,7 @@
       "sector": "Industrials",
       "lastPrice": 0.9165,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5315,11 +4816,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.4317,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5331,11 +4828,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.25,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5347,11 +4840,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 2.23,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5363,11 +4852,7 @@
       "sector": "Industrials",
       "lastPrice": 2.31,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -5379,11 +4864,7 @@
       "sector": "Basic Materials",
       "lastPrice": 0.841,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5395,11 +4876,7 @@
       "sector": "Energy",
       "lastPrice": 1.04,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5411,11 +4888,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.7949,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5427,11 +4900,7 @@
       "sector": "Technology",
       "lastPrice": 0.4501,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5443,11 +4912,7 @@
       "sector": "Technology",
       "lastPrice": 1.95,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5459,11 +4924,7 @@
       "sector": "Technology",
       "lastPrice": 0.84,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -5475,11 +4936,7 @@
       "sector": "Industrials",
       "lastPrice": 0.8701,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5491,11 +4948,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.64,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -5507,11 +4960,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.18,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5523,11 +4972,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.0774,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5539,11 +4984,7 @@
       "sector": "Financial Services",
       "lastPrice": 3.15,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5555,11 +4996,7 @@
       "sector": "Industrials",
       "lastPrice": 3.25,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -5571,11 +5008,7 @@
       "sector": "Financial Services",
       "lastPrice": 2.44,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5587,11 +5020,7 @@
       "sector": "Industrials",
       "lastPrice": 0.7606,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -5603,11 +5032,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.896,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -5619,11 +5044,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.95,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5635,11 +5056,7 @@
       "sector": "Technology",
       "lastPrice": 1.92,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5651,11 +5068,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.595,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5667,11 +5080,7 @@
       "sector": "Technology",
       "lastPrice": 0.355,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5683,11 +5092,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 1.35,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5699,11 +5104,7 @@
       "sector": "Technology",
       "lastPrice": 2.67,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5715,11 +5116,7 @@
       "sector": "Industrials",
       "lastPrice": 2.66,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -5731,11 +5128,7 @@
       "sector": "Technology",
       "lastPrice": 0.1665,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5747,11 +5140,7 @@
       "sector": "Technology",
       "lastPrice": 0.875,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5763,11 +5152,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.07,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5779,11 +5164,7 @@
       "sector": "Technology",
       "lastPrice": 3.65,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -5795,11 +5176,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.15,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -5811,11 +5188,7 @@
       "sector": "Industrials",
       "lastPrice": 0.36,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "VOLUME_EXPLOSION",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "VOLUME_EXPLOSION", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5827,11 +5200,7 @@
       "sector": "Industrials",
       "lastPrice": 1.17,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5843,11 +5212,7 @@
       "sector": "Industrials",
       "lastPrice": 0.2221,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5859,11 +5224,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.8,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 12
@@ -5875,11 +5236,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.7691,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5891,11 +5248,7 @@
       "sector": "Technology",
       "lastPrice": 2.02,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5907,11 +5260,7 @@
       "sector": "Real Estate",
       "lastPrice": 1.78,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5923,11 +5272,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.0645,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5939,10 +5284,7 @@
       "sector": "Financial Services",
       "lastPrice": 5.53,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -5954,11 +5296,7 @@
       "sector": "Technology",
       "lastPrice": 0.681,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -5970,11 +5308,7 @@
       "sector": "Technology",
       "lastPrice": 1.25,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -5986,11 +5320,7 @@
       "sector": "Financial Services",
       "lastPrice": 1.12,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -6002,11 +5332,7 @@
       "sector": "Technology",
       "lastPrice": 0.73,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -6018,11 +5344,7 @@
       "sector": "Basic Materials",
       "lastPrice": 0.77,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6034,11 +5356,7 @@
       "sector": "Industrials",
       "lastPrice": 0.6882,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6050,11 +5368,7 @@
       "sector": "Technology",
       "lastPrice": 0.31,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6066,11 +5380,7 @@
       "sector": "Industrials",
       "lastPrice": 0.75,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6082,11 +5392,7 @@
       "sector": "Technology",
       "lastPrice": 1.93,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6098,11 +5404,7 @@
       "sector": "Industrials",
       "lastPrice": 0.335,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6114,11 +5416,7 @@
       "sector": "Industrials",
       "lastPrice": 0.43,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6130,11 +5428,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.29,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6146,11 +5440,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.69,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6162,11 +5452,7 @@
       "sector": "Energy",
       "lastPrice": 1.07,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6178,11 +5464,7 @@
       "sector": "Technology",
       "lastPrice": 0.87,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6194,11 +5476,7 @@
       "sector": "Energy",
       "lastPrice": 0.1303,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "VOLUME_EXPLOSION",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "VOLUME_EXPLOSION", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -6210,11 +5488,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.35,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6226,11 +5500,7 @@
       "sector": "Industrials",
       "lastPrice": 0.17,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6242,11 +5512,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.829,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6258,11 +5524,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.2804,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6274,11 +5536,7 @@
       "sector": "Industrials",
       "lastPrice": 0.5925,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6290,11 +5548,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.4908,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6306,11 +5560,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.26,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6322,11 +5572,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.44,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6338,11 +5584,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.0447,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6354,11 +5596,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 1.63,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6370,11 +5608,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.12,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6386,11 +5620,7 @@
       "sector": "Basic Materials",
       "lastPrice": 0.5798,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6402,11 +5632,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.7717,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6418,11 +5644,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.1018,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6434,11 +5656,7 @@
       "sector": "Technology",
       "lastPrice": 1.16,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6450,11 +5668,7 @@
       "sector": "Technology",
       "lastPrice": 0.384,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6466,11 +5680,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.0287,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6482,11 +5692,7 @@
       "sector": "Technology",
       "lastPrice": 2.08,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6498,11 +5704,7 @@
       "sector": "Basic Materials",
       "lastPrice": 0.6501,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6514,11 +5716,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 1.3,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6530,11 +5728,7 @@
       "sector": "Technology",
       "lastPrice": 1,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6546,11 +5740,7 @@
       "sector": "Industrials",
       "lastPrice": 1.02,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6562,11 +5752,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.8474,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6578,11 +5764,7 @@
       "sector": "Financial Services",
       "lastPrice": 2.16,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6594,11 +5776,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 1.32,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6610,11 +5788,7 @@
       "sector": "Industrials",
       "lastPrice": 0.3416,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6626,11 +5800,7 @@
       "sector": "Financial Services",
       "lastPrice": 1.16,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6642,11 +5812,7 @@
       "sector": "Technology",
       "lastPrice": 0.3948,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6658,11 +5824,7 @@
       "sector": "Technology",
       "lastPrice": 0.0749,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6674,11 +5836,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 2.06,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6690,11 +5848,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.0689,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6706,11 +5860,7 @@
       "sector": "Industrials",
       "lastPrice": 0.3776,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6722,11 +5872,7 @@
       "sector": "Industrials",
       "lastPrice": 3.81,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6738,11 +5884,7 @@
       "sector": "Industrials",
       "lastPrice": 0.4088,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6754,11 +5896,7 @@
       "sector": "Industrials",
       "lastPrice": 0.0727,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6770,11 +5908,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.094951,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 11
@@ -6786,11 +5920,7 @@
       "sector": "Technology",
       "lastPrice": 0.08,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6802,11 +5932,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.726,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6818,11 +5944,7 @@
       "sector": "Technology",
       "lastPrice": 0.0603,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6834,10 +5956,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.4734,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6849,11 +5968,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.1942,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6865,11 +5980,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.2527,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6881,11 +5992,7 @@
       "sector": "Technology",
       "lastPrice": 1.43,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -6897,11 +6004,7 @@
       "sector": "Industrials",
       "lastPrice": 0.139,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6913,11 +6016,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.59,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6929,11 +6028,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1404,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6945,11 +6040,7 @@
       "sector": "Technology",
       "lastPrice": 0.2008,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6961,11 +6052,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 1.46,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -6977,11 +6064,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.0641,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -6993,11 +6076,7 @@
       "sector": "Industrials",
       "lastPrice": 0.03,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7009,11 +6088,7 @@
       "sector": "Energy",
       "lastPrice": 0.042009,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7025,11 +6100,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.9411,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "VOLUME_EXPLOSION",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "VOLUME_EXPLOSION", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7041,11 +6112,7 @@
       "sector": "Technology",
       "lastPrice": 0.0825,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7057,11 +6124,7 @@
       "sector": "Technology",
       "lastPrice": 0.1999,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7073,11 +6136,7 @@
       "sector": "Technology",
       "lastPrice": 0.0073,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7089,11 +6148,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.34,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7105,11 +6160,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.03,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7121,11 +6172,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.036,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7137,11 +6184,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.0588,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7153,11 +6196,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.0403,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7169,11 +6208,7 @@
       "sector": "Technology",
       "lastPrice": 0.0074,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7185,11 +6220,7 @@
       "sector": "Industrials",
       "lastPrice": 0.1058,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7201,11 +6232,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.03,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7217,11 +6244,7 @@
       "sector": "Industrials",
       "lastPrice": 0.0251,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7233,11 +6256,7 @@
       "sector": "Basic Materials",
       "lastPrice": 0.0047,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 11
@@ -7249,11 +6268,7 @@
       "sector": "Technology",
       "lastPrice": 0.0898,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7265,11 +6280,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.0211,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7281,11 +6292,7 @@
       "sector": "Technology",
       "lastPrice": 0.1,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 12
@@ -7297,11 +6304,7 @@
       "sector": "Industrials",
       "lastPrice": 0.0126,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7313,11 +6316,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.0145,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7329,11 +6328,7 @@
       "sector": "Technology",
       "lastPrice": 0.0359,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7345,11 +6340,7 @@
       "sector": "Technology",
       "lastPrice": 0.0157,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7361,11 +6352,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.0118,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7377,11 +6364,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.00875,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7393,11 +6376,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.0098,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7409,11 +6388,7 @@
       "sector": "Technology",
       "lastPrice": 0.0299,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7425,11 +6400,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.015,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7441,11 +6412,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.0499,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7457,11 +6424,7 @@
       "sector": "Technology",
       "lastPrice": 0.0098,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7473,11 +6436,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.0095,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7489,11 +6448,7 @@
       "sector": "Industrials",
       "lastPrice": 0.0041,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7505,11 +6460,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.0145,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7521,11 +6472,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.0087,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7537,11 +6484,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.36659,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7553,11 +6496,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.4103,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7569,11 +6508,7 @@
       "sector": "Financial Services",
       "lastPrice": 64.33,
       "totalScore": 5,
-      "signals": [
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICRO_LIQUIDITY", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7585,11 +6520,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.58,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7601,11 +6532,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3599,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7617,11 +6544,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1757,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7633,11 +6556,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.25,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7649,11 +6568,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.28,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7665,11 +6580,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1999,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7681,11 +6592,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.6401,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7697,11 +6604,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.54,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7713,11 +6616,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.05,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7729,11 +6628,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2095,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7745,11 +6640,7 @@
       "sector": "Financial Services",
       "lastPrice": 10.47,
       "totalScore": 5,
-      "signals": [
-        "MICRO_LIQUIDITY",
-        "VOLUME_EXPLOSION",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICRO_LIQUIDITY", "VOLUME_EXPLOSION", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -7761,11 +6652,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1796,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7777,11 +6664,7 @@
       "sector": "Financial Services",
       "lastPrice": 9.99,
       "totalScore": 5,
-      "signals": [
-        "MICRO_LIQUIDITY",
-        "VOLUME_EXPLOSION",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICRO_LIQUIDITY", "VOLUME_EXPLOSION", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -7793,11 +6676,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1601,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7809,11 +6688,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3711,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7825,11 +6700,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.22,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7841,11 +6712,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.27,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7857,11 +6724,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2451,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7873,11 +6736,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.16,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7889,11 +6748,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1154,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7905,11 +6760,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.7,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7921,11 +6772,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.33,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7937,11 +6784,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3105,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7953,11 +6796,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.5101,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -7969,11 +6808,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.135,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 8
@@ -7985,11 +6820,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.14,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8001,11 +6832,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.63,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 9
@@ -8017,11 +6844,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2713,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8033,11 +6856,7 @@
       "sector": "Financial Services",
       "lastPrice": 2.6,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8049,11 +6868,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.275,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8065,11 +6880,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.25,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8081,11 +6892,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.4,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8097,11 +6904,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2494,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8113,11 +6916,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.0611,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8129,11 +6928,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.13,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8145,11 +6940,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.5,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8161,11 +6952,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2217,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8177,11 +6964,7 @@
       "sector": "Financial Services",
       "lastPrice": 1.7,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8193,11 +6976,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2199,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8209,11 +6988,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.14,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8225,11 +7000,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.9002,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -8241,11 +7012,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.54,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 6
@@ -8257,11 +7024,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.14,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8273,11 +7036,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3091,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8289,11 +7048,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.13,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8305,11 +7060,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.21,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8321,11 +7072,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.23,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8337,11 +7084,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.74,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8353,11 +7096,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.24,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8369,11 +7108,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2799,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8385,11 +7120,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3428,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8401,11 +7132,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2625,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8417,11 +7144,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.31,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8433,11 +7156,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.6089,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8449,11 +7168,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.97,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8465,11 +7180,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.26,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8481,11 +7192,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.35,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8497,11 +7204,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3011,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8513,11 +7216,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.185,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8529,11 +7228,7 @@
       "sector": "Financial Services",
       "lastPrice": 10.39,
       "totalScore": 5,
-      "signals": [
-        "MICRO_LIQUIDITY",
-        "VOLUME_EXPLOSION",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICRO_LIQUIDITY", "VOLUME_EXPLOSION", "OVERBOUGHT_RSI"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8545,11 +7240,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.4325,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8561,11 +7252,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2101,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8577,11 +7264,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3246,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8593,11 +7276,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.17,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8609,11 +7288,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.49,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8625,11 +7300,7 @@
       "sector": "Financial Services",
       "lastPrice": 1.69,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8641,11 +7312,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.88,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8657,11 +7324,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 3.15,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8673,11 +7336,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 1.75,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8689,11 +7348,7 @@
       "sector": "Financial Services",
       "lastPrice": 18.51,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -8705,11 +7360,7 @@
       "sector": "Technology",
       "lastPrice": 2.19,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8721,11 +7372,7 @@
       "sector": "Industrials",
       "lastPrice": 0.905,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8737,11 +7384,7 @@
       "sector": "Industrials",
       "lastPrice": 0.4211,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -8753,11 +7396,7 @@
       "sector": "Technology",
       "lastPrice": 1.55,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8769,11 +7408,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.999,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8785,11 +7420,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.873,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -8801,11 +7432,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.69,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "SUSPICIOUS",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -10251,11 +8878,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 1.37,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "OVERBOUGHT_RSI"],
       "classification": "UNKNOWN",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -10267,11 +8890,7 @@
       "sector": "Financial Services",
       "lastPrice": 57.82,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "UNKNOWN",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -10283,11 +8902,7 @@
       "sector": "Energy",
       "lastPrice": 11.69,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "UNKNOWN",
       "persistentHighRisk": false,
       "jan15Score": null
@@ -10299,11 +8914,7 @@
       "sector": "Basic Materials",
       "lastPrice": 9.14,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "classification": "UNKNOWN",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -10315,11 +8926,7 @@
       "sector": "Utilities",
       "lastPrice": 2.26,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "UNKNOWN",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -10331,11 +8938,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.9799,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "UNKNOWN",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -10347,11 +8950,7 @@
       "sector": "Healthcare",
       "lastPrice": 1.1,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "UNKNOWN",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -10363,11 +8962,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.9601,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "UNKNOWN",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -10379,11 +8974,7 @@
       "sector": "Basic Materials",
       "lastPrice": 1.62,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "VOLUME_EXPLOSION",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "VOLUME_EXPLOSION", "HIGH_VOLATILITY"],
       "classification": "UNKNOWN",
       "persistentHighRisk": true,
       "jan15Score": 5
@@ -10395,11 +8986,7 @@
       "sector": "Unknown",
       "lastPrice": 1.31,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "classification": "UNKNOWN",
       "persistentHighRisk": true,
       "jan15Score": 5

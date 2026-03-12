@@ -4,14 +4,14 @@
 
 ## Metadata
 
-| Field | Value |
-|-------|-------|
-| **Analysis Date** | January 13, 2026 |
-| **Comparison Period** | January 12, 2026 → January 13, 2026 |
-| **Data Source** | Financial Modeling Prep (FMP) Stable API |
-| **Total Stocks in Universe** | 6,970 |
-| **Scan Status** | ✅ COMPLETE (6,551 stocks evaluated, 70 minute scan) |
-| **Report Generated** | January 14, 2026 (pre-market) |
+| Field                        | Value                                                |
+| ---------------------------- | ---------------------------------------------------- |
+| **Analysis Date**            | January 13, 2026                                     |
+| **Comparison Period**        | January 12, 2026 → January 13, 2026                  |
+| **Data Source**              | Financial Modeling Prep (FMP) Stable API             |
+| **Total Stocks in Universe** | 6,970                                                |
+| **Scan Status**              | ✅ COMPLETE (6,551 stocks evaluated, 70 minute scan) |
+| **Report Generated**         | January 14, 2026 (pre-market)                        |
 
 ---
 
@@ -19,13 +19,13 @@
 
 ### Key Findings
 
-| Metric | Value | Trend |
-|--------|-------|-------|
-| **Net HIGH Risk Change** | -27 (1,450 → 1,423) | ↓ Slight decrease |
-| **EVTV Explosion** | +40.2% single day, 270M volume | 🔴 EXTREME |
-| **Promoted Stocks Status** | 10 tracked (1 NEW) | 5 in dump phase, 5 in pump phase |
-| **Making Easy Money Discord** | REOPENED (was private) | 🟡 Now accepting members |
-| **Grandmaster-Obi Comparison** | "The New Roaring Kitty" | Media attention increasing |
+| Metric                         | Value                          | Trend                            |
+| ------------------------------ | ------------------------------ | -------------------------------- |
+| **Net HIGH Risk Change**       | -27 (1,450 → 1,423)            | ↓ Slight decrease                |
+| **EVTV Explosion**             | +40.2% single day, 270M volume | 🔴 EXTREME                       |
+| **Promoted Stocks Status**     | 10 tracked (1 NEW)             | 5 in dump phase, 5 in pump phase |
+| **Making Easy Money Discord**  | REOPENED (was private)         | 🟡 Now accepting members         |
+| **Grandmaster-Obi Comparison** | "The New Roaring Kitty"        | Media attention increasing       |
 
 ### Headlines
 
@@ -41,25 +41,26 @@
 
 ### Overall Distribution
 
-| Risk Level | Jan 12 | Jan 13/14 | Change |
-|------------|--------|-----------|--------|
-| **HIGH** | 1,450 | 1,423 | -27 ↓ |
-| **MEDIUM** | 1,864 | 1,886 | +22 ↑ |
-| **LOW** | 3,234 | 3,242 | +8 ↑ |
-| **INSUFFICIENT** | 0 | 0 | - |
-| **Total Evaluated** | 6,548 | 6,551 | +3 |
-| **Skipped (No Data)** | 422 | 419 | -3 |
+| Risk Level            | Jan 12 | Jan 13/14 | Change |
+| --------------------- | ------ | --------- | ------ |
+| **HIGH**              | 1,450  | 1,423     | -27 ↓  |
+| **MEDIUM**            | 1,864  | 1,886     | +22 ↑  |
+| **LOW**               | 3,234  | 3,242     | +8 ↑   |
+| **INSUFFICIENT**      | 0      | 0         | -      |
+| **Total Evaluated**   | 6,548  | 6,551     | +3     |
+| **Skipped (No Data)** | 422    | 419       | -3     |
 
 ### Exchange Breakdown (January 14 Scan)
 
-| Exchange | Total | HIGH | MEDIUM | LOW |
-|----------|-------|------|--------|-----|
-| **NASDAQ** | 3,978 | 1,263 | 1,253 | 1,462 |
-| **NYSE** | 2,342 | 72 | 527 | 1,743 |
-| **AMEX** | 227 | 84 | 106 | 37 |
-| **OTC** | 4 | 4 | 0 | 0 |
+| Exchange   | Total | HIGH  | MEDIUM | LOW   |
+| ---------- | ----- | ----- | ------ | ----- |
+| **NASDAQ** | 3,978 | 1,263 | 1,253  | 1,462 |
+| **NYSE**   | 2,342 | 72    | 527    | 1,743 |
+| **AMEX**   | 227   | 84    | 106    | 37    |
+| **OTC**    | 4     | 4     | 0      | 0     |
 
 ### Scan Statistics
+
 - **Duration:** 70 minutes
 - **API Calls:** 13,940
 - **Start Time:** 2026-01-14 11:38:47 UTC
@@ -87,33 +88,33 @@ Social media platforms are increasingly comparing Grandmaster-Obi to Keith Gill 
 
 #### Performance Summary
 
-| Symbol | Alert Date | Alert Price | Jan 13 Price | Day Change | Total Return | Status |
-|--------|------------|-------------|--------------|------------|--------------|--------|
-| **EVTV** | Jan 13 | $0.78 | $3.52 | **+40.2%** | **+351%** | 🔴 HOT PUMP |
-| **MRNO** | Dec 31 | $0.55 | $1.83 | **+24.5%** | **+233%** | PUMP |
-| **UAVS** | Jan 6 | ~$0.85 | $1.76 | **+11.7%** | **+107%** | PUMP |
-| **INBS** | Dec 31 | $6.90 | $16.67 | **+9.2%** | **+142%** | PUMP |
-| **GPUS** | Jan 2 | $0.25 | $0.32 | -4.8% | +28% | Cooling |
-| **ANPA** | Jan 7 | $24.40 | $84.01 | **-9.7%** | +244% | ⚠️ ENTERING DUMP? |
-| **MNTS** | Dec 31 | $7.12 | $9.50 | -8.1% | +33% | DUMP |
-| **LVRO** | Dec 31 | $0.18 | $0.89 | **-16.4%** | +394% | DUMP |
-| **SIDU** | Dec 19 | $0.90 | $3.11 | -8.8% | +246% | DUMP |
-| **DVLT** | Dec 31 | $0.62 | $0.80 | -9.5% | +29% | DUMP |
+| Symbol   | Alert Date | Alert Price | Jan 13 Price | Day Change | Total Return | Status            |
+| -------- | ---------- | ----------- | ------------ | ---------- | ------------ | ----------------- |
+| **EVTV** | Jan 13     | $0.78       | $3.52        | **+40.2%** | **+351%**    | 🔴 HOT PUMP       |
+| **MRNO** | Dec 31     | $0.55       | $1.83        | **+24.5%** | **+233%**    | PUMP              |
+| **UAVS** | Jan 6      | ~$0.85      | $1.76        | **+11.7%** | **+107%**    | PUMP              |
+| **INBS** | Dec 31     | $6.90       | $16.67       | **+9.2%**  | **+142%**    | PUMP              |
+| **GPUS** | Jan 2      | $0.25       | $0.32        | -4.8%      | +28%         | Cooling           |
+| **ANPA** | Jan 7      | $24.40      | $84.01       | **-9.7%**  | +244%        | ⚠️ ENTERING DUMP? |
+| **MNTS** | Dec 31     | $7.12       | $9.50        | -8.1%      | +33%         | DUMP              |
+| **LVRO** | Dec 31     | $0.18       | $0.89        | **-16.4%** | +394%        | DUMP              |
+| **SIDU** | Dec 19     | $0.90       | $3.11        | -8.8%      | +246%        | DUMP              |
+| **DVLT** | Dec 31     | $0.62       | $0.80        | -9.5%      | +29%         | DUMP              |
 
 #### NEW: EVTV - The January 13 Explosion
 
 **EVTV (Envirotech Vehicles, Inc.)** is the day's biggest story:
 
-| Metric | Value |
-|--------|-------|
-| **Alert Price** | $0.78 (reported) |
-| **Current Price** | $3.52 |
-| **Day High** | $4.91 |
-| **Total Return from Alert** | +351% |
-| **Today's Volume** | 270,674,503 shares |
-| **Normal Daily Volume** | ~5M |
-| **Volume Explosion** | 54x normal |
-| **Market Cap** | $12.4M |
+| Metric                      | Value              |
+| --------------------------- | ------------------ |
+| **Alert Price**             | $0.78 (reported)   |
+| **Current Price**           | $3.52              |
+| **Day High**                | $4.91              |
+| **Total Return from Alert** | +351%              |
+| **Today's Volume**          | 270,674,503 shares |
+| **Normal Daily Volume**     | ~5M                |
+| **Volume Explosion**        | 54x normal         |
+| **Market Cap**              | $12.4M             |
 
 **Catalyst:** $107M Azio AI government contract announcement (potential "cover story" for coordinated buying)
 
@@ -163,6 +164,7 @@ MNTS:   [██████████████████████░�
 - Pattern identical to previous SCHEME-001 promotions
 
 **Articles/Sources:**
+
 - 247 Wall Street: "EVTV surges 500% on government contract news"
 - Stocktwits EVTV stream: 10,000+ messages today
 - Reddit discussions linking move to "Making Easy Money" server
@@ -170,12 +172,14 @@ MNTS:   [██████████████████████░�
 #### 2. Making Easy Money Discord - REOPENED
 
 **Timeline:**
+
 - Jan 10: Discord announced "closing to new members"
 - Jan 11-12: Discord fully private, invite-only
 - Jan 13: **REOPENED** with 17,265 members (up from ~15,000)
 - New stocks being discussed: **HOLO, MLGO, AQST, CLOV**
 
 **Concern Level:** 🟡 ELEVATED
+
 - Server reopening indicates promoter confidence
 - New stock mentions could signal upcoming pump targets
 - AQST confirmed in HIGH risk list (3 signals)
@@ -184,13 +188,13 @@ MNTS:   [██████████████████████░�
 
 **Breaking:** VLN surged **+65%** on January 13 with "no tangible news"
 
-| Metric | Value |
-|--------|-------|
-| **Price Move** | +65% (single day) |
-| **News Catalyst** | NONE identified |
-| **Social Media** | "Social media-driven enthusiasm" |
-| **Forum Reaction** | Users questioning legitimacy |
-| **Current Assessment** | Potential SCHEME-003 candidate |
+| Metric                 | Value                            |
+| ---------------------- | -------------------------------- |
+| **Price Move**         | +65% (single day)                |
+| **News Catalyst**      | NONE identified                  |
+| **Social Media**       | "Social media-driven enthusiasm" |
+| **Forum Reaction**     | Users questioning legitimacy     |
+| **Current Assessment** | Potential SCHEME-003 candidate   |
 
 **Note:** Not currently linked to Grandmaster-Obi operation but shows classic pump signals.
 
@@ -206,24 +210,24 @@ MNTS:   [██████████████████████░�
 
 Social media increasingly comparing Grandmaster-Obi to Keith Gill:
 
-| Similarity | Roaring Kitty (2021) | Grandmaster-Obi (2026) |
-|------------|---------------------|------------------------|
-| Platform | Reddit/YouTube | Discord/YouTube |
-| Following | 50,000+ | 15,000+ |
-| Stock focus | Single stock (GME) | Multiple micro-caps |
-| Returns claimed | 100x+ | 300-500% per stock |
-| Disclosure | Clear position statements | None visible |
-| SEC outcome | Congressional testimony | TBD |
+| Similarity      | Roaring Kitty (2021)      | Grandmaster-Obi (2026) |
+| --------------- | ------------------------- | ---------------------- |
+| Platform        | Reddit/YouTube            | Discord/YouTube        |
+| Following       | 50,000+                   | 15,000+                |
+| Stock focus     | Single stock (GME)        | Multiple micro-caps    |
+| Returns claimed | 100x+                     | 300-500% per stock     |
+| Disclosure      | Clear position statements | None visible           |
+| SEC outcome     | Congressional testimony   | TBD                    |
 
 ### Platform Activity Summary
 
-| Platform | Activity Level | Key Stocks | Notes |
-|----------|---------------|------------|-------|
-| **Discord** | PRIVATE | All promoted | No new members |
-| **Stocktwits** | 🔴 EXTREME | EVTV, ANPA | 10,000+ EVTV messages |
-| **Reddit** | HIGH | EVTV, ANPA | Multiple WallStreetBets posts |
-| **Twitter/X** | HIGH | @ObiMem | Active promotion |
-| **YouTube** | MODERATE | @OBIfrmMEM | Pre-recorded content |
+| Platform       | Activity Level | Key Stocks   | Notes                         |
+| -------------- | -------------- | ------------ | ----------------------------- |
+| **Discord**    | PRIVATE        | All promoted | No new members                |
+| **Stocktwits** | 🔴 EXTREME     | EVTV, ANPA   | 10,000+ EVTV messages         |
+| **Reddit**     | HIGH           | EVTV, ANPA   | Multiple WallStreetBets posts |
+| **Twitter/X**  | HIGH           | @ObiMem      | Active promotion              |
+| **YouTube**    | MODERATE       | @OBIfrmMEM   | Pre-recorded content          |
 
 ---
 
@@ -231,18 +235,18 @@ Social media increasingly comparing Grandmaster-Obi to Keith Gill:
 
 ### Pattern Signal Distribution
 
-| Stock | SPIKE_7D | SPIKE_THEN_DROP | VOLUME_EXPLOSION | RSI Overbought |
-|-------|----------|-----------------|------------------|----------------|
-| **EVTV** | ✓ (+40%) | Pending | ✓ (54x) | Likely |
-| **MRNO** | ✓ (+24%) | - | ✓ (2.5M) | Possible |
-| **UAVS** | ✓ (+12%) | - | ✓ (49M) | Possible |
-| **INBS** | ✓ (+9%) | - | ✓ (683K) | Possible |
-| **ANPA** | ✓ (trailing) | ⚠️ Starting | ✓ (trailing) | ✓ (was 97) |
-| **GPUS** | ✓ (trailing) | - | ✓ (50M) | - |
-| **LVRO** | ✓ (trailing) | ✓ | ✓ (trailing) | - |
-| **SIDU** | ✓ (trailing) | ✓ | ✓ (31M) | - |
-| **DVLT** | ✓ (trailing) | ✓ | ✓ (93M) | - |
-| **MNTS** | ✓ (trailing) | ✓ | ✓ (1.5M) | - |
+| Stock    | SPIKE_7D     | SPIKE_THEN_DROP | VOLUME_EXPLOSION | RSI Overbought |
+| -------- | ------------ | --------------- | ---------------- | -------------- |
+| **EVTV** | ✓ (+40%)     | Pending         | ✓ (54x)          | Likely         |
+| **MRNO** | ✓ (+24%)     | -               | ✓ (2.5M)         | Possible       |
+| **UAVS** | ✓ (+12%)     | -               | ✓ (49M)          | Possible       |
+| **INBS** | ✓ (+9%)      | -               | ✓ (683K)         | Possible       |
+| **ANPA** | ✓ (trailing) | ⚠️ Starting     | ✓ (trailing)     | ✓ (was 97)     |
+| **GPUS** | ✓ (trailing) | -               | ✓ (50M)          | -              |
+| **LVRO** | ✓ (trailing) | ✓               | ✓ (trailing)     | -              |
+| **SIDU** | ✓ (trailing) | ✓               | ✓ (31M)          | -              |
+| **DVLT** | ✓ (trailing) | ✓               | ✓ (93M)          | -              |
+| **MNTS** | ✓ (trailing) | ✓               | ✓ (1.5M)         | -              |
 
 ### Interpretation
 
@@ -257,15 +261,16 @@ Social media increasingly comparing Grandmaster-Obi to Keith Gill:
 
 ### Status Update
 
-| Symbol | Name | Market Cap | Status | Notes |
-|--------|------|------------|--------|-------|
-| **AHMA** | Ambitions Enterprise | $153.4M | MONITORING | No update Jan 13 |
-| **AMCI** | AMC Robotics | $168.6M | MONITORING | No update Jan 13 |
-| **ELWS** | Earlyworks Co. | $16.7M | MONITORING | No update Jan 13 |
-| **MMA** | Mixed Martial Arts | $13.9M | MONITORING | No update Jan 13 |
-| **LYRA** | Lyra Therapeutics | $3.1M | MONITORING | No update Jan 13 |
+| Symbol   | Name                 | Market Cap | Status     | Notes            |
+| -------- | -------------------- | ---------- | ---------- | ---------------- |
+| **AHMA** | Ambitions Enterprise | $153.4M    | MONITORING | No update Jan 13 |
+| **AMCI** | AMC Robotics         | $168.6M    | MONITORING | No update Jan 13 |
+| **ELWS** | Earlyworks Co.       | $16.7M     | MONITORING | No update Jan 13 |
+| **MMA**  | Mixed Martial Arts   | $13.9M     | MONITORING | No update Jan 13 |
+| **LYRA** | Lyra Therapeutics    | $3.1M      | MONITORING | No update Jan 13 |
 
 **Action Items:**
+
 - [ ] Continue monitoring for social media activity
 - [ ] Check if any link to SCHEME-001 emerges
 - [ ] Update when full scan resumes
@@ -278,24 +283,24 @@ Social media increasingly comparing Grandmaster-Obi to Keith Gill:
 
 These stocks were identified through the January 13/14 social media scan as showing manipulation signals independent of SCHEME-001:
 
-| Symbol | Name | Price Action | Key Evidence | Status |
-|--------|------|--------------|--------------|--------|
-| **VLN** | Valens Semiconductor | +65% (1 day) | "No tangible news", "social media-driven" | 🔴 INVESTIGATING |
-| **SXTC** | China SXT Pharmaceuticals | +200% then -37% | Forum users: "absolutely manipulation" | 🔴 INVESTIGATING |
-| **AQST** | Aquestive Therapeutics | In HIGH risk list | Discussed in Discord, 3 pump signals | 🟡 MONITORING |
+| Symbol   | Name                      | Price Action      | Key Evidence                              | Status           |
+| -------- | ------------------------- | ----------------- | ----------------------------------------- | ---------------- |
+| **VLN**  | Valens Semiconductor      | +65% (1 day)      | "No tangible news", "social media-driven" | 🔴 INVESTIGATING |
+| **SXTC** | China SXT Pharmaceuticals | +200% then -37%   | Forum users: "absolutely manipulation"    | 🔴 INVESTIGATING |
+| **AQST** | Aquestive Therapeutics    | In HIGH risk list | Discussed in Discord, 3 pump signals      | 🟡 MONITORING    |
 
 ### VLN Deep Dive
 
 **Valens Semiconductor (VLN)** is the most suspicious find from the social media scan:
 
-| Metric | Value |
-|--------|-------|
-| **January 13 Move** | +65% single day |
-| **News Catalyst** | NONE identified |
-| **Forum Commentary** | "No tangible news to justify this" |
-| **Social Media** | Heavy retail chatter, no clear source |
-| **In HIGH Risk List** | Yes (7 signals) |
-| **Signals** | SPIKE_7D, VOLUME_EXPLOSION, likely others |
+| Metric                | Value                                     |
+| --------------------- | ----------------------------------------- |
+| **January 13 Move**   | +65% single day                           |
+| **News Catalyst**     | NONE identified                           |
+| **Forum Commentary**  | "No tangible news to justify this"        |
+| **Social Media**      | Heavy retail chatter, no clear source     |
+| **In HIGH Risk List** | Yes (7 signals)                           |
+| **Signals**           | SPIKE_7D, VOLUME_EXPLOSION, likely others |
 
 **Assessment:** VLN shows classic pump characteristics - massive price move with no fundamental catalyst. Source of coordination not yet identified. Could be separate Discord/Telegram group.
 
@@ -303,12 +308,12 @@ These stocks were identified through the January 13/14 social media scan as show
 
 **China SXT Pharmaceuticals (SXTC)** shows clear manipulation pattern:
 
-| Metric | Value |
-|--------|-------|
-| **Price Pattern** | +200% spike followed by -37% dump |
-| **Forum Discussion** | "jumped without any news, that was absolutely manipulation" |
-| **In HIGH Risk List** | Yes (6 signals) |
-| **Manipulation Evidence** | Forum users openly discussing manipulation |
+| Metric                    | Value                                                       |
+| ------------------------- | ----------------------------------------------------------- |
+| **Price Pattern**         | +200% spike followed by -37% dump                           |
+| **Forum Discussion**      | "jumped without any news, that was absolutely manipulation" |
+| **In HIGH Risk List**     | Yes (6 signals)                                             |
+| **Manipulation Evidence** | Forum users openly discussing manipulation                  |
 
 **Assessment:** SXTC appears to be a completed pump-and-dump cycle. Dump phase may be ongoing.
 
@@ -316,14 +321,15 @@ These stocks were identified through the January 13/14 social media scan as show
 
 The reopened Making Easy Money Discord is discussing these new stocks:
 
-| Symbol | Name | In HIGH Risk? | Signals | Notes |
-|--------|------|---------------|---------|-------|
-| **HOLO** | MicroCloud Hologram | Unknown | TBD | New Discord mention |
-| **MLGO** | MicroAlgo Inc | Unknown | TBD | New Discord mention |
-| **AQST** | Aquestive Therapeutics | ✅ YES | 3 signals | MICROCAP_PRICE, SPIKE_7D, HIGH_VOLATILITY |
-| **CLOV** | Clover Health | Unknown | TBD | Previous meme stock |
+| Symbol   | Name                   | In HIGH Risk? | Signals   | Notes                                     |
+| -------- | ---------------------- | ------------- | --------- | ----------------------------------------- |
+| **HOLO** | MicroCloud Hologram    | Unknown       | TBD       | New Discord mention                       |
+| **MLGO** | MicroAlgo Inc          | Unknown       | TBD       | New Discord mention                       |
+| **AQST** | Aquestive Therapeutics | ✅ YES        | 3 signals | MICROCAP_PRICE, SPIKE_7D, HIGH_VOLATILITY |
+| **CLOV** | Clover Health          | Unknown       | TBD       | Previous meme stock                       |
 
 **Action Required:**
+
 - [ ] Deep dive on HOLO, MLGO, CLOV risk profiles
 - [ ] Monitor VLN for continued price action
 - [ ] Track SXTC dump phase completion
@@ -336,6 +342,7 @@ The reopened Making Easy Money Discord is discussing these new stocks:
 ### 1. Promotion Velocity Increasing
 
 Grandmaster-Obi's operation is accelerating:
+
 - EVTV represents fastest pump yet (+40% in single day)
 - Multiple stocks being promoted simultaneously
 - Volume suggests coordinated buying at massive scale
@@ -343,6 +350,7 @@ Grandmaster-Obi's operation is accelerating:
 ### 2. Lifecycle Patterns Confirmed
 
 The rotation from pump to dump is clearly visible:
+
 - Stocks typically pump for 5-10 days
 - Peak is followed by rapid decline
 - ANPA may be entering dump phase today (first -9.7% day)
@@ -351,6 +359,7 @@ The rotation from pump to dump is clearly visible:
 ### 3. Regulatory Risk Elevated
 
 Multiple factors suggest increased scrutiny coming:
+
 - Discord going private (evidence protection?)
 - Media comparisons to Roaring Kitty
 - EVTV's extreme volume (270M shares on $12M market cap)
@@ -361,11 +370,11 @@ Multiple factors suggest increased scrutiny coming:
 Investors who bought at or near peaks:
 
 | Stock | Peak Price | Current Price | Loss % |
-|-------|------------|---------------|--------|
-| ANPA | $108.68 | $84.01 | -23% |
-| LVRO | $1.49 | $0.89 | -40% |
-| SIDU | $5.82 | $3.11 | -47% |
-| DVLT | $1.50 | $0.80 | -47% |
+| ----- | ---------- | ------------- | ------ |
+| ANPA  | $108.68    | $84.01        | -23%   |
+| LVRO  | $1.49      | $0.89         | -40%   |
+| SIDU  | $5.82      | $3.11         | -47%   |
+| DVLT  | $1.50      | $0.80         | -47%   |
 
 ---
 
@@ -375,13 +384,13 @@ Investors who bought at or near peaks:
 
 These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential future promotion targets:
 
-| Symbol | Name | Market Cap | Signals | Notes |
-|--------|------|------------|---------|-------|
-| **MTEN** | Mingteng International | $0.7M | All signals | Extreme risk |
-| **SGN** | Signing Day Sports | $2.3M | SPIKE + VOLUME | Possible target |
-| **CDIO** | Cardio Diagnostics | $3.2M | SPIKE + VOLUME | Possible target |
-| **GP** | GreenPower Motor | $3.6M | SPIKE + VOLUME | EV theme match |
-| **SOWG** | Sow Good | $7.2M | SPIKE + VOLUME | Food/consumer |
+| Symbol   | Name                   | Market Cap | Signals        | Notes           |
+| -------- | ---------------------- | ---------- | -------------- | --------------- |
+| **MTEN** | Mingteng International | $0.7M      | All signals    | Extreme risk    |
+| **SGN**  | Signing Day Sports     | $2.3M      | SPIKE + VOLUME | Possible target |
+| **CDIO** | Cardio Diagnostics     | $3.2M      | SPIKE + VOLUME | Possible target |
+| **GP**   | GreenPower Motor       | $3.6M      | SPIKE + VOLUME | EV theme match  |
+| **SOWG** | Sow Good               | $7.2M      | SPIKE + VOLUME | Food/consumer   |
 
 **EVTV was on this list on January 12** - This validates the predictive capability of the signal detection system.
 
@@ -416,27 +425,27 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
 
 ### Multi-Day Pattern (5-Day Lookback)
 
-| Stock | 5-Day Trend | Interpretation |
-|-------|-------------|----------------|
-| EVTV | ↑↑↑↑↑ | Explosive pump |
-| MRNO | ↑↑↓↑↑ | Volatile pump |
-| UAVS | ↑↑↑↑↑ | Steady pump |
-| INBS | ↑↓↑↓↑ | Volatile pump |
-| ANPA | ↑↑↑↑↓ | Peak + first down |
-| GPUS | ↑↑↑↓↓ | Cooling |
-| LVRO | ↑↓↓↓↓ | Accelerating dump |
-| SIDU | ↑↑↓↓↓ | Dump phase |
-| DVLT | ↑↓↓↓↓ | Accelerating dump |
-| MNTS | ↓↓↓↓↓ | Continuous dump |
+| Stock | 5-Day Trend | Interpretation    |
+| ----- | ----------- | ----------------- |
+| EVTV  | ↑↑↑↑↑       | Explosive pump    |
+| MRNO  | ↑↑↓↑↑       | Volatile pump     |
+| UAVS  | ↑↑↑↑↑       | Steady pump       |
+| INBS  | ↑↓↑↓↑       | Volatile pump     |
+| ANPA  | ↑↑↑↑↓       | Peak + first down |
+| GPUS  | ↑↑↑↓↓       | Cooling           |
+| LVRO  | ↑↓↓↓↓       | Accelerating dump |
+| SIDU  | ↑↑↓↓↓       | Dump phase        |
+| DVLT  | ↑↓↓↓↓       | Accelerating dump |
+| MNTS  | ↓↓↓↓↓       | Continuous dump   |
 
 ### Key Metrics Evolution
 
-| Metric | Jan 11 | Jan 12 | Jan 13 | Trend |
-|--------|--------|--------|--------|-------|
-| Stocks in Pump Phase | 5 | 5 | 5 | Stable |
-| Stocks in Dump Phase | 4 | 4 | 5 | ↑ ANPA entering |
-| Total Tracked | 9 | 9 | 10 | ↑ EVTV added |
-| Discord Status | Open | Closing | PRIVATE | 🔴 Escalating |
+| Metric               | Jan 11 | Jan 12  | Jan 13  | Trend           |
+| -------------------- | ------ | ------- | ------- | --------------- |
+| Stocks in Pump Phase | 5      | 5       | 5       | Stable          |
+| Stocks in Dump Phase | 4      | 4       | 5       | ↑ ANPA entering |
+| Total Tracked        | 9      | 9       | 10      | ↑ EVTV added    |
+| Discord Status       | Open   | Closing | PRIVATE | 🔴 Escalating   |
 
 ---
 
@@ -526,16 +535,66 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
   "trackedStockPrices": {
     "asOf": "2026-01-13T16:00:01Z",
     "stocks": {
-      "EVTV": {"price": 3.52, "change": "+40.2%", "volume": 270674503, "status": "HOT_PUMP"},
-      "MRNO": {"price": 1.83, "change": "+24.5%", "volume": 2515959, "status": "PUMP"},
-      "UAVS": {"price": 1.76, "change": "+11.7%", "volume": 49457924, "status": "PUMP"},
-      "INBS": {"price": 16.67, "change": "+9.2%", "volume": 683359, "status": "PUMP"},
-      "GPUS": {"price": 0.3162, "change": "-4.8%", "volume": 49919775, "status": "COOLING"},
-      "ANPA": {"price": 84.01, "change": "-9.7%", "volume": 153049, "status": "ENTERING_DUMP"},
-      "MNTS": {"price": 9.50, "change": "-8.1%", "volume": 1534241, "status": "DUMP"},
-      "LVRO": {"price": 0.8861, "change": "-16.4%", "volume": 217384, "status": "DUMP"},
-      "SIDU": {"price": 3.11, "change": "-8.8%", "volume": 31460267, "status": "DUMP"},
-      "DVLT": {"price": 0.8009, "change": "-9.5%", "volume": 92872435, "status": "DUMP"}
+      "EVTV": {
+        "price": 3.52,
+        "change": "+40.2%",
+        "volume": 270674503,
+        "status": "HOT_PUMP"
+      },
+      "MRNO": {
+        "price": 1.83,
+        "change": "+24.5%",
+        "volume": 2515959,
+        "status": "PUMP"
+      },
+      "UAVS": {
+        "price": 1.76,
+        "change": "+11.7%",
+        "volume": 49457924,
+        "status": "PUMP"
+      },
+      "INBS": {
+        "price": 16.67,
+        "change": "+9.2%",
+        "volume": 683359,
+        "status": "PUMP"
+      },
+      "GPUS": {
+        "price": 0.3162,
+        "change": "-4.8%",
+        "volume": 49919775,
+        "status": "COOLING"
+      },
+      "ANPA": {
+        "price": 84.01,
+        "change": "-9.7%",
+        "volume": 153049,
+        "status": "ENTERING_DUMP"
+      },
+      "MNTS": {
+        "price": 9.5,
+        "change": "-8.1%",
+        "volume": 1534241,
+        "status": "DUMP"
+      },
+      "LVRO": {
+        "price": 0.8861,
+        "change": "-16.4%",
+        "volume": 217384,
+        "status": "DUMP"
+      },
+      "SIDU": {
+        "price": 3.11,
+        "change": "-8.8%",
+        "volume": 31460267,
+        "status": "DUMP"
+      },
+      "DVLT": {
+        "price": 0.8009,
+        "change": "-9.5%",
+        "volume": 92872435,
+        "status": "DUMP"
+      }
     }
   },
   "socialMedia": {
@@ -598,33 +657,33 @@ These micro-cap stocks showed SPIKE_7D + VOLUME_EXPLOSION, making them potential
 
 ## Appendix: Data File References
 
-| File | Path | Description |
-|------|------|-------------|
-| Full Evaluation (Jan 14) | `../fmp-evaluation-2026-01-14.json` | Complete evaluation data |
-| HIGH Risk (Jan 14) | `../fmp-high-risk-2026-01-14.json` | All 1,423 HIGH risk stocks |
-| Summary (Jan 14) | `../fmp-summary-2026-01-14.json` | Final scan statistics |
-| Full Evaluation (Jan 12) | `../fmp-evaluation-2026-01-12.json` | Previous baseline data |
-| Previous Summary | `./2026-01-12_daily_summary.md` | Previous day analysis |
+| File                     | Path                                | Description                |
+| ------------------------ | ----------------------------------- | -------------------------- |
+| Full Evaluation (Jan 14) | `../fmp-evaluation-2026-01-14.json` | Complete evaluation data   |
+| HIGH Risk (Jan 14)       | `../fmp-high-risk-2026-01-14.json`  | All 1,423 HIGH risk stocks |
+| Summary (Jan 14)         | `../fmp-summary-2026-01-14.json`    | Final scan statistics      |
+| Full Evaluation (Jan 12) | `../fmp-evaluation-2026-01-12.json` | Previous baseline data     |
+| Previous Summary         | `./2026-01-12_daily_summary.md`     | Previous day analysis      |
 
 ---
 
 ## Appendix: Alert Price Sources
 
-| Stock | Alert Source | Alert Date | Alert Price | Current | Return |
-|-------|--------------|------------|-------------|---------|--------|
-| EVTV | Making Easy Money Discord | Jan 13 | $0.78 | $3.52 | +351% |
-| ANPA | Making Easy Money Discord | Jan 7 | $24.40 | $84.01 | +244% |
-| INBS | Making Easy Money Discord | Dec 31 | $6.90 | $16.67 | +142% |
-| MRNO | Making Easy Money Discord | Dec 31 | $0.55 | $1.83 | +233% |
-| UAVS | Making Easy Money Discord | Jan 6 | ~$0.85 | $1.76 | +107% |
-| GPUS | Making Easy Money Discord | Jan 2 | $0.25 | $0.32 | +28% |
-| LVRO | Making Easy Money Discord | Dec 31 | $0.18 | $0.89 | +394% |
-| SIDU | Making Easy Money Discord | Dec 19 | $0.90 | $3.11 | +246% |
-| DVLT | Making Easy Money Discord | Dec 31 | $0.62 | $0.80 | +29% |
-| MNTS | Making Easy Money Discord | Dec 31 | $7.12 | $9.50 | +33% |
+| Stock | Alert Source              | Alert Date | Alert Price | Current | Return |
+| ----- | ------------------------- | ---------- | ----------- | ------- | ------ |
+| EVTV  | Making Easy Money Discord | Jan 13     | $0.78       | $3.52   | +351%  |
+| ANPA  | Making Easy Money Discord | Jan 7      | $24.40      | $84.01  | +244%  |
+| INBS  | Making Easy Money Discord | Dec 31     | $6.90       | $16.67  | +142%  |
+| MRNO  | Making Easy Money Discord | Dec 31     | $0.55       | $1.83   | +233%  |
+| UAVS  | Making Easy Money Discord | Jan 6      | ~$0.85      | $1.76   | +107%  |
+| GPUS  | Making Easy Money Discord | Jan 2      | $0.25       | $0.32   | +28%   |
+| LVRO  | Making Easy Money Discord | Dec 31     | $0.18       | $0.89   | +394%  |
+| SIDU  | Making Easy Money Discord | Dec 19     | $0.90       | $3.11   | +246%  |
+| DVLT  | Making Easy Money Discord | Dec 31     | $0.62       | $0.80   | +29%   |
+| MNTS  | Making Easy Money Discord | Dec 31     | $7.12       | $9.50   | +33%   |
 
 ---
 
-*Report generated: January 14, 2026 (pre-market)*
-*ScamDunk Daily Summary System v1.0*
-*Full scan complete: 6,551 stocks evaluated, 1,423 HIGH risk identified*
+_Report generated: January 14, 2026 (pre-market)_
+_ScamDunk Daily Summary System v1.0_
+_Full scan complete: 6,551 stocks evaluated, 1,423 HIGH risk identified_

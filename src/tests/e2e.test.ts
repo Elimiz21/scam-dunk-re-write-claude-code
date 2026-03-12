@@ -5,10 +5,23 @@
  * Uses mock market data directly to test scoring logic without requiring API access.
  */
 
-import { computeRiskScore, getSignalsByCategory, SIGNAL_CODES } from "../lib/scoring";
+import {
+  computeRiskScore,
+  getSignalsByCategory,
+  SIGNAL_CODES,
+} from "../lib/scoring";
 import { generateNarrative, getQuickHeader } from "../lib/narrative";
-import { calculatePriceChange, calculateVolumeRatio, detectSpikeThenDrop } from "../lib/marketData";
-import { ScoringInput, CheckRequest, MarketData, PriceHistory } from "../lib/types";
+import {
+  calculatePriceChange,
+  calculateVolumeRatio,
+  detectSpikeThenDrop,
+} from "../lib/marketData";
+import {
+  ScoringInput,
+  CheckRequest,
+  MarketData,
+  PriceHistory,
+} from "../lib/types";
 
 // Mock market data for testing
 const MOCK_AAPL: MarketData = {
@@ -16,12 +29,12 @@ const MOCK_AAPL: MarketData = {
     ticker: "AAPL",
     companyName: "Apple Inc.",
     exchange: "NASDAQ",
-    lastPrice: 178.50,
+    lastPrice: 178.5,
     marketCap: 2_800_000_000_000,
     avgVolume30d: 55_000_000,
     avgDollarVolume30d: 9_817_500_000,
   },
-  priceHistory: generateMockPriceHistory(178.50, 60),
+  priceHistory: generateMockPriceHistory(178.5, 60),
   isOTC: false,
   dataAvailable: true,
 };
@@ -31,12 +44,12 @@ const MOCK_MSFT: MarketData = {
     ticker: "MSFT",
     companyName: "Microsoft Corporation",
     exchange: "NASDAQ",
-    lastPrice: 375.20,
+    lastPrice: 375.2,
     marketCap: 2_790_000_000_000,
     avgVolume30d: 22_000_000,
     avgDollarVolume30d: 8_254_400_000,
   },
-  priceHistory: generateMockPriceHistory(375.20, 60),
+  priceHistory: generateMockPriceHistory(375.2, 60),
   isOTC: false,
   dataAvailable: true,
 };
@@ -61,18 +74,21 @@ const MOCK_SCAM_STOCK: MarketData = {
     ticker: "SCAM",
     companyName: "Suspicious Corp",
     exchange: "PINK",
-    lastPrice: 2.50,
+    lastPrice: 2.5,
     marketCap: 50_000_000,
     avgVolume30d: 2_000_000,
     avgDollarVolume30d: 5_000_000,
   },
-  priceHistory: generateMockPriceHistory(2.50, 60),
+  priceHistory: generateMockPriceHistory(2.5, 60),
   isOTC: true,
   dataAvailable: true,
 };
 
 // Helper function to generate mock price history
-function generateMockPriceHistory(basePrice: number, days: number): PriceHistory[] {
+function generateMockPriceHistory(
+  basePrice: number,
+  days: number,
+): PriceHistory[] {
   const history: PriceHistory[] = [];
   const today = new Date();
 
@@ -97,14 +113,70 @@ describe("End-to-End Integration Tests", () => {
   describe("Price Calculation Functions", () => {
     it("should calculate price change correctly", () => {
       const history = [
-        { date: "2024-01-01", open: 100, high: 102, low: 99, close: 100, volume: 1000 },
-        { date: "2024-01-02", open: 100, high: 102, low: 99, close: 100, volume: 1000 },
-        { date: "2024-01-03", open: 100, high: 102, low: 99, close: 100, volume: 1000 },
-        { date: "2024-01-04", open: 100, high: 102, low: 99, close: 100, volume: 1000 },
-        { date: "2024-01-05", open: 100, high: 102, low: 99, close: 100, volume: 1000 },
-        { date: "2024-01-06", open: 100, high: 102, low: 99, close: 100, volume: 1000 },
-        { date: "2024-01-07", open: 100, high: 102, low: 99, close: 100, volume: 1000 },
-        { date: "2024-01-08", open: 150, high: 155, low: 145, close: 150, volume: 1000 },
+        {
+          date: "2024-01-01",
+          open: 100,
+          high: 102,
+          low: 99,
+          close: 100,
+          volume: 1000,
+        },
+        {
+          date: "2024-01-02",
+          open: 100,
+          high: 102,
+          low: 99,
+          close: 100,
+          volume: 1000,
+        },
+        {
+          date: "2024-01-03",
+          open: 100,
+          high: 102,
+          low: 99,
+          close: 100,
+          volume: 1000,
+        },
+        {
+          date: "2024-01-04",
+          open: 100,
+          high: 102,
+          low: 99,
+          close: 100,
+          volume: 1000,
+        },
+        {
+          date: "2024-01-05",
+          open: 100,
+          high: 102,
+          low: 99,
+          close: 100,
+          volume: 1000,
+        },
+        {
+          date: "2024-01-06",
+          open: 100,
+          high: 102,
+          low: 99,
+          close: 100,
+          volume: 1000,
+        },
+        {
+          date: "2024-01-07",
+          open: 100,
+          high: 102,
+          low: 99,
+          close: 100,
+          volume: 1000,
+        },
+        {
+          date: "2024-01-08",
+          open: 150,
+          high: 155,
+          low: 145,
+          close: 150,
+          volume: 1000,
+        },
       ];
 
       const change = calculatePriceChange(history, 7);
@@ -219,7 +291,8 @@ describe("End-to-End Integration Tests", () => {
 
       const input: ScoringInput = {
         marketData: MOCK_PENNY_STOCK,
-        pitchText: "This stock is going to 10x! Act now before it's too late! Guaranteed returns!",
+        pitchText:
+          "This stock is going to 10x! Act now before it's too late! Guaranteed returns!",
         context,
       };
 
@@ -228,7 +301,7 @@ describe("End-to-End Integration Tests", () => {
       expect(result.riskLevel).toBe("HIGH");
       expect(result.totalScore).toBeGreaterThanOrEqual(5); // Updated threshold from 7 to 5
 
-      const signalCodes = result.signals.map(s => s.code);
+      const signalCodes = result.signals.map((s) => s.code);
       expect(signalCodes).toContain(SIGNAL_CODES.MICROCAP_PRICE);
       expect(signalCodes).toContain(SIGNAL_CODES.OTC_EXCHANGE);
       expect(signalCodes).toContain(SIGNAL_CODES.UNSOLICITED);
@@ -246,13 +319,14 @@ describe("End-to-End Integration Tests", () => {
 
       const input: ScoringInput = {
         marketData: MOCK_MSFT,
-        pitchText: "I have insider information about this stock. It's going to 50% in 2 days. Act fast before it's too late!",
+        pitchText:
+          "I have insider information about this stock. It's going to 50% in 2 days. Act fast before it's too late!",
         context,
       };
 
       const result = await computeRiskScore(input);
 
-      const signalCodes = result.signals.map(s => s.code);
+      const signalCodes = result.signals.map((s) => s.code);
       expect(signalCodes).toContain(SIGNAL_CODES.SECRECY);
       expect(signalCodes).toContain(SIGNAL_CODES.SPECIFIC_RETURN_CLAIM);
       expect(signalCodes).toContain(SIGNAL_CODES.URGENCY);
@@ -264,7 +338,7 @@ describe("End-to-End Integration Tests", () => {
           ticker: "ALRT",
           companyName: "Alert Corp",
           exchange: "OTC",
-          lastPrice: 1.00,
+          lastPrice: 1.0,
           marketCap: 10_000_000,
           avgVolume30d: 100_000,
           avgDollarVolume30d: 100_000,
@@ -290,28 +364,52 @@ describe("End-to-End Integration Tests", () => {
       const result = await computeRiskScore(input);
 
       // Note: Alert list check requires network access, so we test the structural signals
-      expect(result.signals.some(s => s.code === SIGNAL_CODES.MICROCAP_PRICE)).toBe(true);
-      expect(result.signals.some(s => s.code === SIGNAL_CODES.OTC_EXCHANGE)).toBe(true);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.MICROCAP_PRICE),
+      ).toBe(true);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.OTC_EXCHANGE),
+      ).toBe(true);
     });
   });
 
   describe("Narrative Generation (Fallback)", () => {
     it("should generate HIGH risk narrative", async () => {
       const signals = [
-        { code: SIGNAL_CODES.MICROCAP_PRICE, category: "STRUCTURAL" as const, description: "Price below $5", weight: 2 },
-        { code: SIGNAL_CODES.OTC_EXCHANGE, category: "STRUCTURAL" as const, description: "OTC traded", weight: 3 },
-        { code: SIGNAL_CODES.PROMISED_RETURNS, category: "BEHAVIORAL" as const, description: "Promises returns", weight: 2 },
+        {
+          code: SIGNAL_CODES.MICROCAP_PRICE,
+          category: "STRUCTURAL" as const,
+          description: "Price below $5",
+          weight: 2,
+        },
+        {
+          code: SIGNAL_CODES.OTC_EXCHANGE,
+          category: "STRUCTURAL" as const,
+          description: "OTC traded",
+          weight: 3,
+        },
+        {
+          code: SIGNAL_CODES.PROMISED_RETURNS,
+          category: "BEHAVIORAL" as const,
+          description: "Promises returns",
+          weight: 2,
+        },
       ];
 
       const stockSummary = {
         ticker: "TEST",
         companyName: "Test Corp",
         exchange: "OTC",
-        lastPrice: 1.50,
+        lastPrice: 1.5,
         marketCap: 50_000_000,
       };
 
-      const narrative = await generateNarrative("HIGH", 7, signals, stockSummary);
+      const narrative = await generateNarrative(
+        "HIGH",
+        7,
+        signals,
+        stockSummary,
+      );
 
       expect(narrative.header).toContain("TEST");
       expect(narrative.header.toLowerCase()).toContain("high");
@@ -323,19 +421,34 @@ describe("End-to-End Integration Tests", () => {
 
     it("should generate MEDIUM risk narrative", async () => {
       const signals = [
-        { code: SIGNAL_CODES.SMALL_MARKET_CAP, category: "STRUCTURAL" as const, description: "Small cap", weight: 2 },
-        { code: SIGNAL_CODES.UNSOLICITED, category: "BEHAVIORAL" as const, description: "Unsolicited tip", weight: 1 },
+        {
+          code: SIGNAL_CODES.SMALL_MARKET_CAP,
+          category: "STRUCTURAL" as const,
+          description: "Small cap",
+          weight: 2,
+        },
+        {
+          code: SIGNAL_CODES.UNSOLICITED,
+          category: "BEHAVIORAL" as const,
+          description: "Unsolicited tip",
+          weight: 1,
+        },
       ];
 
       const stockSummary = {
         ticker: "MED",
         companyName: "Medium Corp",
         exchange: "NASDAQ",
-        lastPrice: 15.00,
+        lastPrice: 15.0,
         marketCap: 200_000_000,
       };
 
-      const narrative = await generateNarrative("MEDIUM", 3, signals, stockSummary);
+      const narrative = await generateNarrative(
+        "MEDIUM",
+        3,
+        signals,
+        stockSummary,
+      );
 
       expect(narrative.header).toContain("MED");
       expect(narrative.header.toLowerCase()).toContain("caution");
@@ -343,18 +456,28 @@ describe("End-to-End Integration Tests", () => {
 
     it("should generate LOW risk narrative", async () => {
       const signals = [
-        { code: SIGNAL_CODES.UNSOLICITED, category: "BEHAVIORAL" as const, description: "Unsolicited", weight: 1 },
+        {
+          code: SIGNAL_CODES.UNSOLICITED,
+          category: "BEHAVIORAL" as const,
+          description: "Unsolicited",
+          weight: 1,
+        },
       ];
 
       const stockSummary = {
         ticker: "LOW",
         companyName: "Low Risk Corp",
         exchange: "NYSE",
-        lastPrice: 100.00,
+        lastPrice: 100.0,
         marketCap: 5_000_000_000,
       };
 
-      const narrative = await generateNarrative("LOW", 1, signals, stockSummary);
+      const narrative = await generateNarrative(
+        "LOW",
+        1,
+        signals,
+        stockSummary,
+      );
 
       expect(narrative.header).toContain("LOW");
       expect(narrative.header.toLowerCase()).toContain("few");
@@ -380,10 +503,30 @@ describe("End-to-End Integration Tests", () => {
   describe("Signal Categorization", () => {
     it("should correctly categorize signals", () => {
       const signals = [
-        { code: SIGNAL_CODES.MICROCAP_PRICE, category: "STRUCTURAL" as const, description: "Test", weight: 2 },
-        { code: SIGNAL_CODES.SPIKE_7D, category: "PATTERN" as const, description: "Test", weight: 3 },
-        { code: SIGNAL_CODES.ALERT_LIST_HIT, category: "ALERT" as const, description: "Test", weight: 5 },
-        { code: SIGNAL_CODES.URGENCY, category: "BEHAVIORAL" as const, description: "Test", weight: 2 },
+        {
+          code: SIGNAL_CODES.MICROCAP_PRICE,
+          category: "STRUCTURAL" as const,
+          description: "Test",
+          weight: 2,
+        },
+        {
+          code: SIGNAL_CODES.SPIKE_7D,
+          category: "PATTERN" as const,
+          description: "Test",
+          weight: 3,
+        },
+        {
+          code: SIGNAL_CODES.ALERT_LIST_HIT,
+          category: "ALERT" as const,
+          description: "Test",
+          weight: 5,
+        },
+        {
+          code: SIGNAL_CODES.URGENCY,
+          category: "BEHAVIORAL" as const,
+          description: "Test",
+          weight: 2,
+        },
       ];
 
       const categorized = getSignalsByCategory(signals);
@@ -424,7 +567,7 @@ describe("End-to-End Integration Tests", () => {
 
       expect(result.riskLevel).toBe("HIGH");
 
-      const signalCodes = result.signals.map(s => s.code);
+      const signalCodes = result.signals.map((s) => s.code);
       expect(signalCodes).toContain(SIGNAL_CODES.UNSOLICITED);
       expect(signalCodes).toContain(SIGNAL_CODES.PROMISED_RETURNS);
       expect(signalCodes).toContain(SIGNAL_CODES.URGENCY);
@@ -442,7 +585,7 @@ describe("End-to-End Integration Tests", () => {
         result.riskLevel,
         result.totalScore,
         result.signals,
-        stockSummary
+        stockSummary,
       );
 
       expect(narrative.behaviorRedFlags.length).toBeGreaterThanOrEqual(4);
@@ -472,7 +615,9 @@ describe("End-to-End Integration Tests", () => {
       const result = await computeRiskScore(input);
 
       // No behavioral flags should trigger on legitimate financial discussion
-      expect(result.signals.filter(s => s.category === "BEHAVIORAL").length).toBe(0);
+      expect(
+        result.signals.filter((s) => s.category === "BEHAVIORAL").length,
+      ).toBe(0);
       // Large-cap stocks should be marked legitimate
       expect(result.isLegitimate).toBe(true);
       // Should never be HIGH risk
@@ -499,7 +644,7 @@ describe("End-to-End Integration Tests", () => {
 
       const result = await computeRiskScore(input);
 
-      const signalCodes = result.signals.map(s => s.code);
+      const signalCodes = result.signals.map((s) => s.code);
       expect(signalCodes).toContain(SIGNAL_CODES.UNSOLICITED);
       expect(signalCodes).toContain(SIGNAL_CODES.SECRECY);
       expect(signalCodes).toContain(SIGNAL_CODES.URGENCY);
@@ -542,7 +687,9 @@ describe("End-to-End Integration Tests", () => {
 
       const result = await computeRiskScore(input);
 
-      const behavioralSignals = result.signals.filter(s => s.category === "BEHAVIORAL");
+      const behavioralSignals = result.signals.filter(
+        (s) => s.category === "BEHAVIORAL",
+      );
       expect(behavioralSignals.length).toBe(4);
     });
 

@@ -30,15 +30,19 @@ Work with whatever the user gives you. If they have a clear problem area, start 
 ## Core Principles
 
 ### Single Source of Truth
+
 One system of record for every lead and account. If data lives in multiple places, it will conflict. Pick a CRM as the canonical source and sync everything to it.
 
 ### Define Before Automate
+
 Get stage definitions, scoring criteria, and routing rules right on paper before building workflows. Automating a broken process just creates broken results faster.
 
 ### Measure Every Handoff
+
 Every handoff between teams is a potential leak. Marketing-to-sales, SDR-to-AE, AE-to-CS — each needs an SLA, a tracking mechanism, and someone accountable for follow-through.
 
 ### Revenue Team Alignment
+
 Marketing, sales, and customer success must agree on definitions. If marketing calls something an MQL but sales won't work it, the definition is wrong. Alignment meetings aren't optional.
 
 ---
@@ -47,15 +51,15 @@ Marketing, sales, and customer success must agree on definitions. If marketing c
 
 ### Stage Definitions
 
-| Stage | Entry Criteria | Exit Criteria | Owner |
-|-------|---------------|---------------|-------|
-| **Subscriber** | Opts in to content (blog, newsletter) | Provides company info or shows engagement | Marketing |
-| **Lead** | Identified contact with basic info | Meets minimum fit criteria | Marketing |
-| **MQL** | Passes fit + engagement threshold | Sales accepts or rejects within SLA | Marketing |
-| **SQL** | Sales accepts and qualifies via conversation | Opportunity created or recycled | Sales (SDR/AE) |
-| **Opportunity** | Budget, authority, need, timeline confirmed | Closed-won or closed-lost | Sales (AE) |
-| **Customer** | Closed-won deal | Expands, renews, or churns | CS / Account Mgmt |
-| **Evangelist** | High NPS, referral activity, case study | Ongoing program participation | CS / Marketing |
+| Stage           | Entry Criteria                               | Exit Criteria                             | Owner             |
+| --------------- | -------------------------------------------- | ----------------------------------------- | ----------------- |
+| **Subscriber**  | Opts in to content (blog, newsletter)        | Provides company info or shows engagement | Marketing         |
+| **Lead**        | Identified contact with basic info           | Meets minimum fit criteria                | Marketing         |
+| **MQL**         | Passes fit + engagement threshold            | Sales accepts or rejects within SLA       | Marketing         |
+| **SQL**         | Sales accepts and qualifies via conversation | Opportunity created or recycled           | Sales (SDR/AE)    |
+| **Opportunity** | Budget, authority, need, timeline confirmed  | Closed-won or closed-lost                 | Sales (AE)        |
+| **Customer**    | Closed-won deal                              | Expands, renews, or churns                | CS / Account Mgmt |
+| **Evangelist**  | High NPS, referral activity, case study      | Ongoing program participation             | CS / Marketing    |
 
 ### MQL Definition
 
@@ -69,6 +73,7 @@ Neither alone is sufficient. A perfect-fit company that never engages isn't an M
 ### MQL-to-SQL Handoff SLA
 
 Define response times and document them:
+
 - MQL alert sent to assigned rep
 - Rep contacts within **4 hours** (business hours)
 - Rep qualifies or rejects within **48 hours**
@@ -83,17 +88,20 @@ Define response times and document them:
 ### Scoring Dimensions
 
 **Explicit scoring (fit)** — Who they are:
+
 - Company size, industry, revenue
 - Job title, seniority, department
 - Tech stack, geography
 
 **Implicit scoring (engagement)** — What they do:
+
 - Page visits (especially pricing, demo, case studies)
 - Content downloads, webinar attendance
 - Email engagement (opens, clicks)
 - Product usage (for PLG)
 
 **Negative scoring** — Disqualifying signals:
+
 - Competitor email domains
 - Student/personal email
 - Unsubscribes, spam complaints
@@ -123,12 +131,12 @@ Define response times and document them:
 
 ### Routing Methods
 
-| Method | How It Works | Best For |
-|--------|-------------|----------|
-| **Round-robin** | Distribute evenly across reps | Equal territories, similar deal sizes |
-| **Territory-based** | Assign by geography, vertical, or segment | Regional teams, industry specialists |
-| **Account-based** | Named accounts go to named reps | ABM motions, strategic accounts |
-| **Skill-based** | Route by deal complexity, product line, or language | Diverse product lines, global teams |
+| Method              | How It Works                                        | Best For                              |
+| ------------------- | --------------------------------------------------- | ------------------------------------- |
+| **Round-robin**     | Distribute evenly across reps                       | Equal territories, similar deal sizes |
+| **Territory-based** | Assign by geography, vertical, or segment           | Regional teams, industry specialists  |
+| **Account-based**   | Named accounts go to named reps                     | ABM motions, strategic accounts       |
+| **Skill-based**     | Route by deal complexity, product line, or language | Diverse product lines, global teams   |
 
 ### Routing Rules Essentials
 
@@ -140,6 +148,7 @@ Define response times and document them:
 ### Speed-to-Lead
 
 Response time is the single biggest factor in lead conversion:
+
 - Contact within **5 minutes** = 21x more likely to qualify (Lead Connect)
 - After **30 minutes**, conversion drops by 10x
 - After **24 hours**, the lead is effectively cold
@@ -154,15 +163,15 @@ Build routing rules that prioritize speed. Alert reps immediately. Escalate if S
 
 ### Pipeline Stages
 
-| Stage | Required Fields | Exit Criteria |
-|-------|----------------|---------------|
-| **Qualified** | Contact info, company, source, fit score | Discovery call scheduled |
-| **Discovery** | Pain points, current solution, timeline | Needs confirmed, demo scheduled |
-| **Demo/Evaluation** | Technical requirements, decision makers | Positive evaluation, proposal requested |
-| **Proposal** | Pricing, terms, stakeholder map | Proposal delivered and reviewed |
-| **Negotiation** | Redlines, approval chain, close date | Terms agreed, contract sent |
-| **Closed Won** | Signed contract, payment terms | Handoff to CS complete |
-| **Closed Lost** | Loss reason, competitor (if any) | Post-mortem logged |
+| Stage               | Required Fields                          | Exit Criteria                           |
+| ------------------- | ---------------------------------------- | --------------------------------------- |
+| **Qualified**       | Contact info, company, source, fit score | Discovery call scheduled                |
+| **Discovery**       | Pain points, current solution, timeline  | Needs confirmed, demo scheduled         |
+| **Demo/Evaluation** | Technical requirements, decision makers  | Positive evaluation, proposal requested |
+| **Proposal**        | Pricing, terms, stakeholder map          | Proposal delivered and reviewed         |
+| **Negotiation**     | Redlines, approval chain, close date     | Terms agreed, contract sent             |
+| **Closed Won**      | Signed contract, payment terms           | Handoff to CS complete                  |
+| **Closed Lost**     | Loss reason, competitor (if any)         | Post-mortem logged                      |
 
 ### Stage Hygiene
 
@@ -173,13 +182,13 @@ Build routing rules that prioritize speed. Alert reps immediately. Escalate if S
 
 ### Pipeline Metrics
 
-| Metric | What It Tells You |
-|--------|-------------------|
-| Stage conversion rates | Where deals die |
-| Average time in stage | Where deals stall |
-| Pipeline velocity | Revenue per day through the funnel |
-| Coverage ratio | Pipeline value vs. quota (target 3-4x) |
-| Win rate by source | Which channels produce real revenue |
+| Metric                 | What It Tells You                      |
+| ---------------------- | -------------------------------------- |
+| Stage conversion rates | Where deals die                        |
+| Average time in stage  | Where deals stall                      |
+| Pipeline velocity      | Revenue per day through the funnel     |
+| Coverage ratio         | Pipeline value vs. quota (target 3-4x) |
+| Win rate by source     | Which channels produce real revenue    |
 
 ---
 
@@ -222,13 +231,13 @@ Build routing rules that prioritize speed. Alert reps immediately. Escalate if S
 
 ### Approval Workflow Tiers
 
-| Deal Size | Approval Required |
-|-----------|-------------------|
-| Standard pricing | Auto-approved |
-| 10-20% discount | Sales manager |
-| 20-40% discount | VP Sales |
-| 40%+ discount or custom terms | Deal desk review |
-| Multi-year / enterprise | Finance + Legal |
+| Deal Size                     | Approval Required |
+| ----------------------------- | ----------------- |
+| Standard pricing              | Auto-approved     |
+| 10-20% discount               | Sales manager     |
+| 20-40% discount               | VP Sales          |
+| 40%+ discount or custom terms | Deal desk review  |
+| Multi-year / enterprise       | Finance + Legal   |
 
 ### Non-Standard Terms Handling
 
@@ -252,11 +261,11 @@ Document every exception. Track which non-standard terms get requested most — 
 
 ### Enrichment Tools
 
-| Tool | Strength |
-|------|----------|
-| Clearbit | Real-time enrichment, good for tech companies |
-| Apollo | Contact data + sequences, strong for prospecting |
-| ZoomInfo | Enterprise-grade, largest B2B database |
+| Tool     | Strength                                         |
+| -------- | ------------------------------------------------ |
+| Clearbit | Real-time enrichment, good for tech companies    |
+| Apollo   | Contact data + sequences, strong for prospecting |
+| ZoomInfo | Enterprise-grade, largest B2B database           |
 
 ### Quarterly Audit Checklist
 
@@ -272,20 +281,21 @@ Document every exception. Track which non-standard terms get requested most — 
 
 ### Key Metrics
 
-| Metric | Formula / Definition | Benchmark |
-|--------|---------------------|-----------|
-| Lead-to-MQL rate | MQLs / Total leads | 5-15% |
-| MQL-to-SQL rate | SQLs / MQLs | 30-50% |
-| SQL-to-Opportunity | Opportunities / SQLs | 50-70% |
-| Pipeline velocity | (# deals x avg deal size x win rate) / avg sales cycle | Varies by ACV |
-| CAC | Total sales + marketing spend / new customers | LTV:CAC > 3:1 |
-| LTV:CAC ratio | Customer lifetime value / CAC | 3:1 to 5:1 healthy |
-| Speed-to-lead | Time from form fill to first rep contact | < 5 minutes ideal |
-| Win rate | Closed-won / total opportunities | 20-30% (varies) |
+| Metric             | Formula / Definition                                   | Benchmark          |
+| ------------------ | ------------------------------------------------------ | ------------------ |
+| Lead-to-MQL rate   | MQLs / Total leads                                     | 5-15%              |
+| MQL-to-SQL rate    | SQLs / MQLs                                            | 30-50%             |
+| SQL-to-Opportunity | Opportunities / SQLs                                   | 50-70%             |
+| Pipeline velocity  | (# deals x avg deal size x win rate) / avg sales cycle | Varies by ACV      |
+| CAC                | Total sales + marketing spend / new customers          | LTV:CAC > 3:1      |
+| LTV:CAC ratio      | Customer lifetime value / CAC                          | 3:1 to 5:1 healthy |
+| Speed-to-lead      | Time from form fill to first rep contact               | < 5 minutes ideal  |
+| Win rate           | Closed-won / total opportunities                       | 20-30% (varies)    |
 
 ### Dashboard Structure
 
 Build three views:
+
 1. **Marketing view** — Lead volume, MQL rate, source attribution, cost per MQL
 2. **Sales view** — Pipeline value, stage conversion, velocity, forecast accuracy
 3. **Executive view** — CAC, LTV:CAC, revenue vs. target, pipeline coverage
@@ -320,16 +330,16 @@ Format each as a standalone document the user can implement directly. Include pl
 
 For implementation, see the [tools registry](../../tools/REGISTRY.md). Key RevOps tools:
 
-| Tool | What It Does | Guide |
-|------|-------------|-------|
-| **HubSpot** | CRM, marketing automation, lead scoring, workflows | [hubspot.md](../../tools/integrations/hubspot.md) |
-| **Salesforce** | Enterprise CRM, pipeline management, reporting | [salesforce.md](../../tools/integrations/salesforce.md) |
-| **Calendly** | Meeting scheduling, round-robin routing | [calendly.md](../../tools/integrations/calendly.md) |
-| **SavvyCal** | Scheduling with priority-based availability | [savvycal.md](../../tools/integrations/savvycal.md) |
-| **Clearbit** | Real-time lead enrichment and scoring | [clearbit.md](../../tools/integrations/clearbit.md) |
-| **Apollo** | Contact data, enrichment, and outbound sequences | [apollo.md](../../tools/integrations/apollo.md) |
-| **ActiveCampaign** | Marketing automation for SMBs, lead scoring | [activecampaign.md](../../tools/integrations/activecampaign.md) |
-| **Zapier** | Cross-tool automation and workflow glue | [zapier.md](../../tools/integrations/zapier.md) |
+| Tool               | What It Does                                       | Guide                                                           |
+| ------------------ | -------------------------------------------------- | --------------------------------------------------------------- |
+| **HubSpot**        | CRM, marketing automation, lead scoring, workflows | [hubspot.md](../../tools/integrations/hubspot.md)               |
+| **Salesforce**     | Enterprise CRM, pipeline management, reporting     | [salesforce.md](../../tools/integrations/salesforce.md)         |
+| **Calendly**       | Meeting scheduling, round-robin routing            | [calendly.md](../../tools/integrations/calendly.md)             |
+| **SavvyCal**       | Scheduling with priority-based availability        | [savvycal.md](../../tools/integrations/savvycal.md)             |
+| **Clearbit**       | Real-time lead enrichment and scoring              | [clearbit.md](../../tools/integrations/clearbit.md)             |
+| **Apollo**         | Contact data, enrichment, and outbound sequences   | [apollo.md](../../tools/integrations/apollo.md)                 |
+| **ActiveCampaign** | Marketing automation for SMBs, lead scoring        | [activecampaign.md](../../tools/integrations/activecampaign.md) |
+| **Zapier**         | Cross-tool automation and workflow glue            | [zapier.md](../../tools/integrations/zapier.md)                 |
 
 ---
 

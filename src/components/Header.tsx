@@ -31,7 +31,12 @@ interface HeaderProps {
   showShare?: boolean;
 }
 
-export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderProps) {
+export function Header({
+  onSidebarToggle,
+  usage,
+  onShare,
+  showShare,
+}: HeaderProps) {
   const { data: session, status } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -53,7 +58,10 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
               </div>
             </div>
             <span className="font-display text-lg hidden sm:inline tracking-tight italic">
-              Scam<span className="gradient-brand-text not-italic font-sans font-bold">Dunk</span>
+              Scam
+              <span className="gradient-brand-text not-italic font-sans font-bold">
+                Dunk
+              </span>
             </span>
           </Link>
         </div>
@@ -126,10 +134,12 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
                 <div className="h-8 w-8 rounded-xl gradient-brand-subtle flex items-center justify-center border border-primary/10">
                   <User className="h-4 w-4 text-primary" />
                 </div>
-                <ChevronDown className={cn(
-                  "h-3.5 w-3.5 hidden sm:block text-muted-foreground transition-transform duration-200",
-                  showUserMenu && "rotate-180"
-                )} />
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 hidden sm:block text-muted-foreground transition-transform duration-200",
+                    showUserMenu && "rotate-180",
+                  )}
+                />
               </button>
 
               {showUserMenu && (
@@ -217,7 +227,11 @@ export function Header({ onSidebarToggle, usage, onShare, showShare }: HeaderPro
           ) : (
             <div className="flex items-center gap-2 ml-1">
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="rounded-xl font-semibold">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-xl font-semibold"
+                >
                   Log in
                 </Button>
               </Link>

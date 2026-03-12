@@ -107,7 +107,12 @@ export default function MarketAnalysisPage() {
     value: d.high,
   }));
 
-  const highRiskDirection = data.stats.highRiskChange > 0 ? "up" : data.stats.highRiskChange < 0 ? "down" : "flat";
+  const highRiskDirection =
+    data.stats.highRiskChange > 0
+      ? "up"
+      : data.stats.highRiskChange < 0
+        ? "down"
+        : "flat";
 
   const promotedDirectionLabel =
     data.stats.promotedDirection === "up"
@@ -122,7 +127,9 @@ export default function MarketAnalysisPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Market Analysis</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Market Analysis
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Daily stock risk evaluation trends and high-risk stocks
             </p>
@@ -151,7 +158,11 @@ export default function MarketAnalysisPage() {
             value={data.stats.highRiskCount}
             icon={AlertTriangle}
             color="red"
-            change={data.stats.highRiskChange !== 0 ? data.stats.highRiskChange : undefined}
+            change={
+              data.stats.highRiskChange !== 0
+                ? data.stats.highRiskChange
+                : undefined
+            }
             changeLabel="vs yesterday"
           />
           <StatCard
@@ -165,24 +176,32 @@ export default function MarketAnalysisPage() {
             value={data.stats.promotedCount}
             icon={TrendingUp}
             color="purple"
-            change={data.stats.promotedChange !== 0 ? data.stats.promotedChange : undefined}
+            change={
+              data.stats.promotedChange !== 0
+                ? data.stats.promotedChange
+                : undefined
+            }
             changeLabel="7d vs prior 7d"
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card rounded-2xl shadow p-6">
-            <h3 className="text-lg font-medium text-foreground mb-4">Risk Pulse Summary</h3>
+            <h3 className="text-lg font-medium text-foreground mb-4">
+              Risk Pulse Summary
+            </h3>
             <div className="space-y-3 text-sm">
               <p className="text-muted-foreground">
                 High-risk stock count is
-                <span className={`ml-1 font-semibold ${
-                  highRiskDirection === "up"
-                    ? "text-red-600"
-                    : highRiskDirection === "down"
-                      ? "text-green-600"
-                      : "text-muted-foreground"
-                }`}>
+                <span
+                  className={`ml-1 font-semibold ${
+                    highRiskDirection === "up"
+                      ? "text-red-600"
+                      : highRiskDirection === "down"
+                        ? "text-green-600"
+                        : "text-muted-foreground"
+                  }`}
+                >
                   {highRiskDirection === "up"
                     ? "increasing"
                     : highRiskDirection === "down"
@@ -190,18 +209,24 @@ export default function MarketAnalysisPage() {
                       : "flat"}
                 </span>
                 {data.stats.highRiskChange !== 0 && (
-                  <span className="ml-1">({data.stats.highRiskChange > 0 ? "+" : ""}{data.stats.highRiskChange} vs yesterday)</span>
-                )}.
+                  <span className="ml-1">
+                    ({data.stats.highRiskChange > 0 ? "+" : ""}
+                    {data.stats.highRiskChange} vs yesterday)
+                  </span>
+                )}
+                .
               </p>
               <p className="text-muted-foreground">
-                Promoted stock activity: 
-                <span className={`ml-1 font-semibold ${
-                  data.stats.promotedDirection === "up"
-                    ? "text-red-600"
-                    : data.stats.promotedDirection === "down"
-                      ? "text-green-600"
-                      : "text-muted-foreground"
-                }`}>
+                Promoted stock activity:
+                <span
+                  className={`ml-1 font-semibold ${
+                    data.stats.promotedDirection === "up"
+                      ? "text-red-600"
+                      : data.stats.promotedDirection === "down"
+                        ? "text-green-600"
+                        : "text-muted-foreground"
+                  }`}
+                >
                   {promotedDirectionLabel}
                 </span>
                 .
@@ -210,16 +235,27 @@ export default function MarketAnalysisPage() {
           </div>
 
           <div className="bg-card rounded-2xl shadow p-6">
-            <h3 className="text-lg font-medium text-foreground mb-4">Signal Source Coverage</h3>
+            <h3 className="text-lg font-medium text-foreground mb-4">
+              Signal Source Coverage
+            </h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li>
-                <span className="font-medium text-foreground">Social Scan:</span> API-driven sweep for ticker mentions and promotional language scoring.
+                <span className="font-medium text-foreground">
+                  Social Scan:
+                </span>{" "}
+                API-driven sweep for ticker mentions and promotional language
+                scoring.
               </li>
               <li>
-                <span className="font-medium text-foreground">Browser Agents:</span> Browser-session evidence capture for context, landing pages, and promotion artifacts by platform.
+                <span className="font-medium text-foreground">
+                  Browser Agents:
+                </span>{" "}
+                Browser-session evidence capture for context, landing pages, and
+                promotion artifacts by platform.
               </li>
               <li>
-                Use both views together: social scan detects narrative velocity, browser agents validate evidence quality.
+                Use both views together: social scan detects narrative velocity,
+                browser agents validate evidence quality.
               </li>
             </ul>
           </div>
@@ -234,7 +270,9 @@ export default function MarketAnalysisPage() {
             color="#ef4444"
           />
           <div className="bg-card rounded-2xl shadow p-6">
-            <h3 className="text-lg font-medium text-foreground mb-4">Risk Distribution</h3>
+            <h3 className="text-lg font-medium text-foreground mb-4">
+              Risk Distribution
+            </h3>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-1">
@@ -253,7 +291,9 @@ export default function MarketAnalysisPage() {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-yellow-600">Medium Risk</span>
-                  <span className="font-medium">{data.stats.mediumRiskCount}</span>
+                  <span className="font-medium">
+                    {data.stats.mediumRiskCount}
+                  </span>
                 </div>
                 <div className="w-full bg-secondary rounded-full h-3">
                   <div
@@ -267,7 +307,9 @@ export default function MarketAnalysisPage() {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-red-600">High Risk</span>
-                  <span className="font-medium">{data.stats.highRiskCount}</span>
+                  <span className="font-medium">
+                    {data.stats.highRiskCount}
+                  </span>
                 </div>
                 <div className="w-full bg-secondary rounded-full h-3">
                   <div
@@ -282,7 +324,8 @@ export default function MarketAnalysisPage() {
             {data.stats.lastScanDate && (
               <p className="mt-4 text-xs text-muted-foreground flex items-center">
                 <Calendar className="h-3 w-3 mr-1" />
-                Last scan: {new Date(data.stats.lastScanDate).toLocaleDateString()}
+                Last scan:{" "}
+                {new Date(data.stats.lastScanDate).toLocaleDateString()}
               </p>
             )}
           </div>
@@ -291,32 +334,60 @@ export default function MarketAnalysisPage() {
         {/* High Risk Stocks Table */}
         <div className="bg-card rounded-2xl shadow">
           <div className="px-6 py-4 border-b border-border">
-            <h3 className="text-lg font-medium text-foreground">Top High Risk Stocks</h3>
+            <h3 className="text-lg font-medium text-foreground">
+              Top High Risk Stocks
+            </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-secondary/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Symbol</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Score</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Signals</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Change</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Symbol
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Score
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Signals
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Change
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-card divide-y divide-border">
                 {data.highRiskStocks.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                      No high risk stocks found. Run a daily evaluation to populate data.
+                    <td
+                      colSpan={6}
+                      className="px-6 py-8 text-center text-muted-foreground"
+                    >
+                      No high risk stocks found. Run a daily evaluation to
+                      populate data.
                     </td>
                   </tr>
                 ) : (
                   data.highRiskStocks.map((stock) => (
-                    <tr key={stock.symbol} className="hover:bg-secondary cursor-pointer" onClick={() => router.push(`/admin/scan-intelligence/stock/${stock.symbol}`)}>
+                    <tr
+                      key={stock.symbol}
+                      className="hover:bg-secondary cursor-pointer"
+                      onClick={() =>
+                        router.push(
+                          `/admin/scan-intelligence/stock/${stock.symbol}`,
+                        )
+                      }
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <button className="font-medium text-primary hover:underline">{stock.symbol}</button>
+                        <button className="font-medium text-primary hover:underline">
+                          {stock.symbol}
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground max-w-xs truncate">
                         {stock.name}
@@ -330,14 +401,25 @@ export default function MarketAnalysisPage() {
                         {stock.signalCount}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                        {stock.lastPrice ? `$${stock.lastPrice.toFixed(2)}` : "-"}
+                        {stock.lastPrice
+                          ? `$${stock.lastPrice.toFixed(2)}`
+                          : "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {stock.priceChangePct !== null ? (
-                          <span className={stock.priceChangePct >= 0 ? "text-green-600" : "text-red-600"}>
-                            {stock.priceChangePct >= 0 ? "+" : ""}{stock.priceChangePct.toFixed(2)}%
+                          <span
+                            className={
+                              stock.priceChangePct >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }
+                          >
+                            {stock.priceChangePct >= 0 ? "+" : ""}
+                            {stock.priceChangePct.toFixed(2)}%
                           </span>
-                        ) : "-"}
+                        ) : (
+                          "-"
+                        )}
                       </td>
                     </tr>
                   ))
@@ -351,23 +433,45 @@ export default function MarketAnalysisPage() {
         {data.promotedStocks.length > 0 && (
           <div className="bg-card rounded-2xl shadow">
             <div className="px-6 py-4 border-b border-border">
-              <h3 className="text-lg font-medium text-foreground">Promoted Stock Watchlist</h3>
+              <h3 className="text-lg font-medium text-foreground">
+                Promoted Stock Watchlist
+              </h3>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border">
                 <thead className="bg-secondary/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Symbol</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Promoter</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Platform</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Entry Price</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Current</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Outcome</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Symbol
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Promoter
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Platform
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Entry Price
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Current
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                      Outcome
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-card divide-y divide-border">
                   {data.promotedStocks.map((stock, idx) => (
-                    <tr key={idx} className="hover:bg-secondary cursor-pointer" onClick={() => router.push(`/admin/scan-intelligence/stock/${stock.symbol}`)}>
+                    <tr
+                      key={idx}
+                      className="hover:bg-secondary cursor-pointer"
+                      onClick={() =>
+                        router.push(
+                          `/admin/scan-intelligence/stock/${stock.symbol}`,
+                        )
+                      }
+                    >
                       <td className="px-6 py-4 whitespace-nowrap font-medium text-primary">
                         {stock.symbol}
                       </td>
@@ -382,20 +486,34 @@ export default function MarketAnalysisPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {stock.currentPrice ? (
-                          <span className={stock.currentGainPct && stock.currentGainPct >= 0 ? "text-green-600" : "text-red-600"}>
+                          <span
+                            className={
+                              stock.currentGainPct && stock.currentGainPct >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }
+                          >
                             ${stock.currentPrice.toFixed(2)}
-                            {stock.currentGainPct && ` (${stock.currentGainPct >= 0 ? "+" : ""}${stock.currentGainPct.toFixed(1)}%)`}
+                            {stock.currentGainPct &&
+                              ` (${stock.currentGainPct >= 0 ? "+" : ""}${stock.currentGainPct.toFixed(1)}%)`}
                           </span>
-                        ) : "-"}
+                        ) : (
+                          "-"
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {stock.outcome && (
-                          <span className={`px-2 py-1 text-xs font-medium rounded ${
-                            stock.outcome === "DUMPED" ? "bg-red-100 text-red-800" :
-                            stock.outcome === "PUMPING" ? "bg-yellow-100 text-yellow-800" :
-                            stock.outcome === "PEAKED" ? "bg-orange-100 text-orange-800" :
-                            "bg-secondary text-foreground"
-                          }`}>
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded ${
+                              stock.outcome === "DUMPED"
+                                ? "bg-red-100 text-red-800"
+                                : stock.outcome === "PUMPING"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : stock.outcome === "PEAKED"
+                                    ? "bg-orange-100 text-orange-800"
+                                    : "bg-secondary text-foreground"
+                            }`}
+                          >
                             {stock.outcome}
                           </span>
                         )}

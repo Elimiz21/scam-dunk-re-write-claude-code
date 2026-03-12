@@ -14,7 +14,7 @@ declare global {
           "expired-callback"?: () => void;
           theme?: "light" | "dark" | "auto";
           size?: "normal" | "compact";
-        }
+        },
       ) => string;
       reset: (widgetId: string) => void;
       remove: (widgetId: string) => void;
@@ -52,7 +52,8 @@ export function Turnstile({ onVerify, onError, onExpire }: TurnstileProps) {
     // Load Turnstile script if not already loaded
     if (!document.querySelector('script[src*="turnstile"]')) {
       const script = document.createElement("script");
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad";
+      script.src =
+        "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad";
       script.async = true;
       script.defer = true;
 

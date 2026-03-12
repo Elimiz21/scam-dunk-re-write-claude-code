@@ -8,12 +8,12 @@
 
 Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_THEN_DROP:
 
-| Category | Count | Verdict |
-|----------|-------|---------|
-| **LEGITIMATE** (real news catalyst) | 6 | Not pump-and-dump |
-| **CORPORATE DISTRESS** (compliance/FDA issues) | 5 | Price decline from bad news, not pump |
-| **UNCERTAIN** (mixed signals) | 3 | Needs monitoring |
-| **LIKELY PUMP** (no clear catalyst) | 1 | Suspicious |
+| Category                                       | Count | Verdict                               |
+| ---------------------------------------------- | ----- | ------------------------------------- |
+| **LEGITIMATE** (real news catalyst)            | 6     | Not pump-and-dump                     |
+| **CORPORATE DISTRESS** (compliance/FDA issues) | 5     | Price decline from bad news, not pump |
+| **UNCERTAIN** (mixed signals)                  | 3     | Needs monitoring                      |
+| **LIKELY PUMP** (no clear catalyst)            | 1     | Suspicious                            |
 
 ---
 
@@ -21,13 +21,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 1. ALMS (Alumis Inc.) - ✅ LEGITIMATE
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $23.86 |
-| Jan 11 Score | 8 |
-| Catalyst | **Phase 3 trial success** |
+| Metric        | Value                     |
+| ------------- | ------------------------- |
+| Current Price | $23.86                    |
+| Jan 11 Score  | 8                         |
+| Catalyst      | **Phase 3 trial success** |
 
 **Why It's Legitimate:**
+
 - **January 5-6, 2026**: Announced positive Phase 3 results for envudeucitinib (psoriasis treatment)
 - Met ALL primary and secondary endpoints
 - 74% of patients achieved PASI 75, 59% achieved sPGA 0/1
@@ -42,13 +43,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 2. ATLN (Atlantic International) - ⚠️ UNCERTAIN
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $2.61 |
-| Jan 11 Score | 11 |
-| Catalyst | Unknown |
+| Metric        | Value   |
+| ------------- | ------- |
+| Current Price | $2.61   |
+| Jan 11 Score  | 11      |
+| Catalyst      | Unknown |
 
 **Findings:**
+
 - Limited news found for ATLN specifically
 - Note: Often confused with ATLC (Atlanticus Holdings)
 - Small market cap, limited coverage
@@ -59,13 +61,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 3. SOWG (Sow Good) - ⚠️ UNCERTAIN
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $0.97 |
-| Jan 11 Score | 11 |
-| Catalyst | Corporate restructuring |
+| Metric        | Value                   |
+| ------------- | ----------------------- |
+| Current Price | $0.97                   |
+| Jan 11 Score  | 11                      |
+| Catalyst      | Corporate restructuring |
 
 **Findings:**
+
 - Near all-time low ($0.23 on Dec 30, 2025)
 - **January 6, 2026**: Announced $6M private placement, strategic asset sale
 - Leadership change: David Lazar as CEO
@@ -79,13 +82,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 4. SER (Serina Therapeutics) - 🔴 CORPORATE DISTRESS
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $3.10 |
-| Jan 11 Score | 10 |
-| Catalyst | NYSE deficiency notice |
+| Metric        | Value                  |
+| ------------- | ---------------------- |
+| Current Price | $3.10                  |
+| Jan 11 Score  | 10                     |
+| Catalyst      | NYSE deficiency notice |
 
 **Findings:**
+
 - **January 15, 2026**: Received NYSE deficiency notification (stockholders' equity only $1.6M)
 - Must submit compliance plan by February 8, 2026
 - **Insider selling**: CSO sold shares on Jan 8, 13, 14 (~$51K total)
@@ -97,13 +101,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 5. NTCL (NetClass Technology) - ⚠️ UNCERTAIN
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $0.36 |
-| Jan 11 Score | 8 |
-| Catalyst | PIPE financing |
+| Metric        | Value          |
+| ------------- | -------------- |
+| Current Price | $0.36          |
+| Jan 11 Score  | 8              |
+| Catalyst      | PIPE financing |
 
 **Findings:**
+
 - **November 2025**: Closed $2.4M PIPE at $1.60/share
 - H1 2025: Revenue $3.65M (-3% YoY), net loss $4.96M (+140%)
 - AI and blockchain expansion in Singapore/Southeast Asia
@@ -115,13 +120,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 6. CDIO (Cardio Diagnostics) - ✅ LEGITIMATE
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $1.81 |
-| Jan 11 Score | 8 |
-| Catalyst | CMS pricing + partnerships |
+| Metric        | Value                      |
+| ------------- | -------------------------- |
+| Current Price | $1.81                      |
+| Jan 11 Score  | 8                          |
+| Catalyst      | CMS pricing + partnerships |
 
 **Findings:**
+
 - **January 1, 2026**: CMS issued final gapfill rate of $854 for tests (up from $685)
 - **January 6, 2026**: YMCA partnership expansion
 - **January 7, 2026**: Announced international expansion to India with Dr. Lal PathLabs
@@ -134,13 +140,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 7. SLAI (SOLAI Limited) - 🔴 CORPORATE RESTRUCTURING
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $1.08 |
-| Jan 11 Score | 8 |
-| Catalyst | Name change, pivot |
+| Metric        | Value              |
+| ------------- | ------------------ |
+| Current Price | $1.08              |
+| Jan 11 Score  | 8                  |
+| Catalyst      | Name change, pivot |
 
 **Findings:**
+
 - **October 2025**: Changed name from BIT Mining to SOLAI Limited
 - Pivoting from crypto mining to blockchain ecosystem (AI, stablecoins, payments)
 - Stock down 39% in 10-day period
@@ -154,13 +161,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 8. OS (OneStream) - ✅ LEGITIMATE (M&A)
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $23.62 |
-| Jan 11 Score | 3 |
-| Catalyst | **$6.4B acquisition** |
+| Metric        | Value                 |
+| ------------- | --------------------- |
+| Current Price | $23.62                |
+| Jan 11 Score  | 3                     |
+| Catalyst      | **$6.4B acquisition** |
 
 **Findings:**
+
 - **January 2026**: Hg announced acquisition at $24/share ($6.4B valuation)
 - 31% premium to Jan 5 closing price
 - Will be taken private in H1 2026
@@ -172,13 +180,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 9. OTLK (Outlook Therapeutics) - 🔴 CORPORATE DISTRESS
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $0.55 |
-| Jan 11 Score | 5 |
-| Catalyst | FDA rejection |
+| Metric        | Value         |
+| ------------- | ------------- |
+| Current Price | $0.55         |
+| Jan 11 Score  | 5             |
+| Catalyst      | FDA rejection |
 
 **Findings:**
+
 - **Late December 2025**: FDA issued second Complete Response Letter (CRL) for Lytenava
 - Stock crashed 63% on rejection news
 - Second FDA rejection in 6 months
@@ -190,13 +199,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 10. TIL (Instil Bio) - 🔴 CORPORATE DISTRESS
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $7.07 |
-| Jan 11 Score | 3 |
-| Catalyst | Lead drug discontinued |
+| Metric        | Value                  |
+| ------------- | ---------------------- |
+| Current Price | $7.07                  |
+| Jan 11 Score  | 3                      |
+| Catalyst      | Lead drug discontinued |
 
 **Findings:**
+
 - **January 6, 2026**: Discontinued clinical development of lead asset AXN-2510
 - Stock crashed 46-52% on news
 - H.C. Wainwright and Baird downgraded
@@ -208,13 +218,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 11. AMOD (Alpha Modus Holdings) - ✅ LEGITIMATE
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $0.75 |
-| Jan 11 Score | 6 |
-| Catalyst | DXC partnership |
+| Metric        | Value           |
+| ------------- | --------------- |
+| Current Price | $0.75           |
+| Jan 11 Score  | 6               |
+| Catalyst      | DXC partnership |
 
 **Findings:**
+
 - **January 2026**: Partnership with DXC to deploy AI-driven financial kiosks
 - Partnership with DolFinTech for check cashing/money transfer services
 - Rollout: ~25 kiosks/month starting Q1 2026
@@ -226,13 +237,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 12. PRZO (ParaZero Technologies) - ✅ LEGITIMATE
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $1.37 |
-| Jan 11 Score | 5 |
-| Catalyst | Defense contracts |
+| Metric        | Value             |
+| ------------- | ----------------- |
+| Current Price | $1.37             |
+| Jan 11 Score  | 5                 |
+| Catalyst      | Defense contracts |
 
 **Findings:**
+
 - **January 2, 2026**: First Israeli defense order for DefendAir CUAS (anti-drone)
 - **January 8, 2026**: 100% interception success in live demonstrations
 - **January 12, 2026**: $2M stock offering at $1/share
@@ -244,13 +256,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 13. EEIQ (EpicQuest Education) - 🔴 CORPORATE DISTRESS
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $0.28 |
-| Jan 11 Score | 7 |
-| Catalyst | Nasdaq delisting notice |
+| Metric        | Value                   |
+| ------------- | ----------------------- |
+| Current Price | $0.28                   |
+| Jan 11 Score  | 7                       |
+| Catalyst      | Nasdaq delisting notice |
 
 **Findings:**
+
 - Received Nasdaq delinquency notification
 - Stock down 74.53% over past year
 - Near all-time low ($0.23)
@@ -263,13 +276,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 14. BFRI (Biofrontera) - ✅ LEGITIMATE
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $0.83 |
-| Jan 11 Score | 5 |
-| Catalyst | Clinical trial data |
+| Metric        | Value               |
+| ------------- | ------------------- |
+| Current Price | $0.83               |
+| Jan 11 Score  | 5                   |
+| Catalyst      | Clinical trial data |
 
 **Findings:**
+
 - **January 5, 2026**: Database locks for Phase 3 AK and Phase 2 acne studies
 - Topline data expected February 2026
 - **November 2025**: sNDA submitted for basal cell carcinoma
@@ -282,13 +296,14 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### 15. MYPSW (PLAYSTUDIOS Warrant) - 🟡 LIKELY PUMP/WARRANT EXPIRY
 
-| Metric | Value |
-|--------|-------|
-| Current Price | $0.007 |
-| Jan 11 Score | 7 |
-| Catalyst | None found |
+| Metric        | Value      |
+| ------------- | ---------- |
+| Current Price | $0.007     |
+| Jan 11 Score  | 7          |
+| Catalyst      | None found |
 
 **Findings:**
+
 - Warrant expiring June 17, 2026
 - Trading at $0.01 (near worthless)
 - 52-week range: $0.01 - $0.033
@@ -303,37 +318,37 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ### ✅ LEGITIMATE (6 stocks)
 
-| Stock | Catalyst | Confidence |
-|-------|----------|------------|
-| **ALMS** | Phase 3 trial success, analyst upgrades | HIGH |
-| **OS** | $6.4B M&A at $24/share | HIGH |
-| **CDIO** | CMS pricing, YMCA/India partnerships | MEDIUM |
-| **AMOD** | DXC partnership, kiosk rollout | MEDIUM |
-| **PRZO** | Israeli defense contract | MEDIUM |
-| **BFRI** | Phase 3 database lock, FDA submission | MEDIUM |
+| Stock    | Catalyst                                | Confidence |
+| -------- | --------------------------------------- | ---------- |
+| **ALMS** | Phase 3 trial success, analyst upgrades | HIGH       |
+| **OS**   | $6.4B M&A at $24/share                  | HIGH       |
+| **CDIO** | CMS pricing, YMCA/India partnerships    | MEDIUM     |
+| **AMOD** | DXC partnership, kiosk rollout          | MEDIUM     |
+| **PRZO** | Israeli defense contract                | MEDIUM     |
+| **BFRI** | Phase 3 database lock, FDA submission   | MEDIUM     |
 
 ### 🔴 CORPORATE DISTRESS (5 stocks)
 
-| Stock | Issue | Price Impact |
-|-------|-------|--------------|
-| **OTLK** | Second FDA rejection | -63% crash |
-| **TIL** | Lead drug discontinued | -46% crash |
-| **SER** | NYSE deficiency notice | Declining |
-| **EEIQ** | Nasdaq delisting notice | Near all-time low |
-| **SLAI** | Business pivot from crypto | -39% decline |
+| Stock    | Issue                      | Price Impact      |
+| -------- | -------------------------- | ----------------- |
+| **OTLK** | Second FDA rejection       | -63% crash        |
+| **TIL**  | Lead drug discontinued     | -46% crash        |
+| **SER**  | NYSE deficiency notice     | Declining         |
+| **EEIQ** | Nasdaq delisting notice    | Near all-time low |
+| **SLAI** | Business pivot from crypto | -39% decline      |
 
 ### ⚠️ UNCERTAIN (3 stocks)
 
-| Stock | Notes |
-|-------|-------|
-| **ATLN** | Limited data available |
-| **SOWG** | Restructuring + speculative interest |
+| Stock    | Notes                                  |
+| -------- | -------------------------------------- |
+| **ATLN** | Limited data available                 |
+| **SOWG** | Restructuring + speculative interest   |
 | **NTCL** | PIPE financing, declining fundamentals |
 
 ### 🟡 LIKELY PUMP (1 stock)
 
-| Stock | Notes |
-|-------|-------|
+| Stock     | Notes                                         |
+| --------- | --------------------------------------------- |
 | **MYPSW** | Near-expiry warrant, no catalyst, speculative |
 
 ---
@@ -369,12 +384,22 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
     "legitimate": {
       "count": 6,
       "stocks": ["ALMS", "OS", "CDIO", "AMOD", "PRZO", "BFRI"],
-      "commonCatalysts": ["clinical_trials", "ma_activity", "partnerships", "defense_contracts"]
+      "commonCatalysts": [
+        "clinical_trials",
+        "ma_activity",
+        "partnerships",
+        "defense_contracts"
+      ]
     },
     "corporateDistress": {
       "count": 5,
       "stocks": ["OTLK", "TIL", "SER", "EEIQ", "SLAI"],
-      "commonIssues": ["fda_rejection", "drug_discontinuation", "delisting_notices", "business_pivot"]
+      "commonIssues": [
+        "fda_rejection",
+        "drug_discontinuation",
+        "delisting_notices",
+        "business_pivot"
+      ]
     },
     "uncertain": {
       "count": 3,
@@ -393,5 +418,5 @@ Of the 15 stocks flagged Jan 11-12 with pump signals that haven't shown SPIKE_TH
 
 ---
 
-*Report generated: January 16, 2026*
-*ScamDunk Deep Dive Analysis v1.0*
+_Report generated: January 16, 2026_
+_ScamDunk Deep Dive Analysis v1.0_

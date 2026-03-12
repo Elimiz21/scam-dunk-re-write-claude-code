@@ -111,7 +111,9 @@ export default function ModelEfficacyPage() {
 
   async function fetchSegments() {
     try {
-      const res = await fetch(`/api/admin/model-efficacy/segments?days=${days}`);
+      const res = await fetch(
+        `/api/admin/model-efficacy/segments?days=${days}`,
+      );
       if (!res.ok) return; // Non-critical, don't block the page
       const data = await res.json();
       setSegmentData(data);
@@ -149,7 +151,9 @@ export default function ModelEfficacyPage() {
       await fetchMetrics();
       await fetchScans();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit feedback");
+      setError(
+        err instanceof Error ? err.message : "Failed to submit feedback",
+      );
     }
   }
 
@@ -175,7 +179,9 @@ export default function ModelEfficacyPage() {
     {
       key: "ticker",
       header: "Ticker",
-      render: (item: Scan) => <span className="font-mono font-medium">{item.ticker}</span>,
+      render: (item: Scan) => (
+        <span className="font-mono font-medium">{item.ticker}</span>
+      ),
     },
     {
       key: "riskLevel",
@@ -195,7 +201,8 @@ export default function ModelEfficacyPage() {
     {
       key: "processingTime",
       header: "Time",
-      render: (item: Scan) => (item.processingTime ? `${item.processingTime}ms` : "-"),
+      render: (item: Scan) =>
+        item.processingTime ? `${item.processingTime}ms` : "-",
     },
     {
       key: "createdAt",
@@ -254,7 +261,9 @@ export default function ModelEfficacyPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Model Efficacy</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Model Efficacy
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Monitor and improve scam detection accuracy
             </p>
@@ -271,14 +280,22 @@ export default function ModelEfficacyPage() {
         </div>
 
         {error && (
-          <AlertBanner type="error" title="Error" message={error} onDismiss={() => setError("")} />
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
         )}
 
         {/* Stats */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-card rounded-2xl shadow h-32 animate-pulse" />
+              <div
+                key={i}
+                className="bg-card rounded-2xl shadow h-32 animate-pulse"
+              />
             ))}
           </div>
         ) : metrics ? (
@@ -315,8 +332,12 @@ export default function ModelEfficacyPage() {
               <div className="bg-card rounded-2xl shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-medium text-foreground">Model Accuracy</h3>
-                    <p className="text-sm text-muted-foreground">Based on manual feedback</p>
+                    <h3 className="text-lg font-medium text-foreground">
+                      Model Accuracy
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Based on manual feedback
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-4xl font-bold text-primary">
@@ -354,7 +375,9 @@ export default function ModelEfficacyPage() {
             {/* Segment Efficacy Dashboard */}
             {segmentData && (
               <div className="bg-card rounded-2xl shadow p-6">
-                <h3 className="text-lg font-medium text-foreground mb-2">Segment Efficacy</h3>
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  Segment Efficacy
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   Risk detection rates by stock segment and scoring engine
                 </p>
@@ -372,34 +395,68 @@ export default function ModelEfficacyPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {([
-                        ["All Stocks", segmentData.segments.all],
-                        ["OTC Stocks", segmentData.segments.otc],
-                        ["Micro-Cap (<$50M)", segmentData.segments.microCap],
-                        ["High Volume Surge", segmentData.segments.highVolume],
-                        ["AI Backend", segmentData.segments.aiBackend],
-                        ["TS Fallback", segmentData.segments.tsFallback],
-                      ] as [string, SegmentStats][]).map(([label, seg]) => {
-                        const pctHigh = seg.totalScans > 0 ? (seg.highRisk / seg.totalScans) * 100 : 0;
-                        const pctMed = seg.totalScans > 0 ? (seg.mediumRisk / seg.totalScans) * 100 : 0;
-                        const pctLow = seg.totalScans > 0 ? (seg.lowRisk / seg.totalScans) * 100 : 0;
+                      {(
+                        [
+                          ["All Stocks", segmentData.segments.all],
+                          ["OTC Stocks", segmentData.segments.otc],
+                          ["Micro-Cap (<$50M)", segmentData.segments.microCap],
+                          [
+                            "High Volume Surge",
+                            segmentData.segments.highVolume,
+                          ],
+                          ["AI Backend", segmentData.segments.aiBackend],
+                          ["TS Fallback", segmentData.segments.tsFallback],
+                        ] as [string, SegmentStats][]
+                      ).map(([label, seg]) => {
+                        const pctHigh =
+                          seg.totalScans > 0
+                            ? (seg.highRisk / seg.totalScans) * 100
+                            : 0;
+                        const pctMed =
+                          seg.totalScans > 0
+                            ? (seg.mediumRisk / seg.totalScans) * 100
+                            : 0;
+                        const pctLow =
+                          seg.totalScans > 0
+                            ? (seg.lowRisk / seg.totalScans) * 100
+                            : 0;
                         return (
                           <tr key={label}>
                             <td className="py-2 pr-4 font-medium">{label}</td>
-                            <td className="py-2 pr-4 text-right tabular-nums">{seg.totalScans}</td>
                             <td className="py-2 pr-4 text-right tabular-nums">
-                              <span className={pctHigh >= 30 ? "text-red-600 font-medium" : ""}>
+                              {seg.totalScans}
+                            </td>
+                            <td className="py-2 pr-4 text-right tabular-nums">
+                              <span
+                                className={
+                                  pctHigh >= 30
+                                    ? "text-red-600 font-medium"
+                                    : ""
+                                }
+                              >
                                 {pctHigh.toFixed(1)}%
                               </span>
                             </td>
                             <td className="py-2 pr-4 text-right tabular-nums">
-                              <span className={pctMed >= 40 ? "text-yellow-600 font-medium" : ""}>
+                              <span
+                                className={
+                                  pctMed >= 40
+                                    ? "text-yellow-600 font-medium"
+                                    : ""
+                                }
+                              >
                                 {pctMed.toFixed(1)}%
                               </span>
                             </td>
-                            <td className="py-2 pr-4 text-right tabular-nums">{pctLow.toFixed(1)}%</td>
-                            <td className="py-2 pr-4 text-right tabular-nums">{seg.avgScore.toFixed(1)}</td>
-                            <td className="py-2 text-right tabular-nums">{seg.avgProcessingTime}ms</td>
+                            <td className="py-2 pr-4 text-right tabular-nums">
+                              {pctLow.toFixed(1)}%
+                            </td>
+                            <td className="py-2 pr-4 text-right tabular-nums">
+                              {seg.avgScore.toFixed(1)}
+                            </td>
+                            <td className="py-2 text-right tabular-nums">
+                              {seg.avgProcessingTime}ms
+                            </td>
                           </tr>
                         );
                       })}
@@ -411,15 +468,21 @@ export default function ModelEfficacyPage() {
 
             {/* Top Tickers */}
             <div className="bg-card rounded-2xl shadow p-6">
-              <h3 className="text-lg font-medium text-foreground mb-4">Most Scanned Tickers</h3>
+              <h3 className="text-lg font-medium text-foreground mb-4">
+                Most Scanned Tickers
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {metrics.topTickers.map((ticker) => (
                   <span
                     key={ticker.ticker}
                     className="inline-flex items-center px-3 py-1 rounded-full bg-secondary text-sm"
                   >
-                    <span className="font-mono font-medium">{ticker.ticker}</span>
-                    <span className="ml-2 text-muted-foreground">{ticker.count}</span>
+                    <span className="font-mono font-medium">
+                      {ticker.ticker}
+                    </span>
+                    <span className="ml-2 text-muted-foreground">
+                      {ticker.count}
+                    </span>
                   </span>
                 ))}
               </div>
@@ -428,7 +491,9 @@ export default function ModelEfficacyPage() {
             {/* Recent Scans for Review */}
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-foreground">Recent Scans</h3>
+                <h3 className="text-lg font-medium text-foreground">
+                  Recent Scans
+                </h3>
                 <select
                   value={filterRisk}
                   onChange={(e) => setFilterRisk(e.target.value)}
@@ -446,7 +511,8 @@ export default function ModelEfficacyPage() {
                 data={scans}
                 pagination={{
                   ...pagination,
-                  onPageChange: (page) => setPagination((p) => ({ ...p, page })),
+                  onPageChange: (page) =>
+                    setPagination((p) => ({ ...p, page })),
                 }}
                 emptyMessage="No scans found"
               />

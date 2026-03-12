@@ -15,7 +15,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tables: Record<string, { exists: boolean; count?: number; error?: string }> = {};
+    const tables: Record<
+      string,
+      { exists: boolean; count?: number; error?: string }
+    > = {};
 
     // Check TrackedStock table
     try {
@@ -98,7 +101,9 @@ export async function GET() {
     }
 
     const allExist = Object.values(tables).every((t) => t.exists);
-    const hasData = Object.values(tables).some((t) => t.exists && (t.count || 0) > 0);
+    const hasData = Object.values(tables).some(
+      (t) => t.exists && (t.count || 0) > 0,
+    );
 
     return NextResponse.json({
       status: allExist ? (hasData ? "ready" : "empty") : "missing_tables",
@@ -106,14 +111,14 @@ export async function GET() {
       message: !allExist
         ? "Some tables are missing. Run 'npx prisma db push' to create them."
         : hasData
-        ? "Database is ready with data."
-        : "Tables exist but no data. Use Data Ingestion to import evaluation data.",
+          ? "Database is ready with data."
+          : "Tables exist but no data. Use Data Ingestion to import evaluation data.",
     });
   } catch (error) {
     console.error("DB status error:", error);
     return NextResponse.json(
       { error: "Failed to check database status", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -242,16 +247,24 @@ export async function POST() {
       `CREATE INDEX IF NOT EXISTS "PromotedStock_isActive_idx" ON "PromotedStock"("isActive")`,
     ];
 
-    const results: { statement: string; success: boolean; error?: string }[] = [];
+    const results: { statement: string; success: boolean; error?: string }[] =
+      [];
 
     // Note: these are hardcoded DDL statements (no user input); Prisma.raw() is used
     // instead of $executeRawUnsafe to avoid the "unsafe" API pattern in the codebase.
     for (const sql of createStatements) {
       try {
         await prisma.$executeRawUnsafe(sql);
-        results.push({ statement: sql.substring(0, 50) + "...", success: true });
+        results.push({
+          statement: sql.substring(0, 50) + "...",
+          success: true,
+        });
       } catch (e) {
-        results.push({ statement: sql.substring(0, 50) + "...", success: false, error: String(e) });
+        results.push({
+          statement: sql.substring(0, 50) + "...",
+          success: false,
+          error: String(e),
+        });
       }
     }
 
@@ -486,12 +499,24 @@ export async function POST() {
     ];
 
     // Run all statement groups
-    for (const sql of [...socialScanStatements, ...browserAgentStatements, ...promoterStatements, ...homepageStatements]) {
+    for (const sql of [
+      ...socialScanStatements,
+      ...browserAgentStatements,
+      ...promoterStatements,
+      ...homepageStatements,
+    ]) {
       try {
         await prisma.$executeRawUnsafe(sql);
-        results.push({ statement: sql.substring(0, 60) + "...", success: true });
+        results.push({
+          statement: sql.substring(0, 60) + "...",
+          success: true,
+        });
       } catch (e) {
-        results.push({ statement: sql.substring(0, 60) + "...", success: false, error: String(e) });
+        results.push({
+          statement: sql.substring(0, 60) + "...",
+          success: false,
+          error: String(e),
+        });
       }
     }
 
@@ -509,23 +534,31 @@ export async function POST() {
     for (const sql of fkStatements) {
       try {
         await prisma.$executeRawUnsafe(sql);
-        results.push({ statement: sql.substring(0, 50) + "...", success: true });
+        results.push({
+          statement: sql.substring(0, 50) + "...",
+          success: true,
+        });
       } catch (e) {
         // FK might already exist, that's OK
-        results.push({ statement: sql.substring(0, 50) + "...", success: false, error: String(e) });
+        results.push({
+          statement: sql.substring(0, 50) + "...",
+          success: false,
+          error: String(e),
+        });
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: "Table creation attempted. Check GET /api/admin/db-status for current status.",
+      message:
+        "Table creation attempted. Check GET /api/admin/db-status for current status.",
       results,
     });
   } catch (error) {
     console.error("DB setup error:", error);
     return NextResponse.json(
       { error: "Failed to create tables", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -17,7 +17,10 @@ export async function POST() {
     }
 
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const result = await backfillAdminMetrics();
@@ -39,7 +42,7 @@ export async function POST() {
     console.error("Backfill error:", error);
     return NextResponse.json(
       { error: "Failed to backfill admin metrics", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

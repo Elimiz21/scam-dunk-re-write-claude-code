@@ -39,7 +39,8 @@ const articleSchema = {
   mainEntity: {
     "@type": "CreativeWork",
     name: "Investment Fraud Detection Guide",
-    description: "Educational resource for identifying investment scams and fraud schemes",
+    description:
+      "Educational resource for identifying investment scams and fraud schemes",
   },
 };
 
@@ -48,7 +49,6 @@ export default function InvestmentScamsPage() {
     <div className="min-h-screen bg-background">
       <JsonLd data={articleSchema} />
       <PageLayout>
-
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
             {/* Hero Section */}
@@ -60,18 +60,22 @@ export default function InvestmentScamsPage() {
                 Types of Investment Fraud: Complete Guide
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Understand the most common investment scams, how they work, and how to protect your portfolio
-                from manipulation and fraud.
+                Understand the most common investment scams, how they work, and
+                how to protect your portfolio from manipulation and fraud.
               </p>
             </div>
 
             {/* Content Sections */}
             <article className="prose prose-neutral dark:prose-invert max-w-none">
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Pump-and-Dump Schemes</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Pump-and-Dump Schemes
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  A pump-and-dump scheme is a coordinated manipulation tactic where promoters artificially inflate a
-                  stock's price (the "pump"), then sell their shares (the "dump"), leaving retail investors with losses.
+                  A pump-and-dump scheme is a coordinated manipulation tactic
+                  where promoters artificially inflate a stock's price (the
+                  "pump"), then sell their shares (the "dump"), leaving retail
+                  investors with losses.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
                   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -99,11 +103,15 @@ export default function InvestmentScamsPage() {
               <section className="mb-12">
                 <h2 className="text-3xl font-bold mb-6">Penny Stock Scams</h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Penny stocks—shares trading below $5—are common targets for manipulation due to low trading volumes
-                  and limited regulatory oversight. Scammers exploit these characteristics to artificially move prices.
+                  Penny stocks—shares trading below $5—are common targets for
+                  manipulation due to low trading volumes and limited regulatory
+                  oversight. Scammers exploit these characteristics to
+                  artificially move prices.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4">Why Penny Stocks Are Vulnerable</h3>
+                  <h3 className="text-xl font-semibold mb-4">
+                    Why Penny Stocks Are Vulnerable
+                  </h3>
                   <ul className="space-y-3">
                     {[
                       "Low market capitalization makes prices easier to manipulate",
@@ -122,10 +130,14 @@ export default function InvestmentScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Cold Calling and Social Engineering</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Cold Calling and Social Engineering
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Scammers use high-pressure sales tactics and false credentials to build trust and convince investors
-                  to buy fraudulent securities. These attacks often combine social engineering with false claims.
+                  Scammers use high-pressure sales tactics and false credentials
+                  to build trust and convince investors to buy fraudulent
+                  securities. These attacks often combine social engineering
+                  with false claims.
                 </p>
                 <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6 mb-6">
                   <p className="font-semibold mb-3">Typical Tactics:</p>
@@ -146,10 +158,13 @@ export default function InvestmentScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">How ScamDunk Can Help</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  How ScamDunk Can Help
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  ScamDunk uses advanced data analysis to identify stocks showing pump-and-dump characteristics,
-                  unusual volume patterns, and market manipulation signals.
+                  ScamDunk uses advanced data analysis to identify stocks
+                  showing pump-and-dump characteristics, unusual volume
+                  patterns, and market manipulation signals.
                 </p>
                 <Link href="/">
                   <Button size="lg" className="gap-2">
@@ -166,17 +181,23 @@ export default function InvestmentScamsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Link href="/social-media-scams">
                   <div className="card-interactive rounded-lg p-6 h-full hover:shadow-lg transition-shadow cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2">Social Media Investment Scams</h3>
+                    <h3 className="font-semibold text-lg mb-2">
+                      Social Media Investment Scams
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      Learn how scammers use Telegram, Discord, and Reddit to promote fraudulent stocks.
+                      Learn how scammers use Telegram, Discord, and Reddit to
+                      promote fraudulent stocks.
                     </p>
                   </div>
                 </Link>
                 <Link href="/how-to-detect-stock-scams">
                   <div className="card-interactive rounded-lg p-6 h-full hover:shadow-lg transition-shadow cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2">How to Detect Stock Scams</h3>
+                    <h3 className="font-semibold text-lg mb-2">
+                      How to Detect Stock Scams
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      Step-by-step guide to identifying manipulation patterns and red flags.
+                      Step-by-step guide to identifying manipulation patterns
+                      and red flags.
                     </p>
                   </div>
                 </Link>
@@ -185,10 +206,13 @@ export default function InvestmentScamsPage() {
 
             {/* CTA Section */}
             <section className="mt-12 gradient-mesh rounded-2xl p-8 md:p-12 text-center">
-              <h2 className="text-3xl font-bold mb-4">Protect Your Investments Today</h2>
+              <h2 className="text-3xl font-bold mb-4">
+                Protect Your Investments Today
+              </h2>
               <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-                Use ScamDunk to analyze any stock and get instant risk assessment for pump-and-dump schemes,
-                market manipulation, and other fraud patterns.
+                Use ScamDunk to analyze any stock and get instant risk
+                assessment for pump-and-dump schemes, market manipulation, and
+                other fraud patterns.
               </p>
               <Link href="/">
                 <Button size="lg" className="gap-2">

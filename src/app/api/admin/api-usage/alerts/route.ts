@@ -7,7 +7,7 @@ import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const alertSchema = z.object({
   service: z.string(),
@@ -32,7 +32,7 @@ export async function GET() {
     console.error("Get alerts error:", error);
     return NextResponse.json(
       { error: "Failed to fetch alerts" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -45,7 +45,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -83,7 +86,7 @@ export async function POST(request: NextRequest) {
     console.error("Create alert error:", error);
     return NextResponse.json(
       { error: "Failed to create alert" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -96,7 +99,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const { id } = await request.json();
@@ -123,7 +129,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Delete alert error:", error);
     return NextResponse.json(
       { error: "Failed to delete alert" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

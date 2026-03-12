@@ -5,6 +5,7 @@ A standalone admin dashboard for managing the ScamDunk application, completely s
 ## Features
 
 ### 1. Dashboard (Usage Metrics)
+
 - Total and active users statistics
 - Monthly and daily scan counts
 - Risk distribution visualization
@@ -13,6 +14,7 @@ A standalone admin dashboard for managing the ScamDunk application, completely s
 - Average processing time metrics
 
 ### 2. API Usage & Costs Monitoring
+
 - Real-time API request tracking
 - Cost estimation per service (OpenAI, Alpha Vantage, Stripe)
 - Customizable cost alerts with thresholds
@@ -20,6 +22,7 @@ A standalone admin dashboard for managing the ScamDunk application, completely s
 - Hourly/daily/monthly usage breakdowns
 
 ### 3. Integrations Management
+
 - Connection status for all integrations
 - One-click integration testing
 - Configuration options (rate limits, budgets)
@@ -27,6 +30,7 @@ A standalone admin dashboard for managing the ScamDunk application, completely s
 - Direct links to documentation
 
 ### 4. Model Efficacy
+
 - Scan accuracy tracking
 - False positive/negative reporting
 - Risk level distribution analysis
@@ -35,6 +39,7 @@ A standalone admin dashboard for managing the ScamDunk application, completely s
 - Manual feedback system for model improvement
 
 ### 5. Team Management
+
 - Invite new admin users
 - Role-based access control (OWNER, ADMIN, VIEWER)
 - User activation/deactivation
@@ -43,6 +48,7 @@ A standalone admin dashboard for managing the ScamDunk application, completely s
 ## Access Control
 
 ### Roles
+
 - **OWNER**: Full access including team management, audit logs
 - **ADMIN**: Full access except team management
 - **VIEWER**: Read-only access to dashboards
@@ -52,15 +58,18 @@ A standalone admin dashboard for managing the ScamDunk application, completely s
 The first admin user (OWNER) must be created before the admin panel can be used.
 
 #### Option 1: Using the Seed Script
+
 ```bash
 npm run db:seed:admin
 ```
 
 This creates the default owner:
+
 - Email: admin@scamdunk.com
 - Password: AdminPassword123!
 
 #### Option 2: Using the Setup API
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/setup \
   -H "Content-Type: application/json" \
@@ -74,6 +83,7 @@ curl -X POST http://localhost:3000/api/admin/setup \
 ## Routes
 
 ### Admin UI Routes
+
 - `/admin` - Redirects to login
 - `/admin/login` - Login page (also handles invite acceptance)
 - `/admin/dashboard` - Main metrics dashboard
@@ -83,6 +93,7 @@ curl -X POST http://localhost:3000/api/admin/setup \
 - `/admin/team` - Team and invite management
 
 ### Admin API Routes
+
 - `POST /api/admin/auth/login` - Login
 - `POST /api/admin/auth/logout` - Logout
 - `GET /api/admin/auth/session` - Get current session
@@ -103,56 +114,74 @@ curl -X POST http://localhost:3000/api/admin/setup \
 ## Database Models
 
 ### AdminUser
+
 Stores admin user accounts with:
+
 - Email/password authentication
 - Role assignment
 - Activity tracking
 
 ### AdminSession
+
 Cookie-based session management with:
+
 - Token-based authentication
 - Automatic expiration (7 days)
 - IP/User-Agent logging
 
 ### AdminInvite
+
 Invitation system with:
+
 - Unique invite tokens
 - Role pre-assignment
 - 7-day expiration
 
 ### ApiUsageLog
+
 API call tracking with:
+
 - Service identification
 - Token usage (for OpenAI)
 - Cost estimation
 - Response times
 
 ### ApiCostAlert
+
 Configurable alerts with:
+
 - Service-specific or global
 - Cost, rate limit, or error thresholds
 - Trigger history
 
 ### IntegrationConfig
+
 Integration management with:
+
 - Connection status
 - Rate limits
 - Monthly budgets
 
 ### ScanHistory
+
 Detailed scan logging with:
+
 - All scan parameters
 - Results and processing time
 - User attribution
 
 ### ModelMetrics
+
 Daily aggregated metrics for:
+
 - Risk distribution
 - Accuracy tracking
 - Performance monitoring
 
 ### AdminAuditLog
+
 Complete audit trail of:
+
 - All admin actions
 - Configuration changes
 - Security events
@@ -169,6 +198,7 @@ Complete audit trail of:
 ## Environment Variables
 
 The admin workspace uses existing environment variables:
+
 - `DATABASE_URL` - PostgreSQL connection
 - `NEXTAUTH_URL` - Base URL for invite links
 - `ADMIN_SETUP_KEY` (optional) - Additional security for initial setup
@@ -186,13 +216,16 @@ The admin workspace uses existing environment variables:
 ## Monitoring API Costs
 
 ### Setting Up Alerts
+
 1. Go to API Usage page
 2. Click "Add Alert"
 3. Choose service, type, and threshold
 4. Alert will trigger when threshold exceeded
 
 ### Cost Estimates
+
 OpenAI costs are estimated at:
+
 - Input tokens: $0.00015/1K tokens
 - Output tokens: $0.0006/1K tokens
 
@@ -212,16 +245,19 @@ Alpha Vantage and other APIs use request-based estimates.
 ## Troubleshooting
 
 ### Cannot Login
+
 - Verify admin user exists in database
 - Check password is correct
 - Clear browser cookies and retry
 
 ### Integration Shows "Error"
+
 - Click "Test" to get detailed error
 - Verify API keys in environment variables
 - Check API service status
 
 ### Metrics Not Updating
+
 - Ensure scans are being logged (check ScanHistory table)
 - Verify ModelMetrics table has entries
 - Check for database connection errors
@@ -229,16 +265,19 @@ Alpha Vantage and other APIs use request-based estimates.
 ## Development
 
 ### Adding New Metrics
+
 1. Add fields to relevant Prisma model
 2. Update the metrics collection functions in `/lib/admin/metrics.ts`
 3. Add UI components in dashboard pages
 
 ### Adding New Integrations
+
 1. Add integration definition in `/lib/admin/integrations.ts`
 2. Implement test function
 3. Add to DEFAULT_INTEGRATIONS in seed script
 
 ### Extending Roles
+
 1. Update role checks in `/lib/admin/auth.ts`
 2. Add new role to AdminUser model if needed
 3. Update UI permissions in components

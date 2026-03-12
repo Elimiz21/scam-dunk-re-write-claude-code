@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(messageIds) || messageIds.length === 0) {
       return NextResponse.json(
         { error: "messageIds array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -31,25 +31,27 @@ export async function POST(request: NextRequest) {
         prisma.scanMessage.update({
           where: { id },
           data: { order: index },
-        })
-      )
+        }),
+      ),
     );
 
     // Log the action (non-critical)
-    prisma.adminAuditLog.create({
-      data: {
-        adminUserId: session.id,
-        action: "SCAN_MESSAGES_REORDERED",
-        details: JSON.stringify({ newOrder: messageIds }),
-      },
-    }).catch(() => {});
+    prisma.adminAuditLog
+      .create({
+        data: {
+          adminUserId: session.id,
+          action: "SCAN_MESSAGES_REORDERED",
+          details: JSON.stringify({ newOrder: messageIds }),
+        },
+      })
+      .catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Reorder scan messages error:", error);
     return NextResponse.json(
       { error: "Failed to reorder scan messages" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

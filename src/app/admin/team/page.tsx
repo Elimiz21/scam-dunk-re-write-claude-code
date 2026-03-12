@@ -85,7 +85,7 @@ export default function TeamPage() {
       setSuccess(
         data.emailSent
           ? `Invite email sent to ${inviteEmail}!`
-          : "Invite created! Share the link below with the invitee."
+          : "Invite created! Share the link below with the invitee.",
       );
       fetchTeam();
     } catch (err) {
@@ -145,7 +145,9 @@ export default function TeamPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Team Management</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Team Management
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Manage admin users and invitations
             </p>
@@ -165,7 +167,12 @@ export default function TeamPage() {
         </div>
 
         {error && (
-          <AlertBanner type="error" title="Error" message={error} onDismiss={() => setError("")} />
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
         )}
         {success && (
           <AlertBanner
@@ -178,19 +185,38 @@ export default function TeamPage() {
 
         {/* Role Legend */}
         <div className="bg-card rounded-2xl shadow px-6 py-4">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">Role Permissions</h3>
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
+            Role Permissions
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div className="border border-purple-200 rounded-md p-3 bg-purple-50">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mb-1">OWNER</span>
-              <p className="text-foreground mt-1">Full control. Can manage team members, change dashboard structure, and configure all settings. Only one owner per instance.</p>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mb-1">
+                OWNER
+              </span>
+              <p className="text-foreground mt-1">
+                Full control. Can manage team members, change dashboard
+                structure, and configure all settings. Only one owner per
+                instance.
+              </p>
             </div>
             <div className="border border-blue-200 rounded-md p-3 bg-blue-50">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-1">ADMIN</span>
-              <p className="text-foreground mt-1">Full usage access. Can use all dashboard features, run scans, view data, and perform lookups. Cannot manage team or change settings.</p>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-1">
+                ADMIN
+              </span>
+              <p className="text-foreground mt-1">
+                Full usage access. Can use all dashboard features, run scans,
+                view data, and perform lookups. Cannot manage team or change
+                settings.
+              </p>
             </div>
             <div className="border border-border rounded-md p-3 bg-secondary/50">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-foreground mb-1">VIEWER</span>
-              <p className="text-foreground mt-1">Read-only access. Can view all dashboards and data but cannot make any changes or run scans.</p>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-foreground mb-1">
+                VIEWER
+              </span>
+              <p className="text-foreground mt-1">
+                Read-only access. Can view all dashboards and data but cannot
+                make any changes or run scans.
+              </p>
             </div>
           </div>
         </div>
@@ -198,7 +224,9 @@ export default function TeamPage() {
         {/* Team Members */}
         <div className="bg-card rounded-2xl shadow">
           <div className="px-6 py-4 border-b border-border">
-            <h2 className="text-lg font-medium text-foreground">Team Members</h2>
+            <h2 className="text-lg font-medium text-foreground">
+              Team Members
+            </h2>
           </div>
           {loading ? (
             <div className="p-6 text-center">
@@ -226,7 +254,9 @@ export default function TeamPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">{member.email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {member.email}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -239,7 +269,11 @@ export default function TeamPage() {
                       {member.role !== "OWNER" && (
                         <div className="relative">
                           <button
-                            onClick={() => setMenuOpen(menuOpen === member.id ? null : member.id)}
+                            onClick={() =>
+                              setMenuOpen(
+                                menuOpen === member.id ? null : member.id,
+                              )
+                            }
                             className="p-1 rounded hover:bg-secondary"
                           >
                             <MoreVertical className="h-5 w-5 text-muted-foreground" />
@@ -249,14 +283,18 @@ export default function TeamPage() {
                               <div className="py-1">
                                 {member.isActive ? (
                                   <button
-                                    onClick={() => updateMember(member.id, "deactivate")}
+                                    onClick={() =>
+                                      updateMember(member.id, "deactivate")
+                                    }
                                     className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-secondary"
                                   >
                                     Deactivate
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={() => updateMember(member.id, "activate")}
+                                    onClick={() =>
+                                      updateMember(member.id, "activate")
+                                    }
                                     className="block w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-secondary"
                                   >
                                     Activate
@@ -267,12 +305,15 @@ export default function TeamPage() {
                                     updateMember(
                                       member.id,
                                       "updateRole",
-                                      member.role === "ADMIN" ? "VIEWER" : "ADMIN"
+                                      member.role === "ADMIN"
+                                        ? "VIEWER"
+                                        : "ADMIN",
                                     )
                                   }
                                   className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary"
                                 >
-                                  Change to {member.role === "ADMIN" ? "Viewer" : "Admin"}
+                                  Change to{" "}
+                                  {member.role === "ADMIN" ? "Viewer" : "Admin"}
                                 </button>
                               </div>
                             </div>
@@ -291,7 +332,9 @@ export default function TeamPage() {
         {pendingInvites.length > 0 && (
           <div className="bg-card rounded-2xl shadow">
             <div className="px-6 py-4 border-b border-border">
-              <h2 className="text-lg font-medium text-foreground">Pending Invitations</h2>
+              <h2 className="text-lg font-medium text-foreground">
+                Pending Invitations
+              </h2>
             </div>
             <ul className="divide-y divide-border">
               {pendingInvites.map((invite) => (
@@ -300,9 +343,12 @@ export default function TeamPage() {
                     <div className="flex items-center">
                       <Mail className="h-5 w-5 text-muted-foreground mr-3" />
                       <div>
-                        <p className="text-sm font-medium text-foreground">{invite.email}</p>
+                        <p className="text-sm font-medium text-foreground">
+                          {invite.email}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          Expires: {new Date(invite.expiresAt).toLocaleDateString()}
+                          Expires:{" "}
+                          {new Date(invite.expiresAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -333,12 +379,14 @@ export default function TeamPage() {
                   {emailSent ? (
                     <div className="bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-800">
                       <Check className="h-4 w-4 inline mr-2" />
-                      Invite email sent to <strong>{inviteEmail}</strong>. They can also use the link below:
+                      Invite email sent to <strong>{inviteEmail}</strong>. They
+                      can also use the link below:
                     </div>
                   ) : (
                     <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
                       <Mail className="h-4 w-4 inline mr-2" />
-                      Email could not be sent automatically. Share this link with <strong>{inviteEmail}</strong> manually:
+                      Email could not be sent automatically. Share this link
+                      with <strong>{inviteEmail}</strong> manually:
                     </div>
                   )}
                   <div className="flex items-center space-x-2">
@@ -363,7 +411,9 @@ export default function TeamPage() {
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Email Address</label>
+                    <label className="block text-sm font-medium text-foreground">
+                      Email Address
+                    </label>
                     <input
                       type="email"
                       value={inviteEmail}
@@ -373,20 +423,27 @@ export default function TeamPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Role</label>
+                    <label className="block text-sm font-medium text-foreground">
+                      Role
+                    </label>
                     <select
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value)}
                       className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground placeholder:text-muted-foreground"
                     >
-                      <option value="ADMIN">Admin - Full dashboard access</option>
+                      <option value="ADMIN">
+                        Admin - Full dashboard access
+                      </option>
                       <option value="VIEWER">Viewer - Read-only access</option>
                     </select>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      <strong>Admin:</strong> Can access and use all dashboard features (scans, lookups, data, etc.) but cannot modify dashboard structure or manage team members.
+                      <strong>Admin:</strong> Can access and use all dashboard
+                      features (scans, lookups, data, etc.) but cannot modify
+                      dashboard structure or manage team members.
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      <strong>Viewer:</strong> Can view all dashboards and data in read-only mode.
+                      <strong>Viewer:</strong> Can view all dashboards and data
+                      in read-only mode.
                     </p>
                   </div>
                 </div>
