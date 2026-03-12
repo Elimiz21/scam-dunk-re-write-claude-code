@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -23,7 +23,7 @@ export async function GET() {
     console.error("Admin session error:", error);
     return NextResponse.json(
       { error: "Session check failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

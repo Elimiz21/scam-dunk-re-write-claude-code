@@ -38,7 +38,7 @@ export async function GET() {
     console.error("Get platform configs error:", error);
     return NextResponse.json(
       { error: "Failed to fetch platform configs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest) {
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
       return NextResponse.json(
         { error: "Insufficient permissions" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -63,7 +63,7 @@ export async function PATCH(request: NextRequest) {
     if (!platform || !VALID_PLATFORMS.includes(platform)) {
       return NextResponse.json(
         { error: "Valid platform required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -158,7 +158,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Update platform config error:", error);
     return NextResponse.json(
       { error: "Failed to update platform config" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

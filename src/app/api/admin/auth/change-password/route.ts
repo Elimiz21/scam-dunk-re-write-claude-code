@@ -3,10 +3,14 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminAuth, verifyPassword, hashPassword } from "@/lib/admin/auth";
+import {
+  requireAdminAuth,
+  verifyPassword,
+  hashPassword,
+} from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,21 +21,21 @@ export async function POST(request: NextRequest) {
     if (!currentPassword || !newPassword) {
       return NextResponse.json(
         { error: "Current password and new password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (newPassword.length < 8) {
       return NextResponse.json(
         { error: "New password must be at least 8 characters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (currentPassword === newPassword) {
       return NextResponse.json(
         { error: "New password must be different from current password" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,16 +47,19 @@ export async function POST(request: NextRequest) {
     if (!adminUser) {
       return NextResponse.json(
         { error: "Admin user not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Verify current password
-    const isValid = await verifyPassword(currentPassword, adminUser.hashedPassword);
+    const isValid = await verifyPassword(
+      currentPassword,
+      adminUser.hashedPassword,
+    );
     if (!isValid) {
       return NextResponse.json(
         { error: "Current password is incorrect" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -80,7 +87,7 @@ export async function POST(request: NextRequest) {
     console.error("Change password error:", error);
     return NextResponse.json(
       { error: "Failed to change password" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -13,7 +13,7 @@ import {
 } from "@/lib/admin/integrations";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -35,7 +35,7 @@ export async function GET() {
     console.error("Get integrations error:", error);
     return NextResponse.json(
       { error: "Failed to fetch integrations" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -51,13 +51,19 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const { name, ...updates } = await request.json();
 
     if (!name) {
-      return NextResponse.json({ error: "Integration name required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Integration name required" },
+        { status: 400 },
+      );
     }
 
     const integration = await updateIntegrationConfig(name, updates);
@@ -76,7 +82,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Update integration error:", error);
     return NextResponse.json(
       { error: "Failed to update integration" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -95,14 +101,17 @@ export async function PUT(request: NextRequest) {
     if (!hasRole(session, ["OWNER"])) {
       return NextResponse.json(
         { error: "Only the owner can update API credentials" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const { name, credentials, clear } = await request.json();
 
     if (!name) {
-      return NextResponse.json({ error: "Integration name required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Integration name required" },
+        { status: 400 },
+      );
     }
 
     if (clear) {
@@ -113,7 +122,9 @@ export async function PUT(request: NextRequest) {
           adminUserId: session.id,
           action: "CREDENTIALS_CLEARED",
           resource: name,
-          details: result.sync ? JSON.stringify({ sync: result.sync }) : undefined,
+          details: result.sync
+            ? JSON.stringify({ sync: result.sync })
+            : undefined,
         },
       });
 
@@ -125,7 +136,10 @@ export async function PUT(request: NextRequest) {
     }
 
     if (!credentials || typeof credentials !== "object") {
-      return NextResponse.json({ error: "Credentials object required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Credentials object required" },
+        { status: 400 },
+      );
     }
 
     const result = await updateIntegrationCredentials(name, credentials);
@@ -150,8 +164,13 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error("Update credentials error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update credentials" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update credentials",
+      },
+      { status: 500 },
     );
   }
 }

@@ -20,20 +20,20 @@ const THRESHOLDS = {
 // Signal weights from scoring.ts
 const SIGNAL_WEIGHTS = {
   // Structural (stock characteristics)
-  MICROCAP_PRICE: 2,        // price < $5
-  SMALL_MARKET_CAP: 2,      // market cap < $300M
-  MICRO_LIQUIDITY: 2,       // daily volume < $150K
-  OTC_EXCHANGE: 3,          // OTC/Pink Sheets
+  MICROCAP_PRICE: 2, // price < $5
+  SMALL_MARKET_CAP: 2, // market cap < $300M
+  MICRO_LIQUIDITY: 2, // daily volume < $150K
+  OTC_EXCHANGE: 3, // OTC/Pink Sheets
 
   // Pattern (price/volume movements)
-  SPIKE_7D_MEDIUM: 3,       // 50-100% 7-day gain
-  SPIKE_7D_HIGH: 4,         // >100% 7-day gain
+  SPIKE_7D_MEDIUM: 3, // 50-100% 7-day gain
+  SPIKE_7D_HIGH: 4, // >100% 7-day gain
   VOLUME_EXPLOSION_MEDIUM: 2, // 5-10x volume
-  VOLUME_EXPLOSION_HIGH: 3,   // >10x volume
-  SPIKE_THEN_DROP: 3,       // pump-and-dump pattern
+  VOLUME_EXPLOSION_HIGH: 3, // >10x volume
+  SPIKE_THEN_DROP: 3, // pump-and-dump pattern
 
   // Alert
-  ALERT_LIST_HIT: 5,        // SEC flagged -> AUTO HIGH
+  ALERT_LIST_HIT: 5, // SEC flagged -> AUTO HIGH
 
   // Behavioral (pitch characteristics)
   UNSOLICITED: 1,
@@ -57,13 +57,15 @@ function calculateRiskLevel(totalScore, hasAlertHit) {
 
 function runTest(name, signals, expected) {
   const totalScore = signals.reduce((sum, s) => sum + s.weight, 0);
-  const hasAlertHit = signals.some(s => s.code === "ALERT_LIST_HIT");
+  const hasAlertHit = signals.some((s) => s.code === "ALERT_LIST_HIT");
   const actual = calculateRiskLevel(totalScore, hasAlertHit);
   const passed = actual === expected;
 
   console.log(`[${passed ? "PASS" : "FAIL"}] ${name}`);
-  console.log(`       Score: ${totalScore}, Expected: ${expected}, Got: ${actual}`);
-  console.log(`       Signals: ${signals.map(s => s.code).join(", ")}`);
+  console.log(
+    `       Score: ${totalScore}, Expected: ${expected}, Got: ${actual}`,
+  );
+  console.log(`       Signals: ${signals.map((s) => s.code).join(", ")}`);
   console.log("");
 
   return { name, expected, actual, passed, totalScore };
@@ -81,105 +83,117 @@ console.log("\nTo reach HIGH, need score >= 7 OR ALERT_LIST_HIT\n");
 const results = [];
 
 // Test 1: SEC Flagged (automatic HIGH)
-results.push(runTest(
-  "SEC Flagged Stock",
-  [{ code: "ALERT_LIST_HIT", weight: 5 }],
-  "HIGH"
-));
+results.push(
+  runTest("SEC Flagged Stock", [{ code: "ALERT_LIST_HIT", weight: 5 }], "HIGH"),
+);
 
 // Test 2: Classic OTC penny stock
-results.push(runTest(
-  "OTC + Small Cap + Low Price",
-  [
-    { code: "OTC_EXCHANGE", weight: 3 },
-    { code: "SMALL_MARKET_CAP", weight: 2 },
-    { code: "MICROCAP_PRICE", weight: 2 },
-  ],
-  "HIGH"  // 3+2+2 = 7
-));
+results.push(
+  runTest(
+    "OTC + Small Cap + Low Price",
+    [
+      { code: "OTC_EXCHANGE", weight: 3 },
+      { code: "SMALL_MARKET_CAP", weight: 2 },
+      { code: "MICROCAP_PRICE", weight: 2 },
+    ],
+    "HIGH", // 3+2+2 = 7
+  ),
+);
 
 // Test 3: Pump and dump pattern
-results.push(runTest(
-  "100%+ Spike + Volume Explosion",
-  [
-    { code: "SPIKE_7D_HIGH", weight: 4 },
-    { code: "VOLUME_EXPLOSION_HIGH", weight: 3 },
-  ],
-  "HIGH"  // 4+3 = 7
-));
+results.push(
+  runTest(
+    "100%+ Spike + Volume Explosion",
+    [
+      { code: "SPIKE_7D_HIGH", weight: 4 },
+      { code: "VOLUME_EXPLOSION_HIGH", weight: 3 },
+    ],
+    "HIGH", // 4+3 = 7
+  ),
+);
 
 // Test 4: OTC with volume explosion
-results.push(runTest(
-  "OTC + Volume Explosion",
-  [
-    { code: "OTC_EXCHANGE", weight: 3 },
-    { code: "VOLUME_EXPLOSION_HIGH", weight: 3 },
-  ],
-  "MEDIUM"  // 3+3 = 6 (just under HIGH!)
-));
+results.push(
+  runTest(
+    "OTC + Volume Explosion",
+    [
+      { code: "OTC_EXCHANGE", weight: 3 },
+      { code: "VOLUME_EXPLOSION_HIGH", weight: 3 },
+    ],
+    "MEDIUM", // 3+3 = 6 (just under HIGH!)
+  ),
+);
 
 // Test 5: Small cap with spike
-results.push(runTest(
-  "Small Cap + 50% Spike",
-  [
-    { code: "SMALL_MARKET_CAP", weight: 2 },
-    { code: "SPIKE_7D_MEDIUM", weight: 3 },
-  ],
-  "MEDIUM"  // 2+3 = 5
-));
+results.push(
+  runTest(
+    "Small Cap + 50% Spike",
+    [
+      { code: "SMALL_MARKET_CAP", weight: 2 },
+      { code: "SPIKE_7D_MEDIUM", weight: 3 },
+    ],
+    "MEDIUM", // 2+3 = 5
+  ),
+);
 
 // Test 6: Just OTC
-results.push(runTest(
-  "Just OTC Exchange",
-  [
-    { code: "OTC_EXCHANGE", weight: 3 },
-  ],
-  "MEDIUM"  // 3
-));
+results.push(
+  runTest(
+    "Just OTC Exchange",
+    [{ code: "OTC_EXCHANGE", weight: 3 }],
+    "MEDIUM", // 3
+  ),
+);
 
 // Test 7: Just small market cap
-results.push(runTest(
-  "Just Small Market Cap",
-  [
-    { code: "SMALL_MARKET_CAP", weight: 2 },
-  ],
-  "LOW"  // 2 (under 3 threshold!)
-));
+results.push(
+  runTest(
+    "Just Small Market Cap",
+    [{ code: "SMALL_MARKET_CAP", weight: 2 }],
+    "LOW", // 2 (under 3 threshold!)
+  ),
+);
 
 // Test 8: Complete scam scenario
-results.push(runTest(
-  "Complete Scam: OTC + Small + Price + Spike + Volume",
-  [
-    { code: "OTC_EXCHANGE", weight: 3 },
-    { code: "SMALL_MARKET_CAP", weight: 2 },
-    { code: "MICROCAP_PRICE", weight: 2 },
-    { code: "SPIKE_7D_HIGH", weight: 4 },
-    { code: "VOLUME_EXPLOSION_HIGH", weight: 3 },
-  ],
-  "HIGH"  // 3+2+2+4+3 = 14
-));
+results.push(
+  runTest(
+    "Complete Scam: OTC + Small + Price + Spike + Volume",
+    [
+      { code: "OTC_EXCHANGE", weight: 3 },
+      { code: "SMALL_MARKET_CAP", weight: 2 },
+      { code: "MICROCAP_PRICE", weight: 2 },
+      { code: "SPIKE_7D_HIGH", weight: 4 },
+      { code: "VOLUME_EXPLOSION_HIGH", weight: 3 },
+    ],
+    "HIGH", // 3+2+2+4+3 = 14
+  ),
+);
 
 // Test 9: Behavioral only (pitch analysis)
-results.push(runTest(
-  "Scammy Pitch: Urgency + Returns + Secrecy",
-  [
-    { code: "URGENCY", weight: 2 },
-    { code: "PROMISED_RETURNS", weight: 2 },
-    { code: "SECRECY", weight: 2 },
-  ],
-  "MEDIUM"  // 2+2+2 = 6
-));
+results.push(
+  runTest(
+    "Scammy Pitch: Urgency + Returns + Secrecy",
+    [
+      { code: "URGENCY", weight: 2 },
+      { code: "PROMISED_RETURNS", weight: 2 },
+      { code: "SECRECY", weight: 2 },
+    ],
+    "MEDIUM", // 2+2+2 = 6
+  ),
+);
 
 // Test 10: OTC with behavioral
-results.push(runTest(
-  "OTC + Scammy Pitch",
-  [
-    { code: "OTC_EXCHANGE", weight: 3 },
-    { code: "URGENCY", weight: 2 },
-    { code: "PROMISED_RETURNS", weight: 2 },
-  ],
-  "HIGH"  // 3+2+2 = 7
-));
+results.push(
+  runTest(
+    "OTC + Scammy Pitch",
+    [
+      { code: "OTC_EXCHANGE", weight: 3 },
+      { code: "URGENCY", weight: 2 },
+      { code: "PROMISED_RETURNS", weight: 2 },
+    ],
+    "HIGH", // 3+2+2 = 7
+  ),
+);
 
 // =============================================================================
 // ANALYSIS
@@ -226,12 +240,14 @@ console.log("=".repeat(70));
 console.log("SUMMARY");
 console.log("=".repeat(70));
 
-const passed = results.filter(r => r.passed).length;
+const passed = results.filter((r) => r.passed).length;
 console.log(`\nTests: ${passed}/${results.length} passed`);
 
-const highTests = results.filter(r => r.expected === "HIGH");
-const highPassed = highTests.filter(r => r.passed).length;
-console.log(`HIGH tests: ${highPassed}/${highTests.length} correctly identified`);
+const highTests = results.filter((r) => r.expected === "HIGH");
+const highPassed = highTests.filter((r) => r.passed).length;
+console.log(
+  `HIGH tests: ${highPassed}/${highTests.length} correctly identified`,
+);
 
 console.log(`
 KEY OBSERVATIONS:

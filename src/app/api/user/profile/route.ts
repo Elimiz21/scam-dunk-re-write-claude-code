@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const updateProfileSchema = z.object({
   name: z.string().optional(),
@@ -30,10 +30,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -42,7 +39,7 @@ export async function PATCH(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -59,7 +56,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Profile update error:", error);
     return NextResponse.json(
       { error: "Failed to update profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -78,10 +75,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -90,10 +84,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     return NextResponse.json(user);
@@ -101,7 +92,7 @@ export async function GET(request: NextRequest) {
     console.error("Get profile error:", error);
     return NextResponse.json(
       { error: "Failed to get profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -120,10 +111,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -132,7 +120,7 @@ export async function PUT(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -147,7 +135,7 @@ export async function PUT(request: NextRequest) {
     if (!user || !user.hashedPassword) {
       return NextResponse.json(
         { error: "User not found or no password set" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -156,7 +144,7 @@ export async function PUT(request: NextRequest) {
     if (!isValid) {
       return NextResponse.json(
         { error: "Current password is incorrect" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -174,7 +162,7 @@ export async function PUT(request: NextRequest) {
     console.error("Password change error:", error);
     return NextResponse.json(
       { error: "Failed to change password" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

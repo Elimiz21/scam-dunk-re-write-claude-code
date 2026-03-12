@@ -3,11 +3,15 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminSession, createAdminInvite, acceptAdminInvite } from "@/lib/admin/auth";
+import {
+  getAdminSession,
+  createAdminInvite,
+  acceptAdminInvite,
+} from "@/lib/admin/auth";
 import { sendAdminInviteEmail } from "@/lib/email";
 import { z } from "zod";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const inviteSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -33,11 +37,15 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const result = await createAdminInvite(session, validation.data.email, validation.data.role);
+    const result = await createAdminInvite(
+      session,
+      validation.data.email,
+      validation.data.role,
+    );
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });
@@ -54,7 +62,7 @@ export async function POST(request: NextRequest) {
         validation.data.email,
         inviteUrl,
         validation.data.role,
-        session.name || undefined
+        session.name || undefined,
       );
     } catch (emailError) {
       console.error("Failed to send invite email:", emailError);
@@ -70,7 +78,7 @@ export async function POST(request: NextRequest) {
     console.error("Create invite error:", error);
     return NextResponse.json(
       { error: "Failed to create invite" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -84,14 +92,14 @@ export async function PUT(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const result = await acceptAdminInvite(
       validation.data.token,
       validation.data.name,
-      validation.data.password
+      validation.data.password,
     );
 
     if (!result.success) {
@@ -103,7 +111,7 @@ export async function PUT(request: NextRequest) {
     console.error("Accept invite error:", error);
     return NextResponse.json(
       { error: "Failed to accept invite" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

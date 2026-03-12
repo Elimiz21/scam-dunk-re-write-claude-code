@@ -22,12 +22,12 @@ export async function POST() {
       select: { headline: true, subtext: true },
     });
     const existingKeys = new Set(
-      existingMessages.map((m) => `${m.headline}|||${m.subtext}`)
+      existingMessages.map((m) => `${m.headline}|||${m.subtext}`),
     );
 
     // Filter out taglines that already exist
     const newTaglines = taglines.filter(
-      (t) => !existingKeys.has(`${t.headline}|||${t.subtext}`)
+      (t) => !existingKeys.has(`${t.headline}|||${t.subtext}`),
     );
 
     if (newTaglines.length === 0) {
@@ -74,8 +74,8 @@ export async function POST() {
             isActive: true,
             ...(generationId ? { generationId } : {}),
           },
-        })
-      )
+        }),
+      ),
     );
 
     // Log the action
@@ -102,7 +102,7 @@ export async function POST() {
     console.error("Seed scan messages error:", error);
     return NextResponse.json(
       { error: "Failed to seed scan messages" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

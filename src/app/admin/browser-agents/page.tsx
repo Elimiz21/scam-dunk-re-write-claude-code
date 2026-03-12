@@ -163,9 +163,7 @@ function getStatusBadge(status: string) {
         </span>
       );
     default:
-      return (
-        <span className="text-xs text-muted-foreground">{status}</span>
-      );
+      return <span className="text-xs text-muted-foreground">{status}</span>;
   }
 }
 
@@ -176,7 +174,12 @@ export default function BrowserAgentsPage() {
   const [sessions, setSessions] = useState<BrowserSession[]>([]);
   const [platformConfigs, setPlatformConfigs] = useState<PlatformConfig[]>([]);
   const [recentEvidence, setRecentEvidence] = useState<Evidence[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -200,7 +203,7 @@ export default function BrowserAgentsPage() {
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/admin/browser-agents?page=${pagination.page}&limit=${pagination.limit}`
+        `/api/admin/browser-agents?page=${pagination.page}&limit=${pagination.limit}`,
       );
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
@@ -258,7 +261,10 @@ export default function BrowserAgentsPage() {
     try {
       // If tickers provided, use them. Otherwise, let the API auto-pull from daily scan.
       const tickers = scanTickers.trim()
-        ? scanTickers.split(",").map((t) => t.trim().toUpperCase()).filter(Boolean)
+        ? scanTickers
+            .split(",")
+            .map((t) => t.trim().toUpperCase())
+            .filter(Boolean)
         : undefined;
       const res = await fetch("/api/admin/browser-agents", {
         method: "POST",
@@ -331,9 +337,7 @@ export default function BrowserAgentsPage() {
       setShowConfigModal(null);
       await fetchData();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to save config"
-      );
+      setError(err instanceof Error ? err.message : "Failed to save config");
     }
   }
 
@@ -490,7 +494,7 @@ export default function BrowserAgentsPage() {
               const colorClass =
                 platformColors[config.platform] || "bg-gray-100 text-gray-700";
               const weekData = stats?.platformBreakdown.find(
-                (p) => p.platform === config.platform
+                (p) => p.platform === config.platform,
               );
 
               return (
@@ -524,9 +528,7 @@ export default function BrowserAgentsPage() {
                       ) : (
                         <span
                           className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                            config.isEnabled
-                              ? "translate-x-6"
-                              : "translate-x-1"
+                            config.isEnabled ? "translate-x-6" : "translate-x-1"
                           }`}
                         />
                       )}
@@ -707,8 +709,7 @@ export default function BrowserAgentsPage() {
                   </thead>
                   <tbody>
                     {sessions.map((session) => {
-                      const Icon =
-                        platformIcons[session.platform] || Globe;
+                      const Icon = platformIcons[session.platform] || Globe;
                       const colorClass =
                         platformColors[session.platform] ||
                         "bg-gray-100 text-gray-700";
@@ -721,8 +722,7 @@ export default function BrowserAgentsPage() {
                       }
                       let errors: string[] = [];
                       try {
-                        if (session.errors)
-                          errors = JSON.parse(session.errors);
+                        if (session.errors) errors = JSON.parse(session.errors);
                       } catch {
                         /* ignore */
                       }
@@ -734,23 +734,17 @@ export default function BrowserAgentsPage() {
                             session.status === "FAILED"
                               ? "bg-red-50/20"
                               : session.status === "RUNNING"
-                              ? "bg-blue-50/20"
-                              : ""
+                                ? "bg-blue-50/20"
+                                : ""
                           }`}
                           onClick={() =>
-                            setExpandedSession(
-                              isExpanded ? null : session.id
-                            )
+                            setExpandedSession(isExpanded ? null : session.id)
                           }
                         >
                           <td className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
-                            {new Date(
-                              session.scanDate
-                            ).toLocaleDateString()}
+                            {new Date(session.scanDate).toLocaleDateString()}
                             <p className="text-xs text-muted-foreground">
-                              {new Date(
-                                session.scanDate
-                              ).toLocaleTimeString()}
+                              {new Date(session.scanDate).toLocaleTimeString()}
                             </p>
                           </td>
                           <td className="px-4 py-3">
@@ -821,12 +815,11 @@ export default function BrowserAgentsPage() {
               {pagination.totalPages > 1 && (
                 <div className="px-6 py-4 border-t border-border flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Showing{" "}
-                    {(pagination.page - 1) * pagination.limit + 1}
+                    Showing {(pagination.page - 1) * pagination.limit + 1}
                     &ndash;
                     {Math.min(
                       pagination.page * pagination.limit,
-                      pagination.total
+                      pagination.total,
                     )}{" "}
                     of {pagination.total}
                   </p>
@@ -877,13 +870,9 @@ export default function BrowserAgentsPage() {
               {recentEvidence.map((ev) => {
                 const Icon = platformIcons[ev.platform] || Globe;
                 const colorClass =
-                  platformColors[ev.platform] ||
-                  "bg-gray-100 text-gray-700";
+                  platformColors[ev.platform] || "bg-gray-100 text-gray-700";
                 return (
-                  <div
-                    key={ev.id}
-                    className="px-6 py-4 flex items-start gap-4"
-                  >
+                  <div key={ev.id} className="px-6 py-4 flex items-start gap-4">
                     <div className={`p-1.5 rounded-lg ${colorClass} mt-0.5`}>
                       <Icon className="h-4 w-4" />
                     </div>
@@ -897,8 +886,8 @@ export default function BrowserAgentsPage() {
                             ev.promotionScore >= 60
                               ? "bg-red-100 text-red-700"
                               : ev.promotionScore >= 30
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-gray-100 text-gray-600"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-gray-100 text-gray-600"
                           }`}
                         >
                           {ev.promotionScore}
@@ -963,7 +952,9 @@ export default function BrowserAgentsPage() {
                     className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Enter comma-separated tickers (e.g. ACME, DEFG), or leave empty to automatically use high-risk stocks from the latest daily scan.
+                    Enter comma-separated tickers (e.g. ACME, DEFG), or leave
+                    empty to automatically use high-risk stocks from the latest
+                    daily scan.
                   </p>
                 </div>
                 <div>
@@ -974,9 +965,7 @@ export default function BrowserAgentsPage() {
                     {platformConfigs
                       .filter((p) => p.isEnabled)
                       .map((p) => {
-                        const selected = scanPlatforms.includes(
-                          p.platform
-                        );
+                        const selected = scanPlatforms.includes(p.platform);
                         return (
                           <button
                             key={p.platform}
@@ -984,7 +973,7 @@ export default function BrowserAgentsPage() {
                               setScanPlatforms((prev) =>
                                 selected
                                   ? prev.filter((x) => x !== p.platform)
-                                  : [...prev, p.platform]
+                                  : [...prev, p.platform],
                               )
                             }
                             className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
@@ -1006,9 +995,8 @@ export default function BrowserAgentsPage() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  This will queue a browser-based scan. Each platform runs
-                  in a separate browser with memory-managed parallel
-                  execution.
+                  This will queue a browser-based scan. Each platform runs in a
+                  separate browser with memory-managed parallel execution.
                 </p>
               </div>
               <div className="mt-6 flex justify-end space-x-3">
@@ -1061,8 +1049,8 @@ export default function BrowserAgentsPage() {
                     className="mt-1 w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground"
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Maximum pages the browser agent can visit per day on
-                    this platform.
+                    Maximum pages the browser agent can visit per day on this
+                    platform.
                   </p>
                 </div>
                 <div>

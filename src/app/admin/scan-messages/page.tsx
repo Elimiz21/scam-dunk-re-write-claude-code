@@ -53,8 +53,12 @@ export default function ScanMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [daysSinceRegeneration, setDaysSinceRegeneration] = useState<number | null>(null);
-  const [lastGenerationDate, setLastGenerationDate] = useState<string | null>(null);
+  const [daysSinceRegeneration, setDaysSinceRegeneration] = useState<
+    number | null
+  >(null);
+  const [lastGenerationDate, setLastGenerationDate] = useState<string | null>(
+    null,
+  );
 
   // UI state
   const [showHistory, setShowHistory] = useState(false);
@@ -69,7 +73,9 @@ export default function ScanMessagesPage() {
 
   // Generation state
   const [generating, setGenerating] = useState(false);
-  const [generatedMessages, setGeneratedMessages] = useState<GeneratedMessage[]>([]);
+  const [generatedMessages, setGeneratedMessages] = useState<
+    GeneratedMessage[]
+  >([]);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [showReviewPanel, setShowReviewPanel] = useState(false);
 
@@ -150,7 +156,11 @@ export default function ScanMessagesPage() {
       const res = await fetch("/api/admin/scan-messages", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, headline: editHeadline, subtext: editSubtext }),
+        body: JSON.stringify({
+          id,
+          headline: editHeadline,
+          subtext: editSubtext,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to update message");
@@ -194,7 +204,9 @@ export default function ScanMessagesPage() {
       fetchMessages();
       fetchHistory();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to restore message");
+      setError(
+        err instanceof Error ? err.message : "Failed to restore message",
+      );
     }
   };
 
@@ -217,12 +229,14 @@ export default function ScanMessagesPage() {
           ...m,
           accepted: true, // Default to accepted
           reason: "",
-        }))
+        })),
       );
       setGenerationId(data.generationId);
       setShowReviewPanel(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate messages");
+      setError(
+        err instanceof Error ? err.message : "Failed to generate messages",
+      );
     } finally {
       setGenerating(false);
     }
@@ -230,13 +244,13 @@ export default function ScanMessagesPage() {
 
   const handleToggleAccept = (index: number) => {
     setGeneratedMessages((prev) =>
-      prev.map((m, i) => (i === index ? { ...m, accepted: !m.accepted } : m))
+      prev.map((m, i) => (i === index ? { ...m, accepted: !m.accepted } : m)),
     );
   };
 
   const handleSetRejectionReason = (index: number, reason: string) => {
     setGeneratedMessages((prev) =>
-      prev.map((m, i) => (i === index ? { ...m, reason } : m))
+      prev.map((m, i) => (i === index ? { ...m, reason } : m)),
     );
   };
 
@@ -317,7 +331,10 @@ export default function ScanMessagesPage() {
   };
 
   const handleSeedDefaults = async () => {
-    if (!confirm("This will add all default taglines to the database. Continue?")) return;
+    if (
+      !confirm("This will add all default taglines to the database. Continue?")
+    )
+      return;
 
     setSeeding(true);
     setError("");
@@ -379,8 +396,8 @@ export default function ScanMessagesPage() {
                 daysSinceRegeneration > 30
                   ? "bg-red-100 text-red-800"
                   : daysSinceRegeneration > 14
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-green-100 text-green-800"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-green-100 text-green-800"
               }`}
             >
               <Clock className="h-4 w-4" />
@@ -395,7 +412,12 @@ export default function ScanMessagesPage() {
 
         {/* Alerts */}
         {error && (
-          <AlertBanner type="error" title="Error" message={error} onDismiss={() => setError("")} />
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
         )}
         {success && (
           <AlertBanner type="success" title="Success" message={success} />
@@ -428,7 +450,11 @@ export default function ScanMessagesPage() {
           >
             <History className="h-4 w-4" />
             {showHistory ? "Hide" : "Show"} History
-            {showHistory ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {showHistory ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
           </button>
         </div>
 
@@ -449,7 +475,9 @@ export default function ScanMessagesPage() {
                   className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={100}
                 />
-                <p className="mt-1 text-xs text-muted-foreground">{newHeadline.length}/100 characters</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {newHeadline.length}/100 characters
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
@@ -463,7 +491,9 @@ export default function ScanMessagesPage() {
                   className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={80}
                 />
-                <p className="mt-1 text-xs text-muted-foreground">{newSubtext.length}/80 characters</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {newSubtext.length}/80 characters
+                </p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -497,11 +527,13 @@ export default function ScanMessagesPage() {
                 Review Generated Messages
               </h3>
               <span className="text-sm text-muted-foreground">
-                {generatedMessages.filter((m) => m.accepted).length} of {generatedMessages.length} selected
+                {generatedMessages.filter((m) => m.accepted).length} of{" "}
+                {generatedMessages.length} selected
               </span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Click to toggle selection. Rejected messages will be used as feedback for future generations.
+              Click to toggle selection. Rejected messages will be used as
+              feedback for future generations.
             </p>
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {generatedMessages.map((msg, index) => (
@@ -516,15 +548,25 @@ export default function ScanMessagesPage() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">{msg.headline}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{msg.subtext}</p>
+                      <p className="font-medium text-foreground">
+                        {msg.headline}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {msg.subtext}
+                      </p>
                     </div>
                     <div
                       className={`ml-4 p-2 rounded-full ${
-                        msg.accepted ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                        msg.accepted
+                          ? "bg-green-100 text-green-600"
+                          : "bg-red-100 text-red-600"
                       }`}
                     >
-                      {msg.accepted ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                      {msg.accepted ? (
+                        <Check className="h-5 w-5" />
+                      ) : (
+                        <X className="h-5 w-5" />
+                      )}
                     </div>
                   </div>
                   {!msg.accepted && (
@@ -532,7 +574,9 @@ export default function ScanMessagesPage() {
                       <input
                         type="text"
                         value={msg.reason || ""}
-                        onChange={(e) => handleSetRejectionReason(index, e.target.value)}
+                        onChange={(e) =>
+                          handleSetRejectionReason(index, e.target.value)
+                        }
                         placeholder="Why was this rejected? (optional, helps improve future generations)"
                         className="w-full px-3 py-2 text-sm border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       />
@@ -546,7 +590,8 @@ export default function ScanMessagesPage() {
                 onClick={handleSubmitReview}
                 className="px-6 py-2 gradient-brand text-white rounded-2xl hover:opacity-90 transition-colors"
               >
-                Save Selected ({generatedMessages.filter((m) => m.accepted).length})
+                Save Selected (
+                {generatedMessages.filter((m) => m.accepted).length})
               </button>
               <button
                 onClick={() => {
@@ -576,7 +621,8 @@ export default function ScanMessagesPage() {
             {messages.length === 0 ? (
               <div className="p-8 text-center">
                 <p className="text-muted-foreground mb-4">
-                  No messages yet. Add some, generate with AI, or seed with defaults.
+                  No messages yet. Add some, generate with AI, or seed with
+                  defaults.
                 </p>
                 <button
                   onClick={handleSeedDefaults}
@@ -643,7 +689,9 @@ export default function ScanMessagesPage() {
                         <p className="font-medium text-foreground truncate">
                           {message.headline}
                         </p>
-                        <p className="text-sm text-muted-foreground truncate">{message.subtext}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {message.subtext}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -678,7 +726,8 @@ export default function ScanMessagesPage() {
                 Message History ({historyMessages.length})
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Previously removed or rejected messages. Click restore to bring one back.
+                Previously removed or rejected messages. Click restore to bring
+                one back.
               </p>
             </div>
             <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
@@ -690,14 +739,18 @@ export default function ScanMessagesPage() {
                 historyMessages.map((message) => (
                   <div key={message.id} className="p-4 flex items-center gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground">{message.headline}</p>
-                      <p className="text-sm text-muted-foreground">{message.subtext}</p>
+                      <p className="font-medium text-foreground">
+                        {message.headline}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {message.subtext}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {message.archiveReason === "DISCARDED"
                           ? "Rejected during review"
                           : message.archiveReason === "MANUAL_REMOVE"
-                          ? "Manually removed"
-                          : "Replaced"}{" "}
+                            ? "Manually removed"
+                            : "Replaced"}{" "}
                         on {new Date(message.archivedAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -720,19 +773,23 @@ export default function ScanMessagesPage() {
           <h4 className="font-medium text-blue-900 mb-2">How this works</h4>
           <ul className="text-sm text-blue-800 space-y-1">
             <li>
-              • <strong>Active messages</strong> rotate on the home page and during scans
+              • <strong>Active messages</strong> rotate on the home page and
+              during scans
             </li>
             <li>
               • <strong>Drag and drop</strong> to change the display order
             </li>
             <li>
-              • <strong>Generate with AI</strong> creates 15 new messages using GPT-4
+              • <strong>Generate with AI</strong> creates 15 new messages using
+              GPT-4
             </li>
             <li>
-              • <strong>Rejected messages</strong> help improve future AI generations
+              • <strong>Rejected messages</strong> help improve future AI
+              generations
             </li>
             <li>
-              • The <strong>timer</strong> shows how long since new content was added
+              • The <strong>timer</strong> shows how long since new content was
+              added
             </li>
           </ul>
         </div>

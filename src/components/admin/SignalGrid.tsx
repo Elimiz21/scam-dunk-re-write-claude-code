@@ -14,14 +14,28 @@ interface SignalGridProps {
   compact?: boolean;
 }
 
-const categoryConfig: Record<string, { icon: typeof AlertTriangle; color: string; bg: string }> = {
-  STRUCTURAL: { icon: Shield, color: "text-indigo-600", bg: "bg-indigo-500/10" },
+const categoryConfig: Record<
+  string,
+  { icon: typeof AlertTriangle; color: string; bg: string }
+> = {
+  STRUCTURAL: {
+    icon: Shield,
+    color: "text-indigo-600",
+    bg: "bg-indigo-500/10",
+  },
   PATTERN: { icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-500/10" },
   ALERT: { icon: AlertTriangle, color: "text-red-600", bg: "bg-red-500/10" },
-  BEHAVIORAL: { icon: Activity, color: "text-purple-600", bg: "bg-purple-500/10" },
+  BEHAVIORAL: {
+    icon: Activity,
+    color: "text-purple-600",
+    bg: "bg-purple-500/10",
+  },
 };
 
-export default function SignalGrid({ signals, compact = false }: SignalGridProps) {
+export default function SignalGrid({
+  signals,
+  compact = false,
+}: SignalGridProps) {
   if (signals.length === 0) {
     return <p className="text-sm text-muted-foreground">No signals detected</p>;
   }
@@ -81,9 +95,13 @@ export default function SignalGrid({ signals, compact = false }: SignalGridProps
                     <span className={`text-xs font-medium ${conf.color}`}>
                       {s.code.replace(/_/g, " ")}
                     </span>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{s.description}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {s.description}
+                    </p>
                   </div>
-                  <span className={`text-xs font-bold tabular-nums ${conf.color}`}>
+                  <span
+                    className={`text-xs font-bold tabular-nums ${conf.color}`}
+                  >
                     +{s.weight}
                   </span>
                 </div>

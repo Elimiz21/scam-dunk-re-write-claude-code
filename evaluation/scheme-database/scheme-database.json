@@ -27,12 +27,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "YouTube",
-        "Discord",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "YouTube", "Discord", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Twitter/X",
@@ -135,11 +130,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "Discord",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "Discord", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Twitter/X",
@@ -229,11 +220,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "Discord",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "Discord", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Twitter/X",
@@ -330,10 +317,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Twitter/X",
@@ -413,12 +397,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "YouTube",
-        "Discord",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "YouTube", "Discord", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Twitter/X",
@@ -517,11 +496,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "Discord",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "Discord", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Twitter/X",
@@ -609,12 +584,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "YouTube",
-        "Discord",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "YouTube", "Discord", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Reddit",
@@ -712,11 +682,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "Discord",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "Discord", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Twitter/X",
@@ -797,11 +763,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "Discord",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "Discord", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Twitter/X",
@@ -891,12 +853,7 @@
       "volumeAtDetection": 0,
       "peakVolume": 0,
       "currentVolume": 0,
-      "promotionPlatforms": [
-        "Twitter/X",
-        "YouTube",
-        "Discord",
-        "Telegram"
-      ],
+      "promotionPlatforms": ["Twitter/X", "YouTube", "Discord", "Telegram"],
       "promoterAccounts": [
         {
           "platform": "Twitter/X",

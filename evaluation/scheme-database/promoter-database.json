@@ -109,12 +109,7 @@
           "promoterId": "PROM-YOUTUB-YOUTUBEPRO",
           "identifier": "YouTube promoters",
           "platform": "YouTube",
-          "sharedStocks": [
-            "EVTV",
-            "PELIR",
-            "SXTC",
-            "JDZG"
-          ]
+          "sharedStocks": ["EVTV", "PELIR", "SXTC", "JDZG"]
         },
         {
           "promoterId": "PROM-DISCOR-DISCORDPRO",
@@ -153,9 +148,7 @@
           "promoterId": "PROM-REDDIT-CARLENETRA",
           "identifier": "Carlene_Trammel",
           "platform": "Reddit",
-          "sharedStocks": [
-            "SXTC"
-          ]
+          "sharedStocks": ["SXTC"]
         }
       ],
       "riskLevel": "SERIAL_OFFENDER",
@@ -212,42 +205,25 @@
           "promoterId": "PROM-TWITTE-TWITTERXPR",
           "identifier": "Twitter/X promoters",
           "platform": "Twitter/X",
-          "sharedStocks": [
-            "EVTV",
-            "PELIR",
-            "SXTC",
-            "JDZG"
-          ]
+          "sharedStocks": ["EVTV", "PELIR", "SXTC", "JDZG"]
         },
         {
           "promoterId": "PROM-DISCOR-DISCORDPRO",
           "identifier": "Discord promoters",
           "platform": "Discord",
-          "sharedStocks": [
-            "EVTV",
-            "PELIR",
-            "SXTC",
-            "JDZG"
-          ]
+          "sharedStocks": ["EVTV", "PELIR", "SXTC", "JDZG"]
         },
         {
           "promoterId": "PROM-TELEGR-TELEGRAMPR",
           "identifier": "Telegram promoters",
           "platform": "Telegram",
-          "sharedStocks": [
-            "EVTV",
-            "PELIR",
-            "SXTC",
-            "JDZG"
-          ]
+          "sharedStocks": ["EVTV", "PELIR", "SXTC", "JDZG"]
         },
         {
           "promoterId": "PROM-REDDIT-CARLENETRA",
           "identifier": "Carlene_Trammel",
           "platform": "Reddit",
-          "sharedStocks": [
-            "SXTC"
-          ]
+          "sharedStocks": ["SXTC"]
         }
       ],
       "riskLevel": "SERIAL_OFFENDER",
@@ -365,12 +341,7 @@
           "promoterId": "PROM-YOUTUB-YOUTUBEPRO",
           "identifier": "YouTube promoters",
           "platform": "YouTube",
-          "sharedStocks": [
-            "EVTV",
-            "PELIR",
-            "SXTC",
-            "JDZG"
-          ]
+          "sharedStocks": ["EVTV", "PELIR", "SXTC", "JDZG"]
         },
         {
           "promoterId": "PROM-TELEGR-TELEGRAMPR",
@@ -392,9 +363,7 @@
           "promoterId": "PROM-REDDIT-CARLENETRA",
           "identifier": "Carlene_Trammel",
           "platform": "Reddit",
-          "sharedStocks": [
-            "SXTC"
-          ]
+          "sharedStocks": ["SXTC"]
         }
       ],
       "riskLevel": "SERIAL_OFFENDER",
@@ -522,12 +491,7 @@
           "promoterId": "PROM-YOUTUB-YOUTUBEPRO",
           "identifier": "YouTube promoters",
           "platform": "YouTube",
-          "sharedStocks": [
-            "EVTV",
-            "PELIR",
-            "SXTC",
-            "JDZG"
-          ]
+          "sharedStocks": ["EVTV", "PELIR", "SXTC", "JDZG"]
         },
         {
           "promoterId": "PROM-DISCOR-DISCORDPRO",
@@ -549,9 +513,7 @@
           "promoterId": "PROM-REDDIT-CARLENETRA",
           "identifier": "Carlene_Trammel",
           "platform": "Reddit",
-          "sharedStocks": [
-            "SXTC"
-          ]
+          "sharedStocks": ["SXTC"]
         }
       ],
       "riskLevel": "SERIAL_OFFENDER",
@@ -581,33 +543,25 @@
           "promoterId": "PROM-TWITTE-TWITTERXPR",
           "identifier": "Twitter/X promoters",
           "platform": "Twitter/X",
-          "sharedStocks": [
-            "SXTC"
-          ]
+          "sharedStocks": ["SXTC"]
         },
         {
           "promoterId": "PROM-YOUTUB-YOUTUBEPRO",
           "identifier": "YouTube promoters",
           "platform": "YouTube",
-          "sharedStocks": [
-            "SXTC"
-          ]
+          "sharedStocks": ["SXTC"]
         },
         {
           "promoterId": "PROM-DISCOR-DISCORDPRO",
           "identifier": "Discord promoters",
           "platform": "Discord",
-          "sharedStocks": [
-            "SXTC"
-          ]
+          "sharedStocks": ["SXTC"]
         },
         {
           "promoterId": "PROM-TELEGR-TELEGRAMPR",
           "identifier": "Telegram promoters",
           "platform": "Telegram",
-          "sharedStocks": [
-            "SXTC"
-          ]
+          "sharedStocks": ["SXTC"]
         }
       ],
       "riskLevel": "MEDIUM",

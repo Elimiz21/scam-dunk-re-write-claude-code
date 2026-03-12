@@ -41,10 +41,24 @@ interface Scheme {
   daysPeakToTrough?: number;
   weakPumpSignal?: boolean;
   promotionPlatforms: string[];
-  promoterAccounts: { promoterId?: string; platform: string; identifier: string; postCount: number; confidence: string; firstSeen: string; lastSeen: string }[];
+  promoterAccounts: {
+    promoterId?: string;
+    platform: string;
+    identifier: string;
+    postCount: number;
+    confidence: string;
+    firstSeen: string;
+    lastSeen: string;
+  }[];
   coordinationIndicators: string[];
   signalsDetected: string[];
-  timeline: { date: string; event: string; category?: string; details?: string; significance?: string }[];
+  timeline: {
+    date: string;
+    event: string;
+    category?: string;
+    details?: string;
+    significance?: string;
+  }[];
   notes: string[];
   investigationFlags: string[];
 }
@@ -61,12 +75,31 @@ interface SocialMention {
   postDate: string | null;
 }
 
-const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
+const statusConfig: Record<
+  string,
+  { bg: string; text: string; label: string }
+> = {
   ONGOING: { bg: "bg-red-500/10", text: "text-red-600", label: "ONGOING" },
-  COOLING: { bg: "bg-amber-500/10", text: "text-amber-600", label: "COOLING DOWN" },
-  NEW: { bg: "bg-indigo-500/10", text: "text-indigo-600", label: "NEWLY DETECTED" },
-  NO_SCAM_DETECTED: { bg: "bg-emerald-500/10", text: "text-emerald-600", label: "CLEARED" },
-  PUMP_AND_DUMP_ENDED: { bg: "bg-muted", text: "text-muted-foreground", label: "P&D ENDED" },
+  COOLING: {
+    bg: "bg-amber-500/10",
+    text: "text-amber-600",
+    label: "COOLING DOWN",
+  },
+  NEW: {
+    bg: "bg-indigo-500/10",
+    text: "text-indigo-600",
+    label: "NEWLY DETECTED",
+  },
+  NO_SCAM_DETECTED: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-600",
+    label: "CLEARED",
+  },
+  PUMP_AND_DUMP_ENDED: {
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    label: "P&D ENDED",
+  },
 };
 
 const confidenceColors: Record<string, string> = {
@@ -99,7 +132,7 @@ export default function SchemeDetailPage() {
         setScheme(match);
 
         const socialRes = await fetch(
-          `/api/admin/social-scan?ticker=${encodeURIComponent(match.symbol)}&promotionalOnly=true&limit=25`
+          `/api/admin/social-scan?ticker=${encodeURIComponent(match.symbol)}&promotionalOnly=true&limit=25`,
         );
         if (socialRes.ok) {
           const social = await socialRes.json();
@@ -165,11 +198,15 @@ export default function SchemeDetailPage() {
         </button>
 
         {/* Header */}
-        <div className={`rounded-2xl border p-6 ${
-          scheme.status === "ONGOING" ? "bg-red-500/5 border-red-500/20" :
-          scheme.status === "COOLING" ? "bg-amber-500/5 border-amber-500/20" :
-          "bg-card border-border"
-        }`}>
+        <div
+          className={`rounded-2xl border p-6 ${
+            scheme.status === "ONGOING"
+              ? "bg-red-500/5 border-red-500/20"
+              : scheme.status === "COOLING"
+                ? "bg-amber-500/5 border-amber-500/20"
+                : "bg-card border-border"
+          }`}
+        >
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3 mb-1">
@@ -177,19 +214,24 @@ export default function SchemeDetailPage() {
                 <h1 className="text-2xl font-bold font-display text-foreground">
                   {scheme.schemeName}
                 </h1>
-                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${config.bg} ${config.text}`}>
+                <span
+                  className={`text-xs font-semibold px-3 py-1 rounded-full ${config.bg} ${config.text}`}
+                >
                   {config.label}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground ml-9">
-                {scheme.name} &middot; {scheme.sector} &middot; {scheme.industry}
+                {scheme.name} &middot; {scheme.sector} &middot;{" "}
+                {scheme.industry}
               </p>
               <p className="text-xs text-muted-foreground ml-9 mt-1 font-mono">
                 {scheme.schemeId}
               </p>
             </div>
             <button
-              onClick={() => router.push(`/admin/scan-intelligence/stock/${scheme.symbol}`)}
+              onClick={() =>
+                router.push(`/admin/scan-intelligence/stock/${scheme.symbol}`)
+              }
               className="flex items-center gap-1 text-xs text-primary hover:underline"
             >
               <ExternalLink className="h-3 w-3" />
@@ -201,13 +243,23 @@ export default function SchemeDetailPage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-5">
             <div>
               <div className="text-xs text-muted-foreground">Risk Score</div>
-              <div className="text-2xl font-bold tabular-nums">{scheme.currentRiskScore}</div>
-              <div className="text-[10px] text-muted-foreground">peak: {scheme.peakRiskScore}</div>
+              <div className="text-2xl font-bold tabular-nums">
+                {scheme.currentRiskScore}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                peak: {scheme.peakRiskScore}
+              </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Promotion Score</div>
-              <div className="text-2xl font-bold tabular-nums">{scheme.currentPromotionScore}</div>
-              <div className="text-[10px] text-muted-foreground">peak: {scheme.peakPromotionScore}</div>
+              <div className="text-xs text-muted-foreground">
+                Promotion Score
+              </div>
+              <div className="text-2xl font-bold tabular-nums">
+                {scheme.currentPromotionScore}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                peak: {scheme.peakPromotionScore}
+              </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Days Active</div>
@@ -221,17 +273,27 @@ export default function SchemeDetailPage() {
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Platforms</div>
-              <div className="text-2xl font-bold tabular-nums">{scheme.promotionPlatforms.length}</div>
-              <div className="text-[10px] text-muted-foreground">channels detected</div>
+              <div className="text-2xl font-bold tabular-nums">
+                {scheme.promotionPlatforms.length}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                channels detected
+              </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Promoters</div>
-              <div className="text-2xl font-bold tabular-nums">{scheme.promoterAccounts.length}</div>
-              <div className="text-[10px] text-muted-foreground">accounts identified</div>
+              <div className="text-2xl font-bold tabular-nums">
+                {scheme.promoterAccounts.length}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                accounts identified
+              </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span>Pump duration: {scheme.daysFloorToPeak ?? 0}d</span>
                 <span>Dump duration: {scheme.daysPeakToTrough ?? 0}d</span>
-                {scheme.weakPumpSignal && <span className="text-amber-700">Weak/no pump signature</span>}
+                {scheme.weakPumpSignal && (
+                  <span className="text-amber-700">Weak/no pump signature</span>
+                )}
               </div>
             </div>
           </div>
@@ -247,19 +309,29 @@ export default function SchemeDetailPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs text-muted-foreground">At Detection</div>
-                  <div className="text-xl font-bold tabular-nums">${scheme.priceAtDetection.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    At Detection
+                  </div>
+                  <div className="text-xl font-bold tabular-nums">
+                    ${scheme.priceAtDetection.toFixed(2)}
+                  </div>
                 </div>
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground">Peak</div>
-                  <div className="text-xl font-bold tabular-nums text-amber-600">${scheme.peakPrice.toFixed(2)}</div>
+                  <div className="text-xl font-bold tabular-nums text-amber-600">
+                    ${scheme.peakPrice.toFixed(2)}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-muted-foreground">Current</div>
                   <div className="text-xl font-bold tabular-nums flex items-center gap-1 justify-end">
                     ${scheme.currentPrice.toFixed(2)}
-                    {priceDown && <TrendingDown className="h-4 w-4 text-red-500" />}
-                    {priceUp && <TrendingUp className="h-4 w-4 text-emerald-500" />}
+                    {priceDown && (
+                      <TrendingDown className="h-4 w-4 text-red-500" />
+                    )}
+                    {priceUp && (
+                      <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    )}
                   </div>
                 </div>
               </div>
@@ -270,11 +342,15 @@ export default function SchemeDetailPage() {
                   <>
                     <div
                       className="absolute h-full bg-amber-500/30 rounded-full"
-                      style={{ width: `${Math.min(100, (scheme.peakPrice / scheme.peakPrice) * 100)}%` }}
+                      style={{
+                        width: `${Math.min(100, (scheme.peakPrice / scheme.peakPrice) * 100)}%`,
+                      }}
                     />
                     <div
                       className={`absolute h-full rounded-full ${priceDown ? "bg-red-500/50" : "bg-emerald-500/50"}`}
-                      style={{ width: `${Math.min(100, (scheme.currentPrice / scheme.peakPrice) * 100)}%` }}
+                      style={{
+                        width: `${Math.min(100, (scheme.currentPrice / scheme.peakPrice) * 100)}%`,
+                      }}
                     />
                   </>
                 )}
@@ -283,22 +359,38 @@ export default function SchemeDetailPage() {
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="p-3 rounded-lg bg-secondary/50">
                   <div className="text-muted-foreground">Floor before pump</div>
-                  <div className="text-lg font-bold tabular-nums">${(scheme.floorPriceBeforePump ?? scheme.priceAtDetection).toFixed(2)}</div>
+                  <div className="text-lg font-bold tabular-nums">
+                    $
+                    {(
+                      scheme.floorPriceBeforePump ?? scheme.priceAtDetection
+                    ).toFixed(2)}
+                  </div>
                 </div>
                 <div className="p-3 rounded-lg bg-secondary/50">
                   <div className="text-muted-foreground">Trough after peak</div>
-                  <div className="text-lg font-bold tabular-nums">${(scheme.troughPriceAfterPeak ?? scheme.currentPrice).toFixed(2)}</div>
+                  <div className="text-lg font-bold tabular-nums">
+                    $
+                    {(
+                      scheme.troughPriceAfterPeak ?? scheme.currentPrice
+                    ).toFixed(2)}
+                  </div>
                 </div>
                 <div className="p-3 rounded-lg bg-secondary/50">
                   <div className="text-muted-foreground">From Detection</div>
-                  <div className={`text-lg font-bold tabular-nums ${scheme.priceChangeFromDetection > 0 ? "text-emerald-600" : "text-red-600"}`}>
-                    {scheme.priceChangeFromDetection > 0 ? "+" : ""}{scheme.priceChangeFromDetection.toFixed(1)}%
+                  <div
+                    className={`text-lg font-bold tabular-nums ${scheme.priceChangeFromDetection > 0 ? "text-emerald-600" : "text-red-600"}`}
+                  >
+                    {scheme.priceChangeFromDetection > 0 ? "+" : ""}
+                    {scheme.priceChangeFromDetection.toFixed(1)}%
                   </div>
                 </div>
                 <div className="p-3 rounded-lg bg-secondary/50">
                   <div className="text-muted-foreground">From Peak</div>
-                  <div className={`text-lg font-bold tabular-nums ${scheme.priceChangeFromPeak > 0 ? "text-emerald-600" : "text-red-600"}`}>
-                    {scheme.priceChangeFromPeak > 0 ? "+" : ""}{scheme.priceChangeFromPeak.toFixed(1)}%
+                  <div
+                    className={`text-lg font-bold tabular-nums ${scheme.priceChangeFromPeak > 0 ? "text-emerald-600" : "text-red-600"}`}
+                  >
+                    {scheme.priceChangeFromPeak > 0 ? "+" : ""}
+                    {scheme.priceChangeFromPeak.toFixed(1)}%
                   </div>
                 </div>
               </div>
@@ -330,7 +422,10 @@ export default function SchemeDetailPage() {
                 </h4>
                 <div className="space-y-1">
                   {scheme.investigationFlags.map((flag, i) => (
-                    <div key={i} className="text-xs text-red-600 bg-red-500/5 rounded-lg px-3 py-2">
+                    <div
+                      key={i}
+                      className="text-xs text-red-600 bg-red-500/5 rounded-lg px-3 py-2"
+                    >
                       {flag}
                     </div>
                   ))}
@@ -341,10 +436,15 @@ export default function SchemeDetailPage() {
             {/* Notes */}
             {scheme.notes.length > 0 && (
               <div className="mt-4 pt-4 border-t border-border">
-                <h4 className="text-xs font-medium text-foreground mb-2">Notes</h4>
+                <h4 className="text-xs font-medium text-foreground mb-2">
+                  Notes
+                </h4>
                 <div className="space-y-1">
                   {scheme.notes.map((note, i) => (
-                    <div key={i} className="text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
+                    <div
+                      key={i}
+                      className="text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2"
+                    >
                       {note}
                     </div>
                   ))}
@@ -364,18 +464,35 @@ export default function SchemeDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Platforms */}
             <div>
-              <h4 className="text-xs font-medium text-muted-foreground mb-2">Promotion Platforms</h4>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                Promotion Platforms
+              </h4>
               <div className="space-y-2">
                 {scheme.promotionPlatforms.map((platform, i) => {
-                  const platformMentions = socialMentions.filter((m) => m.platform.toLowerCase() === platform.toLowerCase());
+                  const platformMentions = socialMentions.filter(
+                    (m) => m.platform.toLowerCase() === platform.toLowerCase(),
+                  );
                   const firstUrl = platformMentions.find((m) => m.url)?.url;
                   return (
-                    <a key={i} href={firstUrl || "#"} target="_blank" rel="noopener noreferrer" className={`flex items-center justify-between gap-2 p-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/10 ${firstUrl ? "hover:border-primary/30" : "opacity-70 cursor-default"}`} onClick={(e) => { if (!firstUrl) e.preventDefault(); }}>
+                    <a
+                      key={i}
+                      href={firstUrl || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`flex items-center justify-between gap-2 p-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/10 ${firstUrl ? "hover:border-primary/30" : "opacity-70 cursor-default"}`}
+                      onClick={(e) => {
+                        if (!firstUrl) e.preventDefault();
+                      }}
+                    >
                       <div className="flex items-center gap-2">
                         <Globe className="h-4 w-4 text-indigo-600" />
-                        <span className="text-sm font-medium text-foreground">{platform}</span>
+                        <span className="text-sm font-medium text-foreground">
+                          {platform}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-muted-foreground">{platformMentions.length} post(s)</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {platformMentions.length} post(s)
+                      </span>
                     </a>
                   );
                 })}
@@ -384,17 +501,24 @@ export default function SchemeDetailPage() {
 
             {/* Coordination indicators */}
             <div>
-              <h4 className="text-xs font-medium text-muted-foreground mb-2">Indicators</h4>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                Indicators
+              </h4>
               <div className="space-y-2">
                 {scheme.coordinationIndicators.length > 0 ? (
                   scheme.coordinationIndicators.map((ind, i) => (
-                    <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/5 border border-red-500/10">
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/5 border border-red-500/10"
+                    >
                       <AlertTriangle className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0" />
                       <span className="text-xs text-foreground">{ind}</span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-muted-foreground">No specific coordination indicators recorded</p>
+                  <p className="text-xs text-muted-foreground">
+                    No specific coordination indicators recorded
+                  </p>
                 )}
               </div>
             </div>
@@ -413,13 +537,19 @@ export default function SchemeDetailPage() {
               {scheme.promoterAccounts.map((promoter, i) => {
                 const promoterId =
                   promoter.promoterId ||
-                  `PROM-${promoter.platform.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 6)}-${promoter.identifier.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10)}`;
+                  `PROM-${promoter.platform
+                    .replace(/[^a-zA-Z]/g, "")
+                    .toUpperCase()
+                    .slice(0, 6)}-${promoter.identifier
+                    .replace(/[^a-zA-Z0-9]/g, "")
+                    .toUpperCase()
+                    .slice(0, 10)}`;
                 return (
                   <button
                     key={i}
                     onClick={() =>
                       router.push(
-                        `/admin/scan-intelligence/promoter/${encodeURIComponent(promoterId)}?platform=${encodeURIComponent(promoter.platform)}&identifier=${encodeURIComponent(promoter.identifier)}`
+                        `/admin/scan-intelligence/promoter/${encodeURIComponent(promoterId)}?platform=${encodeURIComponent(promoter.platform)}&identifier=${encodeURIComponent(promoter.identifier)}`,
                       )
                     }
                     className="w-full flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border hover:border-purple-500/30 hover:bg-purple-500/5 transition-all text-left"
@@ -430,20 +560,30 @@ export default function SchemeDetailPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">{promoter.identifier}</span>
+                          <span className="text-sm font-medium text-foreground">
+                            {promoter.identifier}
+                          </span>
                           <ExternalLink className="h-3 w-3 text-muted-foreground" />
                         </div>
                         <div className="text-[10px] text-muted-foreground">
-                          {promoter.platform} &middot; First seen: {promoter.firstSeen} &middot; Last: {promoter.lastSeen}
+                          {promoter.platform} &middot; First seen:{" "}
+                          {promoter.firstSeen} &middot; Last:{" "}
+                          {promoter.lastSeen}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <div className="text-sm font-bold tabular-nums">{promoter.postCount}</div>
-                        <div className="text-[10px] text-muted-foreground">posts</div>
+                        <div className="text-sm font-bold tabular-nums">
+                          {promoter.postCount}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          posts
+                        </div>
                       </div>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${confidenceColors[promoter.confidence] || confidenceColors.low}`}>
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${confidenceColors[promoter.confidence] || confidenceColors.low}`}
+                      >
                         {promoter.confidence}
                       </span>
                     </div>
@@ -454,9 +594,12 @@ export default function SchemeDetailPage() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No individual promoter accounts identified yet</p>
+              <p className="text-sm">
+                No individual promoter accounts identified yet
+              </p>
               <p className="text-xs mt-1">
-                Promotion was detected on {scheme.promotionPlatforms.length} platform{scheme.promotionPlatforms.length !== 1 ? "s" : ""} but
+                Promotion was detected on {scheme.promotionPlatforms.length}{" "}
+                platform{scheme.promotionPlatforms.length !== 1 ? "s" : ""} but
                 specific accounts have not been linked
               </p>
             </div>
@@ -487,23 +630,30 @@ export default function SchemeDetailPage() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-xs text-muted-foreground">
-                      {mention.platform} {mention.author ? `· @${mention.author}` : ""}
+                      {mention.platform}{" "}
+                      {mention.author ? `· @${mention.author}` : ""}
                     </div>
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-600">
                       score {mention.promotionScore}
                     </span>
                   </div>
                   <p className="text-sm text-foreground mt-1 line-clamp-2">
-                    {mention.title || mention.content || "Post content unavailable"}
+                    {mention.title ||
+                      mention.content ||
+                      "Post content unavailable"}
                   </p>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {mention.postDate ? new Date(mention.postDate).toLocaleString() : "Date unavailable"}
+                    {mention.postDate
+                      ? new Date(mention.postDate).toLocaleString()
+                      : "Date unavailable"}
                   </p>
                 </a>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No indexed social posts found for this symbol yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No indexed social posts found for this symbol yet.
+            </p>
           )}
         </div>
 
@@ -527,33 +677,52 @@ export default function SchemeDetailPage() {
                 return (
                   <div key={i} className="flex items-start gap-3 relative">
                     {/* Dot */}
-                    <div className={`relative z-10 mt-1.5 h-[15px] w-[15px] rounded-full border-2 flex-shrink-0 ${
-                      isDetection ? "bg-red-500 border-red-500" :
-                      isStatusChange ? "bg-amber-500 border-amber-500" :
-                      isHigh ? "bg-primary border-primary" :
-                      "bg-card border-border"
-                    }`} />
+                    <div
+                      className={`relative z-10 mt-1.5 h-[15px] w-[15px] rounded-full border-2 flex-shrink-0 ${
+                        isDetection
+                          ? "bg-red-500 border-red-500"
+                          : isStatusChange
+                            ? "bg-amber-500 border-amber-500"
+                            : isHigh
+                              ? "bg-primary border-primary"
+                              : "bg-card border-border"
+                      }`}
+                    />
 
-                    <div className={`flex-1 rounded-lg p-3 ${
-                      isHigh ? "bg-primary/5 border border-primary/20" : "bg-secondary/30"
-                    }`}>
+                    <div
+                      className={`flex-1 rounded-lg p-3 ${
+                        isHigh
+                          ? "bg-primary/5 border border-primary/20"
+                          : "bg-secondary/30"
+                      }`}
+                    >
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[10px] tabular-nums text-muted-foreground font-medium">{evt.date}</span>
+                        <span className="text-[10px] tabular-nums text-muted-foreground font-medium">
+                          {evt.date}
+                        </span>
                         {evt.category && (
-                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-                            isDetection ? "bg-red-500/10 text-red-600" :
-                            isStatusChange ? "bg-amber-500/10 text-amber-600" :
-                            "bg-secondary text-muted-foreground"
-                          }`}>
+                          <span
+                            className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                              isDetection
+                                ? "bg-red-500/10 text-red-600"
+                                : isStatusChange
+                                  ? "bg-amber-500/10 text-amber-600"
+                                  : "bg-secondary text-muted-foreground"
+                            }`}
+                          >
                             {evt.category.replace(/_/g, " ").toUpperCase()}
                           </span>
                         )}
                       </div>
-                      <p className={`text-xs ${isHigh ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                      <p
+                        className={`text-xs ${isHigh ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                      >
                         {evt.event}
                       </p>
                       {evt.details && (
-                        <p className="text-[10px] text-muted-foreground mt-1">{evt.details}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {evt.details}
+                        </p>
                       )}
                     </div>
                   </div>

@@ -5,7 +5,11 @@
  * Works in both server and client component trees.
  * Usage: <JsonLd data={schemaObject} />
  */
-export function JsonLd({ data }: { data: Record<string, unknown> | Record<string, unknown>[] }) {
+export function JsonLd({
+  data,
+}: {
+  data: Record<string, unknown> | Record<string, unknown>[];
+}) {
   return (
     <script
       type="application/ld+json"

@@ -34,7 +34,7 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
   };
 
   const hasSubSteps = (step: Step) => step.subSteps && step.subSteps.length > 0;
-  const completedCount = steps.filter(s => s.status === "complete").length;
+  const completedCount = steps.filter((s) => s.status === "complete").length;
   const progressPercent = (completedCount / steps.length) * 100;
 
   const getStepClass = (status: string) => {
@@ -67,17 +67,26 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                 "flex items-center gap-3 p-2.5 rounded-xl transition-all duration-500",
                 getStepClass(step.status),
                 step.status === "loading" && "bg-primary/5",
-                hasSubSteps(step) && step.status !== "pending" && "cursor-pointer hover:bg-secondary/80"
+                hasSubSteps(step) &&
+                  step.status !== "pending" &&
+                  "cursor-pointer hover:bg-secondary/80",
               )}
-              onClick={() => hasSubSteps(step) && step.status !== "pending" && toggleStep(index)}
+              onClick={() =>
+                hasSubSteps(step) &&
+                step.status !== "pending" &&
+                toggleStep(index)
+              }
             >
               {/* Step indicator */}
               <div
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-500",
-                  step.status === "complete" && "bg-emerald-500 shadow-sm shadow-emerald-500/25",
-                  step.status === "loading" && "gradient-brand shadow-sm shadow-primary/25",
-                  step.status === "pending" && "bg-secondary/60 border border-border/30"
+                  step.status === "complete" &&
+                    "bg-emerald-500 shadow-sm shadow-emerald-500/25",
+                  step.status === "loading" &&
+                    "gradient-brand shadow-sm shadow-primary/25",
+                  step.status === "pending" &&
+                    "bg-secondary/60 border border-border/30",
                 )}
               >
                 {step.status === "complete" ? (
@@ -85,7 +94,9 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                 ) : step.status === "loading" ? (
                   <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
                 ) : (
-                  <span className="text-xs font-medium text-muted-foreground/60">{index + 1}</span>
+                  <span className="text-xs font-medium text-muted-foreground/60">
+                    {index + 1}
+                  </span>
                 )}
               </div>
 
@@ -94,9 +105,11 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                 <span
                   className={cn(
                     "text-sm transition-all duration-500",
-                    step.status === "complete" && "text-emerald-600 dark:text-emerald-400 font-medium",
-                    step.status === "loading" && "text-foreground font-semibold",
-                    step.status === "pending" && "text-muted-foreground/50"
+                    step.status === "complete" &&
+                      "text-emerald-600 dark:text-emerald-400 font-medium",
+                    step.status === "loading" &&
+                      "text-foreground font-semibold",
+                    step.status === "pending" && "text-muted-foreground/50",
                   )}
                 >
                   {step.label}
@@ -125,7 +138,9 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
               <div
                 className={cn(
                   "ml-12 mt-1 space-y-1 transition-all duration-500",
-                  step.status === "pending" ? "scan-step-fuzzy" : "animate-fade-in"
+                  step.status === "pending"
+                    ? "scan-step-fuzzy"
+                    : "animate-fade-in",
                 )}
               >
                 {step.subSteps!.map((subStep, subIndex) => (
@@ -133,9 +148,11 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                     key={subIndex}
                     className={cn(
                       "flex items-center gap-2.5 py-1 transition-all duration-500",
-                      subStep.status === "pending" && step.status !== "pending" ? "scan-step-fuzzy" : "",
+                      subStep.status === "pending" && step.status !== "pending"
+                        ? "scan-step-fuzzy"
+                        : "",
                       subStep.status === "complete" ? "scan-step-complete" : "",
-                      subStep.status === "loading" ? "scan-step-active" : ""
+                      subStep.status === "loading" ? "scan-step-active" : "",
                     )}
                   >
                     <div
@@ -143,11 +160,15 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                         "flex h-5 w-5 items-center justify-center rounded-md transition-all duration-500",
                         subStep.status === "complete" && "bg-emerald-500",
                         subStep.status === "loading" && "gradient-brand",
-                        subStep.status === "pending" && "bg-secondary/40 border border-border/30"
+                        subStep.status === "pending" &&
+                          "bg-secondary/40 border border-border/30",
                       )}
                     >
                       {subStep.status === "complete" ? (
-                        <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                        <Check
+                          className="h-2.5 w-2.5 text-white"
+                          strokeWidth={3}
+                        />
                       ) : subStep.status === "loading" ? (
                         <Loader2 className="h-2.5 w-2.5 text-white animate-spin" />
                       ) : null}
@@ -155,9 +176,12 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                     <span
                       className={cn(
                         "text-xs transition-all duration-500",
-                        subStep.status === "complete" && "text-emerald-600 dark:text-emerald-400",
-                        subStep.status === "loading" && "text-foreground font-medium",
-                        subStep.status === "pending" && "text-muted-foreground/45"
+                        subStep.status === "complete" &&
+                          "text-emerald-600 dark:text-emerald-400",
+                        subStep.status === "loading" &&
+                          "text-foreground font-medium",
+                        subStep.status === "pending" &&
+                          "text-muted-foreground/45",
                       )}
                     >
                       {subStep.label}

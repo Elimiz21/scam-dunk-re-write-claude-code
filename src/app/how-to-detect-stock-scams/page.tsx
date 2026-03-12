@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageLayout } from "@/components/PageLayout";
-import { Search, TrendingUp, AlertTriangle, CheckCircle, Shield } from "lucide-react";
+import {
+  Search,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Shield,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/JsonLd";
 
@@ -18,7 +24,8 @@ export const metadata: Metadata = {
     type: "article",
     url: `${siteUrl}/how-to-detect-stock-scams`,
     title: "How to Detect Stock Scams: Complete Detection Guide",
-    description: "Red flags and patterns to identify pump-and-dump schemes and market manipulation.",
+    description:
+      "Red flags and patterns to identify pump-and-dump schemes and market manipulation.",
     siteName: "ScamDunk",
   },
 };
@@ -27,7 +34,8 @@ const articleSchema = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "How to Detect Stock Scams: Red Flags and Detection Patterns",
-  description: "Complete guide to identifying market manipulation, pump-and-dump schemes, and investment fraud.",
+  description:
+    "Complete guide to identifying market manipulation, pump-and-dump schemes, and investment fraud.",
   datePublished: "2024-01-15T00:00:00Z",
   dateModified: "2026-03-03T00:00:00Z",
   author: {
@@ -41,7 +49,6 @@ export default function HowToDetectStockScamsPage() {
     <div className="min-h-screen bg-background">
       <JsonLd data={articleSchema} />
       <PageLayout>
-
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
             {/* Hero Section */}
@@ -53,18 +60,22 @@ export default function HowToDetectStockScamsPage() {
                 How to Detect Stock Scams
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                A step-by-step guide to identifying pump-and-dump schemes, manipulation patterns, and red flags that
-                signal investment fraud.
+                A step-by-step guide to identifying pump-and-dump schemes,
+                manipulation patterns, and red flags that signal investment
+                fraud.
               </p>
             </div>
 
             {/* Content Sections */}
             <article className="prose prose-neutral dark:prose-invert max-w-none">
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Step 1: Research the Company Fundamentals</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Step 1: Research the Company Fundamentals
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Start with the basics. Legitimate companies maintain transparent financial records, clear business
-                  models, and verifiable management teams.
+                  Start with the basics. Legitimate companies maintain
+                  transparent financial records, clear business models, and
+                  verifiable management teams.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
                   <h3 className="text-xl font-semibold mb-4">What to Check</h3>
@@ -87,10 +98,13 @@ export default function HowToDetectStockScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Step 2: Analyze Trading Patterns</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Step 2: Analyze Trading Patterns
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Pump-and-dump schemes create distinctive patterns in price and volume. Legitimate stocks show
-                  gradual, sustainable growth. Manipulated stocks show sudden, intense activity.
+                  Pump-and-dump schemes create distinctive patterns in price and
+                  volume. Legitimate stocks show gradual, sustainable growth.
+                  Manipulated stocks show sudden, intense activity.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
                   <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -116,16 +130,23 @@ export default function HowToDetectStockScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Step 3: Evaluate Promotional Activity</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Step 3: Evaluate Promotional Activity
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Scammers rely on aggressive marketing to drive up prices quickly. Watch for coordinated hype,
-                  especially on social media.
+                  Scammers rely on aggressive marketing to drive up prices
+                  quickly. Watch for coordinated hype, especially on social
+                  media.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4">Hype vs. Legitimate News</h3>
+                  <h3 className="text-xl font-semibold mb-4">
+                    Hype vs. Legitimate News
+                  </h3>
                   <div className="space-y-4">
                     <div className="border-l-4 border-destructive/50 pl-4">
-                      <p className="font-semibold text-sm mb-2">🚩 Scam Indicators</p>
+                      <p className="font-semibold text-sm mb-2">
+                        🚩 Scam Indicators
+                      </p>
                       <ul className="space-y-2 text-sm">
                         {[
                           "Unsolicited investment tips from strangers",
@@ -139,7 +160,9 @@ export default function HowToDetectStockScamsPage() {
                       </ul>
                     </div>
                     <div className="border-l-4 border-success/50 pl-4">
-                      <p className="font-semibold text-sm mb-2">✓ Legitimate News</p>
+                      <p className="font-semibold text-sm mb-2">
+                        ✓ Legitimate News
+                      </p>
                       <ul className="space-y-2 text-sm">
                         {[
                           "Official press releases from company IR",
@@ -157,10 +180,13 @@ export default function HowToDetectStockScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Step 4: Check Regulatory Status</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Step 4: Check Regulatory Status
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  The SEC maintains lists of suspended securities and enforcement actions. Companies with regulatory
-                  issues are high-risk.
+                  The SEC maintains lists of suspended securities and
+                  enforcement actions. Companies with regulatory issues are
+                  high-risk.
                 </p>
                 <div className="bg-accent/10 border border-accent/20 rounded-xl p-6 mb-6">
                   <h3 className="text-lg font-semibold mb-4">Where to Check</h3>
@@ -181,10 +207,12 @@ export default function HowToDetectStockScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Step 5: Use Analytical Tools</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Step 5: Use Analytical Tools
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Advanced tools can automatically detect pump-and-dump signals, analyze behavioral patterns, and
-                  calculate risk scores.
+                  Advanced tools can automatically detect pump-and-dump signals,
+                  analyze behavioral patterns, and calculate risk scores.
                 </p>
                 <Link href="/">
                   <Button size="lg" className="gap-2 mb-6">
@@ -195,23 +223,49 @@ export default function HowToDetectStockScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Quick Checklist: Is This Stock Safe?</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Quick Checklist: Is This Stock Safe?
+                </h2>
                 <div className="card-elevated rounded-xl p-8">
                   <div className="space-y-4">
                     {[
-                      { q: "Does the company have clear, verifiable business information?", good: true },
-                      { q: "Are SEC filings available and recent?", good: true },
-                      { q: "Is the stock showing sudden, unexplained price spikes?", good: false },
-                      { q: "Are you seeing coordinated hype on social media?", good: false },
-                      { q: "Do promoters pressure you to buy immediately?", good: false },
-                      { q: "Has the stock been trading for months with stable fundamentals?", good: true },
-                      { q: "Are you getting tips from unknown people online?", good: false },
+                      {
+                        q: "Does the company have clear, verifiable business information?",
+                        good: true,
+                      },
+                      {
+                        q: "Are SEC filings available and recent?",
+                        good: true,
+                      },
+                      {
+                        q: "Is the stock showing sudden, unexplained price spikes?",
+                        good: false,
+                      },
+                      {
+                        q: "Are you seeing coordinated hype on social media?",
+                        good: false,
+                      },
+                      {
+                        q: "Do promoters pressure you to buy immediately?",
+                        good: false,
+                      },
+                      {
+                        q: "Has the stock been trading for months with stable fundamentals?",
+                        good: true,
+                      },
+                      {
+                        q: "Are you getting tips from unknown people online?",
+                        good: false,
+                      },
                       {
                         q: "Can you find independent, positive coverage in major financial media?",
                         good: true,
                       },
                     ].map((item, idx) => (
-                      <div key={idx} className="flex gap-3 pb-4 border-b border-border last:border-b-0">
+                      <div
+                        key={idx}
+                        className="flex gap-3 pb-4 border-b border-border last:border-b-0"
+                      >
                         {item.good ? (
                           <CheckCircle className="h-6 w-6 text-success flex-shrink-0" />
                         ) : (
@@ -227,21 +281,29 @@ export default function HowToDetectStockScamsPage() {
 
             {/* Internal Links */}
             <section className="mt-16 pt-12 border-t border-border">
-              <h2 className="text-2xl font-bold mb-6">Learn More About Common Scams</h2>
+              <h2 className="text-2xl font-bold mb-6">
+                Learn More About Common Scams
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Link href="/investment-scams">
                   <div className="card-interactive rounded-lg p-6 h-full hover:shadow-lg transition-shadow cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2">Types of Investment Fraud</h3>
+                    <h3 className="font-semibold text-lg mb-2">
+                      Types of Investment Fraud
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      Deep dive into pump-and-dump schemes, penny stocks, and cold calling tactics.
+                      Deep dive into pump-and-dump schemes, penny stocks, and
+                      cold calling tactics.
                     </p>
                   </div>
                 </Link>
                 <Link href="/social-media-scams">
                   <div className="card-interactive rounded-lg p-6 h-full hover:shadow-lg transition-shadow cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2">Social Media Scams</h3>
+                    <h3 className="font-semibold text-lg mb-2">
+                      Social Media Scams
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      How fraudsters use Telegram, Discord, and Reddit to recruit victims.
+                      How fraudsters use Telegram, Discord, and Reddit to
+                      recruit victims.
                     </p>
                   </div>
                 </Link>
@@ -250,10 +312,13 @@ export default function HowToDetectStockScamsPage() {
 
             {/* CTA Section */}
             <section className="mt-12 gradient-mesh rounded-2xl p-8 md:p-12 text-center">
-              <h2 className="text-3xl font-bold mb-4">Let ScamDunk Do the Heavy Lifting</h2>
+              <h2 className="text-3xl font-bold mb-4">
+                Let ScamDunk Do the Heavy Lifting
+              </h2>
               <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-                Our AI-powered analysis scans for pump-and-dump signals, behavioral red flags, and market manipulation
-                patterns instantly. Analyze any stock free.
+                Our AI-powered analysis scans for pump-and-dump signals,
+                behavioral red flags, and market manipulation patterns
+                instantly. Analyze any stock free.
               </p>
               <Link href="/">
                 <Button size="lg" className="gap-2">

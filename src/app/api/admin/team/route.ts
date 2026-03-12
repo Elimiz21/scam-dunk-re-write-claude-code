@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -51,7 +51,7 @@ export async function GET() {
     console.error("Get team error:", error);
     return NextResponse.json(
       { error: "Failed to fetch team" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -64,18 +64,27 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (!hasRole(session, ["OWNER"])) {
-      return NextResponse.json({ error: "Only owners can modify team members" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only owners can modify team members" },
+        { status: 403 },
+      );
     }
 
     const { memberId, action, role } = await request.json();
 
     if (!memberId) {
-      return NextResponse.json({ error: "Member ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Member ID required" },
+        { status: 400 },
+      );
     }
 
     // Prevent self-modification
     if (memberId === session.id) {
-      return NextResponse.json({ error: "Cannot modify your own account" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Cannot modify your own account" },
+        { status: 400 },
+      );
     }
 
     const member = await prisma.adminUser.findUnique({
@@ -138,7 +147,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Update team member error:", error);
     return NextResponse.json(
       { error: "Failed to update team member" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

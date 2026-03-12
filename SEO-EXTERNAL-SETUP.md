@@ -61,6 +61,7 @@ This document contains step-by-step instructions for manual setup tasks that can
 The following pages are **correctly noindexed** (should remain as-is):
 
 **Auth Pages (correctly noindexed):**
+
 - `/auth/login` — Login page
 - `/auth/signup` — Signup page
 - `/auth/forgot-password` — Password reset
@@ -70,13 +71,16 @@ The following pages are **correctly noindexed** (should remain as-is):
 - `/auth/error` — Auth error page
 
 **Protected Pages (correctly noindexed):**
+
 - `/protected/account` — User account
 - `/protected/check` — Analysis check page
 
 **Admin Pages (correctly noindexed):**
+
 - `/admin/*` — All admin pages
 
 **Design Pages (correctly noindexed):**
+
 - `/design-preview` — Design preview
 
 ### Verify Noindex in Code
@@ -210,12 +214,14 @@ Find the existing `<head>` section and add:
 ### About OG Images
 
 The codebase now includes:
+
 - **Dynamic OG images** via `opengraph-image.tsx` routes (automatically generated at request time)
 - **Static fallback** at `/public/og-image.png` (for email clients and old crawlers)
 
 ### Create Static OG Image
 
 The static OG image should be:
+
 - **Filename:** `/public/og-image.png`
 - **Dimensions:** 1200x630 pixels
 - **Format:** PNG

@@ -291,7 +291,7 @@ export function withRateLimit<T extends NextRequest>(
 }
 
 /**
- * Check if rate limiting is using a persistent store (PostgreSQL)
+ * Check if rate limiting is using a persistent store (PostgreSQL via Prisma)
  */
 export function isUsingPersistentStore(): boolean {
   return true;

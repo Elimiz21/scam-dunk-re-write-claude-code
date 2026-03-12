@@ -36,7 +36,7 @@ export async function GET() {
     console.error("Email config API error:", error);
     return NextResponse.json(
       { error: "Failed to check email configuration" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

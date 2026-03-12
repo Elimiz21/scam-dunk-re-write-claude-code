@@ -44,9 +44,7 @@ export function getEvaluationFileUrl(filename: string): string {
  * List all evaluation files in the bucket
  */
 export async function listEvaluationFiles() {
-  const { data, error } = await supabase.storage
-    .from(EVALUATION_BUCKET)
-    .list();
+  const { data, error } = await supabase.storage.from(EVALUATION_BUCKET).list();
 
   if (error) {
     console.error("Error listing evaluation files:", error);
@@ -61,7 +59,7 @@ export async function listEvaluationFiles() {
  */
 export async function uploadEvaluationFile(
   filename: string,
-  content: string | Buffer
+  content: string | Buffer,
 ) {
   const { data, error } = await supabase.storage
     .from(EVALUATION_BUCKET)

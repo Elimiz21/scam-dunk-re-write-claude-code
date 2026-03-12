@@ -12,30 +12,55 @@
  * 5. Real-world known pump-and-dump detection
  */
 
-import { execSync } from 'child_process';
+import { execSync } from "child_process";
 
 // FMP Configuration
-const FMP_API_KEY = process.env.FMP_API_KEY || '';
-const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
+const FMP_API_KEY = process.env.FMP_API_KEY || "";
+const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 
 // Test stocks covering various categories
 const TEST_STOCKS = {
   // Known legitimate blue-chip stocks
   legitimate: [
-    { symbol: 'AAPL', name: 'Apple Inc.', expected: 'LOW' },
-    { symbol: 'MSFT', name: 'Microsoft Corp.', expected: 'LOW' },
-    { symbol: 'JNJ', name: 'Johnson & Johnson', expected: 'LOW' },
+    { symbol: "AAPL", name: "Apple Inc.", expected: "LOW" },
+    { symbol: "MSFT", name: "Microsoft Corp.", expected: "LOW" },
+    { symbol: "JNJ", name: "Johnson & Johnson", expected: "LOW" },
   ],
   // Previously identified high-risk/pump-and-dump candidates
   pumpAndDump: [
-    { symbol: 'SIDU', name: 'Sidus Space', expected: 'HIGH', notes: '+477% in 30 days (Jan 2026)' },
-    { symbol: 'OPTX', name: 'Syntec Optics', expected: 'HIGH', notes: 'RSI 86, actively promoted' },
-    { symbol: 'SOS', name: 'SOS Limited', expected: 'HIGH', notes: 'Pump-and-dump pattern' },
+    {
+      symbol: "SIDU",
+      name: "Sidus Space",
+      expected: "HIGH",
+      notes: "+477% in 30 days (Jan 2026)",
+    },
+    {
+      symbol: "OPTX",
+      name: "Syntec Optics",
+      expected: "HIGH",
+      notes: "RSI 86, actively promoted",
+    },
+    {
+      symbol: "SOS",
+      name: "SOS Limited",
+      expected: "HIGH",
+      notes: "Pump-and-dump pattern",
+    },
   ],
   // Microcap/penny stocks
   microcap: [
-    { symbol: 'SOBR', name: 'SOBR Safe', expected: 'HIGH', notes: 'Sub-$5, low liquidity' },
-    { symbol: 'GDHG', name: 'Golden Heaven', expected: 'HIGH', notes: 'Micro liquidity' },
+    {
+      symbol: "SOBR",
+      name: "SOBR Safe",
+      expected: "HIGH",
+      notes: "Sub-$5, low liquidity",
+    },
+    {
+      symbol: "GDHG",
+      name: "Golden Heaven",
+      expected: "HIGH",
+      notes: "Micro liquidity",
+    },
   ],
 };
 
@@ -82,7 +107,10 @@ interface TestResult {
 
 function curlFetch(url: string): string | null {
   try {
-    return execSync(`curl -s --max-time 15 "${url}"`, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+    return execSync(`curl -s --max-time 15 "${url}"`, {
+      encoding: "utf-8",
+      maxBuffer: 10 * 1024 * 1024,
+    });
   } catch {
     return null;
   }
@@ -95,12 +123,12 @@ function fetchProfile(symbol: string): StockQuote | null {
 
   try {
     const data = JSON.parse(response);
-    if (!data || data.length === 0 || data['Error Message']) return null;
+    if (!data || data.length === 0 || data["Error Message"]) return null;
     const p = data[0];
     return {
       ticker: symbol,
       companyName: p.companyName || symbol,
-      exchange: p.exchange || 'Unknown',
+      exchange: p.exchange || "Unknown",
       lastPrice: p.price || 0,
       marketCap: p.marketCap || 0,
       avgVolume30d: p.averageVolume || 0,
@@ -117,15 +145,18 @@ function fetchHistory(symbol: string): PriceHistory[] {
 
   try {
     const data = JSON.parse(response);
-    if (!data || data.length === 0 || data['Error Message']) return [];
-    return data.slice(0, 100).reverse().map((d: any) => ({
-      date: d.date,
-      open: d.open,
-      high: d.high,
-      low: d.low,
-      close: d.close,
-      volume: d.volume,
-    }));
+    if (!data || data.length === 0 || data["Error Message"]) return [];
+    return data
+      .slice(0, 100)
+      .reverse()
+      .map((d: any) => ({
+        date: d.date,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume,
+      }));
   } catch {
     return [];
   }
@@ -135,7 +166,10 @@ function fetchHistory(symbol: string): PriceHistory[] {
 // PATTERN DETECTION (Mirrors scoring.ts logic)
 // ============================================================================
 
-function calculatePriceChange(history: PriceHistory[], days: number): number | null {
+function calculatePriceChange(
+  history: PriceHistory[],
+  days: number,
+): number | null {
   if (history.length < days + 1) return null;
   const current = history[history.length - 1].close;
   const past = history[history.length - 1 - days].close;
@@ -143,20 +177,25 @@ function calculatePriceChange(history: PriceHistory[], days: number): number | n
   return ((current - past) / past) * 100;
 }
 
-function calculateRSI(history: PriceHistory[], period: number = 14): number | null {
+function calculateRSI(
+  history: PriceHistory[],
+  period: number = 14,
+): number | null {
   if (history.length < period + 1) return null;
   const changes: number[] = [];
   for (let i = 1; i < history.length; i++) {
     changes.push(history[i].close - history[i - 1].close);
   }
   const recent = changes.slice(-period);
-  const gains = recent.filter(c => c > 0);
-  const losses = recent.filter(c => c < 0).map(c => Math.abs(c));
-  const avgGain = gains.length > 0 ? gains.reduce((a, b) => a + b, 0) / gains.length : 0;
-  const avgLoss = losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0;
+  const gains = recent.filter((c) => c > 0);
+  const losses = recent.filter((c) => c < 0).map((c) => Math.abs(c));
+  const avgGain =
+    gains.length > 0 ? gains.reduce((a, b) => a + b, 0) / gains.length : 0;
+  const avgLoss =
+    losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0;
   if (avgLoss === 0) return 100;
   const rs = avgGain / avgLoss;
-  return 100 - (100 / (1 + rs));
+  return 100 - 100 / (1 + rs);
 }
 
 function calculateVolumeRatio(history: PriceHistory[]): number | null {
@@ -173,9 +212,13 @@ function detectSpikeThenDrop(history: PriceHistory[]): boolean {
   if (history.length < 15) return false;
   const recent = history.slice(-15);
   const start = recent[0].close;
-  let max = start, maxIdx = 0;
+  let max = start,
+    maxIdx = 0;
   for (let i = 0; i < recent.length; i++) {
-    if (recent[i].high > max) { max = recent[i].high; maxIdx = i; }
+    if (recent[i].high > max) {
+      max = recent[i].high;
+      maxIdx = i;
+    }
   }
   const spikePercent = ((max - start) / start) * 100;
   if (spikePercent < 25) return false;
@@ -194,28 +237,31 @@ interface ScoringResult {
   signals: string[];
 }
 
-function computeRiskScore(quote: StockQuote, history: PriceHistory[]): ScoringResult {
+function computeRiskScore(
+  quote: StockQuote,
+  history: PriceHistory[],
+): ScoringResult {
   const signals: string[] = [];
   let score = 0;
 
   // Structural signals
   if (quote.lastPrice < 5) {
-    signals.push('MICROCAP_PRICE');
+    signals.push("MICROCAP_PRICE");
     score += 1;
   }
   if (quote.marketCap > 0 && quote.marketCap < 300_000_000) {
-    signals.push('SMALL_MARKET_CAP');
+    signals.push("SMALL_MARKET_CAP");
     score += 1;
   }
   const avgDollarVolume = quote.avgVolume30d * quote.lastPrice;
   if (avgDollarVolume > 0 && avgDollarVolume < 150_000) {
-    signals.push('MICRO_LIQUIDITY');
+    signals.push("MICRO_LIQUIDITY");
     score += 2;
   }
 
-  const otcExchanges = ['OTC', 'OTCQX', 'OTCQB', 'PINK'];
-  if (otcExchanges.some(e => quote.exchange.toUpperCase().includes(e))) {
-    signals.push('OTC_EXCHANGE');
+  const otcExchanges = ["OTC", "OTCQX", "OTCQB", "PINK"];
+  if (otcExchanges.some((e) => quote.exchange.toUpperCase().includes(e))) {
+    signals.push("OTC_EXCHANGE");
     score += 2;
   }
 
@@ -247,7 +293,7 @@ function computeRiskScore(quote: StockQuote, history: PriceHistory[]): ScoringRe
     }
 
     if (detectSpikeThenDrop(history)) {
-      signals.push('SPIKE_THEN_DROP');
+      signals.push("SPIKE_THEN_DROP");
       score += 3;
     }
 
@@ -262,9 +308,9 @@ function computeRiskScore(quote: StockQuote, history: PriceHistory[]): ScoringRe
   }
 
   // Determine risk level
-  let riskLevel = 'LOW';
-  if (score >= 5) riskLevel = 'HIGH';
-  else if (score >= 2) riskLevel = 'MEDIUM';
+  let riskLevel = "LOW";
+  if (score >= 5) riskLevel = "HIGH";
+  else if (score >= 2) riskLevel = "MEDIUM";
 
   return { riskLevel, totalScore: score, signals };
 }
@@ -278,15 +324,15 @@ function sleep(ms: number): void {
 }
 
 async function runTests(): Promise<void> {
-  console.log('='.repeat(80));
-  console.log('SCAM DUNK - FMP INTEGRATION TEST SUITE');
-  console.log('='.repeat(80));
+  console.log("=".repeat(80));
+  console.log("SCAM DUNK - FMP INTEGRATION TEST SUITE");
+  console.log("=".repeat(80));
   console.log(`Date: ${new Date().toISOString()}`);
-  console.log(`FMP API: ${FMP_API_KEY ? 'Configured ✓' : 'NOT CONFIGURED ✗'}`);
-  console.log('');
+  console.log(`FMP API: ${FMP_API_KEY ? "Configured ✓" : "NOT CONFIGURED ✗"}`);
+  console.log("");
 
   if (!FMP_API_KEY) {
-    console.error('ERROR: FMP_API_KEY not set. Please configure in .env file.');
+    console.error("ERROR: FMP_API_KEY not set. Please configure in .env file.");
     process.exit(1);
   }
 
@@ -296,13 +342,15 @@ async function runTests(): Promise<void> {
 
   // Test each category
   for (const [category, stocks] of Object.entries(TEST_STOCKS)) {
-    console.log(`\n${'─'.repeat(80)}`);
+    console.log(`\n${"─".repeat(80)}`);
     console.log(`TESTING: ${category.toUpperCase()} STOCKS`);
-    console.log('─'.repeat(80));
+    console.log("─".repeat(80));
 
     for (const stock of stocks) {
       totalTests++;
-      process.stdout.write(`  Testing ${stock.symbol.padEnd(6)} (${stock.name.slice(0, 25).padEnd(25)})... `);
+      process.stdout.write(
+        `  Testing ${stock.symbol.padEnd(6)} (${stock.name.slice(0, 25).padEnd(25)})... `,
+      );
 
       // Fetch data
       const profile = fetchProfile(stock.symbol);
@@ -311,23 +359,23 @@ async function runTests(): Promise<void> {
       sleep(250);
 
       if (!profile) {
-        console.log('SKIP (no profile data)');
+        console.log("SKIP (no profile data)");
         results.push({
           symbol: stock.symbol,
           name: stock.name,
           category,
           expected: stock.expected,
-          actual: 'N/A',
+          actual: "N/A",
           score: 0,
           signals: [],
-          dataSource: 'FMP',
+          dataSource: "FMP",
           historyDays: 0,
           priceChange7d: null,
           priceChange30d: null,
           rsi: null,
           volumeRatio: null,
           passed: false,
-          details: 'No profile data available',
+          details: "No profile data available",
         });
         continue;
       }
@@ -343,9 +391,11 @@ async function runTests(): Promise<void> {
       const passed = scoring.riskLevel === stock.expected;
       if (passed) passedTests++;
 
-      const statusIcon = passed ? '✓' : '✗';
-      const statusColor = passed ? '\x1b[32m' : '\x1b[31m';
-      console.log(`${statusColor}${statusIcon}\x1b[0m ${scoring.riskLevel} (score: ${scoring.totalScore})`);
+      const statusIcon = passed ? "✓" : "✗";
+      const statusColor = passed ? "\x1b[32m" : "\x1b[31m";
+      console.log(
+        `${statusColor}${statusIcon}\x1b[0m ${scoring.riskLevel} (score: ${scoring.totalScore})`,
+      );
 
       results.push({
         symbol: stock.symbol,
@@ -355,14 +405,14 @@ async function runTests(): Promise<void> {
         actual: scoring.riskLevel,
         score: scoring.totalScore,
         signals: scoring.signals,
-        dataSource: 'FMP',
+        dataSource: "FMP",
         historyDays: history.length,
         priceChange7d,
         priceChange30d,
         rsi,
         volumeRatio,
         passed,
-        details: scoring.signals.join(', ') || 'No signals detected',
+        details: scoring.signals.join(", ") || "No signals detected",
       });
     }
   }
@@ -370,86 +420,111 @@ async function runTests(): Promise<void> {
   // ============================================================================
   // GENERATE REPORT
   // ============================================================================
-  console.log('\n' + '='.repeat(80));
-  console.log('TEST RESULTS SUMMARY');
-  console.log('='.repeat(80));
+  console.log("\n" + "=".repeat(80));
+  console.log("TEST RESULTS SUMMARY");
+  console.log("=".repeat(80));
   console.log(`\nTotal Tests: ${totalTests}`);
-  console.log(`Passed: ${passedTests} (${((passedTests / totalTests) * 100).toFixed(1)}%)`);
+  console.log(
+    `Passed: ${passedTests} (${((passedTests / totalTests) * 100).toFixed(1)}%)`,
+  );
   console.log(`Failed: ${totalTests - passedTests}`);
 
   // Detailed results table
-  console.log('\n' + '─'.repeat(80));
-  console.log('DETAILED RESULTS');
-  console.log('─'.repeat(80));
-  console.log('');
-  console.log('| Symbol | Category     | Expected | Actual | Score | History | 7d Chg  | 30d Chg | RSI  | Status |');
-  console.log('|--------|--------------|----------|--------|-------|---------|---------|---------|------|--------|');
+  console.log("\n" + "─".repeat(80));
+  console.log("DETAILED RESULTS");
+  console.log("─".repeat(80));
+  console.log("");
+  console.log(
+    "| Symbol | Category     | Expected | Actual | Score | History | 7d Chg  | 30d Chg | RSI  | Status |",
+  );
+  console.log(
+    "|--------|--------------|----------|--------|-------|---------|---------|---------|------|--------|",
+  );
 
   for (const r of results) {
-    const status = r.passed ? '✓ PASS' : '✗ FAIL';
-    const chg7d = r.priceChange7d !== null ? `${r.priceChange7d >= 0 ? '+' : ''}${r.priceChange7d.toFixed(1)}%` : 'N/A';
-    const chg30d = r.priceChange30d !== null ? `${r.priceChange30d >= 0 ? '+' : ''}${r.priceChange30d.toFixed(1)}%` : 'N/A';
-    const rsi = r.rsi !== null ? r.rsi.toFixed(0) : 'N/A';
+    const status = r.passed ? "✓ PASS" : "✗ FAIL";
+    const chg7d =
+      r.priceChange7d !== null
+        ? `${r.priceChange7d >= 0 ? "+" : ""}${r.priceChange7d.toFixed(1)}%`
+        : "N/A";
+    const chg30d =
+      r.priceChange30d !== null
+        ? `${r.priceChange30d >= 0 ? "+" : ""}${r.priceChange30d.toFixed(1)}%`
+        : "N/A";
+    const rsi = r.rsi !== null ? r.rsi.toFixed(0) : "N/A";
     console.log(
-      `| ${r.symbol.padEnd(6)} | ${r.category.padEnd(12)} | ${r.expected.padEnd(8)} | ${r.actual.padEnd(6)} | ${String(r.score).padStart(5)} | ${String(r.historyDays).padStart(7)} | ${chg7d.padStart(7)} | ${chg30d.padStart(7)} | ${rsi.padStart(4)} | ${status} |`
+      `| ${r.symbol.padEnd(6)} | ${r.category.padEnd(12)} | ${r.expected.padEnd(8)} | ${r.actual.padEnd(6)} | ${String(r.score).padStart(5)} | ${String(r.historyDays).padStart(7)} | ${chg7d.padStart(7)} | ${chg30d.padStart(7)} | ${rsi.padStart(4)} | ${status} |`,
     );
   }
 
   // Signal breakdown for high-risk stocks
-  console.log('\n' + '─'.repeat(80));
-  console.log('HIGH-RISK STOCK SIGNAL BREAKDOWN');
-  console.log('─'.repeat(80));
+  console.log("\n" + "─".repeat(80));
+  console.log("HIGH-RISK STOCK SIGNAL BREAKDOWN");
+  console.log("─".repeat(80));
 
-  for (const r of results.filter(r => r.actual === 'HIGH' || r.expected === 'HIGH')) {
+  for (const r of results.filter(
+    (r) => r.actual === "HIGH" || r.expected === "HIGH",
+  )) {
     console.log(`\n${r.symbol} (${r.name})`);
     console.log(`  Risk Level: ${r.actual} | Score: ${r.score}`);
     console.log(`  Historical Data: ${r.historyDays} days`);
-    console.log(`  Price Changes: 7d=${r.priceChange7d?.toFixed(1) || 'N/A'}%, 30d=${r.priceChange30d?.toFixed(1) || 'N/A'}%`);
-    console.log(`  RSI: ${r.rsi?.toFixed(1) || 'N/A'} | Volume Ratio: ${r.volumeRatio?.toFixed(2) || 'N/A'}x`);
-    console.log(`  Signals: ${r.signals.length > 0 ? r.signals.join(', ') : 'None'}`);
+    console.log(
+      `  Price Changes: 7d=${r.priceChange7d?.toFixed(1) || "N/A"}%, 30d=${r.priceChange30d?.toFixed(1) || "N/A"}%`,
+    );
+    console.log(
+      `  RSI: ${r.rsi?.toFixed(1) || "N/A"} | Volume Ratio: ${r.volumeRatio?.toFixed(2) || "N/A"}x`,
+    );
+    console.log(
+      `  Signals: ${r.signals.length > 0 ? r.signals.join(", ") : "None"}`,
+    );
   }
 
   // Data quality check
-  console.log('\n' + '─'.repeat(80));
-  console.log('FMP DATA QUALITY CHECK');
-  console.log('─'.repeat(80));
+  console.log("\n" + "─".repeat(80));
+  console.log("FMP DATA QUALITY CHECK");
+  console.log("─".repeat(80));
 
-  const withHistory = results.filter(r => r.historyDays > 0);
-  const avgHistoryDays = withHistory.length > 0
-    ? withHistory.reduce((s, r) => s + r.historyDays, 0) / withHistory.length
-    : 0;
+  const withHistory = results.filter((r) => r.historyDays > 0);
+  const avgHistoryDays =
+    withHistory.length > 0
+      ? withHistory.reduce((s, r) => s + r.historyDays, 0) / withHistory.length
+      : 0;
 
-  console.log(`\n  Stocks with historical data: ${withHistory.length}/${results.length}`);
+  console.log(
+    `\n  Stocks with historical data: ${withHistory.length}/${results.length}`,
+  );
   console.log(`  Average history length: ${avgHistoryDays.toFixed(0)} days`);
-  console.log(`  Pattern detection enabled: ${avgHistoryDays >= 30 ? '✓ YES' : '✗ NO (need 30+ days)'}`);
+  console.log(
+    `  Pattern detection enabled: ${avgHistoryDays >= 30 ? "✓ YES" : "✗ NO (need 30+ days)"}`,
+  );
 
   // Final verdict
-  console.log('\n' + '='.repeat(80));
+  console.log("\n" + "=".repeat(80));
   if (passedTests === totalTests && avgHistoryDays >= 30) {
-    console.log('✓ ALL TESTS PASSED - FMP INTEGRATION WORKING CORRECTLY');
+    console.log("✓ ALL TESTS PASSED - FMP INTEGRATION WORKING CORRECTLY");
   } else if (passedTests >= totalTests * 0.7) {
-    console.log('⚠ MOSTLY PASSED - Some edge cases may need attention');
+    console.log("⚠ MOSTLY PASSED - Some edge cases may need attention");
   } else {
-    console.log('✗ TESTS FAILED - FMP integration may have issues');
+    console.log("✗ TESTS FAILED - FMP integration may have issues");
   }
-  console.log('='.repeat(80));
+  console.log("=".repeat(80));
 
   // Save detailed report to file
-  const reportPath = `/home/user/scam-dunk-re-write-claude-code/evaluation/results/fmp-test-report-${new Date().toISOString().split('T')[0]}.json`;
+  const reportPath = `/home/user/scam-dunk-re-write-claude-code/evaluation/results/fmp-test-report-${new Date().toISOString().split("T")[0]}.json`;
   const report = {
     timestamp: new Date().toISOString(),
     summary: {
       totalTests,
       passed: passedTests,
       failed: totalTests - passedTests,
-      passRate: ((passedTests / totalTests) * 100).toFixed(1) + '%',
-      dataSource: 'FMP (Financial Modeling Prep)',
+      passRate: ((passedTests / totalTests) * 100).toFixed(1) + "%",
+      dataSource: "FMP (Financial Modeling Prep)",
       avgHistoryDays: avgHistoryDays.toFixed(0),
     },
     results,
   };
 
-  const fs = require('fs');
+  const fs = require("fs");
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
   console.log(`\nDetailed report saved to: ${reportPath}`);
 }

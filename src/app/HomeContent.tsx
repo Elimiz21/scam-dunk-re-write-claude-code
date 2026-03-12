@@ -8,9 +8,17 @@ import { Header } from "@/components/Header";
 import { ScanInput } from "@/components/ScanInput";
 import { LimitReached } from "@/components/LimitReached";
 import { LoadingStepper } from "@/components/LoadingStepper";
-import { ScanResultsLayout, LearnMoreCompact } from "@/components/ScanResultsLayout";
+import {
+  ScanResultsLayout,
+  LearnMoreCompact,
+} from "@/components/ScanResultsLayout";
 import { Shield, AlertTriangle, Eye } from "lucide-react";
-import { RiskResponse, LimitReachedResponse, UsageInfo, AssetType } from "@/lib/types";
+import {
+  RiskResponse,
+  LimitReachedResponse,
+  UsageInfo,
+  AssetType,
+} from "@/lib/types";
 import { getRandomTagline, taglines, Tagline } from "@/lib/taglines";
 import { LandingOptionA } from "@/components/landing/LandingOptionA";
 import { useToast } from "@/components/ui/toast";
@@ -30,7 +38,9 @@ export default function HomeContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<RiskResponse | null>(null);
-  const [limitReached, setLimitReached] = useState<LimitReachedResponse | null>(null);
+  const [limitReached, setLimitReached] = useState<LimitReachedResponse | null>(
+    null,
+  );
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [currentTicker, setCurrentTicker] = useState("");
   const [hasChatData, setHasChatData] = useState(false);
@@ -45,7 +55,7 @@ export default function HomeContent() {
         { label: "Analyzing price patterns", status: "pending" },
         { label: "Checking volume anomalies", status: "pending" },
         { label: "Scanning for pump-and-dump signals", status: "pending" },
-      ]
+      ],
     },
     { label: "Checking regulatory alerts", status: "pending" },
     { label: "Generating risk report", status: "pending" },
@@ -54,7 +64,10 @@ export default function HomeContent() {
   const [tipIndex, setTipIndex] = useState(0);
 
   // Homepage hero content from admin DB
-  const [heroContent, setHeroContent] = useState<{ headline?: string; subheadline?: string }>({});
+  const [heroContent, setHeroContent] = useState<{
+    headline?: string;
+    subheadline?: string;
+  }>({});
 
   // Fetch landing page hero content
   useEffect(() => {
@@ -63,7 +76,10 @@ export default function HomeContent() {
         .then((res) => res.json())
         .then((data) => {
           if (!data.isDefault) {
-            setHeroContent({ headline: data.headline, subheadline: data.subheadline });
+            setHeroContent({
+              headline: data.headline,
+              subheadline: data.subheadline,
+            });
           }
         })
         .catch(() => {});
@@ -91,7 +107,6 @@ export default function HomeContent() {
       console.error("Failed to fetch usage:", err);
     }
   };
-
 
   const handleSubmit = async (data: {
     ticker: string;
@@ -128,7 +143,7 @@ export default function HomeContent() {
           { label: "Analyzing price patterns", status: "pending" },
           { label: "Checking volume anomalies", status: "pending" },
           { label: "Scanning for pump-and-dump signals", status: "pending" },
-        ]
+        ],
       },
       { label: "Checking regulatory alerts", status: "pending" },
       { label: "Generating risk report", status: "pending" },
@@ -157,7 +172,11 @@ export default function HomeContent() {
         // Step 1: Validating ticker
         await new Promise((r) => setTimeout(r, 1200));
         setSteps((s) => [
-          { ...s[0], status: "complete", detail: `${data.ticker.toUpperCase()} is valid` },
+          {
+            ...s[0],
+            status: "complete",
+            detail: `${data.ticker.toUpperCase()} is valid`,
+          },
           { ...s[1], status: "loading" },
           s[2],
           s[3],
@@ -168,15 +187,22 @@ export default function HomeContent() {
         await new Promise((r) => setTimeout(r, 1400));
         setSteps((s) => [
           s[0],
-          { ...s[1], status: "complete", detail: "Retrieved price history and company data" },
+          {
+            ...s[1],
+            status: "complete",
+            detail: "Retrieved price history and company data",
+          },
           {
             ...s[2],
             status: "loading",
             subSteps: [
               { label: "Analyzing price patterns", status: "loading" },
               { label: "Checking volume anomalies", status: "pending" },
-              { label: "Scanning for pump-and-dump signals", status: "pending" },
-            ]
+              {
+                label: "Scanning for pump-and-dump signals",
+                status: "pending",
+              },
+            ],
           },
           s[3],
           s[4],
@@ -193,8 +219,11 @@ export default function HomeContent() {
             subSteps: [
               { label: "Analyzing price patterns", status: "complete" },
               { label: "Checking volume anomalies", status: "loading" },
-              { label: "Scanning for pump-and-dump signals", status: "pending" },
-            ]
+              {
+                label: "Scanning for pump-and-dump signals",
+                status: "pending",
+              },
+            ],
           },
           s[3],
           s[4],
@@ -211,8 +240,11 @@ export default function HomeContent() {
             subSteps: [
               { label: "Analyzing price patterns", status: "complete" },
               { label: "Checking volume anomalies", status: "complete" },
-              { label: "Scanning for pump-and-dump signals", status: "loading" },
-            ]
+              {
+                label: "Scanning for pump-and-dump signals",
+                status: "loading",
+              },
+            ],
           },
           s[3],
           s[4],
@@ -230,8 +262,11 @@ export default function HomeContent() {
             subSteps: [
               { label: "Analyzing price patterns", status: "complete" },
               { label: "Checking volume anomalies", status: "complete" },
-              { label: "Scanning for pump-and-dump signals", status: "complete" },
-            ]
+              {
+                label: "Scanning for pump-and-dump signals",
+                status: "complete",
+              },
+            ],
           },
           { ...s[3], status: "loading" },
           s[4],
@@ -243,7 +278,11 @@ export default function HomeContent() {
           s[0],
           s[1],
           s[2],
-          { ...s[3], status: "complete", detail: "SEC and alert databases checked" },
+          {
+            ...s[3],
+            status: "complete",
+            detail: "SEC and alert databases checked",
+          },
           { ...s[4], status: "loading" },
         ]);
       };
@@ -262,10 +301,7 @@ export default function HomeContent() {
         }),
       });
 
-      const [response] = await Promise.all([
-        apiCall,
-        simulateSteps(),
-      ]);
+      const [response] = await Promise.all([apiCall, simulateSteps()]);
 
       // Complete final step
       setSteps((s) => [
@@ -273,7 +309,7 @@ export default function HomeContent() {
         s[1],
         s[2],
         s[3],
-        { ...s[4], status: "complete", detail: "Analysis complete" }
+        { ...s[4], status: "complete", detail: "Analysis complete" },
       ]);
 
       // Brief pause so the user sees all green before results appear
@@ -293,7 +329,9 @@ export default function HomeContent() {
           limitReached: true,
         });
       } else if (!response.ok) {
-        setError(responseData.message || responseData.error || "An error occurred");
+        setError(
+          responseData.message || responseData.error || "An error occurred",
+        );
       } else {
         setResult(responseData as RiskResponse);
         setUsage(responseData.usage);
@@ -318,7 +356,8 @@ export default function HomeContent() {
   const handleShare = async () => {
     if (result) {
       const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${result.riskLevel} RISK (Score: ${result.totalScore})\n\nCheck your stocks for scam red flags at ScamDunk.`;
-      const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+      const shareUrl =
+        typeof window !== "undefined" ? window.location.href : "";
 
       // Try native share API first
       if (navigator.share) {
@@ -410,12 +449,19 @@ export default function HomeContent() {
                   <div className="text-center mb-8">
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
                       <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
-                      <span className="text-sm font-semibold text-primary">Scanning</span>
+                      <span className="text-sm font-semibold text-primary">
+                        Scanning
+                      </span>
                     </div>
                     <h2 className="font-display text-title mb-1 italic">
-                      Analyzing <span className="gradient-brand-text not-italic font-sans font-bold">{currentTicker.toUpperCase()}</span>
+                      Analyzing{" "}
+                      <span className="gradient-brand-text not-italic font-sans font-bold">
+                        {currentTicker.toUpperCase()}
+                      </span>
                     </h2>
-                    <p className="text-sm text-muted-foreground">Running multi-layer risk detection</p>
+                    <p className="text-sm text-muted-foreground">
+                      Running multi-layer risk detection
+                    </p>
                   </div>
                   <LoadingStepper steps={steps} currentTip={currentTip} />
                 </div>
@@ -430,7 +476,11 @@ export default function HomeContent() {
 
           {/* Results — new split-screen layout */}
           {result && !isLoading && (
-            <ScanResultsLayout result={result} hasChatData={hasChatData} onNewScan={handleNewScan} />
+            <ScanResultsLayout
+              result={result}
+              hasChatData={hasChatData}
+              onNewScan={handleNewScan}
+            />
           )}
 
           {/* Welcome State (no result, not loading) */}
@@ -443,7 +493,10 @@ export default function HomeContent() {
                     <div className="flex justify-center mb-6">
                       <div className="relative">
                         <div className="h-16 w-16 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/25 animate-gentle-float">
-                          <Shield className="h-8 w-8 text-white" strokeWidth={2} />
+                          <Shield
+                            className="h-8 w-8 text-white"
+                            strokeWidth={2}
+                          />
                         </div>
                         <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
                           <Eye className="h-2.5 w-2.5 text-white" />
@@ -465,7 +518,10 @@ export default function HomeContent() {
                     </div>
                   )}
 
-                  <div className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+                  <div
+                    className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in"
+                    style={{ animationDelay: "0.05s" }}
+                  >
                     <ScanInput
                       onSubmit={handleSubmit}
                       isLoading={isLoading}
@@ -486,7 +542,6 @@ export default function HomeContent() {
             </>
           )}
         </main>
-
       </div>
     </div>
   );

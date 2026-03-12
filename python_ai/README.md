@@ -41,6 +41,7 @@ docker run -p 8000:8000 scamdunk-ai
 ## API Endpoints
 
 ### Health Check
+
 ```
 GET /health
 ```
@@ -48,6 +49,7 @@ GET /health
 Returns model status and availability.
 
 ### Analyze Asset
+
 ```
 POST /analyze
 Content-Type: application/json
@@ -61,6 +63,7 @@ Content-Type: application/json
 ```
 
 Returns full analysis with:
+
 - Risk level (LOW/MEDIUM/HIGH)
 - Risk probability (0.0 - 1.0)
 - RF and LSTM probabilities
@@ -70,6 +73,7 @@ Returns full analysis with:
 - Explanations
 
 ### SEC Check
+
 ```
 GET /sec-check/{ticker}
 ```
@@ -77,6 +81,7 @@ GET /sec-check/{ticker}
 Checks if a ticker is on the SEC flagged list.
 
 ### Model Status
+
 ```
 GET /models/status
 ```
@@ -86,12 +91,14 @@ Returns detailed model status.
 ## Deployment Options
 
 ### Railway
+
 1. Create new project from GitHub
 2. Set root directory to `python_ai`
 3. Add environment variables if needed
 4. Deploy
 
 ### Render
+
 1. Create new Web Service
 2. Connect GitHub repo
 3. Set root directory: `python_ai`
@@ -99,6 +106,7 @@ Returns detailed model status.
 5. Start command: `uvicorn api_server:app --host 0.0.0.0 --port $PORT`
 
 ### Google Cloud Run
+
 ```bash
 # Build and push
 gcloud builds submit --tag gcr.io/YOUR_PROJECT/scamdunk-ai
@@ -111,6 +119,7 @@ gcloud run deploy scamdunk-ai \
 ```
 
 ### Heroku
+
 ```bash
 # Create Procfile
 echo "web: uvicorn api_server:app --host 0.0.0.0 --port \$PORT" > Procfile
@@ -123,11 +132,11 @@ git push heroku main
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | 8000 |
-| `HOST` | Server host | 0.0.0.0 |
-| `ALPHA_VANTAGE_API_KEY` | For live market data | None |
+| Variable                | Description          | Default |
+| ----------------------- | -------------------- | ------- |
+| `PORT`                  | Server port          | 8000    |
+| `HOST`                  | Server host          | 0.0.0.0 |
+| `ALPHA_VANTAGE_API_KEY` | For live market data | None    |
 
 ## Integration with Next.js Web App
 

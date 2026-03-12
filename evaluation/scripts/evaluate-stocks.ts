@@ -5,16 +5,26 @@
  * comprehensive reports on risk distribution.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 // Import scoring module
-import { computeRiskScore, getSignalsByCategory, SIGNAL_CODES } from '../../src/lib/scoring';
-import { MarketData, ScoringInput, PriceHistory, StockQuote, RiskSignal } from '../../src/lib/types';
+import {
+  computeRiskScore,
+  getSignalsByCategory,
+  SIGNAL_CODES,
+} from "../../src/lib/scoring";
+import {
+  MarketData,
+  ScoringInput,
+  PriceHistory,
+  StockQuote,
+  RiskSignal,
+} from "../../src/lib/types";
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const RESULTS_DIR = path.join(__dirname, '..', 'results');
-const REPORTS_DIR = path.join(__dirname, '..', 'reports');
+const DATA_DIR = path.join(__dirname, "..", "data");
+const RESULTS_DIR = path.join(__dirname, "..", "results");
+const REPORTS_DIR = path.join(__dirname, "..", "reports");
 
 // Rate limiting for API calls
 const RATE_LIMIT_DELAY = 250; // ms between API calls
@@ -62,13 +72,16 @@ interface EvaluationSummary {
     HIGH: number;
     INSUFFICIENT: number;
   };
-  byExchange: Record<string, {
-    total: number;
-    LOW: number;
-    MEDIUM: number;
-    HIGH: number;
-    INSUFFICIENT: number;
-  }>;
+  byExchange: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      INSUFFICIENT: number;
+    }
+  >;
   bySignal: Record<string, number>;
   topHighRisk: EvaluationResult[];
   evaluationDate: string;
@@ -85,7 +98,7 @@ function createMarketDataFromStock(stock: StockTicker): MarketData {
     const date = new Date();
     date.setDate(date.getDate() - i);
     priceHistory.push({
-      date: date.toISOString().split('T')[0],
+      date: date.toISOString().split("T")[0],
       open: basePrice * 0.995,
       high: basePrice * 1.005,
       low: basePrice * 0.99,
@@ -105,9 +118,10 @@ function createMarketDataFromStock(stock: StockTicker): MarketData {
   };
 
   // Determine if OTC based on exchange name
-  const isOTC = stock.isOTC ||
-    ['OTC', 'OTCQX', 'OTCQB', 'PINK', 'GREY'].some(ex =>
-      stock.exchange.toUpperCase().includes(ex)
+  const isOTC =
+    stock.isOTC ||
+    ["OTC", "OTCQX", "OTCQB", "PINK", "GREY"].some((ex) =>
+      stock.exchange.toUpperCase().includes(ex),
     );
 
   return {
@@ -126,7 +140,7 @@ async function evaluateStock(stock: StockTicker): Promise<EvaluationResult> {
     // Create scoring input with no behavioral flags (neutral evaluation)
     const input: ScoringInput = {
       marketData,
-      pitchText: '', // No pitch text for neutral evaluation
+      pitchText: "", // No pitch text for neutral evaluation
       context: {
         unsolicited: false,
         promisesHighReturns: false,
@@ -147,13 +161,13 @@ async function evaluateStock(stock: StockTicker): Promise<EvaluationResult> {
       totalScore: result.totalScore,
       isLegitimate: result.isLegitimate,
       isInsufficient: result.isInsufficient,
-      signals: result.signals.map(s => ({
+      signals: result.signals.map((s) => ({
         code: s.code,
         category: s.category,
         weight: s.weight,
         description: s.description,
       })),
-      signalSummary: result.signals.map(s => s.code).join(', ') || 'None',
+      signalSummary: result.signals.map((s) => s.code).join(", ") || "None",
       evaluatedAt: new Date().toISOString(),
     };
   } catch (error) {
@@ -163,24 +177,28 @@ async function evaluateStock(stock: StockTicker): Promise<EvaluationResult> {
       exchange: stock.exchange,
       marketCap: stock.marketCap || null,
       lastPrice: stock.lastPrice || null,
-      riskLevel: 'ERROR',
+      riskLevel: "ERROR",
       totalScore: 0,
       isLegitimate: false,
       isInsufficient: true,
       signals: [],
-      signalSummary: 'Error',
+      signalSummary: "Error",
       evaluatedAt: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
 
 // Progress bar helper
-function progressBar(current: number, total: number, width: number = 40): string {
+function progressBar(
+  current: number,
+  total: number,
+  width: number = 40,
+): string {
   const percent = current / total;
   const filled = Math.round(width * percent);
   const empty = width - filled;
-  const bar = '█'.repeat(filled) + '░'.repeat(empty);
+  const bar = "█".repeat(filled) + "░".repeat(empty);
   return `[${bar}] ${(percent * 100).toFixed(1)}% (${current}/${total})`;
 }
 
@@ -190,22 +208,24 @@ async function evaluateAllStocks(
     limit?: number;
     batchSize?: number;
     saveInterval?: number;
-  } = {}
+  } = {},
 ): Promise<void> {
   const { limit, batchSize = 100, saveInterval = 500 } = options;
 
-  console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║           ScamDunk US Stock Evaluation Suite               ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  console.log("╔════════════════════════════════════════════════════════════╗");
+  console.log("║           ScamDunk US Stock Evaluation Suite               ║");
+  console.log(
+    "╚════════════════════════════════════════════════════════════╝\n",
+  );
 
   // Load stock list
-  const stocksPath = path.join(DATA_DIR, 'us-stocks.json');
+  const stocksPath = path.join(DATA_DIR, "us-stocks.json");
   if (!fs.existsSync(stocksPath)) {
-    console.error('Stock list not found. Run fetch-us-stocks.ts first.');
+    console.error("Stock list not found. Run fetch-us-stocks.ts first.");
     process.exit(1);
   }
 
-  let stocks: StockTicker[] = JSON.parse(fs.readFileSync(stocksPath, 'utf-8'));
+  let stocks: StockTicker[] = JSON.parse(fs.readFileSync(stocksPath, "utf-8"));
   console.log(`Loaded ${stocks.length} stocks from ${stocksPath}`);
 
   if (limit) {
@@ -225,7 +245,7 @@ async function evaluateAllStocks(
 
     // Process batch in parallel
     const batchResults = await Promise.all(
-      batch.map(stock => evaluateStock(stock))
+      batch.map((stock) => evaluateStock(stock)),
     );
 
     for (const result of batchResults) {
@@ -241,15 +261,15 @@ async function evaluateAllStocks(
 
     // Save intermediate results
     if (results.length % saveInterval === 0) {
-      const tempPath = path.join(RESULTS_DIR, 'evaluation-progress.json');
+      const tempPath = path.join(RESULTS_DIR, "evaluation-progress.json");
       fs.writeFileSync(tempPath, JSON.stringify(results, null, 2));
     }
 
     // Small delay to prevent overwhelming the system
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 10));
   }
 
-  console.log('\n\nEvaluation complete!\n');
+  console.log("\n\nEvaluation complete!\n");
 
   const endTime = Date.now();
   const durationSeconds = (endTime - startTime) / 1000;
@@ -268,23 +288,41 @@ async function evaluateAllStocks(
 function generateSummary(
   results: EvaluationResult[],
   totalStocks: number,
-  durationSeconds: number
+  durationSeconds: number,
 ): EvaluationSummary {
   const byRiskLevel = {
-    LOW: results.filter(r => r.riskLevel === 'LOW').length,
-    MEDIUM: results.filter(r => r.riskLevel === 'MEDIUM').length,
-    HIGH: results.filter(r => r.riskLevel === 'HIGH').length,
-    INSUFFICIENT: results.filter(r => r.riskLevel === 'INSUFFICIENT' || r.riskLevel === 'ERROR').length,
+    LOW: results.filter((r) => r.riskLevel === "LOW").length,
+    MEDIUM: results.filter((r) => r.riskLevel === "MEDIUM").length,
+    HIGH: results.filter((r) => r.riskLevel === "HIGH").length,
+    INSUFFICIENT: results.filter(
+      (r) => r.riskLevel === "INSUFFICIENT" || r.riskLevel === "ERROR",
+    ).length,
   };
 
   // Group by exchange
-  const byExchange: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number; INSUFFICIENT: number }> = {};
+  const byExchange: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      INSUFFICIENT: number;
+    }
+  > = {};
   for (const result of results) {
     if (!byExchange[result.exchange]) {
-      byExchange[result.exchange] = { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 };
+      byExchange[result.exchange] = {
+        total: 0,
+        LOW: 0,
+        MEDIUM: 0,
+        HIGH: 0,
+        INSUFFICIENT: 0,
+      };
     }
     byExchange[result.exchange].total++;
-    const level = result.riskLevel === 'ERROR' ? 'INSUFFICIENT' : result.riskLevel;
+    const level =
+      result.riskLevel === "ERROR" ? "INSUFFICIENT" : result.riskLevel;
     if (level in byExchange[result.exchange]) {
       (byExchange[result.exchange] as any)[level]++;
     }
@@ -300,14 +338,14 @@ function generateSummary(
 
   // Get top HIGH risk stocks
   const topHighRisk = results
-    .filter(r => r.riskLevel === 'HIGH')
+    .filter((r) => r.riskLevel === "HIGH")
     .sort((a, b) => b.totalScore - a.totalScore)
     .slice(0, 50);
 
   return {
     totalStocks,
     evaluated: results.length,
-    errors: results.filter(r => r.error).length,
+    errors: results.filter((r) => r.error).length,
     byRiskLevel,
     byExchange,
     bySignal,
@@ -318,8 +356,11 @@ function generateSummary(
 }
 
 // Save results to files
-function saveResults(results: EvaluationResult[], summary: EvaluationSummary): void {
-  const timestamp = new Date().toISOString().split('T')[0];
+function saveResults(
+  results: EvaluationResult[],
+  summary: EvaluationSummary,
+): void {
+  const timestamp = new Date().toISOString().split("T")[0];
 
   // Save full results JSON
   const resultsPath = path.join(RESULTS_DIR, `evaluation-${timestamp}.json`);
@@ -333,22 +374,30 @@ function saveResults(results: EvaluationResult[], summary: EvaluationSummary): v
 
   // Save results CSV
   const csvPath = path.join(RESULTS_DIR, `evaluation-${timestamp}.csv`);
-  const csvHeader = 'Symbol,Name,Exchange,MarketCap,LastPrice,RiskLevel,TotalScore,IsLegitimate,SignalSummary\n';
-  const csvRows = results.map(r =>
-    `"${r.symbol}","${(r.name || '').replace(/"/g, '""')}","${r.exchange}",${r.marketCap || ''},` +
-    `${r.lastPrice || ''},"${r.riskLevel}",${r.totalScore},${r.isLegitimate},"${r.signalSummary}"`
-  ).join('\n');
+  const csvHeader =
+    "Symbol,Name,Exchange,MarketCap,LastPrice,RiskLevel,TotalScore,IsLegitimate,SignalSummary\n";
+  const csvRows = results
+    .map(
+      (r) =>
+        `"${r.symbol}","${(r.name || "").replace(/"/g, '""')}","${r.exchange}",${r.marketCap || ""},` +
+        `${r.lastPrice || ""},"${r.riskLevel}",${r.totalScore},${r.isLegitimate},"${r.signalSummary}"`,
+    )
+    .join("\n");
   fs.writeFileSync(csvPath, csvHeader + csvRows);
   console.log(`CSV saved to: ${csvPath}`);
 
   // Save HIGH risk stocks CSV
   const highRiskPath = path.join(RESULTS_DIR, `high-risk-${timestamp}.csv`);
-  const highRiskStocks = results.filter(r => r.riskLevel === 'HIGH');
-  const highRiskCsv = 'Symbol,Name,Exchange,MarketCap,LastPrice,TotalScore,Signals\n' +
-    highRiskStocks.map(r =>
-      `"${r.symbol}","${(r.name || '').replace(/"/g, '""')}","${r.exchange}",${r.marketCap || ''},` +
-      `${r.lastPrice || ''},${r.totalScore},"${r.signalSummary}"`
-    ).join('\n');
+  const highRiskStocks = results.filter((r) => r.riskLevel === "HIGH");
+  const highRiskCsv =
+    "Symbol,Name,Exchange,MarketCap,LastPrice,TotalScore,Signals\n" +
+    highRiskStocks
+      .map(
+        (r) =>
+          `"${r.symbol}","${(r.name || "").replace(/"/g, '""')}","${r.exchange}",${r.marketCap || ""},` +
+          `${r.lastPrice || ""},${r.totalScore},"${r.signalSummary}"`,
+      )
+      .join("\n");
   fs.writeFileSync(highRiskPath, highRiskCsv);
   console.log(`HIGH risk stocks saved to: ${highRiskPath}`);
 
@@ -357,8 +406,15 @@ function saveResults(results: EvaluationResult[], summary: EvaluationSummary): v
 }
 
 // Generate HTML report with charts
-function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSummary, timestamp: string): void {
-  const reportPath = path.join(REPORTS_DIR, `evaluation-report-${timestamp}.html`);
+function generateHTMLReport(
+  results: EvaluationResult[],
+  summary: EvaluationSummary,
+  timestamp: string,
+): void {
+  const reportPath = path.join(
+    REPORTS_DIR,
+    `evaluation-report-${timestamp}.html`,
+  );
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -458,21 +514,26 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
           </tr>
         </thead>
         <tbody>
-          ${summary.topHighRisk.slice(0, 25).map(stock => `
+          ${summary.topHighRisk
+            .slice(0, 25)
+            .map(
+              (stock) => `
           <tr>
             <td><strong>${stock.symbol}</strong></td>
-            <td>${stock.name?.substring(0, 40) || 'N/A'}${stock.name && stock.name.length > 40 ? '...' : ''}</td>
+            <td>${stock.name?.substring(0, 40) || "N/A"}${stock.name && stock.name.length > 40 ? "..." : ""}</td>
             <td>${stock.exchange}</td>
-            <td>${stock.marketCap ? formatMarketCap(stock.marketCap) : 'N/A'}</td>
-            <td>${stock.lastPrice ? '$' + stock.lastPrice.toFixed(2) : 'N/A'}</td>
+            <td>${stock.marketCap ? formatMarketCap(stock.marketCap) : "N/A"}</td>
+            <td>${stock.lastPrice ? "$" + stock.lastPrice.toFixed(2) : "N/A"}</td>
             <td><strong>${stock.totalScore}</strong></td>
             <td>
               <div class="signal-list">
-                ${stock.signals.map(s => `<span class="signal-tag">${s.code}</span>`).join('')}
+                ${stock.signals.map((s) => `<span class="signal-tag">${s.code}</span>`).join("")}
               </div>
             </td>
           </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -491,7 +552,9 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
           </tr>
         </thead>
         <tbody>
-          ${Object.entries(summary.byExchange).map(([exchange, data]) => `
+          ${Object.entries(summary.byExchange)
+            .map(
+              ([exchange, data]) => `
           <tr>
             <td><strong>${exchange}</strong></td>
             <td>${data.total.toLocaleString()}</td>
@@ -500,7 +563,9 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
             <td><span class="risk-badge risk-high">${data.HIGH.toLocaleString()}</span></td>
             <td>${((data.HIGH / data.total) * 100).toFixed(1)}%</td>
           </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -536,9 +601,9 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
       data: {
         labels: ${JSON.stringify(Object.keys(summary.byExchange))},
         datasets: [
-          { label: 'LOW', data: ${JSON.stringify(Object.values(summary.byExchange).map(e => e.LOW))}, backgroundColor: '#22c55e' },
-          { label: 'MEDIUM', data: ${JSON.stringify(Object.values(summary.byExchange).map(e => e.MEDIUM))}, backgroundColor: '#f59e0b' },
-          { label: 'HIGH', data: ${JSON.stringify(Object.values(summary.byExchange).map(e => e.HIGH))}, backgroundColor: '#ef4444' },
+          { label: 'LOW', data: ${JSON.stringify(Object.values(summary.byExchange).map((e) => e.LOW))}, backgroundColor: '#22c55e' },
+          { label: 'MEDIUM', data: ${JSON.stringify(Object.values(summary.byExchange).map((e) => e.MEDIUM))}, backgroundColor: '#f59e0b' },
+          { label: 'HIGH', data: ${JSON.stringify(Object.values(summary.byExchange).map((e) => e.HIGH))}, backgroundColor: '#ef4444' },
         ]
       },
       options: {
@@ -550,7 +615,11 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
     });
 
     // Signal Chart
-    const signalData = ${JSON.stringify(Object.entries(summary.bySignal).sort((a, b) => b[1] - a[1]).slice(0, 15))};
+    const signalData = ${JSON.stringify(
+      Object.entries(summary.bySignal)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15),
+    )};
     new Chart(document.getElementById('signalChart'), {
       type: 'bar',
       data: {
@@ -577,7 +646,8 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
 }
 
 function formatMarketCap(mc: number): string {
-  if (mc >= 1_000_000_000_000) return `$${(mc / 1_000_000_000_000).toFixed(1)}T`;
+  if (mc >= 1_000_000_000_000)
+    return `$${(mc / 1_000_000_000_000).toFixed(1)}T`;
   if (mc >= 1_000_000_000) return `$${(mc / 1_000_000_000).toFixed(1)}B`;
   if (mc >= 1_000_000) return `$${(mc / 1_000_000).toFixed(1)}M`;
   return `$${mc.toLocaleString()}`;
@@ -585,37 +655,55 @@ function formatMarketCap(mc: number): string {
 
 // Print summary to console
 function printSummary(summary: EvaluationSummary): void {
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║                    EVALUATION SUMMARY                       ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  console.log(
+    "\n╔════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║                    EVALUATION SUMMARY                       ║",
+  );
+  console.log(
+    "╚════════════════════════════════════════════════════════════╝\n",
+  );
 
   console.log(`Total Stocks Evaluated: ${summary.evaluated.toLocaleString()}`);
   console.log(`Errors: ${summary.errors}`);
   console.log(`Duration: ${summary.durationSeconds.toFixed(1)} seconds\n`);
 
-  console.log('Risk Level Distribution:');
-  console.log(`  🟢 LOW:     ${summary.byRiskLevel.LOW.toLocaleString().padStart(6)} (${((summary.byRiskLevel.LOW / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`  🟡 MEDIUM:  ${summary.byRiskLevel.MEDIUM.toLocaleString().padStart(6)} (${((summary.byRiskLevel.MEDIUM / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`  🔴 HIGH:    ${summary.byRiskLevel.HIGH.toLocaleString().padStart(6)} (${((summary.byRiskLevel.HIGH / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`  ⚪ OTHER:   ${summary.byRiskLevel.INSUFFICIENT.toLocaleString().padStart(6)} (${((summary.byRiskLevel.INSUFFICIENT / summary.evaluated) * 100).toFixed(1)}%)`);
+  console.log("Risk Level Distribution:");
+  console.log(
+    `  🟢 LOW:     ${summary.byRiskLevel.LOW.toLocaleString().padStart(6)} (${((summary.byRiskLevel.LOW / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  🟡 MEDIUM:  ${summary.byRiskLevel.MEDIUM.toLocaleString().padStart(6)} (${((summary.byRiskLevel.MEDIUM / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  🔴 HIGH:    ${summary.byRiskLevel.HIGH.toLocaleString().padStart(6)} (${((summary.byRiskLevel.HIGH / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  ⚪ OTHER:   ${summary.byRiskLevel.INSUFFICIENT.toLocaleString().padStart(6)} (${((summary.byRiskLevel.INSUFFICIENT / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
 
-  console.log('\nTop Risk Signals:');
+  console.log("\nTop Risk Signals:");
   Object.entries(summary.bySignal)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
     .forEach(([signal, count]) => {
-      console.log(`  ${signal.padEnd(25)} ${count.toLocaleString().padStart(6)}`);
+      console.log(
+        `  ${signal.padEnd(25)} ${count.toLocaleString().padStart(6)}`,
+      );
     });
 
-  console.log('\nTop 10 HIGH Risk Stocks:');
+  console.log("\nTop 10 HIGH Risk Stocks:");
   summary.topHighRisk.slice(0, 10).forEach((stock, i) => {
-    console.log(`  ${(i + 1).toString().padStart(2)}. ${stock.symbol.padEnd(6)} (Score: ${stock.totalScore}) - ${stock.signalSummary}`);
+    console.log(
+      `  ${(i + 1).toString().padStart(2)}. ${stock.symbol.padEnd(6)} (Score: ${stock.totalScore}) - ${stock.signalSummary}`,
+    );
   });
 }
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const limit = args.find(a => a.startsWith('--limit='))?.split('=')[1];
+const limit = args.find((a) => a.startsWith("--limit="))?.split("=")[1];
 
 // Run evaluation
 evaluateAllStocks({

@@ -38,15 +38,15 @@ npm run dashboard
 
 ### Core Tables
 
-| Table | Description |
-|-------|-------------|
-| `Stock` | Master stock data (symbol, name, exchange, sector, industry) |
-| `StockDailySnapshot` | Daily risk scores, prices, volumes, and signals |
-| `DailyScanSummary` | Aggregate statistics for each daily scan |
-| `SocialMediaScan` | Social media promotion activity records |
-| `RiskAlert` | Alerts when stocks cross risk thresholds |
-| `PromotedStockWatchlist` | Curated list of actively promoted stocks |
-| `StockRiskChange` | Historical record of risk level changes |
+| Table                    | Description                                                  |
+| ------------------------ | ------------------------------------------------------------ |
+| `Stock`                  | Master stock data (symbol, name, exchange, sector, industry) |
+| `StockDailySnapshot`     | Daily risk scores, prices, volumes, and signals              |
+| `DailyScanSummary`       | Aggregate statistics for each daily scan                     |
+| `SocialMediaScan`        | Social media promotion activity records                      |
+| `RiskAlert`              | Alerts when stocks cross risk thresholds                     |
+| `PromotedStockWatchlist` | Curated list of actively promoted stocks                     |
+| `StockRiskChange`        | Historical record of risk level changes                      |
 
 ### Key Fields in StockDailySnapshot
 
@@ -109,15 +109,15 @@ DASHBOARD_PORT=3002 npm run dashboard
 
 ## Dashboard API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/summary` | Summary statistics and daily data |
-| `GET /api/alerts` | Recent risk alerts |
-| `GET /api/risk-changes` | Risk level changes |
-| `GET /api/stock/:symbol` | Stock history and details |
-| `GET /api/promoted` | Promoted stocks watchlist |
-| `GET /api/search?q=` | Search stocks by symbol/name |
-| `GET /api/stats` | Database statistics |
+| Endpoint                 | Description                       |
+| ------------------------ | --------------------------------- |
+| `GET /api/summary`       | Summary statistics and daily data |
+| `GET /api/alerts`        | Recent risk alerts                |
+| `GET /api/risk-changes`  | Risk level changes                |
+| `GET /api/stock/:symbol` | Stock history and details         |
+| `GET /api/promoted`      | Promoted stocks watchlist         |
+| `GET /api/search?q=`     | Search stocks by symbol/name      |
+| `GET /api/stats`         | Database statistics               |
 
 ## Configuration
 
@@ -204,11 +204,13 @@ echo "Historical database updated!"
 ## Switching to PostgreSQL (Production)
 
 1. Update `.env`:
+
    ```env
    DATABASE_URL="postgresql://user:password@localhost:5432/scamdunk_history"
    ```
 
 2. Update `prisma/schema.prisma`:
+
    ```prisma
    datasource db {
      provider = "postgresql"

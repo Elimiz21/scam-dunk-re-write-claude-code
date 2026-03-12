@@ -25,7 +25,9 @@ function LoginForm() {
   const rawCallbackUrl = searchParams.get("callbackUrl") || "/";
   // Prevent open redirect: only allow relative paths, block protocol-relative URLs (//, /\)
   const callbackUrl =
-    rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//") && !rawCallbackUrl.startsWith("/\\")
+    rawCallbackUrl.startsWith("/") &&
+    !rawCallbackUrl.startsWith("//") &&
+    !rawCallbackUrl.startsWith("/\\")
       ? rawCallbackUrl
       : "/";
 
@@ -62,15 +64,26 @@ function LoginForm() {
       if (result?.error) {
         // Check if it's an email verification error
         // NextAuth v5 returns the error code from CredentialsSignin subclasses
-        if (result.error === "EMAIL_NOT_VERIFIED" || result.error.includes("EMAIL_NOT_VERIFIED")) {
+        if (
+          result.error === "EMAIL_NOT_VERIFIED" ||
+          result.error.includes("EMAIL_NOT_VERIFIED")
+        ) {
           setShowVerificationPrompt(true);
           setError("Please verify your email before logging in.");
         } else if (result.error === "CredentialsSignin") {
           setError("Invalid email or password");
-        } else if (result.error === "Configuration" || result.error.includes("Configuration")) {
+        } else if (
+          result.error === "Configuration" ||
+          result.error.includes("Configuration")
+        ) {
           // Server configuration error - database/environment issue
-          console.error("[LOGIN] Configuration/database error detected. Check Vercel logs for DATABASE_URL or NEXTAUTH_SECRET issues. Error:", result.error);
-          setError("Unable to connect to the database. The service may be temporarily down — please try again in a minute. If this persists, contact support.");
+          console.error(
+            "[LOGIN] Configuration/database error detected. Check Vercel logs for DATABASE_URL or NEXTAUTH_SECRET issues. Error:",
+            result.error,
+          );
+          setError(
+            "Unable to connect to the database. The service may be temporarily down — please try again in a minute. If this persists, contact support.",
+          );
         } else {
           // Log unexpected errors for debugging
           console.error("Login error:", result.error);
@@ -85,7 +98,9 @@ function LoginForm() {
     } catch (err) {
       // Handle network/fetch errors gracefully
       console.error("Login error:", err);
-      setError("Unable to complete login. Please check your connection and try again.");
+      setError(
+        "Unable to complete login. Please check your connection and try again.",
+      );
       setIsLoading(false);
     }
   };
@@ -102,7 +117,10 @@ function LoginForm() {
           <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
               Need a new verification email?{" "}
-              <Link href={`/check-email?email=${encodeURIComponent(email)}`} className="font-medium underline">
+              <Link
+                href={`/check-email?email=${encodeURIComponent(email)}`}
+                className="font-medium underline"
+              >
                 Resend verification
               </Link>
             </p>
@@ -123,7 +141,10 @@ function LoginForm() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-primary hover:underline"
+            >
               Forgot password?
             </Link>
           </div>
@@ -140,7 +161,11 @@ function LoginForm() {
         <Turnstile onVerify={handleTurnstileVerify} />
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isLoading || !turnstileToken}
+        >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -166,14 +191,19 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
       <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
         <CardHeader className="text-center">
-          <Link href="/" className="flex items-center justify-center gap-2 mb-4">
+          <Link
+            href="/"
+            className="flex items-center justify-center gap-2 mb-4"
+          >
             <div className="relative inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-xl shadow-glow-sm">
               <Shield className="h-5 w-5 text-white" />
               <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
                 <Eye className="h-2 w-2 text-white" />
               </div>
             </div>
-            <span className="text-2xl font-bold font-display italic">ScamDunk</span>
+            <span className="text-2xl font-bold font-display italic">
+              ScamDunk
+            </span>
           </Link>
           <CardTitle className="font-display italic">Welcome back</CardTitle>
           <CardDescription>

@@ -41,7 +41,8 @@ export async function GET() {
     if (!files || files.length === 0) {
       return NextResponse.json({
         status: "unknown",
-        error: "No pipeline validation reports found. The pipeline may not have run yet with validation enabled.",
+        error:
+          "No pipeline validation reports found. The pipeline may not have run yet with validation enabled.",
         history: [],
       });
     }
@@ -79,8 +80,12 @@ export async function GET() {
   } catch (error) {
     console.error("Pipeline health error:", error);
     return NextResponse.json(
-      { status: "unknown", error: "Failed to fetch pipeline health", history: [] },
-      { status: 500 }
+      {
+        status: "unknown",
+        error: "Failed to fetch pipeline health",
+        history: [],
+      },
+      { status: 500 },
     );
   }
 }

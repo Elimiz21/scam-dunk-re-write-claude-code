@@ -14,6 +14,7 @@ The ScamDunk system uses a **5-Phase Pipeline** with **4 AI Brain Layers** to de
 ## THE 4 AI BRAIN LAYERS
 
 ### Layer 1: Deterministic Signal Detection (TypeScript)
+
 - **Files**: `src/lib/scoring.ts`, `evaluation/scripts/standalone-scorer.ts`
 - **Method**: Rule-based scoring system with weighted signals
 
@@ -30,11 +31,13 @@ The ScamDunk system uses a **5-Phase Pipeline** with **4 AI Brain Layers** to de
 | HIGH_VOLATILITY | 1 | Excessive daily volatility |
 
 **Risk Classification:**
+
 - Score >= 5 → HIGH risk
 - Score >= 2 → MEDIUM risk
 - Score < 2 → LOW risk
 
 ### Layer 2: Statistical Anomaly Detection (Python)
+
 - **File**: `python_ai/anomaly_detection.py`
 - **Methods Used**:
   - Z-score analysis (short/long term returns and volume)
@@ -44,6 +47,7 @@ The ScamDunk system uses a **5-Phase Pipeline** with **4 AI Brain Layers** to de
 - **Output**: Anomaly score (0-1) + specific anomaly types
 
 ### Layer 3: Machine Learning Classification (Python)
+
 - **File**: `python_ai/ml_model.py`
 - **Model**: Random Forest Classifier (scikit-learn)
 - **Features**: 31-dimensional feature vector
@@ -51,6 +55,7 @@ The ScamDunk system uses a **5-Phase Pipeline** with **4 AI Brain Layers** to de
 - **Output**: Probability (0-1) of scam behavior
 
 ### Layer 4: Deep Learning Sequence Analysis (Python)
+
 - **File**: `python_ai/lstm_model.py`
 - **Model**: LSTM Neural Network (TensorFlow/Keras)
 - **Input**: 30-day time series price/volume data
@@ -58,6 +63,7 @@ The ScamDunk system uses a **5-Phase Pipeline** with **4 AI Brain Layers** to de
 - **Output**: Probability (0-1) of malicious sequence pattern
 
 ### Ensemble Combination
+
 - **File**: `python_ai/pipeline.py`
 - **Logic**: Weighted averaging of all 4 layers with boosting rules
 - **Boosting Rules**:
@@ -75,16 +81,17 @@ Scans ~5,000+ US-listed stocks through all 4 AI layers.
 
 **Sample Results (from January 2026 evaluation):**
 
-| Symbol | Name | Market Cap | Price | Score | Risk Level | Key Signals |
-|--------|------|------------|-------|-------|------------|-------------|
-| EVTV | Envirotech Vehicles | $12.5M | $3.55 | 16 | HIGH | SPIKE_7D (+609%), SPIKE_THEN_DROP, VOLUME_EXPLOSION |
-| BCARW | D. Boral ARC Warrant | $41.8M | $1.40 | 16 | HIGH | SPIKE_7D (+270%), SPIKE_THEN_DROP, RSI: 81 |
-| PTHL | Pheton Holdings | $13.1M | $0.90 | 15 | HIGH | SPIKE_7D (+85%), MICRO_LIQUIDITY, RSI: 80 |
-| XAIR | Beyond Air | $8.6M | $1.70 | 15 | HIGH | SPIKE_7D (+105%), VOLUME_EXPLOSION (4.3x) |
+| Symbol | Name                 | Market Cap | Price | Score | Risk Level | Key Signals                                         |
+| ------ | -------------------- | ---------- | ----- | ----- | ---------- | --------------------------------------------------- |
+| EVTV   | Envirotech Vehicles  | $12.5M     | $3.55 | 16    | HIGH       | SPIKE_7D (+609%), SPIKE_THEN_DROP, VOLUME_EXPLOSION |
+| BCARW  | D. Boral ARC Warrant | $41.8M     | $1.40 | 16    | HIGH       | SPIKE_7D (+270%), SPIKE_THEN_DROP, RSI: 81          |
+| PTHL   | Pheton Holdings      | $13.1M     | $0.90 | 15    | HIGH       | SPIKE_7D (+85%), MICRO_LIQUIDITY, RSI: 80           |
+| XAIR   | Beyond Air           | $8.6M      | $1.70 | 15    | HIGH       | SPIKE_7D (+105%), VOLUME_EXPLOSION (4.3x)           |
 
 ### Phase 2: Size & Volume Filtering
 
 Removes stocks that are too large/liquid to manipulate:
+
 - **Market cap threshold**: > $10B (filtered out)
 - **Daily volume threshold**: > $10M (filtered out)
 
@@ -95,6 +102,7 @@ Removes stocks that are too large/liquid to manipulate:
 Uses OpenAI (gpt-4o-mini) to analyze if price movements have legitimate explanations.
 
 **Legitimate Reasons (filter stock out):**
+
 - Earnings announcements
 - FDA approvals / clinical trial results
 - M&A activity
@@ -103,6 +111,7 @@ Uses OpenAI (gpt-4o-mini) to analyze if price movements have legitimate explanat
 - Regulatory approvals
 
 **NOT Legitimate (remains suspicious):**
+
 - Vague "investor awareness" campaigns
 - Paid promotional articles
 - Press releases with no substantive news
@@ -118,17 +127,20 @@ Uses OpenAI (gpt-4o-mini) to analyze if price movements have legitimate explanat
 | YouTube | Data API v3 | 10,000 units/day |
 
 **Unavailable (no free API):**
+
 - Twitter/X ($100/mo minimum)
 - Discord (no public search API)
 - Telegram (no public search API)
 
 **Promotion Detection:**
+
 - Checks r/wallstreetbets, r/pennystocks, r/shortsqueeze
 - Looks for promotional language: "moon", "rocket", "squeeze", "100x"
 - Identifies potential promoter accounts
 - Tracks engagement metrics
 
 **Sample Social Media Evidence:**
+
 ```json
 {
   "symbol": "EVTV",
@@ -146,24 +158,26 @@ Uses OpenAI (gpt-4o-mini) to analyze if price movements have legitimate explanat
 Creates numbered scheme records for ongoing monitoring.
 
 **Scheme Lifecycle:**
+
 ```
 NEW → ONGOING → COOLING → PUMP_AND_DUMP_ENDED / NO_SCAM_DETECTED
 ```
 
 **Current Active Schemes (as of February 2026):**
 
-| Scheme ID | Symbol | Days Active | Risk Score | Promotion Score | Status |
-|-----------|--------|-------------|------------|-----------------|--------|
-| SCH-EVTV-20260202-9ALD | EVTV | 2 | 16 | 61 | ONGOING |
-| SCH-BCARW-20260202-88CA | BCARW | 2 | 16 | 58 | ONGOING |
-| SCH-SXTC-20260202-4CVF | SXTC | 2 | 14 | 61 | ONGOING |
-| SCH-JDZG-20260202-18AA | JDZG | 2 | 14 | 61 | ONGOING |
+| Scheme ID               | Symbol | Days Active | Risk Score | Promotion Score | Status  |
+| ----------------------- | ------ | ----------- | ---------- | --------------- | ------- |
+| SCH-EVTV-20260202-9ALD  | EVTV   | 2           | 16         | 61              | ONGOING |
+| SCH-BCARW-20260202-88CA | BCARW  | 2           | 16         | 58              | ONGOING |
+| SCH-SXTC-20260202-4CVF  | SXTC   | 2           | 14         | 61              | ONGOING |
+| SCH-JDZG-20260202-18AA  | JDZG   | 2           | 14         | 61              | ONGOING |
 
 ---
 
 ## OUTPUT FILES
 
 **Generated by Pipeline:**
+
 ```
 evaluation/results/
 ├── enhanced-evaluation-YYYY-MM-DD.json    # All stocks with full scores
@@ -181,15 +195,18 @@ evaluation/scheme-database/
 ## DATA PERSISTENCE
 
 ### GitHub Push
+
 - **Workflow**: `.github/workflows/enhanced-daily-evaluation.yml`
 - **Schedule**: Daily at 11 PM UTC (6 PM EST) on trading days
 - **Target**: `Elimiz21/scam-dunk-data` repository
 
 ### Supabase Upload
+
 - **Bucket**: `evaluation-data`
 - **Method**: REST API with upsert
 
 **Repository Structure:**
+
 ```
 scam-dunk-data/
 ├── evaluation-results/      # Full evaluation JSONs
@@ -220,10 +237,10 @@ scam-dunk-data/
 
 ### Promoters Identified
 
-| Name | Platform | Evidence |
-|------|----------|----------|
-| Matt Kohrs | YouTube | Offered money to promote ZKIN |
-| Grandmaster-Obi | Discord | Promoted EVTV, ANPA, SPHL, MRNO |
+| Name            | Platform | Evidence                        |
+| --------------- | -------- | ------------------------------- |
+| Matt Kohrs      | YouTube  | Offered money to promote ZKIN   |
+| Grandmaster-Obi | Discord  | Promoted EVTV, ANPA, SPHL, MRNO |
 
 ---
 
@@ -231,33 +248,36 @@ scam-dunk-data/
 
 **Suspicious Stocks After All Filters (37 stocks):**
 
-| Rank | Symbol | Name | Price | Score |
-|------|--------|------|-------|-------|
-| 1 | BCARW | D. Boral ARC Warrant | $1.40 | 14 |
-| 2 | EVTV | Envirotech Vehicles | $3.55 | 14 |
-| 3 | XAIR | Beyond Air | $1.70 | 13 |
-| 4 | VLN | Valens Semiconductor | $1.99 | 12 |
-| 5 | MTEN | Mingteng International | $0.03 | 12 |
-| 6 | JDZG | JIADE Limited | $1.22 | 12 |
-| 7 | THH | TryHard Holdings | $0.96 | 12 |
-| 8 | SXTC | China SXT Pharma | $0.095 | 12 |
+| Rank | Symbol | Name                   | Price  | Score |
+| ---- | ------ | ---------------------- | ------ | ----- |
+| 1    | BCARW  | D. Boral ARC Warrant   | $1.40  | 14    |
+| 2    | EVTV   | Envirotech Vehicles    | $3.55  | 14    |
+| 3    | XAIR   | Beyond Air             | $1.70  | 13    |
+| 4    | VLN    | Valens Semiconductor   | $1.99  | 12    |
+| 5    | MTEN   | Mingteng International | $0.03  | 12    |
+| 6    | JDZG   | JIADE Limited          | $1.22  | 12    |
+| 7    | THH    | TryHard Holdings       | $0.96  | 12    |
+| 8    | SXTC   | China SXT Pharma       | $0.095 | 12    |
 
 ---
 
 ## RUNNING THE PIPELINE
 
 ### Manual Execution
+
 ```bash
 cd evaluation
 npx ts-node scripts/enhanced-daily-pipeline.ts
 ```
 
 ### With Test Mode (100 stocks only)
+
 ```bash
 TEST_MODE=true npx ts-node scripts/enhanced-daily-pipeline.ts
 ```
 
 ### Required Environment Variables
+
 ```
 FMP_API_KEY=xxx           # Financial Modeling Prep API
 OPENAI_API_KEY=xxx        # For news analysis
@@ -265,8 +285,9 @@ AI_BACKEND_URL=xxx        # Python AI backend URL (optional)
 ```
 
 ### GitHub Actions (Automated)
+
 Runs daily at 11 PM UTC via `.github/workflows/enhanced-daily-evaluation.yml`
 
 ---
 
-*Generated: 2026-02-05*
+_Generated: 2026-02-05_

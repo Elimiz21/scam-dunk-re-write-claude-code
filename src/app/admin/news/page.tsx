@@ -46,7 +46,9 @@ export default function AdminNewsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">News Management</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              News Management
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Manage blog posts and media mentions
             </p>
@@ -62,7 +64,9 @@ export default function AdminNewsPage() {
                 <div className="p-3 bg-primary/10 rounded-2xl">
                   <FileText className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="ml-4 text-lg font-semibold text-foreground">Blog Posts</h2>
+                <h2 className="ml-4 text-lg font-semibold text-foreground">
+                  Blog Posts
+                </h2>
               </div>
               <Link
                 href="/admin/news/blog/new"
@@ -115,7 +119,9 @@ export default function AdminNewsPage() {
                 <div className="p-3 bg-purple-100 rounded-2xl">
                   <Megaphone className="h-6 w-6 text-purple-600" />
                 </div>
-                <h2 className="ml-4 text-lg font-semibold text-foreground">Media Mentions</h2>
+                <h2 className="ml-4 text-lg font-semibold text-foreground">
+                  Media Mentions
+                </h2>
               </div>
               <Link
                 href="/admin/news/media/new"
@@ -164,35 +170,45 @@ export default function AdminNewsPage() {
 
         {/* Quick Actions */}
         <div className="bg-card rounded-2xl shadow p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            Quick Actions
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
               href="/admin/news/blog/new"
               className="flex items-center p-4 border border-border rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-colors"
             >
               <FileText className="h-5 w-5 text-primary mr-3" />
-              <span className="font-medium text-foreground">Write New Blog Post</span>
+              <span className="font-medium text-foreground">
+                Write New Blog Post
+              </span>
             </Link>
             <Link
               href="/admin/news/media/new"
               className="flex items-center p-4 border border-border rounded-2xl hover:border-purple-500 hover:bg-purple-50 transition-colors"
             >
               <Megaphone className="h-5 w-5 text-purple-600 mr-3" />
-              <span className="font-medium text-foreground">Add Media Mention</span>
+              <span className="font-medium text-foreground">
+                Add Media Mention
+              </span>
             </Link>
             <Link
               href="/admin/news/blog"
               className="flex items-center p-4 border border-border rounded-2xl hover:border-border hover:bg-secondary transition-colors"
             >
               <FileText className="h-5 w-5 text-muted-foreground mr-3" />
-              <span className="font-medium text-foreground">View All Posts</span>
+              <span className="font-medium text-foreground">
+                View All Posts
+              </span>
             </Link>
             <Link
               href="/admin/news/media"
               className="flex items-center p-4 border border-border rounded-2xl hover:border-border hover:bg-secondary transition-colors"
             >
               <Megaphone className="h-5 w-5 text-muted-foreground mr-3" />
-              <span className="font-medium text-foreground">View All Mentions</span>
+              <span className="font-medium text-foreground">
+                View All Mentions
+              </span>
             </Link>
           </div>
         </div>

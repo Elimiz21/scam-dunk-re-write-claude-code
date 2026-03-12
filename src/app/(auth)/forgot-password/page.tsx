@@ -59,7 +59,10 @@ export default function ForgotPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
         <Card className="w-full max-w-md border-border bg-card">
           <CardHeader className="text-center">
-            <Link href="/" className="flex items-center justify-center gap-2 mb-4">
+            <Link
+              href="/"
+              className="flex items-center justify-center gap-2 mb-4"
+            >
               <Shield className="h-8 w-8 text-primary" />
               <span className="text-2xl font-bold">ScamDunk</span>
             </Link>
@@ -70,12 +73,14 @@ export default function ForgotPasswordPage() {
             </div>
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
-              If an account exists for {email}, we&apos;ve sent password reset instructions.
+              If an account exists for {email}, we&apos;ve sent password reset
+              instructions.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-sm text-muted-foreground">
-              The link will expire in 1 hour. Check your spam folder if you don&apos;t see it.
+              The link will expire in 1 hour. Check your spam folder if you
+              don&apos;t see it.
             </p>
           </CardContent>
           <CardFooter className="flex flex-col gap-2">
@@ -92,7 +97,10 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
       <Card className="w-full max-w-md border-border bg-card">
         <CardHeader className="text-center">
-          <Link href="/" className="flex items-center justify-center gap-2 mb-4">
+          <Link
+            href="/"
+            className="flex items-center justify-center gap-2 mb-4"
+          >
             <Shield className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold">ScamDunk</span>
           </Link>
@@ -103,7 +111,8 @@ export default function ForgotPasswordPage() {
           </div>
           <CardTitle>Forgot your password?</CardTitle>
           <CardDescription>
-            Enter your email and we&apos;ll send you a link to reset your password
+            Enter your email and we&apos;ll send you a link to reset your
+            password
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

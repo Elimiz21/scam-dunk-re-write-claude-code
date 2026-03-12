@@ -126,7 +126,9 @@ export function PayPalButton({ onSuccess, onError }: PayPalButtonProps) {
                 }
               } catch (err) {
                 console.error("Error activating subscription:", err);
-                setError("Subscription created but activation failed. Please contact support.");
+                setError(
+                  "Subscription created but activation failed. Please contact support.",
+                );
                 if (onError) {
                   onError("Activation failed");
                 }
