@@ -43,6 +43,15 @@ function generateSessionToken(): string {
 }
 
 /**
+ * Hash a session token for storage (SHA-256).
+ * The raw token is sent to the client as a cookie; only the hash is stored in the DB.
+ * This way, a database breach does not expose usable session tokens.
+ */
+function hashSessionToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/**
  * Login an admin user
  */
 export async function adminLogin(
@@ -69,15 +78,16 @@ export async function adminLogin(
       return { success: false, error: "Invalid credentials" };
     }
 
-    // Create session
+    // Create session — store only the hash in the DB
     const token = generateSessionToken();
+    const tokenHash = hashSessionToken(token);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
 
     await prisma.adminSession.create({
       data: {
         adminUserId: adminUser.id,
-        token,
+        token: tokenHash,
         expiresAt,
         ipAddress,
         userAgent,
@@ -143,8 +153,9 @@ export async function adminLogout(): Promise<void> {
     const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
 
     if (token) {
+      const tokenHash = hashSessionToken(token);
       const session = await prisma.adminSession.findUnique({
-        where: { token },
+        where: { token: tokenHash },
       });
 
       if (session) {
@@ -156,7 +167,7 @@ export async function adminLogout(): Promise<void> {
         });
 
         await prisma.adminSession.delete({
-          where: { token },
+          where: { token: tokenHash },
         });
       }
     }
@@ -179,8 +190,9 @@ export async function getAdminSession(): Promise<AdminSessionData | null> {
       return null;
     }
 
+    const tokenHash = hashSessionToken(token);
     const session = await prisma.adminSession.findUnique({
-      where: { token },
+      where: { token: tokenHash },
       include: { adminUser: true },
     });
 
@@ -189,12 +201,12 @@ export async function getAdminSession(): Promise<AdminSessionData | null> {
     }
 
     if (new Date() > session.expiresAt) {
-      await prisma.adminSession.delete({ where: { token } });
+      await prisma.adminSession.delete({ where: { token: tokenHash } });
       return null;
     }
 
     if (!session.adminUser.isActive) {
-      await prisma.adminSession.delete({ where: { token } });
+      await prisma.adminSession.delete({ where: { token: tokenHash } });
       return null;
     }
 

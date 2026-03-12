@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { JsonLd } from "@/components/JsonLd";
 import { ArrowLeft, Calendar, User, Tag, Share2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatDate } from "@/lib/utils";
 
 interface BlogPost {
   id: string;
@@ -43,17 +44,6 @@ export default function BlogPostClient({
   relatedPosts = [],
 }: BlogPostClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  function formatDate(dateValue: string | null) {
-    if (!dateValue) {
-      return "Unscheduled";
-    }
-    return new Date(dateValue).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }
 
   function estimateReadTime(content: string): number {
     const wordsPerMinute = 200;

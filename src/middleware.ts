@@ -24,6 +24,39 @@ function isMobileApiRoute(pathname: string): boolean {
   );
 }
 
+// In-memory rate limiter for admin routes (Edge Runtime compatible)
+// Resets on cold start, which is acceptable for defense-in-depth
+const adminRateLimits = new Map<string, { count: number; resetTime: number }>();
+const ADMIN_RATE_LIMIT = 60; // requests per minute
+const ADMIN_RATE_WINDOW = 60 * 1000; // 1 minute
+
+function checkAdminRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = adminRateLimits.get(ip);
+
+  if (!entry || now >= entry.resetTime) {
+    adminRateLimits.set(ip, { count: 1, resetTime: now + ADMIN_RATE_WINDOW });
+    return true;
+  }
+
+  if (entry.count >= ADMIN_RATE_LIMIT) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+// Admin auth paths that don't require an existing session
+const ADMIN_PUBLIC_PATHS = [
+  "/api/admin/auth/login",
+  "/api/admin/auth/logout",
+  "/api/admin/auth/session",
+  "/api/admin/auth/preview-login",
+  "/api/admin/init",
+  "/api/admin/setup",
+];
+
 export default async function middleware(request: NextRequest) {
   // Handle CORS preflight for mobile API routes
   if (
@@ -39,27 +72,28 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Admin routes use their own cookie-based auth system (not NextAuth).
-  // Allow admin auth routes through (login, setup, init, preview-login).
-  // Other admin routes are validated at the handler level via getAdminSession().
+  // Admin API routes: rate limit + auth check (defense-in-depth)
   if (request.nextUrl.pathname.startsWith("/api/admin/")) {
-    const adminAuthPaths = [
-      "/api/admin/auth/login",
-      "/api/admin/auth/logout",
-      "/api/admin/auth/session",
-      "/api/admin/auth/preview-login",
-      "/api/admin/init",
-      "/api/admin/setup",
-    ];
-    if (adminAuthPaths.includes(request.nextUrl.pathname)) {
+    // Rate limit all admin routes
+    const ip =
+      request.headers.get("x-real-ip") ||
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      "127.0.0.1";
+    if (!checkAdminRateLimit(ip)) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
+    // Allow public admin paths through (login, setup, etc.)
+    if (ADMIN_PUBLIC_PATHS.includes(request.nextUrl.pathname)) {
       return NextResponse.next();
     }
-    // For other admin routes, verify admin_session_token cookie exists
-    // (full validation happens in getAdminSession() at the handler level)
+
+    // Require admin session cookie for all other admin routes
     const adminToken = request.cookies.get("admin_session_token")?.value;
     if (!adminToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
     return NextResponse.next();
   }
 
@@ -114,7 +148,7 @@ export const config = {
     "/api/check/:path*",
     "/api/billing/:path*",
     "/api/user/:path*",
-    // Admin API routes (defense-in-depth — individual routes also check auth)
+    // Admin routes: rate limited + auth check (defense-in-depth)
     "/api/admin/:path*",
   ],
 };
