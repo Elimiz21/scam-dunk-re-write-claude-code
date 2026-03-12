@@ -2,9 +2,15 @@
  * Admin Single User API - Get detailed user information
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import {
+  apiSuccess,
+  apiError,
+  apiUnauthorized,
+  apiNotFound,
+} from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +21,7 @@ export async function GET(
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const userId = params.id;
@@ -36,7 +42,7 @@ export async function GET(
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return apiNotFound("User not found");
     }
 
     // Get scan history for this user
@@ -70,7 +76,7 @@ export async function GET(
     // Determine scan limit based on plan
     const scanLimit = user.plan === "PAID" ? 200 : 5;
 
-    return NextResponse.json({
+    return apiSuccess({
       user: {
         id: user.id,
         email: user.email,
@@ -98,9 +104,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Get user details error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch user details" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch user details");
   }
 }

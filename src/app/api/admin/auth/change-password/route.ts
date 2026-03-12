@@ -2,13 +2,20 @@
  * Admin Change Password API
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import {
   requireAdminAuth,
   verifyPassword,
   hashPassword,
 } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import {
+  apiSuccess,
+  apiError,
+  apiBadRequest,
+  apiUnauthorized,
+  apiNotFound,
+} from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -19,23 +26,16 @@ export async function POST(request: NextRequest) {
     const { currentPassword, newPassword } = await request.json();
 
     if (!currentPassword || !newPassword) {
-      return NextResponse.json(
-        { error: "Current password and new password are required" },
-        { status: 400 },
-      );
+      return apiBadRequest("Current password and new password are required");
     }
 
     if (newPassword.length < 8) {
-      return NextResponse.json(
-        { error: "New password must be at least 8 characters" },
-        { status: 400 },
-      );
+      return apiBadRequest("New password must be at least 8 characters");
     }
 
     if (currentPassword === newPassword) {
-      return NextResponse.json(
-        { error: "New password must be different from current password" },
-        { status: 400 },
+      return apiBadRequest(
+        "New password must be different from current password",
       );
     }
 
@@ -45,10 +45,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!adminUser) {
-      return NextResponse.json(
-        { error: "Admin user not found" },
-        { status: 404 },
-      );
+      return apiNotFound("Admin user not found");
     }
 
     // Verify current password
@@ -57,10 +54,7 @@ export async function POST(request: NextRequest) {
       adminUser.hashedPassword,
     );
     if (!isValid) {
-      return NextResponse.json(
-        { error: "Current password is incorrect" },
-        { status: 401 },
-      );
+      return apiUnauthorized("Current password is incorrect");
     }
 
     // Hash and save new password
@@ -79,15 +73,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true });
+    return apiSuccess({ success: true });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
     console.error("Change password error:", error);
-    return NextResponse.json(
-      { error: "Failed to change password" },
-      { status: 500 },
-    );
+    return apiError("Failed to change password");
   }
 }

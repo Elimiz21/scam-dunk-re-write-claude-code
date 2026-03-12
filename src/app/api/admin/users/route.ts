@@ -2,7 +2,7 @@
  * Admin Users API - List and manage app users
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import {
@@ -10,6 +10,14 @@ import {
   createEmailVerificationToken,
 } from "@/lib/tokens";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
+import {
+  apiSuccess,
+  apiError,
+  apiUnauthorized,
+  apiForbidden,
+  apiNotFound,
+  apiBadRequest,
+} from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +33,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -119,7 +127,7 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({
+    return apiSuccess({
       users: formattedUsers,
       pagination: {
         page,
@@ -137,10 +145,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Get users error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch users");
   }
 }
 
@@ -148,24 +153,18 @@ export async function PATCH(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 },
-      );
+      return apiForbidden();
     }
 
     const body = await request.json();
     const { userId, action, value } = body;
 
     if (!userId || !action) {
-      return NextResponse.json(
-        { error: "User ID and action required" },
-        { status: 400 },
-      );
+      return apiBadRequest("User ID and action required");
     }
 
     const user = await prisma.user.findUnique({
@@ -173,7 +172,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return apiNotFound("User not found");
     }
 
     let updateData: Record<string, unknown> = {};
@@ -204,10 +203,7 @@ export async function PATCH(request: NextRequest) {
 
       case "setScans":
         if (typeof value !== "number") {
-          return NextResponse.json(
-            { error: "Scan count value required" },
-            { status: 400 },
-          );
+          return apiBadRequest("Scan count value required");
         }
         const nowForSet = new Date();
         const monthKeyForSet = `${nowForSet.getFullYear()}-${String(nowForSet.getMonth() + 1).padStart(2, "0")}`;
@@ -222,10 +218,7 @@ export async function PATCH(request: NextRequest) {
 
       case "updateName":
         if (typeof value !== "string") {
-          return NextResponse.json(
-            { error: "Name value required" },
-            { status: 400 },
-          );
+          return apiBadRequest("Name value required");
         }
         updateData = { name: value };
         logDetails = `Updated user's name to "${value}"`;
@@ -240,18 +233,12 @@ export async function PATCH(request: NextRequest) {
             resetToken,
           );
           if (!emailSent) {
-            return NextResponse.json(
-              { error: "Failed to send password reset email" },
-              { status: 500 },
-            );
+            return apiError("Failed to send password reset email");
           }
           logDetails = `Sent password reset email to ${user.email}`;
         } catch (emailError) {
           console.error("Password reset email error:", emailError);
-          return NextResponse.json(
-            { error: "Failed to send password reset email" },
-            { status: 500 },
-          );
+          return apiError("Failed to send password reset email");
         }
         break;
 
@@ -286,13 +273,10 @@ export async function PATCH(request: NextRequest) {
             },
           });
 
-          return NextResponse.json({ success: true, message: logDetails });
+          return apiSuccess({ success: true, message: logDetails });
         } catch (deleteError) {
           console.error("Delete user error:", deleteError);
-          return NextResponse.json(
-            { error: "Failed to delete user" },
-            { status: 500 },
-          );
+          return apiError("Failed to delete user");
         }
 
       case "resetVerification":
@@ -319,23 +303,17 @@ export async function PATCH(request: NextRequest) {
           );
 
           if (!emailSent) {
-            return NextResponse.json(
-              { error: "Failed to send verification email" },
-              { status: 500 },
-            );
+            return apiError("Failed to send verification email");
           }
           logDetails = `Reset verification and sent new verification email to ${user.email}`;
         } catch (verifyError) {
           console.error("Reset verification error:", verifyError);
-          return NextResponse.json(
-            { error: "Failed to reset verification" },
-            { status: 500 },
-          );
+          return apiError("Failed to reset verification");
         }
         break;
 
       default:
-        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+        return apiBadRequest("Invalid action");
     }
 
     // Update user if there's data to update
@@ -361,12 +339,9 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, message: logDetails });
+    return apiSuccess({ success: true, message: logDetails });
   } catch (error) {
     console.error("Update user error:", error);
-    return NextResponse.json(
-      { error: "Failed to update user" },
-      { status: 500 },
-    );
+    return apiError("Failed to update user");
   }
 }

@@ -2,8 +2,8 @@
  * Admin Session API - Get current admin session
  */
 
-import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
+import { apiSuccess, apiError } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -12,18 +12,12 @@ export async function GET() {
     const session = await getAdminSession();
 
     if (!session) {
-      return NextResponse.json({ authenticated: false }, { status: 401 });
+      return apiError("Not authenticated", 401);
     }
 
-    return NextResponse.json({
-      authenticated: true,
-      admin: session,
-    });
+    return apiSuccess({ authenticated: true, admin: session });
   } catch (error) {
     console.error("Admin session error:", error);
-    return NextResponse.json(
-      { error: "Session check failed" },
-      { status: 500 },
-    );
+    return apiError("Session check failed");
   }
 }

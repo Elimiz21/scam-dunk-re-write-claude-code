@@ -2,9 +2,17 @@
  * Admin Team Management API
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import {
+  apiSuccess,
+  apiError,
+  apiUnauthorized,
+  apiForbidden,
+  apiNotFound,
+  apiBadRequest,
+} from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +20,7 @@ export async function GET() {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const members = await prisma.adminUser.findMany({
@@ -43,16 +51,13 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({
+    return apiSuccess({
       members,
       pendingInvites,
     });
   } catch (error) {
     console.error("Get team error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch team" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch team");
   }
 }
 
@@ -60,31 +65,22 @@ export async function PATCH(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     if (!hasRole(session, ["OWNER"])) {
-      return NextResponse.json(
-        { error: "Only owners can modify team members" },
-        { status: 403 },
-      );
+      return apiForbidden("Only owners can modify team members");
     }
 
     const { memberId, action, role } = await request.json();
 
     if (!memberId) {
-      return NextResponse.json(
-        { error: "Member ID required" },
-        { status: 400 },
-      );
+      return apiBadRequest("Member ID required");
     }
 
     // Prevent self-modification
     if (memberId === session.id) {
-      return NextResponse.json(
-        { error: "Cannot modify your own account" },
-        { status: 400 },
-      );
+      return apiBadRequest("Cannot modify your own account");
     }
 
     const member = await prisma.adminUser.findUnique({
@@ -92,7 +88,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!member) {
-      return NextResponse.json({ error: "Member not found" }, { status: 404 });
+      return apiNotFound("Member not found");
     }
 
     if (action === "deactivate") {
@@ -142,12 +138,9 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess({ success: true });
   } catch (error) {
     console.error("Update team member error:", error);
-    return NextResponse.json(
-      { error: "Failed to update team member" },
-      { status: 500 },
-    );
+    return apiError("Failed to update team member");
   }
 }

@@ -2,9 +2,17 @@
  * Admin Support Tickets API - List and manage support tickets
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import {
+  apiSuccess,
+  apiError,
+  apiUnauthorized,
+  apiForbidden,
+  apiNotFound,
+  apiBadRequest,
+} from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +20,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -28,9 +36,6 @@ export async function GET(request: NextRequest) {
       "lastActivityAt",
       "status",
       "priority",
-      "email",
-      "name",
-      "category",
     ] as const;
     const rawSortBy = searchParams.get("sortBy") || "createdAt";
     const sortBy = (ALLOWED_SORT_FIELDS as readonly string[]).includes(
@@ -133,7 +138,7 @@ export async function GET(request: NextRequest) {
       where: { priority: "URGENT", status: { notIn: ["RESOLVED", "CLOSED"] } },
     });
 
-    return NextResponse.json({
+    return apiSuccess({
       tickets: formattedTickets,
       pagination: {
         page,
@@ -161,7 +166,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Get support tickets error:", error);
     // Return empty results instead of error when table might not exist or is empty
-    return NextResponse.json({
+    return apiSuccess({
       tickets: [],
       pagination: {
         page: 1,
@@ -193,24 +198,18 @@ export async function PATCH(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return NextResponse.json(
-        { error: "Insufficient permissions" },
-        { status: 403 },
-      );
+      return apiForbidden();
     }
 
     const body = await request.json();
     const { ticketId, action, value } = body;
 
     if (!ticketId || !action) {
-      return NextResponse.json(
-        { error: "Ticket ID and action required" },
-        { status: 400 },
-      );
+      return apiBadRequest("Ticket ID and action required");
     }
 
     const ticket = await prisma.supportTicket.findUnique({
@@ -218,7 +217,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!ticket) {
-      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+      return apiNotFound("Ticket not found");
     }
 
     let updateData: Record<string, unknown> = {};
@@ -237,10 +236,7 @@ export async function PATCH(request: NextRequest) {
             "CLOSED",
           ].includes(value)
         ) {
-          return NextResponse.json(
-            { error: "Invalid status" },
-            { status: 400 },
-          );
+          return apiBadRequest("Invalid status");
         }
         updateData = {
           status: value,
@@ -257,10 +253,7 @@ export async function PATCH(request: NextRequest) {
 
       case "updatePriority":
         if (!value || !["LOW", "NORMAL", "HIGH", "URGENT"].includes(value)) {
-          return NextResponse.json(
-            { error: "Invalid priority" },
-            { status: 400 },
-          );
+          return apiBadRequest("Invalid priority");
         }
         updateData = {
           priority: value,
@@ -282,10 +275,7 @@ export async function PATCH(request: NextRequest) {
 
       case "addNote":
         if (!value || typeof value !== "string") {
-          return NextResponse.json(
-            { error: "Note content required" },
-            { status: 400 },
-          );
+          return apiBadRequest("Note content required");
         }
         const existingNotes = ticket.internalNotes || "";
         const timestamp = new Date().toISOString();
@@ -300,7 +290,7 @@ export async function PATCH(request: NextRequest) {
         break;
 
       default:
-        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+        return apiBadRequest("Invalid action");
     }
 
     // Update ticket
@@ -324,12 +314,9 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, message: logDetails });
+    return apiSuccess({ success: true, message: logDetails });
   } catch (error) {
     console.error("Update support ticket error:", error);
-    return NextResponse.json(
-      { error: "Failed to update support ticket" },
-      { status: 500 },
-    );
+    return apiError("Failed to update support ticket");
   }
 }
