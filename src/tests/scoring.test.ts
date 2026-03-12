@@ -2,8 +2,17 @@
  * Unit tests for the risk scoring module
  */
 
-import { computeRiskScore, SIGNAL_CODES, getSignalsByCategory } from "../lib/scoring";
-import { MarketData, ScoringInput, PriceHistory, StockQuote } from "../lib/types";
+import {
+  computeRiskScore,
+  SIGNAL_CODES,
+  getSignalsByCategory,
+} from "../lib/scoring";
+import {
+  MarketData,
+  ScoringInput,
+  PriceHistory,
+  StockQuote,
+} from "../lib/types";
 
 // Helper to create mock market data
 function createMockMarketData(
@@ -15,7 +24,7 @@ function createMockMarketData(
     isOTC: boolean;
     dataAvailable: boolean;
     priceHistory: PriceHistory[];
-  }> = {}
+  }> = {},
 ): MarketData {
   const defaultQuote: StockQuote = {
     ticker: "TEST",
@@ -53,17 +62,18 @@ function createMockMarketData(
 // Helper to create scoring input
 function createScoringInput(
   marketData: MarketData,
-  overrides: Partial<{
-    pitchText: string;
-    unsolicited: boolean;
-    promisesHighReturns: boolean;
-    urgencyPressure: boolean;
-    secrecyInsideInfo: boolean;
-  }> = {}
+  overrides: {
+    pitchText?: string;
+    unsolicited?: boolean;
+    promisesHighReturns?: boolean;
+    urgencyPressure?: boolean;
+    secrecyInsideInfo?: boolean;
+  } = {},
 ): ScoringInput {
   return {
     marketData,
-    pitchText: overrides.pitchText ?? "Check out this stock, it looks promising.",
+    pitchText:
+      overrides.pitchText ?? "Check out this stock, it looks promising.",
     context: {
       unsolicited: overrides.unsolicited ?? false,
       promisesHighReturns: overrides.promisesHighReturns ?? false,
@@ -81,8 +91,12 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.MICROCAP_PRICE)).toBe(true);
-      const signal = result.signals.find((s) => s.code === SIGNAL_CODES.MICROCAP_PRICE);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.MICROCAP_PRICE),
+      ).toBe(true);
+      const signal = result.signals.find(
+        (s) => s.code === SIGNAL_CODES.MICROCAP_PRICE,
+      );
       expect(signal?.weight).toBe(2);
       expect(signal?.category).toBe("STRUCTURAL");
     });
@@ -93,7 +107,9 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.MICROCAP_PRICE)).toBe(false);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.MICROCAP_PRICE),
+      ).toBe(false);
     });
 
     test("SMALL_MARKET_CAP: should trigger when marketCap < $300M", async () => {
@@ -102,8 +118,12 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.SMALL_MARKET_CAP)).toBe(true);
-      const signal = result.signals.find((s) => s.code === SIGNAL_CODES.SMALL_MARKET_CAP);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.SMALL_MARKET_CAP),
+      ).toBe(true);
+      const signal = result.signals.find(
+        (s) => s.code === SIGNAL_CODES.SMALL_MARKET_CAP,
+      );
       expect(signal?.weight).toBe(2);
     });
 
@@ -113,8 +133,12 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.MICRO_LIQUIDITY)).toBe(true);
-      const signal = result.signals.find((s) => s.code === SIGNAL_CODES.MICRO_LIQUIDITY);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.MICRO_LIQUIDITY),
+      ).toBe(true);
+      const signal = result.signals.find(
+        (s) => s.code === SIGNAL_CODES.MICRO_LIQUIDITY,
+      );
       expect(signal?.weight).toBe(2);
     });
 
@@ -124,8 +148,12 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.OTC_EXCHANGE)).toBe(true);
-      const signal = result.signals.find((s) => s.code === SIGNAL_CODES.OTC_EXCHANGE);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.OTC_EXCHANGE),
+      ).toBe(true);
+      const signal = result.signals.find(
+        (s) => s.code === SIGNAL_CODES.OTC_EXCHANGE,
+      );
       expect(signal?.weight).toBe(3);
     });
   });
@@ -137,20 +165,30 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.UNSOLICITED)).toBe(true);
-      const signal = result.signals.find((s) => s.code === SIGNAL_CODES.UNSOLICITED);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.UNSOLICITED),
+      ).toBe(true);
+      const signal = result.signals.find(
+        (s) => s.code === SIGNAL_CODES.UNSOLICITED,
+      );
       expect(signal?.weight).toBe(1);
       expect(signal?.category).toBe("BEHAVIORAL");
     });
 
     test("PROMISED_RETURNS: should trigger from context toggle", async () => {
       const marketData = createMockMarketData();
-      const input = createScoringInput(marketData, { promisesHighReturns: true });
+      const input = createScoringInput(marketData, {
+        promisesHighReturns: true,
+      });
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.PROMISED_RETURNS)).toBe(true);
-      const signal = result.signals.find((s) => s.code === SIGNAL_CODES.PROMISED_RETURNS);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.PROMISED_RETURNS),
+      ).toBe(true);
+      const signal = result.signals.find(
+        (s) => s.code === SIGNAL_CODES.PROMISED_RETURNS,
+      );
       expect(signal?.weight).toBe(2);
     });
 
@@ -162,7 +200,9 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.PROMISED_RETURNS)).toBe(true);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.PROMISED_RETURNS),
+      ).toBe(true);
     });
 
     test("URGENCY: should trigger from context toggle", async () => {
@@ -171,8 +211,12 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.URGENCY)).toBe(true);
-      expect(result.signals.find((s) => s.code === SIGNAL_CODES.URGENCY)?.weight).toBe(2);
+      expect(result.signals.some((s) => s.code === SIGNAL_CODES.URGENCY)).toBe(
+        true,
+      );
+      expect(
+        result.signals.find((s) => s.code === SIGNAL_CODES.URGENCY)?.weight,
+      ).toBe(2);
     });
 
     test("URGENCY: should trigger from NLP keyword 'act now'", async () => {
@@ -183,7 +227,9 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.URGENCY)).toBe(true);
+      expect(result.signals.some((s) => s.code === SIGNAL_CODES.URGENCY)).toBe(
+        true,
+      );
     });
 
     test("SECRECY: should trigger from context toggle", async () => {
@@ -192,8 +238,12 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.SECRECY)).toBe(true);
-      expect(result.signals.find((s) => s.code === SIGNAL_CODES.SECRECY)?.weight).toBe(2);
+      expect(result.signals.some((s) => s.code === SIGNAL_CODES.SECRECY)).toBe(
+        true,
+      );
+      expect(
+        result.signals.find((s) => s.code === SIGNAL_CODES.SECRECY)?.weight,
+      ).toBe(2);
     });
 
     test("SECRECY: should trigger from NLP keyword 'insider'", async () => {
@@ -204,7 +254,9 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.SECRECY)).toBe(true);
+      expect(result.signals.some((s) => s.code === SIGNAL_CODES.SECRECY)).toBe(
+        true,
+      );
     });
 
     test("SPECIFIC_RETURN_CLAIM: should trigger for '50% in 2 days' pattern", async () => {
@@ -215,8 +267,16 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.SPECIFIC_RETURN_CLAIM)).toBe(true);
-      expect(result.signals.find((s) => s.code === SIGNAL_CODES.SPECIFIC_RETURN_CLAIM)?.weight).toBe(1);
+      expect(
+        result.signals.some(
+          (s) => s.code === SIGNAL_CODES.SPECIFIC_RETURN_CLAIM,
+        ),
+      ).toBe(true);
+      expect(
+        result.signals.find(
+          (s) => s.code === SIGNAL_CODES.SPECIFIC_RETURN_CLAIM,
+        )?.weight,
+      ).toBe(1);
     });
   });
 
@@ -240,11 +300,15 @@ describe("Risk Scoring Module", () => {
       const result = await computeRiskScore(input);
 
       // No structural signals should trigger for large-cap stocks
-      const structuralSignals = result.signals.filter(s => s.category === "STRUCTURAL");
+      const structuralSignals = result.signals.filter(
+        (s) => s.category === "STRUCTURAL",
+      );
       expect(structuralSignals.length).toBe(0);
 
       // No behavioral signals without behavioral flags
-      const behavioralSignals = result.signals.filter(s => s.category === "BEHAVIORAL");
+      const behavioralSignals = result.signals.filter(
+        (s) => s.category === "BEHAVIORAL",
+      );
       expect(behavioralSignals.length).toBe(0);
 
       // With more sensitive anomaly detection, may be LOW or MEDIUM
@@ -344,7 +408,7 @@ describe("Risk Scoring Module", () => {
         isOTC: false,
       });
       const input = createScoringInput(marketData, {
-        unsolicited: true,  // 1
+        unsolicited: true, // 1
         promisesHighReturns: true, // 2
       });
 
@@ -373,8 +437,12 @@ describe("Risk Scoring Module", () => {
       const result = await computeRiskScore(input);
 
       // Check that at least the structural and behavioral signals are present
-      const structuralSignals = result.signals.filter(s => s.category === "STRUCTURAL");
-      const behavioralSignals = result.signals.filter(s => s.category === "BEHAVIORAL");
+      const structuralSignals = result.signals.filter(
+        (s) => s.category === "STRUCTURAL",
+      );
+      const behavioralSignals = result.signals.filter(
+        (s) => s.category === "BEHAVIORAL",
+      );
 
       expect(structuralSignals.length).toBe(3); // MICROCAP_PRICE, SMALL_MARKET_CAP, MICRO_LIQUIDITY
       expect(behavioralSignals.length).toBe(1); // UNSOLICITED
@@ -400,8 +468,12 @@ describe("Risk Scoring Module", () => {
 
       expect(categorized.structural.length).toBeGreaterThan(0);
       expect(categorized.behavioral.length).toBe(2);
-      expect(categorized.structural.every((s) => s.category === "STRUCTURAL")).toBe(true);
-      expect(categorized.behavioral.every((s) => s.category === "BEHAVIORAL")).toBe(true);
+      expect(
+        categorized.structural.every((s) => s.category === "STRUCTURAL"),
+      ).toBe(true);
+      expect(
+        categorized.behavioral.every((s) => s.category === "BEHAVIORAL"),
+      ).toBe(true);
     });
   });
 
@@ -439,9 +511,15 @@ describe("Risk Scoring Module", () => {
 
       const result = await computeRiskScore(input);
 
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.PROMISED_RETURNS)).toBe(true);
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.SECRECY)).toBe(true);
-      expect(result.signals.some((s) => s.code === SIGNAL_CODES.URGENCY)).toBe(true);
+      expect(
+        result.signals.some((s) => s.code === SIGNAL_CODES.PROMISED_RETURNS),
+      ).toBe(true);
+      expect(result.signals.some((s) => s.code === SIGNAL_CODES.SECRECY)).toBe(
+        true,
+      );
+      expect(result.signals.some((s) => s.code === SIGNAL_CODES.URGENCY)).toBe(
+        true,
+      );
     });
   });
 });
