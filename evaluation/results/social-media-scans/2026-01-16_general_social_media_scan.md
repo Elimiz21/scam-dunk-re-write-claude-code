@@ -4,13 +4,13 @@
 
 ## Scan Metadata
 
-| Field | Value |
-|-------|-------|
-| **Scan Date** | January 16, 2026 |
-| **Scan Type** | General (Discovery of New Promotions) |
+| Field                 | Value                                                |
+| --------------------- | ---------------------------------------------------- |
+| **Scan Date**         | January 16, 2026                                     |
+| **Scan Type**         | General (Discovery of New Promotions)                |
 | **Platforms Scanned** | Reddit, Discord, Stocktwits, Twitter/X, News Sources |
-| **Purpose** | Identify newly promoted stocks NOT yet tracked |
-| **Scan Initiated By** | Daily autonomous scan |
+| **Purpose**           | Identify newly promoted stocks NOT yet tracked       |
+| **Scan Initiated By** | Daily autonomous scan                                |
 
 ---
 
@@ -32,32 +32,33 @@ This scan identified **12 stocks** being heavily promoted across social media pl
 
 ### Discord Status
 
-| Metric | Value |
-|--------|-------|
-| **Status** | OPEN (Reopened January 15, 2026) |
-| **Members** | 17,258 |
-| **Activity Level** | 🔴 EXTREME |
+| Metric                   | Value                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| **Status**               | OPEN (Reopened January 15, 2026)                                              |
+| **Members**              | 17,258                                                                        |
+| **Activity Level**       | 🔴 EXTREME                                                                    |
 | **Platform Description** | "The New Wallstreetbets Lead by Grandmaster-obi Former Mod of Wallstreetbets" |
 
 ### NEW Stocks Added to Tracking (January 15-16)
 
-| Symbol | Name | Alert Date | Alert Price | Current/Peak | Return | Status |
-|--------|------|------------|-------------|--------------|--------|--------|
-| **SPHL** | Springview Holdings | Jan 12 | $2.17 | $25.11 (peak) | **+1,057%** | 🔴 HOT PUMP |
-| **VERO** | Venus Concept | Jan 15 | ~$1.48 | $11-12 (peak) | **+700%** | 🔴 HOT PUMP |
+| Symbol   | Name                | Alert Date | Alert Price | Current/Peak  | Return      | Status      |
+| -------- | ------------------- | ---------- | ----------- | ------------- | ----------- | ----------- |
+| **SPHL** | Springview Holdings | Jan 12     | $2.17       | $25.11 (peak) | **+1,057%** | 🔴 HOT PUMP |
+| **VERO** | Venus Concept       | Jan 15     | ~$1.48      | $11-12 (peak) | **+700%**   | 🔴 HOT PUMP |
 
 ### Existing Tracked Stocks - Updated Performance
 
-| Symbol | Alert Price | Jan 13 Price | Jan 15-16 Price | Total Return | Status Change |
-|--------|-------------|--------------|-----------------|--------------|---------------|
-| **ANPA** | $24.40 | $84.01 | **$180.63** | **+640%** | Still pumping! |
-| **EVTV** | $0.78 | $3.52 | Tracking | +351%+ | Pump continuing |
-| **MRNO** | $0.55 | $1.83 | Tracking | +233%+ | Active pump |
+| Symbol   | Alert Price | Jan 13 Price | Jan 15-16 Price | Total Return | Status Change   |
+| -------- | ----------- | ------------ | --------------- | ------------ | --------------- |
+| **ANPA** | $24.40      | $84.01       | **$180.63**     | **+640%**    | Still pumping!  |
+| **EVTV** | $0.78       | $3.52        | Tracking        | +351%+       | Pump continuing |
+| **MRNO** | $0.55       | $1.83        | Tracking        | +233%+       | Active pump     |
 
 ### Media Coverage
 
 Grandmaster-Obi continues to be compared to "Roaring Kitty" (Keith Gill):
-- *"NEW YORK — January 16, 2026 — Barely halfway through January, retail traders are already calling it: 2026 belongs to Grandmaster-Obi."*
+
+- _"NEW YORK — January 16, 2026 — Barely halfway through January, retail traders are already calling it: 2026 belongs to Grandmaster-Obi."_
 - Former WallStreetBets moderator, went live with Roaring Kitty before GME peak
 - Multiple stocks triggering trading halts
 
@@ -69,90 +70,90 @@ Grandmaster-Obi continues to be compared to "Roaring Kitty" (Keith Gill):
 
 #### SPHL (Springview Holdings) - 🔴 CRITICAL
 
-| Metric | Value |
-|--------|-------|
-| **Price Action** | +753% intraday (Jan 15), +673.8% at close |
-| **Peak Price** | $25.11 |
-| **Catalyst** | Non-binding MOU with Chinese solar company |
-| **Discord Connection** | ✅ Confirmed - Grandmaster-Obi alert at $2.17 |
-| **Red Flags** | Recent reverse split (1:8), MOU is non-binding |
-| **Analyst Coverage** | NONE |
-| **Assessment** | CLASSIC PUMP - non-binding MOU used as cover story |
+| Metric                 | Value                                              |
+| ---------------------- | -------------------------------------------------- |
+| **Price Action**       | +753% intraday (Jan 15), +673.8% at close          |
+| **Peak Price**         | $25.11                                             |
+| **Catalyst**           | Non-binding MOU with Chinese solar company         |
+| **Discord Connection** | ✅ Confirmed - Grandmaster-Obi alert at $2.17      |
+| **Red Flags**          | Recent reverse split (1:8), MOU is non-binding     |
+| **Analyst Coverage**   | NONE                                               |
+| **Assessment**         | CLASSIC PUMP - non-binding MOU used as cover story |
 
 #### VERO (Venus Concept) - 🔴 CRITICAL
 
-| Metric | Value |
-|--------|-------|
-| **Price Action** | +700% intraday (Jan 16) |
-| **Peak Price** | ~$11-12 |
-| **52-Week Range** | $1.39 - $14.50 |
-| **Catalyst** | Madryn Asset Management revealed 91% stake, potential delisting |
-| **Market Cap** | ~$2.66 million (micro-cap) |
-| **Altman Z-Score** | -9.83 (extreme bankruptcy risk) |
-| **Debt-to-Equity** | 12.22 |
-| **Assessment** | EXTREME RISK - potential delisting catalyst driving speculation |
+| Metric             | Value                                                           |
+| ------------------ | --------------------------------------------------------------- |
+| **Price Action**   | +700% intraday (Jan 16)                                         |
+| **Peak Price**     | ~$11-12                                                         |
+| **52-Week Range**  | $1.39 - $14.50                                                  |
+| **Catalyst**       | Madryn Asset Management revealed 91% stake, potential delisting |
+| **Market Cap**     | ~$2.66 million (micro-cap)                                      |
+| **Altman Z-Score** | -9.83 (extreme bankruptcy risk)                                 |
+| **Debt-to-Equity** | 12.22                                                           |
+| **Assessment**     | EXTREME RISK - potential delisting catalyst driving speculation |
 
 #### JFBR (Jeffs' Brands) - 🟡 ELEVATED
 
-| Metric | Value |
-|--------|-------|
-| **Price Action** | +230% (Jan 16) |
-| **Volume** | 203.87M shares (vs 1.36M average = 150x) |
-| **Catalyst** | KeepZone AI distribution deal with Israeli defense company |
-| **52-Week Performance** | -95.88% |
-| **Trading Range** | $1.15 - $1.96 (volatile) |
-| **Assessment** | News-driven spike on micro-cap, watch for dump |
+| Metric                  | Value                                                      |
+| ----------------------- | ---------------------------------------------------------- |
+| **Price Action**        | +230% (Jan 16)                                             |
+| **Volume**              | 203.87M shares (vs 1.36M average = 150x)                   |
+| **Catalyst**            | KeepZone AI distribution deal with Israeli defense company |
+| **52-Week Performance** | -95.88%                                                    |
+| **Trading Range**       | $1.15 - $1.96 (volatile)                                   |
+| **Assessment**          | News-driven spike on micro-cap, watch for dump             |
 
 ### Category 2: Reddit/Stocktwits Trending
 
 #### MLGO (MicroAlgo Inc) - 🟡 MONITORING
 
-| Metric | Value |
-|--------|-------|
-| **Status** | Top Reddit penny stock pick for 2026 |
-| **Historical Pattern** | Spiked 910% (from $2 to $11) in February |
-| **Float** | 6.3 million shares (low) |
-| **Assessment** | Short squeeze candidate, known for violent moves |
+| Metric                 | Value                                            |
+| ---------------------- | ------------------------------------------------ |
+| **Status**             | Top Reddit penny stock pick for 2026             |
+| **Historical Pattern** | Spiked 910% (from $2 to $11) in February         |
+| **Float**              | 6.3 million shares (low)                         |
+| **Assessment**         | Short squeeze candidate, known for violent moves |
 
 #### JTAI (Jet.AI Inc) - 🟡 MONITORING
 
-| Metric | Value |
-|--------|-------|
-| **Recent Event** | Acquisition by flyExclusive announced Feb 14 |
-| **Price Action** | +350% on news |
-| **Float** | 572k shares (extremely low) |
-| **Assessment** | Acquisition news drove spike, extreme volatility expected |
+| Metric           | Value                                                     |
+| ---------------- | --------------------------------------------------------- |
+| **Recent Event** | Acquisition by flyExclusive announced Feb 14              |
+| **Price Action** | +350% on news                                             |
+| **Float**        | 572k shares (extremely low)                               |
+| **Assessment**   | Acquisition news drove spike, extreme volatility expected |
 
 #### RGTI (Rigetti Computing) - ⚠️ CRASHED
 
-| Metric | Value |
-|--------|-------|
-| **Status** | Reddit pump turned dump |
-| **Historical** | +200% pump in December, then crashed |
+| Metric            | Value                                       |
+| ----------------- | ------------------------------------------- |
+| **Status**        | Reddit pump turned dump                     |
+| **Historical**    | +200% pump in December, then crashed        |
 | **Crash Trigger** | Jensen Huang (NVIDIA CEO) comments on Jan 8 |
-| **Assessment** | Pump cycle COMPLETE - in dump phase |
+| **Assessment**    | Pump cycle COMPLETE - in dump phase         |
 
 ### Category 3: January 16 Movers
 
 #### SMX (Security Matters) - 🟡 MONITORING
 
-| Metric | Value |
-|--------|-------|
-| **Recent History** | +100% (Jan 7), -68% (Dec 31) |
-| **Float** | Very low - "quite easy to push up" |
-| **52-Week Range** | $3.12 - $16,266.53 (extreme) |
-| **Recent News** | $20M convertible note conversion (Jan 8) |
-| **Assessment** | Extreme volatility, low float manipulation risk |
+| Metric             | Value                                           |
+| ------------------ | ----------------------------------------------- |
+| **Recent History** | +100% (Jan 7), -68% (Dec 31)                    |
+| **Float**          | Very low - "quite easy to push up"              |
+| **52-Week Range**  | $3.12 - $16,266.53 (extreme)                    |
+| **Recent News**    | $20M convertible note conversion (Jan 8)        |
+| **Assessment**     | Extreme volatility, low float manipulation risk |
 
 #### SIDU (Sidus Space) - 🟡 MONITORING (PREVIOUSLY TRACKED)
 
-| Metric | Value |
-|--------|-------|
-| **Recent Performance** | +82% in 2 weeks |
-| **Jan 14 Move** | +14.15% |
-| **Catalysts** | SHIELD IDIQ contract, board additions |
-| **Financial Health** | Negative cash flow, EBIT margin -676.3% |
-| **Assessment** | Continued volatility, fundamental concerns |
+| Metric                 | Value                                      |
+| ---------------------- | ------------------------------------------ |
+| **Recent Performance** | +82% in 2 weeks                            |
+| **Jan 14 Move**        | +14.15%                                    |
+| **Catalysts**          | SHIELD IDIQ contract, board additions      |
+| **Financial Health**   | Negative cash flow, EBIT margin -676.3%    |
+| **Assessment**         | Continued volatility, fundamental concerns |
 
 ---
 
@@ -160,27 +161,27 @@ Grandmaster-Obi continues to be compared to "Roaring Kitty" (Keith Gill):
 
 ### Discord
 
-| Server | Status | Members | Activity |
-|--------|--------|---------|----------|
-| **Making Easy Money** | OPEN | 17,258 | 🔴 EXTREME |
+| Server                | Status  | Members | Activity                  |
+| --------------------- | ------- | ------- | ------------------------- |
+| **Making Easy Money** | OPEN    | 17,258  | 🔴 EXTREME                |
 | Other trading servers | Various | Unknown | Active penny stock alerts |
 
 ### Reddit (r/WallStreetBets and related)
 
-| Topic | Activity Level |
-|-------|----------------|
-| Grandmaster-Obi discussion | 🔴 HIGH |
+| Topic                       | Activity Level            |
+| --------------------------- | ------------------------- |
+| Grandmaster-Obi discussion  | 🔴 HIGH                   |
 | Quantum stocks (RGTI, IONQ) | 🟡 DECLINING (post-crash) |
-| Penny stocks general | 🔴 HIGH |
-| 2026 stock picks | 🟡 MODERATE |
+| Penny stocks general        | 🔴 HIGH                   |
+| 2026 stock picks            | 🟡 MODERATE               |
 
 ### Stocktwits Trending
 
-| Symbol | Mention Change | Notes |
-|--------|----------------|-------|
-| SIDU | +9% | Space/defense theme |
-| EVTV | HIGH | Grandmaster-Obi play |
-| ANPA | HIGH | Extreme gains |
+| Symbol | Mention Change | Notes                |
+| ------ | -------------- | -------------------- |
+| SIDU   | +9%            | Space/defense theme  |
+| EVTV   | HIGH           | Grandmaster-Obi play |
+| ANPA   | HIGH           | Extreme gains        |
 
 ---
 
@@ -188,12 +189,12 @@ Grandmaster-Obi continues to be compared to "Roaring Kitty" (Keith Gill):
 
 ### Stocks by Manipulation Risk
 
-| Risk Level | Stocks |
-|------------|--------|
-| 🔴 CRITICAL | SPHL, VERO, ANPA |
-| 🟡 HIGH | JFBR, EVTV, MLGO, SMX |
-| 🟡 ELEVATED | JTAI, SIDU, MRNO |
-| ⚠️ DUMP PHASE | RGTI, LVRO, DVLT |
+| Risk Level    | Stocks                |
+| ------------- | --------------------- |
+| 🔴 CRITICAL   | SPHL, VERO, ANPA      |
+| 🟡 HIGH       | JFBR, EVTV, MLGO, SMX |
+| 🟡 ELEVATED   | JTAI, SIDU, MRNO      |
+| ⚠️ DUMP PHASE | RGTI, LVRO, DVLT      |
 
 ### Common Red Flags Identified
 
@@ -213,11 +214,11 @@ Grandmaster-Obi continues to be compared to "Roaring Kitty" (Keith Gill):
 
 Stocks identified showing coordinated news-based pumping NOT linked to SCHEME-001:
 
-| Symbol | Catalyst Type | Suspicious Elements |
-|--------|---------------|---------------------|
-| VERO | 91% stake + delisting | Extreme volatility on fundamentally weak company |
-| JFBR | Distribution deal | Volume 150x average on non-exclusive deal |
-| SMX | Debt conversion | Repeated 100%+ moves on minimal news |
+| Symbol | Catalyst Type         | Suspicious Elements                              |
+| ------ | --------------------- | ------------------------------------------------ |
+| VERO   | 91% stake + delisting | Extreme volatility on fundamentally weak company |
+| JFBR   | Distribution deal     | Volume 150x average on non-exclusive deal        |
+| SMX    | Debt conversion       | Repeated 100%+ moves on minimal news             |
 
 **Status:** Under investigation - no common promoter identified yet
 
@@ -235,6 +236,7 @@ Stocks identified showing coordinated news-based pumping NOT linked to SCHEME-00
 ### Cross-Reference with FMP Scan
 
 When January 16 FMP scan completes, verify these stocks are flagged:
+
 - [ ] SPHL - Should have SPIKE_7D, VOLUME_EXPLOSION, SPIKE_THEN_DROP
 - [ ] VERO - Should have all pump signals
 - [ ] JFBR - Should have VOLUME_EXPLOSION
@@ -266,7 +268,7 @@ When January 16 FMP scan completes, verify these stocks are flagged:
     "newStocksAdded": ["SPHL", "VERO"],
     "topPerformer": {
       "symbol": "ANPA",
-      "alertPrice": 24.40,
+      "alertPrice": 24.4,
       "currentPrice": 180.63,
       "return": "+640%"
     }
@@ -305,6 +307,6 @@ When January 16 FMP scan completes, verify these stocks are flagged:
 
 ---
 
-*Report generated: January 16, 2026*
-*ScamDunk General Social Media Scan v1.0*
-*This scan is SEPARATE from HIGH risk stock targeted scans*
+_Report generated: January 16, 2026_
+_ScamDunk General Social Media Scan v1.0_
+_This scan is SEPARATE from HIGH risk stock targeted scans_

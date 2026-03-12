@@ -5,12 +5,16 @@ import { logAuthError } from "@/lib/auth-error-tracking";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+  const ip =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    undefined;
   const userAgent = request.headers.get("user-agent") || undefined;
 
   try {
     // Rate limit: strict for email verification (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "strict");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -24,11 +28,11 @@ export async function POST(request: NextRequest) {
           errorType: "VERIFICATION_FAILED",
           errorCode: "TOKEN_INVALID",
           message: "Verification token is required",
-        }
+        },
       );
       return NextResponse.json(
         { error: "Verification token is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,11 +47,11 @@ export async function POST(request: NextRequest) {
           errorCode: "TOKEN_EXPIRED",
           message: "Invalid or expired verification token",
           details: { tokenProvided: !!token },
-        }
+        },
       );
       return NextResponse.json(
         { error: "Invalid or expired verification token" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -67,11 +71,11 @@ export async function POST(request: NextRequest) {
         errorCode: "UNKNOWN_ERROR",
         message: "Failed to verify email",
         error: error instanceof Error ? error : undefined,
-      }
+      },
     );
     return NextResponse.json(
       { error: "Failed to verify email" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

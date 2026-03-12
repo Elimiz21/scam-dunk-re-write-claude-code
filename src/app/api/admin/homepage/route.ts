@@ -19,14 +19,15 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const activeHero = heroes.find((h: { isActive: boolean }) => h.isActive) || null;
+    const activeHero =
+      heroes.find((h: { isActive: boolean }) => h.isActive) || null;
 
     return NextResponse.json({ heroes, activeHero });
   } catch (error) {
     console.error("Fetch homepage heroes error:", error);
     return NextResponse.json(
       { error: "Failed to fetch homepage content" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (!headline?.trim() || !subheadline?.trim()) {
       return NextResponse.json(
         { error: "Headline and subheadline are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     console.error("Create homepage hero error:", error);
     return NextResponse.json(
       { error: "Failed to create homepage content" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -127,10 +128,7 @@ export async function PUT(request: NextRequest) {
     if (subheadline?.trim()) updateData.subheadline = subheadline.trim();
 
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json(
-        { error: "Nothing to update" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
     }
 
     const hero = await prisma.homepageHero.update({
@@ -155,7 +153,7 @@ export async function PUT(request: NextRequest) {
     console.error("Update homepage hero error:", error);
     return NextResponse.json(
       { error: "Failed to update homepage content" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -199,7 +197,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Delete homepage hero error:", error);
     return NextResponse.json(
       { error: "Failed to delete homepage content" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

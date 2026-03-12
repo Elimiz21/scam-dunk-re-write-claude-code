@@ -3075,11 +3075,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.0525,
       "totalScore": 7,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "SPIKE_THEN_DROP"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "SPIKE_THEN_DROP"],
       "hasPumpSignal": true,
       "socialPumpReason": "Nano-cap in consumer defens, likely to be promoted."
     },
@@ -3090,11 +3086,7 @@
       "sector": "Healthcare",
       "lastPrice": 1.25,
       "totalScore": 7,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "SPIKE_THEN_DROP"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "SPIKE_THEN_DROP"],
       "hasPumpSignal": true,
       "socialPumpReason": "Chinese shell company, typical target for pump schemes."
     },
@@ -3105,11 +3097,7 @@
       "sector": "Technology",
       "lastPrice": 2.37,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Buzzword-heavy tech stock likely to attract pump group interest."
     },
@@ -3120,11 +3108,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.302,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low-priced healthcare stock with potential for pump-and-dump schemes."
     },
@@ -3135,11 +3119,7 @@
       "sector": "Technology",
       "lastPrice": 0.4102,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low-priced tech stock that fits the profile of pump targets."
     },
@@ -3150,11 +3130,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.3349,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low-priced healthcare stock likely to attract pump-and-dump activity."
     },
@@ -3165,11 +3141,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.446,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low-priced consumer defensive stock likely to attract pump interest."
     },
@@ -3180,11 +3152,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.1025,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Very low-priced healthcare stock with high pump-and-dump potential."
     },
@@ -3195,11 +3163,7 @@
       "sector": "Industrials",
       "lastPrice": 0.3013,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low-priced industrial stock likely to attract pump-and-dump schemes."
     },
@@ -3210,11 +3174,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.3391,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low-priced consumer defensive stock with potential for pump activity."
     },
@@ -3225,11 +3185,7 @@
       "sector": "Technology",
       "lastPrice": 0.4001,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low-priced tech stock likely to attract pump-and-dump interest."
     },
@@ -3240,11 +3196,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.1903,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low-priced communication stock with strong pump potential."
     },
@@ -3255,11 +3207,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.3328,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Nano-cap with a buzzword name, likely to attract pump groups."
     },
@@ -3270,11 +3218,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.2,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low price and in healthcare, a common pump target sector."
     },
@@ -3285,11 +3229,7 @@
       "sector": "Technology",
       "lastPrice": 0.752,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Chinese shell company, typical target for pump schemes."
     },
@@ -3300,11 +3240,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.306,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low price and in healthcare, often targeted by pump groups."
     },
@@ -3315,11 +3251,7 @@
       "sector": "Communication Services",
       "lastPrice": 1.66,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Buzzword name in communication, likely to be promoted."
     },
@@ -3330,11 +3262,7 @@
       "sector": "Industrials",
       "lastPrice": 0.297,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low price and in a trendy sector, likely to attract pump groups."
     },
@@ -3345,11 +3273,7 @@
       "sector": "Technology",
       "lastPrice": 0.7117,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low price and in tech, typical characteristics of pump targets."
     },
@@ -3360,11 +3284,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.1952,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low price in healthcare, likely to be promoted."
     },
@@ -3375,11 +3295,7 @@
       "sector": "Technology",
       "lastPrice": 3.53,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "OVERBOUGHT_RSI"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name in blockchain technology, potential pump target."
     },
@@ -3406,11 +3322,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.238,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced communication stock with potential for pump activity."
     },
@@ -3421,11 +3333,7 @@
       "sector": "Communication Services",
       "lastPrice": 0.222,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced communication stock with potential for pump activity."
     },
@@ -3436,11 +3344,7 @@
       "sector": "Healthcare",
       "lastPrice": 1.07,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced healthcare stock with potential for pump activity."
     },
@@ -3451,11 +3355,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.5044,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced consumer cyclic stock with potential for pump activity."
     },
@@ -3482,11 +3382,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2791,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "OTC_EXCHANGE",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "OTC_EXCHANGE", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced financial stock with potential for pump activity."
     },
@@ -3497,11 +3393,7 @@
       "sector": "Industrials",
       "lastPrice": 0.1279,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_7D",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_7D", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced industrial stock with potential for pump activity."
     },
@@ -3528,11 +3420,7 @@
       "sector": "Industrials",
       "lastPrice": 0.206,
       "totalScore": 6,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "OVERBOUGHT_RSI"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced industrial stock with potential for pump activity."
     },
@@ -3543,10 +3431,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.4734,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "SPIKE_THEN_DROP"
-      ],
+      "signals": ["MICROCAP_PRICE", "SPIKE_THEN_DROP"],
       "hasPumpSignal": true,
       "socialPumpReason": "Low price and in healthcare, often targeted by pump groups."
     },
@@ -3557,10 +3442,7 @@
       "sector": "Technology",
       "lastPrice": 15.84,
       "totalScore": 5,
-      "signals": [
-        "SPIKE_7D",
-        "OVERBOUGHT_RSI"
-      ],
+      "signals": ["SPIKE_7D", "OVERBOUGHT_RSI"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name in technology, potential pump target."
     },
@@ -3571,11 +3453,7 @@
       "sector": "Technology",
       "lastPrice": 0.3784,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced technology stock with potential for pump activity."
     },
@@ -3586,11 +3464,7 @@
       "sector": "Industrials",
       "lastPrice": 2.53,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced industrial stock with potential for pump activity."
     },
@@ -3601,11 +3475,7 @@
       "sector": "Industrials",
       "lastPrice": 0.9165,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced industrial stock with potential for pump activity."
     },
@@ -3616,11 +3486,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.4317,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Low-priced financial stock with potential for pump activity."
     },
@@ -3631,11 +3497,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.0774,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Warrant in consumer cyclic sector, potential for pump activity."
     },
@@ -3646,11 +3508,7 @@
       "sector": "Financial Services",
       "lastPrice": 2.44,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name in financial services, potential for pump activity."
     },
@@ -3661,11 +3519,7 @@
       "sector": "Technology",
       "lastPrice": 0.355,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Warrant in technology sector, potential for pump activity."
     },
@@ -3676,11 +3530,7 @@
       "sector": "Technology",
       "lastPrice": 2.67,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name in technology, potential for pump activity."
     },
@@ -3691,11 +3541,7 @@
       "sector": "Technology",
       "lastPrice": 0.1665,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Penny stock in technology, potential for pump activity."
     },
@@ -3706,11 +3552,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.07,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Penny stock in consumer cyclic sector, potential for pump activity."
     },
@@ -3721,11 +3563,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.0645,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Warrant in consumer cyclic sector, potential for pump activity."
     },
@@ -3736,11 +3574,7 @@
       "sector": "Industrials",
       "lastPrice": 0.335,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name related to AI, potential pump target."
     },
@@ -3751,11 +3585,7 @@
       "sector": "Industrials",
       "lastPrice": 0.17,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name, potential pump target."
     },
@@ -3766,11 +3596,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.0447,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Known pump target, low price."
     },
@@ -3781,11 +3607,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.12,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name related to crypto, potential pump target."
     },
@@ -3796,11 +3618,7 @@
       "sector": "Healthcare",
       "lastPrice": 0.1018,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name, potential pump target."
     },
@@ -3811,11 +3629,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 0.0287,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name related to EV, potential pump target."
     },
@@ -3826,11 +3640,7 @@
       "sector": "Technology",
       "lastPrice": 2.08,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name, potential pump target."
     },
@@ -3841,11 +3651,7 @@
       "sector": "Financial Services",
       "lastPrice": 2.16,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name, potential pump target."
     },
@@ -3856,11 +3662,7 @@
       "sector": "Technology",
       "lastPrice": 0.0749,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name, potential pump target."
     },
@@ -3871,11 +3673,7 @@
       "sector": "Consumer Cyclical",
       "lastPrice": 2.06,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name, potential pump target."
     },
@@ -3886,11 +3684,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.0689,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Warrant, potential pump target."
     },
@@ -3901,11 +3695,7 @@
       "sector": "Industrials",
       "lastPrice": 3.81,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Chinese shell company with potential pump characteristics."
     },
@@ -3916,11 +3706,7 @@
       "sector": "Consumer Defensive",
       "lastPrice": 0.1942,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Chinese shell company with potential pump characteristics."
     },
@@ -3931,11 +3717,7 @@
       "sector": "Technology",
       "lastPrice": 1.43,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name related to metaverse, potential pump target."
     },
@@ -3946,11 +3728,7 @@
       "sector": "Industrials",
       "lastPrice": 0.139,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "AI-related company, potential pump characteristics."
     },
@@ -3961,11 +3739,7 @@
       "sector": "Technology",
       "lastPrice": 0.2008,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Quantum technology buzzword, potential pump target."
     },
@@ -3976,11 +3750,7 @@
       "sector": "Technology",
       "lastPrice": 0.0073,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Buzzword name related to technology, potential pump target."
     },
@@ -3991,11 +3761,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.36659,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, known pump target characteristics."
     },
@@ -4006,11 +3772,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.4103,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, associated with a trendy sector, potential pump target."
     },
@@ -4021,11 +3783,7 @@
       "sector": "Financial Services",
       "lastPrice": 64.33,
       "totalScore": 5,
-      "signals": [
-        "MICRO_LIQUIDITY",
-        "OVERBOUGHT_RSI",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICRO_LIQUIDITY", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, high price indicates potential for pump activity."
     },
@@ -4036,11 +3794,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.58,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC rights, typical characteristics of pump targets."
     },
@@ -4051,11 +3805,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3599,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
     },
@@ -4066,11 +3816,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1757,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, typical characteristics of pump targets."
     },
@@ -4081,11 +3827,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.25,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC rights, known for pump characteristics."
     },
@@ -4096,11 +3838,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.28,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
     },
@@ -4111,11 +3849,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1999,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, typical characteristics of pump targets."
     },
@@ -4126,11 +3860,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2095,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC rights, typical characteristics of pump targets."
     },
@@ -4141,11 +3871,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1796,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
     },
@@ -4156,11 +3882,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1601,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, typical characteristics of pump targets."
     },
@@ -4171,11 +3893,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3711,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC rights, known for pump characteristics."
     },
@@ -4186,11 +3904,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.22,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
     },
@@ -4201,11 +3915,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.27,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, typical characteristics of pump targets."
     },
@@ -4216,11 +3926,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.16,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, typical characteristics of pump targets."
     },
@@ -4231,11 +3937,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.1154,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
     },
@@ -4246,11 +3948,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.7,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, known for pump characteristics."
     },
@@ -4261,11 +3959,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.3105,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
     },
@@ -4276,11 +3970,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.5101,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC rights, typical characteristics of pump targets."
     },
@@ -4291,11 +3981,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.135,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, known for pump characteristics."
     },
@@ -4306,11 +3992,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.14,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
     },
@@ -4321,11 +4003,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.63,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, typical characteristics of pump targets."
     },
@@ -4336,11 +4014,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.2713,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "SPAC, potential for pump activity due to acquisition focus."
     },
@@ -4351,11 +4025,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.0611,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Nano-cap with buzzword name, known pump target."
     },
@@ -4366,11 +4036,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.13,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Nano-cap with buzzword name, known pump target."
     },
@@ -4381,11 +4047,7 @@
       "sector": "Financial Services",
       "lastPrice": 0.185,
       "totalScore": 5,
-      "signals": [
-        "MICROCAP_PRICE",
-        "MICRO_LIQUIDITY",
-        "HIGH_VOLATILITY"
-      ],
+      "signals": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "HIGH_VOLATILITY"],
       "hasPumpSignal": false,
       "socialPumpReason": "Nano-cap with buzzword name, known pump target."
     }

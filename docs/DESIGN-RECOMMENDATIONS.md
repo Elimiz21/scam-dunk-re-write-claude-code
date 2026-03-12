@@ -8,6 +8,7 @@
 ## Current State Summary
 
 The app uses a solid foundation:
+
 - **shadcn/ui** components built on Radix UI primitives
 - **Tailwind CSS 3.4** for styling
 - HSL-based theming with dark mode support
@@ -26,11 +27,11 @@ The design is clean and functional but has opportunities for more polish and vis
 
 **Recommendation**: Introduce a distinctive accent color that represents "protection" or "security"
 
-| Option | Color | Hex | Rationale |
-|--------|-------|-----|-----------|
-| A (Recommended) | Electric Blue | `#3B82F6` | Trust, technology, security |
-| B | Emerald Green | `#10B981` | Safety, verification, "all clear" |
-| C | Purple | `#8B5CF6` | Premium, AI/tech-forward |
+| Option          | Color         | Hex       | Rationale                         |
+| --------------- | ------------- | --------- | --------------------------------- |
+| A (Recommended) | Electric Blue | `#3B82F6` | Trust, technology, security       |
+| B               | Emerald Green | `#10B981` | Safety, verification, "all clear" |
+| C               | Purple        | `#8B5CF6` | Premium, AI/tech-forward          |
 
 **Implementation**: Use as accent for CTAs, hover states, and the Shield icon
 
@@ -39,6 +40,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Plain Shield icon from Lucide
 
 **Recommendation**: Custom shield icon with a "dunk" motion or basketball hoop integration
+
 - Add subtle gradient
 - Consider animated version for loading states
 
@@ -50,7 +52,7 @@ The design is clean and functional but has opportunities for more polish and vis
 
 ```css
 /* Recommended: Inter for body, Plus Jakarta Sans for headings */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap");
 ```
 
 ---
@@ -62,6 +64,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Simple icon + text
 
 **Recommendation**:
+
 - Add subtle animated background (gradient mesh or particles)
 - Larger, bolder headline with gradient text effect
 - Add social proof ("10,000+ scans performed" or trust badges)
@@ -78,6 +81,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Basic cards with icons
 
 **Recommendation**:
+
 - Add hover lift effect with shadow
 - Gradient borders or backgrounds on hover
 - Micro-animations on icons
@@ -87,6 +91,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Functional but basic
 
 **Recommendation**:
+
 - Add glow effect when focused (like Vercel's search)
 - Animate the submit button on hover
 - Add placeholder animation cycling through example tickers
@@ -100,6 +105,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Badge with text
 
 **Recommendation**:
+
 - Add animated risk gauge/meter (semi-circle with needle)
 - Pulsing glow effect for HIGH risk
 - Confetti or checkmark animation for LOW risk
@@ -109,6 +115,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Grid of data points
 
 **Recommendation**:
+
 - Add sparkline mini-charts for price/volume
 - Use progress bars for percentage metrics
 - Add comparison indicators (↑ vs industry average)
@@ -118,6 +125,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: List with icons
 
 **Recommendation**:
+
 - Collapsible sections with smooth accordion
 - Color-coded severity levels
 - "Learn more" expandable explanations
@@ -131,6 +139,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: None
 
 **Recommendation**:
+
 - First-time user tooltip tour
 - Animated walkthrough of how the scan works
 - Sample result preview before requiring signup
@@ -140,6 +149,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Good stepper, but basic
 
 **Recommendation**:
+
 - Add skeleton loaders for the result card
 - More playful loading animations
 - Progress percentage indicator
@@ -149,6 +159,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Basic
 
 **Recommendation**:
+
 - Illustrated empty states for sidebar (no scans yet)
 - Encouraging copy with CTAs
 - Suggested actions
@@ -162,6 +173,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Good but could use more depth
 
 **Recommendation**:
+
 - Add elevated surfaces with subtle gradients
 - Use slightly warmer grays (reduce blue tint)
 - Add subtle glow effects on interactive elements
@@ -175,6 +187,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Scrollable page
 
 **Recommendation**:
+
 - Use swipeable bottom sheet for results on mobile
 - Sticky action buttons
 - Pull-to-refresh gesture
@@ -184,6 +197,7 @@ The design is clean and functional but has opportunities for more polish and vis
 **Current**: Basic
 
 **Recommendation**:
+
 - Add haptic feedback indicators (visual pulse on tap)
 - Larger touch targets (minimum 44px)
 - Swipe gestures for scan history
@@ -192,33 +206,36 @@ The design is clean and functional but has opportunities for more polish and vis
 
 ## 🚀 Quick Wins (Easy to Implement)
 
-| Priority | Change | Effort | File(s) to Modify |
-|----------|--------|--------|-------------------|
-| 1 | Add hover lift effect to cards | 5 min | `src/components/ui/card.tsx` |
-| 2 | Add gradient to hero headline | 10 min | `src/app/page.tsx` |
-| 3 | Add glow to focused input | 10 min | `src/components/ScanInput.tsx` |
-| 4 | Improve button hover states | 15 min | `src/components/ui/button.tsx` |
-| 5 | Add skeleton loaders | 30 min | New component |
-| 6 | Install Inter/Jakarta fonts | 15 min | `src/app/layout.tsx`, `tailwind.config.js` |
-| 7 | Add scan count social proof | 20 min | `src/app/page.tsx` |
+| Priority | Change                         | Effort | File(s) to Modify                          |
+| -------- | ------------------------------ | ------ | ------------------------------------------ |
+| 1        | Add hover lift effect to cards | 5 min  | `src/components/ui/card.tsx`               |
+| 2        | Add gradient to hero headline  | 10 min | `src/app/page.tsx`                         |
+| 3        | Add glow to focused input      | 10 min | `src/components/ScanInput.tsx`             |
+| 4        | Improve button hover states    | 15 min | `src/components/ui/button.tsx`             |
+| 5        | Add skeleton loaders           | 30 min | New component                              |
+| 6        | Install Inter/Jakarta fonts    | 15 min | `src/app/layout.tsx`, `tailwind.config.js` |
+| 7        | Add scan count social proof    | 20 min | `src/app/page.tsx`                         |
 
 ---
 
 ## Implementation Priority
 
 ### Phase 1: Quick Polish (1-2 hours)
+
 - Typography upgrade
 - Button/card hover states
 - Input glow effect
 - Hero gradient
 
 ### Phase 2: Visual Impact (3-4 hours)
+
 - Risk gauge visualization
 - Animated loading improvements
 - Feature card redesign
 - Custom brand color implementation
 
 ### Phase 3: UX Enhancement (4-6 hours)
+
 - Onboarding flow
 - Mobile bottom sheet
 - Empty states
@@ -232,11 +249,11 @@ The design is clean and functional but has opportunities for more polish and vis
 
 ```css
 :root {
-  --primary: 222.2 47.4% 11.2%;        /* Dark navy */
-  --secondary: 210 40% 96.1%;           /* Light gray */
-  --destructive: 0 84.2% 60.2%;         /* Red */
-  --border: 214.3 31.8% 91.4%;          /* Light border */
-  --radius: 0.75rem;                    /* 12px border radius */
+  --primary: 222.2 47.4% 11.2%; /* Dark navy */
+  --secondary: 210 40% 96.1%; /* Light gray */
+  --destructive: 0 84.2% 60.2%; /* Red */
+  --border: 214.3 31.8% 91.4%; /* Light border */
+  --radius: 0.75rem; /* 12px border radius */
 }
 ```
 
@@ -281,4 +298,4 @@ risk: {
 
 ---
 
-*Document created during design review session on January 4, 2026*
+_Document created during design review session on January 4, 2026_

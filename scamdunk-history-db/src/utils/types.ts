@@ -1,10 +1,10 @@
 // Types for ScamDunk History Database
 
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'INSUFFICIENT';
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT";
 
 export interface Signal {
   code: string;
-  category: 'STRUCTURAL' | 'PATTERN' | 'ALERT' | 'BEHAVIORAL';
+  category: "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL";
   weight: number;
   description: string;
 }
@@ -39,18 +39,24 @@ export interface EvaluationSummary {
     HIGH: number;
     INSUFFICIENT: number;
   };
-  byExchange: Record<string, {
-    total: number;
-    LOW: number;
-    MEDIUM: number;
-    HIGH: number;
-  }>;
-  bySector?: Record<string, {
-    total: number;
-    LOW: number;
-    MEDIUM: number;
-    HIGH: number;
-  }>;
+  byExchange: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+    }
+  >;
+  bySector?: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+    }
+  >;
   startTime?: string;
   endTime?: string;
   durationMinutes?: number;
@@ -132,17 +138,17 @@ export interface StockHistoryEntry {
 }
 
 export interface AlertType {
-  NEW_HIGH_RISK: 'NEW_HIGH_RISK';
-  RISK_INCREASED: 'RISK_INCREASED';
-  RISK_DECREASED: 'RISK_DECREASED';
-  PUMP_DETECTED: 'PUMP_DETECTED';
-  DUMP_DETECTED: 'DUMP_DETECTED';
+  NEW_HIGH_RISK: "NEW_HIGH_RISK";
+  RISK_INCREASED: "RISK_INCREASED";
+  RISK_DECREASED: "RISK_DECREASED";
+  PUMP_DETECTED: "PUMP_DETECTED";
+  DUMP_DETECTED: "DUMP_DETECTED";
 }
 
 export const ALERT_TYPES = {
-  NEW_HIGH_RISK: 'NEW_HIGH_RISK',
-  RISK_INCREASED: 'RISK_INCREASED',
-  RISK_DECREASED: 'RISK_DECREASED',
-  PUMP_DETECTED: 'PUMP_DETECTED',
-  DUMP_DETECTED: 'DUMP_DETECTED',
+  NEW_HIGH_RISK: "NEW_HIGH_RISK",
+  RISK_INCREASED: "RISK_INCREASED",
+  RISK_DECREASED: "RISK_DECREASED",
+  PUMP_DETECTED: "PUMP_DETECTED",
+  DUMP_DETECTED: "DUMP_DETECTED",
 } as const;

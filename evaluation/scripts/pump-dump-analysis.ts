@@ -4,11 +4,11 @@
  * Generates professional report with price movement analysis
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 const FMP_API_KEY = process.env.FMP_API_KEY;
-const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
+const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 
 interface StockAnalysis {
   symbol: string;
@@ -28,23 +28,38 @@ interface StockAnalysis {
 
 // Stocks from Grandmaster-Obi press release with approximate promotion dates
 const STOCKS_TO_ANALYZE = [
-  { symbol: 'ANPA', promotionDate: '2024-08-01', name: 'Aruna Bio Inc' },
-  { symbol: 'INBS', promotionDate: '2024-07-15', name: 'Intelligent Bio Solutions' },
-  { symbol: 'VTYX', promotionDate: '2024-06-01', name: 'Ventyx Biosciences' },
-  { symbol: 'NXTP', promotionDate: '2024-09-01', name: 'NextPlat Corp' },
-  { symbol: 'YGTY', promotionDate: '2024-08-15', name: 'YieldGenie Technology' },
-  { symbol: 'SVRE', promotionDate: '2024-07-01', name: 'SaverOne 2014 Ltd' },
-  { symbol: 'PXMD', promotionDate: '2024-08-20', name: 'PaxMedica Inc' },
-  { symbol: 'KRBP', promotionDate: '2024-06-15', name: 'Kiromic BioPharma' },
-  { symbol: 'DRUG', promotionDate: '2024-09-15', name: 'Bright Minds Biosciences' },
-  { symbol: 'NVNI', promotionDate: '2024-07-20', name: 'Nvni Group Ltd' },
+  { symbol: "ANPA", promotionDate: "2024-08-01", name: "Aruna Bio Inc" },
+  {
+    symbol: "INBS",
+    promotionDate: "2024-07-15",
+    name: "Intelligent Bio Solutions",
+  },
+  { symbol: "VTYX", promotionDate: "2024-06-01", name: "Ventyx Biosciences" },
+  { symbol: "NXTP", promotionDate: "2024-09-01", name: "NextPlat Corp" },
+  {
+    symbol: "YGTY",
+    promotionDate: "2024-08-15",
+    name: "YieldGenie Technology",
+  },
+  { symbol: "SVRE", promotionDate: "2024-07-01", name: "SaverOne 2014 Ltd" },
+  { symbol: "PXMD", promotionDate: "2024-08-20", name: "PaxMedica Inc" },
+  { symbol: "KRBP", promotionDate: "2024-06-15", name: "Kiromic BioPharma" },
+  {
+    symbol: "DRUG",
+    promotionDate: "2024-09-15",
+    name: "Bright Minds Biosciences",
+  },
+  { symbol: "NVNI", promotionDate: "2024-07-20", name: "Nvni Group Ltd" },
 ];
 
 async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchHistoricalPrices(symbol: string, from: string): Promise<any[]> {
+async function fetchHistoricalPrices(
+  symbol: string,
+  from: string,
+): Promise<any[]> {
   const url = `${FMP_BASE_URL}/historical-price-eod/full?symbol=${symbol}&from=${from}&apikey=${FMP_API_KEY}`;
 
   try {
@@ -78,7 +93,7 @@ function analyzeStock(
   symbol: string,
   promotionDate: string,
   historicalPrices: any[],
-  currentPrice: number | null
+  currentPrice: number | null,
 ): StockAnalysis | null {
   if (!historicalPrices || historicalPrices.length === 0) {
     console.log(`No historical data for ${symbol}`);
@@ -87,15 +102,16 @@ function analyzeStock(
 
   // Sort by date ascending
   const sorted = [...historicalPrices].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
   // Find promotion date price (or closest date after)
   const promoDateObj = new Date(promotionDate);
-  let promoIndex = sorted.findIndex(p => new Date(p.date) >= promoDateObj);
+  let promoIndex = sorted.findIndex((p) => new Date(p.date) >= promoDateObj);
   if (promoIndex === -1) promoIndex = 0;
 
-  const promotionPrice = sorted[promoIndex]?.close || sorted[promoIndex]?.adjClose || 0;
+  const promotionPrice =
+    sorted[promoIndex]?.close || sorted[promoIndex]?.adjClose || 0;
   const actualPromoDate = sorted[promoIndex]?.date || promotionDate;
 
   // Find peak after promotion
@@ -108,7 +124,7 @@ function analyzeStock(
       peakIndex = i;
     }
   }
-  const peakDate = sorted[peakIndex]?.date || '';
+  const peakDate = sorted[peakIndex]?.date || "";
   const daysToPeak = peakIndex - promoIndex;
 
   // Find trough after peak
@@ -121,15 +137,24 @@ function analyzeStock(
       troughIndex = i;
     }
   }
-  const troughDate = sorted[troughIndex]?.date || '';
+  const troughDate = sorted[troughIndex]?.date || "";
 
   // Calculate metrics
-  const gainToPeak = promotionPrice > 0 ? ((peakPrice - promotionPrice) / promotionPrice) * 100 : 0;
-  const peakToTroughDecline = peakPrice > 0 ? ((troughPrice - peakPrice) / peakPrice) * 100 : 0;
+  const gainToPeak =
+    promotionPrice > 0
+      ? ((peakPrice - promotionPrice) / promotionPrice) * 100
+      : 0;
+  const peakToTroughDecline =
+    peakPrice > 0 ? ((troughPrice - peakPrice) / peakPrice) * 100 : 0;
 
-  const finalCurrentPrice = currentPrice || sorted[sorted.length - 1]?.close || troughPrice;
-  const currentVsPeak = peakPrice > 0 ? ((finalCurrentPrice - peakPrice) / peakPrice) * 100 : 0;
-  const currentVsPromotion = promotionPrice > 0 ? ((finalCurrentPrice - promotionPrice) / promotionPrice) * 100 : 0;
+  const finalCurrentPrice =
+    currentPrice || sorted[sorted.length - 1]?.close || troughPrice;
+  const currentVsPeak =
+    peakPrice > 0 ? ((finalCurrentPrice - peakPrice) / peakPrice) * 100 : 0;
+  const currentVsPromotion =
+    promotionPrice > 0
+      ? ((finalCurrentPrice - promotionPrice) / promotionPrice) * 100
+      : 0;
 
   return {
     symbol,
@@ -148,17 +173,30 @@ function analyzeStock(
   };
 }
 
-function generateMarkdownReport(analyses: StockAnalysis[], stockInfo: typeof STOCKS_TO_ANALYZE): string {
-  const validAnalyses = analyses.filter(a => a !== null) as StockAnalysis[];
+function generateMarkdownReport(
+  analyses: StockAnalysis[],
+  stockInfo: typeof STOCKS_TO_ANALYZE,
+): string {
+  const validAnalyses = analyses.filter((a) => a !== null) as StockAnalysis[];
 
   // Calculate averages
-  const avgDaysToPeak = validAnalyses.reduce((sum, a) => sum + a.daysToPeak, 0) / validAnalyses.length;
-  const avgGainToPeak = validAnalyses.reduce((sum, a) => sum + a.gainToPeak, 0) / validAnalyses.length;
-  const avgDecline = validAnalyses.reduce((sum, a) => sum + a.peakToTroughDecline, 0) / validAnalyses.length;
-  const avgCurrentVsPeak = validAnalyses.reduce((sum, a) => sum + a.currentVsPeak, 0) / validAnalyses.length;
+  const avgDaysToPeak =
+    validAnalyses.reduce((sum, a) => sum + a.daysToPeak, 0) /
+    validAnalyses.length;
+  const avgGainToPeak =
+    validAnalyses.reduce((sum, a) => sum + a.gainToPeak, 0) /
+    validAnalyses.length;
+  const avgDecline =
+    validAnalyses.reduce((sum, a) => sum + a.peakToTroughDecline, 0) /
+    validAnalyses.length;
+  const avgCurrentVsPeak =
+    validAnalyses.reduce((sum, a) => sum + a.currentVsPeak, 0) /
+    validAnalyses.length;
 
   // Sort by decline (worst first)
-  const sortedByDecline = [...validAnalyses].sort((a, b) => a.peakToTroughDecline - b.peakToTroughDecline);
+  const sortedByDecline = [...validAnalyses].sort(
+    (a, b) => a.peakToTroughDecline - b.peakToTroughDecline,
+  );
 
   let report = `# Pump-and-Dump Scheme Analysis Report
 
@@ -190,7 +228,7 @@ For each stock, we analyzed:
 `;
 
   for (const analysis of validAnalyses) {
-    const info = stockInfo.find(s => s.symbol === analysis.symbol);
+    const info = stockInfo.find((s) => s.symbol === analysis.symbol);
     const companyName = info?.name || analysis.symbol;
 
     report += `### ${analysis.symbol} - ${companyName}
@@ -202,7 +240,7 @@ For each stock, we analyzed:
 | Peak Date | ${analysis.peakDate} |
 | Peak Price | $${analysis.peakPrice.toFixed(2)} |
 | Days to Peak | ${analysis.daysToPeak} |
-| Gain to Peak | ${analysis.gainToPeak >= 0 ? '+' : ''}${analysis.gainToPeak.toFixed(1)}% |
+| Gain to Peak | ${analysis.gainToPeak >= 0 ? "+" : ""}${analysis.gainToPeak.toFixed(1)}% |
 | Trough Date | ${analysis.troughDate} |
 | Trough Price | $${analysis.troughPrice.toFixed(2)} |
 | Peak to Trough Decline | ${analysis.peakToTroughDecline.toFixed(1)}% |
@@ -237,7 +275,7 @@ For each stock, we analyzed:
 `;
 
   for (const a of validAnalyses) {
-    report += `| ${a.symbol} | $${a.promotionPrice.toFixed(2)} | $${a.peakPrice.toFixed(2)} | ${a.gainToPeak >= 0 ? '+' : ''}${a.gainToPeak.toFixed(0)}% | $${a.troughPrice.toFixed(2)} | ${a.peakToTroughDecline.toFixed(0)}% | $${a.currentPrice.toFixed(2)} |\n`;
+    report += `| ${a.symbol} | $${a.promotionPrice.toFixed(2)} | $${a.peakPrice.toFixed(2)} | ${a.gainToPeak >= 0 ? "+" : ""}${a.gainToPeak.toFixed(0)}% | $${a.troughPrice.toFixed(2)} | ${a.peakToTroughDecline.toFixed(0)}% | $${a.currentPrice.toFixed(2)} |\n`;
   }
 
   report += `
@@ -256,7 +294,7 @@ Investors who purchased during the promotional hype suffered significant losses 
 
 ---
 
-*Report generated: ${new Date().toISOString().split('T')[0]}*
+*Report generated: ${new Date().toISOString().split("T")[0]}*
 *Data source: Financial Modeling Prep API*
 `;
 
@@ -265,14 +303,14 @@ Investors who purchased during the promotional hype suffered significant losses 
 
 async function main() {
   if (!FMP_API_KEY) {
-    console.error('FMP_API_KEY environment variable is required');
+    console.error("FMP_API_KEY environment variable is required");
     process.exit(1);
   }
 
-  console.log('='.repeat(60));
-  console.log('PUMP-AND-DUMP ANALYSIS: Grandmaster-Obi Scheme');
-  console.log('='.repeat(60));
-  console.log('');
+  console.log("=".repeat(60));
+  console.log("PUMP-AND-DUMP ANALYSIS: Grandmaster-Obi Scheme");
+  console.log("=".repeat(60));
+  console.log("");
 
   const analyses: (StockAnalysis | null)[] = [];
 
@@ -280,18 +318,32 @@ async function main() {
     console.log(`\nAnalyzing ${stock.symbol} (${stock.name})...`);
 
     // Fetch historical prices from promotion date
-    const historical = await fetchHistoricalPrices(stock.symbol, stock.promotionDate);
+    const historical = await fetchHistoricalPrices(
+      stock.symbol,
+      stock.promotionDate,
+    );
     console.log(`  Found ${historical.length} historical price records`);
 
     // Fetch current price
     const currentPrice = await fetchCurrentPrice(stock.symbol);
-    console.log(`  Current price: ${currentPrice ? '$' + currentPrice.toFixed(2) : 'N/A'}`);
+    console.log(
+      `  Current price: ${currentPrice ? "$" + currentPrice.toFixed(2) : "N/A"}`,
+    );
 
     // Analyze
-    const analysis = analyzeStock(stock.symbol, stock.promotionDate, historical, currentPrice);
+    const analysis = analyzeStock(
+      stock.symbol,
+      stock.promotionDate,
+      historical,
+      currentPrice,
+    );
     if (analysis) {
-      console.log(`  Peak: $${analysis.peakPrice.toFixed(2)} on ${analysis.peakDate} (+${analysis.gainToPeak.toFixed(1)}%)`);
-      console.log(`  Trough: $${analysis.troughPrice.toFixed(2)} (${analysis.peakToTroughDecline.toFixed(1)}% from peak)`);
+      console.log(
+        `  Peak: $${analysis.peakPrice.toFixed(2)} on ${analysis.peakDate} (+${analysis.gainToPeak.toFixed(1)}%)`,
+      );
+      console.log(
+        `  Trough: $${analysis.troughPrice.toFixed(2)} (${analysis.peakToTroughDecline.toFixed(1)}% from peak)`,
+      );
       analyses.push(analysis);
     } else {
       console.log(`  Could not analyze - insufficient data`);
@@ -301,33 +353,40 @@ async function main() {
     await sleep(500);
   }
 
-  console.log('\n' + '='.repeat(60));
-  console.log('Generating report...');
+  console.log("\n" + "=".repeat(60));
+  console.log("Generating report...");
 
   // Generate markdown report
   const report = generateMarkdownReport(analyses, STOCKS_TO_ANALYZE);
 
   // Save report
-  const resultsDir = path.join(__dirname, '..', 'results');
+  const resultsDir = path.join(__dirname, "..", "results");
   if (!fs.existsSync(resultsDir)) {
     fs.mkdirSync(resultsDir, { recursive: true });
   }
 
-  const reportPath = path.join(resultsDir, 'pump-dump-analysis-report.md');
+  const reportPath = path.join(resultsDir, "pump-dump-analysis-report.md");
   fs.writeFileSync(reportPath, report);
   console.log(`\nReport saved to: ${reportPath}`);
 
   // Also save JSON for programmatic use
-  const jsonPath = path.join(resultsDir, 'pump-dump-analysis-data.json');
-  fs.writeFileSync(jsonPath, JSON.stringify({
-    generatedAt: new Date().toISOString(),
-    stocks: STOCKS_TO_ANALYZE,
-    analyses: analyses.filter(a => a !== null),
-  }, null, 2));
+  const jsonPath = path.join(resultsDir, "pump-dump-analysis-data.json");
+  fs.writeFileSync(
+    jsonPath,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        stocks: STOCKS_TO_ANALYZE,
+        analyses: analyses.filter((a) => a !== null),
+      },
+      null,
+      2,
+    ),
+  );
   console.log(`JSON data saved to: ${jsonPath}`);
 
-  console.log('\n' + '='.repeat(60));
-  console.log('Analysis complete!');
+  console.log("\n" + "=".repeat(60));
+  console.log("Analysis complete!");
 }
 
 main().catch(console.error);

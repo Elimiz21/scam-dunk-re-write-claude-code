@@ -15,45 +15,53 @@
  */
 
 // Load environment variables from .env.local in project root
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-dotenv.config({ path: path.join(__dirname, '..', '..', '.env.local') });
+import * as dotenv from "dotenv";
+import * as path from "path";
+dotenv.config({ path: path.join(__dirname, "..", "..", ".env.local") });
 
-import * as fs from 'fs';
-import { execSync } from 'child_process';
-import { createClient } from '@supabase/supabase-js';
+import * as fs from "fs";
+import { execSync } from "child_process";
+import { createClient } from "@supabase/supabase-js";
 
-const RESULTS_DIR = path.join(__dirname, '..', 'results');
-const SCHEME_DB_DIR = path.join(__dirname, '..', 'scheme-database');
-const BUCKET_NAME = 'evaluation-data';
+const RESULTS_DIR = path.join(__dirname, "..", "results");
+const SCHEME_DB_DIR = path.join(__dirname, "..", "scheme-database");
+const BUCKET_NAME = "evaluation-data";
 
 // File patterns to upload (date-based files)
 const FILE_PATTERNS = [
-  { prefix: 'fmp-evaluation-', type: 'evaluation' },
-  { prefix: 'fmp-summary-', type: 'summary' },
-  { prefix: 'fmp-high-risk-', type: 'high-risk' },
-  { prefix: 'enhanced-evaluation-', type: 'evaluation' },
-  { prefix: 'enhanced-high-risk-', type: 'high-risk' },
-  { prefix: 'social-media-scan-', type: 'social-media' },
-  { prefix: 'promoted-stocks-', type: 'promoted' },
-  { prefix: 'daily-report-', type: 'report' },
-  { prefix: 'suspicious-stocks-', type: 'suspicious' },
-  { prefix: 'scheme-report-', type: 'scheme-report' },
+  { prefix: "fmp-evaluation-", type: "evaluation" },
+  { prefix: "fmp-summary-", type: "summary" },
+  { prefix: "fmp-high-risk-", type: "high-risk" },
+  { prefix: "enhanced-evaluation-", type: "evaluation" },
+  { prefix: "enhanced-high-risk-", type: "high-risk" },
+  { prefix: "social-media-scan-", type: "social-media" },
+  { prefix: "promoted-stocks-", type: "promoted" },
+  { prefix: "daily-report-", type: "report" },
+  { prefix: "suspicious-stocks-", type: "suspicious" },
+  { prefix: "scheme-report-", type: "scheme-report" },
 ];
 
 // Non-date-based files to always upload
 const STATIC_FILES = [
-  { path: path.join(SCHEME_DB_DIR, 'scheme-database.json'), name: 'scheme-database.json' },
-  { path: path.join(SCHEME_DB_DIR, 'promoter-database.json'), name: 'promoter-database.json' },
+  {
+    path: path.join(SCHEME_DB_DIR, "scheme-database.json"),
+    name: "scheme-database.json",
+  },
+  {
+    path: path.join(SCHEME_DB_DIR, "promoter-database.json"),
+    name: "promoter-database.json",
+  },
 ];
 
 function getSupabaseCredentials() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error(
-      'Missing Supabase credentials. Set NEXT_PUBLIC_SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY'
+      "Missing Supabase credentials. Set NEXT_PUBLIC_SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
     );
   }
 
@@ -67,7 +75,9 @@ function getSupabaseClient() {
 
 async function uploadFile(filePath: string, fileName: string) {
   const { supabaseUrl, supabaseKey } = getSupabaseCredentials();
-  const contentType = fileName.endsWith('.json') ? 'application/json' : 'text/markdown';
+  const contentType = fileName.endsWith(".json")
+    ? "application/json"
+    : "text/markdown";
 
   console.log(`  Uploading ${fileName}...`);
 
@@ -78,11 +88,11 @@ async function uploadFile(filePath: string, fileName: string) {
   try {
     const result = execSync(
       `curl -k -s -X POST "${uploadUrl}" ` +
-      `-H "Authorization: Bearer ${supabaseKey}" ` +
-      `-H "Content-Type: ${contentType}" ` +
-      `-H "x-upsert: true" ` +
-      `--data-binary @"${filePath}"`,
-      { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }
+        `-H "Authorization: Bearer ${supabaseKey}" ` +
+        `-H "Content-Type: ${contentType}" ` +
+        `-H "x-upsert: true" ` +
+        `--data-binary @"${filePath}"`,
+      { encoding: "utf-8", maxBuffer: 50 * 1024 * 1024 },
     );
 
     const response = JSON.parse(result);
@@ -92,7 +102,7 @@ async function uploadFile(filePath: string, fileName: string) {
 
     console.log(`  ✓ Uploaded ${fileName}`);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('JSON')) {
+    if (error instanceof Error && error.message.includes("JSON")) {
       // If JSON parse fails, check if it's a curl error
       throw new Error(`Failed to upload ${fileName}: Network or server error`);
     }
@@ -107,9 +117,9 @@ async function uploadDateFiles(date: string) {
 
   for (const pattern of FILE_PATTERNS) {
     // Try both .json and .md extensions
-    const extensions = ['social-media', 'scheme-report'].includes(pattern.type)
-      ? ['.md', '.json']
-      : ['.json'];
+    const extensions = ["social-media", "scheme-report"].includes(pattern.type)
+      ? [".md", ".json"]
+      : [".json"];
 
     for (const ext of extensions) {
       const fileName = `${pattern.prefix}${date}${ext}`;
@@ -135,7 +145,7 @@ async function uploadDateFiles(date: string) {
 
 async function listResultsFiles() {
   if (!fs.existsSync(RESULTS_DIR)) {
-    console.log('Results directory not found');
+    console.log("Results directory not found");
     return [];
   }
 
@@ -154,14 +164,14 @@ async function listResultsFiles() {
 }
 
 async function main() {
-  console.log('='.repeat(60));
-  console.log('SUPABASE UPLOAD UTILITY');
-  console.log('='.repeat(60));
+  console.log("=".repeat(60));
+  console.log("SUPABASE UPLOAD UTILITY");
+  console.log("=".repeat(60));
 
   const args = process.argv.slice(2);
   let datesToUpload: string[] = [];
 
-  if (args[0] === '--all') {
+  if (args[0] === "--all") {
     // Upload all available dates
     datesToUpload = await listResultsFiles();
     console.log(`Found ${datesToUpload.length} dates with evaluation files`);
@@ -170,7 +180,7 @@ async function main() {
     datesToUpload = [args[0]];
   } else {
     // Upload today's date
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     datesToUpload = [today];
   }
 
@@ -188,9 +198,9 @@ async function main() {
     }
   }
 
-  console.log('\n' + '='.repeat(60));
+  console.log("\n" + "=".repeat(60));
   console.log(`Upload complete: ${totalUploaded} files uploaded`);
-  console.log('='.repeat(60));
+  console.log("=".repeat(60));
 }
 
 // Export for use in other scripts

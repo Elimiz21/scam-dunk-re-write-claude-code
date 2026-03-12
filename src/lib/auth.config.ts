@@ -42,13 +42,13 @@ export const authConfig: NextAuthConfig = {
       const isWebhook = nextUrl.pathname === "/api/billing/paypal/webhook";
 
       const isProtectedRoute =
-        !isWebhook && (
-        nextUrl.pathname === "/check" ||
-        nextUrl.pathname.startsWith("/check/") ||
-        nextUrl.pathname.startsWith("/account") ||
-        nextUrl.pathname.startsWith("/api/check") ||
-        nextUrl.pathname.startsWith("/api/billing") ||
-        nextUrl.pathname.startsWith("/api/user"));
+        !isWebhook &&
+        (nextUrl.pathname === "/check" ||
+          nextUrl.pathname.startsWith("/check/") ||
+          nextUrl.pathname.startsWith("/account") ||
+          nextUrl.pathname.startsWith("/api/check") ||
+          nextUrl.pathname.startsWith("/api/billing") ||
+          nextUrl.pathname.startsWith("/api/user"));
 
       if (isProtectedRoute && !isLoggedIn) {
         const redirectUrl = new URL("/login", nextUrl.origin);

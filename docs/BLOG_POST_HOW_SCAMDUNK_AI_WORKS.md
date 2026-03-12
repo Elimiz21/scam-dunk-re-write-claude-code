@@ -1,6 +1,6 @@
 # How ScamDunk's AI Actually Works: A Look Under the Hood
 
-*Your stock tip might be a scam. Here's how our AI figures that out in seconds.*
+_Your stock tip might be a scam. Here's how our AI figures that out in seconds._
 
 ---
 
@@ -43,17 +43,20 @@ Think of ScamDunk as having four specialized "detectives" that each analyze your
 Our first layer uses hard-coded rules based on decades of SEC enforcement actions and academic research on market manipulation. Here's what it checks:
 
 #### Structural Red Flags
+
 - **Penny stock status**: Is the stock trading below $5? ⚠️
 - **Micro-cap vulnerability**: Is the market cap below $300 million? ⚠️
 - **Low liquidity**: Is daily trading volume below $150,000? ⚠️
 - **OTC/Pink Sheets listing**: More manipulation happens here than on major exchanges ⚠️
 
 #### Price Pattern Red Flags
+
 - **Abnormal spikes**: Did the price jump 50%+ in just 7 days? 🚨
 - **Volume explosions**: Is trading volume 5x or 10x the normal average? 🚨
 - **Pump-and-dump signature**: Price spiked 50%+, then crashed 40%+ within 15 days? 🚨
 
 #### Behavioral Red Flags (from the pitch text)
+
 When you paste in the message you received, our NLP engine scans for classic scammer language:
 
 - "**Guaranteed returns**" or "**can't lose**" — No legitimate investment guarantees returns
@@ -68,21 +71,25 @@ When you paste in the message you received, our NLP engine scans for classic sca
 Our second layer is all about finding anomalies—things that are statistically unusual enough to warrant concern.
 
 #### Z-Score Analysis
+
 We calculate how many "standard deviations" the current price and volume are from their typical values:
 
 - A Z-score of 2.5+ means the current behavior is more unusual than 99% of normal days
 - We check both short-term (7-day) and long-term (30-day) windows
 
 #### Keltner Channel Breakouts
+
 This technical indicator creates a "normal range" envelope around the price. When a stock breaks above or below this envelope, it's often a sign of unusual activity.
 
 #### Surge Detection
+
 We measure how dramatically volume and price have shifted:
 
 - **Volume Surge**: Is current week's volume 5x+ the previous month's average?
 - **Price Surge**: Did the stock move 25%+ in a week?
 
 #### Pattern Recognition
+
 Our statistician also looks for the classic "pump-and-dump shape"—a rapid rise followed by a crash:
 
 ```
@@ -105,6 +112,7 @@ Price
 Our third layer employs a Random Forest classifier—a type of machine learning algorithm that combines 100 decision trees to vote on whether a stock looks suspicious.
 
 The model considers 31 different features, including:
+
 - Price and volume Z-scores
 - Volatility metrics
 - Market cap and liquidity tiers
@@ -115,6 +123,7 @@ The model considers 31 different features, including:
 **How we train it:**
 
 We create thousands of synthetic examples that mimic known patterns:
+
 - **Scam examples**: High volatility, OTC listing, micro-cap, no news catalyst, pump patterns
 - **Normal examples**: Stable trading, major exchange, appropriate news coverage
 - **Edge cases**: Legitimate high-volatility events like earnings surprises
@@ -127,7 +136,7 @@ The model learns to distinguish between these patterns and applies that knowledg
 
 Our most sophisticated layer uses Long Short-Term Memory (LSTM) neural networks—the same type of AI used in speech recognition and natural language processing.
 
-Why LSTM? Because pump-and-dump schemes have a characteristic *sequence*:
+Why LSTM? Because pump-and-dump schemes have a characteristic _sequence_:
 
 1. Quiet accumulation (days 1-10)
 2. Pump phase with surging price and volume (days 11-20)
@@ -142,6 +151,7 @@ The LSTM learns to recognize this "signature" pattern by analyzing the last 30 d
 When all four layers complete their analysis, we combine their outputs:
 
 **Step 1: Combine ML predictions**
+
 - Random Forest gives a probability
 - LSTM gives a probability (if available)
 - We take the higher of the two or average them
@@ -150,22 +160,22 @@ When all four layers complete their analysis, we combine their outputs:
 
 This is where things get smart. We've built business logic that reflects real-world risk:
 
-| Condition | Automatic Boost |
-|-----------|-----------------|
-| SEC regulatory flag | Minimum 85% risk score |
+| Condition                        | Automatic Boost        |
+| -------------------------------- | ---------------------- |
+| SEC regulatory flag              | Minimum 85% risk score |
 | OTC + significant price movement | Minimum 45% risk score |
-| OTC + micro-cap | Minimum 50% risk score |
-| Severe pattern detected | Minimum 65% risk score |
-| OTC + severe pattern | Minimum 75% risk score |
-| 4+ risk factors combined | Minimum 80% risk score |
+| OTC + micro-cap                  | Minimum 50% risk score |
+| Severe pattern detected          | Minimum 65% risk score |
+| OTC + severe pattern             | Minimum 75% risk score |
+| 4+ risk factors combined         | Minimum 80% risk score |
 
 **Step 3: Classify the risk level**
 
 | Probability | Risk Level |
-|-------------|------------|
-| Below 25% | ✅ LOW |
-| 25% - 55% | ⚠️ MEDIUM |
-| Above 55% | 🚨 HIGH |
+| ----------- | ---------- |
+| Below 25%   | ✅ LOW     |
+| 25% - 55%   | ⚠️ MEDIUM  |
+| Above 55%   | 🚨 HIGH    |
 
 ---
 
@@ -174,10 +184,12 @@ This is where things get smart. We've built business logic that reflects real-wo
 Let's walk through a real example of how ScamDunk might analyze a suspicious tip:
 
 **Input:**
+
 - Ticker: `ABCD` (fictional OTC stock)
 - Pitch: "This stock is about to 10x. Insiders know about a merger announcement. Act now before it's too late. Don't tell anyone about this tip."
 
 **Layer 1 Detection:**
+
 - ⚠️ OTC Exchange: +3 points
 - ⚠️ Price < $5: +2 points
 - ⚠️ Market cap < $300M: +2 points
@@ -186,6 +198,7 @@ Let's walk through a real example of how ScamDunk might analyze a suspicious tip
 - 🚨 SPECIFIC_RETURN_CLAIM ("10x"): +1 point
 
 **Layer 2 Detection:**
+
 - 📊 Volume Z-score: 4.2 (highly unusual)
 - 📊 7-day price change: +87% (extreme)
 - 📊 Pump pattern detected ✓
@@ -195,11 +208,13 @@ Let's walk through a real example of how ScamDunk might analyze a suspicious tip
 **Layer 4 (LSTM):** 88% scam probability
 
 **Final Ensemble:**
+
 - Base probability: 92%
 - Contextual boost (OTC + pattern): Already above threshold
 - **Final Risk: 92% — HIGH RISK 🚨**
 
 **Generated Explanation:**
+
 > "CRITICAL: This stock shows multiple severe red flags. It's listed on OTC markets with a micro-cap valuation, making it highly vulnerable to manipulation. The pitch text contains classic scam language including insider information claims, urgency pressure, and specific return predictions. Price has surged 87% in 7 days with volume 8x above normal—a classic pump pattern. We strongly recommend extreme caution."
 
 ---
@@ -207,12 +222,15 @@ Let's walk through a real example of how ScamDunk might analyze a suspicious tip
 ## Why This Approach Works
 
 ### Multi-Angle Detection
+
 Scammers can evolve their tactics, but they can't change the fundamental nature of pump-and-dump schemes. By analyzing structural factors, statistical patterns, ML classification, and temporal sequences, we catch manipulation from multiple angles.
 
 ### Conservative by Design
+
 We'd rather warn you about a legitimate opportunity than let a scam slip through. Our threshold system is calibrated to err on the side of caution.
 
 ### Evolving Intelligence
+
 As new manipulation tactics emerge, we retrain our models and update our detection rules. The system learns and improves over time.
 
 ---
@@ -239,7 +257,7 @@ When your uncle, Discord server, or random email tells you about the next 10x op
 
 ---
 
-*Ready to check a stock tip? [Try ScamDunk free →](https://scamdunk.com)*
+_Ready to check a stock tip? [Try ScamDunk free →](https://scamdunk.com)_
 
 ---
 
@@ -259,4 +277,4 @@ A: Cryptocurrency support is on our roadmap.
 
 ---
 
-*Written by the ScamDunk Engineering Team | February 2026*
+_Written by the ScamDunk Engineering Team | February 2026_

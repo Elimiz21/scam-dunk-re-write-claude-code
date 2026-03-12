@@ -65,8 +65,8 @@ async function getAccessToken(): Promise<string> {
 export function isPayPalConfigured(): boolean {
   return Boolean(
     process.env.PAYPAL_CLIENT_ID &&
-      process.env.PAYPAL_CLIENT_SECRET &&
-      process.env.PAYPAL_PLAN_ID
+    process.env.PAYPAL_CLIENT_SECRET &&
+    process.env.PAYPAL_PLAN_ID,
   );
 }
 
@@ -87,7 +87,7 @@ export function getPayPalConfig() {
 export async function verifyWebhookSignature(
   webhookId: string,
   headers: Record<string, string>,
-  body: any
+  body: any,
 ): Promise<boolean> {
   try {
     const accessToken = await getAccessToken();
@@ -112,7 +112,7 @@ export async function verifyWebhookSignature(
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(verificationData),
-      }
+      },
     );
 
     await logApiUsage({
@@ -120,11 +120,16 @@ export async function verifyWebhookSignature(
       endpoint: "/v1/notifications/verify-webhook-signature",
       responseTime: Date.now() - startTime,
       statusCode: response.status,
-      errorMessage: response.ok ? undefined : "PayPal webhook verification failed",
+      errorMessage: response.ok
+        ? undefined
+        : "PayPal webhook verification failed",
     });
 
     if (!response.ok) {
-      console.error("PayPal webhook verification failed:", await response.text());
+      console.error(
+        "PayPal webhook verification failed:",
+        await response.text(),
+      );
       return false;
     }
 
@@ -152,7 +157,7 @@ export async function getSubscriptionDetails(subscriptionId: string) {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     await logApiUsage({
@@ -160,7 +165,9 @@ export async function getSubscriptionDetails(subscriptionId: string) {
       endpoint: "/v1/billing/subscriptions/{id}",
       responseTime: Date.now() - startTime,
       statusCode: response.status,
-      errorMessage: response.ok ? undefined : "Failed to get subscription details",
+      errorMessage: response.ok
+        ? undefined
+        : "Failed to get subscription details",
     });
 
     if (!response.ok) {
@@ -179,7 +186,7 @@ export async function getSubscriptionDetails(subscriptionId: string) {
  */
 export async function handleWebhook(
   headers: Record<string, string>,
-  body: any
+  body: any,
 ): Promise<{ success: boolean; error?: string }> {
   if (!isPayPalConfigured()) {
     return { success: false, error: "PayPal not configured" };
@@ -237,7 +244,9 @@ export async function handleWebhook(
             where: { id: user.id },
             data: { plan: "FREE", formerPro: true },
           });
-          console.log(`User ${user.id} downgraded to FREE plan (PayPal subscription ${eventType})`);
+          console.log(
+            `User ${user.id} downgraded to FREE plan (PayPal subscription ${eventType})`,
+          );
         }
         break;
       }
@@ -299,7 +308,7 @@ export async function handleWebhook(
 
         console.warn(
           `PayPal payment issue for user ${user?.id || "unknown"}: ${eventType}` +
-          ` (subscription: ${subscriptionId}). PayPal will retry automatically.`
+            ` (subscription: ${subscriptionId}). PayPal will retry automatically.`,
         );
         break;
       }
@@ -313,7 +322,8 @@ export async function handleWebhook(
     console.error("PayPal webhook error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Webhook processing failed",
+      error:
+        error instanceof Error ? error.message : "Webhook processing failed",
     };
   }
 }
@@ -324,13 +334,16 @@ export async function handleWebhook(
  */
 export async function activateSubscription(
   userId: string,
-  subscriptionId: string
+  subscriptionId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Get subscription details to verify it's active and belongs to user
     const subscription = await getSubscriptionDetails(subscriptionId);
 
-    if (subscription.status !== "ACTIVE" && subscription.status !== "APPROVED") {
+    if (
+      subscription.status !== "ACTIVE" &&
+      subscription.status !== "APPROVED"
+    ) {
       return {
         success: false,
         error: "Subscription is not active",
@@ -342,7 +355,8 @@ export async function activateSubscription(
       where: { id: userId },
       select: { email: true },
     });
-    const subscriberEmail = subscription.subscriber?.email_address?.toLowerCase();
+    const subscriberEmail =
+      subscription.subscriber?.email_address?.toLowerCase();
     const customId = subscription.custom_id;
     if (customId !== userId && subscriberEmail !== user?.email?.toLowerCase()) {
       return {
@@ -360,13 +374,18 @@ export async function activateSubscription(
       },
     });
 
-    console.log(`User ${userId} activated PayPal subscription ${subscriptionId}`);
+    console.log(
+      `User ${userId} activated PayPal subscription ${subscriptionId}`,
+    );
     return { success: true };
   } catch (error) {
     console.error("Error activating subscription:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to activate subscription",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to activate subscription",
     };
   }
 }
@@ -401,7 +420,7 @@ export async function getSubscriptionStatus(userId: string): Promise<{
  * Cancel a user's PayPal subscription
  */
 export async function cancelSubscription(
-  userId: string
+  userId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await prisma.user.findUnique({
@@ -433,7 +452,7 @@ export async function cancelSubscription(
           body: JSON.stringify({
             reason: "User requested cancellation from account settings",
           }),
-        }
+        },
       );
 
       await logApiUsage({
@@ -448,12 +467,19 @@ export async function cancelSubscription(
       if (response.status !== 204 && !response.ok) {
         const errorText = await response.text();
         console.error("PayPal cancel subscription failed:", errorText);
-        return { success: false, error: "Failed to cancel subscription with PayPal" };
+        return {
+          success: false,
+          error: "Failed to cancel subscription with PayPal",
+        };
       }
 
-      console.log(`User ${userId} cancelled PayPal subscription ${user.billingCustomerId}`);
+      console.log(
+        `User ${userId} cancelled PayPal subscription ${user.billingCustomerId}`,
+      );
     } else {
-      console.log(`User ${userId} cancelled manually-upgraded Pro plan (no PayPal subscription)`);
+      console.log(
+        `User ${userId} cancelled manually-upgraded Pro plan (no PayPal subscription)`,
+      );
     }
 
     // Update user to FREE plan and mark as former Pro
@@ -467,7 +493,10 @@ export async function cancelSubscription(
     console.error("Error cancelling subscription:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to cancel subscription",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to cancel subscription",
     };
   }
 }

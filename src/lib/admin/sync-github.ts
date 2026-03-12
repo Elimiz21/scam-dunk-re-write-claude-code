@@ -31,11 +31,11 @@ function githubHeaders(pat: string) {
 async function getRepoPublicKey(
   pat: string,
   owner: string,
-  repo: string
+  repo: string,
 ): Promise<{ key_id: string; key: string }> {
   const res = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/actions/secrets/public-key`,
-    { headers: githubHeaders(pat) }
+    { headers: githubHeaders(pat) },
   );
   if (!res.ok)
     throw new Error(`GitHub API error getting public key: ${res.status}`);
@@ -48,12 +48,12 @@ async function getRepoPublicKey(
  */
 async function encryptSecret(
   value: string,
-  publicKeyB64: string
+  publicKeyB64: string,
 ): Promise<string> {
   await sodium.ready;
   const keyBytes = sodium.from_base64(
     publicKeyB64,
-    sodium.base64_variants.ORIGINAL
+    sodium.base64_variants.ORIGINAL,
   );
   const messageBytes = sodium.from_string(value);
   const encrypted = sodium.crypto_box_seal(messageBytes, keyBytes);
@@ -64,7 +64,7 @@ async function encryptSecret(
  * Push secrets to GitHub Actions. Creates or updates each secret.
  */
 export async function syncToGitHub(
-  envVars: Record<string, string>
+  envVars: Record<string, string>,
 ): Promise<SyncResult> {
   const cfg = getGitHubConfig();
   if (!cfg) {
@@ -83,7 +83,7 @@ export async function syncToGitHub(
     const { key_id, key } = await getRepoPublicKey(
       cfg.pat,
       cfg.owner,
-      cfg.repo
+      cfg.repo,
     );
 
     for (const [secretName, value] of Object.entries(envVars)) {
@@ -95,19 +95,19 @@ export async function syncToGitHub(
             method: "PUT",
             headers: githubHeaders(cfg.pat),
             body: JSON.stringify({ encrypted_value: encrypted, key_id }),
-          }
+          },
         );
         if (res.ok || res.status === 201 || res.status === 204) {
           updated.push(secretName);
         } else {
           const err = await res.json().catch(() => ({}));
           errors.push(
-            `${secretName}: ${(err as Record<string, string>).message || res.status}`
+            `${secretName}: ${(err as Record<string, string>).message || res.status}`,
           );
         }
       } catch (e) {
         errors.push(
-          `${secretName}: ${e instanceof Error ? e.message : "Unknown error"}`
+          `${secretName}: ${e instanceof Error ? e.message : "Unknown error"}`,
         );
       }
     }
@@ -135,7 +135,7 @@ export async function syncToGitHub(
  * Remove secrets from GitHub Actions by name.
  */
 export async function removeFromGitHub(
-  secretNames: string[]
+  secretNames: string[],
 ): Promise<SyncResult> {
   const cfg = getGitHubConfig();
   if (!cfg) {
@@ -154,7 +154,7 @@ export async function removeFromGitHub(
     try {
       const res = await fetch(
         `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/secrets/${name}`,
-        { method: "DELETE", headers: githubHeaders(cfg.pat) }
+        { method: "DELETE", headers: githubHeaders(cfg.pat) },
       );
       if (res.ok || res.status === 204) {
         updated.push(name);
@@ -163,7 +163,7 @@ export async function removeFromGitHub(
       }
     } catch (e) {
       errors.push(
-        `${name}: ${e instanceof Error ? e.message : "Unknown error"}`
+        `${name}: ${e instanceof Error ? e.message : "Unknown error"}`,
       );
     }
   }

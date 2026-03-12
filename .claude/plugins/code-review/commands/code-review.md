@@ -6,6 +6,7 @@ description: Code review a pull request
 Provide a code review for the given pull request.
 
 **Agent assumptions (applies to all agents and subagents):**
+
 - All tools are functional and will work without error. Do not test tools or make exploratory calls. Make sure this is clear to every subagent that is launched.
 - Only call a tool if it is required to complete the task. Every tool call should have a clear purpose.
 

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!generationId || !Array.isArray(messages)) {
       return NextResponse.json(
         { error: "generationId and messages array are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (!generation) {
       return NextResponse.json(
         { error: "Generation not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
               headline: m.headline,
               subtext: m.subtext,
               reason: m.reason || "Not specified",
-            }))
+            })),
           ),
           feedbackNotes: feedbackNotes || null,
         },
@@ -110,17 +110,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the action (non-critical)
-    prisma.adminAuditLog.create({
-      data: {
-        adminUserId: session.id,
-        action: "SCAN_MESSAGES_REVIEWED",
-        resource: generationId,
-        details: JSON.stringify({
-          accepted: acceptedMessages.length,
-          rejected: rejectedMessages.length,
-        }),
-      },
-    }).catch(() => {});
+    prisma.adminAuditLog
+      .create({
+        data: {
+          adminUserId: session.id,
+          action: "SCAN_MESSAGES_REVIEWED",
+          resource: generationId,
+          details: JSON.stringify({
+            accepted: acceptedMessages.length,
+            rejected: rejectedMessages.length,
+          }),
+        },
+      })
+      .catch(() => {});
 
     return NextResponse.json({
       success: true,
@@ -132,7 +134,7 @@ export async function POST(request: NextRequest) {
     console.error("Review scan messages error:", error);
     return NextResponse.json(
       { error: "Failed to review scan messages" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -33,7 +33,7 @@ interface RiskCardProps {
 }
 
 function getRiskBadgeVariant(
-  level: RiskLevel
+  level: RiskLevel,
 ): "low" | "medium" | "high" | "insufficient" {
   switch (level) {
     case "LOW":
@@ -124,7 +124,10 @@ const TECHNICAL_TERM_PATTERNS = [
   { pattern: /OTC/i, glossary: STRUCTURAL_SIGNAL_TERMS.otcMarket },
   { pattern: /over-the-counter/i, glossary: STRUCTURAL_SIGNAL_TERMS.otcMarket },
   { pattern: /price spike/i, glossary: PATTERN_SIGNAL_TERMS.priceSpike },
-  { pattern: /volume explosion/i, glossary: PATTERN_SIGNAL_TERMS.volumeExplosion },
+  {
+    pattern: /volume explosion/i,
+    glossary: PATTERN_SIGNAL_TERMS.volumeExplosion,
+  },
   { pattern: /pump.?and.?dump/i, glossary: PATTERN_SIGNAL_TERMS.pumpAndDump },
   { pattern: /pump pattern/i, glossary: PATTERN_SIGNAL_TERMS.pumpAndDump },
   { pattern: /spike.+drop/i, glossary: PATTERN_SIGNAL_TERMS.spikeThenDrop },
@@ -136,17 +139,34 @@ const TECHNICAL_TERM_PATTERNS = [
   { pattern: /extreme surge/i, glossary: ANOMALY_SIGNAL_TERMS.extremeSurge },
   { pattern: /statistically/i, glossary: ANOMALY_SIGNAL_TERMS.zScore },
   { pattern: /unsolicited/i, glossary: BEHAVIORAL_SIGNAL_TERMS.unsolicited },
-  { pattern: /guaranteed return/i, glossary: BEHAVIORAL_SIGNAL_TERMS.promisedReturns },
-  { pattern: /promise.+return/i, glossary: BEHAVIORAL_SIGNAL_TERMS.promisedReturns },
+  {
+    pattern: /guaranteed return/i,
+    glossary: BEHAVIORAL_SIGNAL_TERMS.promisedReturns,
+  },
+  {
+    pattern: /promise.+return/i,
+    glossary: BEHAVIORAL_SIGNAL_TERMS.promisedReturns,
+  },
   { pattern: /urgency/i, glossary: BEHAVIORAL_SIGNAL_TERMS.urgencyPressure },
-  { pattern: /time pressure/i, glossary: BEHAVIORAL_SIGNAL_TERMS.urgencyPressure },
+  {
+    pattern: /time pressure/i,
+    glossary: BEHAVIORAL_SIGNAL_TERMS.urgencyPressure,
+  },
   { pattern: /insider/i, glossary: BEHAVIORAL_SIGNAL_TERMS.secrecyInsider },
   { pattern: /secret/i, glossary: BEHAVIORAL_SIGNAL_TERMS.secrecyInsider },
-  { pattern: /specific.+return/i, glossary: BEHAVIORAL_SIGNAL_TERMS.specificReturnClaim },
-  { pattern: /percentage gain/i, glossary: BEHAVIORAL_SIGNAL_TERMS.specificReturnClaim },
+  {
+    pattern: /specific.+return/i,
+    glossary: BEHAVIORAL_SIGNAL_TERMS.specificReturnClaim,
+  },
+  {
+    pattern: /percentage gain/i,
+    glossary: BEHAVIORAL_SIGNAL_TERMS.specificReturnClaim,
+  },
 ];
 
-function findTechnicalTerm(text: string): { term: string; definition: string } | null {
+function findTechnicalTerm(
+  text: string,
+): { term: string; definition: string } | null {
   for (const { pattern, glossary } of TECHNICAL_TERM_PATTERNS) {
     if (pattern.test(text)) {
       return { term: glossary.term, definition: glossary.definition };
@@ -173,7 +193,11 @@ function FlagItem({
     blue: "text-primary",
   };
 
-  const IconComponent = isPositive ? CheckCircle : iconColor === "red" ? AlertCircle : AlertTriangle;
+  const IconComponent = isPositive
+    ? CheckCircle
+    : iconColor === "red"
+      ? AlertCircle
+      : AlertTriangle;
 
   return (
     <li className="flex items-start gap-2.5 text-sm text-muted-foreground leading-relaxed">
@@ -183,14 +207,20 @@ function FlagItem({
       <span className="inline-flex items-start flex-wrap">
         {flag}
         {technicalTerm && (
-          <InfoTooltip term={technicalTerm.term} definition={technicalTerm.definition} />
+          <InfoTooltip
+            term={technicalTerm.term}
+            definition={technicalTerm.definition}
+          />
         )}
       </span>
     </li>
   );
 }
 
-function buildRiskFactorSummary(signals: RiskSignal[], riskLevel: RiskLevel): string {
+function buildRiskFactorSummary(
+  signals: RiskSignal[],
+  riskLevel: RiskLevel,
+): string {
   if (signals.length === 0) return "";
 
   // Sort by weight (most significant first)
@@ -198,10 +228,13 @@ function buildRiskFactorSummary(signals: RiskSignal[], riskLevel: RiskLevel): st
   const topSignals = sorted.slice(0, 3);
 
   const categoryLabels: Record<string, string> = {
-    STRUCTURAL: "how the stock is structured (exchange type, company size, trading volume)",
-    PATTERN: "unusual trading activity (price spikes, volume surges, or pump-and-dump patterns)",
+    STRUCTURAL:
+      "how the stock is structured (exchange type, company size, trading volume)",
+    PATTERN:
+      "unusual trading activity (price spikes, volume surges, or pump-and-dump patterns)",
     ALERT: "regulatory warnings or alerts from agencies like the SEC",
-    BEHAVIORAL: "the language and tactics used in the pitch or message you shared",
+    BEHAVIORAL:
+      "the language and tactics used in the pitch or message you shared",
   };
 
   // Count signals by category
@@ -214,11 +247,13 @@ function buildRiskFactorSummary(signals: RiskSignal[], riskLevel: RiskLevel): st
 
   if (riskLevel === "LOW") {
     if (signals.length === 0) {
-      parts.push("We didn't find any red flags across the areas we checked. This stock looks clean based on publicly available data.");
+      parts.push(
+        "We didn't find any red flags across the areas we checked. This stock looks clean based on publicly available data.",
+      );
     } else {
       parts.push(
         `We found only ${signals.length} minor concern${signals.length > 1 ? "s" : ""} — nothing that stands out as a serious warning sign. ` +
-        `${topSignals[0].description}`
+          `${topSignals[0].description}`,
       );
     }
   } else if (riskLevel === "MEDIUM") {
@@ -230,7 +265,9 @@ function buildRiskFactorSummary(signals: RiskSignal[], riskLevel: RiskLevel): st
       .filter(([, count]) => count > 0)
       .map(([cat]) => categoryLabels[cat] || cat.toLowerCase());
     if (cats.length > 1) {
-      parts.push(`These warning signs come from multiple areas, including ${cats.join(" and ")}.`);
+      parts.push(
+        `These warning signs come from multiple areas, including ${cats.join(" and ")}.`,
+      );
     }
   } else {
     // HIGH or INSUFFICIENT
@@ -242,7 +279,9 @@ function buildRiskFactorSummary(signals: RiskSignal[], riskLevel: RiskLevel): st
       .filter(([, count]) => count > 0)
       .map(([cat]) => categoryLabels[cat] || cat.toLowerCase());
     if (cats.length > 1) {
-      parts.push(`Red flags were detected across ${cats.join(" and ")} — this combination increases the overall concern.`);
+      parts.push(
+        `Red flags were detected across ${cats.join(" and ")} — this combination increases the overall concern.`,
+      );
     }
   }
 
@@ -254,7 +293,9 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   const riskFactorSummary = buildRiskFactorSummary(signals, riskLevel);
 
   return (
-    <Card className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}>
+    <Card
+      className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}
+    >
       {/* Header with Risk Level */}
       <CardHeader className="pb-3">
         {/* Top row: badge + score on left, ticker + company on right */}
@@ -265,7 +306,8 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
               {riskLevel} RISK
             </Badge>
             <span className="text-sm text-muted-foreground inline-flex items-center gap-1 font-medium">
-              Score: <span className="font-bold text-foreground">{totalScore}</span>
+              Score:{" "}
+              <span className="font-bold text-foreground">{totalScore}</span>
               <InfoTooltip
                 term={RISK_LEVEL_TERMS.riskScore.term}
                 definition={RISK_LEVEL_TERMS.riskScore.definition}
@@ -282,7 +324,9 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
           </div>
         </div>
         {/* Narrative summary — full width, risk-accented, sits between header row and content */}
-        <div className={`border-l-[3px] rounded-md pl-3 py-2 mt-3 space-y-1 ${getRiskNarrativeClass(riskLevel)}`}>
+        <div
+          className={`border-l-[3px] rounded-md pl-3 py-2 mt-3 space-y-1 ${getRiskNarrativeClass(riskLevel)}`}
+        >
           <p className="text-sm font-medium leading-relaxed text-foreground/85">
             {narrative.header}
           </p>
@@ -305,7 +349,9 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
                 definition={STOCK_SUMMARY_TERMS.exchange.definition}
               />
             </p>
-            <p className="font-semibold text-sm">{stockSummary.exchange || "N/A"}</p>
+            <p className="font-semibold text-sm">
+              {stockSummary.exchange || "N/A"}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground font-medium inline-flex items-center gap-0.5 mb-1">
@@ -362,9 +408,10 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
             </h3>
             <ul className="space-y-2 ml-9">
               {narrative.stockRedFlags.map((flag, index) => {
-                const isPositive = flag.toLowerCase().includes("no concerning") ||
-                                   flag.toLowerCase().includes("no red flags") ||
-                                   flag.toLowerCase().includes("no signals");
+                const isPositive =
+                  flag.toLowerCase().includes("no concerning") ||
+                  flag.toLowerCase().includes("no red flags") ||
+                  flag.toLowerCase().includes("no signals");
                 return (
                   <FlagItem
                     key={index}
@@ -389,9 +436,10 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
             </h3>
             <ul className="space-y-2 ml-9">
               {narrative.behaviorRedFlags.map((flag, index) => {
-                const isPositive = flag.toLowerCase().includes("no behavioral") ||
-                                   flag.toLowerCase().includes("no red flags") ||
-                                   flag.toLowerCase().includes("no concerning");
+                const isPositive =
+                  flag.toLowerCase().includes("no behavioral") ||
+                  flag.toLowerCase().includes("no red flags") ||
+                  flag.toLowerCase().includes("no concerning");
                 return (
                   <FlagItem
                     key={index}
@@ -414,15 +462,20 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
                 <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0">
                   <Users className="h-3.5 w-3.5 text-orange-500" />
                 </div>
-                <span className="text-orange-700 dark:text-orange-400">Pitch & Behavior Patterns</span>
+                <span className="text-orange-700 dark:text-orange-400">
+                  Pitch & Behavior Patterns
+                </span>
               </h3>
               <div className="ml-9 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-300 dark:border-orange-800">
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-orange-800 dark:text-orange-200 leading-relaxed">
-                    <span className="font-semibold">Not analyzed.</span> No pitch text, red flags, or behavioral context was provided for this scan.
-                    Without this information, we cannot evaluate the language or tactics used to promote this investment.
-                    To get a pitch analysis, scan again and describe the tip you received or paste the message.
+                    <span className="font-semibold">Not analyzed.</span> No
+                    pitch text, red flags, or behavioral context was provided
+                    for this scan. Without this information, we cannot evaluate
+                    the language or tactics used to promote this investment. To
+                    get a pitch analysis, scan again and describe the tip you
+                    received or paste the message.
                   </p>
                 </div>
               </div>
@@ -434,16 +487,20 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
                 <div className="h-7 w-7 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0">
                   <MessageSquareOff className="h-3.5 w-3.5 text-orange-500" />
                 </div>
-                <span className="text-orange-700 dark:text-orange-400">Social & Promotion Analysis</span>
+                <span className="text-orange-700 dark:text-orange-400">
+                  Social & Promotion Analysis
+                </span>
               </h3>
               <div className="ml-9 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-300 dark:border-orange-800">
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-orange-800 dark:text-orange-200 leading-relaxed">
-                    <span className="font-semibold">Not analyzed.</span> No chat history, messages, or screenshots were uploaded.
-                    Without this data, we cannot detect social behavior patterns such as unsolicited promotion,
-                    urgency tactics, or manipulative language. For a more complete analysis, scan again with
-                    any suspicious messages or screenshots attached.
+                    <span className="font-semibold">Not analyzed.</span> No chat
+                    history, messages, or screenshots were uploaded. Without
+                    this data, we cannot detect social behavior patterns such as
+                    unsolicited promotion, urgency tactics, or manipulative
+                    language. For a more complete analysis, scan again with any
+                    suspicious messages or screenshots attached.
                   </p>
                 </div>
               </div>

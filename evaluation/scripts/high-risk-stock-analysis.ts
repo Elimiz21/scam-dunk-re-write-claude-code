@@ -6,11 +6,11 @@
  * Stocks from January 2026 ScamDunk Press Release
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 const FMP_API_KEY = process.env.FMP_API_KEY;
-const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
+const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 
 interface StockConfig {
   symbol: string;
@@ -47,155 +47,158 @@ interface StockAnalysis {
   riskScore: number;
   sector: string;
   industry: string;
-  day1Outcome: 'GAIN' | 'LOSS' | 'BREAK-EVEN';
+  day1Outcome: "GAIN" | "LOSS" | "BREAK-EVEN";
 }
 
 // All 15 HIGH-risk stocks from January 2026 ScamDunk Press Release
 const STOCKS_TO_ANALYZE: StockConfig[] = [
   // 10 Confirmed Promoted Stocks
   {
-    symbol: 'LVRO',
-    name: 'Lavoro Limited',
-    promotionDate: '2025-12-31',
+    symbol: "LVRO",
+    name: "Lavoro Limited",
+    promotionDate: "2025-12-31",
     promotionPrice: 0.18,
     riskScore: 14,
-    sector: 'Basic Materials',
-    industry: 'Agricultural Inputs'
+    sector: "Basic Materials",
+    industry: "Agricultural Inputs",
   },
   {
-    symbol: 'SIDU',
-    name: 'Sidus Space, Inc.',
-    promotionDate: '2025-12-31',
-    promotionPrice: 0.90,
+    symbol: "SIDU",
+    name: "Sidus Space, Inc.",
+    promotionDate: "2025-12-31",
+    promotionPrice: 0.9,
     riskScore: 13,
-    sector: 'Industrials',
-    industry: 'Aerospace & Defense'
+    sector: "Industrials",
+    industry: "Aerospace & Defense",
   },
   {
-    symbol: 'ANPA',
-    name: 'Rich Sparkle Holdings Limited',
-    promotionDate: '2026-01-07',
-    promotionPrice: 24.40,
+    symbol: "ANPA",
+    name: "Rich Sparkle Holdings Limited",
+    promotionDate: "2026-01-07",
+    promotionPrice: 24.4,
     riskScore: 9,
-    sector: 'Industrials',
-    industry: 'Specialty Business Services'
+    sector: "Industrials",
+    industry: "Specialty Business Services",
   },
   {
-    symbol: 'MRNO',
-    name: 'Murano Global Investments PLC',
-    promotionDate: '2025-12-31',
+    symbol: "MRNO",
+    name: "Murano Global Investments PLC",
+    promotionDate: "2025-12-31",
     promotionPrice: 0.55,
     riskScore: 12,
-    sector: 'Real Estate',
-    industry: 'Real Estate - Development'
+    sector: "Real Estate",
+    industry: "Real Estate - Development",
   },
   {
-    symbol: 'UAVS',
-    name: 'AgEagle Aerial Systems, Inc.',
-    promotionDate: '2025-12-31',
+    symbol: "UAVS",
+    name: "AgEagle Aerial Systems, Inc.",
+    promotionDate: "2025-12-31",
     promotionPrice: null, // Will calculate
     riskScore: 12,
-    sector: 'Technology',
-    industry: 'Computer Hardware'
+    sector: "Technology",
+    industry: "Computer Hardware",
   },
   {
-    symbol: 'INBS',
-    name: 'Intelligent Bio Solutions Inc.',
-    promotionDate: '2025-12-31',
-    promotionPrice: 6.90,
+    symbol: "INBS",
+    name: "Intelligent Bio Solutions Inc.",
+    promotionDate: "2025-12-31",
+    promotionPrice: 6.9,
     riskScore: 10,
-    sector: 'Healthcare',
-    industry: 'Medical - Diagnostics & Research'
+    sector: "Healthcare",
+    industry: "Medical - Diagnostics & Research",
   },
   {
-    symbol: 'GPUS',
-    name: 'Hyperscale Data, Inc.',
-    promotionDate: '2026-01-02',
+    symbol: "GPUS",
+    name: "Hyperscale Data, Inc.",
+    promotionDate: "2026-01-02",
     promotionPrice: 0.25,
     riskScore: 11,
-    sector: 'Industrials',
-    industry: 'Aerospace & Defense'
+    sector: "Industrials",
+    industry: "Aerospace & Defense",
   },
   {
-    symbol: 'MNTS',
-    name: 'Momentus Inc.',
-    promotionDate: '2025-12-31',
+    symbol: "MNTS",
+    name: "Momentus Inc.",
+    promotionDate: "2025-12-31",
     promotionPrice: 7.12,
     riskScore: 12,
-    sector: 'Industrials',
-    industry: 'Aerospace & Defense'
+    sector: "Industrials",
+    industry: "Aerospace & Defense",
   },
   {
-    symbol: 'VTYX',
-    name: 'Ventyx Biosciences, Inc.',
-    promotionDate: '2025-12-31',
+    symbol: "VTYX",
+    name: "Ventyx Biosciences, Inc.",
+    promotionDate: "2025-12-31",
     promotionPrice: null, // Will calculate
     riskScore: 12,
-    sector: 'Healthcare',
-    industry: 'Biotechnology'
+    sector: "Healthcare",
+    industry: "Biotechnology",
   },
   {
-    symbol: 'DVLT',
-    name: 'Datavault AI Inc.',
-    promotionDate: '2025-12-31',
+    symbol: "DVLT",
+    name: "Datavault AI Inc.",
+    promotionDate: "2025-12-31",
     promotionPrice: 0.62,
     riskScore: 12,
-    sector: 'Technology',
-    industry: 'Information Technology Services'
+    sector: "Technology",
+    industry: "Information Technology Services",
   },
   // 5 Additional Active Pump Phase Stocks
   {
-    symbol: 'DRTSW',
-    name: 'DermTech Inc Warrants',
-    promotionDate: '2025-12-31',
+    symbol: "DRTSW",
+    name: "DermTech Inc Warrants",
+    promotionDate: "2025-12-31",
     promotionPrice: null,
     riskScore: 15,
-    sector: 'Healthcare',
-    industry: 'Diagnostics & Research'
+    sector: "Healthcare",
+    industry: "Diagnostics & Research",
   },
   {
-    symbol: 'RVMDW',
-    name: 'Revolution Medicines Warrants',
-    promotionDate: '2025-12-31',
+    symbol: "RVMDW",
+    name: "Revolution Medicines Warrants",
+    promotionDate: "2025-12-31",
     promotionPrice: null,
     riskScore: 13,
-    sector: 'Healthcare',
-    industry: 'Biotechnology'
+    sector: "Healthcare",
+    industry: "Biotechnology",
   },
   {
-    symbol: 'VLN',
-    name: 'Valens Semiconductor Ltd.',
-    promotionDate: '2025-12-31',
+    symbol: "VLN",
+    name: "Valens Semiconductor Ltd.",
+    promotionDate: "2025-12-31",
     promotionPrice: null,
     riskScore: 13,
-    sector: 'Technology',
-    industry: 'Semiconductors'
+    sector: "Technology",
+    industry: "Semiconductors",
   },
   {
-    symbol: 'JCSE',
-    name: 'JE Cleantech Holdings Limited',
-    promotionDate: '2025-12-31',
+    symbol: "JCSE",
+    name: "JE Cleantech Holdings Limited",
+    promotionDate: "2025-12-31",
     promotionPrice: null,
     riskScore: 13,
-    sector: 'Industrials',
-    industry: 'Waste Management'
+    sector: "Industrials",
+    industry: "Waste Management",
   },
   {
-    symbol: 'OPAD',
-    name: 'Offerpad Solutions Inc.',
-    promotionDate: '2025-12-31',
+    symbol: "OPAD",
+    name: "Offerpad Solutions Inc.",
+    promotionDate: "2025-12-31",
     promotionPrice: null,
     riskScore: 12,
-    sector: 'Real Estate',
-    industry: 'Real Estate Services'
+    sector: "Real Estate",
+    industry: "Real Estate Services",
   },
 ];
 
 async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchHistoricalPrices(symbol: string, from: string): Promise<any[]> {
+async function fetchHistoricalPrices(
+  symbol: string,
+  from: string,
+): Promise<any[]> {
   const url = `${FMP_BASE_URL}/historical-price-eod/full?symbol=${symbol}&from=${from}&apikey=${FMP_API_KEY}`;
 
   try {
@@ -235,7 +238,7 @@ async function fetchCurrentQuote(symbol: string): Promise<any | null> {
 function analyzeStock(
   config: StockConfig,
   historicalPrices: any[],
-  currentQuote: any | null
+  currentQuote: any | null,
 ): StockAnalysis | null {
   if (!historicalPrices || historicalPrices.length === 0) {
     console.log(`  No historical data available`);
@@ -244,7 +247,7 @@ function analyzeStock(
 
   // Sort by date ascending
   const sorted = [...historicalPrices].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
   const promoDateObj = new Date(config.promotionDate);
@@ -253,12 +256,13 @@ function analyzeStock(
   const prePromoDate = new Date(promoDateObj);
   prePromoDate.setDate(prePromoDate.getDate() - 1);
 
-  let prePromoIndex = sorted.findIndex(p => new Date(p.date) >= prePromoDate);
+  let prePromoIndex = sorted.findIndex((p) => new Date(p.date) >= prePromoDate);
   if (prePromoIndex <= 0) prePromoIndex = 0;
-  const prePromotionPrice = sorted[prePromoIndex]?.close || sorted[0]?.close || 0;
+  const prePromotionPrice =
+    sorted[prePromoIndex]?.close || sorted[0]?.close || 0;
 
   // Find Day 1 price (promotion date or next trading day)
-  let day1Index = sorted.findIndex(p => new Date(p.date) >= promoDateObj);
+  let day1Index = sorted.findIndex((p) => new Date(p.date) >= promoDateObj);
   if (day1Index === -1) day1Index = sorted.length - 1;
 
   const day1Price = sorted[day1Index]?.close || prePromotionPrice;
@@ -277,7 +281,7 @@ function analyzeStock(
       peakIndex = i;
     }
   }
-  const peakDate = sorted[peakIndex]?.date || '';
+  const peakDate = sorted[peakIndex]?.date || "";
   const daysToPeak = peakIndex - day1Index;
 
   // Find trough after peak
@@ -290,48 +294,48 @@ function analyzeStock(
       troughIndex = i;
     }
   }
-  const troughDate = sorted[troughIndex]?.date || '';
+  const troughDate = sorted[troughIndex]?.date || "";
   const daysToTrough = troughIndex - peakIndex;
 
   // Current price from quote or last historical
-  const currentPrice = currentQuote?.price || sorted[sorted.length - 1]?.close || troughPrice;
+  const currentPrice =
+    currentQuote?.price || sorted[sorted.length - 1]?.close || troughPrice;
   const currentDate = currentQuote
-    ? new Date().toISOString().split('T')[0]
-    : sorted[sorted.length - 1]?.date || '';
+    ? new Date().toISOString().split("T")[0]
+    : sorted[sorted.length - 1]?.date || "";
 
   // Calculate all metrics
-  const gainToPeak = promotionPrice > 0
-    ? ((peakPrice - promotionPrice) / promotionPrice) * 100
-    : 0;
+  const gainToPeak =
+    promotionPrice > 0
+      ? ((peakPrice - promotionPrice) / promotionPrice) * 100
+      : 0;
 
-  const peakToTroughDecline = peakPrice > 0
-    ? ((troughPrice - peakPrice) / peakPrice) * 100
-    : 0;
+  const peakToTroughDecline =
+    peakPrice > 0 ? ((troughPrice - peakPrice) / peakPrice) * 100 : 0;
 
-  const troughVsPrePromotion = prePromotionPrice > 0
-    ? ((troughPrice - prePromotionPrice) / prePromotionPrice) * 100
-    : 0;
+  const troughVsPrePromotion =
+    prePromotionPrice > 0
+      ? ((troughPrice - prePromotionPrice) / prePromotionPrice) * 100
+      : 0;
 
-  const troughVsDay1 = day1Price > 0
-    ? ((troughPrice - day1Price) / day1Price) * 100
-    : 0;
+  const troughVsDay1 =
+    day1Price > 0 ? ((troughPrice - day1Price) / day1Price) * 100 : 0;
 
-  const currentVsPrePromotion = prePromotionPrice > 0
-    ? ((currentPrice - prePromotionPrice) / prePromotionPrice) * 100
-    : 0;
+  const currentVsPrePromotion =
+    prePromotionPrice > 0
+      ? ((currentPrice - prePromotionPrice) / prePromotionPrice) * 100
+      : 0;
 
-  const currentVsDay1 = day1Price > 0
-    ? ((currentPrice - day1Price) / day1Price) * 100
-    : 0;
+  const currentVsDay1 =
+    day1Price > 0 ? ((currentPrice - day1Price) / day1Price) * 100 : 0;
 
-  const currentVsPeak = peakPrice > 0
-    ? ((currentPrice - peakPrice) / peakPrice) * 100
-    : 0;
+  const currentVsPeak =
+    peakPrice > 0 ? ((currentPrice - peakPrice) / peakPrice) * 100 : 0;
 
   // Determine Day 1 investor outcome
-  let day1Outcome: 'GAIN' | 'LOSS' | 'BREAK-EVEN' = 'BREAK-EVEN';
-  if (currentVsDay1 > 1) day1Outcome = 'GAIN';
-  else if (currentVsDay1 < -1) day1Outcome = 'LOSS';
+  let day1Outcome: "GAIN" | "LOSS" | "BREAK-EVEN" = "BREAK-EVEN";
+  if (currentVsDay1 > 1) day1Outcome = "GAIN";
+  else if (currentVsDay1 < -1) day1Outcome = "LOSS";
 
   return {
     symbol: config.symbol,
@@ -363,29 +367,33 @@ function analyzeStock(
 }
 
 function generateMarkdownReport(analyses: StockAnalysis[]): string {
-  const validAnalyses = analyses.filter(a => a !== null) as StockAnalysis[];
+  const validAnalyses = analyses.filter((a) => a !== null) as StockAnalysis[];
 
   if (validAnalyses.length === 0) {
-    return '# Error: No stocks could be analyzed\n\nNo historical data was available.';
+    return "# Error: No stocks could be analyzed\n\nNo historical data was available.";
   }
 
   // Calculate averages
   const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
 
-  const avgDaysToPeak = avg(validAnalyses.map(a => a.daysToPeak));
-  const avgDaysToTrough = avg(validAnalyses.map(a => a.daysToTrough));
-  const avgGainToPeak = avg(validAnalyses.map(a => a.gainToPeak));
-  const avgDecline = avg(validAnalyses.map(a => a.peakToTroughDecline));
-  const avgTroughVsPrePromo = avg(validAnalyses.map(a => a.troughVsPrePromotion));
-  const avgTroughVsDay1 = avg(validAnalyses.map(a => a.troughVsDay1));
-  const avgCurrentVsPrePromo = avg(validAnalyses.map(a => a.currentVsPrePromotion));
-  const avgCurrentVsDay1 = avg(validAnalyses.map(a => a.currentVsDay1));
-  const avgCurrentVsPeak = avg(validAnalyses.map(a => a.currentVsPeak));
+  const avgDaysToPeak = avg(validAnalyses.map((a) => a.daysToPeak));
+  const avgDaysToTrough = avg(validAnalyses.map((a) => a.daysToTrough));
+  const avgGainToPeak = avg(validAnalyses.map((a) => a.gainToPeak));
+  const avgDecline = avg(validAnalyses.map((a) => a.peakToTroughDecline));
+  const avgTroughVsPrePromo = avg(
+    validAnalyses.map((a) => a.troughVsPrePromotion),
+  );
+  const avgTroughVsDay1 = avg(validAnalyses.map((a) => a.troughVsDay1));
+  const avgCurrentVsPrePromo = avg(
+    validAnalyses.map((a) => a.currentVsPrePromotion),
+  );
+  const avgCurrentVsDay1 = avg(validAnalyses.map((a) => a.currentVsDay1));
+  const avgCurrentVsPeak = avg(validAnalyses.map((a) => a.currentVsPeak));
 
-  const losers = validAnalyses.filter(a => a.day1Outcome === 'LOSS');
-  const winners = validAnalyses.filter(a => a.day1Outcome === 'GAIN');
+  const losers = validAnalyses.filter((a) => a.day1Outcome === "LOSS");
+  const winners = validAnalyses.filter((a) => a.day1Outcome === "GAIN");
 
-  const reportDate = new Date().toISOString().split('T')[0];
+  const reportDate = new Date().toISOString().split("T")[0];
 
   let report = `# High-Risk Stock Manipulation Analysis Report
 
@@ -412,10 +420,10 @@ This report analyzes **${validAnalyses.length} stocks** that were:
 | **Average Days Peak to Trough** | ${avgDaysToTrough.toFixed(1)} trading days |
 | **Average Gain During Pump** | +${avgGainToPeak.toFixed(1)}% |
 | **Average Peak-to-Trough Decline** | ${avgDecline.toFixed(1)}% |
-| **Average Trough vs Pre-Promotion** | ${avgTroughVsPrePromo >= 0 ? '+' : ''}${avgTroughVsPrePromo.toFixed(1)}% |
-| **Average Trough vs Day 1** | ${avgTroughVsDay1 >= 0 ? '+' : ''}${avgTroughVsDay1.toFixed(1)}% |
-| **Average Current vs Pre-Promotion** | ${avgCurrentVsPrePromo >= 0 ? '+' : ''}${avgCurrentVsPrePromo.toFixed(1)}% |
-| **Average Current vs Day 1** | ${avgCurrentVsDay1 >= 0 ? '+' : ''}${avgCurrentVsDay1.toFixed(1)}% |
+| **Average Trough vs Pre-Promotion** | ${avgTroughVsPrePromo >= 0 ? "+" : ""}${avgTroughVsPrePromo.toFixed(1)}% |
+| **Average Trough vs Day 1** | ${avgTroughVsDay1 >= 0 ? "+" : ""}${avgTroughVsDay1.toFixed(1)}% |
+| **Average Current vs Pre-Promotion** | ${avgCurrentVsPrePromo >= 0 ? "+" : ""}${avgCurrentVsPrePromo.toFixed(1)}% |
+| **Average Current vs Day 1** | ${avgCurrentVsDay1 >= 0 ? "+" : ""}${avgCurrentVsDay1.toFixed(1)}% |
 | **Average Current vs Peak** | ${avgCurrentVsPeak.toFixed(1)}% |
 | **Day 1 Investors with Losses** | ${losers.length} of ${validAnalyses.length} (${((losers.length / validAnalyses.length) * 100).toFixed(0)}%) |
 | **Day 1 Investors with Gains** | ${winners.length} of ${validAnalyses.length} (${((winners.length / validAnalyses.length) * 100).toFixed(0)}%) |
@@ -452,7 +460,8 @@ This report analyzes **${validAnalyses.length} stocks** that were:
 
   // Individual stock sections
   for (const a of validAnalyses) {
-    const outcomeIcon = a.day1Outcome === 'GAIN' ? '✅' : a.day1Outcome === 'LOSS' ? '❌' : '➖';
+    const outcomeIcon =
+      a.day1Outcome === "GAIN" ? "✅" : a.day1Outcome === "LOSS" ? "❌" : "➖";
 
     report += `### ${a.symbol} - ${a.name}
 
@@ -471,14 +480,14 @@ This report analyzes **${validAnalyses.length} stocks** that were:
 | Trough Price | $${a.troughPrice.toFixed(2)} |
 | Days Peak to Trough | ${a.daysToTrough} |
 | **Peak-to-Trough Decline** | **${a.peakToTroughDecline.toFixed(1)}%** |
-| **Trough vs Pre-Promotion** | **${a.troughVsPrePromotion >= 0 ? '+' : ''}${a.troughVsPrePromotion.toFixed(1)}%** |
-| **Trough vs Day 1** | **${a.troughVsDay1 >= 0 ? '+' : ''}${a.troughVsDay1.toFixed(1)}%** |
+| **Trough vs Pre-Promotion** | **${a.troughVsPrePromotion >= 0 ? "+" : ""}${a.troughVsPrePromotion.toFixed(1)}%** |
+| **Trough vs Day 1** | **${a.troughVsDay1 >= 0 ? "+" : ""}${a.troughVsDay1.toFixed(1)}%** |
 | Current Price | $${a.currentPrice.toFixed(2)} (as of ${a.currentDate}) |
-| **Current vs Pre-Promotion** | **${a.currentVsPrePromotion >= 0 ? '+' : ''}${a.currentVsPrePromotion.toFixed(1)}%** |
-| **Current vs Day 1** | **${a.currentVsDay1 >= 0 ? '+' : ''}${a.currentVsDay1.toFixed(1)}%** ${outcomeIcon} |
+| **Current vs Pre-Promotion** | **${a.currentVsPrePromotion >= 0 ? "+" : ""}${a.currentVsPrePromotion.toFixed(1)}%** |
+| **Current vs Day 1** | **${a.currentVsDay1 >= 0 ? "+" : ""}${a.currentVsDay1.toFixed(1)}%** ${outcomeIcon} |
 | **Current vs Peak** | **${a.currentVsPeak.toFixed(1)}%** |
 
-**Day 1 Investor Outcome:** ${a.day1Outcome} (${a.currentVsDay1 >= 0 ? '+' : ''}${a.currentVsDay1.toFixed(1)}%)
+**Day 1 Investor Outcome:** ${a.day1Outcome} (${a.currentVsDay1 >= 0 ? "+" : ""}${a.currentVsDay1.toFixed(1)}%)
 
 ---
 
@@ -506,9 +515,11 @@ This report analyzes **${validAnalyses.length} stocks** that were:
 |------|--------|------|--------------|----------------|-----------------|------------------|
 `;
 
-  const sortedByDecline = [...validAnalyses].sort((a, b) => a.peakToTroughDecline - b.peakToTroughDecline);
+  const sortedByDecline = [...validAnalyses].sort(
+    (a, b) => a.peakToTroughDecline - b.peakToTroughDecline,
+  );
   sortedByDecline.forEach((a, i) => {
-    report += `| ${i + 1} | ${a.symbol} | ${a.riskScore} | +${a.gainToPeak.toFixed(0)}% | **${a.peakToTroughDecline.toFixed(1)}%** | ${a.troughVsDay1 >= 0 ? '+' : ''}${a.troughVsDay1.toFixed(0)}% | ${a.currentVsDay1 >= 0 ? '+' : ''}${a.currentVsDay1.toFixed(0)}% |\n`;
+    report += `| ${i + 1} | ${a.symbol} | ${a.riskScore} | +${a.gainToPeak.toFixed(0)}% | **${a.peakToTroughDecline.toFixed(1)}%** | ${a.troughVsDay1 >= 0 ? "+" : ""}${a.troughVsDay1.toFixed(0)}% | ${a.currentVsDay1 >= 0 ? "+" : ""}${a.currentVsDay1.toFixed(0)}% |\n`;
   });
 
   report += `
@@ -520,8 +531,9 @@ This report analyzes **${validAnalyses.length} stocks** that were:
 `;
 
   for (const a of validAnalyses) {
-    const icon = a.day1Outcome === 'GAIN' ? '✅' : a.day1Outcome === 'LOSS' ? '❌' : '➖';
-    report += `| ${a.symbol} | $${a.day1Price.toFixed(2)} | ${a.troughVsDay1 >= 0 ? '+' : ''}${a.troughVsDay1.toFixed(1)}% | ${a.currentVsDay1 >= 0 ? '+' : ''}${a.currentVsDay1.toFixed(1)}% | ${icon} ${a.day1Outcome} |\n`;
+    const icon =
+      a.day1Outcome === "GAIN" ? "✅" : a.day1Outcome === "LOSS" ? "❌" : "➖";
+    report += `| ${a.symbol} | $${a.day1Price.toFixed(2)} | ${a.troughVsDay1 >= 0 ? "+" : ""}${a.troughVsDay1.toFixed(1)}% | ${a.currentVsDay1 >= 0 ? "+" : ""}${a.currentVsDay1.toFixed(1)}% | ${icon} ${a.day1Outcome} |\n`;
   }
 
   report += `
@@ -544,7 +556,7 @@ Entities with advance knowledge of promotion timing could:
 ### Day 1 Retail Investors
 - Bought on first day of promotion
 - **${losers.length} of ${validAnalyses.length}** (${((losers.length / validAnalyses.length) * 100).toFixed(0)}%) currently underwater
-- **Average position: ${avgCurrentVsDay1 >= 0 ? '+' : ''}${avgCurrentVsDay1.toFixed(1)}%**
+- **Average position: ${avgCurrentVsDay1 >= 0 ? "+" : ""}${avgCurrentVsDay1.toFixed(1)}%**
 
 ---
 
@@ -562,7 +574,7 @@ Entities with advance knowledge of promotion timing could:
   }
 
   for (const [sector, stocks] of bySector) {
-    const avgRisk = avg(stocks.map(s => s.riskScore));
+    const avgRisk = avg(stocks.map((s) => s.riskScore));
     report += `| ${sector} | ${stocks.length} | ${avgRisk.toFixed(1)} |\n`;
   }
 
@@ -599,25 +611,29 @@ This pattern matches the **Atlas Trading Discord** scheme (2022):
 
 async function main() {
   if (!FMP_API_KEY) {
-    console.error('ERROR: FMP_API_KEY environment variable is required');
-    console.error('Set it with: export FMP_API_KEY=your_api_key');
+    console.error("ERROR: FMP_API_KEY environment variable is required");
+    console.error("Set it with: export FMP_API_KEY=your_api_key");
     process.exit(1);
   }
 
-  console.log('='.repeat(70));
-  console.log('HIGH-RISK STOCK MANIPULATION ANALYSIS');
-  console.log('ScamDunk Risk Engine + FMP Live Data');
-  console.log('='.repeat(70));
-  console.log('');
+  console.log("=".repeat(70));
+  console.log("HIGH-RISK STOCK MANIPULATION ANALYSIS");
+  console.log("ScamDunk Risk Engine + FMP Live Data");
+  console.log("=".repeat(70));
+  console.log("");
   console.log(`Analyzing ${STOCKS_TO_ANALYZE.length} HIGH-risk stocks...`);
-  console.log('');
+  console.log("");
 
   const analyses: (StockAnalysis | null)[] = [];
-  const startDate = '2025-12-24'; // Start before promotion dates
+  const startDate = "2025-12-24"; // Start before promotion dates
 
   for (const stock of STOCKS_TO_ANALYZE) {
-    console.log(`\n[${analyses.length + 1}/${STOCKS_TO_ANALYZE.length}] ${stock.symbol} - ${stock.name}`);
-    console.log(`  Risk Score: ${stock.riskScore} | Promotion: ${stock.promotionDate}`);
+    console.log(
+      `\n[${analyses.length + 1}/${STOCKS_TO_ANALYZE.length}] ${stock.symbol} - ${stock.name}`,
+    );
+    console.log(
+      `  Risk Score: ${stock.riskScore} | Promotion: ${stock.promotionDate}`,
+    );
 
     // Fetch historical prices
     const historical = await fetchHistoricalPrices(stock.symbol, startDate);
@@ -632,9 +648,15 @@ async function main() {
     // Analyze
     const analysis = analyzeStock(stock, historical, currentQuote);
     if (analysis) {
-      console.log(`  Peak: $${analysis.peakPrice.toFixed(2)} on ${analysis.peakDate} (+${analysis.gainToPeak.toFixed(1)}%)`);
-      console.log(`  Trough: $${analysis.troughPrice.toFixed(2)} (${analysis.peakToTroughDecline.toFixed(1)}% from peak)`);
-      console.log(`  Current vs Day 1: ${analysis.currentVsDay1 >= 0 ? '+' : ''}${analysis.currentVsDay1.toFixed(1)}% [${analysis.day1Outcome}]`);
+      console.log(
+        `  Peak: $${analysis.peakPrice.toFixed(2)} on ${analysis.peakDate} (+${analysis.gainToPeak.toFixed(1)}%)`,
+      );
+      console.log(
+        `  Trough: $${analysis.troughPrice.toFixed(2)} (${analysis.peakToTroughDecline.toFixed(1)}% from peak)`,
+      );
+      console.log(
+        `  Current vs Day 1: ${analysis.currentVsDay1 >= 0 ? "+" : ""}${analysis.currentVsDay1.toFixed(1)}% [${analysis.day1Outcome}]`,
+      );
       analyses.push(analysis);
     } else {
       console.log(`  SKIPPED - insufficient data`);
@@ -644,54 +666,74 @@ async function main() {
     await sleep(300);
   }
 
-  const validAnalyses = analyses.filter(a => a !== null) as StockAnalysis[];
+  const validAnalyses = analyses.filter((a) => a !== null) as StockAnalysis[];
 
-  console.log('\n' + '='.repeat(70));
-  console.log(`Successfully analyzed: ${validAnalyses.length} of ${STOCKS_TO_ANALYZE.length} stocks`);
-  console.log('Generating report...');
+  console.log("\n" + "=".repeat(70));
+  console.log(
+    `Successfully analyzed: ${validAnalyses.length} of ${STOCKS_TO_ANALYZE.length} stocks`,
+  );
+  console.log("Generating report...");
 
   // Generate markdown report
   const report = generateMarkdownReport(validAnalyses);
 
   // Ensure results directory exists
-  const resultsDir = path.join(__dirname, '..', 'results');
+  const resultsDir = path.join(__dirname, "..", "results");
   if (!fs.existsSync(resultsDir)) {
     fs.mkdirSync(resultsDir, { recursive: true });
   }
 
   // Save report
-  const reportDate = new Date().toISOString().split('T')[0];
-  const reportPath = path.join(resultsDir, `high-risk-analysis-${reportDate}.md`);
+  const reportDate = new Date().toISOString().split("T")[0];
+  const reportPath = path.join(
+    resultsDir,
+    `high-risk-analysis-${reportDate}.md`,
+  );
   fs.writeFileSync(reportPath, report);
   console.log(`\nReport saved: ${reportPath}`);
 
   // Save JSON data
-  const jsonPath = path.join(resultsDir, `high-risk-analysis-${reportDate}.json`);
+  const jsonPath = path.join(
+    resultsDir,
+    `high-risk-analysis-${reportDate}.json`,
+  );
   const jsonData = {
     generatedAt: new Date().toISOString(),
     stocksConfigured: STOCKS_TO_ANALYZE.length,
     stocksAnalyzed: validAnalyses.length,
     analyses: validAnalyses,
     summary: {
-      avgDaysToPeak: validAnalyses.reduce((s, a) => s + a.daysToPeak, 0) / validAnalyses.length,
-      avgDaysToTrough: validAnalyses.reduce((s, a) => s + a.daysToTrough, 0) / validAnalyses.length,
-      avgGainToPeak: validAnalyses.reduce((s, a) => s + a.gainToPeak, 0) / validAnalyses.length,
-      avgPeakToTroughDecline: validAnalyses.reduce((s, a) => s + a.peakToTroughDecline, 0) / validAnalyses.length,
-      avgTroughVsDay1: validAnalyses.reduce((s, a) => s + a.troughVsDay1, 0) / validAnalyses.length,
-      avgCurrentVsDay1: validAnalyses.reduce((s, a) => s + a.currentVsDay1, 0) / validAnalyses.length,
-      day1Losers: validAnalyses.filter(a => a.day1Outcome === 'LOSS').length,
-      day1Winners: validAnalyses.filter(a => a.day1Outcome === 'GAIN').length,
+      avgDaysToPeak:
+        validAnalyses.reduce((s, a) => s + a.daysToPeak, 0) /
+        validAnalyses.length,
+      avgDaysToTrough:
+        validAnalyses.reduce((s, a) => s + a.daysToTrough, 0) /
+        validAnalyses.length,
+      avgGainToPeak:
+        validAnalyses.reduce((s, a) => s + a.gainToPeak, 0) /
+        validAnalyses.length,
+      avgPeakToTroughDecline:
+        validAnalyses.reduce((s, a) => s + a.peakToTroughDecline, 0) /
+        validAnalyses.length,
+      avgTroughVsDay1:
+        validAnalyses.reduce((s, a) => s + a.troughVsDay1, 0) /
+        validAnalyses.length,
+      avgCurrentVsDay1:
+        validAnalyses.reduce((s, a) => s + a.currentVsDay1, 0) /
+        validAnalyses.length,
+      day1Losers: validAnalyses.filter((a) => a.day1Outcome === "LOSS").length,
+      day1Winners: validAnalyses.filter((a) => a.day1Outcome === "GAIN").length,
     },
   };
   fs.writeFileSync(jsonPath, JSON.stringify(jsonData, null, 2));
   console.log(`JSON saved: ${jsonPath}`);
 
-  console.log('\n' + '='.repeat(70));
-  console.log('Analysis complete!');
-  console.log('='.repeat(70));
+  console.log("\n" + "=".repeat(70));
+  console.log("Analysis complete!");
+  console.log("=".repeat(70));
 }
 
-main().catch(error => {
-  console.error('Fatal error:', error);
+main().catch((error) => {
+  console.error("Fatal error:", error);
   process.exit(1);
 });

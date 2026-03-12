@@ -68,7 +68,9 @@ function LoginForm() {
       if (res.ok && data.success) {
         router.push("/admin/browser-agents");
       } else {
-        setError(data.error || "Preview login not available in this environment");
+        setError(
+          data.error || "Preview login not available in this environment",
+        );
         setPreviewLoading(false);
       }
     } catch {
@@ -178,10 +180,16 @@ function LoginForm() {
             </div>
           )}
 
-          <form onSubmit={isInviteMode ? handleAcceptInvite : handleLogin} className="space-y-6">
+          <form
+            onSubmit={isInviteMode ? handleAcceptInvite : handleLogin}
+            className="space-y-6"
+          >
             {isInviteMode ? (
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-muted-foreground">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-muted-foreground"
+                >
                   Your Name
                 </label>
                 <input
@@ -196,7 +204,10 @@ function LoginForm() {
               </div>
             ) : (
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-muted-foreground">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-muted-foreground"
+                >
                   Email Address
                 </label>
                 <input
@@ -212,7 +223,10 @@ function LoginForm() {
             )}
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-muted-foreground"
+              >
                 Password
               </label>
               <div className="mt-1 relative">
@@ -223,7 +237,11 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full px-3 py-2 bg-card border border-border rounded-md text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent pr-10"
-                  placeholder={isInviteMode ? "Create a password (min 8 chars)" : "Enter your password"}
+                  placeholder={
+                    isInviteMode
+                      ? "Create a password (min 8 chars)"
+                      : "Enter your password"
+                  }
                   minLength={isInviteMode ? 8 : undefined}
                 />
                 <button
@@ -231,7 +249,11 @@ function LoginForm() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-muted-foreground"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -261,7 +283,8 @@ function LoginForm() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                This is a preview deployment. Click below to access the admin dashboard without credentials.
+                This is a preview deployment. Click below to access the admin
+                dashboard without credentials.
               </p>
               <button
                 onClick={handlePreviewLogin}
@@ -273,7 +296,9 @@ function LoginForm() {
                 ) : (
                   <Monitor className="h-4 w-4" />
                 )}
-                {previewLoading ? "Logging in & loading demo data..." : "Preview Login (Auto)"}
+                {previewLoading
+                  ? "Logging in & loading demo data..."
+                  : "Preview Login (Auto)"}
               </button>
             </div>
           )}

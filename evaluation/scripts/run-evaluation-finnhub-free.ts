@@ -5,14 +5,14 @@
  * No historical candle data = structural signals only.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync } from 'child_process';
+import * as fs from "fs";
+import * as path from "path";
+import { execSync } from "child_process";
 
 // Paths
-const RESULTS_DIR = path.join(__dirname, '..', 'results');
-const STOCK_LIST_FILE = path.join(RESULTS_DIR, 'stock-list.json');
-const CHECKPOINT_FILE = path.join(RESULTS_DIR, 'checkpoint-finnhub-free.json');
+const RESULTS_DIR = path.join(__dirname, "..", "results");
+const STOCK_LIST_FILE = path.join(RESULTS_DIR, "stock-list.json");
+const CHECKPOINT_FILE = path.join(RESULTS_DIR, "checkpoint-finnhub-free.json");
 
 // API Config
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
@@ -45,8 +45,8 @@ interface Checkpoint {
 function curlFetch(url: string): any {
   try {
     const result = execSync(`curl -s '${url}'`, {
-      encoding: 'utf8',
-      timeout: 30000
+      encoding: "utf8",
+      timeout: 30000,
     });
     return JSON.parse(result);
   } catch (e) {
@@ -59,7 +59,7 @@ function computeStructuralRisk(
   price: number,
   marketCap: number,
   exchange: string,
-  dailyChangePercent: number
+  dailyChangePercent: number,
 ): { riskLevel: string; totalScore: number; signals: string[] } {
   const signals: string[] = [];
   let score = 0;
@@ -72,16 +72,18 @@ function computeStructuralRisk(
 
   // SMALL_MARKET_CAP - market cap below $300M
   if (marketCap > 0 && marketCap < 300_000_000) {
-    signals.push(`SMALL_MARKET_CAP: Market cap ($${(marketCap / 1_000_000).toFixed(0)}M) below $300M`);
+    signals.push(
+      `SMALL_MARKET_CAP: Market cap ($${(marketCap / 1_000_000).toFixed(0)}M) below $300M`,
+    );
     score += 2;
   }
 
   // OTC_EXCHANGE - traded on OTC/Pink Sheets
-  const isOTC = exchange && (
-    exchange.includes('OTC') ||
-    exchange.includes('PINK') ||
-    exchange.includes('GREY')
-  );
+  const isOTC =
+    exchange &&
+    (exchange.includes("OTC") ||
+      exchange.includes("PINK") ||
+      exchange.includes("GREY"));
   if (isOTC) {
     signals.push(`OTC_EXCHANGE: Traded on ${exchange} - less regulated`);
     score += 3;
@@ -89,7 +91,9 @@ function computeStructuralRisk(
 
   // Daily volatility check - if available and significant
   if (Math.abs(dailyChangePercent) >= 10) {
-    signals.push(`HIGH_DAILY_MOVE: ${dailyChangePercent > 0 ? '+' : ''}${dailyChangePercent.toFixed(1)}% today`);
+    signals.push(
+      `HIGH_DAILY_MOVE: ${dailyChangePercent > 0 ? "+" : ""}${dailyChangePercent.toFixed(1)}% today`,
+    );
     score += 1;
   }
 
@@ -102,11 +106,11 @@ function computeStructuralRisk(
   // Determine risk level
   let riskLevel: string;
   if (score >= 5) {
-    riskLevel = 'HIGH';
+    riskLevel = "HIGH";
   } else if (score >= 2) {
-    riskLevel = 'MEDIUM';
+    riskLevel = "MEDIUM";
   } else {
-    riskLevel = 'LOW';
+    riskLevel = "LOW";
   }
 
   return { riskLevel, totalScore: score, signals };
@@ -127,15 +131,25 @@ async function fetchStockData(ticker: string): Promise<StockResult | null> {
   const profile = curlFetch(profileUrl);
 
   const price = quote.c || 0;
-  const marketCap = profile?.marketCapitalization ? profile.marketCapitalization * 1_000_000 : 0;
-  const exchange = profile?.exchange || '';
+  const marketCap = profile?.marketCapitalization
+    ? profile.marketCapitalization * 1_000_000
+    : 0;
+  const exchange = profile?.exchange || "";
   const dailyChange = quote.dp || 0;
   const name = profile?.name || ticker;
 
-  const isOTC = exchange.includes('OTC') || exchange.includes('PINK') || exchange.includes('GREY');
+  const isOTC =
+    exchange.includes("OTC") ||
+    exchange.includes("PINK") ||
+    exchange.includes("GREY");
 
   // Compute risk
-  const { riskLevel, totalScore, signals } = computeStructuralRisk(price, marketCap, exchange, dailyChange);
+  const { riskLevel, totalScore, signals } = computeStructuralRisk(
+    price,
+    marketCap,
+    exchange,
+    dailyChange,
+  );
 
   return {
     ticker,
@@ -148,7 +162,7 @@ async function fetchStockData(ticker: string): Promise<StockResult | null> {
     marketCap,
     dailyChange,
     isOTC,
-    dataSource: 'finnhub-free',
+    dataSource: "finnhub-free",
     timestamp: new Date().toISOString(),
   };
 }
@@ -156,9 +170,13 @@ async function fetchStockData(ticker: string): Promise<StockResult | null> {
 // Load checkpoint
 function loadCheckpoint(): Checkpoint {
   if (fs.existsSync(CHECKPOINT_FILE)) {
-    return JSON.parse(fs.readFileSync(CHECKPOINT_FILE, 'utf8'));
+    return JSON.parse(fs.readFileSync(CHECKPOINT_FILE, "utf8"));
   }
-  return { processedTickers: [], results: [], lastUpdate: new Date().toISOString() };
+  return {
+    processedTickers: [],
+    results: [],
+    lastUpdate: new Date().toISOString(),
+  };
 }
 
 // Save checkpoint
@@ -168,48 +186,64 @@ function saveCheckpoint(checkpoint: Checkpoint): void {
 }
 
 // Progress bar
-function progressBar(current: number, total: number, success: number, failed: number, eta: string): string {
+function progressBar(
+  current: number,
+  total: number,
+  success: number,
+  failed: number,
+  eta: string,
+): string {
   const width = 40;
   const filled = Math.round((current / total) * width);
-  const bar = '█'.repeat(filled) + '░'.repeat(width - filled);
+  const bar = "█".repeat(filled) + "░".repeat(width - filled);
   const percent = ((current / total) * 100).toFixed(1);
   return `[${bar}] ${percent}% ${current}/${total} | ✓${success} ✗${failed} | ETA: ${eta}`;
 }
 
 // Main
 async function main() {
-  console.log('╔═══════════════════════════════════════════════════════════════════════════╗');
-  console.log('║   ScamDunk US Stock Evaluation - FINNHUB Free Tier (Structural Only)     ║');
-  console.log('╚═══════════════════════════════════════════════════════════════════════════╝\n');
+  console.log(
+    "╔═══════════════════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║   ScamDunk US Stock Evaluation - FINNHUB Free Tier (Structural Only)     ║",
+  );
+  console.log(
+    "╚═══════════════════════════════════════════════════════════════════════════╝\n",
+  );
 
   if (!FINNHUB_API_KEY) {
-    console.error('❌ FINNHUB_API_KEY environment variable not set');
+    console.error("❌ FINNHUB_API_KEY environment variable not set");
     process.exit(1);
   }
-  console.log('✓ Finnhub API key configured\n');
+  console.log("✓ Finnhub API key configured\n");
 
   // Load stock list
   if (!fs.existsSync(STOCK_LIST_FILE)) {
-    console.error('❌ Stock list not found at:', STOCK_LIST_FILE);
+    console.error("❌ Stock list not found at:", STOCK_LIST_FILE);
     process.exit(1);
   }
-  const stockList: string[] = JSON.parse(fs.readFileSync(STOCK_LIST_FILE, 'utf8'));
+  const stockList: string[] = JSON.parse(
+    fs.readFileSync(STOCK_LIST_FILE, "utf8"),
+  );
 
   // Load checkpoint
   const checkpoint = loadCheckpoint();
   const processed = new Set(checkpoint.processedTickers);
 
   // Filter remaining
-  const remaining = stockList.filter(t => !processed.has(t));
+  const remaining = stockList.filter((t) => !processed.has(t));
   const total = stockList.length;
 
   console.log(`📊 Total stocks: ${total}`);
   console.log(`✓ Already processed: ${processed.size}`);
   console.log(`⏳ Remaining: ${remaining.length}`);
-  console.log(`⏱️  Delay: ${DELAY_MS}ms per request (~${Math.floor(60000/DELAY_MS)}/min)\n`);
+  console.log(
+    `⏱️  Delay: ${DELAY_MS}ms per request (~${Math.floor(60000 / DELAY_MS)}/min)\n`,
+  );
 
   if (remaining.length === 0) {
-    console.log('✅ All stocks already processed!');
+    console.log("✅ All stocks already processed!");
     generateSummary(checkpoint.results);
     return;
   }
@@ -240,48 +274,50 @@ async function main() {
       const etaSeconds = remainingCount / rate;
       const etaMinutes = Math.floor(etaSeconds / 60);
       const etaHours = Math.floor(etaMinutes / 60);
-      const eta = etaHours > 0 ? `${etaHours}h ${etaMinutes % 60}m` : `${etaMinutes}m`;
+      const eta =
+        etaHours > 0 ? `${etaHours}h ${etaMinutes % 60}m` : `${etaMinutes}m`;
 
       // Progress
-      process.stdout.write(`\r${progressBar(current, total, success, failed, eta)}  `);
+      process.stdout.write(
+        `\r${progressBar(current, total, success, failed, eta)}  `,
+      );
 
       // Save checkpoint every 100 stocks
       if ((i + 1) % 100 === 0) {
         saveCheckpoint(checkpoint);
       }
-
     } catch (e) {
       failed++;
       checkpoint.processedTickers.push(ticker);
     }
 
     // Rate limiting
-    await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+    await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
   }
 
   // Final save
   saveCheckpoint(checkpoint);
-  console.log('\n\n✅ Processing complete!\n');
+  console.log("\n\n✅ Processing complete!\n");
 
   generateSummary(checkpoint.results);
 }
 
 function generateSummary(results: StockResult[]) {
-  const date = new Date().toISOString().split('T')[0];
+  const date = new Date().toISOString().split("T")[0];
 
   // Risk distribution
   const distribution = {
-    LOW: results.filter(r => r.riskLevel === 'LOW').length,
-    MEDIUM: results.filter(r => r.riskLevel === 'MEDIUM').length,
-    HIGH: results.filter(r => r.riskLevel === 'HIGH').length,
+    LOW: results.filter((r) => r.riskLevel === "LOW").length,
+    MEDIUM: results.filter((r) => r.riskLevel === "MEDIUM").length,
+    HIGH: results.filter((r) => r.riskLevel === "HIGH").length,
   };
 
   const summary = {
     date,
     totalStocks: results.length,
     riskDistribution: distribution,
-    dataSource: 'finnhub-free',
-    note: 'Structural signals only (no historical data on free tier)',
+    dataSource: "finnhub-free",
+    note: "Structural signals only (no historical data on free tier)",
     results: results,
   };
 
@@ -290,44 +326,68 @@ function generateSummary(results: StockResult[]) {
   fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
 
   // Print summary
-  console.log('╔═══════════════════════════════════════════════════════════════════════════╗');
-  console.log('║                           ANALYSIS SUMMARY                               ║');
-  console.log('╚═══════════════════════════════════════════════════════════════════════════╝\n');
+  console.log(
+    "╔═══════════════════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║                           ANALYSIS SUMMARY                               ║",
+  );
+  console.log(
+    "╚═══════════════════════════════════════════════════════════════════════════╝\n",
+  );
   console.log(`Date: ${date}`);
   console.log(`Total stocks analyzed: ${results.length}\n`);
-  console.log('Risk Distribution (Structural Signals Only):');
-  console.log(`  LOW:    ${distribution.LOW} (${((distribution.LOW / results.length) * 100).toFixed(1)}%)`);
-  console.log(`  MEDIUM: ${distribution.MEDIUM} (${((distribution.MEDIUM / results.length) * 100).toFixed(1)}%)`);
-  console.log(`  HIGH:   ${distribution.HIGH} (${((distribution.HIGH / results.length) * 100).toFixed(1)}%)`);
+  console.log("Risk Distribution (Structural Signals Only):");
+  console.log(
+    `  LOW:    ${distribution.LOW} (${((distribution.LOW / results.length) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  MEDIUM: ${distribution.MEDIUM} (${((distribution.MEDIUM / results.length) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  HIGH:   ${distribution.HIGH} (${((distribution.HIGH / results.length) * 100).toFixed(1)}%)`,
+  );
   console.log(`\n✓ Results saved to: ${summaryPath}`);
 
   // Compare with January 1st baseline
-  const jan1EvalPath = path.join(RESULTS_DIR, 'evaluation-2026-01-01.json');
-  const jan1SummaryPath = path.join(RESULTS_DIR, 'summary-2026-01-01.json');
+  const jan1EvalPath = path.join(RESULTS_DIR, "evaluation-2026-01-01.json");
+  const jan1SummaryPath = path.join(RESULTS_DIR, "summary-2026-01-01.json");
   if (fs.existsSync(jan1EvalPath) && fs.existsSync(jan1SummaryPath)) {
-    console.log('\n');
-    console.log('╔═══════════════════════════════════════════════════════════════════════════╗');
-    console.log('║                     COMPARISON WITH JANUARY 1ST                          ║');
-    console.log('╚═══════════════════════════════════════════════════════════════════════════╝\n');
+    console.log("\n");
+    console.log(
+      "╔═══════════════════════════════════════════════════════════════════════════╗",
+    );
+    console.log(
+      "║                     COMPARISON WITH JANUARY 1ST                          ║",
+    );
+    console.log(
+      "╚═══════════════════════════════════════════════════════════════════════════╝\n",
+    );
 
-    const jan1Summary = JSON.parse(fs.readFileSync(jan1SummaryPath, 'utf8'));
+    const jan1Summary = JSON.parse(fs.readFileSync(jan1SummaryPath, "utf8"));
     const jan1Distribution = jan1Summary.byRiskLevel || {};
 
-    console.log('Category      Jan 1st    Today    Change');
-    console.log('─'.repeat(45));
+    console.log("Category      Jan 1st    Today    Change");
+    console.log("─".repeat(45));
 
-    const categories = ['LOW', 'MEDIUM', 'HIGH'] as const;
+    const categories = ["LOW", "MEDIUM", "HIGH"] as const;
     for (const cat of categories) {
       const jan1Val = jan1Distribution[cat] || 0;
       const todayVal = distribution[cat];
       const change = todayVal - jan1Val;
       const changeStr = change >= 0 ? `+${change}` : `${change}`;
-      console.log(`${cat.padEnd(12)}  ${String(jan1Val).padStart(6)}    ${String(todayVal).padStart(6)}    ${changeStr}`);
+      console.log(
+        `${cat.padEnd(12)}  ${String(jan1Val).padStart(6)}    ${String(todayVal).padStart(6)}    ${changeStr}`,
+      );
     }
 
     // Find stocks that changed risk level
-    const jan1Results: any[] = JSON.parse(fs.readFileSync(jan1EvalPath, 'utf8'));
-    const jan1Map = new Map<string, string>(jan1Results.map((r: any) => [r.symbol, r.riskLevel]));
+    const jan1Results: any[] = JSON.parse(
+      fs.readFileSync(jan1EvalPath, "utf8"),
+    );
+    const jan1Map = new Map<string, string>(
+      jan1Results.map((r: any) => [r.symbol, r.riskLevel]),
+    );
 
     const changes = {
       upgraded: [] as string[],
@@ -338,31 +398,45 @@ function generateSummary(results: StockResult[]) {
       const oldLevel = jan1Map.get(result.ticker);
       if (!oldLevel) continue;
 
-      const levels = ['LOW', 'MEDIUM', 'HIGH'];
+      const levels = ["LOW", "MEDIUM", "HIGH"];
       const oldIdx = levels.indexOf(oldLevel);
       const newIdx = levels.indexOf(result.riskLevel);
 
       if (newIdx > oldIdx) {
-        changes.downgraded.push(`${result.ticker} (${oldLevel} → ${result.riskLevel})`);
+        changes.downgraded.push(
+          `${result.ticker} (${oldLevel} → ${result.riskLevel})`,
+        );
       } else if (newIdx < oldIdx) {
-        changes.upgraded.push(`${result.ticker} (${oldLevel} → ${result.riskLevel})`);
+        changes.upgraded.push(
+          `${result.ticker} (${oldLevel} → ${result.riskLevel})`,
+        );
       }
     }
 
     if (changes.upgraded.length > 0) {
-      console.log(`\n⬆️  Upgraded (lower risk): ${changes.upgraded.length} stocks`);
-      console.log(changes.upgraded.slice(0, 10).join(', ') + (changes.upgraded.length > 10 ? '...' : ''));
+      console.log(
+        `\n⬆️  Upgraded (lower risk): ${changes.upgraded.length} stocks`,
+      );
+      console.log(
+        changes.upgraded.slice(0, 10).join(", ") +
+          (changes.upgraded.length > 10 ? "..." : ""),
+      );
     }
 
     if (changes.downgraded.length > 0) {
-      console.log(`\n⬇️  Downgraded (higher risk): ${changes.downgraded.length} stocks`);
-      console.log(changes.downgraded.slice(0, 10).join(', ') + (changes.downgraded.length > 10 ? '...' : ''));
+      console.log(
+        `\n⬇️  Downgraded (higher risk): ${changes.downgraded.length} stocks`,
+      );
+      console.log(
+        changes.downgraded.slice(0, 10).join(", ") +
+          (changes.downgraded.length > 10 ? "..." : ""),
+      );
     }
 
     // Save comparison report
     const comparisonReport = {
       date,
-      baselineDate: '2026-01-01',
+      baselineDate: "2026-01-01",
       currentDistribution: distribution,
       baselineDistribution: jan1Distribution,
       changes: {
@@ -371,7 +445,7 @@ function generateSummary(results: StockResult[]) {
         upgradedList: changes.upgraded.slice(0, 100),
         downgradedList: changes.downgraded.slice(0, 100),
       },
-      note: 'Current analysis uses structural signals only (Finnhub free tier). January 1st used full pattern analysis.',
+      note: "Current analysis uses structural signals only (Finnhub free tier). January 1st used full pattern analysis.",
     };
 
     const comparisonPath = path.join(RESULTS_DIR, `comparison-${date}.json`);

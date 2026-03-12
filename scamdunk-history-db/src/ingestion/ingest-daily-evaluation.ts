@@ -11,14 +11,19 @@
  *   npm run ingest:daily -- --file path/to/file.json  # Ingest specific file
  */
 
-import { readFileSync, existsSync, readdirSync } from 'fs';
-import { join, basename } from 'path';
-import { format, parse } from 'date-fns';
-import { prisma, connectDB, disconnectDB } from '../utils/db.js';
-import type { EvaluationResult, EvaluationSummary, DailyIngestionReport } from '../utils/types.js';
+import { readFileSync, existsSync, readdirSync } from "fs";
+import { join, basename } from "path";
+import { format, parse } from "date-fns";
+import { prisma, connectDB, disconnectDB } from "../utils/db.js";
+import type {
+  EvaluationResult,
+  EvaluationSummary,
+  DailyIngestionReport,
+} from "../utils/types.js";
 
 // Configuration
-const EVALUATION_RESULTS_PATH = process.env.EVALUATION_RESULTS_PATH || '../evaluation/results';
+const EVALUATION_RESULTS_PATH =
+  process.env.EVALUATION_RESULTS_PATH || "../evaluation/results";
 
 interface IngestionOptions {
   date?: string;
@@ -31,11 +36,11 @@ function parseArgs(): IngestionOptions {
   const options: IngestionOptions = {};
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--date' && args[i + 1]) {
+    if (args[i] === "--date" && args[i + 1]) {
       options.date = args[++i];
-    } else if (args[i] === '--file' && args[i + 1]) {
+    } else if (args[i] === "--file" && args[i + 1]) {
       options.file = args[++i];
-    } else if (args[i] === '--dry-run') {
+    } else if (args[i] === "--dry-run") {
       options.dryRun = true;
     }
   }
@@ -43,7 +48,9 @@ function parseArgs(): IngestionOptions {
   return options;
 }
 
-function findLatestEvaluationFile(basePath: string): { evalFile: string; summaryFile: string; date: string } | null {
+function findLatestEvaluationFile(
+  basePath: string,
+): { evalFile: string; summaryFile: string; date: string } | null {
   const resolvedPath = join(process.cwd(), basePath);
 
   if (!existsSync(resolvedPath)) {
@@ -55,42 +62,42 @@ function findLatestEvaluationFile(basePath: string): { evalFile: string; summary
 
   // Look for fmp-evaluation-YYYY-MM-DD.json files first (preferred)
   const fmpEvalFiles = files
-    .filter(f => f.match(/^fmp-evaluation-\d{4}-\d{2}-\d{2}\.json$/))
+    .filter((f) => f.match(/^fmp-evaluation-\d{4}-\d{2}-\d{2}\.json$/))
     .sort()
     .reverse();
 
   if (fmpEvalFiles.length > 0) {
     const latestFile = fmpEvalFiles[0];
     const dateMatch = latestFile.match(/(\d{4}-\d{2}-\d{2})/);
-    const date = dateMatch ? dateMatch[1] : format(new Date(), 'yyyy-MM-dd');
+    const date = dateMatch ? dateMatch[1] : format(new Date(), "yyyy-MM-dd");
     const summaryFile = `fmp-summary-${date}.json`;
 
     return {
       evalFile: join(resolvedPath, latestFile),
       summaryFile: existsSync(join(resolvedPath, summaryFile))
         ? join(resolvedPath, summaryFile)
-        : '',
+        : "",
       date,
     };
   }
 
   // Fallback to evaluation-YYYY-MM-DD.json
   const evalFiles = files
-    .filter(f => f.match(/^evaluation-\d{4}-\d{2}-\d{2}\.json$/))
+    .filter((f) => f.match(/^evaluation-\d{4}-\d{2}-\d{2}\.json$/))
     .sort()
     .reverse();
 
   if (evalFiles.length > 0) {
     const latestFile = evalFiles[0];
     const dateMatch = latestFile.match(/(\d{4}-\d{2}-\d{2})/);
-    const date = dateMatch ? dateMatch[1] : format(new Date(), 'yyyy-MM-dd');
+    const date = dateMatch ? dateMatch[1] : format(new Date(), "yyyy-MM-dd");
     const summaryFile = `summary-${date}.json`;
 
     return {
       evalFile: join(resolvedPath, latestFile),
       summaryFile: existsSync(join(resolvedPath, summaryFile))
         ? join(resolvedPath, summaryFile)
-        : '',
+        : "",
       date,
     };
   }
@@ -98,7 +105,10 @@ function findLatestEvaluationFile(basePath: string): { evalFile: string; summary
   return null;
 }
 
-function findEvaluationFileByDate(basePath: string, date: string): { evalFile: string; summaryFile: string; date: string } | null {
+function findEvaluationFileByDate(
+  basePath: string,
+  date: string,
+): { evalFile: string; summaryFile: string; date: string } | null {
   const resolvedPath = join(process.cwd(), basePath);
 
   // Try FMP format first
@@ -108,7 +118,7 @@ function findEvaluationFileByDate(basePath: string, date: string): { evalFile: s
   if (existsSync(fmpEvalFile)) {
     return {
       evalFile: fmpEvalFile,
-      summaryFile: existsSync(fmpSummaryFile) ? fmpSummaryFile : '',
+      summaryFile: existsSync(fmpSummaryFile) ? fmpSummaryFile : "",
       date,
     };
   }
@@ -120,7 +130,7 @@ function findEvaluationFileByDate(basePath: string, date: string): { evalFile: s
   if (existsSync(evalFile)) {
     return {
       evalFile,
-      summaryFile: existsSync(summaryFile) ? summaryFile : '',
+      summaryFile: existsSync(summaryFile) ? summaryFile : "",
       date,
     };
   }
@@ -128,7 +138,10 @@ function findEvaluationFileByDate(basePath: string, date: string): { evalFile: s
   return null;
 }
 
-async function getOrCreateStock(symbol: string, data: EvaluationResult): Promise<string> {
+async function getOrCreateStock(
+  symbol: string,
+  data: EvaluationResult,
+): Promise<string> {
   const existing = await prisma.stock.findUnique({
     where: { symbol },
     select: { id: true },
@@ -145,7 +158,7 @@ async function getOrCreateStock(symbol: string, data: EvaluationResult): Promise
       exchange: data.exchange,
       sector: data.sector || null,
       industry: data.industry || null,
-      isOTC: data.exchange === 'OTC',
+      isOTC: data.exchange === "OTC",
     },
   });
 
@@ -156,11 +169,11 @@ async function ingestEvaluation(
   results: EvaluationResult[],
   summary: EvaluationSummary | null,
   scanDate: Date,
-  dryRun: boolean = false
+  dryRun: boolean = false,
 ): Promise<DailyIngestionReport> {
   const startTime = Date.now();
   const report: DailyIngestionReport = {
-    scanDate: format(scanDate, 'yyyy-MM-dd'),
+    scanDate: format(scanDate, "yyyy-MM-dd"),
     totalProcessed: 0,
     newStocks: 0,
     updatedSnapshots: 0,
@@ -174,10 +187,12 @@ async function ingestEvaluation(
     duration: 0,
   };
 
-  console.log(`\n📊 Ingesting ${results.length} evaluation results for ${format(scanDate, 'yyyy-MM-dd')}...`);
+  console.log(
+    `\n📊 Ingesting ${results.length} evaluation results for ${format(scanDate, "yyyy-MM-dd")}...`,
+  );
 
   if (dryRun) {
-    console.log('🔍 DRY RUN - No changes will be made to database');
+    console.log("🔍 DRY RUN - No changes will be made to database");
   }
 
   // Process in batches
@@ -198,7 +213,9 @@ async function ingestEvaluation(
 
         // Count risk levels
         if (result.riskLevel in report.riskDistribution) {
-          report.riskDistribution[result.riskLevel as keyof typeof report.riskDistribution]++;
+          report.riskDistribution[
+            result.riskLevel as keyof typeof report.riskDistribution
+          ]++;
         }
 
         if (dryRun) continue;
@@ -217,7 +234,7 @@ async function ingestEvaluation(
               exchange: result.exchange,
               sector: result.sector || null,
               industry: result.industry || null,
-              isOTC: result.exchange === 'OTC',
+              isOTC: result.exchange === "OTC",
             },
           });
           stockId = newStock.id;
@@ -225,9 +242,11 @@ async function ingestEvaluation(
         } else {
           stockId = existingStock.id;
           // Update stock metadata if changed
-          if (existingStock.name !== result.name ||
-              existingStock.sector !== result.sector ||
-              existingStock.industry !== result.industry) {
+          if (
+            existingStock.name !== result.name ||
+            existingStock.sector !== result.sector ||
+            existingStock.industry !== result.industry
+          ) {
             await prisma.stock.update({
               where: { id: stockId },
               data: {
@@ -281,7 +300,6 @@ async function ingestEvaluation(
         });
 
         report.updatedSnapshots++;
-
       } catch (error) {
         console.error(`❌ Error processing ${result.symbol}:`, error);
         report.errors++;
@@ -290,42 +308,49 @@ async function ingestEvaluation(
 
     // Progress indicator
     const progress = Math.round(((i + 1) / batches) * 100);
-    process.stdout.write(`\r   Processing: ${progress}% (${(i + 1) * batchSize}/${results.length})`);
+    process.stdout.write(
+      `\r   Processing: ${progress}% (${(i + 1) * batchSize}/${results.length})`,
+    );
   }
 
-  console.log('\n');
+  console.log("\n");
 
   // Ingest summary if available
   if (summary && !dryRun) {
-    console.log('📈 Ingesting scan summary...');
+    console.log("📈 Ingesting scan summary...");
 
     // Calculate signal counts from results
-    const spikeDropCount = results.filter(r =>
-      r.signalSummary?.includes('SPIKE_THEN_DROP')
+    const spikeDropCount = results.filter((r) =>
+      r.signalSummary?.includes("SPIKE_THEN_DROP"),
     ).length;
 
-    const activePumpCount = results.filter(r =>
-      r.signalSummary?.includes('SPIKE_7D') && !r.signalSummary?.includes('SPIKE_THEN_DROP')
+    const activePumpCount = results.filter(
+      (r) =>
+        r.signalSummary?.includes("SPIKE_7D") &&
+        !r.signalSummary?.includes("SPIKE_THEN_DROP"),
     ).length;
 
-    const volumeAnomalyCount = results.filter(r =>
-      r.signalSummary?.includes('VOLUME_EXPLOSION')
+    const volumeAnomalyCount = results.filter((r) =>
+      r.signalSummary?.includes("VOLUME_EXPLOSION"),
     ).length;
 
-    const overboughtCount = results.filter(r =>
-      r.signalSummary?.includes('OVERBOUGHT_RSI')
+    const overboughtCount = results.filter((r) =>
+      r.signalSummary?.includes("OVERBOUGHT_RSI"),
     ).length;
 
     // Calculate sector breakdown
-    const bySector: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number }> = {};
+    const bySector: Record<
+      string,
+      { total: number; LOW: number; MEDIUM: number; HIGH: number }
+    > = {};
     for (const result of results) {
-      const sector = result.sector || 'Unknown';
+      const sector = result.sector || "Unknown";
       if (!bySector[sector]) {
         bySector[sector] = { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0 };
       }
       bySector[sector].total++;
       if (result.riskLevel in bySector[sector]) {
-        bySector[sector][result.riskLevel as 'LOW' | 'MEDIUM' | 'HIGH']++;
+        bySector[sector][result.riskLevel as "LOW" | "MEDIUM" | "HIGH"]++;
       }
     }
 
@@ -381,18 +406,18 @@ async function ingestEvaluation(
 }
 
 async function detectRiskChanges(scanDate: Date): Promise<void> {
-  console.log('🔍 Detecting risk changes from previous day...');
+  console.log("🔍 Detecting risk changes from previous day...");
 
   // Get previous scan date
   const previousSummary = await prisma.dailyScanSummary.findFirst({
     where: {
       scanDate: { lt: scanDate },
     },
-    orderBy: { scanDate: 'desc' },
+    orderBy: { scanDate: "desc" },
   });
 
   if (!previousSummary) {
-    console.log('   No previous scan found, skipping risk change detection');
+    console.log("   No previous scan found, skipping risk change detection");
     return;
   }
 
@@ -408,7 +433,7 @@ async function detectRiskChanges(scanDate: Date): Promise<void> {
     where: { scanDate: previousDate },
   });
 
-  const previousByStock = new Map(previousSnapshots.map(s => [s.stockId, s]));
+  const previousByStock = new Map(previousSnapshots.map((s) => [s.stockId, s]));
 
   let changesDetected = 0;
 
@@ -420,22 +445,28 @@ async function detectRiskChanges(scanDate: Date): Promise<void> {
     if (previous.riskLevel !== current.riskLevel) {
       // Determine alert type
       let alertType: string;
-      if (current.riskLevel === 'HIGH' && previous.riskLevel !== 'HIGH') {
-        alertType = 'NEW_HIGH_RISK';
+      if (current.riskLevel === "HIGH" && previous.riskLevel !== "HIGH") {
+        alertType = "NEW_HIGH_RISK";
       } else if (current.totalScore > previous.totalScore) {
-        alertType = 'RISK_INCREASED';
+        alertType = "RISK_INCREASED";
       } else {
-        alertType = 'RISK_DECREASED';
+        alertType = "RISK_DECREASED";
       }
 
       // Check for pump/dump patterns
-      const currentSignals = current.signalSummary || '';
-      const previousSignals = previous.signalSummary || '';
+      const currentSignals = current.signalSummary || "";
+      const previousSignals = previous.signalSummary || "";
 
-      if (currentSignals.includes('SPIKE_THEN_DROP') && !previousSignals.includes('SPIKE_THEN_DROP')) {
-        alertType = 'DUMP_DETECTED';
-      } else if (currentSignals.includes('SPIKE_7D') && !previousSignals.includes('SPIKE_7D')) {
-        alertType = 'PUMP_DETECTED';
+      if (
+        currentSignals.includes("SPIKE_THEN_DROP") &&
+        !previousSignals.includes("SPIKE_THEN_DROP")
+      ) {
+        alertType = "DUMP_DETECTED";
+      } else if (
+        currentSignals.includes("SPIKE_7D") &&
+        !previousSignals.includes("SPIKE_7D")
+      ) {
+        alertType = "PUMP_DETECTED";
       }
 
       // Create alert
@@ -454,10 +485,14 @@ async function detectRiskChanges(scanDate: Date): Promise<void> {
       });
 
       // Create risk change record
-      const previousSignalCodes = previousSignals.split(', ').filter(Boolean);
-      const currentSignalCodes = currentSignals.split(', ').filter(Boolean);
-      const newSignals = currentSignalCodes.filter(s => !previousSignalCodes.includes(s));
-      const removedSignals = previousSignalCodes.filter(s => !currentSignalCodes.includes(s));
+      const previousSignalCodes = previousSignals.split(", ").filter(Boolean);
+      const currentSignalCodes = currentSignals.split(", ").filter(Boolean);
+      const newSignals = currentSignalCodes.filter(
+        (s) => !previousSignalCodes.includes(s),
+      );
+      const removedSignals = previousSignalCodes.filter(
+        (s) => !currentSignalCodes.includes(s),
+      );
 
       await prisma.stockRiskChange.create({
         data: {
@@ -469,9 +504,12 @@ async function detectRiskChanges(scanDate: Date): Promise<void> {
           scoreChange: current.totalScore - previous.totalScore,
           fromPrice: previous.lastPrice,
           toPrice: current.lastPrice,
-          priceChangePct: previous.lastPrice && current.lastPrice
-            ? ((current.lastPrice - previous.lastPrice) / previous.lastPrice) * 100
-            : null,
+          priceChangePct:
+            previous.lastPrice && current.lastPrice
+              ? ((current.lastPrice - previous.lastPrice) /
+                  previous.lastPrice) *
+                100
+              : null,
           newSignals: JSON.stringify(newSignals),
           removedSignals: JSON.stringify(removedSignals),
         },
@@ -487,12 +525,16 @@ async function detectRiskChanges(scanDate: Date): Promise<void> {
 async function main() {
   const options = parseArgs();
 
-  console.log('🚀 ScamDunk History DB - Daily Evaluation Ingestion');
-  console.log('================================================\n');
+  console.log("🚀 ScamDunk History DB - Daily Evaluation Ingestion");
+  console.log("================================================\n");
 
   try {
     // Find the evaluation file
-    let fileInfo: { evalFile: string; summaryFile: string; date: string } | null;
+    let fileInfo: {
+      evalFile: string;
+      summaryFile: string;
+      date: string;
+    } | null;
 
     if (options.file) {
       if (!existsSync(options.file)) {
@@ -502,11 +544,14 @@ async function main() {
       const dateMatch = basename(options.file).match(/(\d{4}-\d{2}-\d{2})/);
       fileInfo = {
         evalFile: options.file,
-        summaryFile: '',
-        date: dateMatch ? dateMatch[1] : format(new Date(), 'yyyy-MM-dd'),
+        summaryFile: "",
+        date: dateMatch ? dateMatch[1] : format(new Date(), "yyyy-MM-dd"),
       };
     } else if (options.date) {
-      fileInfo = findEvaluationFileByDate(EVALUATION_RESULTS_PATH, options.date);
+      fileInfo = findEvaluationFileByDate(
+        EVALUATION_RESULTS_PATH,
+        options.date,
+      );
       if (!fileInfo) {
         console.error(`❌ No evaluation file found for date: ${options.date}`);
         process.exit(1);
@@ -514,7 +559,7 @@ async function main() {
     } else {
       fileInfo = findLatestEvaluationFile(EVALUATION_RESULTS_PATH);
       if (!fileInfo) {
-        console.error('❌ No evaluation files found');
+        console.error("❌ No evaluation files found");
         process.exit(1);
       }
     }
@@ -526,14 +571,20 @@ async function main() {
     console.log(`📅 Scan date: ${fileInfo.date}`);
 
     // Read files
-    console.log('\n📖 Reading evaluation data...');
-    const evaluationData = JSON.parse(readFileSync(fileInfo.evalFile, 'utf-8')) as EvaluationResult[];
+    console.log("\n📖 Reading evaluation data...");
+    const evaluationData = JSON.parse(
+      readFileSync(fileInfo.evalFile, "utf-8"),
+    ) as EvaluationResult[];
     console.log(`   Found ${evaluationData.length} stocks`);
 
     let summaryData: EvaluationSummary | null = null;
     if (fileInfo.summaryFile) {
-      summaryData = JSON.parse(readFileSync(fileInfo.summaryFile, 'utf-8')) as EvaluationSummary;
-      console.log(`   Summary: ${summaryData.evaluated} evaluated, ${summaryData.byRiskLevel.HIGH} high risk`);
+      summaryData = JSON.parse(
+        readFileSync(fileInfo.summaryFile, "utf-8"),
+      ) as EvaluationSummary;
+      console.log(
+        `   Summary: ${summaryData.evaluated} evaluated, ${summaryData.byRiskLevel.HIGH} high risk`,
+      );
     }
 
     // Connect to database
@@ -542,10 +593,15 @@ async function main() {
     }
 
     // Parse scan date
-    const scanDate = parse(fileInfo.date, 'yyyy-MM-dd', new Date());
+    const scanDate = parse(fileInfo.date, "yyyy-MM-dd", new Date());
 
     // Ingest data
-    const report = await ingestEvaluation(evaluationData, summaryData, scanDate, options.dryRun);
+    const report = await ingestEvaluation(
+      evaluationData,
+      summaryData,
+      scanDate,
+      options.dryRun,
+    );
 
     // Detect risk changes (skip for dry run)
     if (!options.dryRun) {
@@ -553,24 +609,23 @@ async function main() {
     }
 
     // Print report
-    console.log('\n📊 Ingestion Report');
-    console.log('==================');
+    console.log("\n📊 Ingestion Report");
+    console.log("==================");
     console.log(`   Scan Date: ${report.scanDate}`);
     console.log(`   Total Processed: ${report.totalProcessed}`);
     console.log(`   New Stocks: ${report.newStocks}`);
     console.log(`   Updated Snapshots: ${report.updatedSnapshots}`);
     console.log(`   Errors: ${report.errors}`);
     console.log(`   Duration: ${(report.duration / 1000).toFixed(2)}s`);
-    console.log('\n   Risk Distribution:');
+    console.log("\n   Risk Distribution:");
     console.log(`     LOW: ${report.riskDistribution.LOW}`);
     console.log(`     MEDIUM: ${report.riskDistribution.MEDIUM}`);
     console.log(`     HIGH: ${report.riskDistribution.HIGH}`);
     console.log(`     INSUFFICIENT: ${report.riskDistribution.INSUFFICIENT}`);
 
-    console.log('\n✅ Ingestion complete!');
-
+    console.log("\n✅ Ingestion complete!");
   } catch (error) {
-    console.error('\n❌ Ingestion failed:', error);
+    console.error("\n❌ Ingestion failed:", error);
     process.exit(1);
   } finally {
     await disconnectDB();

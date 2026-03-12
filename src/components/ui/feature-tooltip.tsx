@@ -45,9 +45,17 @@ export function FeatureTooltip({
       const spaceBelow = window.innerHeight - rect.bottom;
       const tooltipHeight = 150; // Estimated height
 
-      if (position === "top" && spaceAbove < tooltipHeight && spaceBelow > spaceAbove) {
+      if (
+        position === "top" &&
+        spaceAbove < tooltipHeight &&
+        spaceBelow > spaceAbove
+      ) {
         setActualPosition("bottom");
-      } else if (position === "bottom" && spaceBelow < tooltipHeight && spaceAbove > spaceBelow) {
+      } else if (
+        position === "bottom" &&
+        spaceBelow < tooltipHeight &&
+        spaceAbove > spaceBelow
+      ) {
         setActualPosition("top");
       } else {
         setActualPosition(position);
@@ -111,9 +119,13 @@ export function FeatureTooltip({
             ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
             : "opacity-0 scale-95 pointer-events-none",
           actualPosition === "top"
-            ? isVisible ? "translate-y-0" : "translate-y-2"
-            : isVisible ? "translate-y-0" : "-translate-y-2",
-          tooltipClassName
+            ? isVisible
+              ? "translate-y-0"
+              : "translate-y-2"
+            : isVisible
+              ? "translate-y-0"
+              : "-translate-y-2",
+          tooltipClassName,
         )}
       >
         {/* Arrow */}
@@ -125,15 +137,13 @@ export function FeatureTooltip({
             "rotate-45",
             actualPosition === "top"
               ? "bottom-[-6px] border-r border-b"
-              : "top-[-6px] border-l border-t"
+              : "top-[-6px] border-l border-t",
           )}
         />
 
         {/* Content */}
         <div className="relative space-y-2">
-          <h4 className="font-semibold text-foreground text-sm">
-            {title}
-          </h4>
+          <h4 className="font-semibold text-foreground text-sm">{title}</h4>
           <p className="text-muted-foreground text-xs leading-relaxed">
             {description}
           </p>
@@ -146,7 +156,10 @@ export function FeatureTooltip({
               </p>
               <ol className="space-y-1.5">
                 {steps.map((step, index) => (
-                  <li key={index} className="flex items-start gap-2 text-xs text-foreground/90">
+                  <li
+                    key={index}
+                    className="flex items-start gap-2 text-xs text-foreground/90"
+                  >
                     <span className="flex-shrink-0 w-4 h-4 rounded-full bg-primary/10 text-primary text-[10px] font-medium flex items-center justify-center">
                       {index + 1}
                     </span>

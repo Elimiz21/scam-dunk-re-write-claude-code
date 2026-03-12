@@ -76,7 +76,10 @@ export class CircuitBreaker {
     this.consecutiveFailures++;
     this.lastFailureTime = Date.now();
     // In HALF_OPEN, a single failure immediately re-opens the circuit
-    if (this.state === CircuitState.HALF_OPEN || this.consecutiveFailures >= this.failureThreshold) {
+    if (
+      this.state === CircuitState.HALF_OPEN ||
+      this.consecutiveFailures >= this.failureThreshold
+    ) {
       this.state = CircuitState.OPEN;
     }
   }

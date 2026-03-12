@@ -8,14 +8,14 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Show what would be pushed without actually pushing'
+        description: "Show what would be pushed without actually pushing"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       skip_supabase:
-        description: 'Skip Supabase upload (only push to data repo)'
+        description: "Skip Supabase upload (only push to data repo)"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
 
 permissions:

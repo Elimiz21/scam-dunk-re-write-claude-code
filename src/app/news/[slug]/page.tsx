@@ -11,7 +11,9 @@ type PageParams = { slug: string };
 export async function generateStaticParams(): Promise<PageParams[]> {
   try {
     if (!process.env.DATABASE_URL) {
-      console.warn("Skipping blog static params because DATABASE_URL is not set.");
+      console.warn(
+        "Skipping blog static params because DATABASE_URL is not set.",
+      );
       return [];
     }
 

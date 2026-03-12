@@ -149,10 +149,71 @@ export async function incrementScanCount(userId: string): Promise<UsageInfo> {
 }
 
 /**
+ * Atomically check the scan limit and increment in a single transaction.
+ * Eliminates the TOCTOU race between canUserScan() and incrementScanCount().
+ * Returns { reserved: false } if the limit is already reached.
+ */
+export async function reserveScanSlot(userId: string): Promise<{
+  reserved: boolean;
+  usage: UsageInfo;
+}> {
+  const monthKey = getCurrentMonthKey();
+
+  return await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { plan: true },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const plan = user.plan as Plan;
+    const limit = getScanLimit(plan);
+
+    const existing = await tx.scanUsage.findUnique({
+      where: { userId_monthKey: { userId, monthKey } },
+    });
+
+    const currentCount = existing?.scanCount ?? 0;
+
+    if (currentCount >= limit) {
+      return {
+        reserved: false,
+        usage: {
+          plan,
+          scansUsedThisMonth: currentCount,
+          scansLimitThisMonth: limit,
+          limitReached: true,
+        },
+      };
+    }
+
+    const updated = await tx.scanUsage.upsert({
+      where: { userId_monthKey: { userId, monthKey } },
+      update: { scanCount: { increment: 1 } },
+      create: { userId, monthKey, scanCount: 1 },
+    });
+
+    return {
+      reserved: true,
+      usage: {
+        plan,
+        scansUsedThisMonth: updated.scanCount,
+        scansLimitThisMonth: limit,
+        limitReached: updated.scanCount >= limit,
+      },
+    };
+  });
+}
+
+/**
  * Get usage info object for API response
  */
 export async function getUsageInfo(userId: string): Promise<UsageInfo> {
-  const { plan, scansUsedThisMonth, scansLimitThisMonth } = await getUserUsage(userId);
+  const { plan, scansUsedThisMonth, scansLimitThisMonth } =
+    await getUserUsage(userId);
 
   return {
     plan,

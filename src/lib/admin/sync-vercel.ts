@@ -31,7 +31,7 @@ function vercelUrl(path: string, teamId?: string): string {
 async function getExistingEnvVars(
   apiToken: string,
   projectId: string,
-  teamId?: string
+  teamId?: string,
 ): Promise<Map<string, string>> {
   const res = await fetch(vercelUrl(`/v9/projects/${projectId}/env`, teamId), {
     headers: { Authorization: `Bearer ${apiToken}` },
@@ -50,7 +50,7 @@ async function getExistingEnvVars(
  * Type is always "encrypted" and targets both production + preview.
  */
 export async function syncToVercel(
-  envVars: Record<string, string>
+  envVars: Record<string, string>,
 ): Promise<SyncResult> {
   const cfg = getVercelConfig();
   if (!cfg) {
@@ -73,7 +73,7 @@ export async function syncToVercel(
     const existing = await getExistingEnvVars(
       cfg.apiToken,
       cfg.projectId,
-      cfg.teamId
+      cfg.teamId,
     );
 
     for (const [key, value] of Object.entries(envVars)) {
@@ -85,18 +85,18 @@ export async function syncToVercel(
           const res = await fetch(
             vercelUrl(
               `/v9/projects/${cfg.projectId}/env/${existingId}`,
-              cfg.teamId
+              cfg.teamId,
             ),
             {
               method: "PATCH",
               headers,
               body: JSON.stringify({ value }),
-            }
+            },
           );
           if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             errors.push(
-              `${key}: ${(err as Record<string, Record<string, string>>).error?.message || res.status}`
+              `${key}: ${(err as Record<string, Record<string, string>>).error?.message || res.status}`,
             );
             continue;
           }
@@ -113,12 +113,12 @@ export async function syncToVercel(
                 type: "encrypted",
                 target: ["production", "preview"],
               }),
-            }
+            },
           );
           if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             errors.push(
-              `${key}: ${(err as Record<string, Record<string, string>>).error?.message || res.status}`
+              `${key}: ${(err as Record<string, Record<string, string>>).error?.message || res.status}`,
             );
             continue;
           }
@@ -126,7 +126,7 @@ export async function syncToVercel(
         updated.push(key);
       } catch (e) {
         errors.push(
-          `${key}: ${e instanceof Error ? e.message : "Unknown error"}`
+          `${key}: ${e instanceof Error ? e.message : "Unknown error"}`,
         );
       }
     }
@@ -154,7 +154,7 @@ export async function syncToVercel(
  * Remove env vars from Vercel by key name.
  */
 export async function removeFromVercel(
-  envVarKeys: string[]
+  envVarKeys: string[],
 ): Promise<SyncResult> {
   const cfg = getVercelConfig();
   if (!cfg) {
@@ -173,7 +173,7 @@ export async function removeFromVercel(
     const existing = await getExistingEnvVars(
       cfg.apiToken,
       cfg.projectId,
-      cfg.teamId
+      cfg.teamId,
     );
 
     for (const key of envVarKeys) {
@@ -184,12 +184,12 @@ export async function removeFromVercel(
         const res = await fetch(
           vercelUrl(
             `/v9/projects/${cfg.projectId}/env/${existingId}`,
-            cfg.teamId
+            cfg.teamId,
           ),
           {
             method: "DELETE",
             headers: { Authorization: `Bearer ${cfg.apiToken}` },
-          }
+          },
         );
         if (res.ok) {
           updated.push(key);
@@ -198,7 +198,7 @@ export async function removeFromVercel(
         }
       } catch (e) {
         errors.push(
-          `${key}: ${e instanceof Error ? e.message : "Unknown error"}`
+          `${key}: ${e instanceof Error ? e.message : "Unknown error"}`,
         );
       }
     }

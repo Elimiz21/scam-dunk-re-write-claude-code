@@ -31,22 +31,34 @@ export async function GET(req: Request) {
     const unfilteredOnly = url.searchParams.get("unfilteredOnly") !== "false";
     const sortBy = url.searchParams.get("sortBy") || "totalScore";
     const page = parseInt(url.searchParams.get("page") || "1");
-    const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100);
+    const limit = Math.min(
+      parseInt(url.searchParams.get("limit") || "50"),
+      100,
+    );
     const search = url.searchParams.get("search") || "";
 
     if (!date) {
-      return NextResponse.json({ error: "No scan data available" }, { status: 404 });
+      return NextResponse.json(
+        { error: "No scan data available" },
+        { status: 404 },
+      );
     }
 
     const files = await getRepoTree();
     const highRiskPath = getHighRiskPath(date, files);
 
     if (!highRiskPath) {
-      return NextResponse.json({ error: `No high-risk data for ${date}` }, { status: 404 });
+      return NextResponse.json(
+        { error: `No high-risk data for ${date}` },
+        { status: 404 },
+      );
     }
 
     // Fetch a large chunk of the high-risk file
-    const stocks = await fetchPartialArray<EnhancedStock>(highRiskPath, 2_000_000);
+    const stocks = await fetchPartialArray<EnhancedStock>(
+      highRiskPath,
+      2_000_000,
+    );
 
     // Apply filters
     let filtered = stocks;
@@ -65,9 +77,9 @@ export async function GET(req: Request) {
 
     if (hasPumpPattern) {
       filtered = filtered.filter((s) =>
-        s.signals.some((sig) =>
-          sig.code.includes("PUMP") || sig.code.includes("DUMP")
-        )
+        s.signals.some(
+          (sig) => sig.code.includes("PUMP") || sig.code.includes("DUMP"),
+        ),
       );
     }
 
@@ -76,7 +88,7 @@ export async function GET(req: Request) {
       filtered = filtered.filter(
         (s) =>
           s.symbol.toUpperCase().includes(q) ||
-          s.name.toUpperCase().includes(q)
+          s.name.toUpperCase().includes(q),
       );
     }
 
@@ -88,7 +100,10 @@ export async function GET(req: Request) {
         case "aiCombined":
           return (b.aiLayers?.combined || 0) - (a.aiLayers?.combined || 0);
         case "layer2":
-          return (b.aiLayers?.layer2_anomaly || 0) - (a.aiLayers?.layer2_anomaly || 0);
+          return (
+            (b.aiLayers?.layer2_anomaly || 0) -
+            (a.aiLayers?.layer2_anomaly || 0)
+          );
         case "signals":
           return b.signals.length - a.signals.length;
         case "marketCap":
@@ -114,7 +129,7 @@ export async function GET(req: Request) {
     console.error("Stock list error:", error);
     return NextResponse.json(
       { error: "Failed to fetch stock list" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

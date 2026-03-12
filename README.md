@@ -100,29 +100,34 @@ scamdunk/
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/Elimiz21/scam-dunk-re-write-claude-code.git
    cd scam-dunk-re-write-claude-code
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Set up environment variables:
+
    ```bash
    cp .env.example .env
    # Edit .env with your values
    ```
 
 4. Set up the database:
+
    ```bash
    npx prisma generate
    npx prisma db push
    ```
 
 5. Run the development server:
+
    ```bash
    npm run dev
    ```
@@ -162,6 +167,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJ..."
 ## Database Schema
 
 ### User
+
 - `id`: Primary key (cuid)
 - `email`: Unique email address
 - `hashedPassword`: Bcrypt hashed password
@@ -170,6 +176,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJ..."
 - `billingCustomerId`: Stripe customer ID
 
 ### ScanUsage
+
 - `id`: Primary key
 - `userId`: Foreign key to User
 - `monthKey`: Format "YYYY-MM"
@@ -179,12 +186,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJ..."
 ## API Routes
 
 ### `POST /api/auth/register`
+
 Register a new user with email/password.
 
 ### `POST /api/check`
+
 Main stock analysis endpoint. Requires authentication.
 
 **Request Body:**
+
 ```json
 {
   "ticker": "ABCD",
@@ -199,6 +209,7 @@ Main stock analysis endpoint. Requires authentication.
 ```
 
 **Response:**
+
 ```json
 {
   "riskLevel": "HIGH",
@@ -211,12 +222,15 @@ Main stock analysis endpoint. Requires authentication.
 ```
 
 ### `GET /api/user/usage`
+
 Get current user's usage information.
 
 ### `POST /api/billing/checkout`
+
 Create Stripe checkout session for upgrade.
 
 ### `POST /api/billing/portal`
+
 Create Stripe billing portal session.
 
 ## Risk Scoring System
@@ -225,12 +239,12 @@ The scoring system is **deterministic** - no LLM is used for scoring, only for g
 
 ### Signal Categories
 
-| Category | Signals |
-|----------|---------|
+| Category       | Signals                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
 | **STRUCTURAL** | MICROCAP_PRICE (price < $5), SMALL_MARKET_CAP (< $300M), MICRO_LIQUIDITY (< $150k/day), OTC_EXCHANGE |
-| **PATTERN** | SPIKE_7D (50%+ or 100%+ in 7 days), VOLUME_EXPLOSION (5x or 10x average), SPIKE_THEN_DROP |
-| **ALERT** | ALERT_LIST_HIT (regulatory alerts) |
-| **BEHAVIORAL** | UNSOLICITED, PROMISED_RETURNS, URGENCY, SECRECY, SPECIFIC_RETURN_CLAIM |
+| **PATTERN**    | SPIKE_7D (50%+ or 100%+ in 7 days), VOLUME_EXPLOSION (5x or 10x average), SPIKE_THEN_DROP            |
+| **ALERT**      | ALERT_LIST_HIT (regulatory alerts)                                                                   |
+| **BEHAVIORAL** | UNSOLICITED, PROMISED_RETURNS, URGENCY, SECRECY, SPECIFIC_RETURN_CLAIM                               |
 
 ### Risk Levels
 
@@ -241,43 +255,47 @@ The scoring system is **deterministic** - no LLM is used for scoring, only for g
 
 ### Signal Weights
 
-| Signal | Weight |
-|--------|--------|
-| MICROCAP_PRICE | 2 |
-| SMALL_MARKET_CAP | 2 |
-| MICRO_LIQUIDITY | 2 |
-| OTC_EXCHANGE | 3 |
-| SPIKE_7D (50-99%) | 3 |
-| SPIKE_7D (100%+) | 4 |
-| VOLUME_EXPLOSION (5-9x) | 2 |
-| VOLUME_EXPLOSION (10x+) | 3 |
-| SPIKE_THEN_DROP | 3 |
-| ALERT_LIST_HIT | 5 |
-| UNSOLICITED | 1 |
-| PROMISED_RETURNS | 2 |
-| URGENCY | 2 |
-| SECRECY | 2 |
-| SPECIFIC_RETURN_CLAIM | 1 |
+| Signal                  | Weight |
+| ----------------------- | ------ |
+| MICROCAP_PRICE          | 2      |
+| SMALL_MARKET_CAP        | 2      |
+| MICRO_LIQUIDITY         | 2      |
+| OTC_EXCHANGE            | 3      |
+| SPIKE_7D (50-99%)       | 3      |
+| SPIKE_7D (100%+)        | 4      |
+| VOLUME_EXPLOSION (5-9x) | 2      |
+| VOLUME_EXPLOSION (10x+) | 3      |
+| SPIKE_THEN_DROP         | 3      |
+| ALERT_LIST_HIT          | 5      |
+| UNSOLICITED             | 1      |
+| PROMISED_RETURNS        | 2      |
+| URGENCY                 | 2      |
+| SECRECY                 | 2      |
+| SPECIFIC_RETURN_CLAIM   | 1      |
 
 ## Authentication
 
 Authentication uses NextAuth.js v5 with:
+
 - **Credentials Provider**: Email/password login
 - **JWT Strategy**: Stateless sessions stored in cookies
 - **Plan in Session**: User's plan is included in the session for quick access
 
 The auth system is split into two files:
+
 - `auth.config.ts`: Edge-compatible configuration (used by middleware)
 - `auth.ts`: Full configuration with bcryptjs (used by API routes)
 
 ## Testing
 
 Run the test suite:
+
 ```bash
 npm test
 ```
 
 Tests cover:
+
 - All structural signals (MICROCAP_PRICE, SMALL_MARKET_CAP, etc.)
 - All behavioral signals (UNSOLICITED, PROMISED_RETURNS, etc.)
 - NLP keyword detection
@@ -297,6 +315,7 @@ Tests cover:
 ### Manual Deployment
 
 1. Build the project:
+
    ```bash
    npm run build
    ```

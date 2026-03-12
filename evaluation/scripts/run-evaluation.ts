@@ -5,16 +5,22 @@
  * historical price data fetched from Yahoo Finance.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as https from 'https';
+import * as fs from "fs";
+import * as path from "path";
+import * as https from "https";
 
 // Import standalone scoring module
-import { computeRiskScore, MarketData, PriceHistory, StockQuote, ScoringResult } from './standalone-scorer';
+import {
+  computeRiskScore,
+  MarketData,
+  PriceHistory,
+  StockQuote,
+  ScoringResult,
+} from "./standalone-scorer";
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const RESULTS_DIR = path.join(__dirname, '..', 'results');
-const REPORTS_DIR = path.join(__dirname, '..', 'reports');
+const DATA_DIR = path.join(__dirname, "..", "data");
+const RESULTS_DIR = path.join(__dirname, "..", "results");
+const REPORTS_DIR = path.join(__dirname, "..", "reports");
 
 // Rate limiting config
 const REQUESTS_PER_SECOND = 5; // Conservative rate limit for Yahoo Finance
@@ -71,19 +77,25 @@ interface EvaluationSummary {
     HIGH: number;
     INSUFFICIENT: number;
   };
-  byExchange: Record<string, {
-    total: number;
-    LOW: number;
-    MEDIUM: number;
-    HIGH: number;
-    INSUFFICIENT: number;
-  }>;
-  bySector: Record<string, {
-    total: number;
-    LOW: number;
-    MEDIUM: number;
-    HIGH: number;
-  }>;
+  byExchange: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      INSUFFICIENT: number;
+    }
+  >;
+  bySector: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+    }
+  >;
   bySignal: Record<string, number>;
   topHighRisk: EvaluationResult[];
   legitimateStocks: number;
@@ -93,33 +105,37 @@ interface EvaluationSummary {
 
 // Simple delay function
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // Fetch historical price data from Yahoo Finance
-async function fetchYahooFinanceData(symbol: string, days: number = 60): Promise<PriceHistory[] | null> {
+async function fetchYahooFinanceData(
+  symbol: string,
+  days: number = 60,
+): Promise<PriceHistory[] | null> {
   return new Promise((resolve) => {
     const endDate = Math.floor(Date.now() / 1000);
-    const startDate = endDate - (days * 24 * 60 * 60);
+    const startDate = endDate - days * 24 * 60 * 60;
 
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${startDate}&period2=${endDate}&interval=1d&events=history`;
 
     const options = {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        'Accept': 'application/json',
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        Accept: "application/json",
       },
       timeout: 10000,
     };
 
     const req = https.get(url, options, (res) => {
-      let data = '';
+      let data = "";
 
-      res.on('data', (chunk) => {
+      res.on("data", (chunk) => {
         data += chunk;
       });
 
-      res.on('end', () => {
+      res.on("end", () => {
         try {
           if (res.statusCode !== 200) {
             resolve(null);
@@ -140,15 +156,19 @@ async function fetchYahooFinanceData(symbol: string, days: number = 60): Promise
 
           for (let i = 0; i < timestamps.length; i++) {
             // Skip if any required value is null/undefined
-            if (quote.open?.[i] == null || quote.high?.[i] == null ||
-                quote.low?.[i] == null || quote.close?.[i] == null ||
-                quote.volume?.[i] == null) {
+            if (
+              quote.open?.[i] == null ||
+              quote.high?.[i] == null ||
+              quote.low?.[i] == null ||
+              quote.close?.[i] == null ||
+              quote.volume?.[i] == null
+            ) {
               continue;
             }
 
             const date = new Date(timestamps[i] * 1000);
             priceHistory.push({
-              date: date.toISOString().split('T')[0],
+              date: date.toISOString().split("T")[0],
               open: quote.open[i],
               high: quote.high[i],
               low: quote.low[i],
@@ -169,11 +189,11 @@ async function fetchYahooFinanceData(symbol: string, days: number = 60): Promise
       });
     });
 
-    req.on('error', () => {
+    req.on("error", () => {
       resolve(null);
     });
 
-    req.on('timeout', () => {
+    req.on("timeout", () => {
       req.destroy();
       resolve(null);
     });
@@ -181,7 +201,10 @@ async function fetchYahooFinanceData(symbol: string, days: number = 60): Promise
 }
 
 // Fetch with retry logic
-async function fetchWithRetry(symbol: string, retries: number = MAX_RETRIES): Promise<PriceHistory[] | null> {
+async function fetchWithRetry(
+  symbol: string,
+  retries: number = MAX_RETRIES,
+): Promise<PriceHistory[] | null> {
   for (let attempt = 0; attempt < retries; attempt++) {
     const result = await fetchYahooFinanceData(symbol);
     if (result !== null) {
@@ -195,14 +218,17 @@ async function fetchWithRetry(symbol: string, retries: number = MAX_RETRIES): Pr
 }
 
 // Create mock market data (fallback when real data unavailable)
-function createMockPriceHistory(basePrice: number, volume: number): PriceHistory[] {
+function createMockPriceHistory(
+  basePrice: number,
+  volume: number,
+): PriceHistory[] {
   const priceHistory: PriceHistory[] = [];
 
   for (let i = 60; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     priceHistory.push({
-      date: date.toISOString().split('T')[0],
+      date: date.toISOString().split("T")[0],
       open: basePrice * 0.998,
       high: basePrice * 1.002,
       low: basePrice * 0.995,
@@ -215,10 +241,18 @@ function createMockPriceHistory(basePrice: number, volume: number): PriceHistory
 }
 
 // Create market data from stock info and price history
-function createMarketData(stock: StockTicker, priceHistory: PriceHistory[]): MarketData {
+function createMarketData(
+  stock: StockTicker,
+  priceHistory: PriceHistory[],
+): MarketData {
   // Calculate average volume from price history
-  const avgVolume30d = priceHistory.slice(-30).reduce((sum, day) => sum + day.volume, 0) / Math.min(priceHistory.length, 30);
-  const lastPrice = priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].close : (stock.lastPrice || 50);
+  const avgVolume30d =
+    priceHistory.slice(-30).reduce((sum, day) => sum + day.volume, 0) /
+    Math.min(priceHistory.length, 30);
+  const lastPrice =
+    priceHistory.length > 0
+      ? priceHistory[priceHistory.length - 1].close
+      : stock.lastPrice || 50;
 
   const quote: StockQuote = {
     ticker: stock.symbol,
@@ -231,9 +265,10 @@ function createMarketData(stock: StockTicker, priceHistory: PriceHistory[]): Mar
   };
 
   // Determine if OTC based on exchange name
-  const isOTC = stock.isOTC ||
-    ['OTC', 'OTCQX', 'OTCQB', 'PINK', 'GREY'].some(ex =>
-      stock.exchange.toUpperCase().includes(ex)
+  const isOTC =
+    stock.isOTC ||
+    ["OTC", "OTCQX", "OTCQB", "PINK", "GREY"].some((ex) =>
+      stock.exchange.toUpperCase().includes(ex),
     );
 
   return {
@@ -245,7 +280,9 @@ function createMarketData(stock: StockTicker, priceHistory: PriceHistory[]): Mar
 }
 
 // Evaluate a single stock with real price data
-async function evaluateStockWithRealData(stock: StockTicker): Promise<EvaluationResult> {
+async function evaluateStockWithRealData(
+  stock: StockTicker,
+): Promise<EvaluationResult> {
   try {
     // Fetch real price data
     const priceHistory = await fetchWithRetry(stock.symbol);
@@ -254,7 +291,10 @@ async function evaluateStockWithRealData(stock: StockTicker): Promise<Evaluation
     // Use real data or fall back to mock
     const actualPriceHistory = hasRealData
       ? priceHistory!
-      : createMockPriceHistory(stock.lastPrice || 50, stock.volume || 1_000_000);
+      : createMockPriceHistory(
+          stock.lastPrice || 50,
+          stock.volume || 1_000_000,
+        );
 
     const marketData = createMarketData(stock, actualPriceHistory);
     const result = computeRiskScore(marketData);
@@ -263,59 +303,64 @@ async function evaluateStockWithRealData(stock: StockTicker): Promise<Evaluation
       symbol: stock.symbol,
       name: stock.name,
       exchange: stock.exchange,
-      sector: stock.sector || 'Unknown',
-      industry: stock.industry || 'Unknown',
+      sector: stock.sector || "Unknown",
+      industry: stock.industry || "Unknown",
       marketCap: stock.marketCap || null,
       lastPrice: marketData.quote.lastPrice,
       riskLevel: result.riskLevel,
       totalScore: result.totalScore,
       isLegitimate: result.isLegitimate,
       isInsufficient: result.isInsufficient,
-      signals: result.signals.map(s => ({
+      signals: result.signals.map((s) => ({
         code: s.code,
         category: s.category,
         weight: s.weight,
         description: s.description,
       })),
-      signalSummary: result.signals.map(s => s.code).join(', ') || 'None',
+      signalSummary: result.signals.map((s) => s.code).join(", ") || "None",
       evaluatedAt: new Date().toISOString(),
-      priceDataSource: hasRealData ? 'yahoo' : 'mock',
+      priceDataSource: hasRealData ? "yahoo" : "mock",
     };
   } catch (error) {
     return {
       symbol: stock.symbol,
       name: stock.name,
       exchange: stock.exchange,
-      sector: stock.sector || 'Unknown',
-      industry: stock.industry || 'Unknown',
+      sector: stock.sector || "Unknown",
+      industry: stock.industry || "Unknown",
       marketCap: stock.marketCap || null,
       lastPrice: stock.lastPrice || null,
-      riskLevel: 'ERROR',
+      riskLevel: "ERROR",
       totalScore: 0,
       isLegitimate: false,
       isInsufficient: true,
       signals: [],
-      signalSummary: 'Error',
+      signalSummary: "Error",
       evaluatedAt: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Unknown error',
-      priceDataSource: 'error',
+      error: error instanceof Error ? error.message : "Unknown error",
+      priceDataSource: "error",
     };
   }
 }
 
 // Progress bar helper
-function progressBar(current: number, total: number, width: number = 40): string {
+function progressBar(
+  current: number,
+  total: number,
+  width: number = 40,
+): string {
   const percent = current / total;
   const filled = Math.round(width * percent);
   const empty = width - filled;
-  const bar = '█'.repeat(filled) + '░'.repeat(empty);
+  const bar = "█".repeat(filled) + "░".repeat(empty);
   return `[${bar}] ${(percent * 100).toFixed(1)}% (${current}/${total})`;
 }
 
 // Format time remaining
 function formatTimeRemaining(seconds: number): string {
   if (seconds < 60) return `${Math.round(seconds)}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+  if (seconds < 3600)
+    return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
   return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 }
 
@@ -323,7 +368,7 @@ function formatTimeRemaining(seconds: number): string {
 function loadCheckpoint(checkpointPath: string): EvaluationResult[] {
   if (fs.existsSync(checkpointPath)) {
     try {
-      return JSON.parse(fs.readFileSync(checkpointPath, 'utf-8'));
+      return JSON.parse(fs.readFileSync(checkpointPath, "utf-8"));
     } catch {
       return [];
     }
@@ -332,7 +377,10 @@ function loadCheckpoint(checkpointPath: string): EvaluationResult[] {
 }
 
 // Save checkpoint
-function saveCheckpoint(results: EvaluationResult[], checkpointPath: string): void {
+function saveCheckpoint(
+  results: EvaluationResult[],
+  checkpointPath: string,
+): void {
   fs.writeFileSync(checkpointPath, JSON.stringify(results, null, 2));
 }
 
@@ -341,22 +389,24 @@ async function evaluateAllStocks(
   options: {
     limit?: number;
     resume?: boolean;
-  } = {}
+  } = {},
 ): Promise<void> {
   const { limit, resume = true } = options;
 
-  console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║   ScamDunk US Stock Evaluation Suite (Real Price Data)    ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  console.log("╔════════════════════════════════════════════════════════════╗");
+  console.log("║   ScamDunk US Stock Evaluation Suite (Real Price Data)    ║");
+  console.log(
+    "╚════════════════════════════════════════════════════════════╝\n",
+  );
 
   // Load stock list
-  const stocksPath = path.join(DATA_DIR, 'us-stocks.json');
+  const stocksPath = path.join(DATA_DIR, "us-stocks.json");
   if (!fs.existsSync(stocksPath)) {
-    console.error('Stock list not found. Run fetch-us-stocks.ts first.');
+    console.error("Stock list not found. Run fetch-us-stocks.ts first.");
     process.exit(1);
   }
 
-  let stocks: StockTicker[] = JSON.parse(fs.readFileSync(stocksPath, 'utf-8'));
+  let stocks: StockTicker[] = JSON.parse(fs.readFileSync(stocksPath, "utf-8"));
   console.log(`Loaded ${stocks.length} stocks from ${stocksPath}`);
 
   if (limit) {
@@ -365,11 +415,13 @@ async function evaluateAllStocks(
   }
 
   // Ensure directories exist
-  if (!fs.existsSync(RESULTS_DIR)) fs.mkdirSync(RESULTS_DIR, { recursive: true });
-  if (!fs.existsSync(REPORTS_DIR)) fs.mkdirSync(REPORTS_DIR, { recursive: true });
+  if (!fs.existsSync(RESULTS_DIR))
+    fs.mkdirSync(RESULTS_DIR, { recursive: true });
+  if (!fs.existsSync(REPORTS_DIR))
+    fs.mkdirSync(REPORTS_DIR, { recursive: true });
 
   // Check for checkpoint
-  const timestamp = new Date().toISOString().split('T')[0];
+  const timestamp = new Date().toISOString().split("T")[0];
   const checkpointPath = path.join(RESULTS_DIR, `checkpoint-${timestamp}.json`);
   let results: EvaluationResult[] = [];
   let startIndex = 0;
@@ -378,19 +430,29 @@ async function evaluateAllStocks(
     results = loadCheckpoint(checkpointPath);
     startIndex = results.length;
     if (startIndex > 0) {
-      console.log(`\nResuming from checkpoint: ${startIndex} stocks already evaluated`);
+      console.log(
+        `\nResuming from checkpoint: ${startIndex} stocks already evaluated`,
+      );
     }
   }
 
   const startTime = Date.now();
   const totalToProcess = stocks.length - startIndex;
 
-  console.log(`\nStarting evaluation of ${totalToProcess} stocks with real price data...`);
+  console.log(
+    `\nStarting evaluation of ${totalToProcess} stocks with real price data...`,
+  );
   console.log(`Rate limit: ${REQUESTS_PER_SECOND} requests/second`);
-  console.log(`Estimated time: ${formatTimeRemaining(totalToProcess * DELAY_BETWEEN_REQUESTS / 1000)}\n`);
+  console.log(
+    `Estimated time: ${formatTimeRemaining((totalToProcess * DELAY_BETWEEN_REQUESTS) / 1000)}\n`,
+  );
 
-  let realDataCount = results.filter(r => r.priceDataSource === 'yahoo').length;
-  let mockDataCount = results.filter(r => r.priceDataSource === 'mock').length;
+  let realDataCount = results.filter(
+    (r) => r.priceDataSource === "yahoo",
+  ).length;
+  let mockDataCount = results.filter(
+    (r) => r.priceDataSource === "mock",
+  ).length;
 
   // Process stocks one by one with rate limiting
   for (let i = startIndex; i < stocks.length; i++) {
@@ -401,8 +463,8 @@ async function evaluateAllStocks(
     results.push(result);
 
     // Track data source
-    if (result.priceDataSource === 'yahoo') realDataCount++;
-    else if (result.priceDataSource === 'mock') mockDataCount++;
+    if (result.priceDataSource === "yahoo") realDataCount++;
+    else if (result.priceDataSource === "mock") mockDataCount++;
 
     // Update progress
     const progress = i + 1;
@@ -410,7 +472,9 @@ async function evaluateAllStocks(
     const rate = (progress - startIndex) / elapsed;
     const remaining = (stocks.length - progress) / rate;
 
-    process.stdout.write(`\r${progressBar(progress, stocks.length)} | Real: ${realDataCount} | Mock: ${mockDataCount} | ETA: ${formatTimeRemaining(remaining)} `);
+    process.stdout.write(
+      `\r${progressBar(progress, stocks.length)} | Real: ${realDataCount} | Mock: ${mockDataCount} | ETA: ${formatTimeRemaining(remaining)} `,
+    );
 
     // Save checkpoint periodically
     if ((i + 1) % BATCH_SIZE === 0) {
@@ -423,7 +487,7 @@ async function evaluateAllStocks(
     }
   }
 
-  console.log('\n\nEvaluation complete!\n');
+  console.log("\n\nEvaluation complete!\n");
 
   // Clean up checkpoint
   if (fs.existsSync(checkpointPath)) {
@@ -434,7 +498,13 @@ async function evaluateAllStocks(
   const durationSeconds = (endTime - startTime) / 1000;
 
   // Generate summary
-  const summary = generateSummary(results, stocks.length, durationSeconds, realDataCount, mockDataCount);
+  const summary = generateSummary(
+    results,
+    stocks.length,
+    durationSeconds,
+    realDataCount,
+    mockDataCount,
+  );
 
   // Save results
   saveResults(results, summary);
@@ -449,32 +519,53 @@ function generateSummary(
   totalStocks: number,
   durationSeconds: number,
   realDataCount: number,
-  mockDataCount: number
+  mockDataCount: number,
 ): EvaluationSummary {
   const byRiskLevel = {
-    LOW: results.filter(r => r.riskLevel === 'LOW').length,
-    MEDIUM: results.filter(r => r.riskLevel === 'MEDIUM').length,
-    HIGH: results.filter(r => r.riskLevel === 'HIGH').length,
-    INSUFFICIENT: results.filter(r => r.riskLevel === 'INSUFFICIENT' || r.riskLevel === 'ERROR').length,
+    LOW: results.filter((r) => r.riskLevel === "LOW").length,
+    MEDIUM: results.filter((r) => r.riskLevel === "MEDIUM").length,
+    HIGH: results.filter((r) => r.riskLevel === "HIGH").length,
+    INSUFFICIENT: results.filter(
+      (r) => r.riskLevel === "INSUFFICIENT" || r.riskLevel === "ERROR",
+    ).length,
   };
 
   // Group by exchange
-  const byExchange: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number; INSUFFICIENT: number }> = {};
+  const byExchange: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      INSUFFICIENT: number;
+    }
+  > = {};
   for (const result of results) {
     if (!byExchange[result.exchange]) {
-      byExchange[result.exchange] = { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 };
+      byExchange[result.exchange] = {
+        total: 0,
+        LOW: 0,
+        MEDIUM: 0,
+        HIGH: 0,
+        INSUFFICIENT: 0,
+      };
     }
     byExchange[result.exchange].total++;
-    const level = result.riskLevel === 'ERROR' ? 'INSUFFICIENT' : result.riskLevel;
+    const level =
+      result.riskLevel === "ERROR" ? "INSUFFICIENT" : result.riskLevel;
     if (level in byExchange[result.exchange]) {
       (byExchange[result.exchange] as any)[level]++;
     }
   }
 
   // Group by sector
-  const bySector: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number }> = {};
+  const bySector: Record<
+    string,
+    { total: number; LOW: number; MEDIUM: number; HIGH: number }
+  > = {};
   for (const result of results) {
-    const sector = result.sector || 'Unknown';
+    const sector = result.sector || "Unknown";
     if (!bySector[sector]) {
       bySector[sector] = { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0 };
     }
@@ -494,14 +585,14 @@ function generateSummary(
 
   // Get top HIGH risk stocks
   const topHighRisk = results
-    .filter(r => r.riskLevel === 'HIGH')
+    .filter((r) => r.riskLevel === "HIGH")
     .sort((a, b) => b.totalScore - a.totalScore)
     .slice(0, 100);
 
   return {
     totalStocks,
     evaluated: results.length,
-    errors: results.filter(r => r.error).length,
+    errors: results.filter((r) => r.error).length,
     realDataCount,
     mockDataCount,
     byRiskLevel,
@@ -509,19 +600,24 @@ function generateSummary(
     bySector,
     bySignal,
     topHighRisk,
-    legitimateStocks: results.filter(r => r.isLegitimate).length,
+    legitimateStocks: results.filter((r) => r.isLegitimate).length,
     evaluationDate: new Date().toISOString(),
     durationSeconds,
   };
 }
 
 // Save results to files
-function saveResults(results: EvaluationResult[], summary: EvaluationSummary): void {
-  const timestamp = new Date().toISOString().split('T')[0];
+function saveResults(
+  results: EvaluationResult[],
+  summary: EvaluationSummary,
+): void {
+  const timestamp = new Date().toISOString().split("T")[0];
 
   // Ensure directories exist
-  if (!fs.existsSync(RESULTS_DIR)) fs.mkdirSync(RESULTS_DIR, { recursive: true });
-  if (!fs.existsSync(REPORTS_DIR)) fs.mkdirSync(REPORTS_DIR, { recursive: true });
+  if (!fs.existsSync(RESULTS_DIR))
+    fs.mkdirSync(RESULTS_DIR, { recursive: true });
+  if (!fs.existsSync(REPORTS_DIR))
+    fs.mkdirSync(REPORTS_DIR, { recursive: true });
 
   // Save full results JSON
   const resultsPath = path.join(RESULTS_DIR, `evaluation-${timestamp}.json`);
@@ -535,44 +631,60 @@ function saveResults(results: EvaluationResult[], summary: EvaluationSummary): v
 
   // Save results CSV
   const csvPath = path.join(RESULTS_DIR, `evaluation-${timestamp}.csv`);
-  const csvHeader = 'Symbol,Name,Exchange,Sector,Industry,MarketCap,LastPrice,RiskLevel,TotalScore,IsLegitimate,DataSource,SignalSummary\n';
-  const csvRows = results.map(r =>
-    `"${r.symbol}","${(r.name || '').replace(/"/g, '""')}","${r.exchange}","${r.sector}","${r.industry}",` +
-    `${r.marketCap || ''},${r.lastPrice || ''},"${r.riskLevel}",${r.totalScore},${r.isLegitimate},"${r.priceDataSource || 'unknown'}","${r.signalSummary}"`
-  ).join('\n');
+  const csvHeader =
+    "Symbol,Name,Exchange,Sector,Industry,MarketCap,LastPrice,RiskLevel,TotalScore,IsLegitimate,DataSource,SignalSummary\n";
+  const csvRows = results
+    .map(
+      (r) =>
+        `"${r.symbol}","${(r.name || "").replace(/"/g, '""')}","${r.exchange}","${r.sector}","${r.industry}",` +
+        `${r.marketCap || ""},${r.lastPrice || ""},"${r.riskLevel}",${r.totalScore},${r.isLegitimate},"${r.priceDataSource || "unknown"}","${r.signalSummary}"`,
+    )
+    .join("\n");
   fs.writeFileSync(csvPath, csvHeader + csvRows);
   console.log(`CSV saved to: ${csvPath}`);
 
   // Save HIGH risk stocks CSV
   const highRiskPath = path.join(RESULTS_DIR, `high-risk-${timestamp}.csv`);
-  const highRiskStocks = results.filter(r => r.riskLevel === 'HIGH');
-  const highRiskCsv = 'Symbol,Name,Exchange,Sector,MarketCap,LastPrice,TotalScore,DataSource,Signals\n' +
-    highRiskStocks.map(r =>
-      `"${r.symbol}","${(r.name || '').replace(/"/g, '""')}","${r.exchange}","${r.sector}",` +
-      `${r.marketCap || ''},${r.lastPrice || ''},${r.totalScore},"${r.priceDataSource || 'unknown'}","${r.signalSummary}"`
-    ).join('\n');
+  const highRiskStocks = results.filter((r) => r.riskLevel === "HIGH");
+  const highRiskCsv =
+    "Symbol,Name,Exchange,Sector,MarketCap,LastPrice,TotalScore,DataSource,Signals\n" +
+    highRiskStocks
+      .map(
+        (r) =>
+          `"${r.symbol}","${(r.name || "").replace(/"/g, '""')}","${r.exchange}","${r.sector}",` +
+          `${r.marketCap || ""},${r.lastPrice || ""},${r.totalScore},"${r.priceDataSource || "unknown"}","${r.signalSummary}"`,
+      )
+      .join("\n");
   fs.writeFileSync(highRiskPath, highRiskCsv);
   console.log(`HIGH risk stocks saved to: ${highRiskPath}`);
 
   // Save MEDIUM risk stocks CSV
   const mediumRiskPath = path.join(RESULTS_DIR, `medium-risk-${timestamp}.csv`);
-  const mediumRiskStocks = results.filter(r => r.riskLevel === 'MEDIUM');
-  const mediumRiskCsv = 'Symbol,Name,Exchange,Sector,MarketCap,LastPrice,TotalScore,DataSource,Signals\n' +
-    mediumRiskStocks.map(r =>
-      `"${r.symbol}","${(r.name || '').replace(/"/g, '""')}","${r.exchange}","${r.sector}",` +
-      `${r.marketCap || ''},${r.lastPrice || ''},${r.totalScore},"${r.priceDataSource || 'unknown'}","${r.signalSummary}"`
-    ).join('\n');
+  const mediumRiskStocks = results.filter((r) => r.riskLevel === "MEDIUM");
+  const mediumRiskCsv =
+    "Symbol,Name,Exchange,Sector,MarketCap,LastPrice,TotalScore,DataSource,Signals\n" +
+    mediumRiskStocks
+      .map(
+        (r) =>
+          `"${r.symbol}","${(r.name || "").replace(/"/g, '""')}","${r.exchange}","${r.sector}",` +
+          `${r.marketCap || ""},${r.lastPrice || ""},${r.totalScore},"${r.priceDataSource || "unknown"}","${r.signalSummary}"`,
+      )
+      .join("\n");
   fs.writeFileSync(mediumRiskPath, mediumRiskCsv);
   console.log(`MEDIUM risk stocks saved to: ${mediumRiskPath}`);
 
   // Save LOW risk stocks CSV
   const lowRiskPath = path.join(RESULTS_DIR, `low-risk-${timestamp}.csv`);
-  const lowRiskStocks = results.filter(r => r.riskLevel === 'LOW');
-  const lowRiskCsv = 'Symbol,Name,Exchange,Sector,MarketCap,LastPrice,TotalScore,IsLegitimate,DataSource\n' +
-    lowRiskStocks.map(r =>
-      `"${r.symbol}","${(r.name || '').replace(/"/g, '""')}","${r.exchange}","${r.sector}",` +
-      `${r.marketCap || ''},${r.lastPrice || ''},${r.totalScore},${r.isLegitimate},"${r.priceDataSource || 'unknown'}"`
-    ).join('\n');
+  const lowRiskStocks = results.filter((r) => r.riskLevel === "LOW");
+  const lowRiskCsv =
+    "Symbol,Name,Exchange,Sector,MarketCap,LastPrice,TotalScore,IsLegitimate,DataSource\n" +
+    lowRiskStocks
+      .map(
+        (r) =>
+          `"${r.symbol}","${(r.name || "").replace(/"/g, '""')}","${r.exchange}","${r.sector}",` +
+          `${r.marketCap || ""},${r.lastPrice || ""},${r.totalScore},${r.isLegitimate},"${r.priceDataSource || "unknown"}"`,
+      )
+      .join("\n");
   fs.writeFileSync(lowRiskPath, lowRiskCsv);
   console.log(`LOW risk stocks saved to: ${lowRiskPath}`);
 
@@ -582,15 +694,23 @@ function saveResults(results: EvaluationResult[], summary: EvaluationSummary): v
 
 // Format market cap
 function formatMarketCap(mc: number): string {
-  if (mc >= 1_000_000_000_000) return `$${(mc / 1_000_000_000_000).toFixed(1)}T`;
+  if (mc >= 1_000_000_000_000)
+    return `$${(mc / 1_000_000_000_000).toFixed(1)}T`;
   if (mc >= 1_000_000_000) return `$${(mc / 1_000_000_000).toFixed(1)}B`;
   if (mc >= 1_000_000) return `$${(mc / 1_000_000).toFixed(1)}M`;
   return `$${mc.toLocaleString()}`;
 }
 
 // Generate HTML report with charts
-function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSummary, timestamp: string): void {
-  const reportPath = path.join(REPORTS_DIR, `evaluation-report-${timestamp}.html`);
+function generateHTMLReport(
+  results: EvaluationResult[],
+  summary: EvaluationSummary,
+  timestamp: string,
+): void {
+  const reportPath = path.join(
+    REPORTS_DIR,
+    `evaluation-report-${timestamp}.html`,
+  );
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -720,7 +840,8 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
         <tbody>
           ${Object.entries(summary.bySignal)
             .sort((a, b) => b[1] - a[1])
-            .map(([signal, count]) => `
+            .map(
+              ([signal, count]) => `
           <tr>
             <td><strong>${signal}</strong></td>
             <td><span class="signal-tag ${getSignalCategory(signal)}">${getSignalCategory(signal).toUpperCase()}</span></td>
@@ -728,7 +849,9 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
             <td>${((count / summary.evaluated) * 100).toFixed(1)}%</td>
             <td>${getSignalDescription(signal)}</td>
           </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -749,22 +872,27 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
           </tr>
         </thead>
         <tbody>
-          ${summary.topHighRisk.slice(0, 50).map(stock => `
+          ${summary.topHighRisk
+            .slice(0, 50)
+            .map(
+              (stock) => `
           <tr>
             <td><strong>${stock.symbol}</strong></td>
-            <td>${stock.name?.substring(0, 30) || 'N/A'}${stock.name && stock.name.length > 30 ? '...' : ''}</td>
+            <td>${stock.name?.substring(0, 30) || "N/A"}${stock.name && stock.name.length > 30 ? "..." : ""}</td>
             <td>${stock.exchange}</td>
-            <td>${stock.marketCap ? formatMarketCap(stock.marketCap) : 'N/A'}</td>
-            <td>${stock.lastPrice ? '$' + stock.lastPrice.toFixed(2) : 'N/A'}</td>
+            <td>${stock.marketCap ? formatMarketCap(stock.marketCap) : "N/A"}</td>
+            <td>${stock.lastPrice ? "$" + stock.lastPrice.toFixed(2) : "N/A"}</td>
             <td><strong>${stock.totalScore}</strong></td>
-            <td>${stock.priceDataSource === 'yahoo' ? '📊' : '📝'}</td>
+            <td>${stock.priceDataSource === "yahoo" ? "📊" : "📝"}</td>
             <td>
               <div class="signal-list">
-                ${stock.signals.map(s => `<span class="signal-tag ${s.category === 'PATTERN' ? 'pattern' : 'structural'}">${s.code}</span>`).join('')}
+                ${stock.signals.map((s) => `<span class="signal-tag ${s.category === "PATTERN" ? "pattern" : "structural"}">${s.code}</span>`).join("")}
               </div>
             </td>
           </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -785,7 +913,8 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
         <tbody>
           ${Object.entries(summary.byExchange)
             .sort((a, b) => b[1].total - a[1].total)
-            .map(([exchange, data]) => `
+            .map(
+              ([exchange, data]) => `
           <tr>
             <td><strong>${exchange}</strong></td>
             <td>${data.total.toLocaleString()}</td>
@@ -794,7 +923,9 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
             <td><span class="risk-badge risk-high">${data.HIGH.toLocaleString()}</span></td>
             <td>${((data.HIGH / data.total) * 100).toFixed(1)}%</td>
           </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -835,9 +966,9 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
       data: {
         labels: ${JSON.stringify(Object.keys(summary.byExchange))},
         datasets: [
-          { label: 'LOW', data: ${JSON.stringify(Object.values(summary.byExchange).map(e => e.LOW))}, backgroundColor: '#22c55e' },
-          { label: 'MEDIUM', data: ${JSON.stringify(Object.values(summary.byExchange).map(e => e.MEDIUM))}, backgroundColor: '#f59e0b' },
-          { label: 'HIGH', data: ${JSON.stringify(Object.values(summary.byExchange).map(e => e.HIGH))}, backgroundColor: '#ef4444' },
+          { label: 'LOW', data: ${JSON.stringify(Object.values(summary.byExchange).map((e) => e.LOW))}, backgroundColor: '#22c55e' },
+          { label: 'MEDIUM', data: ${JSON.stringify(Object.values(summary.byExchange).map((e) => e.MEDIUM))}, backgroundColor: '#f59e0b' },
+          { label: 'HIGH', data: ${JSON.stringify(Object.values(summary.byExchange).map((e) => e.HIGH))}, backgroundColor: '#ef4444' },
         ]
       },
       options: {
@@ -888,66 +1019,98 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
 }
 
 function getSignalCategory(code: string): string {
-  const patternSignals = ['SPIKE_7D', 'VOLUME_EXPLOSION', 'SPIKE_THEN_DROP', 'OVERBOUGHT_RSI', 'HIGH_VOLATILITY'];
-  return patternSignals.includes(code) ? 'pattern' : 'structural';
+  const patternSignals = [
+    "SPIKE_7D",
+    "VOLUME_EXPLOSION",
+    "SPIKE_THEN_DROP",
+    "OVERBOUGHT_RSI",
+    "HIGH_VOLATILITY",
+  ];
+  return patternSignals.includes(code) ? "pattern" : "structural";
 }
 
 function getSignalDescription(code: string): string {
   const descriptions: Record<string, string> = {
-    'MICROCAP_PRICE': 'Stock price below $5 (penny stock territory)',
-    'SMALL_MARKET_CAP': 'Market cap below $300M - higher manipulation risk',
-    'MICRO_LIQUIDITY': 'Very low daily trading volume',
-    'OTC_EXCHANGE': 'Traded on OTC/Pink Sheets - less regulated',
-    'SPIKE_7D': 'Significant price movement in 7 days',
-    'VOLUME_EXPLOSION': 'Elevated trading volume compared to average',
-    'SPIKE_THEN_DROP': 'Pump-and-dump pattern detected',
-    'OVERBOUGHT_RSI': 'RSI indicates overbought conditions',
-    'HIGH_VOLATILITY': 'High price volatility',
+    MICROCAP_PRICE: "Stock price below $5 (penny stock territory)",
+    SMALL_MARKET_CAP: "Market cap below $300M - higher manipulation risk",
+    MICRO_LIQUIDITY: "Very low daily trading volume",
+    OTC_EXCHANGE: "Traded on OTC/Pink Sheets - less regulated",
+    SPIKE_7D: "Significant price movement in 7 days",
+    VOLUME_EXPLOSION: "Elevated trading volume compared to average",
+    SPIKE_THEN_DROP: "Pump-and-dump pattern detected",
+    OVERBOUGHT_RSI: "RSI indicates overbought conditions",
+    HIGH_VOLATILITY: "High price volatility",
   };
   return descriptions[code] || code;
 }
 
 // Print summary to console
 function printSummary(summary: EvaluationSummary): void {
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║                    EVALUATION SUMMARY                       ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  console.log(
+    "\n╔════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║                    EVALUATION SUMMARY                       ║",
+  );
+  console.log(
+    "╚════════════════════════════════════════════════════════════╝\n",
+  );
 
   console.log(`Total Stocks Evaluated: ${summary.evaluated.toLocaleString()}`);
-  console.log(`Real Price Data: ${summary.realDataCount.toLocaleString()} (${((summary.realDataCount / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`Mock Data Fallback: ${summary.mockDataCount.toLocaleString()} (${((summary.mockDataCount / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`Legitimate Stocks: ${summary.legitimateStocks.toLocaleString()}`);
+  console.log(
+    `Real Price Data: ${summary.realDataCount.toLocaleString()} (${((summary.realDataCount / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `Mock Data Fallback: ${summary.mockDataCount.toLocaleString()} (${((summary.mockDataCount / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `Legitimate Stocks: ${summary.legitimateStocks.toLocaleString()}`,
+  );
   console.log(`Errors: ${summary.errors}`);
-  console.log(`Duration: ${(summary.durationSeconds / 60).toFixed(1)} minutes\n`);
+  console.log(
+    `Duration: ${(summary.durationSeconds / 60).toFixed(1)} minutes\n`,
+  );
 
-  console.log('Risk Level Distribution:');
-  console.log(`  🟢 LOW:     ${summary.byRiskLevel.LOW.toLocaleString().padStart(6)} (${((summary.byRiskLevel.LOW / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`  🟡 MEDIUM:  ${summary.byRiskLevel.MEDIUM.toLocaleString().padStart(6)} (${((summary.byRiskLevel.MEDIUM / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`  🔴 HIGH:    ${summary.byRiskLevel.HIGH.toLocaleString().padStart(6)} (${((summary.byRiskLevel.HIGH / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`  ⚪ OTHER:   ${summary.byRiskLevel.INSUFFICIENT.toLocaleString().padStart(6)} (${((summary.byRiskLevel.INSUFFICIENT / summary.evaluated) * 100).toFixed(1)}%)`);
+  console.log("Risk Level Distribution:");
+  console.log(
+    `  🟢 LOW:     ${summary.byRiskLevel.LOW.toLocaleString().padStart(6)} (${((summary.byRiskLevel.LOW / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  🟡 MEDIUM:  ${summary.byRiskLevel.MEDIUM.toLocaleString().padStart(6)} (${((summary.byRiskLevel.MEDIUM / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  🔴 HIGH:    ${summary.byRiskLevel.HIGH.toLocaleString().padStart(6)} (${((summary.byRiskLevel.HIGH / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  ⚪ OTHER:   ${summary.byRiskLevel.INSUFFICIENT.toLocaleString().padStart(6)} (${((summary.byRiskLevel.INSUFFICIENT / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
 
-  console.log('\nRisk Signals Summary:');
+  console.log("\nRisk Signals Summary:");
   Object.entries(summary.bySignal)
     .sort((a, b) => b[1] - a[1])
     .forEach(([signal, count]) => {
       const category = getSignalCategory(signal);
-      const icon = category === 'pattern' ? '📈' : '🏢';
-      console.log(`  ${icon} ${signal.padEnd(25)} ${count.toLocaleString().padStart(6)} (${((count / summary.evaluated) * 100).toFixed(1)}%)`);
+      const icon = category === "pattern" ? "📈" : "🏢";
+      console.log(
+        `  ${icon} ${signal.padEnd(25)} ${count.toLocaleString().padStart(6)} (${((count / summary.evaluated) * 100).toFixed(1)}%)`,
+      );
     });
 
-  console.log('\nTop 10 HIGH Risk Stocks:');
+  console.log("\nTop 10 HIGH Risk Stocks:");
   summary.topHighRisk.slice(0, 10).forEach((stock, i) => {
-    const dataIcon = stock.priceDataSource === 'yahoo' ? '📊' : '📝';
-    console.log(`  ${(i + 1).toString().padStart(2)}. ${stock.symbol.padEnd(6)} ${dataIcon} (Score: ${stock.totalScore}) - ${stock.signalSummary}`);
+    const dataIcon = stock.priceDataSource === "yahoo" ? "📊" : "📝";
+    console.log(
+      `  ${(i + 1).toString().padStart(2)}. ${stock.symbol.padEnd(6)} ${dataIcon} (Score: ${stock.totalScore}) - ${stock.signalSummary}`,
+    );
   });
 
-  console.log('\n');
+  console.log("\n");
 }
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1];
-const noResumeArg = args.includes('--no-resume');
+const limitArg = args.find((a) => a.startsWith("--limit="))?.split("=")[1];
+const noResumeArg = args.includes("--no-resume");
 
 // Run evaluation
 evaluateAllStocks({

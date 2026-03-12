@@ -12,92 +12,134 @@
  * 4. Add the webhook URL in Resend: https://yourdomain.com/api/inbound-email
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { prisma } from "@/lib/db";
 import {
   sendSupportTicketNotification,
   sendSupportTicketConfirmation,
-} from '@/lib/email';
-import { rateLimit, rateLimitExceededResponse } from '@/lib/rate-limit';
+} from "@/lib/email";
+import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-const WEBHOOK_SECRET = process.env.INBOUND_EMAIL_WEBHOOK_SECRET || '';
+const WEBHOOK_SECRET = process.env.INBOUND_EMAIL_WEBHOOK_SECRET || "";
 
 // Category detection keywords
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  BUG_REPORT: ['bug', 'broken', 'error', 'crash', 'not working', 'issue', 'glitch', 'fails'],
-  BILLING: ['billing', 'payment', 'charge', 'invoice', 'subscription', 'refund', 'cancel'],
-  FEATURE_REQUEST: ['feature', 'suggestion', 'would be nice', 'wish', 'request', 'add', 'improve'],
-  FEEDBACK: ['feedback', 'love', 'great', 'amazing', 'thank', 'appreciate', 'thoughts'],
+  BUG_REPORT: [
+    "bug",
+    "broken",
+    "error",
+    "crash",
+    "not working",
+    "issue",
+    "glitch",
+    "fails",
+  ],
+  BILLING: [
+    "billing",
+    "payment",
+    "charge",
+    "invoice",
+    "subscription",
+    "refund",
+    "cancel",
+  ],
+  FEATURE_REQUEST: [
+    "feature",
+    "suggestion",
+    "would be nice",
+    "wish",
+    "request",
+    "add",
+    "improve",
+  ],
+  FEEDBACK: [
+    "feedback",
+    "love",
+    "great",
+    "amazing",
+    "thank",
+    "appreciate",
+    "thoughts",
+  ],
 };
 
 function detectCategory(subject: string, body: string): string {
   const text = `${subject} ${body}`.toLowerCase();
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some(kw => text.includes(kw))) {
+    if (keywords.some((kw) => text.includes(kw))) {
       return category;
     }
   }
-  return 'SUPPORT';
+  return "SUPPORT";
 }
 
 function extractName(fromHeader: string): string {
   // Try to extract name from "Name <email>" format
   const match = fromHeader.match(/^([^<]+)\s*</);
-  if (match) return match[1].trim().replace(/"/g, '');
+  if (match) return match[1].trim().replace(/"/g, "");
   // Fall back to email username
   const emailMatch = fromHeader.match(/([^@]+)@/);
-  if (emailMatch) return emailMatch[1].replace(/[._-]/g, ' ');
-  return 'Email User';
+  if (emailMatch) return emailMatch[1].replace(/[._-]/g, " ");
+  return "Email User";
 }
 
 function extractEmail(fromHeader: string): string {
   const match = fromHeader.match(/<([^>]+)>/);
   if (match) return match[1].trim();
   // Maybe it's just a plain email
-  if (fromHeader.includes('@')) return fromHeader.trim();
-  return '';
+  if (fromHeader.includes("@")) return fromHeader.trim();
+  return "";
 }
 
 function stripHtml(html: string): string {
   return html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: auth for inbound email webhook (10 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "auth");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "auth");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
 
     // Verify webhook secret
     if (!WEBHOOK_SECRET) {
-      console.error('[INBOUND EMAIL] INBOUND_EMAIL_WEBHOOK_SECRET not configured');
-      return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+      console.error(
+        "[INBOUND EMAIL] INBOUND_EMAIL_WEBHOOK_SECRET not configured",
+      );
+      return NextResponse.json(
+        { error: "Webhook not configured" },
+        { status: 503 },
+      );
     }
 
-    const authHeader = request.headers.get('authorization');
-    const webhookHeader = request.headers.get('x-webhook-secret');
-    const token = authHeader?.replace('Bearer ', '') || webhookHeader || '';
+    const authHeader = request.headers.get("authorization");
+    const webhookHeader = request.headers.get("x-webhook-secret");
+    const token = authHeader?.replace("Bearer ", "") || webhookHeader || "";
 
     const tokenBuf = Buffer.from(token);
     const secretBuf = Buffer.from(WEBHOOK_SECRET);
-    if (tokenBuf.length !== secretBuf.length || !crypto.timingSafeEqual(tokenBuf, secretBuf)) {
-      console.error('[INBOUND EMAIL] Invalid webhook secret');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (
+      tokenBuf.length !== secretBuf.length ||
+      !crypto.timingSafeEqual(tokenBuf, secretBuf)
+    ) {
+      console.error("[INBOUND EMAIL] Invalid webhook secret");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -105,16 +147,16 @@ export async function POST(request: NextRequest) {
     // Support multiple webhook formats:
     // 1. Resend inbound: { from, to, subject, text, html }
     // 2. Generic/forwarded: { from, subject, body/text/html }
-    const from = body.from || body.sender || '';
-    const subject = body.subject || '(No subject)';
-    const textBody = body.text || body.body || '';
-    const htmlBody = body.html || '';
+    const from = body.from || body.sender || "";
+    const subject = body.subject || "(No subject)";
+    const textBody = body.text || body.body || "";
+    const htmlBody = body.html || "";
     const message = textBody || stripHtml(htmlBody);
 
     if (!from) {
       return NextResponse.json(
-        { error: 'Missing required field: from' },
-        { status: 400 }
+        { error: "Missing required field: from" },
+        { status: 400 },
       );
     }
 
@@ -123,15 +165,15 @@ export async function POST(request: NextRequest) {
 
     if (!senderEmail) {
       return NextResponse.json(
-        { error: 'Could not extract email address from sender' },
-        { status: 400 }
+        { error: "Could not extract email address from sender" },
+        { status: 400 },
       );
     }
 
     if (!message || message.length < 5) {
       return NextResponse.json(
-        { error: 'Email body is empty or too short' },
-        { status: 400 }
+        { error: "Email body is empty or too short" },
+        { status: 400 },
       );
     }
 
@@ -139,9 +181,9 @@ export async function POST(request: NextRequest) {
     const category = detectCategory(subject, message);
 
     // Auto-assign priority
-    let priority = 'NORMAL';
-    if (category === 'BUG_REPORT' || category === 'BILLING') {
-      priority = 'HIGH';
+    let priority = "NORMAL";
+    if (category === "BUG_REPORT" || category === "BILLING") {
+      priority = "HIGH";
     }
 
     // Create the support ticket
@@ -153,9 +195,9 @@ export async function POST(request: NextRequest) {
         message: message.substring(0, 5000),
         category,
         priority,
-        status: 'NEW',
-        ipAddress: 'inbound-email',
-        userAgent: 'Inbound Email Webhook',
+        status: "NEW",
+        ipAddress: "inbound-email",
+        userAgent: "Inbound Email Webhook",
         lastActivityAt: new Date(),
       },
     });
@@ -168,7 +210,7 @@ export async function POST(request: NextRequest) {
         senderEmail,
         subject,
         message.substring(0, 2000),
-        category
+        category,
       );
 
       await sendSupportTicketConfirmation(
@@ -176,25 +218,33 @@ export async function POST(request: NextRequest) {
         senderName,
         senderEmail,
         subject,
-        category
+        category,
       );
     } catch (emailError) {
-      console.error('[INBOUND EMAIL] Failed to send notification emails:', emailError);
+      console.error(
+        "[INBOUND EMAIL] Failed to send notification emails:",
+        emailError,
+      );
     }
 
-    console.log(`[INBOUND EMAIL] Created ticket ${ticket.id} from ${senderEmail} (category: ${category})`);
+    console.log(
+      `[INBOUND EMAIL] Created ticket ${ticket.id} from ${senderEmail} (category: ${category})`,
+    );
 
-    return NextResponse.json({
-      success: true,
-      ticketId: ticket.id,
-      category,
-      priority,
-    }, { status: 201 });
-  } catch (error) {
-    console.error('[INBOUND EMAIL] Webhook error:', error);
     return NextResponse.json(
-      { error: 'Failed to process inbound email' },
-      { status: 500 }
+      {
+        success: true,
+        ticketId: ticket.id,
+        category,
+        priority,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("[INBOUND EMAIL] Webhook error:", error);
+    return NextResponse.json(
+      { error: "Failed to process inbound email" },
+      { status: 500 },
     );
   }
 }

@@ -9,20 +9,23 @@
  *   npm run dashboard -- --port 3002
  */
 
-import express from 'express';
-import { format, subDays } from 'date-fns';
-import { prisma, connectDB, disconnectDB } from '../utils/db.js';
+import express from "express";
+import { format, subDays } from "date-fns";
+import { prisma, connectDB, disconnectDB } from "../utils/db.js";
 
 const app = express();
-const PORT = parseInt(process.env.DASHBOARD_PORT || '3001');
+const PORT = parseInt(process.env.DASHBOARD_PORT || "3001");
 
 // Middleware
 app.use(express.json());
 
 // CORS for local development
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept",
+  );
   next();
 });
 
@@ -31,56 +34,66 @@ app.use((req, res, next) => {
 // ============================================================
 
 // Get summary statistics
-app.get('/api/summary', async (req, res) => {
+app.get("/api/summary", async (req, res) => {
   try {
     const days = parseInt(req.query.days as string) || 30;
     const startDate = subDays(new Date(), days);
 
     const summaries = await prisma.dailyScanSummary.findMany({
       where: { scanDate: { gte: startDate } },
-      orderBy: { scanDate: 'desc' },
+      orderBy: { scanDate: "desc" },
     });
 
     const latest = summaries[0];
     const earliest = summaries[summaries.length - 1];
 
     res.json({
-      latest: latest ? {
-        date: format(latest.scanDate, 'yyyy-MM-dd'),
-        evaluated: latest.evaluated,
-        low: latest.lowRiskCount,
-        medium: latest.mediumRiskCount,
-        high: latest.highRiskCount,
-        pumpDropCount: latest.spikeDropCount,
-        activePumpCount: latest.activePumpCount,
-      } : null,
+      latest: latest
+        ? {
+            date: format(latest.scanDate, "yyyy-MM-dd"),
+            evaluated: latest.evaluated,
+            low: latest.lowRiskCount,
+            medium: latest.mediumRiskCount,
+            high: latest.highRiskCount,
+            pumpDropCount: latest.spikeDropCount,
+            activePumpCount: latest.activePumpCount,
+          }
+        : null,
       trend: {
         days,
-        highRiskChange: latest && earliest
-          ? latest.highRiskCount - earliest.highRiskCount
-          : 0,
-        highRiskChangePct: latest && earliest && earliest.highRiskCount > 0
-          ? ((latest.highRiskCount - earliest.highRiskCount) / earliest.highRiskCount * 100).toFixed(1)
-          : '0',
+        highRiskChange:
+          latest && earliest
+            ? latest.highRiskCount - earliest.highRiskCount
+            : 0,
+        highRiskChangePct:
+          latest && earliest && earliest.highRiskCount > 0
+            ? (
+                ((latest.highRiskCount - earliest.highRiskCount) /
+                  earliest.highRiskCount) *
+                100
+              ).toFixed(1)
+            : "0",
       },
-      dailyData: summaries.map(s => ({
-        date: format(s.scanDate, 'yyyy-MM-dd'),
-        evaluated: s.evaluated,
-        low: s.lowRiskCount,
-        medium: s.mediumRiskCount,
-        high: s.highRiskCount,
-        pumpDrop: s.spikeDropCount || 0,
-        activePump: s.activePumpCount || 0,
-      })).reverse(),
+      dailyData: summaries
+        .map((s) => ({
+          date: format(s.scanDate, "yyyy-MM-dd"),
+          evaluated: s.evaluated,
+          low: s.lowRiskCount,
+          medium: s.mediumRiskCount,
+          high: s.highRiskCount,
+          pumpDrop: s.spikeDropCount || 0,
+          activePump: s.activePumpCount || 0,
+        }))
+        .reverse(),
     });
   } catch (error) {
-    console.error('Error fetching summary:', error);
-    res.status(500).json({ error: 'Failed to fetch summary' });
+    console.error("Error fetching summary:", error);
+    res.status(500).json({ error: "Failed to fetch summary" });
   }
 });
 
 // Get recent alerts
-app.get('/api/alerts', async (req, res) => {
+app.get("/api/alerts", async (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 20;
     const type = req.query.type as string;
@@ -93,30 +106,32 @@ app.get('/api/alerts', async (req, res) => {
     const alerts = await prisma.riskAlert.findMany({
       where,
       include: { stock: true },
-      orderBy: { alertDate: 'desc' },
+      orderBy: { alertDate: "desc" },
       take: limit,
     });
 
-    res.json(alerts.map(a => ({
-      id: a.id,
-      date: format(a.alertDate, 'yyyy-MM-dd'),
-      symbol: a.stock.symbol,
-      name: a.stock.name,
-      alertType: a.alertType,
-      previousRisk: a.previousRiskLevel,
-      newRisk: a.newRiskLevel,
-      previousScore: a.previousScore,
-      newScore: a.newScore,
-      price: a.priceAtAlert,
-    })));
+    res.json(
+      alerts.map((a) => ({
+        id: a.id,
+        date: format(a.alertDate, "yyyy-MM-dd"),
+        symbol: a.stock.symbol,
+        name: a.stock.name,
+        alertType: a.alertType,
+        previousRisk: a.previousRiskLevel,
+        newRisk: a.newRiskLevel,
+        previousScore: a.previousScore,
+        newScore: a.newScore,
+        price: a.priceAtAlert,
+      })),
+    );
   } catch (error) {
-    console.error('Error fetching alerts:', error);
-    res.status(500).json({ error: 'Failed to fetch alerts' });
+    console.error("Error fetching alerts:", error);
+    res.status(500).json({ error: "Failed to fetch alerts" });
   }
 });
 
 // Get risk changes
-app.get('/api/risk-changes', async (req, res) => {
+app.get("/api/risk-changes", async (req, res) => {
   try {
     const days = parseInt(req.query.days as string) || 7;
     const from = req.query.from as string;
@@ -131,28 +146,30 @@ app.get('/api/risk-changes', async (req, res) => {
 
     const changes = await prisma.stockRiskChange.findMany({
       where,
-      orderBy: [{ toDate: 'desc' }, { scoreChange: 'desc' }],
+      orderBy: [{ toDate: "desc" }, { scoreChange: "desc" }],
       take: limit,
     });
 
-    res.json(changes.map(c => ({
-      symbol: c.symbol,
-      fromDate: format(c.fromDate, 'yyyy-MM-dd'),
-      toDate: format(c.toDate, 'yyyy-MM-dd'),
-      fromRisk: c.fromRiskLevel,
-      toRisk: c.toRiskLevel,
-      scoreChange: c.scoreChange,
-      priceChange: c.priceChangePct,
-      newSignals: c.newSignals,
-    })));
+    res.json(
+      changes.map((c) => ({
+        symbol: c.symbol,
+        fromDate: format(c.fromDate, "yyyy-MM-dd"),
+        toDate: format(c.toDate, "yyyy-MM-dd"),
+        fromRisk: c.fromRiskLevel,
+        toRisk: c.toRiskLevel,
+        scoreChange: c.scoreChange,
+        priceChange: c.priceChangePct,
+        newSignals: c.newSignals,
+      })),
+    );
   } catch (error) {
-    console.error('Error fetching risk changes:', error);
-    res.status(500).json({ error: 'Failed to fetch risk changes' });
+    console.error("Error fetching risk changes:", error);
+    res.status(500).json({ error: "Failed to fetch risk changes" });
   }
 });
 
 // Get stock history
-app.get('/api/stock/:symbol', async (req, res) => {
+app.get("/api/stock/:symbol", async (req, res) => {
   try {
     const symbol = req.params.symbol.toUpperCase();
     const days = parseInt(req.query.days as string) || 30;
@@ -163,22 +180,22 @@ app.get('/api/stock/:symbol', async (req, res) => {
     });
 
     if (!stock) {
-      return res.status(404).json({ error: 'Stock not found' });
+      return res.status(404).json({ error: "Stock not found" });
     }
 
     const snapshots = await prisma.stockDailySnapshot.findMany({
       where: { stockId: stock.id, scanDate: { gte: startDate } },
-      orderBy: { scanDate: 'asc' },
+      orderBy: { scanDate: "asc" },
     });
 
     const socialScans = await prisma.socialMediaScan.findMany({
       where: { stockId: stock.id, scanDate: { gte: startDate } },
-      orderBy: { scanDate: 'desc' },
+      orderBy: { scanDate: "desc" },
     });
 
     const alerts = await prisma.riskAlert.findMany({
       where: { stockId: stock.id, alertDate: { gte: startDate } },
-      orderBy: { alertDate: 'desc' },
+      orderBy: { alertDate: "desc" },
     });
 
     res.json({
@@ -189,24 +206,24 @@ app.get('/api/stock/:symbol', async (req, res) => {
         sector: stock.sector,
         industry: stock.industry,
       },
-      history: snapshots.map(s => ({
-        date: format(s.scanDate, 'yyyy-MM-dd'),
+      history: snapshots.map((s) => ({
+        date: format(s.scanDate, "yyyy-MM-dd"),
         riskLevel: s.riskLevel,
         score: s.totalScore,
         price: s.lastPrice,
         marketCap: s.marketCap,
         signals: s.signalSummary,
       })),
-      socialMedia: socialScans.map(s => ({
-        date: format(s.scanDate, 'yyyy-MM-dd'),
+      socialMedia: socialScans.map((s) => ({
+        date: format(s.scanDate, "yyyy-MM-dd"),
         isPromoted: s.isPromoted,
         promoter: s.promoterName,
         platform: s.promotionSource,
         gain: s.gainFromPromotion,
         pumpAndDump: s.pumpAndDumpConfirmed,
       })),
-      alerts: alerts.map(a => ({
-        date: format(a.alertDate, 'yyyy-MM-dd'),
+      alerts: alerts.map((a) => ({
+        date: format(a.alertDate, "yyyy-MM-dd"),
         type: a.alertType,
         fromRisk: a.previousRiskLevel,
         toRisk: a.newRiskLevel,
@@ -214,44 +231,46 @@ app.get('/api/stock/:symbol', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Error fetching stock:', error);
-    res.status(500).json({ error: 'Failed to fetch stock' });
+    console.error("Error fetching stock:", error);
+    res.status(500).json({ error: "Failed to fetch stock" });
   }
 });
 
 // Get promoted stocks
-app.get('/api/promoted', async (req, res) => {
+app.get("/api/promoted", async (req, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 20;
 
     const promoted = await prisma.promotedStockWatchlist.findMany({
       where: { isActive: true },
-      orderBy: { addedDate: 'desc' },
+      orderBy: { addedDate: "desc" },
       take: limit,
     });
 
-    res.json(promoted.map(p => ({
-      symbol: p.symbol,
-      addedDate: format(p.addedDate, 'yyyy-MM-dd'),
-      promoter: p.promoterName,
-      platform: p.promotionPlatform,
-      group: p.promotionGroup,
-      entryPrice: p.entryPrice,
-      currentPrice: p.currentPrice,
-      peakPrice: p.peakPrice,
-      outcome: p.outcome,
-      maxGain: p.maxGainPct,
-      currentGain: p.currentGainPct,
-      riskScore: p.entryRiskScore,
-    })));
+    res.json(
+      promoted.map((p) => ({
+        symbol: p.symbol,
+        addedDate: format(p.addedDate, "yyyy-MM-dd"),
+        promoter: p.promoterName,
+        platform: p.promotionPlatform,
+        group: p.promotionGroup,
+        entryPrice: p.entryPrice,
+        currentPrice: p.currentPrice,
+        peakPrice: p.peakPrice,
+        outcome: p.outcome,
+        maxGain: p.maxGainPct,
+        currentGain: p.currentGainPct,
+        riskScore: p.entryRiskScore,
+      })),
+    );
   } catch (error) {
-    console.error('Error fetching promoted stocks:', error);
-    res.status(500).json({ error: 'Failed to fetch promoted stocks' });
+    console.error("Error fetching promoted stocks:", error);
+    res.status(500).json({ error: "Failed to fetch promoted stocks" });
   }
 });
 
 // Search stocks
-app.get('/api/search', async (req, res) => {
+app.get("/api/search", async (req, res) => {
   try {
     const query = req.query.q as string;
     if (!query || query.length < 1) {
@@ -262,42 +281,39 @@ app.get('/api/search', async (req, res) => {
       where: {
         OR: [
           { symbol: { contains: query.toUpperCase() } },
-          { name: { contains: query, mode: 'insensitive' } },
+          { name: { contains: query, mode: "insensitive" } },
         ],
       },
       take: 10,
     });
 
-    res.json(stocks.map(s => ({
-      symbol: s.symbol,
-      name: s.name,
-      exchange: s.exchange,
-    })));
+    res.json(
+      stocks.map((s) => ({
+        symbol: s.symbol,
+        name: s.name,
+        exchange: s.exchange,
+      })),
+    );
   } catch (error) {
-    console.error('Error searching:', error);
-    res.status(500).json({ error: 'Search failed' });
+    console.error("Error searching:", error);
+    res.status(500).json({ error: "Search failed" });
   }
 });
 
 // Get database stats
-app.get('/api/stats', async (req, res) => {
+app.get("/api/stats", async (req, res) => {
   try {
-    const [
-      stockCount,
-      snapshotCount,
-      alertCount,
-      socialCount,
-      summaryCount,
-    ] = await Promise.all([
-      prisma.stock.count(),
-      prisma.stockDailySnapshot.count(),
-      prisma.riskAlert.count(),
-      prisma.socialMediaScan.count(),
-      prisma.dailyScanSummary.count(),
-    ]);
+    const [stockCount, snapshotCount, alertCount, socialCount, summaryCount] =
+      await Promise.all([
+        prisma.stock.count(),
+        prisma.stockDailySnapshot.count(),
+        prisma.riskAlert.count(),
+        prisma.socialMediaScan.count(),
+        prisma.dailyScanSummary.count(),
+      ]);
 
     const latestSummary = await prisma.dailyScanSummary.findFirst({
-      orderBy: { scanDate: 'desc' },
+      orderBy: { scanDate: "desc" },
     });
 
     res.json({
@@ -306,11 +322,13 @@ app.get('/api/stats', async (req, res) => {
       alerts: alertCount,
       socialScans: socialCount,
       dailySummaries: summaryCount,
-      latestScan: latestSummary ? format(latestSummary.scanDate, 'yyyy-MM-dd') : null,
+      latestScan: latestSummary
+        ? format(latestSummary.scanDate, "yyyy-MM-dd")
+        : null,
     });
   } catch (error) {
-    console.error('Error fetching stats:', error);
-    res.status(500).json({ error: 'Failed to fetch stats' });
+    console.error("Error fetching stats:", error);
+    res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
 
@@ -318,7 +336,7 @@ app.get('/api/stats', async (req, res) => {
 // DASHBOARD HTML
 // ============================================================
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.send(getDashboardHTML());
 });
 
@@ -740,33 +758,32 @@ async function main() {
     await connectDB();
 
     app.listen(PORT, () => {
-      console.log('');
-      console.log('═'.repeat(60));
-      console.log('  ScamDunk History Dashboard');
-      console.log('═'.repeat(60));
+      console.log("");
+      console.log("═".repeat(60));
+      console.log("  ScamDunk History Dashboard");
+      console.log("═".repeat(60));
       console.log(`  Server running at: http://localhost:${PORT}`);
-      console.log('');
-      console.log('  API Endpoints:');
-      console.log('    GET /api/summary      - Summary statistics');
-      console.log('    GET /api/alerts       - Recent alerts');
-      console.log('    GET /api/risk-changes - Risk level changes');
-      console.log('    GET /api/stock/:symbol - Stock history');
-      console.log('    GET /api/promoted     - Promoted stocks');
-      console.log('    GET /api/search       - Search stocks');
-      console.log('    GET /api/stats        - Database stats');
-      console.log('═'.repeat(60));
-      console.log('');
+      console.log("");
+      console.log("  API Endpoints:");
+      console.log("    GET /api/summary      - Summary statistics");
+      console.log("    GET /api/alerts       - Recent alerts");
+      console.log("    GET /api/risk-changes - Risk level changes");
+      console.log("    GET /api/stock/:symbol - Stock history");
+      console.log("    GET /api/promoted     - Promoted stocks");
+      console.log("    GET /api/search       - Search stocks");
+      console.log("    GET /api/stats        - Database stats");
+      console.log("═".repeat(60));
+      console.log("");
     });
 
     // Handle shutdown gracefully
-    process.on('SIGINT', async () => {
-      console.log('\nShutting down...');
+    process.on("SIGINT", async () => {
+      console.log("\nShutting down...");
       await disconnectDB();
       process.exit(0);
     });
-
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error("Failed to start server:", error);
     process.exit(1);
   }
 }

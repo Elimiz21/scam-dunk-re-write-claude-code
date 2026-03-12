@@ -6,7 +6,7 @@
  * - Password reset
  */
 
-import { Resend } from 'resend';
+import { Resend } from "resend";
 import { logApiUsage } from "@/lib/admin/metrics";
 
 // Lazy initialization to avoid build-time errors when API key is not set
@@ -18,7 +18,7 @@ type ResendSendOptions = Parameters<Resend["emails"]["send"]>[0];
 function getResend(): Resend {
   if (!resendInstance) {
     if (!process.env.RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY environment variable is not set');
+      throw new Error("RESEND_API_KEY environment variable is not set");
     }
     resendInstance = new Resend(process.env.RESEND_API_KEY);
   }
@@ -43,40 +43,46 @@ async function sendResendEmail(payload: ResendSendOptions, emailType: string) {
 
 // Use Resend's test email if no verified domain is configured
 // To use your own domain, verify it at https://resend.com/domains and set EMAIL_FROM
-const FROM_EMAIL = process.env.EMAIL_FROM || 'ScamDunk <onboarding@resend.dev>';
-const APP_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+const FROM_EMAIL = process.env.EMAIL_FROM || "ScamDunk <onboarding@resend.dev>";
+const APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
 /**
  * Check email configuration and log warnings if issues are detected
  */
-function checkEmailConfiguration(): { isTestMode: boolean; warnings: string[] } {
+function checkEmailConfiguration(): {
+  isTestMode: boolean;
+  warnings: string[];
+} {
   const warnings: string[] = [];
-  const isTestMode = FROM_EMAIL.includes('@resend.dev');
+  const isTestMode = FROM_EMAIL.includes("@resend.dev");
 
   if (!configWarningsLogged) {
     // Check for test domain usage
     if (isTestMode) {
-      const warning = '[EMAIL CONFIG WARNING] Using Resend test domain (onboarding@resend.dev). ' +
-        'Emails can ONLY be sent to the Resend account owner\'s email address. ' +
-        'To send emails to all users, verify a custom domain at https://resend.com/domains ' +
-        'and set EMAIL_FROM environment variable.';
+      const warning =
+        "[EMAIL CONFIG WARNING] Using Resend test domain (onboarding@resend.dev). " +
+        "Emails can ONLY be sent to the Resend account owner's email address. " +
+        "To send emails to all users, verify a custom domain at https://resend.com/domains " +
+        "and set EMAIL_FROM environment variable.";
       console.warn(warning);
       warnings.push(warning);
     }
 
     // Check for localhost URL
-    if (APP_URL.includes('localhost')) {
-      const warning = '[EMAIL CONFIG WARNING] NEXTAUTH_URL is set to localhost. ' +
-        'Verification links in emails will point to localhost and won\'t work for remote users. ' +
-        'Set NEXTAUTH_URL to your production domain.';
+    if (APP_URL.includes("localhost")) {
+      const warning =
+        "[EMAIL CONFIG WARNING] NEXTAUTH_URL is set to localhost. " +
+        "Verification links in emails will point to localhost and won't work for remote users. " +
+        "Set NEXTAUTH_URL to your production domain.";
       console.warn(warning);
       warnings.push(warning);
     }
 
     // Check for missing protocol
-    if (!APP_URL.startsWith('http://') && !APP_URL.startsWith('https://')) {
-      const warning = '[EMAIL CONFIG WARNING] NEXTAUTH_URL is missing protocol (http:// or https://). ' +
-        'This may cause verification links to be malformed.';
+    if (!APP_URL.startsWith("http://") && !APP_URL.startsWith("https://")) {
+      const warning =
+        "[EMAIL CONFIG WARNING] NEXTAUTH_URL is missing protocol (http:// or https://). " +
+        "This may cause verification links to be malformed.";
       console.warn(warning);
       warnings.push(warning);
     }
@@ -102,7 +108,7 @@ export function validateEmailConfig(): {
   const { isTestMode, warnings } = checkEmailConfiguration();
 
   if (!process.env.RESEND_API_KEY) {
-    errors.push('RESEND_API_KEY is not set');
+    errors.push("RESEND_API_KEY is not set");
   }
 
   return {
@@ -115,21 +121,27 @@ export function validateEmailConfig(): {
   };
 }
 
-export async function sendVerificationEmail(email: string, token: string): Promise<boolean> {
+export async function sendVerificationEmail(
+  email: string,
+  token: string,
+): Promise<boolean> {
   const verifyUrl = `${APP_URL}/verify-email?token=${token}`;
 
   // Check configuration
   const config = checkEmailConfiguration();
   if (config.isTestMode) {
-    console.log(`[EMAIL] Sending verification email (TEST MODE - may fail for non-owner emails)`);
+    console.log(
+      `[EMAIL] Sending verification email (TEST MODE - may fail for non-owner emails)`,
+    );
   }
 
   try {
-    const result = await sendResendEmail({
-      from: FROM_EMAIL,
-      to: email,
-      subject: 'Verify your ScamDunk account',
-      html: `
+    const result = await sendResendEmail(
+      {
+        from: FROM_EMAIL,
+        to: email,
+        subject: "Verify your ScamDunk account",
+        html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -170,51 +182,67 @@ export async function sendVerificationEmail(email: string, token: string): Promi
           </body>
         </html>
       `,
-    }, "EMAIL_VERIFICATION");
+      },
+      "EMAIL_VERIFICATION",
+    );
 
     if (result.error) {
-      console.error('Resend API error (verification):', result.error);
+      console.error("Resend API error (verification):", result.error);
       // Check for common Resend errors
-      const errorMessage = result.error.message?.toLowerCase() || '';
-      if (errorMessage.includes('can only send') || errorMessage.includes('not verified')) {
+      const errorMessage = result.error.message?.toLowerCase() || "";
+      if (
+        errorMessage.includes("can only send") ||
+        errorMessage.includes("not verified")
+      ) {
         console.error(
-          '[EMAIL ERROR] Resend domain not verified. When using onboarding@resend.dev, ' +
-          'emails can only be sent to the Resend account owner. ' +
-          'Verify a custom domain at https://resend.com/domains'
+          "[EMAIL ERROR] Resend domain not verified. When using onboarding@resend.dev, " +
+            "emails can only be sent to the Resend account owner. " +
+            "Verify a custom domain at https://resend.com/domains",
         );
       }
       return false;
     }
 
-    console.log('Verification email sent successfully to:', email, 'ID:', result.data?.id);
+    console.log(
+      "Verification email sent successfully to:",
+      email,
+      "ID:",
+      result.data?.id,
+    );
     return true;
   } catch (error) {
-    console.error('Failed to send verification email:', error);
+    console.error("Failed to send verification email:", error);
     // Log additional context for common issues
     if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        console.error('[EMAIL ERROR] Invalid or missing RESEND_API_KEY');
+      if (error.message.includes("API key")) {
+        console.error("[EMAIL ERROR] Invalid or missing RESEND_API_KEY");
       }
     }
     return false;
   }
 }
 
-export async function sendPasswordResetEmail(email: string, token: string): Promise<boolean> {
+export async function sendPasswordResetEmail(
+  email: string,
+  token: string,
+): Promise<boolean> {
   const resetUrl = `${APP_URL}/reset-password?token=${token}`;
 
   // Check configuration
   const config = checkEmailConfiguration();
   if (config.isTestMode) {
-    console.log(`[EMAIL] Sending password reset email (TEST MODE - may fail for non-owner emails)`);
+    console.log(
+      `[EMAIL] Sending password reset email (TEST MODE - may fail for non-owner emails)`,
+    );
   }
 
   try {
-    const result = await sendResendEmail({
-      from: FROM_EMAIL,
-      to: email,
-      subject: 'Reset your ScamDunk password',
-      html: `
+    const result = await sendResendEmail(
+      {
+        from: FROM_EMAIL,
+        to: email,
+        subject: "Reset your ScamDunk password",
+        html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -255,30 +283,40 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
           </body>
         </html>
       `,
-    }, "PASSWORD_RESET");
+      },
+      "PASSWORD_RESET",
+    );
 
     if (result.error) {
-      console.error('Resend API error (password reset):', result.error);
+      console.error("Resend API error (password reset):", result.error);
       // Check for common Resend errors
-      const errorMessage = result.error.message?.toLowerCase() || '';
-      if (errorMessage.includes('can only send') || errorMessage.includes('not verified')) {
+      const errorMessage = result.error.message?.toLowerCase() || "";
+      if (
+        errorMessage.includes("can only send") ||
+        errorMessage.includes("not verified")
+      ) {
         console.error(
-          '[EMAIL ERROR] Resend domain not verified. When using onboarding@resend.dev, ' +
-          'emails can only be sent to the Resend account owner. ' +
-          'Verify a custom domain at https://resend.com/domains'
+          "[EMAIL ERROR] Resend domain not verified. When using onboarding@resend.dev, " +
+            "emails can only be sent to the Resend account owner. " +
+            "Verify a custom domain at https://resend.com/domains",
         );
       }
       return false;
     }
 
-    console.log('Password reset email sent successfully to:', email, 'ID:', result.data?.id);
+    console.log(
+      "Password reset email sent successfully to:",
+      email,
+      "ID:",
+      result.data?.id,
+    );
     return true;
   } catch (error) {
-    console.error('Failed to send password reset email:', error);
+    console.error("Failed to send password reset email:", error);
     // Log additional context for common issues
     if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        console.error('[EMAIL ERROR] Invalid or missing RESEND_API_KEY');
+      if (error.message.includes("API key")) {
+        console.error("[EMAIL ERROR] Invalid or missing RESEND_API_KEY");
       }
     }
     return false;
@@ -292,22 +330,25 @@ export async function sendAdminInviteEmail(
   email: string,
   inviteUrl: string,
   role: string,
-  inviterName?: string
+  inviterName?: string,
 ): Promise<boolean> {
   const config = checkEmailConfiguration();
   if (config.isTestMode) {
-    console.log(`[EMAIL] Sending admin invite email (TEST MODE - may fail for non-owner emails)`);
+    console.log(
+      `[EMAIL] Sending admin invite email (TEST MODE - may fail for non-owner emails)`,
+    );
   }
 
-  const roleName = role === 'ADMIN' ? 'Admin' : 'Viewer';
-  const inviterDisplay = inviterName || 'The team owner';
+  const roleName = role === "ADMIN" ? "Admin" : "Viewer";
+  const inviterDisplay = inviterName || "The team owner";
 
   try {
-    const result = await sendResendEmail({
-      from: FROM_EMAIL,
-      to: email,
-      subject: `You're invited to the ScamDunk Admin Dashboard`,
-      html: `
+    const result = await sendResendEmail(
+      {
+        from: FROM_EMAIL,
+        to: email,
+        subject: `You're invited to the ScamDunk Admin Dashboard`,
+        html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -324,9 +365,10 @@ export async function sendAdminInviteEmail(
               <h2 style="margin-top: 0;">You've been invited!</h2>
               <p>${inviterDisplay} has invited you to join the ScamDunk Admin Dashboard as a <strong>${roleName}</strong>.</p>
 
-              ${role === 'ADMIN'
-                ? '<p style="color: #666; font-size: 14px;">As an Admin, you\'ll have full access to all dashboard features including scans, lookups, and data analysis.</p>'
-                : '<p style="color: #666; font-size: 14px;">As a Viewer, you\'ll have read-only access to all dashboards and data.</p>'
+              ${
+                role === "ADMIN"
+                  ? '<p style="color: #666; font-size: 14px;">As an Admin, you\'ll have full access to all dashboard features including scans, lookups, and data analysis.</p>'
+                  : '<p style="color: #666; font-size: 14px;">As a Viewer, you\'ll have read-only access to all dashboards and data.</p>'
               }
 
               <div style="text-align: center; margin: 30px 0;">
@@ -357,28 +399,38 @@ export async function sendAdminInviteEmail(
           </body>
         </html>
       `,
-    }, "ADMIN_INVITE");
+      },
+      "ADMIN_INVITE",
+    );
 
     if (result.error) {
-      console.error('Resend API error (admin invite):', result.error);
-      const errorMessage = result.error.message?.toLowerCase() || '';
-      if (errorMessage.includes('can only send') || errorMessage.includes('not verified')) {
+      console.error("Resend API error (admin invite):", result.error);
+      const errorMessage = result.error.message?.toLowerCase() || "";
+      if (
+        errorMessage.includes("can only send") ||
+        errorMessage.includes("not verified")
+      ) {
         console.error(
-          '[EMAIL ERROR] Resend domain not verified. When using onboarding@resend.dev, ' +
-          'emails can only be sent to the Resend account owner. ' +
-          'Verify a custom domain at https://resend.com/domains'
+          "[EMAIL ERROR] Resend domain not verified. When using onboarding@resend.dev, " +
+            "emails can only be sent to the Resend account owner. " +
+            "Verify a custom domain at https://resend.com/domains",
         );
       }
       return false;
     }
 
-    console.log('Admin invite email sent successfully to:', email, 'ID:', result.data?.id);
+    console.log(
+      "Admin invite email sent successfully to:",
+      email,
+      "ID:",
+      result.data?.id,
+    );
     return true;
   } catch (error) {
-    console.error('Failed to send admin invite email:', error);
+    console.error("Failed to send admin invite email:", error);
     if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        console.error('[EMAIL ERROR] Invalid or missing RESEND_API_KEY');
+      if (error.message.includes("API key")) {
+        console.error("[EMAIL ERROR] Invalid or missing RESEND_API_KEY");
       }
     }
     return false;
@@ -392,14 +444,16 @@ export async function sendAdminInviteEmail(
  *
  * Recipients can be managed via admin dashboard at /admin/support
  */
-const DEFAULT_SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@scamdunk.com';
-const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_SUPPORT_EMAIL || 'avim@scamdunk.com';
+const DEFAULT_SUPPORT_EMAIL =
+  process.env.SUPPORT_EMAIL || "support@scamdunk.com";
+const DEFAULT_ADMIN_EMAIL =
+  process.env.ADMIN_SUPPORT_EMAIL || "avim@scamdunk.com";
 
 // Dynamic import to avoid circular dependency
 async function getSupportEmailRecipients(category?: string): Promise<string[]> {
   try {
     // Dynamically import prisma to avoid build issues
-    const { prisma } = await import('@/lib/db');
+    const { prisma } = await import("@/lib/db");
 
     // First get all active recipients
     const allRecipients = await prisma.supportEmailRecipient.findMany({
@@ -407,12 +461,14 @@ async function getSupportEmailRecipients(category?: string): Promise<string[]> {
     });
 
     if (allRecipients.length === 0) {
-      console.warn('[EMAIL] No active email recipients configured, using default fallback');
+      console.warn(
+        "[EMAIL] No active email recipients configured, using default fallback",
+      );
       return [DEFAULT_ADMIN_EMAIL];
     }
 
     // Filter recipients based on category routing
-    const matchedRecipients = allRecipients.filter(r => {
+    const matchedRecipients = allRecipients.filter((r) => {
       // Primary recipients always receive all tickets
       if (r.isPrimary) return true;
 
@@ -423,7 +479,10 @@ async function getSupportEmailRecipients(category?: string): Promise<string[]> {
       if (category) {
         try {
           const recipientCategories: string[] = JSON.parse(r.categories);
-          return Array.isArray(recipientCategories) && recipientCategories.includes(category);
+          return (
+            Array.isArray(recipientCategories) &&
+            recipientCategories.includes(category)
+          );
         } catch {
           // If JSON parsing fails, try simple string match as fallback
           return r.categories.includes(category);
@@ -434,22 +493,25 @@ async function getSupportEmailRecipients(category?: string): Promise<string[]> {
     });
 
     if (matchedRecipients.length > 0) {
-      const emails = matchedRecipients.map(r => r.email);
-      console.log(`[EMAIL] Routing to ${emails.length} recipient(s) for category "${category || 'ALL'}":`, emails);
+      const emails = matchedRecipients.map((r) => r.email);
+      console.log(
+        `[EMAIL] Routing to ${emails.length} recipient(s) for category "${category || "ALL"}":`,
+        emails,
+      );
       return emails;
     }
 
     // If no category-specific match, fall back to primary recipients
-    const primaryRecipients = allRecipients.filter(r => r.isPrimary);
+    const primaryRecipients = allRecipients.filter((r) => r.isPrimary);
     if (primaryRecipients.length > 0) {
-      return primaryRecipients.map(r => r.email);
+      return primaryRecipients.map((r) => r.email);
     }
   } catch (error) {
-    console.error('Failed to fetch email recipients from database:', error);
+    console.error("Failed to fetch email recipients from database:", error);
   }
 
   // Fallback to default
-  console.warn('[EMAIL] Using default fallback email:', DEFAULT_ADMIN_EMAIL);
+  console.warn("[EMAIL] Using default fallback email:", DEFAULT_ADMIN_EMAIL);
   return [DEFAULT_ADMIN_EMAIL];
 }
 
@@ -460,13 +522,13 @@ async function logEmailSend(data: {
   recipientEmail: string;
   subject: string;
   emailType: string;
-  status: 'SENT' | 'FAILED' | 'SKIPPED';
+  status: "SENT" | "FAILED" | "SKIPPED";
   resendId?: string;
   errorMessage?: string;
   relatedTicketId?: string;
 }): Promise<void> {
   try {
-    const { prisma } = await import('@/lib/db');
+    const { prisma } = await import("@/lib/db");
     await prisma.emailLog.create({
       data: {
         recipientEmail: data.recipientEmail,
@@ -481,22 +543,25 @@ async function logEmailSend(data: {
     });
   } catch (error) {
     // Don't let logging failures break email sending
-    console.error('[EMAIL LOG] Failed to log email send:', error);
+    console.error("[EMAIL LOG] Failed to log email send:", error);
   }
 }
 
 /**
  * Send a test email to verify configuration is working
  */
-export async function sendTestEmail(toEmail: string): Promise<{ success: boolean; message: string; resendId?: string }> {
+export async function sendTestEmail(
+  toEmail: string,
+): Promise<{ success: boolean; message: string; resendId?: string }> {
   const config = checkEmailConfiguration();
 
   try {
-    const result = await sendResendEmail({
-      from: FROM_EMAIL,
-      to: toEmail,
-      subject: 'ScamDunk Email Configuration Test',
-      html: `
+    const result = await sendResendEmail(
+      {
+        from: FROM_EMAIL,
+        to: toEmail,
+        subject: "ScamDunk Email Configuration Test",
+        html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -518,7 +583,7 @@ export async function sendTestEmail(toEmail: string): Promise<{ success: boolean
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold;">Test Mode:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7;">${config.isTestMode ? 'Yes (limited delivery)' : 'No (production)'}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7;">${config.isTestMode ? "Yes (limited delivery)" : "No (production)"}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold;">Timestamp:</td>
@@ -531,35 +596,44 @@ export async function sendTestEmail(toEmail: string): Promise<{ success: boolean
           </body>
         </html>
       `,
-    }, "TEST");
+      },
+      "TEST",
+    );
 
     if (result.error) {
       await logEmailSend({
         recipientEmail: toEmail,
-        subject: 'Email Configuration Test',
-        emailType: 'TEST',
-        status: 'FAILED',
+        subject: "Email Configuration Test",
+        emailType: "TEST",
+        status: "FAILED",
         errorMessage: result.error.message,
       });
-      return { success: false, message: `Resend error: ${result.error.message}` };
+      return {
+        success: false,
+        message: `Resend error: ${result.error.message}`,
+      };
     }
 
     await logEmailSend({
       recipientEmail: toEmail,
-      subject: 'Email Configuration Test',
-      emailType: 'TEST',
-      status: 'SENT',
+      subject: "Email Configuration Test",
+      emailType: "TEST",
+      status: "SENT",
       resendId: result.data?.id,
     });
 
-    return { success: true, message: 'Test email sent successfully', resendId: result.data?.id };
+    return {
+      success: true,
+      message: "Test email sent successfully",
+      resendId: result.data?.id,
+    };
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
+    const msg = error instanceof Error ? error.message : "Unknown error";
     await logEmailSend({
       recipientEmail: toEmail,
-      subject: 'Email Configuration Test',
-      emailType: 'TEST',
-      status: 'FAILED',
+      subject: "Email Configuration Test",
+      emailType: "TEST",
+      status: "FAILED",
       errorMessage: msg,
     });
     return { success: false, message: msg };
@@ -573,15 +647,16 @@ export async function sendCustomEmail(
   toEmail: string,
   subject: string,
   messageBody: string,
-  replyTo?: string
+  replyTo?: string,
 ): Promise<{ success: boolean; message: string; resendId?: string }> {
   try {
-    const result = await sendResendEmail({
-      from: FROM_EMAIL,
-      to: toEmail,
-      replyTo: replyTo || SUPPORT_EMAIL,
-      subject,
-      html: `
+    const result = await sendResendEmail(
+      {
+        from: FROM_EMAIL,
+        to: toEmail,
+        replyTo: replyTo || SUPPORT_EMAIL,
+        subject,
+        html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -603,35 +678,44 @@ export async function sendCustomEmail(
           </body>
         </html>
       `,
-    }, "CUSTOM");
+      },
+      "CUSTOM",
+    );
 
     if (result.error) {
       await logEmailSend({
         recipientEmail: toEmail,
         subject,
-        emailType: 'CUSTOM',
-        status: 'FAILED',
+        emailType: "CUSTOM",
+        status: "FAILED",
         errorMessage: result.error.message,
       });
-      return { success: false, message: `Resend error: ${result.error.message}` };
+      return {
+        success: false,
+        message: `Resend error: ${result.error.message}`,
+      };
     }
 
     await logEmailSend({
       recipientEmail: toEmail,
       subject,
-      emailType: 'CUSTOM',
-      status: 'SENT',
+      emailType: "CUSTOM",
+      status: "SENT",
       resendId: result.data?.id,
     });
 
-    return { success: true, message: 'Email sent successfully', resendId: result.data?.id };
+    return {
+      success: true,
+      message: "Email sent successfully",
+      resendId: result.data?.id,
+    };
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
+    const msg = error instanceof Error ? error.message : "Unknown error";
     await logEmailSend({
       recipientEmail: toEmail,
       subject,
-      emailType: 'CUSTOM',
-      status: 'FAILED',
+      emailType: "CUSTOM",
+      status: "FAILED",
       errorMessage: msg,
     });
     return { success: false, message: msg };
@@ -651,20 +735,22 @@ export async function sendSupportTicketNotification(
   email: string,
   subject: string,
   message: string,
-  category: string
+  category: string,
 ): Promise<boolean> {
   const config = checkEmailConfiguration();
   if (config.isTestMode) {
-    console.log(`[EMAIL] Sending support ticket notification (TEST MODE - may fail for non-owner emails)`);
+    console.log(
+      `[EMAIL] Sending support ticket notification (TEST MODE - may fail for non-owner emails)`,
+    );
   }
 
   const categoryLabels: Record<string, string> = {
-    SUPPORT: 'Technical Support',
-    FEEDBACK: 'Feedback & Suggestions',
-    BUG_REPORT: 'Bug Report',
-    FEATURE_REQUEST: 'Feature Request',
-    BILLING: 'Billing Question',
-    OTHER: 'Other',
+    SUPPORT: "Technical Support",
+    FEEDBACK: "Feedback & Suggestions",
+    BUG_REPORT: "Bug Report",
+    FEATURE_REQUEST: "Feature Request",
+    BILLING: "Billing Question",
+    OTHER: "Other",
   };
 
   const adminDashboardUrl = `${APP_URL}/admin/support`;
@@ -674,12 +760,13 @@ export async function sendSupportTicketNotification(
     // Get all active recipients for this category
     const recipients = await getSupportEmailRecipients(category);
 
-    const result = await sendResendEmail({
-      from: FROM_EMAIL,
-      to: recipients,
-      replyTo: email,
-      subject: `[Support Ticket] ${subject}`,
-      html: `
+    const result = await sendResendEmail(
+      {
+        from: FROM_EMAIL,
+        to: recipients,
+        replyTo: email,
+        subject: `[Support Ticket] ${subject}`,
+        html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -733,16 +820,21 @@ export async function sendSupportTicketNotification(
           </body>
         </html>
       `,
-    }, "TICKET_NOTIFICATION");
+      },
+      "TICKET_NOTIFICATION",
+    );
 
     if (result.error) {
-      console.error('Resend API error (support ticket notification):', result.error);
+      console.error(
+        "Resend API error (support ticket notification):",
+        result.error,
+      );
       for (const recipient of recipients) {
         await logEmailSend({
           recipientEmail: recipient,
           subject: `[Support Ticket] ${subject}`,
-          emailType: 'TICKET_NOTIFICATION',
-          status: 'FAILED',
+          emailType: "TICKET_NOTIFICATION",
+          status: "FAILED",
           errorMessage: result.error.message,
           relatedTicketId: ticketId,
         });
@@ -750,20 +842,25 @@ export async function sendSupportTicketNotification(
       return false;
     }
 
-    console.log('Support ticket notification sent to:', recipients.join(', '), 'ID:', result.data?.id);
+    console.log(
+      "Support ticket notification sent to:",
+      recipients.join(", "),
+      "ID:",
+      result.data?.id,
+    );
     for (const recipient of recipients) {
       await logEmailSend({
         recipientEmail: recipient,
         subject: `[Support Ticket] ${subject}`,
-        emailType: 'TICKET_NOTIFICATION',
-        status: 'SENT',
+        emailType: "TICKET_NOTIFICATION",
+        status: "SENT",
         resendId: result.data?.id,
         relatedTicketId: ticketId,
       });
     }
     return true;
   } catch (error) {
-    console.error('Failed to send support ticket notification:', error);
+    console.error("Failed to send support ticket notification:", error);
     return false;
   }
 }
@@ -776,29 +873,32 @@ export async function sendSupportTicketConfirmation(
   name: string,
   email: string,
   subject: string,
-  category: string
+  category: string,
 ): Promise<boolean> {
   const config = checkEmailConfiguration();
   if (config.isTestMode) {
-    console.log(`[EMAIL] Sending support ticket confirmation (TEST MODE - may fail for non-owner emails)`);
+    console.log(
+      `[EMAIL] Sending support ticket confirmation (TEST MODE - may fail for non-owner emails)`,
+    );
   }
 
   const categoryLabels: Record<string, string> = {
-    SUPPORT: 'Technical Support',
-    FEEDBACK: 'Feedback & Suggestions',
-    BUG_REPORT: 'Bug Report',
-    FEATURE_REQUEST: 'Feature Request',
-    BILLING: 'Billing Question',
-    OTHER: 'Other',
+    SUPPORT: "Technical Support",
+    FEEDBACK: "Feedback & Suggestions",
+    BUG_REPORT: "Bug Report",
+    FEATURE_REQUEST: "Feature Request",
+    BILLING: "Billing Question",
+    OTHER: "Other",
   };
 
   try {
-    const result = await sendResendEmail({
-      from: FROM_EMAIL,
-      to: email,
-      replyTo: SUPPORT_EMAIL,
-      subject: `We've received your message: ${subject}`,
-      html: `
+    const result = await sendResendEmail(
+      {
+        from: FROM_EMAIL,
+        to: email,
+        replyTo: SUPPORT_EMAIL,
+        subject: `We've received your message: ${subject}`,
+        html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -813,7 +913,7 @@ export async function sendSupportTicketConfirmation(
 
             <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
               <h2 style="margin-top: 0;">Hi ${name},</h2>
-              <p>Thank you for reaching out! We've received your ${categoryLabels[category]?.toLowerCase() || 'message'} and our team will review it shortly.</p>
+              <p>Thank you for reaching out! We've received your ${categoryLabels[category]?.toLowerCase() || "message"} and our team will review it shortly.</p>
 
               <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 20px 0;">
                 <p style="margin: 0 0 8px; font-weight: bold; color: #374151;">Your Ticket Details:</p>
@@ -838,33 +938,40 @@ export async function sendSupportTicketConfirmation(
           </body>
         </html>
       `,
-    }, "TICKET_CONFIRMATION");
+      },
+      "TICKET_CONFIRMATION",
+    );
 
     if (result.error) {
-      console.error('Resend API error (support confirmation):', result.error);
+      console.error("Resend API error (support confirmation):", result.error);
       await logEmailSend({
         recipientEmail: email,
         subject: `We've received your message: ${subject}`,
-        emailType: 'TICKET_CONFIRMATION',
-        status: 'FAILED',
+        emailType: "TICKET_CONFIRMATION",
+        status: "FAILED",
         errorMessage: result.error.message,
         relatedTicketId: ticketId,
       });
       return false;
     }
 
-    console.log('Support ticket confirmation sent to:', email, 'ID:', result.data?.id);
+    console.log(
+      "Support ticket confirmation sent to:",
+      email,
+      "ID:",
+      result.data?.id,
+    );
     await logEmailSend({
       recipientEmail: email,
       subject: `We've received your message: ${subject}`,
-      emailType: 'TICKET_CONFIRMATION',
-      status: 'SENT',
+      emailType: "TICKET_CONFIRMATION",
+      status: "SENT",
       resendId: result.data?.id,
       relatedTicketId: ticketId,
     });
     return true;
   } catch (error) {
-    console.error('Failed to send support ticket confirmation:', error);
+    console.error("Failed to send support ticket confirmation:", error);
     return false;
   }
 }
@@ -878,20 +985,23 @@ export async function sendSupportTicketResponse(
   userEmail: string,
   originalSubject: string,
   responseMessage: string,
-  responderName: string
+  responderName: string,
 ): Promise<boolean> {
   const config = checkEmailConfiguration();
   if (config.isTestMode) {
-    console.log(`[EMAIL] Sending support ticket response (TEST MODE - may fail for non-owner emails)`);
+    console.log(
+      `[EMAIL] Sending support ticket response (TEST MODE - may fail for non-owner emails)`,
+    );
   }
 
   try {
-    const result = await sendResendEmail({
-      from: FROM_EMAIL,
-      to: userEmail,
-      replyTo: SUPPORT_EMAIL,
-      subject: `Re: ${originalSubject}`,
-      html: `
+    const result = await sendResendEmail(
+      {
+        from: FROM_EMAIL,
+        to: userEmail,
+        replyTo: SUPPORT_EMAIL,
+        subject: `Re: ${originalSubject}`,
+        html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -933,33 +1043,40 @@ export async function sendSupportTicketResponse(
           </body>
         </html>
       `,
-    }, "TICKET_RESPONSE");
+      },
+      "TICKET_RESPONSE",
+    );
 
     if (result.error) {
-      console.error('Resend API error (support response):', result.error);
+      console.error("Resend API error (support response):", result.error);
       await logEmailSend({
         recipientEmail: userEmail,
         subject: `Re: ${originalSubject}`,
-        emailType: 'TICKET_RESPONSE',
-        status: 'FAILED',
+        emailType: "TICKET_RESPONSE",
+        status: "FAILED",
         errorMessage: result.error.message,
         relatedTicketId: ticketId,
       });
       return false;
     }
 
-    console.log('Support ticket response sent to:', userEmail, 'ID:', result.data?.id);
+    console.log(
+      "Support ticket response sent to:",
+      userEmail,
+      "ID:",
+      result.data?.id,
+    );
     await logEmailSend({
       recipientEmail: userEmail,
       subject: `Re: ${originalSubject}`,
-      emailType: 'TICKET_RESPONSE',
-      status: 'SENT',
+      emailType: "TICKET_RESPONSE",
+      status: "SENT",
       resendId: result.data?.id,
       relatedTicketId: ticketId,
     });
     return true;
   } catch (error) {
-    console.error('Failed to send support ticket response:', error);
+    console.error("Failed to send support ticket response:", error);
     return false;
   }
 }
@@ -971,23 +1088,26 @@ export async function sendAPIFailureAlert(
   apiName: string,
   ticker: string,
   errorMessage: string,
-  assetType: string = 'unknown'
+  assetType: string = "unknown",
 ): Promise<boolean> {
   const adminEmail = process.env.ADMIN_ALERT_EMAIL;
 
   if (!adminEmail) {
-    console.error('ADMIN_ALERT_EMAIL not configured - cannot send API failure alert');
+    console.error(
+      "ADMIN_ALERT_EMAIL not configured - cannot send API failure alert",
+    );
     return false;
   }
 
   const timestamp = new Date().toISOString();
 
   try {
-    const result = await sendResendEmail({
-      from: FROM_EMAIL,
-      to: adminEmail,
-      subject: `[ALERT] ScamDunk API Failure: ${apiName}`,
-      html: `
+    const result = await sendResendEmail(
+      {
+        from: FROM_EMAIL,
+        to: adminEmail,
+        subject: `[ALERT] ScamDunk API Failure: ${apiName}`,
+        html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -1041,17 +1161,24 @@ export async function sendAPIFailureAlert(
           </body>
         </html>
       `,
-    }, "API_FAILURE_ALERT");
+      },
+      "API_FAILURE_ALERT",
+    );
 
     if (result.error) {
-      console.error('Resend API error (admin alert):', result.error);
+      console.error("Resend API error (admin alert):", result.error);
       return false;
     }
 
-    console.log('API failure alert sent to admin:', adminEmail, 'ID:', result.data?.id);
+    console.log(
+      "API failure alert sent to admin:",
+      adminEmail,
+      "ID:",
+      result.data?.id,
+    );
     return true;
   } catch (error) {
-    console.error('Failed to send API failure alert:', error);
+    console.error("Failed to send API failure alert:", error);
     return false;
   }
 }

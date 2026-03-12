@@ -10,7 +10,8 @@ import { logAuthError } from "@/lib/auth-error-tracking";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string()
+  password: z
+    .string()
     .min(10, "Password must be at least 10 characters")
     .regex(/[a-z]/, "Password must contain a lowercase letter")
     .regex(/[A-Z]/, "Password must contain an uppercase letter")
@@ -22,7 +23,8 @@ const registerSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: strict for registration (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "strict");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -34,14 +36,17 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { email, password, name, turnstileToken } = validation.data;
 
     // Verify CAPTCHA — turnstile.ts handles fail-closed in production
-    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      undefined;
     const isValidCaptcha = await verifyTurnstileToken(turnstileToken, ip);
 
     if (!isValidCaptcha) {
@@ -56,11 +61,11 @@ export async function POST(request: NextRequest) {
           errorType: "SIGNUP_FAILED",
           errorCode: "CAPTCHA_FAILED",
           message: "CAPTCHA verification failed",
-        }
+        },
       );
       return NextResponse.json(
         { error: "CAPTCHA verification failed. Please try again." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -70,7 +75,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+      const ip =
+        request.headers.get("x-forwarded-for") ||
+        request.headers.get("x-real-ip") ||
+        undefined;
       await logAuthError(
         {
           email,
@@ -82,7 +90,7 @@ export async function POST(request: NextRequest) {
           errorType: "SIGNUP_FAILED",
           errorCode: "EMAIL_ALREADY_EXISTS",
           message: "Email already registered",
-        }
+        },
       );
       // Return generic message to prevent user enumeration
       return NextResponse.json({
@@ -114,7 +122,10 @@ export async function POST(request: NextRequest) {
       await prisma.user.delete({ where: { id: user.id } });
       await prisma.emailVerificationToken.deleteMany({ where: { email } });
 
-      const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+      const ip =
+        request.headers.get("x-forwarded-for") ||
+        request.headers.get("x-real-ip") ||
+        undefined;
       await logAuthError(
         {
           email,
@@ -127,12 +138,12 @@ export async function POST(request: NextRequest) {
           errorCode: "RESEND_API_ERROR",
           message: "Failed to send verification email",
           details: { stage: "registration" },
-        }
+        },
       );
 
       return NextResponse.json(
         { error: "Failed to send verification email. Please try again." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -147,7 +158,8 @@ export async function POST(request: NextRequest) {
     // Never expose internal error details to the client
     let statusCode = 500;
     let userMessage = "Registration failed. Please try again later.";
-    let errorCode: "DATABASE_ERROR" | "NETWORK_ERROR" | "UNKNOWN_ERROR" = "UNKNOWN_ERROR";
+    let errorCode: "DATABASE_ERROR" | "NETWORK_ERROR" | "UNKNOWN_ERROR" =
+      "UNKNOWN_ERROR";
 
     // Check for database connection errors
     if (error instanceof Error) {
@@ -158,18 +170,26 @@ export async function POST(request: NextRequest) {
         errorString.includes("connection") ||
         errorString.includes("environment variable")
       ) {
-        userMessage = "Service temporarily unavailable. Please try again later.";
+        userMessage =
+          "Service temporarily unavailable. Please try again later.";
         statusCode = 503;
         errorCode = "DATABASE_ERROR";
-      } else if (errorString.includes("network") || errorString.includes("fetch")) {
-        userMessage = "Unable to complete registration. Please check your connection.";
+      } else if (
+        errorString.includes("network") ||
+        errorString.includes("fetch")
+      ) {
+        userMessage =
+          "Unable to complete registration. Please check your connection.";
         statusCode = 503;
         errorCode = "NETWORK_ERROR";
       }
     }
 
     // Log the error
-    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      undefined;
     await logAuthError(
       {
         ipAddress: ip,
@@ -181,13 +201,12 @@ export async function POST(request: NextRequest) {
         errorCode,
         message: userMessage,
         error: error instanceof Error ? error : undefined,
-        details: { originalError: error instanceof Error ? error.message : String(error) },
-      }
+        details: {
+          originalError: error instanceof Error ? error.message : String(error),
+        },
+      },
     );
 
-    return NextResponse.json(
-      { error: userMessage },
-      { status: statusCode }
-    );
+    return NextResponse.json({ error: userMessage }, { status: statusCode });
   }
 }

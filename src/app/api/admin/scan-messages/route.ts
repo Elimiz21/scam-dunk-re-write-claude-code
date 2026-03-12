@@ -36,25 +36,29 @@ export async function GET() {
 
     // Delete duplicates in background
     if (duplicateIds.length > 0) {
-      prisma.scanMessage.deleteMany({
-        where: { id: { in: duplicateIds } },
-      }).then(() => {
-        // Reorder remaining messages
-        return prisma.scanMessage.findMany({
-          where: { isActive: true },
-          orderBy: { order: "asc" },
-        });
-      }).then((remaining) => {
-        // Update order for each
-        return Promise.all(
-          remaining.map((msg, index) =>
-            prisma.scanMessage.update({
-              where: { id: msg.id },
-              data: { order: index },
-            })
-          )
-        );
-      }).catch(() => {});
+      prisma.scanMessage
+        .deleteMany({
+          where: { id: { in: duplicateIds } },
+        })
+        .then(() => {
+          // Reorder remaining messages
+          return prisma.scanMessage.findMany({
+            where: { isActive: true },
+            orderBy: { order: "asc" },
+          });
+        })
+        .then((remaining) => {
+          // Update order for each
+          return Promise.all(
+            remaining.map((msg, index) =>
+              prisma.scanMessage.update({
+                where: { id: msg.id },
+                data: { order: index },
+              }),
+            ),
+          );
+        })
+        .catch(() => {});
     }
 
     // Get the last generation date
@@ -70,7 +74,8 @@ export async function GET() {
     // Calculate days since last regeneration
     const daysSinceRegeneration = lastGeneration
       ? Math.floor(
-          (Date.now() - lastGeneration.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+          (Date.now() - lastGeneration.createdAt.getTime()) /
+            (1000 * 60 * 60 * 24),
         )
       : null;
 
@@ -85,7 +90,7 @@ export async function GET() {
     console.error("Get scan messages error:", error);
     return NextResponse.json(
       { error: "Failed to fetch scan messages" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -104,7 +109,7 @@ export async function POST(request: NextRequest) {
     if (!headline || !subtext) {
       return NextResponse.json(
         { error: "Headline and subtext are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -125,21 +130,23 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the action (non-critical)
-    prisma.adminAuditLog.create({
-      data: {
-        adminUserId: session.id,
-        action: "SCAN_MESSAGE_CREATED",
-        resource: message.id,
-        details: JSON.stringify({ headline, subtext }),
-      },
-    }).catch(() => {});
+    prisma.adminAuditLog
+      .create({
+        data: {
+          adminUserId: session.id,
+          action: "SCAN_MESSAGE_CREATED",
+          resource: message.id,
+          details: JSON.stringify({ headline, subtext }),
+        },
+      })
+      .catch(() => {});
 
     return NextResponse.json(message, { status: 201 });
   } catch (error) {
     console.error("Create scan message error:", error);
     return NextResponse.json(
       { error: "Failed to create scan message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -156,7 +163,10 @@ export async function PUT(request: NextRequest) {
     const { id, headline, subtext } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "Message ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Message ID is required" },
+        { status: 400 },
+      );
     }
 
     const message = await prisma.scanMessage.update({
@@ -168,21 +178,23 @@ export async function PUT(request: NextRequest) {
     });
 
     // Log the action (non-critical)
-    prisma.adminAuditLog.create({
-      data: {
-        adminUserId: session.id,
-        action: "SCAN_MESSAGE_UPDATED",
-        resource: message.id,
-        details: JSON.stringify({ headline, subtext }),
-      },
-    }).catch(() => {});
+    prisma.adminAuditLog
+      .create({
+        data: {
+          adminUserId: session.id,
+          action: "SCAN_MESSAGE_UPDATED",
+          resource: message.id,
+          details: JSON.stringify({ headline, subtext }),
+        },
+      })
+      .catch(() => {});
 
     return NextResponse.json(message);
   } catch (error) {
     console.error("Update scan message error:", error);
     return NextResponse.json(
       { error: "Failed to update scan message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -199,7 +211,10 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Message ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Message ID is required" },
+        { status: 400 },
+      );
     }
 
     const message = await prisma.scanMessage.findUnique({
@@ -218,7 +233,9 @@ export async function DELETE(request: NextRequest) {
           subtext: message.subtext,
           archiveReason: "MANUAL_REMOVE",
           originalCreatedAt: message.createdAt,
-          ...(message.generationId ? { generationId: message.generationId } : {}),
+          ...(message.generationId
+            ? { generationId: message.generationId }
+            : {}),
         },
       });
     } catch {
@@ -244,21 +261,23 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Log the action (non-critical)
-    prisma.adminAuditLog.create({
-      data: {
-        adminUserId: session.id,
-        action: "SCAN_MESSAGE_DELETED",
-        resource: id,
-        details: JSON.stringify({ headline: message.headline }),
-      },
-    }).catch(() => {});
+    prisma.adminAuditLog
+      .create({
+        data: {
+          adminUserId: session.id,
+          action: "SCAN_MESSAGE_DELETED",
+          resource: id,
+          details: JSON.stringify({ headline: message.headline }),
+        },
+      })
+      .catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Delete scan message error:", error);
     return NextResponse.json(
       { error: "Failed to delete scan message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

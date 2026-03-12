@@ -27,11 +27,27 @@ import {
 export const dynamic = "force-dynamic";
 
 function deriveSchemeMilestones(scheme: any) {
-  const floorPriceBeforePump = Math.min(scheme.priceAtDetection ?? 0, scheme.currentPrice ?? 0, scheme.peakPrice ?? 0);
-  const troughPriceAfterPeak = Math.min(scheme.currentPrice ?? 0, scheme.peakPrice ?? 0);
-  const daysFloorToPeak = Math.max(0, Math.round((scheme.daysActive || 0) * 0.4));
-  const daysPeakToTrough = Math.max(0, (scheme.daysActive || 0) - daysFloorToPeak);
-  const pumpPct = floorPriceBeforePump > 0 ? ((scheme.peakPrice - floorPriceBeforePump) / floorPriceBeforePump) * 100 : 0;
+  const floorPriceBeforePump = Math.min(
+    scheme.priceAtDetection ?? 0,
+    scheme.currentPrice ?? 0,
+    scheme.peakPrice ?? 0,
+  );
+  const troughPriceAfterPeak = Math.min(
+    scheme.currentPrice ?? 0,
+    scheme.peakPrice ?? 0,
+  );
+  const daysFloorToPeak = Math.max(
+    0,
+    Math.round((scheme.daysActive || 0) * 0.4),
+  );
+  const daysPeakToTrough = Math.max(
+    0,
+    (scheme.daysActive || 0) - daysFloorToPeak,
+  );
+  const pumpPct =
+    floorPriceBeforePump > 0
+      ? ((scheme.peakPrice - floorPriceBeforePump) / floorPriceBeforePump) * 100
+      : 0;
   return {
     floorPriceBeforePump,
     troughPriceAfterPeak,
@@ -55,20 +71,31 @@ export async function GET(req: Request) {
     const [dates, files] = await Promise.all([getScanDates(), getRepoTree()]);
 
     if (dates.length === 0) {
-      return NextResponse.json({ error: "No scan data found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "No scan data found" },
+        { status: 404 },
+      );
     }
 
-    const targetDate = requestedDate && dates.includes(requestedDate) ? requestedDate : dates[0];
+    const targetDate =
+      requestedDate && dates.includes(requestedDate) ? requestedDate : dates[0];
     const prevDate = dates[dates.indexOf(targetDate) + 1] || null;
 
     // Fetch data for the target date in parallel
-    const [dailyReport, fmpSummary, schemeDb, socialScan, promotedStocks] = await Promise.all([
-      fetchSmallFile<DailyReport>(`reports/daily-report-${targetDate}.json`),
-      fetchSmallFile<FmpSummary>(`daily-summaries/fmp-summary-${targetDate}.json`),
-      fetchSmallFile<SchemeDatabase>(`scheme-tracking/scheme-database.json`),
-      fetchSmallFile<SocialScanFile>(`social-media-scans/social-media-scan-${targetDate}.json`).catch(() => null),
-      fetchSmallFile<PromotedStocksFile>(`promoted-stocks/promoted-stocks-${targetDate}.json`).catch(() => null),
-    ]);
+    const [dailyReport, fmpSummary, schemeDb, socialScan, promotedStocks] =
+      await Promise.all([
+        fetchSmallFile<DailyReport>(`reports/daily-report-${targetDate}.json`),
+        fetchSmallFile<FmpSummary>(
+          `daily-summaries/fmp-summary-${targetDate}.json`,
+        ),
+        fetchSmallFile<SchemeDatabase>(`scheme-tracking/scheme-database.json`),
+        fetchSmallFile<SocialScanFile>(
+          `social-media-scans/social-media-scan-${targetDate}.json`,
+        ).catch(() => null),
+        fetchSmallFile<PromotedStocksFile>(
+          `promoted-stocks/promoted-stocks-${targetDate}.json`,
+        ).catch(() => null),
+      ]);
 
     // Fetch previous date data for comparison
     let prevReport: DailyReport | null = null;
@@ -77,8 +104,12 @@ export async function GET(req: Request) {
     if (prevDate) {
       [prevReport, prevSocialScan, prevPromotedStocks] = await Promise.all([
         fetchSmallFile<DailyReport>(`reports/daily-report-${prevDate}.json`),
-        fetchSmallFile<SocialScanFile>(`social-media-scans/social-media-scan-${prevDate}.json`).catch(() => null),
-        fetchSmallFile<PromotedStocksFile>(`promoted-stocks/promoted-stocks-${prevDate}.json`).catch(() => null),
+        fetchSmallFile<SocialScanFile>(
+          `social-media-scans/social-media-scan-${prevDate}.json`,
+        ).catch(() => null),
+        fetchSmallFile<PromotedStocksFile>(
+          `promoted-stocks/promoted-stocks-${prevDate}.json`,
+        ).catch(() => null),
       ]);
     }
 
@@ -87,11 +118,18 @@ export async function GET(req: Request) {
     let topStocks: EnhancedStock[] = [];
     let highRiskUnfiltered: EnhancedStock[] = [];
     if (highRiskPath) {
-      const allHighRisk = await fetchPartialArray<EnhancedStock>(highRiskPath, 200_000);
+      const allHighRisk = await fetchPartialArray<EnhancedStock>(
+        highRiskPath,
+        200_000,
+      );
       highRiskUnfiltered = allHighRisk.filter((s) => !s.isFiltered);
       // Sort by totalScore descending, take top 30
       topStocks = highRiskUnfiltered
-        .sort((a, b) => b.totalScore - a.totalScore || (b.aiLayers?.combined || 0) - (a.aiLayers?.combined || 0))
+        .sort(
+          (a, b) =>
+            b.totalScore - a.totalScore ||
+            (b.aiLayers?.combined || 0) - (a.aiLayers?.combined || 0),
+        )
         .slice(0, 30);
     }
 
@@ -113,9 +151,15 @@ export async function GET(req: Request) {
     // Compute deltas with previous scan
     const deltas = prevReport
       ? {
-          stocksScanned: (dailyReport?.totalStocksScanned || 0) - prevReport.totalStocksScanned,
-          highRisk: (dailyReport?.highRiskBeforeFilters || 0) - prevReport.highRiskBeforeFilters,
-          suspicious: (dailyReport?.remainingSuspicious || 0) - prevReport.remainingSuspicious,
+          stocksScanned:
+            (dailyReport?.totalStocksScanned || 0) -
+            prevReport.totalStocksScanned,
+          highRisk:
+            (dailyReport?.highRiskBeforeFilters || 0) -
+            prevReport.highRiskBeforeFilters,
+          suspicious:
+            (dailyReport?.remainingSuspicious || 0) -
+            prevReport.remainingSuspicious,
           schemes: (dailyReport?.activeSchemes || 0) - prevReport.activeSchemes,
         }
       : null;
@@ -123,7 +167,12 @@ export async function GET(req: Request) {
     // Extract active schemes with generated names
     const activeSchemes = schemeDb
       ? Object.values(schemeDb.schemes)
-          .filter((s) => s.status === "ONGOING" || s.status === "COOLING" || s.status === "NEW")
+          .filter(
+            (s) =>
+              s.status === "ONGOING" ||
+              s.status === "COOLING" ||
+              s.status === "NEW",
+          )
           .map((s) => ({
             ...s,
             ...deriveSchemeMilestones(s),
@@ -185,10 +234,7 @@ export async function GET(req: Request) {
     try {
       const mentions = await prisma.socialMention.findMany({
         where: {
-          OR: [
-            { isPromotional: true },
-            { promotionScore: { gte: 50 } },
-          ],
+          OR: [{ isPromotional: true }, { promotionScore: { gte: 50 } }],
         },
         orderBy: [{ promotionScore: "desc" }, { createdAt: "desc" }],
         take: 15,
@@ -215,16 +261,27 @@ export async function GET(req: Request) {
 
     const coverage = {
       topStocksWithSchemes: topStocks.filter((s) => Boolean(s.schemeId)).length,
-      topStocksWithSocial: topStocks.filter((s) => Boolean(s.socialMediaScanned)).length,
-      activeSchemesWithPromoters: activeSchemes.filter((s) => (s.promoterAccounts?.length || 0) > 0).length,
-      activeSchemesWithoutPromoters: activeSchemes.filter((s) => (s.promoterAccounts?.length || 0) === 0).length,
+      topStocksWithSocial: topStocks.filter((s) =>
+        Boolean(s.socialMediaScanned),
+      ).length,
+      activeSchemesWithPromoters: activeSchemes.filter(
+        (s) => (s.promoterAccounts?.length || 0) > 0,
+      ).length,
+      activeSchemesWithoutPromoters: activeSchemes.filter(
+        (s) => (s.promoterAccounts?.length || 0) === 0,
+      ).length,
       definitions: {
-        topStocksWithSchemes: "Top suspicious stocks that are linked to a tracked scheme ID.",
-        topStocksWithSocial: "Top suspicious stocks where social scanning has been executed.",
-        activeSchemesWithPromoters: "Active schemes with at least one identified promoter account.",
-        activeSchemesWithoutPromoters: "Active schemes that still lack linked promoter accounts.",
+        topStocksWithSchemes:
+          "Top suspicious stocks that are linked to a tracked scheme ID.",
+        topStocksWithSocial:
+          "Top suspicious stocks where social scanning has been executed.",
+        activeSchemesWithPromoters:
+          "Active schemes with at least one identified promoter account.",
+        activeSchemesWithoutPromoters:
+          "Active schemes that still lack linked promoter accounts.",
       },
-      source: "scan-intelligence aggregate (high-risk stocks + scheme database + social scan)",
+      source:
+        "scan-intelligence aggregate (high-risk stocks + scheme database + social scan)",
       generatedAt: new Date().toISOString(),
     };
 
@@ -258,16 +315,27 @@ export async function GET(req: Request) {
     console.error("Scan intelligence error:", error);
     return NextResponse.json(
       { error: "Failed to fetch scan intelligence data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 function computeAIStats(stocks: EnhancedStock[]) {
   if (stocks.length === 0) {
-    return { total: 0, withBackend: 0, layer1: 0, layer2: 0, layer3: 0, layer4: 0 };
+    return {
+      total: 0,
+      withBackend: 0,
+      layer1: 0,
+      layer2: 0,
+      layer3: 0,
+      layer4: 0,
+    };
   }
-  let withBackend = 0, layer1 = 0, layer2 = 0, layer3 = 0, layer4 = 0;
+  let withBackend = 0,
+    layer1 = 0,
+    layer2 = 0,
+    layer3 = 0,
+    layer4 = 0;
   for (const s of stocks) {
     if (!s.aiLayers) continue;
     if (s.aiLayers.usedPythonBackend) withBackend++;

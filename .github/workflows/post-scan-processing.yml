@@ -9,26 +9,26 @@ on:
   workflow_dispatch:
     inputs:
       evaluation_date:
-        description: 'Date of the risk data to process (YYYY-MM-DD)'
+        description: "Date of the risk data to process (YYYY-MM-DD)"
         required: true
         type: string
       data_source:
-        description: 'Source of HIGH risk stocks'
+        description: "Source of HIGH risk stocks"
         required: true
-        default: 'supabase'
+        default: "supabase"
         type: choice
         options:
           - supabase
           - storage
       skip_news_analysis:
-        description: 'Skip news legitimacy analysis (OpenAI)'
+        description: "Skip news legitimacy analysis (OpenAI)"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       skip_social_scan:
-        description: 'Skip social media scanning'
+        description: "Skip social media scanning"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
 
 permissions:
@@ -37,7 +37,7 @@ permissions:
 jobs:
   post-scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 120  # 2 hours max
+    timeout-minutes: 120 # 2 hours max
 
     steps:
       - name: Checkout repository
@@ -48,8 +48,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci

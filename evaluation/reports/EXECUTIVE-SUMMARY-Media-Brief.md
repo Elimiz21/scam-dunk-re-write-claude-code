@@ -23,6 +23,7 @@ An AI-powered analysis of nearly every tradeable US stock has identified over 1,
 The most alarming finding: **183 stocks are currently displaying classic "pump-and-dump" signatures** — a pattern where prices spike dramatically before crashing, leaving late-arriving retail investors with significant losses.
 
 **Where the risk is concentrated:**
+
 - **AMEX:** 37.9% of listings flagged as HIGH risk
 - **NASDAQ small-caps:** 25.9% flagged as HIGH risk
 - **NYSE:** Only 1.7% flagged (primarily large, liquid stocks)
@@ -34,11 +35,13 @@ The most alarming finding: **183 stocks are currently displaying classic "pump-a
 The system looks for two types of warning signs:
 
 ### 1. Structural Red Flags
+
 - Penny stocks (under $5)
 - Small market caps (under $300M)
 - Low trading volume (easy to manipulate)
 
 ### 2. Active Manipulation Patterns
+
 - **Pump-and-Dump:** Price spikes 25%+ then drops 20%+ within 15 days
 - **Volume Explosions:** Trading 3-5x above normal with no news
 - **Coordinated Price Moves:** Abnormal 7-day movements
@@ -47,13 +50,13 @@ The system looks for two types of warning signs:
 
 ## Top 5 Highest-Risk Stocks
 
-| Symbol | Company | Why Flagged |
-|--------|---------|-------------|
-| ZCMD | Zhongchao Inc. | All 7 warning signals triggered |
-| VSSYW | Versus Systems Warrants | 53.6% daily volatility, pump pattern |
-| HXHX | Haoxin Holdings | Volume explosion + pump-and-dump |
-| PCLA | Processa Pharma | Multiple manipulation indicators |
-| HIHO | Highway Holdings | Classic pump pattern in progress |
+| Symbol | Company                 | Why Flagged                          |
+| ------ | ----------------------- | ------------------------------------ |
+| ZCMD   | Zhongchao Inc.          | All 7 warning signals triggered      |
+| VSSYW  | Versus Systems Warrants | 53.6% daily volatility, pump pattern |
+| HXHX   | Haoxin Holdings         | Volume explosion + pump-and-dump     |
+| PCLA   | Processa Pharma         | Multiple manipulation indicators     |
+| HIHO   | Highway Holdings        | Classic pump pattern in progress     |
 
 ---
 
@@ -93,4 +96,4 @@ The system looks for two types of warning signs:
 
 ---
 
-*Contact: [To be added]*
+_Contact: [To be added]_

@@ -57,11 +57,11 @@ const THRESHOLDS = {
   smallMarketCap: 300_000_000,
   microLiquidity: 150_000,
   // Price surge thresholds lowered for earlier detection
-  spike7dMedium: 25,        // was 50% - now catches early pumps (5σ for blue-chips)
-  spike7dHigh: 50,          // was 100% - research shows 70-90% optimal for HIGH
+  spike7dMedium: 25, // was 50% - now catches early pumps (5σ for blue-chips)
+  spike7dHigh: 50, // was 100% - research shows 70-90% optimal for HIGH
   // Volume thresholds lowered per research (300-400% = 3-4x is detection threshold)
   volumeExplosionMedium: 3, // was 5x - catches manipulation in earlier stages
-  volumeExplosionHigh: 5,   // was 10x - now matches research recommendations
+  volumeExplosionHigh: 5, // was 10x - now matches research recommendations
 };
 
 // Keywords for behavioral NLP analysis
@@ -112,7 +112,8 @@ const BEHAVIORAL_KEYWORDS = {
     "not public",
     "before announcement",
   ],
-  specificReturnPattern: /(\d{1,4})\s*%\s*(in|within|over)?\s*(\d+)?\s*(day|week|month|hour)/i,
+  specificReturnPattern:
+    /(\d{1,4})\s*%\s*(in|within|over)?\s*(\d+)?\s*(day|week|month|hour)/i,
 };
 
 /**
@@ -127,15 +128,15 @@ function analyzePitchText(pitchText: string): {
   const lowerText = pitchText.toLowerCase();
 
   const hasPromisedReturns = BEHAVIORAL_KEYWORDS.promisedReturns.some((kw) =>
-    lowerText.includes(kw.toLowerCase())
+    lowerText.includes(kw.toLowerCase()),
   );
 
   const hasUrgency = BEHAVIORAL_KEYWORDS.urgency.some((kw) =>
-    lowerText.includes(kw.toLowerCase())
+    lowerText.includes(kw.toLowerCase()),
   );
 
   const hasSecrecy = BEHAVIORAL_KEYWORDS.secrecy.some((kw) =>
-    lowerText.includes(kw.toLowerCase())
+    lowerText.includes(kw.toLowerCase()),
   );
 
   const hasSpecificReturnClaim =
@@ -257,7 +258,8 @@ function getPatternSignals(marketData: MarketData): RiskSignal[] {
     signals.push({
       code: SIGNAL_CODES.SPIKE_THEN_DROP,
       category: "PATTERN",
-      description: "Price spiked 50%+ then dropped 40%+ - classic pump-and-dump pattern",
+      description:
+        "Price spiked 50%+ then dropped 40%+ - classic pump-and-dump pattern",
       weight: 3,
     });
   }
@@ -283,7 +285,10 @@ function getAnomalySignals(marketData: MarketData): RiskSignal[] {
 
   // Add individual anomaly signals based on what was detected
   for (const signalDesc of anomalyResult.signals) {
-    if (signalDesc.includes("Extreme price movement") || signalDesc.includes("Significant price anomaly")) {
+    if (
+      signalDesc.includes("Extreme price movement") ||
+      signalDesc.includes("Significant price anomaly")
+    ) {
       signals.push({
         code: SIGNAL_CODES.PRICE_ANOMALY,
         category: "PATTERN",
@@ -308,7 +313,8 @@ function getAnomalySignals(marketData: MarketData): RiskSignal[] {
       signals.push({
         code: SIGNAL_CODES.EXTREME_SURGE,
         category: "PATTERN",
-        description: signalDesc + " - rapid appreciation without clear catalyst",
+        description:
+          signalDesc + " - rapid appreciation without clear catalyst",
         weight: 3,
       });
     } else if (signalDesc.includes("overbought")) {
@@ -336,22 +342,25 @@ function getAnomalySignals(marketData: MarketData): RiskSignal[] {
  */
 function getBehavioralSignals(
   context: ScoringInput["context"],
-  pitchText: string
+  pitchText: string,
 ): RiskSignal[] {
   const signals: RiskSignal[] = [];
-  const nlpResults = pitchText ? analyzePitchText(pitchText) : {
-    hasPromisedReturns: false,
-    hasUrgency: false,
-    hasSecrecy: false,
-    hasSpecificReturnClaim: false,
-  };
+  const nlpResults = pitchText
+    ? analyzePitchText(pitchText)
+    : {
+        hasPromisedReturns: false,
+        hasUrgency: false,
+        hasSecrecy: false,
+        hasSpecificReturnClaim: false,
+      };
 
   // UNSOLICITED
   if (context.unsolicited) {
     signals.push({
       code: SIGNAL_CODES.UNSOLICITED,
       category: "BEHAVIORAL",
-      description: "You received this tip without asking - unsolicited stock tips are a common scam tactic",
+      description:
+        "You received this tip without asking - unsolicited stock tips are a common scam tactic",
       weight: 1,
     });
   }
@@ -361,7 +370,8 @@ function getBehavioralSignals(
     signals.push({
       code: SIGNAL_CODES.PROMISED_RETURNS,
       category: "BEHAVIORAL",
-      description: "The pitch promises high or guaranteed returns - no legitimate investment can guarantee returns",
+      description:
+        "The pitch promises high or guaranteed returns - no legitimate investment can guarantee returns",
       weight: 2,
     });
   }
@@ -371,7 +381,8 @@ function getBehavioralSignals(
     signals.push({
       code: SIGNAL_CODES.URGENCY,
       category: "BEHAVIORAL",
-      description: "The pitch creates urgency or time pressure - scammers want you to act before you can think",
+      description:
+        "The pitch creates urgency or time pressure - scammers want you to act before you can think",
       weight: 2,
     });
   }
@@ -381,7 +392,8 @@ function getBehavioralSignals(
     signals.push({
       code: SIGNAL_CODES.SECRECY,
       category: "BEHAVIORAL",
-      description: "The pitch suggests insider or secret information - this is likely illegal or fake",
+      description:
+        "The pitch suggests insider or secret information - this is likely illegal or fake",
       weight: 2,
     });
   }
@@ -391,7 +403,8 @@ function getBehavioralSignals(
     signals.push({
       code: SIGNAL_CODES.SPECIFIC_RETURN_CLAIM,
       category: "BEHAVIORAL",
-      description: "The pitch claims specific percentage gains in a specific timeframe - a major red flag",
+      description:
+        "The pitch claims specific percentage gains in a specific timeframe - a major red flag",
       weight: 1,
     });
   }
@@ -405,11 +418,11 @@ function getBehavioralSignals(
 function calculateRiskLevel(
   totalScore: number,
   signals: RiskSignal[],
-  marketData: MarketData
+  marketData: MarketData,
 ): RiskLevel {
   // Check for alert list hit - automatic HIGH
   const hasAlertHit = signals.some(
-    (s) => s.code === SIGNAL_CODES.ALERT_LIST_HIT
+    (s) => s.code === SIGNAL_CODES.ALERT_LIST_HIT,
   );
   if (hasAlertHit) {
     return "HIGH";
@@ -426,9 +439,7 @@ function calculateRiskLevel(
 /**
  * Check if result should be INSUFFICIENT (only when no data available)
  */
-function checkIsInsufficient(
-  marketData: MarketData,
-): boolean {
+function checkIsInsufficient(marketData: MarketData): boolean {
   // No data available - can't analyze
   if (!marketData.dataAvailable || !marketData.quote) {
     return true;
@@ -443,7 +454,7 @@ function checkIsInsufficient(
  */
 function checkIsLegitimate(
   marketData: MarketData,
-  signals: RiskSignal[]
+  signals: RiskSignal[],
 ): boolean {
   if (!marketData.quote) return false;
 
@@ -454,13 +465,16 @@ function checkIsLegitimate(
 
   // Only structural, alert, and behavioral signals should disqualify legitimate stocks
   // Minor pattern signals (like RSI overbought) shouldn't disqualify large-cap stocks
-  const hasDisqualifyingSignals = signals.some(s =>
-    s.category === "STRUCTURAL" ||
-    s.category === "ALERT" ||
-    s.category === "BEHAVIORAL"
+  const hasDisqualifyingSignals = signals.some(
+    (s) =>
+      s.category === "STRUCTURAL" ||
+      s.category === "ALERT" ||
+      s.category === "BEHAVIORAL",
   );
 
-  return isLargeCap && isHighLiquidity && isMajorExchange && !hasDisqualifyingSignals;
+  return (
+    isLargeCap && isHighLiquidity && isMajorExchange && !hasDisqualifyingSignals
+  );
 }
 
 /**
@@ -469,7 +483,9 @@ function checkIsLegitimate(
  * Computes all risk signals and returns deterministic scoring result.
  * This is called BEFORE the LLM - the LLM only generates narrative from these results.
  */
-export async function computeRiskScore(input: ScoringInput): Promise<ScoringResult> {
+export async function computeRiskScore(
+  input: ScoringInput,
+): Promise<ScoringResult> {
   const { marketData, pitchText, context } = input;
   const signals: RiskSignal[] = [];
 
@@ -486,7 +502,8 @@ export async function computeRiskScore(input: ScoringInput): Promise<ScoringResu
       signals.push({
         code: SIGNAL_CODES.ALERT_LIST_HIT,
         category: "ALERT",
-        description: "This stock appears on regulatory alert or suspension lists - extreme caution advised",
+        description:
+          "This stock appears on regulatory alert or suspension lists - extreme caution advised",
         weight: 5,
       });
     }

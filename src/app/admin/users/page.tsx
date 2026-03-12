@@ -90,9 +90,17 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
   const [loadingUser, setLoadingUser] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [editModal, setEditModal] = useState<{ type: string; userId: string; currentValue?: string | number } | null>(null);
+  const [editModal, setEditModal] = useState<{
+    type: string;
+    userId: string;
+    currentValue?: string | number;
+  } | null>(null);
   const [editValue, setEditValue] = useState<string | number>("");
-  const [confirmModal, setConfirmModal] = useState<{ type: string; userId: string; userEmail: string } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    type: string;
+    userId: string;
+    userEmail: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -140,13 +148,19 @@ export default function UsersPage() {
       const data = await res.json();
       setSelectedUser(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load user details");
+      setError(
+        err instanceof Error ? err.message : "Failed to load user details",
+      );
     } finally {
       setLoadingUser(false);
     }
   }
 
-  async function performAction(userId: string, action: string, value?: string | number) {
+  async function performAction(
+    userId: string,
+    action: string,
+    value?: string | number,
+  ) {
     setActionLoading(true);
     setError("");
     try {
@@ -199,7 +213,9 @@ export default function UsersPage() {
       INSUFFICIENT: "bg-secondary text-foreground",
     };
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colors[level] || colors.INSUFFICIENT}`}>
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colors[level] || colors.INSUFFICIENT}`}
+      >
         {level}
       </span>
     );
@@ -212,7 +228,9 @@ export default function UsersPage() {
       render: (item: User) => (
         <div>
           <p className="font-medium text-foreground">{item.email}</p>
-          {item.name && <p className="text-sm text-muted-foreground">{item.name}</p>}
+          {item.name && (
+            <p className="text-sm text-muted-foreground">{item.name}</p>
+          )}
         </div>
       ),
     },
@@ -284,7 +302,11 @@ export default function UsersPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setEditModal({ type: "setScans", userId: item.id, currentValue: item.scansThisMonth });
+                      setEditModal({
+                        type: "setScans",
+                        userId: item.id,
+                        currentValue: item.scansThisMonth,
+                      });
                       setEditValue(item.scansThisMonth);
                       setMenuOpen(null);
                     }}
@@ -317,7 +339,11 @@ export default function UsersPage() {
                   <hr className="my-1" />
                   <button
                     onClick={() => {
-                      setConfirmModal({ type: "deleteUser", userId: item.id, userEmail: item.email });
+                      setConfirmModal({
+                        type: "deleteUser",
+                        userId: item.id,
+                        userEmail: item.email,
+                      });
                       setMenuOpen(null);
                     }}
                     className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
@@ -346,20 +372,55 @@ export default function UsersPage() {
         </div>
 
         {error && (
-          <AlertBanner type="error" title="Error" message={error} onDismiss={() => setError("")} />
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
         )}
         {success && (
-          <AlertBanner type="success" title="Success" message={success} onDismiss={() => setSuccess("")} />
+          <AlertBanner
+            type="success"
+            title="Success"
+            message={success}
+            onDismiss={() => setSuccess("")}
+          />
         )}
 
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            <StatCard title="Total Users" value={stats.totalUsers} icon={Users} color="blue" />
-            <StatCard title="Free Users" value={stats.freeUsers} icon={Users} color="gray" />
-            <StatCard title="Paid Users" value={stats.paidUsers} icon={CreditCard} color="green" />
-            <StatCard title="Former PRO" value={stats.formerProUsers} icon={CreditCard} color="yellow" />
-            <StatCard title="New (30 days)" value={stats.newUsersLast30Days} icon={UserPlus} color="indigo" />
+            <StatCard
+              title="Total Users"
+              value={stats.totalUsers}
+              icon={Users}
+              color="blue"
+            />
+            <StatCard
+              title="Free Users"
+              value={stats.freeUsers}
+              icon={Users}
+              color="gray"
+            />
+            <StatCard
+              title="Paid Users"
+              value={stats.paidUsers}
+              icon={CreditCard}
+              color="green"
+            />
+            <StatCard
+              title="Former PRO"
+              value={stats.formerProUsers}
+              icon={CreditCard}
+              color="yellow"
+            />
+            <StatCard
+              title="New (30 days)"
+              value={stats.newUsersLast30Days}
+              icon={UserPlus}
+              color="indigo"
+            />
           </div>
         )}
 
@@ -403,8 +464,13 @@ export default function UsersPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
             <div className="bg-card rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-card border-b px-6 py-4 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-foreground">User Details</h3>
-                <button onClick={() => setSelectedUser(null)} className="text-muted-foreground hover:text-muted-foreground">
+                <h3 className="text-lg font-medium text-foreground">
+                  User Details
+                </h3>
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className="text-muted-foreground hover:text-muted-foreground"
+                >
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -423,30 +489,49 @@ export default function UsersPage() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Name</p>
-                      <p className="font-medium">{selectedUser.user.name || "Not set"}</p>
+                      <p className="font-medium">
+                        {selectedUser.user.name || "Not set"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Plan</p>
-                      <p>{getPlanBadge(selectedUser.user.plan, selectedUser.user.formerPro)}</p>
+                      <p>
+                        {getPlanBadge(
+                          selectedUser.user.plan,
+                          selectedUser.user.formerPro,
+                        )}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Joined</p>
-                      <p className="font-medium">{new Date(selectedUser.user.createdAt).toLocaleDateString()}</p>
+                      <p className="font-medium">
+                        {new Date(
+                          selectedUser.user.createdAt,
+                        ).toLocaleDateString()}
+                      </p>
                     </div>
                     {selectedUser.user.billingCustomerId && (
                       <div className="col-span-2">
-                        <p className="text-sm text-muted-foreground">Stripe Customer ID</p>
-                        <p className="font-mono text-sm">{selectedUser.user.billingCustomerId}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Stripe Customer ID
+                        </p>
+                        <p className="font-mono text-sm">
+                          {selectedUser.user.billingCustomerId}
+                        </p>
                       </div>
                     )}
                   </div>
 
                   {/* Usage Stats */}
                   <div className="border-t pt-4">
-                    <h4 className="font-medium text-foreground mb-3">Usage Statistics</h4>
+                    <h4 className="font-medium text-foreground mb-3">
+                      Usage Statistics
+                    </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="bg-secondary/50 rounded-2xl p-3">
-                        <p className="text-sm text-muted-foreground">This Month</p>
+                        <p className="text-sm text-muted-foreground">
+                          This Month
+                        </p>
                         <p className="text-2xl font-bold text-foreground">
                           {selectedUser.usage.currentMonth.scansUsed}
                           <span className="text-sm font-normal text-muted-foreground">
@@ -455,19 +540,25 @@ export default function UsersPage() {
                         </p>
                       </div>
                       <div className="bg-secondary/50 rounded-2xl p-3">
-                        <p className="text-sm text-muted-foreground">Remaining</p>
+                        <p className="text-sm text-muted-foreground">
+                          Remaining
+                        </p>
                         <p className="text-2xl font-bold text-foreground">
                           {selectedUser.usage.currentMonth.remaining}
                         </p>
                       </div>
                       <div className="bg-secondary/50 rounded-2xl p-3">
-                        <p className="text-sm text-muted-foreground">All Time</p>
+                        <p className="text-sm text-muted-foreground">
+                          All Time
+                        </p>
                         <p className="text-2xl font-bold text-foreground">
                           {selectedUser.usage.totalAllTime}
                         </p>
                       </div>
                       <div className="bg-secondary/50 rounded-2xl p-3">
-                        <p className="text-sm text-muted-foreground">Avg/Month</p>
+                        <p className="text-sm text-muted-foreground">
+                          Avg/Month
+                        </p>
                         <p className="text-2xl font-bold text-foreground">
                           {selectedUser.usage.avgPerMonth}
                         </p>
@@ -478,12 +569,19 @@ export default function UsersPage() {
                   {/* Recent Scans */}
                   {selectedUser.recentScans.length > 0 && (
                     <div className="border-t pt-4">
-                      <h4 className="font-medium text-foreground mb-3">Recent Scans</h4>
+                      <h4 className="font-medium text-foreground mb-3">
+                        Recent Scans
+                      </h4>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {selectedUser.recentScans.slice(0, 10).map((scan) => (
-                          <div key={scan.id} className="flex items-center justify-between py-2 border-b">
+                          <div
+                            key={scan.id}
+                            className="flex items-center justify-between py-2 border-b"
+                          >
                             <div className="flex items-center space-x-3">
-                              <span className="font-mono font-medium">{scan.ticker}</span>
+                              <span className="font-mono font-medium">
+                                {scan.ticker}
+                              </span>
                               {getRiskBadge(scan.riskLevel)}
                             </div>
                             <span className="text-sm text-muted-foreground">
@@ -499,7 +597,9 @@ export default function UsersPage() {
                   <div className="border-t pt-4 flex flex-wrap gap-2">
                     {selectedUser.user.plan === "FREE" ? (
                       <button
-                        onClick={() => performAction(selectedUser.user.id, "upgradeToPaid")}
+                        onClick={() =>
+                          performAction(selectedUser.user.id, "upgradeToPaid")
+                        }
                         disabled={actionLoading}
                         className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                       >
@@ -508,7 +608,9 @@ export default function UsersPage() {
                       </button>
                     ) : (
                       <button
-                        onClick={() => performAction(selectedUser.user.id, "downgradeToFree")}
+                        onClick={() =>
+                          performAction(selectedUser.user.id, "downgradeToFree")
+                        }
                         disabled={actionLoading}
                         className="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50"
                       >
@@ -517,7 +619,9 @@ export default function UsersPage() {
                       </button>
                     )}
                     <button
-                      onClick={() => performAction(selectedUser.user.id, "resetScans")}
+                      onClick={() =>
+                        performAction(selectedUser.user.id, "resetScans")
+                      }
                       disabled={actionLoading}
                       className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                     >
@@ -529,7 +633,8 @@ export default function UsersPage() {
                         setEditModal({
                           type: "setScans",
                           userId: selectedUser.user.id,
-                          currentValue: selectedUser.usage.currentMonth.scansUsed,
+                          currentValue:
+                            selectedUser.usage.currentMonth.scansUsed,
                         });
                         setEditValue(selectedUser.usage.currentMonth.scansUsed);
                       }}
@@ -544,7 +649,9 @@ export default function UsersPage() {
                   {/* Additional Actions */}
                   <div className="border-t pt-4 flex flex-wrap gap-2">
                     <button
-                      onClick={() => performAction(selectedUser.user.id, "resetPassword")}
+                      onClick={() =>
+                        performAction(selectedUser.user.id, "resetPassword")
+                      }
                       disabled={actionLoading}
                       className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
                     >
@@ -552,7 +659,9 @@ export default function UsersPage() {
                       Send Password Reset
                     </button>
                     <button
-                      onClick={() => performAction(selectedUser.user.id, "resetVerification")}
+                      onClick={() =>
+                        performAction(selectedUser.user.id, "resetVerification")
+                      }
                       disabled={actionLoading}
                       className="inline-flex items-center px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
                     >
@@ -585,18 +694,24 @@ export default function UsersPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-md">
               <h3 className="text-lg font-medium text-foreground mb-4">
-                {editModal.type === "setScans" ? "Set Scan Count" : "Edit Value"}
+                {editModal.type === "setScans"
+                  ? "Set Scan Count"
+                  : "Edit Value"}
               </h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground">
-                    {editModal.type === "setScans" ? "Monthly Scan Count" : "Value"}
+                    {editModal.type === "setScans"
+                      ? "Monthly Scan Count"
+                      : "Value"}
                   </label>
                   <input
                     type="number"
                     min="0"
                     value={editValue}
-                    onChange={(e) => setEditValue(parseInt(e.target.value) || 0)}
+                    onChange={(e) =>
+                      setEditValue(parseInt(e.target.value) || 0)
+                    }
                     className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                   />
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -612,11 +727,17 @@ export default function UsersPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => performAction(editModal.userId, editModal.type, editValue)}
+                  onClick={() =>
+                    performAction(editModal.userId, editModal.type, editValue)
+                  }
                   disabled={actionLoading}
                   className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
                 >
-                  {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Save"}
+                  {actionLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "Save"
+                  )}
                 </button>
               </div>
             </div>
@@ -632,17 +753,22 @@ export default function UsersPage() {
                   <AlertTriangle className="h-5 w-5 text-red-600" />
                 </div>
                 <h3 className="ml-3 text-lg font-medium text-foreground">
-                  {confirmModal.type === "deleteUser" ? "Delete User" : "Confirm Action"}
+                  {confirmModal.type === "deleteUser"
+                    ? "Delete User"
+                    : "Confirm Action"}
                 </h3>
               </div>
               <div className="mb-4">
                 {confirmModal.type === "deleteUser" && (
                   <div className="text-sm text-muted-foreground">
                     <p className="mb-2">
-                      Are you sure you want to delete the user <strong>{confirmModal.userEmail}</strong>?
+                      Are you sure you want to delete the user{" "}
+                      <strong>{confirmModal.userEmail}</strong>?
                     </p>
                     <p className="text-red-600 font-medium">
-                      This action cannot be undone. All user data including scan history, usage records, and account information will be permanently deleted.
+                      This action cannot be undone. All user data including scan
+                      history, usage records, and account information will be
+                      permanently deleted.
                     </p>
                   </div>
                 )}
@@ -665,7 +791,11 @@ export default function UsersPage() {
                   disabled={actionLoading}
                   className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
                 >
-                  {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Delete User"}
+                  {actionLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "Delete User"
+                  )}
                 </button>
               </div>
             </div>

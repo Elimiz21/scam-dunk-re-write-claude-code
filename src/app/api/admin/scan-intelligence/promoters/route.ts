@@ -25,13 +25,13 @@ export async function GET() {
 
     // Try dedicated promoter database first
     let promoterDb = await fetchSmallFile<PromoterDatabase>(
-      "scheme-tracking/promoter-database.json"
+      "scheme-tracking/promoter-database.json",
     );
 
     // Fall back to aggregating from scheme database
     if (!promoterDb) {
       const schemeDb = await fetchSmallFile<SchemeDatabase>(
-        "scheme-tracking/scheme-database.json"
+        "scheme-tracking/scheme-database.json",
       );
 
       if (!schemeDb) {
@@ -57,14 +57,14 @@ export async function GET() {
       promoters: promoters.sort(
         (a, b) =>
           b.stocksPromoted.length - a.stocksPromoted.length ||
-          b.totalPosts - a.totalPosts
+          b.totalPosts - a.totalPosts,
       ),
     });
   } catch (error) {
     console.error("Promoter database error:", error);
     return NextResponse.json(
       { error: "Failed to fetch promoter data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -73,7 +73,7 @@ export async function GET() {
  * Build a promoter database by aggregating promoter accounts across all schemes.
  */
 function aggregatePromotersFromSchemes(
-  schemeDb: SchemeDatabase
+  schemeDb: SchemeDatabase,
 ): PromoterDatabase {
   const schemes = Object.values(schemeDb.schemes);
   const promoterMap = new Map<string, PromoterEntry>();
@@ -90,7 +90,13 @@ function aggregatePromotersFromSchemes(
 
       if (!promoter) {
         promoter = {
-          promoterId: `PROM-${account.platform.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 6)}-${account.identifier.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 10)}`,
+          promoterId: `PROM-${account.platform
+            .replace(/[^a-zA-Z]/g, "")
+            .toUpperCase()
+            .slice(0, 6)}-${account.identifier
+            .replace(/[^a-zA-Z0-9]/g, "")
+            .toUpperCase()
+            .slice(0, 10)}`,
           identifier: account.identifier,
           platform: account.platform,
           firstSeen: account.firstSeen,
@@ -113,7 +119,7 @@ function aggregatePromotersFromSchemes(
       if (account.confidence === "high") promoter.confidence = "high";
 
       const existing = promoter.stocksPromoted.find(
-        (s) => s.schemeId === scheme.schemeId
+        (s) => s.schemeId === scheme.schemeId,
       );
       if (!existing) {
         promoter.stocksPromoted.push({
@@ -170,10 +176,8 @@ function aggregatePromotersFromSchemes(
     totalPromoters: promoterList.length,
     activePromoters: promoterList.filter((p) => p.isActive).length,
     serialOffenders: promoterList.filter(
-      (p) => p.riskLevel === "SERIAL_OFFENDER"
+      (p) => p.riskLevel === "SERIAL_OFFENDER",
     ).length,
-    promoters: Object.fromEntries(
-      promoterList.map((p) => [p.promoterId, p])
-    ),
+    promoters: Object.fromEntries(promoterList.map((p) => [p.promoterId, p])),
   };
 }

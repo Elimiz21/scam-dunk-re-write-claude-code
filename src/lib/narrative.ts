@@ -42,25 +42,39 @@ export async function generateNarrative(
   totalScore: number,
   signals: RiskSignal[],
   stockSummary: StockSummary,
-  isLegitimate: boolean = false
+  isLegitimate: boolean = false,
 ): Promise<Narrative> {
   // If OpenAI is not configured, use fallback narrative
   if (!config.openaiApiKey) {
-    return generateFallbackNarrative(riskLevel, totalScore, signals, stockSummary, isLegitimate);
+    return generateFallbackNarrative(
+      riskLevel,
+      totalScore,
+      signals,
+      stockSummary,
+      isLegitimate,
+    );
   }
 
   const apiStartTime = Date.now();
 
   try {
     const openai = getOpenAI();
-    const { structural, pattern, behavioral, alert } = getSignalsByCategory(signals);
+    const { structural, pattern, behavioral, alert } =
+      getSignalsByCategory(signals);
 
-    const prompt = buildPrompt(riskLevel, totalScore, signals, stockSummary, {
-      structural,
-      pattern,
-      behavioral,
-      alert,
-    }, isLegitimate);
+    const prompt = buildPrompt(
+      riskLevel,
+      totalScore,
+      signals,
+      stockSummary,
+      {
+        structural,
+        pattern,
+        behavioral,
+        alert,
+      },
+      isLegitimate,
+    );
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -138,7 +152,13 @@ Output must be valid JSON matching the exact schema provided.`,
 
     console.error("Error generating narrative with LLM:", error);
     // Fall back to deterministic narrative
-    return generateFallbackNarrative(riskLevel, totalScore, signals, stockSummary, isLegitimate);
+    return generateFallbackNarrative(
+      riskLevel,
+      totalScore,
+      signals,
+      stockSummary,
+      isLegitimate,
+    );
   }
 }
 
@@ -156,15 +176,16 @@ function buildPrompt(
     behavioral: RiskSignal[];
     alert: RiskSignal[];
   },
-  isLegitimate: boolean = false
+  isLegitimate: boolean = false,
 ): string {
   const legitimateNote = isLegitimate
     ? `\n\nNOTE: This is a well-established, large-cap company traded on a major exchange with high liquidity. No scam red flags were detected. The tone should be reassuring but still encourage due diligence.`
     : `\n\nNOTE: "isLegitimate: false" does NOT mean the company is illegitimate or a scam. It simply means we haven't confirmed it as a well-known blue-chip stock. Many perfectly normal companies have this flag as false. Do NOT say the company is "not recognized as legitimate" or anything similar - that would be misleading.`;
 
-  const signalsSection = signals.length > 0
-    ? `SIGNALS DETECTED:\n${signals.map((s) => `- [${s.category}] ${s.code}: ${s.description} (weight: ${s.weight})`).join("\n")}`
-    : "SIGNALS DETECTED: None - no risk signals were triggered for this stock.";
+  const signalsSection =
+    signals.length > 0
+      ? `SIGNALS DETECTED:\n${signals.map((s) => `- [${s.category}] ${s.code}: ${s.description} (weight: ${s.weight})`).join("\n")}`
+      : "SIGNALS DETECTED: None - no risk signals were triggered for this stock.";
 
   const headerInstruction = isLegitimate
     ? "A one-sentence summary with positive tone since this is a well-established company"
@@ -174,7 +195,8 @@ function buildPrompt(
     ? "No concerning market signals detected for this well-established company"
     : "Array of bullet points about stock/market signals - one per signal from STRUCTURAL, PATTERN, and ALERT categories";
 
-  const hasBehavioralSignals = signals.filter(s => s.category === 'BEHAVIORAL').length > 0;
+  const hasBehavioralSignals =
+    signals.filter((s) => s.category === "BEHAVIORAL").length > 0;
   const behaviorRedFlagsInstruction = hasBehavioralSignals
     ? "Array of bullet points about behavioral signals - one per signal from BEHAVIORAL category"
     : "No behavioral red flags detected";
@@ -228,9 +250,10 @@ function generateFallbackNarrative(
   totalScore: number,
   signals: RiskSignal[],
   stockSummary: StockSummary,
-  isLegitimate: boolean = false
+  isLegitimate: boolean = false,
 ): Narrative {
-  const { structural, pattern, behavioral, alert } = getSignalsByCategory(signals);
+  const { structural, pattern, behavioral, alert } =
+    getSignalsByCategory(signals);
 
   // Generate header based on risk level and legitimacy
   let header: string;
@@ -256,10 +279,15 @@ function generateFallbackNarrative(
 
   // Stock red flags from structural, pattern, and alert signals
   let stockRedFlags: string[];
-  if (isLegitimate || (structural.length === 0 && pattern.length === 0 && alert.length === 0)) {
+  if (
+    isLegitimate ||
+    (structural.length === 0 && pattern.length === 0 && alert.length === 0)
+  ) {
     stockRedFlags = ["No concerning market signals detected for this stock"];
   } else {
-    stockRedFlags = [...structural, ...pattern, ...alert].map((s) => s.description);
+    stockRedFlags = [...structural, ...pattern, ...alert].map(
+      (s) => s.description,
+    );
   }
 
   // Behavioral red flags
@@ -289,13 +317,13 @@ function generateFallbackNarrative(
 
     if (behavioral.length > 0) {
       suggestions.unshift(
-        "Be skeptical of unsolicited stock tips and high-pressure tactics"
+        "Be skeptical of unsolicited stock tips and high-pressure tactics",
       );
     }
 
     if (structural.length > 0 || pattern.length > 0) {
       suggestions.push(
-        "Penny stocks and OTC stocks have higher manipulation risk"
+        "Penny stocks and OTC stocks have higher manipulation risk",
       );
     }
   }

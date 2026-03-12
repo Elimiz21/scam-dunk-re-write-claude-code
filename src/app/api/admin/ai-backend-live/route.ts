@@ -68,31 +68,32 @@ export async function GET() {
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
 
-    const [scansLastHour, scansToday, todayMetrics, recentScans] = await Promise.all([
-      prisma.scanHistory.count({
-        where: { createdAt: { gte: oneHourAgo } },
-      }),
-      prisma.scanHistory.count({
-        where: { createdAt: { gte: todayStart } },
-      }),
-      prisma.modelMetrics.findUnique({
-        where: {
-          dateKey: now.toISOString().split("T")[0],
-        },
-      }),
-      // Last 5 scans for "recent activity" feed
-      prisma.scanHistory.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        select: {
-          ticker: true,
-          riskLevel: true,
-          totalScore: true,
-          processingTime: true,
-          createdAt: true,
-        },
-      }),
-    ]);
+    const [scansLastHour, scansToday, todayMetrics, recentScans] =
+      await Promise.all([
+        prisma.scanHistory.count({
+          where: { createdAt: { gte: oneHourAgo } },
+        }),
+        prisma.scanHistory.count({
+          where: { createdAt: { gte: todayStart } },
+        }),
+        prisma.modelMetrics.findUnique({
+          where: {
+            dateKey: now.toISOString().split("T")[0],
+          },
+        }),
+        // Last 5 scans for "recent activity" feed
+        prisma.scanHistory.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: {
+            ticker: true,
+            riskLevel: true,
+            totalScore: true,
+            processingTime: true,
+            createdAt: true,
+          },
+        }),
+      ]);
 
     // 3. Build layer status
     const layers = [
@@ -114,13 +115,17 @@ export async function GET() {
         id: "random_forest",
         name: "Random Forest",
         description: "ML classification",
-        status: (backendReachable && backendHealth?.rf_ready ? "online" : "offline") as "online" | "offline",
+        status: (backendReachable && backendHealth?.rf_ready
+          ? "online"
+          : "offline") as "online" | "offline",
       },
       {
         id: "lstm",
         name: "LSTM",
         description: "Deep learning temporal patterns",
-        status: (backendReachable && backendHealth?.lstm_ready ? "online" : "offline") as "online" | "offline",
+        status: (backendReachable && backendHealth?.lstm_ready
+          ? "online"
+          : "offline") as "online" | "offline",
       },
     ];
 
@@ -165,7 +170,7 @@ export async function GET() {
     console.error("AI backend live status error:", error);
     return NextResponse.json(
       { error: "Failed to fetch AI backend status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

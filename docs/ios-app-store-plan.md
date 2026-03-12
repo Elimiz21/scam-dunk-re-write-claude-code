@@ -11,6 +11,7 @@ This document outlines the comprehensive plan to bring Scam Dunk to the iOS App 
 ### Option A: React Native (Recommended)
 
 **Pros:**
+
 - Shared codebase with future Android app
 - Reuse existing React/TypeScript knowledge and some components
 - Large ecosystem and community support
@@ -18,6 +19,7 @@ This document outlines the comprehensive plan to bring Scam Dunk to the iOS App 
 - Expo framework simplifies development and deployment
 
 **Cons:**
+
 - Some native modules may need bridging
 - Slightly larger app size than pure native
 
@@ -26,12 +28,14 @@ This document outlines the comprehensive plan to bring Scam Dunk to the iOS App 
 ### Option B: Native Swift/SwiftUI
 
 **Pros:**
+
 - Best performance and native feel
 - Full access to iOS features
 - Smaller app size
 - Latest Apple technologies (SwiftUI)
 
 **Cons:**
+
 - No code sharing with Android
 - Requires Swift expertise
 - Longer development time
@@ -41,11 +45,13 @@ This document outlines the comprehensive plan to bring Scam Dunk to the iOS App 
 ### Option C: Flutter
 
 **Pros:**
+
 - Cross-platform (iOS + Android)
 - Fast development with hot reload
 - Beautiful UI components
 
 **Cons:**
+
 - Dart learning curve
 - No reuse of existing TypeScript code
 - Larger app size
@@ -55,11 +61,13 @@ This document outlines the comprehensive plan to bring Scam Dunk to the iOS App 
 ### Option D: Progressive Web App (PWA) Wrapper (Capacitor/Ionic)
 
 **Pros:**
+
 - Maximum code reuse from existing Next.js app
 - Fastest time to market
 - Single codebase for web and mobile
 
 **Cons:**
+
 - Limited native functionality
 - May face App Store rejection for being "web wrapper"
 - Potentially inferior user experience
@@ -139,6 +147,7 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
 - [ ] Set up ESLint, Prettier, and testing framework
 
 **Deliverables:**
+
 - Runnable app skeleton
 - Navigation structure
 - API client connected to backend
@@ -155,6 +164,7 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
 - [ ] Face ID/Touch ID integration (optional)
 
 **Deliverables:**
+
 - Complete authentication flow
 - Secure credential storage
 - Biometric login option
@@ -174,6 +184,7 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
 - [ ] Limit reached screen with upgrade CTA
 
 **Deliverables:**
+
 - Full stock analysis flow
 - Native-optimized UI for results
 - Usage tracking integration
@@ -192,6 +203,7 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
   - [ ] About/Legal links
 
 **Deliverables:**
+
 - Complete history feature
 - Account management screens
 
@@ -209,6 +221,7 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
 **Important Note:** Apple takes 30% (15% for small businesses) of in-app purchases. This affects pricing strategy.
 
 **Deliverables:**
+
 - Working subscription purchase flow
 - Receipt validation
 - Plan upgrade functionality
@@ -229,6 +242,7 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
 - [ ] Performance optimization
 
 **Deliverables:**
+
 - Polished, production-ready app
 - Native iOS features integrated
 
@@ -246,6 +260,7 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
 - [ ] Bug fixes and refinements
 
 **Deliverables:**
+
 - Tested, stable application
 - TestFlight build for beta testers
 
@@ -269,40 +284,44 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
 
 ### 5.3 Required Assets
 
-| Asset | Specification |
-|-------|---------------|
-| App Icon | 1024x1024px (no transparency, no rounded corners) |
-| Screenshots | 6.7" (1290x2796), 6.5" (1284x2778), 5.5" (1242x2208) |
-| iPad Screenshots | 12.9" (2048x2732) - if supporting iPad |
-| App Preview Video | Optional, up to 30 seconds |
-| Promotional Text | 170 characters max |
-| Description | 4000 characters max |
-| Keywords | 100 characters max |
-| Support URL | Required (https://scamdunk.com/help) |
-| Privacy Policy URL | Required (https://scamdunk.com/privacy) |
-| Marketing URL | Optional (https://scamdunk.com) |
+| Asset              | Specification                                        |
+| ------------------ | ---------------------------------------------------- |
+| App Icon           | 1024x1024px (no transparency, no rounded corners)    |
+| Screenshots        | 6.7" (1290x2796), 6.5" (1284x2778), 5.5" (1242x2208) |
+| iPad Screenshots   | 12.9" (2048x2732) - if supporting iPad               |
+| App Preview Video  | Optional, up to 30 seconds                           |
+| Promotional Text   | 170 characters max                                   |
+| Description        | 4000 characters max                                  |
+| Keywords           | 100 characters max                                   |
+| Support URL        | Required (https://scamdunk.com/help)                 |
+| Privacy Policy URL | Required (https://scamdunk.com/privacy)              |
+| Marketing URL      | Optional (https://scamdunk.com)                      |
 
 ### 5.4 App Store Guidelines Compliance
 
 **Content & Functionality:**
+
 - [ ] App provides genuine value beyond a website
 - [ ] All features work as described
 - [ ] No placeholder content
 - [ ] No hidden features
 
 **Finance Category Specific:**
+
 - [ ] Clear disclaimers that this is not financial advice
 - [ ] Accurate representation of what the app does
 - [ ] No guarantees of investment returns
 - [ ] Compliance with financial regulations
 
 **Privacy:**
+
 - [ ] Privacy policy clearly explains data collection
 - [ ] App Privacy "nutrition labels" configured
 - [ ] User consent for tracking (ATT framework)
 - [ ] GDPR/CCPA compliance
 
 **In-App Purchases:**
+
 - [ ] Clear pricing before purchase
 - [ ] Restore purchases functionality
 - [ ] No external payment links for digital goods
@@ -310,11 +329,13 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
 ### 5.5 App Review Preparation
 
 **Demo Account:**
+
 - Create a demo account for Apple reviewers
 - Pre-populate with sample data
 - Document in App Review notes
 
 **Review Notes:**
+
 - Explain the app's purpose clearly
 - Provide test credentials
 - Explain any special configurations needed
@@ -325,12 +346,15 @@ Given Scam Dunk's requirements, **React Native with Expo** is recommended becaus
 ## 6. App Store Listing Content
 
 ### App Name
+
 **Scam Dunk - Stock Scam Detector**
 
 ### Subtitle
+
 **Protect Your Investments**
 
 ### Description (Draft)
+
 ```
 Scam Dunk helps retail investors identify potential red flags in stock pitches before making investment decisions.
 
@@ -360,13 +384,16 @@ Scam Dunk is an educational tool and does not provide financial advice. Always c
 ```
 
 ### Keywords
+
 `stock scam,investment fraud,pump dump,penny stocks,stock alerts,trading safety,investment checker`
 
 ### Category
+
 Primary: **Finance**
 Secondary: **Education**
 
 ### Age Rating
+
 **12+** (Infrequent/Mild Mature/Suggestive Themes - financial content)
 
 ---
@@ -374,12 +401,14 @@ Secondary: **Education**
 ## 7. Pricing Strategy
 
 ### Current Web Pricing
+
 - FREE: 5 checks/month
 - PAID: 200 checks/month (price TBD)
 
 ### iOS Pricing Considerations
 
 **Apple's Commission:**
+
 - 30% on all in-app purchases (15% if < $1M annual revenue)
 
 **Recommended iOS Pricing:**
@@ -389,6 +418,7 @@ Secondary: **Education**
 | Pro | $4.99 | $39.99 | 200 checks/month |
 
 **Revenue Per Subscription (after Apple's cut):**
+
 - Monthly: $3.49 (70% of $4.99)
 - Annual: $27.99 (70% of $39.99)
 
@@ -397,13 +427,16 @@ Secondary: **Education**
 ## 8. Technical Requirements
 
 ### Minimum iOS Version
+
 **iOS 15.0** (covers 95%+ of active devices)
 
 ### Device Support
+
 - iPhone (required)
 - iPad (optional, recommend adding for broader reach)
 
 ### Required Capabilities
+
 - Network access
 - Push notifications (optional)
 - Face ID/Touch ID (optional)
@@ -500,26 +533,28 @@ scam-dunk-mobile/
 
 ## 11. Risk & Mitigation
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| App Store rejection | High | Follow guidelines strictly, prepare demo account |
-| In-app purchase issues | High | Thorough testing, use established libraries |
-| API rate limiting | Medium | Implement proper caching, retry logic |
-| Performance issues | Medium | Profile early, optimize images/animations |
-| Security vulnerabilities | High | Security audit, use SecureStore, certificate pinning |
-| User adoption | Medium | Focus on onboarding, A/B test store listing |
+| Risk                     | Impact | Mitigation                                           |
+| ------------------------ | ------ | ---------------------------------------------------- |
+| App Store rejection      | High   | Follow guidelines strictly, prepare demo account     |
+| In-app purchase issues   | High   | Thorough testing, use established libraries          |
+| API rate limiting        | Medium | Implement proper caching, retry logic                |
+| Performance issues       | Medium | Profile early, optimize images/animations            |
+| Security vulnerabilities | High   | Security audit, use SecureStore, certificate pinning |
+| User adoption            | Medium | Focus on onboarding, A/B test store listing          |
 
 ---
 
 ## 12. Success Metrics
 
 ### Launch Goals (First 90 Days)
+
 - 1,000+ downloads
 - 4.0+ App Store rating
 - 5% free-to-paid conversion rate
 - <1% crash rate
 
 ### Key Performance Indicators
+
 - Daily Active Users (DAU)
 - Scans per user per session
 - Subscription conversion rate
@@ -531,16 +566,19 @@ scam-dunk-mobile/
 ## 13. Post-Launch Roadmap
 
 ### Version 1.1
+
 - Widget for quick stock checks
 - Watch App (Apple Watch)
 - Siri Shortcuts integration
 
 ### Version 1.2
+
 - Social features (share results)
 - Watchlist functionality
 - Price alerts
 
 ### Version 2.0
+
 - Android release
 - Premium tier with advanced features
 
@@ -549,22 +587,26 @@ scam-dunk-mobile/
 ## 14. Action Items Summary
 
 ### Immediate (This Week)
+
 1. [ ] Decide on technology approach (React Native recommended)
 2. [ ] Enroll in Apple Developer Program
 3. [ ] Initialize mobile project repository
 4. [ ] Set up development environment
 
 ### Short-term (Weeks 1-4)
+
 5. [ ] Complete Phase 1-3 development
 6. [ ] Create App Store Connect listing
 7. [ ] Design app icon and screenshots
 
 ### Medium-term (Weeks 5-8)
+
 8. [ ] Complete Phase 4-7 development
 9. [ ] TestFlight beta testing
 10. [ ] Submit for App Store review
 
 ### Post-Launch
+
 11. [ ] Monitor analytics and reviews
 12. [ ] Iterate based on feedback
 13. [ ] Plan Android version
@@ -574,12 +616,15 @@ scam-dunk-mobile/
 ## Appendix A: Legal Requirements
 
 ### Required Legal Documents
+
 1. **Privacy Policy** - Already exists at `/privacy`
 2. **Terms of Service** - Already exists at `/terms`
 3. **Disclaimer** - Already exists at `/disclaimer`
 
 ### App Store Privacy Labels
+
 Data collected (to be disclosed):
+
 - Email address (account creation)
 - Usage data (scans performed)
 - Identifiers (user ID for analytics)
@@ -590,9 +635,11 @@ Data collected (to be disclosed):
 ## Appendix B: Backend API Endpoints for Mobile
 
 ### Base URL
+
 `https://scamdunk.com`
 
 ### Existing Endpoints (No Changes Needed)
+
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
 - `POST /api/check` - Stock analysis
@@ -600,12 +647,13 @@ Data collected (to be disclosed):
 - `GET /api/user/usage` - Get usage stats
 
 ### New Endpoints Required
+
 - `POST /api/billing/apple/validate` - Validate Apple receipt
 - `POST /api/notifications/register` - Register device for push
 - `GET /api/user/history` - Get scan history (may need pagination)
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: December 2024*
-*Author: Claude (AI Assistant)*
+_Document Version: 1.0_
+_Last Updated: December 2024_
+_Author: Claude (AI Assistant)_

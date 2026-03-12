@@ -13,7 +13,7 @@ export async function GET() {
     if (!config.clientId || !config.planId) {
       return NextResponse.json(
         { error: "PayPal not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -22,7 +22,7 @@ export async function GET() {
     console.error("Error getting PayPal config:", error);
     return NextResponse.json(
       { error: "Failed to get PayPal configuration" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

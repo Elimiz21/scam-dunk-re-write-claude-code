@@ -13,7 +13,11 @@ const routes: Array<{
   { path: "/news", changeFrequency: "weekly", priority: 0.6 },
   { path: "/investment-scams", changeFrequency: "monthly", priority: 0.8 },
   { path: "/social-media-scams", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/how-to-detect-stock-scams", changeFrequency: "monthly", priority: 0.8 },
+  {
+    path: "/how-to-detect-stock-scams",
+    changeFrequency: "monthly",
+    priority: 0.8,
+  },
   { path: "/help", changeFrequency: "monthly", priority: 0.6 },
   { path: "/contact", changeFrequency: "monthly", priority: 0.6 },
   { path: "/privacy", changeFrequency: "yearly", priority: 0.4 },
@@ -32,7 +36,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     if (!process.env.DATABASE_URL) {
-      console.warn("Skipping blog sitemap entries because DATABASE_URL is not set.");
+      console.warn(
+        "Skipping blog sitemap entries because DATABASE_URL is not set.",
+      );
       return staticRoutes;
     }
 

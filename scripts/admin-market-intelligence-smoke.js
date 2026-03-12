@@ -23,11 +23,16 @@ async function openFirstIfPresent(page, selectors) {
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+  });
   const report = { baseUrl, checks: [] };
 
   try {
-    await page.goto(`${baseUrl}/admin/login`, { waitUntil: "networkidle", timeout: 60000 });
+    await page.goto(`${baseUrl}/admin/login`, {
+      waitUntil: "networkidle",
+      timeout: 60000,
+    });
 
     const emailSelector = 'input[type="email"], input[name="email"]';
     const passwordSelector = 'input[type="password"], input[name="password"]';
@@ -36,10 +41,14 @@ async function openFirstIfPresent(page, selectors) {
     await page.fill(passwordSelector, password);
 
     const loginButton = page
-      .locator('button:has-text("Sign in"), button:has-text("Login"), button:has-text("Log in")')
+      .locator(
+        'button:has-text("Sign in"), button:has-text("Login"), button:has-text("Log in")',
+      )
       .first();
     await loginButton.click();
-    await page.waitForLoadState("networkidle", { timeout: 60000 }).catch(() => {});
+    await page
+      .waitForLoadState("networkidle", { timeout: 60000 })
+      .catch(() => {});
 
     report.checks.push({ step: "login", url: page.url() });
 
@@ -56,10 +65,12 @@ async function openFirstIfPresent(page, selectors) {
     const clickedStockSelector = await openFirstIfPresent(page, [
       'button:has-text("Stock")',
       'a:has-text("Stock")',
-      'text=Full Deep Dive',
+      "text=Full Deep Dive",
     ]);
     if (clickedStockSelector) {
-      await page.waitForLoadState("networkidle", { timeout: 60000 }).catch(() => {});
+      await page
+        .waitForLoadState("networkidle", { timeout: 60000 })
+        .catch(() => {});
       report.checks.push({
         step: "click_stock",
         ok: /\/admin\/scan-intelligence\/stock\//.test(page.url()),
@@ -67,7 +78,11 @@ async function openFirstIfPresent(page, selectors) {
         url: page.url(),
       });
     } else {
-      report.checks.push({ step: "click_stock", ok: false, reason: "No stock link/button found" });
+      report.checks.push({
+        step: "click_stock",
+        ok: false,
+        reason: "No stock link/button found",
+      });
     }
 
     await page.goto(`${baseUrl}/admin/scan-intelligence`, {
@@ -80,7 +95,9 @@ async function openFirstIfPresent(page, selectors) {
       'a[href*="/admin/scan-intelligence/scheme/"]',
     ]);
     if (clickedSchemeSelector) {
-      await page.waitForLoadState("networkidle", { timeout: 60000 }).catch(() => {});
+      await page
+        .waitForLoadState("networkidle", { timeout: 60000 })
+        .catch(() => {});
       report.checks.push({
         step: "click_scheme",
         ok: /\/admin\/scan-intelligence\/scheme\//.test(page.url()),
@@ -88,7 +105,11 @@ async function openFirstIfPresent(page, selectors) {
         url: page.url(),
       });
     } else {
-      report.checks.push({ step: "click_scheme", ok: false, reason: "No scheme link/button found" });
+      report.checks.push({
+        step: "click_scheme",
+        ok: false,
+        reason: "No scheme link/button found",
+      });
     }
 
     await page.goto(`${baseUrl}/admin/scan-intelligence`, {
@@ -101,7 +122,9 @@ async function openFirstIfPresent(page, selectors) {
       'button:has-text("ACTIVE")',
     ]);
     if (clickedPromoterSelector) {
-      await page.waitForLoadState("networkidle", { timeout: 60000 }).catch(() => {});
+      await page
+        .waitForLoadState("networkidle", { timeout: 60000 })
+        .catch(() => {});
       report.checks.push({
         step: "click_promoter",
         ok: /\/admin\/scan-intelligence\/promoter\//.test(page.url()),
@@ -116,7 +139,10 @@ async function openFirstIfPresent(page, selectors) {
       });
     }
 
-    await page.goto(`${baseUrl}/admin/social-scan`, { waitUntil: "networkidle", timeout: 60000 });
+    await page.goto(`${baseUrl}/admin/social-scan`, {
+      waitUntil: "networkidle",
+      timeout: 60000,
+    });
     report.checks.push({
       step: "open_social_scan",
       ok: /\/admin\/social-scan/.test(page.url()),

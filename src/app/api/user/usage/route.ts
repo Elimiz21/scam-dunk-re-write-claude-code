@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { getUsageInfo } from "@/lib/usage";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     console.error("Usage API error:", error);
     return NextResponse.json(
       { error: "An error occurred fetching usage" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

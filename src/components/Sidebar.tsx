@@ -29,7 +29,7 @@ import {
   Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeDate } from "@/lib/utils";
 
 interface ScanHistoryItem {
   id: string;
@@ -85,21 +85,6 @@ function getRiskBg(riskLevel: string) {
   }
 }
 
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
-
 export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
   const { data: session } = useSession();
   const [recentScans, setRecentScans] = useState<ScanHistoryItem[]>([]);
@@ -140,7 +125,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
       <aside
         className={cn(
           "fixed top-0 left-0 h-full bg-card border-r border-border z-50 flex flex-col transition-all duration-300 ease-out",
-          isOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full lg:w-0"
+          isOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full lg:w-0",
         )}
       >
         <div className={cn("flex flex-col h-full", !isOpen && "invisible")}>
@@ -154,7 +139,10 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                 </div>
               </div>
               <span className="font-display tracking-tight italic">
-                Scam<span className="gradient-brand-text not-italic font-sans font-bold">Dunk</span>
+                Scam
+                <span className="gradient-brand-text not-italic font-sans font-bold">
+                  Dunk
+                </span>
               </span>
             </Link>
             <Button
@@ -189,7 +177,10 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
 
             {!session ? (
               <div className="text-sm text-muted-foreground px-2 py-3">
-                <Link href="/login" className="text-primary hover:underline font-medium">
+                <Link
+                  href="/login"
+                  className="text-primary hover:underline font-medium"
+                >
                   Log in
                 </Link>{" "}
                 to see scan history
@@ -212,18 +203,30 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
                       onToggle();
                     }}
                   >
-                    <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0", getRiskBg(scan.riskLevel))}>
+                    <div
+                      className={cn(
+                        "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0",
+                        getRiskBg(scan.riskLevel),
+                      )}
+                    >
                       {getRiskIcon(scan.riskLevel)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">{scan.ticker}</span>
-                        <span className={cn("text-[10px] font-bold uppercase tracking-wider", getRiskColor(scan.riskLevel))}>
+                        <span className="font-semibold text-sm">
+                          {scan.ticker}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold uppercase tracking-wider",
+                            getRiskColor(scan.riskLevel),
+                          )}
+                        >
                           {scan.riskLevel}
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground/60">
-                        {formatDate(scan.createdAt)}
+                        {formatRelativeDate(scan.createdAt)}
                       </p>
                     </div>
                   </button>
@@ -241,8 +244,16 @@ export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
             {[
               { href: "/about", icon: Info, label: "About" },
               { href: "/news", icon: Newspaper, label: "News" },
-              { href: "/how-it-works", icon: HelpCircle, label: "How It Works" },
-              { href: "/help", icon: MessageCircleQuestion, label: "Help & FAQ" },
+              {
+                href: "/how-it-works",
+                icon: HelpCircle,
+                label: "How It Works",
+              },
+              {
+                href: "/help",
+                icon: MessageCircleQuestion,
+                label: "Help & FAQ",
+              },
               { href: "/contact", icon: Mail, label: "Contact" },
             ].map(({ href, icon: Icon, label }) => (
               <Link key={href} href={href}>

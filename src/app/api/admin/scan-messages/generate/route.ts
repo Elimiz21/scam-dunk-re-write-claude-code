@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!config.openaiApiKey) {
       return NextResponse.json(
         { error: "OpenAI API key is not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -62,7 +62,11 @@ export async function POST(request: NextRequest) {
     const openai = new OpenAI({ apiKey: config.openaiApiKey });
     const apiStartTime = Date.now();
 
-    const prompt = buildGenerationPrompt(count, existingMessages, feedbackContext);
+    const prompt = buildGenerationPrompt(
+      count,
+      existingMessages,
+      feedbackContext,
+    );
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -145,14 +149,16 @@ AVOID:
     }
 
     // Log the action (non-critical)
-    prisma.adminAuditLog.create({
-      data: {
-        adminUserId: session.id,
-        action: "SCAN_MESSAGES_GENERATED",
-        resource: generationId,
-        details: JSON.stringify({ count: generatedMessages.length }),
-      },
-    }).catch(() => {});
+    prisma.adminAuditLog
+      .create({
+        data: {
+          adminUserId: session.id,
+          action: "SCAN_MESSAGES_GENERATED",
+          resource: generationId,
+          details: JSON.stringify({ count: generatedMessages.length }),
+        },
+      })
+      .catch(() => {});
 
     return NextResponse.json({
       generationId,
@@ -164,7 +170,7 @@ AVOID:
     console.error("Generate scan messages error:", error);
     return NextResponse.json(
       { error: "Failed to generate scan messages" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -172,7 +178,11 @@ AVOID:
 function buildGenerationPrompt(
   count: number,
   existingMessages: Array<{ headline: string; subtext: string }>,
-  feedbackContext: Array<{ headline: string; subtext: string; reason?: string }>
+  feedbackContext: Array<{
+    headline: string;
+    subtext: string;
+    reason?: string;
+  }>,
 ): string {
   let prompt = `Generate ${count} new loading screen messages for our financial scam detection app.
 
@@ -184,14 +194,20 @@ Each message needs:
 
   if (existingMessages.length > 0) {
     prompt += `EXISTING MESSAGES (do not duplicate these themes):
-${existingMessages.slice(0, 10).map((m) => `- "${m.headline}"`).join("\n")}
+${existingMessages
+  .slice(0, 10)
+  .map((m) => `- "${m.headline}"`)
+  .join("\n")}
 
 `;
   }
 
   if (feedbackContext.length > 0) {
     prompt += `PREVIOUSLY REJECTED MESSAGES (learn from what didn't work):
-${feedbackContext.slice(0, 10).map((m) => `- "${m.headline}" ${m.reason ? `(Reason: ${m.reason})` : ""}`).join("\n")}
+${feedbackContext
+  .slice(0, 10)
+  .map((m) => `- "${m.headline}" ${m.reason ? `(Reason: ${m.reason})` : ""}`)
+  .join("\n")}
 
 `;
   }

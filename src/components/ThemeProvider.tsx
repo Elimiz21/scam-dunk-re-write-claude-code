@@ -35,7 +35,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setThemeState(stored);
     }
     // Apply initial theme based on time
-    const initial = stored === "light" || stored === "dark" ? stored : getTimeBasedTheme();
+    const initial =
+      stored === "light" || stored === "dark" ? stored : getTimeBasedTheme();
     setResolvedTheme(initial);
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(initial);

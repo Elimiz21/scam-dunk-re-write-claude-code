@@ -70,7 +70,9 @@ interface PipelineHealth {
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(null);
+  const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -110,7 +112,10 @@ export default function DashboardPage() {
         <div className="animate-pulse space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-card rounded-2xl border border-border h-32" />
+              <div
+                key={i}
+                className="bg-card rounded-2xl border border-border h-32"
+              />
             ))}
           </div>
         </div>
@@ -121,7 +126,11 @@ export default function DashboardPage() {
   if (error) {
     return (
       <AdminLayout>
-        <AlertBanner type="error" title="Error Loading Dashboard" message={error} />
+        <AlertBanner
+          type="error"
+          title="Error Loading Dashboard"
+          message={error}
+        />
       </AdminLayout>
     );
   }
@@ -140,9 +149,10 @@ export default function DashboardPage() {
     value: d.totalScans,
   }));
 
-  const conversionRate = metrics.totalUsers > 0
-    ? ((metrics.paidUsers / metrics.totalUsers) * 100).toFixed(1)
-    : "0";
+  const conversionRate =
+    metrics.totalUsers > 0
+      ? ((metrics.paidUsers / metrics.totalUsers) * 100).toFixed(1)
+      : "0";
 
   return (
     <AdminLayout>
@@ -150,9 +160,12 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold font-display italic text-foreground">Dashboard</h1>
+            <h1 className="text-2xl font-bold font-display italic text-foreground">
+              Dashboard
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Overview of <span className="font-display italic">ScamDunk</span> application metrics
+              Overview of <span className="font-display italic">ScamDunk</span>{" "}
+              application metrics
             </p>
           </div>
           <div className="text-xs text-muted-foreground">
@@ -235,7 +248,9 @@ export default function DashboardPage() {
         {/* User Breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card rounded-2xl shadow-sm p-6 border border-border">
-            <h3 className="text-lg font-medium font-display italic text-foreground mb-4">User Plan Breakdown</h3>
+            <h3 className="text-lg font-medium font-display italic text-foreground mb-4">
+              User Plan Breakdown
+            </h3>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-1">
@@ -267,19 +282,26 @@ export default function DashboardPage() {
               </div>
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground">
-                  Conversion Rate: <span className="font-medium text-primary">{conversionRate}%</span>
+                  Conversion Rate:{" "}
+                  <span className="font-medium text-primary">
+                    {conversionRate}%
+                  </span>
                 </p>
               </div>
             </div>
           </div>
 
           <div className="bg-card rounded-2xl shadow-sm p-6 border border-border">
-            <h3 className="text-lg font-medium font-display italic text-foreground mb-4">Risk Detection Summary</h3>
+            <h3 className="text-lg font-medium font-display italic text-foreground mb-4">
+              Risk Detection Summary
+            </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-emerald-500/10 rounded-2xl p-4">
                 <div className="flex items-center">
                   <div className="h-3 w-3 bg-green-500 rounded-full mr-2" />
-                  <span className="text-sm font-medium text-emerald-700">Low Risk</span>
+                  <span className="text-sm font-medium text-emerald-700">
+                    Low Risk
+                  </span>
                 </div>
                 <p className="mt-2 text-2xl font-bold text-emerald-900">
                   {metrics.riskDistribution.low}
@@ -288,7 +310,9 @@ export default function DashboardPage() {
               <div className="bg-amber-500/10 rounded-2xl p-4">
                 <div className="flex items-center">
                   <div className="h-3 w-3 bg-yellow-500 rounded-full mr-2" />
-                  <span className="text-sm font-medium text-amber-700">Medium Risk</span>
+                  <span className="text-sm font-medium text-amber-700">
+                    Medium Risk
+                  </span>
                 </div>
                 <p className="mt-2 text-2xl font-bold text-amber-900">
                   {metrics.riskDistribution.medium}
@@ -297,7 +321,9 @@ export default function DashboardPage() {
               <div className="bg-red-500/10 rounded-2xl p-4">
                 <div className="flex items-center">
                   <AlertTriangle className="h-3 w-3 text-red-500 mr-2" />
-                  <span className="text-sm font-medium text-red-700">High Risk</span>
+                  <span className="text-sm font-medium text-red-700">
+                    High Risk
+                  </span>
                 </div>
                 <p className="mt-2 text-2xl font-bold text-red-900">
                   {metrics.riskDistribution.high}
@@ -306,7 +332,9 @@ export default function DashboardPage() {
               <div className="bg-secondary rounded-2xl p-4">
                 <div className="flex items-center">
                   <div className="h-3 w-3 bg-muted-foreground rounded-full mr-2" />
-                  <span className="text-sm font-medium text-foreground">Insufficient</span>
+                  <span className="text-sm font-medium text-foreground">
+                    Insufficient
+                  </span>
                 </div>
                 <p className="mt-2 text-2xl font-bold text-foreground">
                   {metrics.riskDistribution.insufficient}
@@ -329,8 +357,8 @@ export default function DashboardPage() {
                     pipelineHealth.status === "healthy"
                       ? "bg-emerald-500/10 text-emerald-700"
                       : pipelineHealth.status === "degraded"
-                      ? "bg-amber-500/10 text-amber-700"
-                      : "bg-red-500/10 text-red-700"
+                        ? "bg-amber-500/10 text-amber-700"
+                        : "bg-red-500/10 text-red-700"
                   }`}
                 >
                   {pipelineHealth.status === "healthy" ? (
@@ -355,18 +383,25 @@ export default function DashboardPage() {
               <>
                 <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
                   <span>
-                    Last scan: <span className="font-medium text-foreground">{pipelineHealth.date}</span>
+                    Last scan:{" "}
+                    <span className="font-medium text-foreground">
+                      {pipelineHealth.date}
+                    </span>
                   </span>
                   <span>
-                    Files: <span className="font-medium text-foreground">
-                      {pipelineHealth.filesPresent}/{pipelineHealth.filesExpected}
+                    Files:{" "}
+                    <span className="font-medium text-foreground">
+                      {pipelineHealth.filesPresent}/
+                      {pipelineHealth.filesExpected}
                     </span>
                   </span>
                   {pipelineHealth.schemeTracking.status === "active" && (
                     <span className="flex items-center gap-1">
                       <Database className="h-3.5 w-3.5" />
-                      Schemes: <span className="font-medium text-foreground">
-                        {pipelineHealth.schemeTracking.activeSchemes} active / {pipelineHealth.schemeTracking.totalSchemes} total
+                      Schemes:{" "}
+                      <span className="font-medium text-foreground">
+                        {pipelineHealth.schemeTracking.activeSchemes} active /{" "}
+                        {pipelineHealth.schemeTracking.totalSchemes} total
                       </span>
                     </span>
                   )}
@@ -394,8 +429,8 @@ export default function DashboardPage() {
                           {f.sizeBytes > 1048576
                             ? `${(f.sizeBytes / 1048576).toFixed(1)}MB`
                             : f.sizeBytes > 1024
-                            ? `${(f.sizeBytes / 1024).toFixed(0)}KB`
-                            : `${f.sizeBytes}B`}
+                              ? `${(f.sizeBytes / 1024).toFixed(0)}KB`
+                              : `${f.sizeBytes}B`}
                         </span>
                       )}
                     </div>

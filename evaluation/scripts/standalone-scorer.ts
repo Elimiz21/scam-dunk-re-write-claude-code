@@ -72,7 +72,10 @@ const THRESHOLDS = {
 };
 
 // Calculate price change percentage over a period
-function calculatePriceChange(priceHistory: PriceHistory[], days: number): number | null {
+function calculatePriceChange(
+  priceHistory: PriceHistory[],
+  days: number,
+): number | null {
   if (priceHistory.length < days + 1) return null;
   const currentPrice = priceHistory[priceHistory.length - 1].close;
   const pastPrice = priceHistory[priceHistory.length - 1 - days].close;
@@ -81,12 +84,17 @@ function calculatePriceChange(priceHistory: PriceHistory[], days: number): numbe
 }
 
 // Calculate volume ratio compared to 30-day average
-function calculateVolumeRatio(priceHistory: PriceHistory[], days: number = 7): number | null {
+function calculateVolumeRatio(
+  priceHistory: PriceHistory[],
+  days: number = 7,
+): number | null {
   if (priceHistory.length < 30) return null;
   const last30Days = priceHistory.slice(-30);
-  const avgVolume30d = last30Days.reduce((sum, day) => sum + day.volume, 0) / 30;
+  const avgVolume30d =
+    last30Days.reduce((sum, day) => sum + day.volume, 0) / 30;
   const recentDays = priceHistory.slice(-days);
-  const recentAvgVolume = recentDays.reduce((sum, day) => sum + day.volume, 0) / days;
+  const recentAvgVolume =
+    recentDays.reduce((sum, day) => sum + day.volume, 0) / days;
   if (avgVolume30d === 0) return null;
   return recentAvgVolume / avgVolume30d;
 }
@@ -112,38 +120,50 @@ function detectSpikeThenDrop(priceHistory: PriceHistory[]): boolean {
 }
 
 // Calculate RSI
-function calculateRSI(priceHistory: PriceHistory[], period: number = 14): number | null {
+function calculateRSI(
+  priceHistory: PriceHistory[],
+  period: number = 14,
+): number | null {
   if (priceHistory.length < period + 1) return null;
   const changes: number[] = [];
   for (let i = 1; i < priceHistory.length; i++) {
     changes.push(priceHistory[i].close - priceHistory[i - 1].close);
   }
   const recentChanges = changes.slice(-period);
-  const gains = recentChanges.filter(c => c > 0);
-  const losses = recentChanges.filter(c => c < 0).map(c => Math.abs(c));
-  const avgGain = gains.length > 0 ? gains.reduce((a, b) => a + b, 0) / period : 0;
-  const avgLoss = losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / period : 0;
+  const gains = recentChanges.filter((c) => c > 0);
+  const losses = recentChanges.filter((c) => c < 0).map((c) => Math.abs(c));
+  const avgGain =
+    gains.length > 0 ? gains.reduce((a, b) => a + b, 0) / period : 0;
+  const avgLoss =
+    losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / period : 0;
   // If no movement (flat price data), RSI is neutral (50)
   if (avgGain === 0 && avgLoss === 0) return 50;
   if (avgLoss === 0) return 100;
   const rs = avgGain / avgLoss;
-  return 100 - (100 / (1 + rs));
+  return 100 - 100 / (1 + rs);
 }
 
 // Calculate volatility
-function calculateVolatility(priceHistory: PriceHistory[]): { dailyVolatility: number; isHighVolatility: boolean } {
+function calculateVolatility(priceHistory: PriceHistory[]): {
+  dailyVolatility: number;
+  isHighVolatility: boolean;
+} {
   if (priceHistory.length < 14) {
     return { dailyVolatility: 0, isHighVolatility: false };
   }
   const returns: number[] = [];
   for (let i = 1; i < priceHistory.length; i++) {
-    const dailyReturn = (priceHistory[i].close - priceHistory[i - 1].close) / priceHistory[i - 1].close;
+    const dailyReturn =
+      (priceHistory[i].close - priceHistory[i - 1].close) /
+      priceHistory[i - 1].close;
     returns.push(dailyReturn);
   }
   const recentReturns = returns.slice(-14);
   const mean = recentReturns.reduce((a, b) => a + b, 0) / recentReturns.length;
-  const squareDiffs = recentReturns.map(r => Math.pow(r - mean, 2));
-  const dailyVolatility = Math.sqrt(squareDiffs.reduce((a, b) => a + b, 0) / squareDiffs.length) * 100;
+  const squareDiffs = recentReturns.map((r) => Math.pow(r - mean, 2));
+  const dailyVolatility =
+    Math.sqrt(squareDiffs.reduce((a, b) => a + b, 0) / squareDiffs.length) *
+    100;
   return { dailyVolatility, isHighVolatility: dailyVolatility > 5 };
 }
 
@@ -212,14 +232,14 @@ function checkPatternSignals(marketData: MarketData): RiskSignal[] {
         code: SIGNAL_CODES.SPIKE_7D,
         category: "PATTERN",
         weight: 4,
-        description: `Extreme price movement (${priceChange7d > 0 ? '+' : ''}${priceChange7d.toFixed(0)}%) in 7 days`,
+        description: `Extreme price movement (${priceChange7d > 0 ? "+" : ""}${priceChange7d.toFixed(0)}%) in 7 days`,
       });
     } else if (Math.abs(priceChange7d) >= THRESHOLDS.spike7dMedium) {
       signals.push({
         code: SIGNAL_CODES.SPIKE_7D,
         category: "PATTERN",
         weight: 3,
-        description: `Significant price movement (${priceChange7d > 0 ? '+' : ''}${priceChange7d.toFixed(0)}%) in 7 days`,
+        description: `Significant price movement (${priceChange7d > 0 ? "+" : ""}${priceChange7d.toFixed(0)}%) in 7 days`,
       });
     }
   }
@@ -250,7 +270,8 @@ function checkPatternSignals(marketData: MarketData): RiskSignal[] {
       code: SIGNAL_CODES.SPIKE_THEN_DROP,
       category: "PATTERN",
       weight: 3,
-      description: "Pump-and-dump pattern detected: rapid price increase followed by sharp decline",
+      description:
+        "Pump-and-dump pattern detected: rapid price increase followed by sharp decline",
     });
   }
 
@@ -287,16 +308,24 @@ function computeRiskLevel(totalScore: number): "LOW" | "MEDIUM" | "HIGH" {
 }
 
 // Check if legitimate
-function checkIsLegitimate(marketData: MarketData, signals: RiskSignal[]): boolean {
+function checkIsLegitimate(
+  marketData: MarketData,
+  signals: RiskSignal[],
+): boolean {
   if (!marketData.quote) return false;
   const { quote } = marketData;
   const isLargeCap = quote.marketCap > 10_000_000_000;
   const isHighLiquidity = quote.avgDollarVolume30d > 10_000_000;
   const isMajorExchange = !marketData.isOTC;
-  const hasDisqualifyingSignals = signals.some(s =>
-    s.category === "STRUCTURAL" || s.category === "ALERT" || s.category === "BEHAVIORAL"
+  const hasDisqualifyingSignals = signals.some(
+    (s) =>
+      s.category === "STRUCTURAL" ||
+      s.category === "ALERT" ||
+      s.category === "BEHAVIORAL",
   );
-  return isLargeCap && isHighLiquidity && isMajorExchange && !hasDisqualifyingSignals;
+  return (
+    isLargeCap && isHighLiquidity && isMajorExchange && !hasDisqualifyingSignals
+  );
 }
 
 // Main scoring function

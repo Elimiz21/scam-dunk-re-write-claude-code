@@ -8,7 +8,7 @@ import { createOwnerAdmin } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const setupSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -32,7 +32,7 @@ export async function GET() {
     console.error("Setup check error:", error);
     return NextResponse.json(
       { error: "Failed to check setup status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -43,8 +43,11 @@ export async function POST(request: NextRequest) {
     const existingAdmin = await prisma.adminUser.findFirst();
     if (existingAdmin) {
       return NextResponse.json(
-        { error: "Admin system is already configured. Cannot create another owner." },
-        { status: 400 }
+        {
+          error:
+            "Admin system is already configured. Cannot create another owner.",
+        },
+        { status: 400 },
       );
     }
 
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -63,38 +66,33 @@ export async function POST(request: NextRequest) {
     if (!expectedSetupKey) {
       return NextResponse.json(
         { error: "Admin setup is disabled" },
-        { status: 403 }
+        { status: 403 },
       );
     }
     if (validation.data.setupKey !== expectedSetupKey) {
-      return NextResponse.json(
-        { error: "Invalid setup key" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Invalid setup key" }, { status: 403 });
     }
 
     const result = await createOwnerAdmin(
       validation.data.email,
       validation.data.password,
-      validation.data.name
+      validation.data.name,
     );
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     return NextResponse.json({
       success: true,
-      message: "Admin owner created successfully. You can now login at /admin/login",
+      message:
+        "Admin owner created successfully. You can now login at /admin/login",
     });
   } catch (error) {
     console.error("Admin setup error:", error);
     return NextResponse.json(
       { error: "Failed to create admin owner" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

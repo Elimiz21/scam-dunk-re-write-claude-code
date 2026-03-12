@@ -16,7 +16,8 @@ import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string()
+  password: z
+    .string()
     .min(10, "Password must be at least 10 characters")
     .regex(/[a-z]/, "Password must contain a lowercase letter")
     .regex(/[A-Z]/, "Password must contain an uppercase letter")
@@ -28,7 +29,8 @@ const registerSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: strict for registration (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "strict");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
       if (!isValid) {
         return NextResponse.json(
           { error: "CAPTCHA verification failed. Please try again." },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -68,7 +70,8 @@ export async function POST(request: NextRequest) {
       // Return generic message to prevent user enumeration
       return NextResponse.json({
         success: true,
-        message: "Account created. Please check your email to verify your account before logging in.",
+        message:
+          "Account created. Please check your email to verify your account before logging in.",
       });
     }
 
@@ -94,7 +97,8 @@ export async function POST(request: NextRequest) {
 
     // Send verification email (don't block registration if this fails)
     try {
-      const verificationToken = await createEmailVerificationToken(normalizedEmail);
+      const verificationToken =
+        await createEmailVerificationToken(normalizedEmail);
       await sendVerificationEmail(normalizedEmail, verificationToken);
     } catch (emailError) {
       console.error("Failed to send verification email:", emailError);
@@ -104,13 +108,14 @@ export async function POST(request: NextRequest) {
     // Response shape matches existing-user path to prevent enumeration
     return NextResponse.json({
       success: true,
-      message: "Account created. Please check your email to verify your account before logging in.",
+      message:
+        "Account created. Please check your email to verify your account before logging in.",
     });
   } catch (error) {
     console.error("Mobile registration error:", error);
     return NextResponse.json(
       { error: "Registration failed. Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

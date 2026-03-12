@@ -91,7 +91,9 @@ export default function SignupPage() {
                 <Mail className="h-8 w-8 text-white" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-display italic">Check your email</CardTitle>
+            <CardTitle className="text-2xl font-display italic">
+              Check your email
+            </CardTitle>
             <CardDescription className="text-base mt-2">
               We&apos;ve sent a verification link to <strong>{email}</strong>
             </CardDescription>
@@ -107,13 +109,20 @@ export default function SignupPage() {
             </div>
             <p className="text-sm text-muted-foreground text-center">
               Didn&apos;t receive the email?{" "}
-              <Link href={`/check-email?email=${encodeURIComponent(email)}`} className="text-primary hover:underline">
+              <Link
+                href={`/check-email?email=${encodeURIComponent(email)}`}
+                className="text-primary hover:underline"
+              >
                 Resend verification email
               </Link>
             </p>
           </CardContent>
           <CardFooter>
-            <Button onClick={() => router.push("/login")} variant="outline" className="w-full">
+            <Button
+              onClick={() => router.push("/login")}
+              variant="outline"
+              className="w-full"
+            >
               Go to login
             </Button>
           </CardFooter>
@@ -126,16 +135,23 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
       <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
         <CardHeader className="text-center">
-          <Link href="/" className="flex items-center justify-center gap-2 mb-4">
+          <Link
+            href="/"
+            className="flex items-center justify-center gap-2 mb-4"
+          >
             <div className="relative inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-xl shadow-glow-sm">
               <Shield className="h-5 w-5 text-white" />
               <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
                 <Eye className="h-2 w-2 text-white" />
               </div>
             </div>
-            <span className="text-2xl font-bold font-display italic">ScamDunk</span>
+            <span className="text-2xl font-bold font-display italic">
+              ScamDunk
+            </span>
           </Link>
-          <CardTitle className="font-display italic">Create your account</CardTitle>
+          <CardTitle className="font-display italic">
+            Create your account
+          </CardTitle>
           <CardDescription>
             Start checking stocks for red flags - 5 free checks per month
           </CardDescription>
@@ -205,7 +221,11 @@ export default function SignupPage() {
             <Turnstile onVerify={handleTurnstileVerify} />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading || !turnstileToken}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || !turnstileToken}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
