@@ -14,9 +14,14 @@ const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
 if (!JWT_SECRET) {
   throw new Error("FATAL: JWT_SECRET or NEXTAUTH_SECRET must be set");
 }
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || (() => {
+const JWT_REFRESH_SECRET = (() => {
+  if (process.env.JWT_REFRESH_SECRET) {
+    return process.env.JWT_REFRESH_SECRET;
+  }
   if (process.env.NODE_ENV === "production") {
-    console.warn("WARNING: JWT_REFRESH_SECRET not set. Set a unique secret in production.");
+    throw new Error(
+      "FATAL: JWT_REFRESH_SECRET must be set in production. Generate a unique secret separate from JWT_SECRET.",
+    );
   }
   return JWT_SECRET + "_REFRESH";
 })();
@@ -61,20 +66,28 @@ export function generateRefreshToken(userId: string, email: string): string {
     email,
     type: "refresh",
   };
-  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: JWT_REFRESH_EXPIRY });
+  return jwt.sign(payload, JWT_REFRESH_SECRET, {
+    expiresIn: JWT_REFRESH_EXPIRY,
+  });
 }
 
 /**
  * Verify and decode a JWT token
  * Uses the appropriate secret based on expected token type.
  */
-export function verifyToken(token: string, expectedType: "access" | "refresh" = "access"): JWTPayload | null {
+export function verifyToken(
+  token: string,
+  expectedType: "access" | "refresh" = "access",
+): JWTPayload | null {
   try {
     const secret = expectedType === "refresh" ? JWT_REFRESH_SECRET : JWT_SECRET;
     const decoded = jwt.verify(token, secret) as JWTPayload;
     return decoded;
   } catch (error) {
-    console.warn(`JWT verification failed (expected ${expectedType}):`, error instanceof Error ? error.message : error);
+    console.warn(
+      `JWT verification failed (expected ${expectedType}):`,
+      error instanceof Error ? error.message : error,
+    );
     return null;
   }
 }
@@ -94,7 +107,7 @@ function extractBearerToken(authHeader: string | null): string | null {
  * Returns the user ID if valid, null otherwise
  */
 export async function authenticateMobileRequest(
-  request: Request
+  request: Request,
 ): Promise<string | null> {
   const authHeader = request.headers.get("Authorization");
   const token = extractBearerToken(authHeader);
@@ -125,7 +138,9 @@ export async function authenticateMobileRequest(
 /**
  * Get full user data for mobile response
  */
-export async function getMobileUser(userId: string): Promise<MobileUser | null> {
+export async function getMobileUser(
+  userId: string,
+): Promise<MobileUser | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -154,7 +169,7 @@ export async function getMobileUser(userId: string): Promise<MobileUser | null> 
  */
 export async function getAuthenticatedUserId(
   request: Request,
-  sessionAuth: () => Promise<{ user?: { id?: string } } | null>
+  sessionAuth: () => Promise<{ user?: { id?: string } } | null>,
 ): Promise<string | null> {
   // Try session auth first (web)
   try {
