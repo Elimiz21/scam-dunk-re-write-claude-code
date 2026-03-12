@@ -21,3 +21,11 @@ export function formatNumber(num: number): string {
 export function formatPrice(price: number): string {
   return `$${price.toFixed(2)}`;
 }
+
+/**
+ * Extract the value from a settled promise, returning a fallback on rejection.
+ * Useful with Promise.allSettled to safely unwrap results.
+ */
+export function settledVal<T>(result: PromiseSettledResult<T>, fallback: T): T {
+  return result.status === "fulfilled" ? result.value : fallback;
+}

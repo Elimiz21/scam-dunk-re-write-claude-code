@@ -87,7 +87,7 @@ export function getClientIdentifier(request: NextRequest): string {
  */
 async function prismaRateLimit(
   identifier: string,
-  config: RateLimitConfig
+  config: RateLimitConfig,
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
   const configValues = rateLimitConfigs[config];
   const now = new Date();
@@ -150,7 +150,7 @@ async function prismaRateLimit(
  */
 function inMemoryRateLimit(
   identifier: string,
-  config: RateLimitConfig
+  config: RateLimitConfig,
 ): { success: boolean; remaining: number; reset: number } {
   const configValues = rateLimitConfigs[config];
   const now = Date.now();
@@ -208,7 +208,7 @@ setInterval(() => {
  */
 export async function rateLimit(
   request: NextRequest,
-  config: RateLimitConfig = "standard"
+  config: RateLimitConfig = "standard",
 ): Promise<{
   success: boolean;
   remaining: number;
@@ -233,7 +233,9 @@ export async function rateLimit(
   };
 
   if (!result.success) {
-    headers["Retry-After"] = String(Math.ceil((result.reset - Date.now()) / 1000));
+    headers["Retry-After"] = String(
+      Math.ceil((result.reset - Date.now()) / 1000),
+    );
   }
 
   return {
@@ -246,7 +248,7 @@ export async function rateLimit(
  * Create a rate-limited response for exceeded limits
  */
 export function rateLimitExceededResponse(
-  headers: Record<string, string>
+  headers: Record<string, string>,
 ): NextResponse {
   return NextResponse.json(
     {
@@ -256,7 +258,7 @@ export function rateLimitExceededResponse(
     {
       status: 429,
       headers,
-    }
+    },
   );
 }
 
@@ -268,7 +270,7 @@ export function rateLimitExceededResponse(
  */
 export function withRateLimit<T extends NextRequest>(
   handler: (request: T) => Promise<NextResponse>,
-  config: RateLimitConfig = "standard"
+  config: RateLimitConfig = "standard",
 ) {
   return async (request: T): Promise<NextResponse> => {
     const { success, headers } = await rateLimit(request, config);
@@ -291,6 +293,6 @@ export function withRateLimit<T extends NextRequest>(
 /**
  * Check if rate limiting is using a persistent store (PostgreSQL)
  */
-export function isUsingRedis(): boolean {
+export function isUsingPersistentStore(): boolean {
   return true;
 }

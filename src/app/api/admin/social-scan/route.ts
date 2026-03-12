@@ -8,10 +8,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { runSocialScanAndStore } from "@/lib/social-scan/orchestrate";
 import { ScanTarget } from "@/lib/social-scan/types";
+import { settledVal } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes — scanning takes time
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
     const promotionalOnly = searchParams.get("promotionalOnly") === "true";
 
     // Build mention filters
-    const mentionWhere: any = {};
+    const mentionWhere: Prisma.SocialMentionWhereInput = {};
     if (ticker) mentionWhere.ticker = { contains: ticker, mode: "insensitive" };
     if (platform) mentionWhere.platform = platform;
     if (author) mentionWhere.author = { contains: author, mode: "insensitive" };
@@ -130,9 +132,6 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const val = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
-      r.status === "fulfilled" ? r.value : fallback;
-
     // Log any failures for debugging (table missing, etc.)
     const labels = [
       "scanRuns",
@@ -149,16 +148,16 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const scanRuns = val(results[0], [] as any[]);
-    const mentions = val(results[1], [] as any[]);
-    const totalMentions = val(results[2], 0 as number);
-    const statsAgg = val(results[3], {
+    const scanRuns = settledVal(results[0], [] as any[]);
+    const mentions = settledVal(results[1], [] as any[]);
+    const totalMentions = settledVal(results[2], 0 as number);
+    const statsAgg = settledVal(results[3], {
       _count: 0,
       _avg: { promotionScore: null },
     } as any);
-    const promotionalCount = val(results[4], 0 as number);
-    const uniqueTickers = val(results[5], [] as any[]);
-    const platformBreakdown = val(results[6], [] as any[]);
+    const promotionalCount = settledVal(results[4], 0 as number);
+    const uniqueTickers = settledVal(results[5], [] as any[]);
+    const platformBreakdown = settledVal(results[6], [] as any[]);
 
     return NextResponse.json({
       definitions: {
