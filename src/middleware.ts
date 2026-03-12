@@ -11,19 +11,25 @@ const { auth } = NextAuth(authConfig);
  * 2. Uses NextAuth session auth for web requests
  */
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": process.env.MOBILE_APP_ORIGIN || "https://scamdunk.com",
+  "Access-Control-Allow-Origin":
+    process.env.MOBILE_APP_ORIGIN || "https://scamdunk.com",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Max-Age": "86400",
 };
 
 function isMobileApiRoute(pathname: string): boolean {
-  return pathname.startsWith("/api/auth/mobile") || pathname.startsWith("/api/check");
+  return (
+    pathname.startsWith("/api/auth/mobile") || pathname.startsWith("/api/check")
+  );
 }
 
 export default async function middleware(request: NextRequest) {
   // Handle CORS preflight for mobile API routes
-  if (request.method === "OPTIONS" && isMobileApiRoute(request.nextUrl.pathname)) {
+  if (
+    request.method === "OPTIONS" &&
+    isMobileApiRoute(request.nextUrl.pathname)
+  ) {
     return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
   }
 
@@ -33,13 +39,40 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Admin routes use their own cookie-based auth system (not NextAuth).
+  // Allow admin auth routes through (login, setup, init, preview-login).
+  // Other admin routes are validated at the handler level via getAdminSession().
+  if (request.nextUrl.pathname.startsWith("/api/admin/")) {
+    const adminAuthPaths = [
+      "/api/admin/auth/login",
+      "/api/admin/auth/logout",
+      "/api/admin/auth/session",
+      "/api/admin/auth/preview-login",
+      "/api/admin/init",
+      "/api/admin/setup",
+    ];
+    if (adminAuthPaths.includes(request.nextUrl.pathname)) {
+      return NextResponse.next();
+    }
+    // For other admin routes, verify admin_session_token cookie exists
+    // (full validation happens in getAdminSession() at the handler level)
+    const adminToken = request.cookies.get("admin_session_token")?.value;
+    if (!adminToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
+
   // Check if request has a Bearer token (mobile app)
   const authHeader = request.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const isMobile = isMobileApiRoute(request.nextUrl.pathname);
     const corsHeaders = isMobile ? CORS_HEADERS : undefined;
     const unauthorized = () =>
-      NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+      NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: corsHeaders },
+      );
 
     const token = authHeader.slice(7);
     const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
@@ -47,13 +80,18 @@ export default async function middleware(request: NextRequest) {
       return unauthorized();
     }
     try {
-      const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+      const { payload } = await jwtVerify(
+        token,
+        new TextEncoder().encode(secret),
+      );
       if (payload.type !== "access") {
         return unauthorized();
       }
       const response = NextResponse.next();
       if (corsHeaders) {
-        Object.entries(corsHeaders).forEach(([key, value]) => response.headers.set(key, value));
+        Object.entries(corsHeaders).forEach(([key, value]) =>
+          response.headers.set(key, value),
+        );
       }
       return response;
     } catch {
@@ -62,7 +100,9 @@ export default async function middleware(request: NextRequest) {
   }
 
   // For web requests, use NextAuth session auth
-  return (auth as unknown as (req: NextRequest) => Promise<NextResponse>)(request);
+  return (auth as unknown as (req: NextRequest) => Promise<NextResponse>)(
+    request,
+  );
 }
 
 export const config = {
@@ -74,5 +114,7 @@ export const config = {
     "/api/check/:path*",
     "/api/billing/:path*",
     "/api/user/:path*",
+    // Admin API routes (defense-in-depth — individual routes also check auth)
+    "/api/admin/:path*",
   ],
 };
