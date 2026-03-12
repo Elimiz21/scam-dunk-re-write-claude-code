@@ -2,20 +2,26 @@
  * Admin Single User API - Get detailed user information
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import {
+  apiSuccess,
+  apiError,
+  apiUnauthorized,
+  apiNotFound,
+} from "@/lib/api-response";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const userId = params.id;
@@ -36,7 +42,7 @@ export async function GET(
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return apiNotFound("User not found");
     }
 
     // Get scan history for this user
@@ -55,19 +61,22 @@ export async function GET(
 
     // Calculate stats
     const totalScans = user.scanUsages.reduce((sum, u) => sum + u.scanCount, 0);
-    const avgScansPerMonth = user.scanUsages.length > 0
-      ? Math.round(totalScans / user.scanUsages.length)
-      : 0;
+    const avgScansPerMonth =
+      user.scanUsages.length > 0
+        ? Math.round(totalScans / user.scanUsages.length)
+        : 0;
 
     // Get current month usage
     const now = new Date();
     const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const currentMonthUsage = user.scanUsages.find((u) => u.monthKey === currentMonthKey);
+    const currentMonthUsage = user.scanUsages.find(
+      (u) => u.monthKey === currentMonthKey,
+    );
 
     // Determine scan limit based on plan
     const scanLimit = user.plan === "PAID" ? 200 : 5;
 
-    return NextResponse.json({
+    return apiSuccess({
       user: {
         id: user.id,
         email: user.email,
@@ -95,9 +104,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Get user details error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch user details" },
-      { status: 500 }
-    );
+    return apiError("Failed to fetch user details");
   }
 }

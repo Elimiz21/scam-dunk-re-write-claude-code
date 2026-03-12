@@ -5,9 +5,9 @@
  * to show detailed pipeline execution status on the admin dashboard.
  */
 
-import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { getSupabaseClient, EVALUATION_BUCKET } from "@/lib/supabase";
+import { apiSuccess, apiError, apiUnauthorized } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,9 @@ function buildSchemeSummary(summary: any = {}) {
   const newSchemes = Number(summary.newSchemes || 0);
   const ongoingSchemes = Number(summary.ongoingSchemes || 0);
   const totalActiveSchemes = Number(
-    summary.totalActiveSchemes ?? summary.activeSchemes ?? (newSchemes + ongoingSchemes)
+    summary.totalActiveSchemes ??
+      summary.activeSchemes ??
+      newSchemes + ongoingSchemes,
   );
 
   return {
@@ -28,16 +30,17 @@ function buildSchemeSummary(summary: any = {}) {
 
 const metricDefinitions = {
   newSchemes: "Schemes first detected on this selected scan date.",
-  ongoingSchemes: "Previously detected schemes that remain active in this scan.",
-  totalActiveSchemes: "All active schemes for the scan date (NEW + ONGOING + COOLING statuses).",
+  ongoingSchemes:
+    "Previously detected schemes that remain active in this scan.",
+  totalActiveSchemes:
+    "All active schemes for the scan date (NEW + ONGOING + COOLING statuses).",
 };
-
 
 export async function GET(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const { searchParams } = new URL(request.url);
@@ -56,7 +59,7 @@ export async function GET(request: Request) {
 
     if (statusListError) {
       console.error("Error listing scan-status files:", statusListError);
-      return NextResponse.json({
+      return apiSuccess({
         available: false,
         error: "Could not list scan status files from storage",
       });
@@ -99,7 +102,7 @@ export async function GET(request: Request) {
 
     const scanStatus = JSON.parse(await fileData.text());
 
-    return NextResponse.json({
+    return apiSuccess({
       available: true,
       source: "scan-status",
       ...scanStatus,
@@ -109,10 +112,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Scan status error:", error);
-    return NextResponse.json(
-      { available: false, error: "Failed to fetch scan status" },
-      { status: 500 }
-    );
+    return apiError("Failed to fetch scan status");
   }
 }
 
@@ -120,7 +120,7 @@ export async function GET(request: Request) {
 async function fallbackToDailyReport(
   supabase: ReturnType<typeof getSupabaseClient>,
   requestedDate?: string | null,
-  existingHistory?: Array<{ date: string; filename: string }>
+  existingHistory?: Array<{ date: string; filename: string }>,
 ) {
   const { data: reportFiles } = await supabase.storage
     .from(EVALUATION_BUCKET)
@@ -131,9 +131,10 @@ async function fallbackToDailyReport(
     });
 
   if (!reportFiles || reportFiles.length === 0) {
-    return NextResponse.json({
+    return apiSuccess({
       available: false,
-      error: "No scan status or daily report files found. The pipeline may not have run yet.",
+      error:
+        "No scan status or daily report files found. The pipeline may not have run yet.",
       history: existingHistory || [],
     });
   }
@@ -145,13 +146,15 @@ async function fallbackToDailyReport(
     if (match) {
       targetFile = match;
     } else {
-      return NextResponse.json({
+      return apiSuccess({
         available: false,
         error: `No scan data found for ${requestedDate}`,
-        history: existingHistory || reportFiles.map((f) => {
-          const m = f.name.match(/daily-report-(\d{4}-\d{2}-\d{2})/);
-          return { date: m ? m[1] : "unknown", filename: f.name };
-        }),
+        history:
+          existingHistory ||
+          reportFiles.map((f) => {
+            const m = f.name.match(/daily-report-(\d{4}-\d{2}-\d{2})/);
+            return { date: m ? m[1] : "unknown", filename: f.name };
+          }),
       });
     }
   }
@@ -161,7 +164,7 @@ async function fallbackToDailyReport(
     .download(targetFile.name);
 
   if (!fileData) {
-    return NextResponse.json({
+    return apiSuccess({
       available: false,
       error: "Could not download daily report",
     });
@@ -185,7 +188,7 @@ async function fallbackToDailyReport(
   }
   combinedHistory.sort((a, b) => b.date.localeCompare(a.date));
 
-  return NextResponse.json({
+  return apiSuccess({
     available: true,
     source: "daily-report",
     date: dateMatch ? dateMatch[1] : report.date,
@@ -193,7 +196,12 @@ async function fallbackToDailyReport(
     summary: buildSchemeSummary({
       totalStocks: report.totalStocksScanned || 0,
       processed: report.totalStocksScanned || 0,
-      riskCounts: report.byRiskLevel || { LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 },
+      riskCounts: report.byRiskLevel || {
+        LOW: 0,
+        MEDIUM: 0,
+        HIGH: 0,
+        INSUFFICIENT: 0,
+      },
       highRiskBeforeFilters: report.highRiskBeforeFilters || 0,
       filteredByMarketCap: report.filteredByMarketCap || 0,
       filteredByVolume: report.filteredByVolume || 0,

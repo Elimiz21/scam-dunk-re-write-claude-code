@@ -2,12 +2,22 @@
  * Admin Team Invite API
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { getAdminSession, createAdminInvite, acceptAdminInvite } from "@/lib/admin/auth";
+import { NextRequest } from "next/server";
+import {
+  getAdminSession,
+  createAdminInvite,
+  acceptAdminInvite,
+} from "@/lib/admin/auth";
 import { sendAdminInviteEmail } from "@/lib/email";
 import { z } from "zod";
+import {
+  apiSuccess,
+  apiError,
+  apiBadRequest,
+  apiUnauthorized,
+} from "@/lib/api-response";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const inviteSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -24,23 +34,24 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiUnauthorized();
     }
 
     const body = await request.json();
     const validation = inviteSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.errors[0].message },
-        { status: 400 }
-      );
+      return apiBadRequest(validation.error.errors[0].message);
     }
 
-    const result = await createAdminInvite(session, validation.data.email, validation.data.role);
+    const result = await createAdminInvite(
+      session,
+      validation.data.email,
+      validation.data.role,
+    );
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return apiBadRequest(result.error || "Failed to create invite");
     }
 
     // Generate invite URL
@@ -54,13 +65,13 @@ export async function POST(request: NextRequest) {
         validation.data.email,
         inviteUrl,
         validation.data.role,
-        session.name || undefined
+        session.name || undefined,
       );
     } catch (emailError) {
       console.error("Failed to send invite email:", emailError);
     }
 
-    return NextResponse.json({
+    return apiSuccess({
       success: true,
       inviteUrl,
       token: result.token,
@@ -68,10 +79,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Create invite error:", error);
-    return NextResponse.json(
-      { error: "Failed to create invite" },
-      { status: 500 }
-    );
+    return apiError("Failed to create invite");
   }
 }
 
@@ -82,28 +90,22 @@ export async function PUT(request: NextRequest) {
     const validation = acceptSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.errors[0].message },
-        { status: 400 }
-      );
+      return apiBadRequest(validation.error.errors[0].message);
     }
 
     const result = await acceptAdminInvite(
       validation.data.token,
       validation.data.name,
-      validation.data.password
+      validation.data.password,
     );
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return apiBadRequest(result.error || "Failed to accept invite");
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess({ success: true });
   } catch (error) {
     console.error("Accept invite error:", error);
-    return NextResponse.json(
-      { error: "Failed to accept invite" },
-      { status: 500 }
-    );
+    return apiError("Failed to accept invite");
   }
 }
