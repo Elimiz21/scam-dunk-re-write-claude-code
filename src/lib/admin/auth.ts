@@ -28,7 +28,10 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Verify a password against a hash
  */
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hashedPassword: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword);
 }
 
@@ -40,13 +43,22 @@ function generateSessionToken(): string {
 }
 
 /**
+ * Hash a session token for storage (SHA-256).
+ * The raw token is sent to the client as a cookie; only the hash is stored in the DB.
+ * This way, a database breach does not expose usable session tokens.
+ */
+function hashSessionToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/**
  * Login an admin user
  */
 export async function adminLogin(
   email: string,
   password: string,
   ipAddress?: string,
-  userAgent?: string
+  userAgent?: string,
 ): Promise<{ success: boolean; error?: string; admin?: AdminSessionData }> {
   try {
     const adminUser = await prisma.adminUser.findUnique({
@@ -66,15 +78,16 @@ export async function adminLogin(
       return { success: false, error: "Invalid credentials" };
     }
 
-    // Create session
+    // Create session — store only the hash in the DB
     const token = generateSessionToken();
+    const tokenHash = hashSessionToken(token);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
 
     await prisma.adminSession.create({
       data: {
         adminUserId: adminUser.id,
-        token,
+        token: tokenHash,
         expiresAt,
         ipAddress,
         userAgent,
@@ -97,16 +110,23 @@ export async function adminLogin(
       },
     });
 
-    // Set cookie
+    // Set cookie scoped to admin and admin API paths
     const cookieStore = await cookies();
-    // Path remains "/" because admin pages make client-side fetches to /api/admin/*
-    // which doesn't match a /admin path prefix. SameSite strict prevents cross-site leakage.
-    cookieStore.set(ADMIN_SESSION_COOKIE, token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "strict" as const,
       expires: expiresAt,
-      path: "/",
+    };
+    // Set cookie for admin pages
+    cookieStore.set(ADMIN_SESSION_COOKIE, token, {
+      ...cookieOptions,
+      path: "/admin",
+    });
+    // Set same cookie for admin API routes (browser sends based on path match)
+    cookieStore.set(ADMIN_SESSION_COOKIE, token, {
+      ...cookieOptions,
+      path: "/api/admin",
     });
 
     return {
@@ -133,8 +153,9 @@ export async function adminLogout(): Promise<void> {
     const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
 
     if (token) {
+      const tokenHash = hashSessionToken(token);
       const session = await prisma.adminSession.findUnique({
-        where: { token },
+        where: { token: tokenHash },
       });
 
       if (session) {
@@ -146,7 +167,7 @@ export async function adminLogout(): Promise<void> {
         });
 
         await prisma.adminSession.delete({
-          where: { token },
+          where: { token: tokenHash },
         });
       }
     }
@@ -169,8 +190,9 @@ export async function getAdminSession(): Promise<AdminSessionData | null> {
       return null;
     }
 
+    const tokenHash = hashSessionToken(token);
     const session = await prisma.adminSession.findUnique({
-      where: { token },
+      where: { token: tokenHash },
       include: { adminUser: true },
     });
 
@@ -179,12 +201,12 @@ export async function getAdminSession(): Promise<AdminSessionData | null> {
     }
 
     if (new Date() > session.expiresAt) {
-      await prisma.adminSession.delete({ where: { token } });
+      await prisma.adminSession.delete({ where: { token: tokenHash } });
       return null;
     }
 
     if (!session.adminUser.isActive) {
-      await prisma.adminSession.delete({ where: { token } });
+      await prisma.adminSession.delete({ where: { token: tokenHash } });
       return null;
     }
 
@@ -214,7 +236,10 @@ export async function requireAdminAuth(): Promise<AdminSessionData> {
 /**
  * Check if admin has specific role
  */
-export function hasRole(session: AdminSessionData, allowedRoles: string[]): boolean {
+export function hasRole(
+  session: AdminSessionData,
+  allowedRoles: string[],
+): boolean {
   return allowedRoles.includes(session.role);
 }
 
@@ -224,7 +249,7 @@ export function hasRole(session: AdminSessionData, allowedRoles: string[]): bool
 export async function createAdminInvite(
   inviterSession: AdminSessionData,
   email: string,
-  role: string = "ADMIN"
+  role: string = "ADMIN",
 ): Promise<{ success: boolean; token?: string; error?: string }> {
   try {
     // Only OWNER can invite
@@ -292,7 +317,7 @@ export async function createAdminInvite(
 export async function acceptAdminInvite(
   token: string,
   name: string,
-  password: string
+  password: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const invite = await prisma.adminInvite.findUnique({
@@ -343,7 +368,7 @@ export async function acceptAdminInvite(
 export async function createOwnerAdmin(
   email: string,
   password: string,
-  name?: string
+  name?: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Check if any admin exists

@@ -5,6 +5,7 @@ This document explains how to set up and configure PayPal subscription payments 
 ## Overview
 
 The app uses PayPal Subscriptions API to handle recurring monthly payments for the Pro plan ($9/month). Users can subscribe via PayPal buttons on:
+
 - The account page
 - The limit reached message (when free checks are exhausted)
 
@@ -29,6 +30,7 @@ The app uses PayPal Subscriptions API to handle recurring monthly payments for t
 **Important:** Subscription plans are created in your regular PayPal Business account, NOT the Developer Dashboard.
 
 #### For Sandbox Testing:
+
 1. Go to [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/)
 2. Click on "Sandbox" in the left menu
 3. Click "Accounts" to see your sandbox accounts
@@ -98,6 +100,7 @@ curl -v -X POST https://api-m.sandbox.paypal.com/v1/billing/plans \
 The response will contain your Plan ID (starts with `P-`).
 
 #### For Live/Production:
+
 1. Go to [PayPal.com](https://www.paypal.com/) and log into your **Business account**
 2. Click on "Settings" (gear icon) → "Products & Services"
 3. Under "Products & Services", look for "Subscriptions" or "Recurring Payments"
@@ -142,6 +145,7 @@ PAYPAL_MODE="sandbox"  # Use "live" for production
 ```
 
 **Important**:
+
 - Use **sandbox** credentials for testing
 - Switch to **live** credentials and set `PAYPAL_MODE="live"` when going to production
 
@@ -214,11 +218,13 @@ src/
 ## Subscription Management
 
 Users can manage their PayPal subscriptions by:
+
 1. Logging into their PayPal account
 2. Going to Settings > Payments > Manage automatic payments
 3. Finding "ScamDunk Pro" and clicking "Cancel" or "Update"
 
 When users cancel:
+
 - PayPal sends a webhook to your app
 - Your app automatically downgrades them to FREE plan
 - They retain access until the end of their billing period
@@ -226,22 +232,26 @@ When users cancel:
 ## Troubleshooting
 
 ### PayPal button doesn't appear
+
 - Check browser console for errors
 - Verify `PAYPAL_CLIENT_ID` and `PAYPAL_PLAN_ID` are set correctly
 - Ensure `/api/billing/paypal/config` returns valid configuration
 
 ### Subscription created but user not upgraded
+
 - Check server logs for errors in `/api/billing/paypal/activate`
 - Verify PayPal API credentials are correct
 - Ensure subscription status is "ACTIVE" or "APPROVED"
 
 ### Webhooks not being received
+
 - Verify webhook URL is publicly accessible (use ngrok for local testing)
 - Check PayPal Developer Dashboard > Webhooks > Events to see delivery status
 - Ensure webhook URL uses HTTPS in production
 - Check server logs for webhook processing errors
 
 ### Users downgraded unexpectedly
+
 - Check webhook events in PayPal Dashboard
 - Verify subscription is still active in PayPal
 - Check for failed payments in PayPal account
@@ -269,6 +279,7 @@ Before launching with live payments:
 ## Support
 
 For PayPal-related issues:
+
 - [PayPal Developer Documentation](https://developer.paypal.com/docs/subscriptions/)
 - [PayPal Developer Support](https://developer.paypal.com/support/)
 - PayPal Developer Forums

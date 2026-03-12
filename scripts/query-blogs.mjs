@@ -1,4 +1,4 @@
-const { PrismaClient } = await import('@prisma/client');
+const { PrismaClient } = await import("@prisma/client");
 
 const prisma = new PrismaClient();
 
@@ -11,14 +11,14 @@ try {
       slug: true,
       coverImage: true,
       category: true,
-      publishedAt: true
+      publishedAt: true,
     },
-    orderBy: { publishedAt: 'desc' }
+    orderBy: { publishedAt: "desc" },
   });
-  
+
   console.log(JSON.stringify(posts, null, 2));
 } catch (error) {
-  console.error('Error:', error.message);
+  console.error("Error:", error.message);
 } finally {
   await prisma.$disconnect();
 }

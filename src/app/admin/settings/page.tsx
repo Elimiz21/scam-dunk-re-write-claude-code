@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { Eye, EyeOff, Loader2, CheckCircle, KeyRound, Mail } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  CheckCircle,
+  KeyRound,
+  Mail,
+} from "lucide-react";
 
 interface AdminSession {
   id: string;
@@ -117,7 +124,9 @@ export default function SettingsPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setEmailSuccess("Email changed successfully. You may need to log in again with your new email.");
+        setEmailSuccess(
+          "Email changed successfully. You may need to log in again with your new email.",
+        );
         setNewEmail("");
         setEmailPassword("");
         fetchSession(); // Refresh session display
@@ -146,7 +155,9 @@ export default function SettingsPage() {
         {/* Current Account Info */}
         {session && (
           <div className="bg-card rounded-2xl shadow px-6 py-4">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Current Account</h2>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+              Current Account
+            </h2>
             <div className="mt-2 flex items-center space-x-4">
               <div className="h-10 w-10 rounded-full gradient-brand flex items-center justify-center">
                 <span className="text-white font-medium">
@@ -154,7 +165,9 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">{session.name || "No name set"}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {session.name || "No name set"}
+                </p>
                 <p className="text-sm text-muted-foreground">{session.email}</p>
               </div>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">

@@ -52,12 +52,16 @@ export async function getScanDates(): Promise<string[]> {
   const files = await getRepoTree();
   const dates: string[] = [];
   for (const f of files) {
-    const m = f.path.match(/evaluation-results\/enhanced-evaluation-(\d{4}-\d{2}-\d{2})\.json/);
+    const m = f.path.match(
+      /evaluation-results\/enhanced-evaluation-(\d{4}-\d{2}-\d{2})\.json/,
+    );
     if (m) dates.push(m[1]);
   }
   // Also check for legacy fmp-evaluation files
   for (const f of files) {
-    const m = f.path.match(/evaluation-results\/fmp-evaluation-(\d{4}-\d{2}-\d{2})\.json/);
+    const m = f.path.match(
+      /evaluation-results\/fmp-evaluation-(\d{4}-\d{2}-\d{2})\.json/,
+    );
     if (m && !dates.includes(m[1])) dates.push(m[1]);
   }
   return dates.sort().reverse();
@@ -87,7 +91,7 @@ export async function fetchSmallFile<T>(path: string): Promise<T | null> {
  */
 export async function fetchLargeFile<T>(
   path: string,
-  maxBytes?: number
+  maxBytes?: number,
 ): Promise<T | null> {
   try {
     const headers: Record<string, string> = {};
@@ -112,7 +116,7 @@ export async function fetchLargeFile<T>(
  */
 export async function fetchPartialArray<T>(
   path: string,
-  maxBytes: number = 500_000
+  maxBytes: number = 500_000,
 ): Promise<T[]> {
   try {
     const res = await fetch(`${RAW_BASE}/${path}`, {
@@ -143,7 +147,12 @@ export async function fetchPartialArray<T>(
 export interface DailyReport {
   date: string;
   totalStocksScanned: number;
-  byRiskLevel: { LOW: number; MEDIUM: number; HIGH: number; INSUFFICIENT: number };
+  byRiskLevel: {
+    LOW: number;
+    MEDIUM: number;
+    HIGH: number;
+    INSUFFICIENT: number;
+  };
   highRiskBeforeFilters: number;
   filteredByMarketCap: number;
   filteredByVolume: number;
@@ -158,8 +167,16 @@ export interface FmpSummary {
   totalStocks: number;
   evaluated: number;
   skippedNoData: number;
-  byRiskLevel: { LOW: number; MEDIUM: number; HIGH: number; INSUFFICIENT: number };
-  byExchange: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number }>;
+  byRiskLevel: {
+    LOW: number;
+    MEDIUM: number;
+    HIGH: number;
+    INSUFFICIENT: number;
+  };
+  byExchange: Record<
+    string,
+    { total: number; LOW: number; MEDIUM: number; HIGH: number }
+  >;
   startTime: string;
   endTime?: string;
   durationMinutes: number;
@@ -257,7 +274,13 @@ export interface SchemeRecord {
   promoterAccounts: PromoterAccount[];
   signalsDetected: string[];
   coordinationIndicators: string[];
-  timeline: { date: string; event: string; category?: string; details?: string; significance?: string }[];
+  timeline: {
+    date: string;
+    event: string;
+    category?: string;
+    details?: string;
+    significance?: string;
+  }[];
   notes: string[];
   investigationFlags: string[];
 }
@@ -269,8 +292,8 @@ export function generateSchemeName(scheme: SchemeRecord): string {
   const platformCount = scheme.promotionPlatforms.length;
   const hasMultiPlatform = platformCount >= 3;
   const hasDump = scheme.priceChangeFromPeak < -20;
-  const isPump = scheme.signalsDetected.some(s =>
-    ["SPIKE_7D", "SPIKE_THEN_DROP", "VOLUME_EXPLOSION"].includes(s)
+  const isPump = scheme.signalsDetected.some((s) =>
+    ["SPIKE_7D", "SPIKE_THEN_DROP", "VOLUME_EXPLOSION"].includes(s),
   );
 
   let type = "Promotion";
@@ -392,7 +415,10 @@ export function getEvalPath(date: string, files: RepoFile[]): string | null {
   return null;
 }
 
-export function getHighRiskPath(date: string, files: RepoFile[]): string | null {
+export function getHighRiskPath(
+  date: string,
+  files: RepoFile[],
+): string | null {
   const enhanced = `evaluation-results/enhanced-high-risk-${date}.json`;
   const legacy = `evaluation-results/fmp-high-risk-${date}.json`;
   if (files.some((f) => f.path === enhanced)) return enhanced;

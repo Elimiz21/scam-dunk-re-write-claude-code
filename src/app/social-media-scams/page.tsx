@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageLayout } from "@/components/PageLayout";
-import { MessageCircle, AlertTriangle, Shield, CheckCircle } from "lucide-react";
+import {
+  MessageCircle,
+  AlertTriangle,
+  Shield,
+  CheckCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/JsonLd";
 
@@ -28,7 +33,8 @@ const articleSchema = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Social Media Investment Scams: How to Protect Yourself",
-  description: "Complete guide to identifying investment scams promoted on social media platforms.",
+  description:
+    "Complete guide to identifying investment scams promoted on social media platforms.",
   datePublished: "2024-01-15T00:00:00Z",
   dateModified: "2026-03-03T00:00:00Z",
   author: {
@@ -42,7 +48,6 @@ export default function SocialMediaScamsPage() {
     <div className="min-h-screen bg-background">
       <JsonLd data={articleSchema} />
       <PageLayout>
-
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
             {/* Hero Section */}
@@ -54,21 +59,28 @@ export default function SocialMediaScamsPage() {
                 Social Media Investment Scams
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Learn how fraudsters use Telegram, Discord, and Reddit to recruit victims into pump-and-dump schemes
-                and other investment fraud.
+                Learn how fraudsters use Telegram, Discord, and Reddit to
+                recruit victims into pump-and-dump schemes and other investment
+                fraud.
               </p>
             </div>
 
             {/* Content Sections */}
             <article className="prose prose-neutral dark:prose-invert max-w-none">
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Telegram Pump-and-Dump Groups</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Telegram Pump-and-Dump Groups
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Telegram is a favorite platform for pump-and-dump coordinators because of its encrypted messaging,
-                  large group sizes, and ease of anonymity. Scammers create "signal groups" to coordinate buys and dumps.
+                  Telegram is a favorite platform for pump-and-dump coordinators
+                  because of its encrypted messaging, large group sizes, and
+                  ease of anonymity. Scammers create "signal groups" to
+                  coordinate buys and dumps.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4">Common Telegram Scam Tactics</h3>
+                  <h3 className="text-xl font-semibold mb-4">
+                    Common Telegram Scam Tactics
+                  </h3>
                   <ul className="space-y-3">
                     {[
                       "Free 'premium' group invitations to build trust",
@@ -88,13 +100,19 @@ export default function SocialMediaScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Discord Servers and Investment Communities</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Discord Servers and Investment Communities
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Discord's server structure enables scammers to create large, organized communities around fraudulent
-                  "investment opportunities." These servers mimic legitimate trading communities.
+                  Discord's server structure enables scammers to create large,
+                  organized communities around fraudulent "investment
+                  opportunities." These servers mimic legitimate trading
+                  communities.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4">Discord Scam Red Flags</h3>
+                  <h3 className="text-xl font-semibold mb-4">
+                    Discord Scam Red Flags
+                  </h3>
                   <ul className="space-y-3">
                     {[
                       "Servers with elaborate branding and fake 'analyst' bios",
@@ -114,13 +132,19 @@ export default function SocialMediaScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Reddit and Discussion Boards</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Reddit and Discussion Boards
+                </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Subreddits like r/wallstreetbets have made Reddit a target for pump-and-dump coordination. Scammers
-                  create fake accounts and post coordinated "due diligence" to drive attention to penny stocks.
+                  Subreddits like r/wallstreetbets have made Reddit a target for
+                  pump-and-dump coordination. Scammers create fake accounts and
+                  post coordinated "due diligence" to drive attention to penny
+                  stocks.
                 </p>
                 <div className="bg-warning/10 border border-warning/20 rounded-xl p-6 mb-6">
-                  <h3 className="text-lg font-semibold mb-4">How Scammers Use Reddit</h3>
+                  <h3 className="text-lg font-semibold mb-4">
+                    How Scammers Use Reddit
+                  </h3>
                   <ul className="space-y-2 text-sm">
                     {[
                       "Buying established Reddit accounts to appear legitimate",
@@ -139,7 +163,9 @@ export default function SocialMediaScamsPage() {
               </section>
 
               <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">Protection Strategies</h2>
+                <h2 className="text-3xl font-bold mb-6">
+                  Protection Strategies
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div className="card-elevated rounded-lg p-6">
                     <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
@@ -186,8 +212,9 @@ export default function SocialMediaScamsPage() {
               <section className="mb-12">
                 <h2 className="text-3xl font-bold mb-6">How ScamDunk Helps</h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  ScamDunk analyzes any stock to identify pump-and-dump characteristics, unusual trading patterns, and
-                  manipulation signals—regardless of where you heard about it.
+                  ScamDunk analyzes any stock to identify pump-and-dump
+                  characteristics, unusual trading patterns, and manipulation
+                  signals—regardless of where you heard about it.
                 </p>
                 <Link href="/">
                   <Button size="lg" className="gap-2">
@@ -204,15 +231,20 @@ export default function SocialMediaScamsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Link href="/investment-scams">
                   <div className="card-interactive rounded-lg p-6 h-full hover:shadow-lg transition-shadow cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2">Types of Investment Fraud</h3>
+                    <h3 className="font-semibold text-lg mb-2">
+                      Types of Investment Fraud
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      Comprehensive guide to pump-and-dump schemes, penny stocks, and cold calling.
+                      Comprehensive guide to pump-and-dump schemes, penny
+                      stocks, and cold calling.
                     </p>
                   </div>
                 </Link>
                 <Link href="/how-to-detect-stock-scams">
                   <div className="card-interactive rounded-lg p-6 h-full hover:shadow-lg transition-shadow cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2">How to Detect Stock Scams</h3>
+                    <h3 className="font-semibold text-lg mb-2">
+                      How to Detect Stock Scams
+                    </h3>
                     <p className="text-sm text-muted-foreground">
                       Step-by-step guide to identifying manipulation patterns.
                     </p>
@@ -223,10 +255,13 @@ export default function SocialMediaScamsPage() {
 
             {/* CTA Section */}
             <section className="mt-12 gradient-mesh rounded-2xl p-8 md:p-12 text-center">
-              <h2 className="text-3xl font-bold mb-4">Never Fall for a Social Media Scam Again</h2>
+              <h2 className="text-3xl font-bold mb-4">
+                Never Fall for a Social Media Scam Again
+              </h2>
               <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-                Before buying any stock mentioned on social media, run it through ScamDunk to check for pump-and-dump
-                signals and market manipulation.
+                Before buying any stock mentioned on social media, run it
+                through ScamDunk to check for pump-and-dump signals and market
+                manipulation.
               </p>
               <Link href="/">
                 <Button size="lg" className="gap-2">

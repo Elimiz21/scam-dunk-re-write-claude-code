@@ -52,7 +52,7 @@ interface AppleReceiptResponse {
  */
 async function validateWithApple(
   receiptData: string,
-  useSandbox: boolean = false
+  useSandbox: boolean = false,
 ): Promise<AppleReceiptResponse> {
   const url = useSandbox ? APPLE_SANDBOX_URL : APPLE_PRODUCTION_URL;
 
@@ -84,10 +84,7 @@ export async function POST(request: NextRequest) {
     const userId = await authenticateMobileRequest(request);
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -96,7 +93,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -107,7 +104,7 @@ export async function POST(request: NextRequest) {
       console.error("APPLE_SHARED_SECRET not configured");
       return NextResponse.json(
         { error: "Apple IAP not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -128,7 +125,7 @@ export async function POST(request: NextRequest) {
           valid: false,
           error: `Receipt validation failed (status: ${appleResponse.status})`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -139,7 +136,7 @@ export async function POST(request: NextRequest) {
     // Find active subscription
     const allPurchases = [...latestReceipts, ...inAppPurchases];
     const activeSubscription = allPurchases.find((purchase) =>
-      isSubscriptionActive(purchase.expires_date_ms)
+      isSubscriptionActive(purchase.expires_date_ms),
     );
 
     if (!activeSubscription) {
@@ -169,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     // Log the successful validation
     console.log(
-      `Apple IAP validated for user ${userId}: ${activeSubscription.product_id}`
+      `Apple IAP validated for user ${userId}: ${activeSubscription.product_id}`,
     );
 
     return NextResponse.json({
@@ -184,7 +181,7 @@ export async function POST(request: NextRequest) {
     console.error("Apple IAP validation error:", error);
     return NextResponse.json(
       { error: "Receipt validation failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

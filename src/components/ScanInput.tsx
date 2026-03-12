@@ -53,7 +53,13 @@ const STOCK_TICKER_PATTERN = /^[A-Z]{1,5}$/;
 const CRYPTO_TICKER_PATTERN = /^[A-Z]{2,10}$/;
 
 // Accepted file types
-const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
+const ACCEPTED_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/gif",
+  "image/webp",
+];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 5;
 
@@ -100,7 +106,8 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
       return "Please enter a ticker symbol";
     }
 
-    const pattern = assetType === "stock" ? STOCK_TICKER_PATTERN : CRYPTO_TICKER_PATTERN;
+    const pattern =
+      assetType === "stock" ? STOCK_TICKER_PATTERN : CRYPTO_TICKER_PATTERN;
     if (!pattern.test(value.trim().toUpperCase())) {
       if (assetType === "stock") {
         return "Invalid ticker format. Stock tickers are 1-5 letters (e.g., AAPL, TSLA)";
@@ -136,7 +143,8 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
       ticker: ticker.trim().toUpperCase(),
       assetType,
       pitchText: chatText.trim() || undefined,
-      chatImages: uploadedFiles.length > 0 ? uploadedFiles.map((f) => f.file) : undefined,
+      chatImages:
+        uploadedFiles.length > 0 ? uploadedFiles.map((f) => f.file) : undefined,
       context: Object.values(context).some(Boolean) ? context : undefined,
     });
   };
@@ -169,25 +177,29 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
     const newFiles: UploadedFile[] = [];
     const errors: string[] = [];
 
-    Array.from(files).slice(0, remainingSlots).forEach((file) => {
-      // Validate file type
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        errors.push(`${file.name}: Invalid file type. Only images are supported.`);
-        return;
-      }
+    Array.from(files)
+      .slice(0, remainingSlots)
+      .forEach((file) => {
+        // Validate file type
+        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+          errors.push(
+            `${file.name}: Invalid file type. Only images are supported.`,
+          );
+          return;
+        }
 
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
-        errors.push(`${file.name}: File too large. Maximum size is 10MB.`);
-        return;
-      }
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+          errors.push(`${file.name}: File too large. Maximum size is 10MB.`);
+          return;
+        }
 
-      newFiles.push({
-        file,
-        preview: URL.createObjectURL(file),
-        type: "image",
+        newFiles.push({
+          file,
+          preview: URL.createObjectURL(file),
+          type: "image",
+        });
       });
-    });
 
     if (errors.length > 0) {
       addToast({
@@ -299,25 +311,29 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
     const newFiles: UploadedFile[] = [];
     const errors: string[] = [];
 
-    Array.from(files).slice(0, remainingSlots).forEach((file) => {
-      // Validate file type
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        errors.push(`${file.name}: Invalid file type. Only images are supported.`);
-        return;
-      }
+    Array.from(files)
+      .slice(0, remainingSlots)
+      .forEach((file) => {
+        // Validate file type
+        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+          errors.push(
+            `${file.name}: Invalid file type. Only images are supported.`,
+          );
+          return;
+        }
 
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
-        errors.push(`${file.name}: File too large. Maximum size is 10MB.`);
-        return;
-      }
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+          errors.push(`${file.name}: File too large. Maximum size is 10MB.`);
+          return;
+        }
 
-      newFiles.push({
-        file,
-        preview: URL.createObjectURL(file),
-        type: "image",
+        newFiles.push({
+          file,
+          preview: URL.createObjectURL(file),
+          type: "image",
+        });
       });
-    });
 
     if (errors.length > 0) {
       addToast({
@@ -382,7 +398,9 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
             <div className="mb-4 p-4 rounded-2xl bg-primary/10 w-fit mx-auto">
               <Upload className="h-12 w-12 text-primary" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Drop your screenshots here</h3>
+            <h3 className="text-xl font-semibold mb-2">
+              Drop your screenshots here
+            </h3>
             <p className="text-muted-foreground text-sm">
               We&apos;ll analyze them for scam red flags
             </p>
@@ -478,7 +496,9 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               placeholder="Paste the chat or message you received about this investment. You can also upload screenshots above..."
               className={cn(
                 "w-full min-h-[120px] p-4 bg-card border border-border resize-none focus:outline-none focus:ring-2 focus:ring-ring text-sm",
-                uploadedFiles.length > 0 ? "border-t-0 rounded-b-2xl" : "border-t-0 rounded-b-2xl"
+                uploadedFiles.length > 0
+                  ? "border-t-0 rounded-b-2xl"
+                  : "border-t-0 rounded-b-2xl",
               )}
               disabled={isLoading || disabled}
               aria-label="Chat text content"
@@ -528,12 +548,16 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               {uploadedFiles.length > 0 && (
                 <div className="flex items-center gap-1 mb-1">
                   <ImageIcon className="h-3 w-3" />
-                  <span className="text-xs">{uploadedFiles.length} screenshot{uploadedFiles.length > 1 ? "s" : ""}</span>
+                  <span className="text-xs">
+                    {uploadedFiles.length} screenshot
+                    {uploadedFiles.length > 1 ? "s" : ""}
+                  </span>
                 </div>
               )}
               {chatText.trim() && (
                 <span className="truncate block">
-                  &ldquo;{chatText.slice(0, 50)}{chatText.length > 50 ? "..." : ""}&rdquo;
+                  &ldquo;{chatText.slice(0, 50)}
+                  {chatText.length > 50 ? "..." : ""}&rdquo;
                 </span>
               )}
             </div>
@@ -563,7 +587,8 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               <p className="text-sm font-medium">Red Flag Indicators</p>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              Select any that apply to how you received this investment tip. These factors increase the risk score.
+              Select any that apply to how you received this investment tip.
+              These factors increase the risk score.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {Object.entries(contextLabels).map(([key, label]) => (
@@ -575,7 +600,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                     "flex items-start gap-3 p-3 rounded-xl text-left transition-smooth",
                     context[key as keyof typeof context]
                       ? "bg-primary text-primary-foreground"
-                      : "bg-secondary hover:bg-secondary/80"
+                      : "bg-secondary hover:bg-secondary/80",
                   )}
                   disabled={isLoading || disabled}
                   aria-pressed={context[key as keyof typeof context]}
@@ -586,7 +611,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                       "h-5 w-5 rounded border flex items-center justify-center flex-shrink-0 mt-0.5",
                       context[key as keyof typeof context]
                         ? "bg-primary-foreground border-primary-foreground"
-                        : "border-muted-foreground"
+                        : "border-muted-foreground",
                     )}
                   >
                     {context[key as keyof typeof context] && (
@@ -595,13 +620,19 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                   </div>
                   <div>
                     <span className="text-sm font-medium">{label}</span>
-                    <p className={cn(
-                      "text-xs mt-0.5",
-                      context[key as keyof typeof context]
-                        ? "text-primary-foreground/80"
-                        : "text-muted-foreground"
-                    )}>
-                      {contextDescriptions[key as keyof typeof contextDescriptions]}
+                    <p
+                      className={cn(
+                        "text-xs mt-0.5",
+                        context[key as keyof typeof context]
+                          ? "text-primary-foreground/80"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {
+                        contextDescriptions[
+                          key as keyof typeof contextDescriptions
+                        ]
+                      }
                     </p>
                   </div>
                 </button>
@@ -615,14 +646,15 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                   <Info className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-orange-800 dark:text-orange-200">
                     <p className="font-medium mb-1">
-                      {activeContextCount} warning sign{activeContextCount > 1 ? "s" : ""} detected
+                      {activeContextCount} warning sign
+                      {activeContextCount > 1 ? "s" : ""} detected
                     </p>
                     <p>
                       {activeContextCount >= 3
                         ? "Multiple red flags suggest this could be a scam. Proceed with extreme caution."
                         : activeContextCount >= 2
-                        ? "These are common tactics used in pump-and-dump schemes. Be very careful."
-                        : "This is a potential warning sign. The analysis will factor this in."}
+                          ? "These are common tactics used in pump-and-dump schemes. Be very careful."
+                          : "This is a potential warning sign. The analysis will factor this in."}
                     </p>
                   </div>
                 </div>
@@ -630,11 +662,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
             )}
 
             <div className="flex justify-end mt-4">
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleContextDone}
-              >
+              <Button type="button" size="sm" onClick={handleContextDone}>
                 Done
               </Button>
             </div>
@@ -653,7 +681,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                 onClick={() => setShowTypeDropdown(!showTypeDropdown)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-smooth",
-                  "bg-secondary hover:bg-secondary/80"
+                  "bg-secondary hover:bg-secondary/80",
                 )}
                 disabled={isLoading || disabled}
                 aria-haspopup="listbox"
@@ -692,7 +720,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                         "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-smooth",
                         assetType === "stock"
                           ? "bg-secondary"
-                          : "hover:bg-secondary"
+                          : "hover:bg-secondary",
                       )}
                       role="option"
                       aria-selected={assetType === "stock"}
@@ -711,7 +739,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                         "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-smooth",
                         assetType === "crypto"
                           ? "bg-secondary"
-                          : "hover:bg-secondary"
+                          : "hover:bg-secondary",
                       )}
                       role="option"
                       aria-selected={assetType === "crypto"}
@@ -738,7 +766,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               }
               className={cn(
                 "flex-1 bg-transparent border-none outline-none text-sm px-2 py-2 placeholder:text-muted-foreground",
-                validationError && "text-destructive"
+                validationError && "text-destructive",
               )}
               disabled={isLoading || disabled}
               maxLength={10}
@@ -790,7 +818,8 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                 className={cn(
                   "gap-1.5 rounded-xl text-xs relative",
                   "feature-highlight",
-                  (showChatInput || chatAdded) && "text-primary bg-primary/15 border-primary/30"
+                  (showChatInput || chatAdded) &&
+                    "text-primary bg-primary/15 border-primary/30",
                 )}
                 disabled={isLoading || disabled}
                 aria-label="Add chat or message"
@@ -799,9 +828,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                 <MessageSquare className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Add Chat</span>
                 <Sparkles className="h-3 w-3 text-blue-500 hidden sm:block" />
-                {chatAdded && (
-                  <Check className="h-3 w-3 text-green-500" />
-                )}
+                {chatAdded && <Check className="h-3 w-3 text-green-500" />}
               </Button>
             </FeatureTooltip>
 
@@ -823,10 +850,13 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                 className={cn(
                   "gap-1.5 rounded-xl text-xs relative",
                   "feature-highlight",
-                  uploadedFiles.length > 0 && "text-primary bg-primary/15 border-primary/30"
+                  uploadedFiles.length > 0 &&
+                    "text-primary bg-primary/15 border-primary/30",
                 )}
                 onClick={handleUploadClick}
-                disabled={isLoading || disabled || uploadedFiles.length >= MAX_FILES}
+                disabled={
+                  isLoading || disabled || uploadedFiles.length >= MAX_FILES
+                }
                 aria-label="Upload screenshot - drag and drop supported"
               >
                 <Upload className="h-3.5 w-3.5" />
@@ -851,7 +881,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               onClick={() => setShowContextFlags(!showContextFlags)}
               className={cn(
                 "gap-1.5 rounded-xl text-xs",
-                activeContextCount > 0 && "text-primary"
+                activeContextCount > 0 && "text-primary",
               )}
               disabled={isLoading || disabled}
               aria-label="Select red flag indicators"

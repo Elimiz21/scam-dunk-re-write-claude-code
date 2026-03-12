@@ -78,10 +78,17 @@ export default async function NewsPage() {
     }));
     const serializedMentions = mediaMentions.map((mention) => ({
       ...mention,
-      mentionDate: mention.mentionDate ? mention.mentionDate.toISOString() : null,
+      mentionDate: mention.mentionDate
+        ? mention.mentionDate.toISOString()
+        : null,
     }));
 
-    return <NewsClient blogPosts={serializedPosts} mediaMentions={serializedMentions} />;
+    return (
+      <NewsClient
+        blogPosts={serializedPosts}
+        mediaMentions={serializedMentions}
+      />
+    );
   } catch (error) {
     console.error("Failed to load news content:", error);
     return <NewsClient blogPosts={[]} mediaMentions={[]} />;

@@ -5,11 +5,11 @@
  * excluding stocks that used mock data (only keeping Yahoo Finance data).
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
-const RESULTS_DIR = path.join(__dirname, '..', 'results');
-const REPORTS_DIR = path.join(__dirname, '..', 'reports');
+const RESULTS_DIR = path.join(__dirname, "..", "results");
+const REPORTS_DIR = path.join(__dirname, "..", "reports");
 
 interface EvaluationResult {
   symbol: string;
@@ -47,19 +47,25 @@ interface EvaluationSummary {
     HIGH: number;
     INSUFFICIENT: number;
   };
-  byExchange: Record<string, {
-    total: number;
-    LOW: number;
-    MEDIUM: number;
-    HIGH: number;
-    INSUFFICIENT: number;
-  }>;
-  bySector: Record<string, {
-    total: number;
-    LOW: number;
-    MEDIUM: number;
-    HIGH: number;
-  }>;
+  byExchange: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      INSUFFICIENT: number;
+    }
+  >;
+  bySector: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+    }
+  >;
   bySignal: Record<string, number>;
   topHighRisk: EvaluationResult[];
   legitimateStocks: number;
@@ -69,8 +75,9 @@ interface EvaluationSummary {
 
 // Find the latest evaluation file
 function findLatestEvaluation(): string | null {
-  const files = fs.readdirSync(RESULTS_DIR)
-    .filter(f => f.startsWith('evaluation-') && f.endsWith('.json'))
+  const files = fs
+    .readdirSync(RESULTS_DIR)
+    .filter((f) => f.startsWith("evaluation-") && f.endsWith(".json"))
     .sort()
     .reverse();
 
@@ -80,29 +87,50 @@ function findLatestEvaluation(): string | null {
 // Generate summary from filtered results
 function generateSummary(results: EvaluationResult[]): EvaluationSummary {
   const byRiskLevel = {
-    LOW: results.filter(r => r.riskLevel === 'LOW').length,
-    MEDIUM: results.filter(r => r.riskLevel === 'MEDIUM').length,
-    HIGH: results.filter(r => r.riskLevel === 'HIGH').length,
-    INSUFFICIENT: results.filter(r => r.riskLevel === 'INSUFFICIENT' || r.riskLevel === 'ERROR').length,
+    LOW: results.filter((r) => r.riskLevel === "LOW").length,
+    MEDIUM: results.filter((r) => r.riskLevel === "MEDIUM").length,
+    HIGH: results.filter((r) => r.riskLevel === "HIGH").length,
+    INSUFFICIENT: results.filter(
+      (r) => r.riskLevel === "INSUFFICIENT" || r.riskLevel === "ERROR",
+    ).length,
   };
 
   // Group by exchange
-  const byExchange: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number; INSUFFICIENT: number }> = {};
+  const byExchange: Record<
+    string,
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      INSUFFICIENT: number;
+    }
+  > = {};
   for (const result of results) {
     if (!byExchange[result.exchange]) {
-      byExchange[result.exchange] = { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 };
+      byExchange[result.exchange] = {
+        total: 0,
+        LOW: 0,
+        MEDIUM: 0,
+        HIGH: 0,
+        INSUFFICIENT: 0,
+      };
     }
     byExchange[result.exchange].total++;
-    const level = result.riskLevel === 'ERROR' ? 'INSUFFICIENT' : result.riskLevel;
+    const level =
+      result.riskLevel === "ERROR" ? "INSUFFICIENT" : result.riskLevel;
     if (level in byExchange[result.exchange]) {
       (byExchange[result.exchange] as any)[level]++;
     }
   }
 
   // Group by sector
-  const bySector: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number }> = {};
+  const bySector: Record<
+    string,
+    { total: number; LOW: number; MEDIUM: number; HIGH: number }
+  > = {};
   for (const result of results) {
-    const sector = result.sector || 'Unknown';
+    const sector = result.sector || "Unknown";
     if (!bySector[sector]) {
       bySector[sector] = { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0 };
     }
@@ -122,14 +150,14 @@ function generateSummary(results: EvaluationResult[]): EvaluationSummary {
 
   // Get top HIGH risk stocks
   const topHighRisk = results
-    .filter(r => r.riskLevel === 'HIGH')
+    .filter((r) => r.riskLevel === "HIGH")
     .sort((a, b) => b.totalScore - a.totalScore)
     .slice(0, 100);
 
   return {
     totalStocks: results.length,
     evaluated: results.length,
-    errors: results.filter(r => r.error).length,
+    errors: results.filter((r) => r.error).length,
     realDataCount: results.length,
     mockDataCount: 0,
     byRiskLevel,
@@ -137,7 +165,7 @@ function generateSummary(results: EvaluationResult[]): EvaluationSummary {
     bySector,
     bySignal,
     topHighRisk,
-    legitimateStocks: results.filter(r => r.isLegitimate).length,
+    legitimateStocks: results.filter((r) => r.isLegitimate).length,
     evaluationDate: new Date().toISOString(),
     durationSeconds: 0,
   };
@@ -145,35 +173,49 @@ function generateSummary(results: EvaluationResult[]): EvaluationSummary {
 
 // Format market cap
 function formatMarketCap(mc: number): string {
-  if (mc >= 1_000_000_000_000) return `$${(mc / 1_000_000_000_000).toFixed(1)}T`;
+  if (mc >= 1_000_000_000_000)
+    return `$${(mc / 1_000_000_000_000).toFixed(1)}T`;
   if (mc >= 1_000_000_000) return `$${(mc / 1_000_000_000).toFixed(1)}B`;
   if (mc >= 1_000_000) return `$${(mc / 1_000_000).toFixed(1)}M`;
   return `$${mc.toLocaleString()}`;
 }
 
 function getSignalCategory(code: string): string {
-  const patternSignals = ['SPIKE_7D', 'VOLUME_EXPLOSION', 'SPIKE_THEN_DROP', 'OVERBOUGHT_RSI', 'HIGH_VOLATILITY'];
-  return patternSignals.includes(code) ? 'pattern' : 'structural';
+  const patternSignals = [
+    "SPIKE_7D",
+    "VOLUME_EXPLOSION",
+    "SPIKE_THEN_DROP",
+    "OVERBOUGHT_RSI",
+    "HIGH_VOLATILITY",
+  ];
+  return patternSignals.includes(code) ? "pattern" : "structural";
 }
 
 function getSignalDescription(code: string): string {
   const descriptions: Record<string, string> = {
-    'MICROCAP_PRICE': 'Stock price below $5 (penny stock territory)',
-    'SMALL_MARKET_CAP': 'Market cap below $300M - higher manipulation risk',
-    'MICRO_LIQUIDITY': 'Very low daily trading volume',
-    'OTC_EXCHANGE': 'Traded on OTC/Pink Sheets - less regulated',
-    'SPIKE_7D': 'Significant price movement in 7 days',
-    'VOLUME_EXPLOSION': 'Elevated trading volume compared to average',
-    'SPIKE_THEN_DROP': 'Pump-and-dump pattern detected',
-    'OVERBOUGHT_RSI': 'RSI indicates overbought conditions',
-    'HIGH_VOLATILITY': 'High price volatility',
+    MICROCAP_PRICE: "Stock price below $5 (penny stock territory)",
+    SMALL_MARKET_CAP: "Market cap below $300M - higher manipulation risk",
+    MICRO_LIQUIDITY: "Very low daily trading volume",
+    OTC_EXCHANGE: "Traded on OTC/Pink Sheets - less regulated",
+    SPIKE_7D: "Significant price movement in 7 days",
+    VOLUME_EXPLOSION: "Elevated trading volume compared to average",
+    SPIKE_THEN_DROP: "Pump-and-dump pattern detected",
+    OVERBOUGHT_RSI: "RSI indicates overbought conditions",
+    HIGH_VOLATILITY: "High price volatility",
   };
   return descriptions[code] || code;
 }
 
 // Generate HTML report
-function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSummary, timestamp: string): void {
-  const reportPath = path.join(REPORTS_DIR, `evaluation-report-real-data-${timestamp}.html`);
+function generateHTMLReport(
+  results: EvaluationResult[],
+  summary: EvaluationSummary,
+  timestamp: string,
+): void {
+  const reportPath = path.join(
+    REPORTS_DIR,
+    `evaluation-report-real-data-${timestamp}.html`,
+  );
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -291,7 +333,8 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
         <tbody>
           ${Object.entries(summary.bySignal)
             .sort((a, b) => b[1] - a[1])
-            .map(([signal, count]) => `
+            .map(
+              ([signal, count]) => `
           <tr>
             <td><strong>${signal}</strong></td>
             <td><span class="signal-tag ${getSignalCategory(signal)}">${getSignalCategory(signal).toUpperCase()}</span></td>
@@ -299,7 +342,9 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
             <td>${((count / summary.evaluated) * 100).toFixed(1)}%</td>
             <td>${getSignalDescription(signal)}</td>
           </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -319,21 +364,26 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
           </tr>
         </thead>
         <tbody>
-          ${summary.topHighRisk.slice(0, 50).map(stock => `
+          ${summary.topHighRisk
+            .slice(0, 50)
+            .map(
+              (stock) => `
           <tr>
             <td><strong>${stock.symbol}</strong></td>
-            <td>${stock.name?.substring(0, 30) || 'N/A'}${stock.name && stock.name.length > 30 ? '...' : ''}</td>
+            <td>${stock.name?.substring(0, 30) || "N/A"}${stock.name && stock.name.length > 30 ? "..." : ""}</td>
             <td>${stock.exchange}</td>
-            <td>${stock.marketCap ? formatMarketCap(stock.marketCap) : 'N/A'}</td>
-            <td>${stock.lastPrice ? '$' + stock.lastPrice.toFixed(2) : 'N/A'}</td>
+            <td>${stock.marketCap ? formatMarketCap(stock.marketCap) : "N/A"}</td>
+            <td>${stock.lastPrice ? "$" + stock.lastPrice.toFixed(2) : "N/A"}</td>
             <td><strong>${stock.totalScore}</strong></td>
             <td>
               <div class="signal-list">
-                ${stock.signals.map(s => `<span class="signal-tag ${s.category === 'PATTERN' ? 'pattern' : 'structural'}">${s.code}</span>`).join('')}
+                ${stock.signals.map((s) => `<span class="signal-tag ${s.category === "PATTERN" ? "pattern" : "structural"}">${s.code}</span>`).join("")}
               </div>
             </td>
           </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -354,7 +404,8 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
         <tbody>
           ${Object.entries(summary.byExchange)
             .sort((a, b) => b[1].total - a[1].total)
-            .map(([exchange, data]) => `
+            .map(
+              ([exchange, data]) => `
           <tr>
             <td><strong>${exchange}</strong></td>
             <td>${data.total.toLocaleString()}</td>
@@ -363,7 +414,9 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
             <td><span class="risk-badge risk-high">${data.HIGH.toLocaleString()}</span></td>
             <td>${((data.HIGH / data.total) * 100).toFixed(1)}%</td>
           </tr>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </tbody>
       </table>
     </div>
@@ -404,9 +457,9 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
       data: {
         labels: ${JSON.stringify(Object.keys(summary.byExchange))},
         datasets: [
-          { label: 'LOW', data: ${JSON.stringify(Object.values(summary.byExchange).map(e => e.LOW))}, backgroundColor: '#22c55e' },
-          { label: 'MEDIUM', data: ${JSON.stringify(Object.values(summary.byExchange).map(e => e.MEDIUM))}, backgroundColor: '#f59e0b' },
-          { label: 'HIGH', data: ${JSON.stringify(Object.values(summary.byExchange).map(e => e.HIGH))}, backgroundColor: '#ef4444' },
+          { label: 'LOW', data: ${JSON.stringify(Object.values(summary.byExchange).map((e) => e.LOW))}, backgroundColor: '#22c55e' },
+          { label: 'MEDIUM', data: ${JSON.stringify(Object.values(summary.byExchange).map((e) => e.MEDIUM))}, backgroundColor: '#f59e0b' },
+          { label: 'HIGH', data: ${JSON.stringify(Object.values(summary.byExchange).map((e) => e.HIGH))}, backgroundColor: '#ef4444' },
         ]
       },
       options: {
@@ -457,93 +510,144 @@ function generateHTMLReport(results: EvaluationResult[], summary: EvaluationSumm
 }
 
 // Save filtered results
-function saveFilteredResults(results: EvaluationResult[], summary: EvaluationSummary, timestamp: string): void {
+function saveFilteredResults(
+  results: EvaluationResult[],
+  summary: EvaluationSummary,
+  timestamp: string,
+): void {
   // Save filtered results JSON
-  const resultsPath = path.join(RESULTS_DIR, `evaluation-real-data-${timestamp}.json`);
+  const resultsPath = path.join(
+    RESULTS_DIR,
+    `evaluation-real-data-${timestamp}.json`,
+  );
   fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
   console.log(`Filtered results saved to: ${resultsPath}`);
 
   // Save summary JSON
-  const summaryPath = path.join(RESULTS_DIR, `summary-real-data-${timestamp}.json`);
+  const summaryPath = path.join(
+    RESULTS_DIR,
+    `summary-real-data-${timestamp}.json`,
+  );
   fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
   console.log(`Summary saved to: ${summaryPath}`);
 
   // Save HIGH risk stocks CSV
-  const highRiskPath = path.join(RESULTS_DIR, `high-risk-real-data-${timestamp}.csv`);
-  const highRiskStocks = results.filter(r => r.riskLevel === 'HIGH');
-  const highRiskCsv = 'Symbol,Name,Exchange,Sector,MarketCap,LastPrice,TotalScore,Signals\n' +
-    highRiskStocks.map(r =>
-      `"${r.symbol}","${(r.name || '').replace(/"/g, '""')}","${r.exchange}","${r.sector}",` +
-      `${r.marketCap || ''},${r.lastPrice || ''},${r.totalScore},"${r.signalSummary}"`
-    ).join('\n');
+  const highRiskPath = path.join(
+    RESULTS_DIR,
+    `high-risk-real-data-${timestamp}.csv`,
+  );
+  const highRiskStocks = results.filter((r) => r.riskLevel === "HIGH");
+  const highRiskCsv =
+    "Symbol,Name,Exchange,Sector,MarketCap,LastPrice,TotalScore,Signals\n" +
+    highRiskStocks
+      .map(
+        (r) =>
+          `"${r.symbol}","${(r.name || "").replace(/"/g, '""')}","${r.exchange}","${r.sector}",` +
+          `${r.marketCap || ""},${r.lastPrice || ""},${r.totalScore},"${r.signalSummary}"`,
+      )
+      .join("\n");
   fs.writeFileSync(highRiskPath, highRiskCsv);
   console.log(`HIGH risk stocks saved to: ${highRiskPath}`);
 }
 
 // Print summary
-function printSummary(summary: EvaluationSummary, originalCount: number, filteredCount: number): void {
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║       FILTERED EVALUATION SUMMARY (Real Data Only)         ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+function printSummary(
+  summary: EvaluationSummary,
+  originalCount: number,
+  filteredCount: number,
+): void {
+  console.log(
+    "\n╔════════════════════════════════════════════════════════════╗",
+  );
+  console.log("║       FILTERED EVALUATION SUMMARY (Real Data Only)         ║");
+  console.log(
+    "╚════════════════════════════════════════════════════════════╝\n",
+  );
 
   console.log(`Original Total: ${originalCount.toLocaleString()} stocks`);
-  console.log(`Filtered (Real Data Only): ${filteredCount.toLocaleString()} stocks`);
-  console.log(`Removed (Mock Data): ${(originalCount - filteredCount).toLocaleString()} stocks (${(((originalCount - filteredCount) / originalCount) * 100).toFixed(1)}%)\n`);
+  console.log(
+    `Filtered (Real Data Only): ${filteredCount.toLocaleString()} stocks`,
+  );
+  console.log(
+    `Removed (Mock Data): ${(originalCount - filteredCount).toLocaleString()} stocks (${(((originalCount - filteredCount) / originalCount) * 100).toFixed(1)}%)\n`,
+  );
 
-  console.log('Risk Level Distribution:');
-  console.log(`  🟢 LOW:     ${summary.byRiskLevel.LOW.toLocaleString().padStart(6)} (${((summary.byRiskLevel.LOW / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`  🟡 MEDIUM:  ${summary.byRiskLevel.MEDIUM.toLocaleString().padStart(6)} (${((summary.byRiskLevel.MEDIUM / summary.evaluated) * 100).toFixed(1)}%)`);
-  console.log(`  🔴 HIGH:    ${summary.byRiskLevel.HIGH.toLocaleString().padStart(6)} (${((summary.byRiskLevel.HIGH / summary.evaluated) * 100).toFixed(1)}%)`);
+  console.log("Risk Level Distribution:");
+  console.log(
+    `  🟢 LOW:     ${summary.byRiskLevel.LOW.toLocaleString().padStart(6)} (${((summary.byRiskLevel.LOW / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  🟡 MEDIUM:  ${summary.byRiskLevel.MEDIUM.toLocaleString().padStart(6)} (${((summary.byRiskLevel.MEDIUM / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `  🔴 HIGH:    ${summary.byRiskLevel.HIGH.toLocaleString().padStart(6)} (${((summary.byRiskLevel.HIGH / summary.evaluated) * 100).toFixed(1)}%)`,
+  );
 
-  console.log('\nRisk Signals Summary:');
+  console.log("\nRisk Signals Summary:");
   Object.entries(summary.bySignal)
     .sort((a, b) => b[1] - a[1])
     .forEach(([signal, count]) => {
       const category = getSignalCategory(signal);
-      const icon = category === 'pattern' ? '📈' : '🏢';
-      console.log(`  ${icon} ${signal.padEnd(25)} ${count.toLocaleString().padStart(6)} (${((count / summary.evaluated) * 100).toFixed(1)}%)`);
+      const icon = category === "pattern" ? "📈" : "🏢";
+      console.log(
+        `  ${icon} ${signal.padEnd(25)} ${count.toLocaleString().padStart(6)} (${((count / summary.evaluated) * 100).toFixed(1)}%)`,
+      );
     });
 
-  console.log('\nTop 10 HIGH Risk Stocks:');
+  console.log("\nTop 10 HIGH Risk Stocks:");
   summary.topHighRisk.slice(0, 10).forEach((stock, i) => {
-    console.log(`  ${(i + 1).toString().padStart(2)}. ${stock.symbol.padEnd(6)} (Score: ${stock.totalScore}) - ${stock.signalSummary}`);
+    console.log(
+      `  ${(i + 1).toString().padStart(2)}. ${stock.symbol.padEnd(6)} (Score: ${stock.totalScore}) - ${stock.signalSummary}`,
+    );
   });
 
-  console.log('\nBy Exchange:');
+  console.log("\nBy Exchange:");
   Object.entries(summary.byExchange)
     .sort((a, b) => b[1].total - a[1].total)
     .forEach(([exchange, data]) => {
-      console.log(`  ${exchange.padEnd(8)}: ${data.total.toLocaleString().padStart(5)} total | LOW: ${data.LOW.toLocaleString().padStart(5)} | MEDIUM: ${data.MEDIUM.toLocaleString().padStart(5)} | HIGH: ${data.HIGH.toLocaleString().padStart(5)} (${((data.HIGH / data.total) * 100).toFixed(1)}%)`);
+      console.log(
+        `  ${exchange.padEnd(8)}: ${data.total.toLocaleString().padStart(5)} total | LOW: ${data.LOW.toLocaleString().padStart(5)} | MEDIUM: ${data.MEDIUM.toLocaleString().padStart(5)} | HIGH: ${data.HIGH.toLocaleString().padStart(5)} (${((data.HIGH / data.total) * 100).toFixed(1)}%)`,
+      );
     });
 
-  console.log('\n');
+  console.log("\n");
 }
 
 // Main function
 async function main() {
-  console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║     Filter Evaluation Results (Real Data Only)            ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  console.log("╔════════════════════════════════════════════════════════════╗");
+  console.log("║     Filter Evaluation Results (Real Data Only)            ║");
+  console.log(
+    "╚════════════════════════════════════════════════════════════╝\n",
+  );
 
   // Find latest evaluation file
   const evalPath = findLatestEvaluation();
   if (!evalPath) {
-    console.error('No evaluation results found in', RESULTS_DIR);
+    console.error("No evaluation results found in", RESULTS_DIR);
     process.exit(1);
   }
 
   console.log(`Loading results from: ${evalPath}`);
-  const allResults: EvaluationResult[] = JSON.parse(fs.readFileSync(evalPath, 'utf-8'));
+  const allResults: EvaluationResult[] = JSON.parse(
+    fs.readFileSync(evalPath, "utf-8"),
+  );
   console.log(`Total stocks in file: ${allResults.length.toLocaleString()}`);
 
   // Filter to only real Yahoo Finance data
-  const realDataResults = allResults.filter(r => r.priceDataSource === 'yahoo');
-  console.log(`Stocks with real Yahoo Finance data: ${realDataResults.length.toLocaleString()}`);
-  console.log(`Stocks with mock data (excluded): ${(allResults.length - realDataResults.length).toLocaleString()}`);
+  const realDataResults = allResults.filter(
+    (r) => r.priceDataSource === "yahoo",
+  );
+  console.log(
+    `Stocks with real Yahoo Finance data: ${realDataResults.length.toLocaleString()}`,
+  );
+  console.log(
+    `Stocks with mock data (excluded): ${(allResults.length - realDataResults.length).toLocaleString()}`,
+  );
 
   // Generate new summary
   const summary = generateSummary(realDataResults);
-  const timestamp = new Date().toISOString().split('T')[0];
+  const timestamp = new Date().toISOString().split("T")[0];
 
   // Save results
   saveFilteredResults(realDataResults, summary, timestamp);

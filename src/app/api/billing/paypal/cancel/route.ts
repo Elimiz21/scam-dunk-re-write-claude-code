@@ -12,7 +12,8 @@ import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 export async function POST(req: NextRequest) {
   try {
     // Rate limit: auth for billing cancellation (10 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(req, "auth");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(req, "auth");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     if (!result.success) {
       return NextResponse.json(
         { error: result.error || "Failed to cancel subscription" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     console.error("Error cancelling subscription:", error);
     return NextResponse.json(
       { error: "Failed to cancel subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

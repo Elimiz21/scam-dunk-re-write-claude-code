@@ -15,8 +15,10 @@ export async function POST(req: NextRequest) {
       "paypal-auth-algo": req.headers.get("paypal-auth-algo") || "",
       "paypal-cert-url": req.headers.get("paypal-cert-url") || "",
       "paypal-transmission-id": req.headers.get("paypal-transmission-id") || "",
-      "paypal-transmission-sig": req.headers.get("paypal-transmission-sig") || "",
-      "paypal-transmission-time": req.headers.get("paypal-transmission-time") || "",
+      "paypal-transmission-sig":
+        req.headers.get("paypal-transmission-sig") || "",
+      "paypal-transmission-time":
+        req.headers.get("paypal-transmission-time") || "",
     };
 
     const result = await handleWebhook(headers, body);
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
       console.error("PayPal webhook processing failed:", result.error);
       return NextResponse.json(
         { error: result.error || "Webhook processing failed" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
     console.error("PayPal webhook error:", error);
     return NextResponse.json(
       { error: "Webhook processing failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

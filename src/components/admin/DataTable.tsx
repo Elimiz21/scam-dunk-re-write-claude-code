@@ -35,7 +35,10 @@ export default function DataTable<T>({
         <div className="animate-pulse">
           <div className="h-12 bg-secondary/50" />
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 border-t border-border flex items-center px-6">
+            <div
+              key={i}
+              className="h-16 border-t border-border flex items-center px-6"
+            >
               <div className="h-4 bg-secondary rounded w-3/4" />
             </div>
           ))}
@@ -63,13 +66,19 @@ export default function DataTable<T>({
           <tbody className="bg-card divide-y divide-border">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-6 py-12 text-center text-muted-foreground">
+                <td
+                  colSpan={columns.length}
+                  className="px-6 py-12 text-center text-muted-foreground"
+                >
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               data.map((item, index) => (
-                <tr key={index} className="hover:bg-secondary/50 transition-colors">
+                <tr
+                  key={index}
+                  className="hover:bg-secondary/50 transition-colors"
+                >
                   {columns.map((column) => (
                     <td
                       key={column.key}
@@ -77,7 +86,9 @@ export default function DataTable<T>({
                     >
                       {column.render
                         ? column.render(item)
-                        : ((item as Record<string, unknown>)[column.key] as React.ReactNode) ?? "-"}
+                        : (((item as Record<string, unknown>)[
+                            column.key
+                          ] as React.ReactNode) ?? "-")}
                     </td>
                   ))}
                 </tr>
@@ -107,9 +118,19 @@ export default function DataTable<T>({
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
               <p className="text-sm text-muted-foreground">
-                Showing page <span className="font-medium text-foreground">{pagination.page}</span> of{" "}
-                <span className="font-medium text-foreground">{pagination.pages}</span> (
-                <span className="font-medium text-foreground">{pagination.total}</span> total)
+                Showing page{" "}
+                <span className="font-medium text-foreground">
+                  {pagination.page}
+                </span>{" "}
+                of{" "}
+                <span className="font-medium text-foreground">
+                  {pagination.pages}
+                </span>{" "}
+                (
+                <span className="font-medium text-foreground">
+                  {pagination.total}
+                </span>{" "}
+                total)
               </p>
             </div>
             <div>

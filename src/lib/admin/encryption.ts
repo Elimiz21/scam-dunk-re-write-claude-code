@@ -1,6 +1,6 @@
 /**
  * AES-256-GCM encryption for storing API keys in the database.
- * Derives the encryption key from NEXTAUTH_SECRET (already required).
+ * Uses a dedicated CREDENTIAL_ENCRYPTION_KEY (preferred) or derives from NEXTAUTH_SECRET.
  */
 
 import crypto from "crypto";
@@ -11,14 +11,35 @@ const AUTH_TAG_LENGTH = 16;
 const KEY_LENGTH = 32;
 
 /**
- * Derive a 256-bit encryption key from NEXTAUTH_SECRET using HKDF.
+ * Derive a 256-bit encryption key using HMAC-based derivation.
+ * Prefers CREDENTIAL_ENCRYPTION_KEY env var; falls back to NEXTAUTH_SECRET in dev.
  */
 function getEncryptionKey(): Buffer {
+  const dedicatedKey = process.env.CREDENTIAL_ENCRYPTION_KEY;
+  if (dedicatedKey) {
+    return crypto
+      .createHmac("sha256", "scamdunk-credential-encryption")
+      .update(dedicatedKey)
+      .digest();
+  }
+
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret) {
-    throw new Error("NEXTAUTH_SECRET is required for credential encryption");
+    throw new Error(
+      "CREDENTIAL_ENCRYPTION_KEY or NEXTAUTH_SECRET is required for credential encryption",
+    );
   }
-  return crypto.createHash("sha256").update(secret).digest();
+
+  if (process.env.NODE_ENV === "production") {
+    console.warn(
+      "WARNING: Set CREDENTIAL_ENCRYPTION_KEY for production. Falling back to NEXTAUTH_SECRET derivation.",
+    );
+  }
+
+  return crypto
+    .createHmac("sha256", "scamdunk-credential-encryption")
+    .update(secret)
+    .digest();
 }
 
 /**
@@ -66,7 +87,9 @@ export function decrypt(packed: string): string {
 /**
  * Encrypt a JSON-serializable credentials object.
  */
-export function encryptCredentials(credentials: Record<string, string>): string {
+export function encryptCredentials(
+  credentials: Record<string, string>,
+): string {
   return encrypt(JSON.stringify(credentials));
 }
 
@@ -74,7 +97,9 @@ export function encryptCredentials(credentials: Record<string, string>): string 
  * Decrypt credentials stored in the database.
  * Returns null if the stored value is empty or decryption fails.
  */
-export function decryptCredentials(encrypted: string | null | undefined): Record<string, string> | null {
+export function decryptCredentials(
+  encrypted: string | null | undefined,
+): Record<string, string> | null {
   if (!encrypted) return null;
   try {
     const json = decrypt(encrypted);

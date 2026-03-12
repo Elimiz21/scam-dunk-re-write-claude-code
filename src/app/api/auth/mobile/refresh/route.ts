@@ -22,7 +22,8 @@ const refreshSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: strict for token refresh (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "strict");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (!payload || payload.type !== "refresh") {
       return NextResponse.json(
         { error: "Invalid or expired refresh token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -61,10 +62,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
 
     // Generate new tokens
@@ -86,7 +84,7 @@ export async function POST(request: NextRequest) {
     console.error("Token refresh error:", error);
     return NextResponse.json(
       { error: "Token refresh failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

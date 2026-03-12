@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,16 +18,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get pagination params from query
     const { searchParams } = new URL(request.url);
     const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
-    const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20", 10), 1), 50);
+    const limit = Math.min(
+      Math.max(parseInt(searchParams.get("limit") || "20", 10), 1),
+      50,
+    );
     const skip = (page - 1) * limit;
 
     // Fetch scans with pagination
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     console.error("Fetch scans error:", error);
     return NextResponse.json(
       { error: "Failed to fetch scan history" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

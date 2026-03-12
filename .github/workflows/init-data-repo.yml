@@ -10,7 +10,7 @@ jobs:
       - name: Checkout main repo with full history
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Need full history to access old commits
+          fetch-depth: 0 # Need full history to access old commits
 
       - name: Get data files from commit before removal
         run: |

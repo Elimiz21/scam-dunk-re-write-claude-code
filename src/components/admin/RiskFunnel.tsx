@@ -21,7 +21,11 @@ export default function RiskFunnel({ stages }: RiskFunnelProps) {
       {stages.map((stage, i) => {
         const widthPct = Math.max((stage.value / maxValue) * 100, 12);
         return (
-          <div key={stage.label} className="flex items-center" style={{ flex: `${widthPct} 1 0%` }}>
+          <div
+            key={stage.label}
+            className="flex items-center"
+            style={{ flex: `${widthPct} 1 0%` }}
+          >
             <div
               className="flex-1 rounded-xl p-3 transition-all duration-500 group hover:scale-[1.02]"
               style={{

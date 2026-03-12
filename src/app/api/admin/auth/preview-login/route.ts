@@ -13,7 +13,8 @@ import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 export const dynamic = "force-dynamic";
 
 const PREVIEW_EMAIL = "preview@scamdunk.com";
-const PREVIEW_PASSWORD = "PreviewAdmin2026!";
+const PREVIEW_PASSWORD =
+  process.env.PREVIEW_ADMIN_PASSWORD || "PreviewAdmin2026!";
 const PREVIEW_NAME = "Preview Admin";
 
 function isPreviewEnvironment(): boolean {

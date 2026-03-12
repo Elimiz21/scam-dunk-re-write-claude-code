@@ -30,8 +30,20 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "";
     const category = searchParams.get("category") || "";
     const priority = searchParams.get("priority") || "";
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
+    const ALLOWED_SORT_FIELDS = [
+      "createdAt",
+      "updatedAt",
+      "lastActivityAt",
+      "status",
+      "priority",
+    ] as const;
+    const rawSortBy = searchParams.get("sortBy") || "createdAt";
+    const sortBy = (ALLOWED_SORT_FIELDS as readonly string[]).includes(
+      rawSortBy,
+    )
+      ? rawSortBy
+      : "createdAt";
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
 
     // Build where clause
     const where: Record<string, unknown> = {};

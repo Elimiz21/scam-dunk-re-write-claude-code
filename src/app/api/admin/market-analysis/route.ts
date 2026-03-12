@@ -108,9 +108,10 @@ export async function GET(request: Request) {
     const stats = {
       totalStocksTracked: latestSummary?.evaluated || 0,
       highRiskCount: latestSummary?.highRiskCount || 0,
-      highRiskChange: latestSummary && previousSummary
-        ? latestSummary.highRiskCount - previousSummary.highRiskCount
-        : 0,
+      highRiskChange:
+        latestSummary && previousSummary
+          ? latestSummary.highRiskCount - previousSummary.highRiskCount
+          : 0,
       mediumRiskCount: latestSummary?.mediumRiskCount || 0,
       lowRiskCount: latestSummary?.lowRiskCount || 0,
       lastScanDate: latestSummary?.scanDate?.toISOString() || null,
@@ -136,7 +137,7 @@ export async function GET(request: Request) {
     console.error("Market analysis error:", error);
     return NextResponse.json(
       { error: "Failed to fetch market analysis" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

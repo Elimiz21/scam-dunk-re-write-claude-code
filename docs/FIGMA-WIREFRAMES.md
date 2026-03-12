@@ -8,87 +8,93 @@
 ## Color Palette
 
 ### Primary Colors
-| Name | Hex | HSL | Usage |
-|------|-----|-----|-------|
-| Brand Blue | `#3B82F6` | 217 91% 60% | Primary CTAs, accents, links |
-| Brand Blue Dark | `#2563EB` | 217 91% 53% | Hover states |
-| Brand Blue Light | `#60A5FA` | 217 91% 67% | Highlights, glows |
+
+| Name             | Hex       | HSL         | Usage                        |
+| ---------------- | --------- | ----------- | ---------------------------- |
+| Brand Blue       | `#3B82F6` | 217 91% 60% | Primary CTAs, accents, links |
+| Brand Blue Dark  | `#2563EB` | 217 91% 53% | Hover states                 |
+| Brand Blue Light | `#60A5FA` | 217 91% 67% | Highlights, glows            |
 
 ### Risk Colors
-| Name | Hex | Usage |
-|------|-----|-------|
-| Low Risk Green | `#22C55E` | Low risk indicators |
+
+| Name              | Hex       | Usage                  |
+| ----------------- | --------- | ---------------------- |
+| Low Risk Green    | `#22C55E` | Low risk indicators    |
 | Medium Risk Amber | `#F59E0B` | Medium risk indicators |
-| High Risk Red | `#EF4444` | High risk indicators |
-| Insufficient Gray | `#6B7280` | Insufficient data |
+| High Risk Red     | `#EF4444` | High risk indicators   |
+| Insufficient Gray | `#6B7280` | Insufficient data      |
 
 ### Neutral Colors (Light Mode)
-| Name | Hex | Usage |
-|------|-----|-------|
-| Background | `#FFFFFF` | Page background |
-| Card | `#FFFFFF` | Card backgrounds |
-| Border | `#E5E7EB` | Borders, dividers |
-| Muted | `#F3F4F6` | Secondary backgrounds |
-| Text Primary | `#111827` | Headings, body text |
-| Text Muted | `#6B7280` | Secondary text |
+
+| Name         | Hex       | Usage                 |
+| ------------ | --------- | --------------------- |
+| Background   | `#FFFFFF` | Page background       |
+| Card         | `#FFFFFF` | Card backgrounds      |
+| Border       | `#E5E7EB` | Borders, dividers     |
+| Muted        | `#F3F4F6` | Secondary backgrounds |
+| Text Primary | `#111827` | Headings, body text   |
+| Text Muted   | `#6B7280` | Secondary text        |
 
 ### Neutral Colors (Dark Mode)
-| Name | Hex | Usage |
-|------|-----|-------|
-| Background | `#18181B` | Page background |
-| Card | `#27272A` | Card backgrounds |
-| Border | `#3F3F46` | Borders, dividers |
-| Muted | `#3F3F46` | Secondary backgrounds |
-| Text Primary | `#FAFAFA` | Headings, body text |
-| Text Muted | `#A1A1AA` | Secondary text |
+
+| Name         | Hex       | Usage                 |
+| ------------ | --------- | --------------------- |
+| Background   | `#18181B` | Page background       |
+| Card         | `#27272A` | Card backgrounds      |
+| Border       | `#3F3F46` | Borders, dividers     |
+| Muted        | `#3F3F46` | Secondary backgrounds |
+| Text Primary | `#FAFAFA` | Headings, body text   |
+| Text Muted   | `#A1A1AA` | Secondary text        |
 
 ---
 
 ## Typography
 
 ### Font Families
+
 - **Headings**: Plus Jakarta Sans (Bold, ExtraBold)
 - **Body**: Inter (Regular, Medium, SemiBold)
 - **Monospace**: SF Mono or JetBrains Mono (for tickers)
 
 ### Type Scale
-| Element | Size | Weight | Line Height |
-|---------|------|--------|-------------|
-| H1 (Hero) | 48px / 3rem | 800 (ExtraBold) | 1.1 |
-| H2 (Section) | 32px / 2rem | 700 (Bold) | 1.2 |
-| H3 (Card Title) | 20px / 1.25rem | 600 (SemiBold) | 1.3 |
-| Body Large | 18px / 1.125rem | 400 (Regular) | 1.5 |
-| Body | 16px / 1rem | 400 (Regular) | 1.5 |
-| Body Small | 14px / 0.875rem | 400 (Regular) | 1.5 |
-| Caption | 12px / 0.75rem | 500 (Medium) | 1.4 |
-| Ticker | 16px / 1rem | 600 (SemiBold) | 1 |
+
+| Element         | Size            | Weight          | Line Height |
+| --------------- | --------------- | --------------- | ----------- |
+| H1 (Hero)       | 48px / 3rem     | 800 (ExtraBold) | 1.1         |
+| H2 (Section)    | 32px / 2rem     | 700 (Bold)      | 1.2         |
+| H3 (Card Title) | 20px / 1.25rem  | 600 (SemiBold)  | 1.3         |
+| Body Large      | 18px / 1.125rem | 400 (Regular)   | 1.5         |
+| Body            | 16px / 1rem     | 400 (Regular)   | 1.5         |
+| Body Small      | 14px / 0.875rem | 400 (Regular)   | 1.5         |
+| Caption         | 12px / 0.75rem  | 500 (Medium)    | 1.4         |
+| Ticker          | 16px / 1rem     | 600 (SemiBold)  | 1           |
 
 ---
 
 ## Spacing System
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| xs | 4px | Tight spacing, icon gaps |
-| sm | 8px | Small gaps |
-| md | 16px | Standard spacing |
-| lg | 24px | Section spacing |
-| xl | 32px | Large sections |
-| 2xl | 48px | Page sections |
-| 3xl | 64px | Hero spacing |
+| Token | Value | Usage                    |
+| ----- | ----- | ------------------------ |
+| xs    | 4px   | Tight spacing, icon gaps |
+| sm    | 8px   | Small gaps               |
+| md    | 16px  | Standard spacing         |
+| lg    | 24px  | Section spacing          |
+| xl    | 32px  | Large sections           |
+| 2xl   | 48px  | Page sections            |
+| 3xl   | 64px  | Hero spacing             |
 
 ---
 
 ## Border Radius
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| sm | 6px | Small elements, badges |
-| md | 8px | Buttons, inputs |
-| lg | 12px | Cards |
-| xl | 16px | Large cards, modals |
-| 2xl | 24px | Input bar, hero elements |
-| full | 9999px | Pills, avatars |
+| Token | Value  | Usage                    |
+| ----- | ------ | ------------------------ |
+| sm    | 6px    | Small elements, badges   |
+| md    | 8px    | Buttons, inputs          |
+| lg    | 12px   | Cards                    |
+| xl    | 16px   | Large cards, modals      |
+| 2xl   | 24px   | Input bar, hero elements |
+| full  | 9999px | Pills, avatars           |
 
 ---
 
@@ -99,13 +105,19 @@
 shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
 
 /* Default - for elevated cards */
-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+shadow:
+  0 1px 3px rgba(0, 0, 0, 0.1),
+  0 1px 2px rgba(0, 0, 0, 0.06);
 
 /* Medium - for hover states */
-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+shadow-md:
+  0 4px 6px rgba(0, 0, 0, 0.1),
+  0 2px 4px rgba(0, 0, 0, 0.06);
 
 /* Large - for modals, dropdowns */
-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+shadow-lg:
+  0 10px 15px rgba(0, 0, 0, 0.1),
+  0 4px 6px rgba(0, 0, 0, 0.05);
 
 /* Glow - for focused inputs */
 shadow-glow: 0 0 0 3px rgba(59, 130, 246, 0.3);
@@ -120,6 +132,7 @@ shadow-glow: 0 0 0 3px rgba(59, 130, 246, 0.3);
 ### Frame: 1440x900 (Desktop) / 390x844 (Mobile)
 
 ### Layout Structure
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  HEADER (64px height, sticky)                               │
@@ -167,19 +180,22 @@ shadow-glow: 0 0 0 3px rgba(59, 130, 246, 0.3);
 ```
 
 ### Hero Icon Specifications
+
 - **Container**: 80x80px, rounded-2xl (16px radius)
 - **Background**: Linear gradient 135deg from `#3B82F6` to `#06B6D4`
 - **Icon**: Shield, 48x48px, white, centered
 - **Shadow**: `0 8px 32px rgba(59, 130, 246, 0.3)`
 
 ### Gradient Text Effect
+
 ```css
-background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
 -webkit-background-clip: text;
 -webkit-text-fill-color: transparent;
 ```
 
 ### Feature Cards
+
 - **Size**: 200x140px (flexible)
 - **Background**: Card color with subtle border
 - **Border Radius**: 16px
@@ -191,6 +207,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
   - Border: 1px solid Brand Blue with 20% opacity
 
 ### Input Bar
+
 - **Container**: Max-width 600px, centered
 - **Background**: Card color
 - **Border**: 1px solid border color
@@ -204,6 +221,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ## 2. Homepage - Loading State
 
 ### Layout Structure
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  HEADER                                                     │
@@ -241,11 +259,13 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ```
 
 ### Stepper Icons
+
 - **Complete**: Green checkmark in green circle
 - **Loading**: Blue spinner (animated)
 - **Pending**: Gray circle outline
 
 ### Progress Animation
+
 - Smooth transitions between states
 - Pulse animation on current step
 - Substeps indent 24px with connecting lines
@@ -255,6 +275,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ## 3. Homepage - Results State (RiskCard)
 
 ### Layout Structure
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  HEADER                                                     │
@@ -310,6 +331,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ```
 
 ### Risk Gauge Specifications
+
 - **Type**: Semi-circular gauge (180 degrees)
 - **Size**: 160x80px
 - **Track**: 8px thick, gray
@@ -322,20 +344,23 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 - **Animation**: Needle animates from 0 to final position
 
 ### Risk Badge Colors
-| Level | Background | Text | Border |
-|-------|------------|------|--------|
-| LOW | `#DCFCE7` | `#166534` | `#22C55E` |
-| MEDIUM | `#FEF3C7` | `#92400E` | `#F59E0B` |
-| HIGH | `#FEE2E2` | `#991B1B` | `#EF4444` |
-| INSUFFICIENT | `#F3F4F6` | `#4B5563` | `#9CA3AF` |
+
+| Level        | Background | Text      | Border    |
+| ------------ | ---------- | --------- | --------- |
+| LOW          | `#DCFCE7`  | `#166534` | `#22C55E` |
+| MEDIUM       | `#FEF3C7`  | `#92400E` | `#F59E0B` |
+| HIGH         | `#FEE2E2`  | `#991B1B` | `#EF4444` |
+| INSUFFICIENT | `#F3F4F6`  | `#4B5563` | `#9CA3AF` |
 
 ### Collapsible Sections
+
 - **Header**: Click to expand/collapse
 - **Icon**: Chevron rotates 180deg
 - **Animation**: Smooth height transition (300ms)
 - **Content**: Slides down with fade
 
 ### Flag Items
+
 - **Positive (✓)**: Green icon, normal text
 - **Warning (⚠️)**: Amber icon, slightly bold
 - **Negative (✗)**: Red icon, bold text
@@ -345,6 +370,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ## 4. Sidebar
 
 ### Layout Structure (280px width)
+
 ```
 ┌────────────────────────────────┐
 │  SIDEBAR                       │
@@ -391,6 +417,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ```
 
 ### Scan History Items
+
 - **Container**: Full width, 8px padding, 8px radius
 - **Hover**: Background muted color
 - **Risk Indicator**: 8px colored dot
@@ -403,6 +430,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ## 5. Login Page
 
 ### Layout Structure
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
@@ -441,6 +469,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ```
 
 ### Card Specifications
+
 - **Width**: 400px (max), 100% - 32px (mobile)
 - **Padding**: 32px
 - **Border Radius**: 16px
@@ -452,6 +481,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ## 6. Account Settings Page
 
 ### Layout Structure
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  HEADER                                                     │
@@ -498,6 +528,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ```
 
 ### Progress Bar
+
 - **Height**: 8px
 - **Border Radius**: 4px
 - **Background**: Muted color
@@ -511,6 +542,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ### Buttons
 
 #### Primary Button
+
 - **Background**: Brand Blue (`#3B82F6`)
 - **Text**: White
 - **Padding**: 12px 24px
@@ -521,12 +553,14 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 - **Disabled**: 50% opacity
 
 #### Secondary Button
+
 - **Background**: Transparent
 - **Border**: 1px solid border color
 - **Text**: Text primary
 - **Hover**: Background muted
 
 #### Ghost Button
+
 - **Background**: Transparent
 - **Text**: Text muted
 - **Hover**: Background muted, text primary
@@ -534,6 +568,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ### Inputs
 
 #### Text Input
+
 - **Height**: 44px
 - **Padding**: 12px 16px
 - **Border**: 1px solid border color
@@ -544,6 +579,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ### Badges
 
 #### Risk Badge
+
 - **Padding**: 4px 12px
 - **Border Radius**: 9999px (pill)
 - **Font**: 12px, SemiBold, uppercase
@@ -552,6 +588,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ### Cards
 
 #### Standard Card
+
 - **Background**: Card color
 - **Border**: 1px solid border color
 - **Border Radius**: 16px
@@ -574,6 +611,7 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ## Animations
 
 ### Entrance Animations
+
 ```css
 /* Fade In Up */
 @keyframes fadeInUp {
@@ -603,9 +641,12 @@ background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
 ```
 
 ### Hover Animations
+
 ```css
 /* Card Lift */
-transition: transform 200ms ease, box-shadow 200ms ease;
+transition:
+  transform 200ms ease,
+  box-shadow 200ms ease;
 &:hover {
   transform: translateY(-4px);
   box-shadow: shadow-lg;
@@ -619,17 +660,25 @@ transition: transform 100ms ease;
 ```
 
 ### Loading Animations
+
 ```css
 /* Spinner */
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 /* Duration: 1s, Timing: linear, Iteration: infinite */
 
 /* Pulse */
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 /* Duration: 2s, Timing: ease-in-out, Iteration: infinite */
 ```
@@ -638,11 +687,11 @@ transition: transform 100ms ease;
 
 ## Responsive Breakpoints
 
-| Breakpoint | Width | Layout Changes |
-|------------|-------|----------------|
-| Mobile | < 640px | Single column, full-width cards, bottom sheet for sidebar |
-| Tablet | 640-1024px | 2-column where appropriate, collapsible sidebar |
-| Desktop | > 1024px | Full layout, persistent sidebar option |
+| Breakpoint | Width      | Layout Changes                                            |
+| ---------- | ---------- | --------------------------------------------------------- |
+| Mobile     | < 640px    | Single column, full-width cards, bottom sheet for sidebar |
+| Tablet     | 640-1024px | 2-column where appropriate, collapsible sidebar           |
+| Desktop    | > 1024px   | Full layout, persistent sidebar option                    |
 
 ---
 
@@ -657,4 +706,4 @@ transition: transform 100ms ease;
 
 ---
 
-*Export this document alongside your Figma file for developer reference*
+_Export this document alongside your Figma file for developer reference_

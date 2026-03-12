@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { getApiUsageSummary, checkAndTriggerAlerts } from "@/lib/admin/metrics";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const period = (searchParams.get("period") as "day" | "week" | "month") || "month";
+    const period =
+      (searchParams.get("period") as "day" | "week" | "month") || "month";
 
     const [usage, triggeredAlerts] = await Promise.all([
       getApiUsageSummary(period),
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     console.error("API usage error:", error);
     return NextResponse.json(
       { error: "Failed to fetch API usage" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

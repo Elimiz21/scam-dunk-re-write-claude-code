@@ -99,7 +99,9 @@ export default function ContactContent() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [submitStatus, setSubmitStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [emailCopied, setEmailCopied] = useState(false);
@@ -173,11 +175,15 @@ export default function ContactContent() {
         });
       } else {
         setSubmitStatus("error");
-        setErrorMessage(data.error || "Failed to submit your message. Please try again.");
+        setErrorMessage(
+          data.error || "Failed to submit your message. Please try again.",
+        );
       }
     } catch {
       setSubmitStatus("error");
-      setErrorMessage("Network error. Please check your connection and try again.");
+      setErrorMessage(
+        "Network error. Please check your connection and try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -214,10 +220,12 @@ export default function ContactContent() {
                   <Eye className="h-2.5 w-2.5 text-white" />
                 </div>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">Contact Us</h1>
+              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
+                Contact Us
+              </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Have a question, suggestion, or need help? We&apos;re here for you.
-                Our team typically responds within 1-2 business days.
+                Have a question, suggestion, or need help? We&apos;re here for
+                you. Our team typically responds within 1-2 business days.
               </p>
             </div>
 
@@ -233,11 +241,15 @@ export default function ContactContent() {
                       Message Sent Successfully!
                     </h3>
                     <p className="text-green-800 dark:text-green-200 text-sm mb-2">
-                      Thank you for reaching out. We&apos;ve received your message and will get back to you soon.
+                      Thank you for reaching out. We&apos;ve received your
+                      message and will get back to you soon.
                     </p>
                     {ticketId && (
                       <p className="text-green-700 dark:text-green-300 text-sm">
-                        Your ticket ID: <code className="bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded font-mono">{ticketId}</code>
+                        Your ticket ID:{" "}
+                        <code className="bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded font-mono">
+                          {ticketId}
+                        </code>
                       </p>
                     )}
                   </div>
@@ -275,150 +287,200 @@ export default function ContactContent() {
                       <Send className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h2 className="font-semibold text-lg font-display italic">Submit Your Request</h2>
-                      <p className="text-sm text-muted-foreground">Fill out the form below and we&apos;ll get back to you</p>
+                      <h2 className="font-semibold text-lg font-display italic">
+                        Submit Your Request
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Fill out the form below and we&apos;ll get back to you
+                      </p>
                     </div>
                   </div>
 
-                  <form id="contact-form" onSubmit={handleSubmit} className="space-y-6">
+                  <form
+                    id="contact-form"
+                    onSubmit={handleSubmit}
+                    className="space-y-6"
+                  >
                     {/* Category Selection */}
                     <div>
                       <label className="block text-sm font-medium mb-3">
-                        What can we help you with? <span className="text-destructive">*</span>
+                        What can we help you with?{" "}
+                        <span className="text-destructive">*</span>
                       </label>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      {categories.map((category) => (
-                        <button
-                          key={category.id}
-                          type="button"
-                          onClick={() => handleInputChange("category", category.id)}
-                          className={`p-4 rounded-xl border-2 text-left transition-all ${
-                            formData.category === category.id
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/50 hover:bg-secondary/50"
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className={`p-2 rounded-lg ${category.bgColor}`}>
-                              <category.icon className={`h-5 w-5 ${category.color}`} />
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        {categories.map((category) => (
+                          <button
+                            key={category.id}
+                            type="button"
+                            onClick={() =>
+                              handleInputChange("category", category.id)
+                            }
+                            className={`p-4 rounded-xl border-2 text-left transition-all ${
+                              formData.category === category.id
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-primary/50 hover:bg-secondary/50"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`p-2 rounded-lg ${category.bgColor}`}
+                              >
+                                <category.icon
+                                  className={`h-5 w-5 ${category.color}`}
+                                />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">
+                                  {category.label}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {category.description}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-sm">{category.label}</p>
-                              <p className="text-xs text-muted-foreground">{category.description}</p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                          </button>
+                        ))}
+                      </div>
+                      {errors.category && (
+                        <p className="text-destructive text-sm mt-2">
+                          {errors.category}
+                        </p>
+                      )}
                     </div>
-                    {errors.category && (
-                      <p className="text-destructive text-sm mt-2">{errors.category}</p>
-                    )}
-                  </div>
 
-                  {/* Name & Email */}
-                  <div className="grid sm:grid-cols-2 gap-4">
+                    {/* Name & Email */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="name"
+                          className="block text-sm font-medium mb-2"
+                        >
+                          Your Name <span className="text-destructive">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) =>
+                            handleInputChange("name", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors ${
+                            errors.name
+                              ? "border-destructive focus:border-destructive"
+                              : "border-border focus:border-primary"
+                          } focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                          placeholder="John Doe"
+                        />
+                        {errors.name && (
+                          <p className="text-destructive text-sm mt-1">
+                            {errors.name}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="email"
+                          className="block text-sm font-medium mb-2"
+                        >
+                          Email Address{" "}
+                          <span className="text-destructive">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          id="email"
+                          value={formData.email}
+                          onChange={(e) =>
+                            handleInputChange("email", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors ${
+                            errors.email
+                              ? "border-destructive focus:border-destructive"
+                              : "border-border focus:border-primary"
+                          } focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                          placeholder="john@example.com"
+                        />
+                        {errors.email && (
+                          <p className="text-destructive text-sm mt-1">
+                            {errors.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Subject */}
                     <div>
-                      <label htmlFor="name" className="block text-sm font-medium mb-2">
-                        Your Name <span className="text-destructive">*</span>
+                      <label
+                        htmlFor="subject"
+                        className="block text-sm font-medium mb-2"
+                      >
+                        Subject <span className="text-destructive">*</span>
                       </label>
                       <input
                         type="text"
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange("name", e.target.value)}
+                        id="subject"
+                        value={formData.subject}
+                        onChange={(e) =>
+                          handleInputChange("subject", e.target.value)
+                        }
                         className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors ${
-                          errors.name
+                          errors.subject
                             ? "border-destructive focus:border-destructive"
                             : "border-border focus:border-primary"
                         } focus:outline-none focus:ring-2 focus:ring-primary/20`}
-                        placeholder="John Doe"
+                        placeholder={
+                          selectedCategory?.id === "BUG_REPORT"
+                            ? "Describe the issue briefly..."
+                            : selectedCategory?.id === "FEATURE_REQUEST"
+                              ? "What feature would you like?"
+                              : "Brief summary of your message"
+                        }
                       />
-                      {errors.name && (
-                        <p className="text-destructive text-sm mt-1">{errors.name}</p>
+                      {errors.subject && (
+                        <p className="text-destructive text-sm mt-1">
+                          {errors.subject}
+                        </p>
                       )}
                     </div>
+
+                    {/* Message */}
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium mb-2">
-                        Email Address <span className="text-destructive">*</span>
+                      <label
+                        htmlFor="message"
+                        className="block text-sm font-medium mb-2"
+                      >
+                        Message <span className="text-destructive">*</span>
                       </label>
-                      <input
-                        type="email"
-                        id="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
-                        className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors ${
-                          errors.email
+                      <textarea
+                        id="message"
+                        value={formData.message}
+                        onChange={(e) =>
+                          handleInputChange("message", e.target.value)
+                        }
+                        rows={6}
+                        className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors resize-none ${
+                          errors.message
                             ? "border-destructive focus:border-destructive"
                             : "border-border focus:border-primary"
                         } focus:outline-none focus:ring-2 focus:ring-primary/20`}
-                        placeholder="john@example.com"
+                        placeholder={
+                          selectedCategory?.id === "BUG_REPORT"
+                            ? "Please describe the bug in detail. Include steps to reproduce, what you expected to happen, and what actually happened..."
+                            : selectedCategory?.id === "FEATURE_REQUEST"
+                              ? "Describe the feature you'd like to see and how it would help you..."
+                              : selectedCategory?.id === "FEEDBACK"
+                                ? "We'd love to hear your thoughts on how we can improve..."
+                                : "Tell us more about your question or request..."
+                        }
                       />
-                      {errors.email && (
-                        <p className="text-destructive text-sm mt-1">{errors.email}</p>
+                      {errors.message && (
+                        <p className="text-destructive text-sm mt-1">
+                          {errors.message}
+                        </p>
                       )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formData.message.length}/5000 characters
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Subject */}
-                  <div>
-                    <label htmlFor="subject" className="block text-sm font-medium mb-2">
-                      Subject <span className="text-destructive">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="subject"
-                      value={formData.subject}
-                      onChange={(e) => handleInputChange("subject", e.target.value)}
-                      className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors ${
-                        errors.subject
-                          ? "border-destructive focus:border-destructive"
-                          : "border-border focus:border-primary"
-                      } focus:outline-none focus:ring-2 focus:ring-primary/20`}
-                      placeholder={
-                        selectedCategory?.id === "BUG_REPORT"
-                          ? "Describe the issue briefly..."
-                          : selectedCategory?.id === "FEATURE_REQUEST"
-                          ? "What feature would you like?"
-                          : "Brief summary of your message"
-                      }
-                    />
-                    {errors.subject && (
-                      <p className="text-destructive text-sm mt-1">{errors.subject}</p>
-                    )}
-                  </div>
-
-                  {/* Message */}
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium mb-2">
-                      Message <span className="text-destructive">*</span>
-                    </label>
-                    <textarea
-                      id="message"
-                      value={formData.message}
-                      onChange={(e) => handleInputChange("message", e.target.value)}
-                      rows={6}
-                      className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors resize-none ${
-                        errors.message
-                          ? "border-destructive focus:border-destructive"
-                          : "border-border focus:border-primary"
-                      } focus:outline-none focus:ring-2 focus:ring-primary/20`}
-                      placeholder={
-                        selectedCategory?.id === "BUG_REPORT"
-                          ? "Please describe the bug in detail. Include steps to reproduce, what you expected to happen, and what actually happened..."
-                          : selectedCategory?.id === "FEATURE_REQUEST"
-                          ? "Describe the feature you'd like to see and how it would help you..."
-                          : selectedCategory?.id === "FEEDBACK"
-                          ? "We'd love to hear your thoughts on how we can improve..."
-                          : "Tell us more about your question or request..."
-                      }
-                    />
-                    {errors.message && (
-                      <p className="text-destructive text-sm mt-1">{errors.message}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formData.message.length}/5000 characters
-                    </p>
-                  </div>
 
                     {/* Submit Button */}
                     <button
@@ -448,7 +510,9 @@ export default function ContactContent() {
                 <div className="p-4 rounded-2xl glass border border-border/50">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertCircle className="h-5 w-5 text-muted-foreground" />
-                    <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Information</h3>
+                    <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
+                      Information
+                    </h3>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Helpful details about contacting our support team
@@ -461,10 +525,13 @@ export default function ContactContent() {
                     <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
                       <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-100">Response Time</h3>
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                      Response Time
+                    </h3>
                   </div>
                   <p className="text-sm text-blue-800/80 dark:text-blue-200/80">
-                    We typically respond within 1-2 business days. Urgent issues are prioritized.
+                    We typically respond within 1-2 business days. Urgent issues
+                    are prioritized.
                   </p>
                 </div>
 
@@ -474,10 +541,13 @@ export default function ContactContent() {
                     <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
                       <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
                     </div>
-                    <h3 className="font-semibold text-green-900 dark:text-green-100">Your Privacy</h3>
+                    <h3 className="font-semibold text-green-900 dark:text-green-100">
+                      Your Privacy
+                    </h3>
                   </div>
                   <p className="text-sm text-green-800/80 dark:text-green-200/80">
-                    Your information is secure and will only be used to respond to your inquiry.
+                    Your information is secure and will only be used to respond
+                    to your inquiry.
                   </p>
                 </div>
 
@@ -487,7 +557,9 @@ export default function ContactContent() {
                     <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
                       <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <h3 className="font-semibold text-purple-900 dark:text-purple-100">Quick Links</h3>
+                    <h3 className="font-semibold text-purple-900 dark:text-purple-100">
+                      Quick Links
+                    </h3>
                   </div>
                   <div className="space-y-2">
                     <Link
@@ -523,7 +595,9 @@ export default function ContactContent() {
                     <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900">
                       <Mail className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                     </div>
-                    <h3 className="font-semibold text-orange-900 dark:text-orange-100">Direct Email</h3>
+                    <h3 className="font-semibold text-orange-900 dark:text-orange-100">
+                      Direct Email
+                    </h3>
                   </div>
                   <p className="text-sm text-orange-800/80 dark:text-orange-200/80 mb-2">
                     Prefer to email us directly?

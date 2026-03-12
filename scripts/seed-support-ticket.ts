@@ -3,18 +3,18 @@
  * Run with: npx tsx scripts/seed-support-ticket.ts
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Creating dummy support ticket...');
+  console.log("Creating dummy support ticket...");
 
   const ticket = await prisma.supportTicket.create({
     data: {
-      name: 'Test User',
-      email: 'testuser@example.com',
-      subject: 'Test Support Ticket - Feature Question',
+      name: "Test User",
+      email: "testuser@example.com",
+      subject: "Test Support Ticket - Feature Question",
       message: `Hi ScamDunk Team,
 
 I've been using ScamDunk for a few weeks now and I'm really impressed with the analysis capabilities. I have a couple of questions:
@@ -27,15 +27,15 @@ Thanks for building such a useful tool!
 
 Best regards,
 Test User`,
-      category: 'SUPPORT',
-      status: 'NEW',
-      priority: 'NORMAL',
-      ipAddress: '127.0.0.1',
-      userAgent: 'Seed Script',
+      category: "SUPPORT",
+      status: "NEW",
+      priority: "NORMAL",
+      ipAddress: "127.0.0.1",
+      userAgent: "Seed Script",
     },
   });
 
-  console.log('Created support ticket:', ticket.id);
+  console.log("Created support ticket:", ticket.id);
 
   // Create a response to the ticket
   await prisma.supportTicketResponse.create({
@@ -56,14 +56,16 @@ Please let us know if you have any other questions!
 Best,
 ScamDunk Support Team`,
       isFromAdmin: true,
-      responderName: 'Support Team',
-      responderEmail: 'support@scamdunk.com',
+      responderName: "Support Team",
+      responderEmail: "support@scamdunk.com",
       emailSent: true,
     },
   });
 
-  console.log('Added sample response to ticket');
-  console.log('\nDone! You can now view the ticket in the admin dashboard at /admin/support');
+  console.log("Added sample response to ticket");
+  console.log(
+    "\nDone! You can now view the ticket in the admin dashboard at /admin/support",
+  );
 }
 
 main()

@@ -12,7 +12,8 @@ import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 export async function POST(req: NextRequest) {
   try {
     // Rate limit: auth for billing activation (10 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(req, "auth");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(req, "auth");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (!subscriptionId) {
       return NextResponse.json(
         { error: "Subscription ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (!result.success) {
       return NextResponse.json(
         { error: result.error || "Failed to activate subscription" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     console.error("Error activating PayPal subscription:", error);
     return NextResponse.json(
       { error: "Failed to activate subscription" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

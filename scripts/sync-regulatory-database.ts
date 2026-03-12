@@ -11,7 +11,7 @@
  *   0 2 * * * cd /path/to/app && npx tsx scripts/sync-regulatory-database.ts
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -33,13 +33,13 @@ async function syncSECTradingSuspensions(): Promise<SyncResult> {
   let added = 0;
   let updated = 0;
 
-  console.log('📋 Syncing SEC Trading Suspensions...');
+  console.log("📋 Syncing SEC Trading Suspensions...");
 
   try {
     // Fetch SEC trading suspensions RSS feed
     const response = await fetch(
-      'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom',
-      { signal: AbortSignal.timeout(30000) }
+      "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom",
+      { signal: AbortSignal.timeout(30000) },
     );
 
     if (!response.ok) {
@@ -47,7 +47,7 @@ async function syncSECTradingSuspensions(): Promise<SyncResult> {
     }
 
     const text = await response.text();
-    const entries = text.split('<entry>').slice(1);
+    const entries = text.split("<entry>").slice(1);
 
     console.log(`  Found ${entries.length} entries in SEC feed`);
 
@@ -64,15 +64,28 @@ async function syncSECTradingSuspensions(): Promise<SyncResult> {
 
       // Look for common suspension patterns
       if (
-        title.toLowerCase().includes('trading suspension') ||
-        title.toLowerCase().includes('order of suspension')
+        title.toLowerCase().includes("trading suspension") ||
+        title.toLowerCase().includes("order of suspension")
       ) {
         // Extract ticker symbols from the title
         const tickers = title.match(/\b([A-Z]{2,5})\b/g) || [];
 
         for (const ticker of tickers) {
           // Skip common words that look like tickers
-          if (['THE', 'AND', 'FOR', 'INC', 'LLC', 'LTD', 'SEC', 'USA', 'NYSE', 'OTC'].includes(ticker)) {
+          if (
+            [
+              "THE",
+              "AND",
+              "FOR",
+              "INC",
+              "LLC",
+              "LTD",
+              "SEC",
+              "USA",
+              "NYSE",
+              "OTC",
+            ].includes(ticker)
+          ) {
             continue;
           }
 
@@ -81,19 +94,19 @@ async function syncSECTradingSuspensions(): Promise<SyncResult> {
               where: {
                 ticker_source_flagType_flagDate: {
                   ticker,
-                  source: 'SEC',
-                  flagType: 'TRADING_SUSPENSION',
+                  source: "SEC",
+                  flagType: "TRADING_SUSPENSION",
                   flagDate: new Date(dateStr),
                 },
               },
               create: {
                 ticker,
-                source: 'SEC',
-                flagType: 'TRADING_SUSPENSION',
+                source: "SEC",
+                flagType: "TRADING_SUSPENSION",
                 title,
                 flagDate: new Date(dateStr),
                 sourceUrl,
-                severity: 'CRITICAL',
+                severity: "CRITICAL",
                 isActive: true,
               },
               update: {
@@ -125,18 +138,21 @@ async function syncSECTradingSuspensions(): Promise<SyncResult> {
   // Log sync result
   await prisma.regulatoryDatabaseSync.create({
     data: {
-      source: 'SEC',
+      source: "SEC",
       lastSyncAt: new Date(),
       recordsAdded: added,
       recordsUpdated: updated,
-      status: errors.length > 0 ? (added > 0 ? 'PARTIAL' : 'FAILED') : 'SUCCESS',
-      errorMessage: errors.length > 0 ? errors.join('; ') : null,
+      status:
+        errors.length > 0 ? (added > 0 ? "PARTIAL" : "FAILED") : "SUCCESS",
+      errorMessage: errors.length > 0 ? errors.join("; ") : null,
     },
   });
 
-  console.log(`  ✅ SEC sync complete: ${added} added, ${updated} updated (${duration}ms)`);
+  console.log(
+    `  ✅ SEC sync complete: ${added} added, ${updated} updated (${duration}ms)`,
+  );
 
-  return { source: 'SEC', added, updated, errors, duration };
+  return { source: "SEC", added, updated, errors, duration };
 }
 
 /**
@@ -149,17 +165,16 @@ async function syncFINRAAlerts(): Promise<SyncResult> {
   let added = 0;
   let updated = 0;
 
-  console.log('📋 Syncing FINRA Investor Alerts...');
+  console.log("📋 Syncing FINRA Investor Alerts...");
 
   try {
     // FINRA investor alerts page (would need proper API or scraping for production)
     // For now, we'll mark this as a placeholder
-    console.log('  ⚠️ FINRA sync requires API access (placeholder)');
+    console.log("  ⚠️ FINRA sync requires API access (placeholder)");
 
     // Example of what we would add:
     // const alerts = await fetchFINRAAlerts();
     // for (const alert of alerts) { ... }
-
   } catch (error) {
     errors.push(`FINRA sync failed: ${error}`);
     console.error(`  ❌ FINRA sync error: ${error}`);
@@ -169,18 +184,20 @@ async function syncFINRAAlerts(): Promise<SyncResult> {
 
   await prisma.regulatoryDatabaseSync.create({
     data: {
-      source: 'FINRA',
+      source: "FINRA",
       lastSyncAt: new Date(),
       recordsAdded: added,
       recordsUpdated: updated,
-      status: 'SUCCESS', // Placeholder for now
-      errorMessage: 'FINRA API integration pending',
+      status: "SUCCESS", // Placeholder for now
+      errorMessage: "FINRA API integration pending",
     },
   });
 
-  console.log(`  ✅ FINRA sync complete: ${added} added, ${updated} updated (${duration}ms)`);
+  console.log(
+    `  ✅ FINRA sync complete: ${added} added, ${updated} updated (${duration}ms)`,
+  );
 
-  return { source: 'FINRA', added, updated, errors, duration };
+  return { source: "FINRA", added, updated, errors, duration };
 }
 
 /**
@@ -193,17 +210,16 @@ async function syncOTCMarkets(): Promise<SyncResult> {
   let added = 0;
   let updated = 0;
 
-  console.log('📋 Syncing OTC Markets warnings...');
+  console.log("📋 Syncing OTC Markets warnings...");
 
   try {
     // OTC Markets has an API but requires registration
     // For now, we'll mark this as a placeholder
-    console.log('  ⚠️ OTC Markets sync requires API access (placeholder)');
+    console.log("  ⚠️ OTC Markets sync requires API access (placeholder)");
 
     // Example of what we would add for Caveat Emptor stocks:
     // const warnings = await fetchOTCWarnings();
     // for (const warning of warnings) { ... }
-
   } catch (error) {
     errors.push(`OTC Markets sync failed: ${error}`);
     console.error(`  ❌ OTC Markets sync error: ${error}`);
@@ -213,25 +229,27 @@ async function syncOTCMarkets(): Promise<SyncResult> {
 
   await prisma.regulatoryDatabaseSync.create({
     data: {
-      source: 'OTC',
+      source: "OTC",
       lastSyncAt: new Date(),
       recordsAdded: added,
       recordsUpdated: updated,
-      status: 'SUCCESS', // Placeholder for now
-      errorMessage: 'OTC Markets API integration pending',
+      status: "SUCCESS", // Placeholder for now
+      errorMessage: "OTC Markets API integration pending",
     },
   });
 
-  console.log(`  ✅ OTC Markets sync complete: ${added} added, ${updated} updated (${duration}ms)`);
+  console.log(
+    `  ✅ OTC Markets sync complete: ${added} added, ${updated} updated (${duration}ms)`,
+  );
 
-  return { source: 'OTC', added, updated, errors, duration };
+  return { source: "OTC", added, updated, errors, duration };
 }
 
 /**
  * Mark expired flags as inactive
  */
 async function cleanupExpiredFlags(): Promise<number> {
-  console.log('🧹 Cleaning up expired flags...');
+  console.log("🧹 Cleaning up expired flags...");
 
   const result = await prisma.regulatoryFlag.updateMany({
     where: {
@@ -253,10 +271,10 @@ async function cleanupExpiredFlags(): Promise<number> {
  * Main sync function
  */
 async function main() {
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('🔄 Regulatory Database Sync Starting');
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("🔄 Regulatory Database Sync Starting");
   console.log(`   Time: ${new Date().toISOString()}`);
-  console.log('═══════════════════════════════════════════════════════════');
+  console.log("═══════════════════════════════════════════════════════════");
 
   const results: SyncResult[] = [];
 
@@ -269,38 +287,44 @@ async function main() {
   const expired = await cleanupExpiredFlags();
 
   // Summary
-  console.log('');
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('📊 Sync Summary');
-  console.log('═══════════════════════════════════════════════════════════');
+  console.log("");
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("📊 Sync Summary");
+  console.log("═══════════════════════════════════════════════════════════");
 
   let totalAdded = 0;
   let totalUpdated = 0;
   let totalErrors = 0;
 
   for (const result of results) {
-    console.log(`  ${result.source}: +${result.added} added, ~${result.updated} updated, ${result.errors.length} errors`);
+    console.log(
+      `  ${result.source}: +${result.added} added, ~${result.updated} updated, ${result.errors.length} errors`,
+    );
     totalAdded += result.added;
     totalUpdated += result.updated;
     totalErrors += result.errors.length;
   }
 
-  console.log('───────────────────────────────────────────────────────────');
-  console.log(`  Total: +${totalAdded} added, ~${totalUpdated} updated, ${expired} expired deactivated`);
+  console.log("───────────────────────────────────────────────────────────");
+  console.log(
+    `  Total: +${totalAdded} added, ~${totalUpdated} updated, ${expired} expired deactivated`,
+  );
   console.log(`  Errors: ${totalErrors}`);
 
   // Get current database stats
-  const totalFlags = await prisma.regulatoryFlag.count({ where: { isActive: true } });
+  const totalFlags = await prisma.regulatoryFlag.count({
+    where: { isActive: true },
+  });
   console.log(`  Active flags in database: ${totalFlags}`);
 
-  console.log('═══════════════════════════════════════════════════════════');
-  console.log('✅ Regulatory Database Sync Complete');
-  console.log('═══════════════════════════════════════════════════════════');
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("✅ Regulatory Database Sync Complete");
+  console.log("═══════════════════════════════════════════════════════════");
 }
 
 main()
   .catch((e) => {
-    console.error('Fatal error:', e);
+    console.error("Fatal error:", e);
     process.exit(1);
   })
   .finally(async () => {

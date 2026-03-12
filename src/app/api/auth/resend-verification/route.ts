@@ -8,7 +8,8 @@ import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: strict for resend verification (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "strict");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -16,10 +17,7 @@ export async function POST(request: NextRequest) {
     const { email } = await request.json();
 
     if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     // Check if user exists and is not verified
@@ -43,7 +41,10 @@ export async function POST(request: NextRequest) {
     const emailSent = await sendVerificationEmail(email, token);
 
     if (!emailSent) {
-      const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+      const ip =
+        request.headers.get("x-forwarded-for") ||
+        request.headers.get("x-real-ip") ||
+        undefined;
       await logAuthError(
         {
           email,
@@ -57,18 +58,21 @@ export async function POST(request: NextRequest) {
           errorCode: "RESEND_API_ERROR",
           message: "Failed to resend verification email",
           details: { stage: "resend-verification" },
-        }
+        },
       );
       return NextResponse.json(
         { error: "Failed to send verification email. Please try again later." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Resend verification error:", error);
-    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      undefined;
     await logAuthError(
       {
         ipAddress: ip,
@@ -80,11 +84,11 @@ export async function POST(request: NextRequest) {
         errorCode: "UNKNOWN_ERROR",
         message: "Failed to resend verification email",
         error: error instanceof Error ? error : undefined,
-      }
+      },
     );
     return NextResponse.json(
       { error: "Failed to resend verification email" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

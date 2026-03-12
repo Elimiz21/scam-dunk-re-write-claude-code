@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { testIntegration, testAllIntegrations } from "@/lib/admin/integrations";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!name) {
-      return NextResponse.json({ error: "Integration name required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Integration name required" },
+        { status: 400 },
+      );
     }
 
     const result = await testIntegration(name);
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
     console.error("Test integration error:", error);
     return NextResponse.json(
       { error: "Failed to test integration" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

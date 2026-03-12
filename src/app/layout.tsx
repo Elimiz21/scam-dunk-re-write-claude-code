@@ -110,7 +110,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${playfairDisplay.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${dmSans.variable} ${playfairDisplay.variable}`}
+    >
       <body className="font-sans antialiased">
         <JsonLd data={[websiteSchema, organizationSchema]} />
         <SessionProvider>

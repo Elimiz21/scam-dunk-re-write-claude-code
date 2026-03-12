@@ -5,11 +5,12 @@
  */
 
 const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
-const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+const TURNSTILE_VERIFY_URL =
+  "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 interface TurnstileVerifyResponse {
   success: boolean;
-  'error-codes'?: string[];
+  "error-codes"?: string[];
   challenge_ts?: string;
   hostname?: string;
 }
@@ -20,29 +21,36 @@ interface TurnstileVerifyResponse {
  * @param ip - Optional IP address for additional validation
  * @returns Whether the verification succeeded
  */
-export async function verifyTurnstileToken(token: string, ip?: string): Promise<boolean> {
+export async function verifyTurnstileToken(
+  token: string,
+  ip?: string,
+): Promise<boolean> {
   // In production, fail closed if secret key is not configured
   if (!TURNSTILE_SECRET_KEY) {
     if (process.env.NODE_ENV === "production") {
-      console.error('TURNSTILE_SECRET_KEY not configured in production — rejecting CAPTCHA');
+      console.error(
+        "TURNSTILE_SECRET_KEY not configured in production — rejecting CAPTCHA",
+      );
       return false;
     }
-    console.warn('TURNSTILE_SECRET_KEY not configured, skipping CAPTCHA verification (dev only)');
+    console.warn(
+      "TURNSTILE_SECRET_KEY not configured, skipping CAPTCHA verification (dev only)",
+    );
     return true;
   }
 
   try {
     const formData = new URLSearchParams();
-    formData.append('secret', TURNSTILE_SECRET_KEY);
-    formData.append('response', token);
+    formData.append("secret", TURNSTILE_SECRET_KEY);
+    formData.append("response", token);
     if (ip) {
-      formData.append('remoteip', ip);
+      formData.append("remoteip", ip);
     }
 
     const response = await fetch(TURNSTILE_VERIFY_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        "Content-Type": "application/x-www-form-urlencoded",
       },
       body: formData.toString(),
     });
@@ -50,12 +58,12 @@ export async function verifyTurnstileToken(token: string, ip?: string): Promise<
     const data: TurnstileVerifyResponse = await response.json();
 
     if (!data.success) {
-      console.error('Turnstile verification failed:', data['error-codes']);
+      console.error("Turnstile verification failed:", data["error-codes"]);
     }
 
     return data.success;
   } catch (error) {
-    console.error('Turnstile verification error:', error);
+    console.error("Turnstile verification error:", error);
     return false;
   }
 }

@@ -30,12 +30,18 @@ if (SENTRY_DSN) {
       }
       // Scrub API keys from URLs in request and breadcrumbs
       if (event.request?.url) {
-        event.request.url = event.request.url.replace(/apikey=[^&]+/gi, "apikey=[REDACTED]");
+        event.request.url = event.request.url.replace(
+          /apikey=[^&]+/gi,
+          "apikey=[REDACTED]",
+        );
       }
       if (event.breadcrumbs) {
         event.breadcrumbs = event.breadcrumbs.map((breadcrumb) => {
           if (breadcrumb.data?.url) {
-            breadcrumb.data.url = String(breadcrumb.data.url).replace(/apikey=[^&]+/gi, "apikey=[REDACTED]");
+            breadcrumb.data.url = String(breadcrumb.data.url).replace(
+              /apikey=[^&]+/gi,
+              "apikey=[REDACTED]",
+            );
           }
           return breadcrumb;
         });

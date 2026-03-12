@@ -13,7 +13,9 @@ export function Footer() {
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-3">
               <Shield className="h-5 w-5 text-primary" />
-              <span className="font-semibold font-display italic">ScamDunk</span>
+              <span className="font-semibold font-display italic">
+                ScamDunk
+              </span>
             </Link>
             <p className="text-sm text-muted-foreground">
               Helping retail investors identify potential stock manipulation.
@@ -30,12 +32,18 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/how-it-works" className="hover:text-primary transition-smooth">
+                <Link
+                  href="/how-it-works"
+                  className="hover:text-primary transition-smooth"
+                >
                   How It Works
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-primary transition-smooth">
+                <Link
+                  href="/about"
+                  className="hover:text-primary transition-smooth"
+                >
                   About Us
                 </Link>
               </li>
@@ -47,17 +55,26 @@ export function Footer() {
             <h4 className="font-semibold mb-3 text-sm">Legal</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/terms" className="hover:text-primary transition-smooth">
+                <Link
+                  href="/terms"
+                  className="hover:text-primary transition-smooth"
+                >
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="hover:text-primary transition-smooth">
+                <Link
+                  href="/privacy"
+                  className="hover:text-primary transition-smooth"
+                >
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/disclaimer" className="hover:text-primary transition-smooth">
+                <Link
+                  href="/disclaimer"
+                  className="hover:text-primary transition-smooth"
+                >
                   Disclaimer
                 </Link>
               </li>
@@ -69,12 +86,18 @@ export function Footer() {
             <h4 className="font-semibold mb-3 text-sm">Contact</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/contact" className="hover:text-primary transition-smooth">
+                <Link
+                  href="/contact"
+                  className="hover:text-primary transition-smooth"
+                >
                   Contact Support
                 </Link>
               </li>
               <li>
-                <a href="mailto:privacy@scamdunk.com" className="hover:text-primary transition-smooth">
+                <a
+                  href="mailto:privacy@scamdunk.com"
+                  className="hover:text-primary transition-smooth"
+                >
                   privacy@scamdunk.com
                 </a>
               </li>
@@ -85,9 +108,14 @@ export function Footer() {
         {/* Disclaimer banner */}
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6">
           <p className="text-xs text-muted-foreground text-center">
-            <strong className="text-destructive">Important:</strong> ScamDunk is an educational tool and does NOT provide financial, investment, or legal advice.
-            Our analysis may contain errors. You are solely responsible for your investment decisions.
-            <Link href="/disclaimer" className="text-primary hover:underline ml-1">
+            <strong className="text-destructive">Important:</strong> ScamDunk is
+            an educational tool and does NOT provide financial, investment, or
+            legal advice. Our analysis may contain errors. You are solely
+            responsible for your investment decisions.
+            <Link
+              href="/disclaimer"
+              className="text-primary hover:underline ml-1"
+            >
               Read full disclaimer →
             </Link>
           </p>
@@ -99,13 +127,22 @@ export function Footer() {
             © {new Date().getFullYear()} ScamDunk. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <Link href="/terms" className="hover:text-primary transition-smooth">
+            <Link
+              href="/terms"
+              className="hover:text-primary transition-smooth"
+            >
               Terms
             </Link>
-            <Link href="/privacy" className="hover:text-primary transition-smooth">
+            <Link
+              href="/privacy"
+              className="hover:text-primary transition-smooth"
+            >
               Privacy
             </Link>
-            <Link href="/disclaimer" className="hover:text-primary transition-smooth">
+            <Link
+              href="/disclaimer"
+              className="hover:text-primary transition-smooth"
+            >
               Disclaimer
             </Link>
           </div>

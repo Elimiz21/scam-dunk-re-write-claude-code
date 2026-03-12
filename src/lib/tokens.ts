@@ -4,8 +4,8 @@
  * Handles creation and validation of email verification and password reset tokens.
  */
 
-import { prisma } from './db';
-import crypto from 'crypto';
+import { prisma } from "./db";
+import crypto from "crypto";
 
 const EMAIL_VERIFICATION_EXPIRY_HOURS = 24;
 const PASSWORD_RESET_EXPIRY_HOURS = 1;
@@ -14,20 +14,24 @@ const PASSWORD_RESET_EXPIRY_HOURS = 1;
  * Generate a secure random token
  */
 function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString("hex");
 }
 
 /**
  * Create an email verification token
  */
-export async function createEmailVerificationToken(email: string): Promise<string> {
+export async function createEmailVerificationToken(
+  email: string,
+): Promise<string> {
   // Delete any existing tokens for this email
   await prisma.emailVerificationToken.deleteMany({
     where: { email },
   });
 
   const token = generateToken();
-  const expires = new Date(Date.now() + EMAIL_VERIFICATION_EXPIRY_HOURS * 60 * 60 * 1000);
+  const expires = new Date(
+    Date.now() + EMAIL_VERIFICATION_EXPIRY_HOURS * 60 * 60 * 1000,
+  );
 
   await prisma.emailVerificationToken.create({
     data: {
@@ -43,7 +47,9 @@ export async function createEmailVerificationToken(email: string): Promise<strin
 /**
  * Verify an email verification token
  */
-export async function verifyEmailVerificationToken(token: string): Promise<{ valid: boolean; email?: string }> {
+export async function verifyEmailVerificationToken(
+  token: string,
+): Promise<{ valid: boolean; email?: string }> {
   const verificationToken = await prisma.emailVerificationToken.findUnique({
     where: { token },
   });
@@ -78,7 +84,9 @@ export async function createPasswordResetToken(email: string): Promise<string> {
   });
 
   const token = generateToken();
-  const expires = new Date(Date.now() + PASSWORD_RESET_EXPIRY_HOURS * 60 * 60 * 1000);
+  const expires = new Date(
+    Date.now() + PASSWORD_RESET_EXPIRY_HOURS * 60 * 60 * 1000,
+  );
 
   await prisma.passwordResetToken.create({
     data: {
@@ -94,7 +102,9 @@ export async function createPasswordResetToken(email: string): Promise<string> {
 /**
  * Verify a password reset token
  */
-export async function verifyPasswordResetToken(token: string): Promise<{ valid: boolean; email?: string }> {
+export async function verifyPasswordResetToken(
+  token: string,
+): Promise<{ valid: boolean; email?: string }> {
   const resetToken = await prisma.passwordResetToken.findUnique({
     where: { token },
   });
@@ -117,7 +127,9 @@ export async function verifyPasswordResetToken(token: string): Promise<{ valid: 
 /**
  * Consume (use and delete) a password reset token atomically
  */
-export async function consumePasswordResetToken(token: string): Promise<{ valid: boolean; email?: string }> {
+export async function consumePasswordResetToken(
+  token: string,
+): Promise<{ valid: boolean; email?: string }> {
   return prisma.$transaction(async (tx) => {
     const resetToken = await tx.passwordResetToken.findUnique({
       where: { token },

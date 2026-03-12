@@ -10,14 +10,14 @@ Our investigation into social media promotion of high-risk stocks flagged by Sca
 
 ### Key Findings
 
-| Finding | Evidence Level |
-|---------|----------------|
-| **$3.7 billion lost** in July 2025 pump-and-dump involving 7 Chinese stocks | Confirmed |
-| SEC Cross-Border Task Force launched (Sept 2025) specifically targeting Chinese company fraud | Confirmed |
-| FBI reports **3x increase** in pump-and-dump complaints | Confirmed |
-| Active promotion via WhatsApp, Discord, Telegram, Reddit, Stocktwits | Confirmed |
-| Large penny stock communities (37,000+ members) promoting micro-caps | Confirmed |
-| Multiple flagged stocks appearing on social media watchlists | Confirmed |
+| Finding                                                                                       | Evidence Level |
+| --------------------------------------------------------------------------------------------- | -------------- |
+| **$3.7 billion lost** in July 2025 pump-and-dump involving 7 Chinese stocks                   | Confirmed      |
+| SEC Cross-Border Task Force launched (Sept 2025) specifically targeting Chinese company fraud | Confirmed      |
+| FBI reports **3x increase** in pump-and-dump complaints                                       | Confirmed      |
+| Active promotion via WhatsApp, Discord, Telegram, Reddit, Stocktwits                          | Confirmed      |
+| Large penny stock communities (37,000+ members) promoting micro-caps                          | Confirmed      |
+| Multiple flagged stocks appearing on social media watchlists                                  | Confirmed      |
 
 ---
 
@@ -27,19 +27,20 @@ Our investigation into social media promotion of high-risk stocks flagged by Sca
 
 **Seven US-listed Chinese stocks crashed 80-93%** in July 2025 after being aggressively promoted on WhatsApp and social media:
 
-| Stock | Peak → Crash | Loss |
-|-------|-------------|------|
-| **Ostin Technology (OST)** | ~$1B market cap → -93% | June 26, 2025 |
-| **Top KingWin (WAI)** | Pumped → -90% | July 7, 2025 |
-| **Park Ha Biological (PHH)** | Pumped → -93% | July 8, 2025 |
-| **Concorde International (CIGL)** | Pumped → -80% | July 10, 2025 |
-| **Everbright Digital (EDHL)** | Pumped → -80% | July 14, 2025 |
-| **Skyline Builders** | Pumped → -80%+ | July 2025 |
-| **Pheton Holdings** | Pumped → -80%+ | July 2025 |
+| Stock                             | Peak → Crash           | Loss          |
+| --------------------------------- | ---------------------- | ------------- |
+| **Ostin Technology (OST)**        | ~$1B market cap → -93% | June 26, 2025 |
+| **Top KingWin (WAI)**             | Pumped → -90%          | July 7, 2025  |
+| **Park Ha Biological (PHH)**      | Pumped → -93%          | July 8, 2025  |
+| **Concorde International (CIGL)** | Pumped → -80%          | July 10, 2025 |
+| **Everbright Digital (EDHL)**     | Pumped → -80%          | July 14, 2025 |
+| **Skyline Builders**              | Pumped → -80%+         | July 2025     |
+| **Pheton Holdings**               | Pumped → -80%+         | July 2025     |
 
 **Total estimated losses:** $3.7 billion
 
 **Promotion methods documented:**
+
 - WhatsApp groups posing as US investment firms
 - Facebook ads driving victims to private groups
 - Reddit accounts promoting in coordinated bursts (12 accounts promoting OST in same 2-hour window)
@@ -55,25 +56,25 @@ Our investigation into social media promotion of high-risk stocks flagged by Sca
 
 ### Stocks from Our Analysis with Active Social Media Presence
 
-| Stock | ScamDunk Score | Social Media Activity |
-|-------|---------------|----------------------|
-| **SOBR Safe** | 14 | Tracked on WallStreetBets trending lists |
-| **SIDU (Sidus Space)** | 12 | "Extremely bullish" on Stocktwits, 218% monthly gain, 9% mention surge |
-| **SOS Limited** | 13 | 2021 Hindenburg Research pump-and-dump allegations; ongoing skepticism |
-| **OPTX (Syntec Optics)** | 13 | Significant social media buzz around defense contracts |
-| **GDHG (Golden Heaven)** | 13 | Forum posts discussing run "from $1 to $4 range"; class action lawsuit filed |
+| Stock                    | ScamDunk Score | Social Media Activity                                                        |
+| ------------------------ | -------------- | ---------------------------------------------------------------------------- |
+| **SOBR Safe**            | 14             | Tracked on WallStreetBets trending lists                                     |
+| **SIDU (Sidus Space)**   | 12             | "Extremely bullish" on Stocktwits, 218% monthly gain, 9% mention surge       |
+| **SOS Limited**          | 13             | 2021 Hindenburg Research pump-and-dump allegations; ongoing skepticism       |
+| **OPTX (Syntec Optics)** | 13             | Significant social media buzz around defense contracts                       |
+| **GDHG (Golden Heaven)** | 13             | Forum posts discussing run "from $1 to $4 range"; class action lawsuit filed |
 
 ### Pattern Match with July 2025 Collapse
 
 Many of our flagged stocks share **identical characteristics** with the collapsed Chinese stocks:
 
-| Characteristic | July 2025 Victims | Our Flagged Stocks |
-|---------------|-------------------|-------------------|
-| Chinese holding company | ✓ | ZCMD, HXHX, GVH, ELOG, WFF, XTKG |
-| Market cap <$50M | ✓ | 110 stocks |
-| Penny stock price (<$5) | ✓ | 103 stocks |
-| Limited public information | ✓ | Most flagged stocks |
-| Recent volume explosion | ✓ | 24 stocks with both signals |
+| Characteristic             | July 2025 Victims | Our Flagged Stocks               |
+| -------------------------- | ----------------- | -------------------------------- |
+| Chinese holding company    | ✓                 | ZCMD, HXHX, GVH, ELOG, WFF, XTKG |
+| Market cap <$50M           | ✓                 | 110 stocks                       |
+| Penny stock price (<$5)    | ✓                 | 103 stocks                       |
+| Limited public information | ✓                 | Most flagged stocks              |
+| Recent volume explosion    | ✓                 | 24 stocks with both signals      |
 
 ---
 
@@ -81,14 +82,14 @@ Many of our flagged stocks share **identical characteristics** with the collapse
 
 ### Active Penny Stock Promotion Communities
 
-| Platform | Community | Members | Risk Assessment |
-|----------|-----------|---------|-----------------|
-| **Discord** | PennysAndMore | 37,465 | High - large audience for pumps |
-| **Discord** | Prodigy Trading Team | 33,914 | High |
-| **Discord** | Penny Stock Alerts | 17,542 | Medium-High |
-| **Telegram** | Multiple penny stock alert groups | Thousands | High - difficult to monitor |
-| **Reddit** | r/pennystocks | 2M+ | High - documented pump activity |
-| **Stocktwits** | Penny Stocks channel | Large | Known manipulation risk |
+| Platform       | Community                         | Members   | Risk Assessment                 |
+| -------------- | --------------------------------- | --------- | ------------------------------- |
+| **Discord**    | PennysAndMore                     | 37,465    | High - large audience for pumps |
+| **Discord**    | Prodigy Trading Team              | 33,914    | High                            |
+| **Discord**    | Penny Stock Alerts                | 17,542    | Medium-High                     |
+| **Telegram**   | Multiple penny stock alert groups | Thousands | High - difficult to monitor     |
+| **Reddit**     | r/pennystocks                     | 2M+       | High - documented pump activity |
+| **Stocktwits** | Penny Stocks channel              | Large     | Known manipulation risk         |
 
 ### How Modern Pump Schemes Operate
 
@@ -119,6 +120,7 @@ Based on our research, the typical flow is:
 ### SEC Cross-Border Task Force (September 2025)
 
 The SEC announced a dedicated task force specifically targeting:
+
 - Foreign-based companies' market manipulation
 - Pump-and-dump schemes involving Chinese issuers
 - "Bilge bracket" gatekeepers (small underwriters, auditors, law firms)
@@ -127,17 +129,18 @@ The SEC announced a dedicated task force specifically targeting:
 
 ### Recent Enforcement Actions
 
-| Case | Date | Amount | Description |
-|------|------|--------|-------------|
-| **$214M forfeiture** | 2024-2025 | $214M | Chinese individuals posing as US advisors on social media |
-| **$110M OST fraud** | 2025 | $110M | Chinese executives indicted for coordinated social media pump |
-| **@BigMoneyMike6** | 2024 | $3.6M | Twitter promoter with 3M followers charged with scalping |
-| **AI Wealth/Lane Wealth** | Dec 2025 | $14M | Crypto investment clubs using WhatsApp |
-| **9 Investment Advisers** | Sept 2024 | $1.24M | Marketing rule violations on social media |
+| Case                      | Date      | Amount | Description                                                   |
+| ------------------------- | --------- | ------ | ------------------------------------------------------------- |
+| **$214M forfeiture**      | 2024-2025 | $214M  | Chinese individuals posing as US advisors on social media     |
+| **$110M OST fraud**       | 2025      | $110M  | Chinese executives indicted for coordinated social media pump |
+| **@BigMoneyMike6**        | 2024      | $3.6M  | Twitter promoter with 3M followers charged with scalping      |
+| **AI Wealth/Lane Wealth** | Dec 2025  | $14M   | Crypto investment clubs using WhatsApp                        |
+| **9 Investment Advisers** | Sept 2024 | $1.24M | Marketing rule violations on social media                     |
 
 ### FINRA Investigations
 
 FINRA is actively investigating broker-dealers for:
+
 - IPOs raising ≤$25M with share prices $4-$8
 - Offerings from January 2023 - September 2025
 - Companies from high-risk overseas jurisdictions
@@ -153,28 +156,33 @@ FINRA is actively investigating broker-dealers for:
 ## Section 5: Evidence of Promotion for Specific Flagged Stocks
 
 ### SOBR Safe (Score: 14)
+
 - Appears on WallStreetBets trend tracking lists
 - Multiple warning signals (pump-and-dump pattern, volume explosion)
 - Fits classic micro-cap manipulation profile
 
 ### SOS Limited (Score: 13)
+
 - **2021 Hindenburg Research report** accused company of "pump-and-dump" scheme
 - Stock dropped 50%+ after allegations
 - Remains controversial on investing forums
 - Pattern: Chinese company, micro-cap, high volatility
 
 ### SIDU - Sidus Space (Score: 12)
+
 - **Currently "extremely bullish"** on Stocktwits
 - 218% monthly gain (classic pump territory)
 - 9% increase in social media mentions in single day
 - High message volume suggests coordinated interest
 
 ### OPTX - Syntec Optics (Score: 13)
+
 - Significant social media buzz
 - Promotion around defense contracts
 - Overbought RSI signals potential upcoming dump
 
 ### GDHG - Golden Heaven Group (Score: 13)
+
 - Forum discussions about price targets ($1 to $4 range)
 - **Class action lawsuit filed (February 2024)**
 - Chinese entertainment company
@@ -241,23 +249,27 @@ The stocks flagged by ScamDunk represent a current, active threat to retail inve
 ## Appendix: Sources
 
 ### SEC/FINRA
+
 - [SEC Cross-Border Task Force Announcement](https://www.sec.gov) - September 2025
 - [SEC Investor Alert: Group Chats as Gateway to Scams](https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-alerts/gateway-to-investment-scams) - December 2025
 - [SEC Investor Alert: Fraudulent Stock Promotions](https://www.sec.gov/oiea/investor-alerts-and-bulletins/ia_promotions)
 - [FINRA: Avoiding Pump-and-Dump Scams](https://www.finra.org/investors/insights/pump-and-dump-scams)
 
 ### News Coverage
+
 - [Investors lost $3.7 billion in July 2025 Chinese stock collapse](https://www.mitrade.com/au/insights/news/live-news/article-3-1047043-20250818) - Mitrade
 - [SEC targets US firms linked to Chinese pump and dump scams](https://cryptobriefing.com/sec-chinese-pump-dump-crackdown/) - Crypto Briefing
 - [The Bear Cave: Problems in Chinatown](https://thebearcave.substack.com/p/problems-in-chinatown) - Analysis of Chinese stock manipulation
 - [FINRA Probes Broker-Dealers](https://www.advisorhub.com/finra-probes-broker-dealers-as-regulators-target-pump-and-dumps/) - AdvisorHub
 
 ### Social Media Analysis
+
 - [Stocktwits: SIDU Activity](https://stocktwits.com/symbol/SIDU)
 - [MarketBeat: Social Media Sentiment Tracking](https://www.marketbeat.com)
 - [WallStreetBets Trending Stocks](https://altindex.com/wallstreetbets)
 
 ### Research
+
 - [NYC Data Science: Pump and Dump on Reddit](https://nycdatascience.com/blog/student-works/are-there-signs-of-the-pump-and-dump-behavior-on-reddit-penny-stock-forums/)
 - [Jayud Global: Another Pump-and-Dump Fail](https://www.timothysykes.com/news/jyd-stock-pump-2025_04_03/)
 
@@ -265,4 +277,4 @@ The stocks flagged by ScamDunk represent a current, active threat to retail inve
 
 **END OF INVESTIGATION REPORT**
 
-*This report documents social media activity related to stocks flagged by ScamDunk's AI analysis. Findings are based on publicly available information and do not constitute accusations of illegal activity.*
+_This report documents social media activity related to stocks flagged by ScamDunk's AI analysis. Findings are based on publicly available information and do not constitute accusations of illegal activity._

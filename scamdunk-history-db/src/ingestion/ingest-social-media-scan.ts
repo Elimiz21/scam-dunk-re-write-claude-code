@@ -10,14 +10,15 @@
  *   npm run ingest:social -- --file path/to/report.md  # Ingest specific file
  */
 
-import { readFileSync, existsSync, readdirSync } from 'fs';
-import { join, basename } from 'path';
-import { format } from 'date-fns';
-import { prisma, connectDB, disconnectDB } from '../utils/db.js';
-import type { SocialMediaEvidence } from '../utils/types.js';
+import { readFileSync, existsSync, readdirSync } from "fs";
+import { join, basename } from "path";
+import { format } from "date-fns";
+import { prisma, connectDB, disconnectDB } from "../utils/db.js";
+import type { SocialMediaEvidence } from "../utils/types.js";
 
 // Configuration
-const REPORTS_PATH = process.env.SOCIAL_MEDIA_RESULTS_PATH || '../evaluation/results';
+const REPORTS_PATH =
+  process.env.SOCIAL_MEDIA_RESULTS_PATH || "../evaluation/results";
 
 interface PromotedStock {
   symbol: string;
@@ -64,25 +65,34 @@ function parseMarkdownReport(content: string, filename: string): ParsedReport {
     reportDate = new Date(dateMatch[1]);
   } else {
     // Try to extract from content
-    const contentDateMatch = content.match(/(?:Date|January|February|March|April|May|June|July|August|September|October|November|December)[:\s]+(\d{1,2}),?\s*(\d{4})/i);
+    const contentDateMatch = content.match(
+      /(?:Date|January|February|March|April|May|June|July|August|September|October|November|December)[:\s]+(\d{1,2}),?\s*(\d{4})/i,
+    );
     if (contentDateMatch) {
       // Parse month name date
     }
   }
 
   // Extract promoter info
-  let promoterInfo: ParsedReport['promoterInfo'] = null;
-  const promoterMatch = content.match(/(?:"Making Easy Money"|Making Easy Money)[^"]*(?:by|run by|operated by)?\s*["""]?([^"""\n,]+)["""]?/i);
+  let promoterInfo: ParsedReport["promoterInfo"] = null;
+  const promoterMatch = content.match(
+    /(?:"Making Easy Money"|Making Easy Money)[^"]*(?:by|run by|operated by)?\s*["""]?([^"""\n,]+)["""]?/i,
+  );
   const handleMatch = content.match(/@(\w+)/);
   const memberMatch = content.match(/(\d{1,3}(?:,\d{3})*)\+?\s*members/i);
 
-  if (content.includes('Grandmaster-Obi') || content.includes('Making Easy Money')) {
+  if (
+    content.includes("Grandmaster-Obi") ||
+    content.includes("Making Easy Money")
+  ) {
     promoterInfo = {
-      name: 'Grandmaster-Obi',
-      handle: '@ObiMem',
-      platform: 'Discord',
-      groupName: 'Making Easy Money',
-      memberCount: memberMatch ? parseInt(memberMatch[1].replace(/,/g, '')) : undefined,
+      name: "Grandmaster-Obi",
+      handle: "@ObiMem",
+      platform: "Discord",
+      groupName: "Making Easy Money",
+      memberCount: memberMatch
+        ? parseInt(memberMatch[1].replace(/,/g, ""))
+        : undefined,
     };
   }
 
@@ -91,10 +101,12 @@ function parseMarkdownReport(content: string, filename: string): ParsedReport {
   // or markdown sections about specific stocks
 
   // Pattern 1: Stock tables with | separators
-  const tableRowPattern = /\|\s*\*?\*?([A-Z]{2,5})\*?\*?\s*\|[^|]*\|[^|]*(?:\$?([\d.]+))?[^|]*\|/g;
+  const tableRowPattern =
+    /\|\s*\*?\*?([A-Z]{2,5})\*?\*?\s*\|[^|]*\|[^|]*(?:\$?([\d.]+))?[^|]*\|/g;
 
   // Pattern 2: Detailed stock sections like "#### 1. LVRO - Lavoro Limited"
-  const stockSectionPattern = /####\s*\d+\.\s*([A-Z]{2,5})\s*-\s*([^\n]+)\n([\s\S]*?)(?=####|\n##|\*\*---)/g;
+  const stockSectionPattern =
+    /####\s*\d+\.\s*([A-Z]{2,5})\s*-\s*([^\n]+)\n([\s\S]*?)(?=####|\n##|\*\*---)/g;
 
   let match;
 
@@ -129,25 +141,28 @@ function parseMarkdownReport(content: string, filename: string): ParsedReport {
     }
 
     // Check for patterns
-    const pumpAndDumpConfirmed = section.includes('SPIKE_THEN_DROP') ||
-      section.toLowerCase().includes('pump-and-dump');
-    const matchesAtlasPattern = content.toLowerCase().includes('atlas trading');
+    const pumpAndDumpConfirmed =
+      section.includes("SPIKE_THEN_DROP") ||
+      section.toLowerCase().includes("pump-and-dump");
+    const matchesAtlasPattern = content.toLowerCase().includes("atlas trading");
 
     // Extract signals
-    const signalsMatch = section.match(/(?:Signals Triggered:|signals:)([\s\S]*?)(?=\n\n|\*\*Social|\n---)/i);
+    const signalsMatch = section.match(
+      /(?:Signals Triggered:|signals:)([\s\S]*?)(?=\n\n|\*\*Social|\n---)/i,
+    );
     const signals: string[] = [];
     if (signalsMatch) {
       const signalCodes = signalsMatch[1].match(/[A-Z_]+(?:\s*\(\+\d+)/g) || [];
-      signals.push(...signalCodes.map(s => s.split('(')[0].trim()));
+      signals.push(...signalCodes.map((s) => s.split("(")[0].trim()));
     }
 
     promotedStocks.push({
       symbol,
       name,
       riskScore,
-      promoterName: promoterInfo?.name || 'Unknown',
+      promoterName: promoterInfo?.name || "Unknown",
       promoterHandle: promoterInfo?.handle,
-      platform: promoterInfo?.platform || 'Discord',
+      platform: promoterInfo?.platform || "Discord",
       groupName: promoterInfo?.groupName,
       promotionPrice,
       currentPrice,
@@ -156,55 +171,67 @@ function parseMarkdownReport(content: string, filename: string): ParsedReport {
       signals,
       pumpAndDumpConfirmed,
       matchesAtlasPattern,
-      missingDisclosures: content.includes('NO SEC disclosure') ||
-        content.includes('Section 17(b)'),
-      notes: pumpAndDumpConfirmed ? 'Pump-and-dump pattern detected' : undefined,
+      missingDisclosures:
+        content.includes("NO SEC disclosure") ||
+        content.includes("Section 17(b)"),
+      notes: pumpAndDumpConfirmed
+        ? "Pump-and-dump pattern detected"
+        : undefined,
     });
   }
 
   // Parse "ACTIVE PUMP" table for stocks still in pump phase
-  const activePumpSection = content.match(/ACTIVE PUMP PHASE[\s\S]*?\n\n\|[\s\S]*?\n\n/);
+  const activePumpSection = content.match(
+    /ACTIVE PUMP PHASE[\s\S]*?\n\n\|[\s\S]*?\n\n/,
+  );
   if (activePumpSection) {
-    const pumpRows = activePumpSection[0].matchAll(/\|\s*([A-Z]{2,5})\s*\|\s*(\d+)\s*\|\s*\$?([\d.]+)\s*\|\s*\+?(\d+)%/g);
+    const pumpRows = activePumpSection[0].matchAll(
+      /\|\s*([A-Z]{2,5})\s*\|\s*(\d+)\s*\|\s*\$?([\d.]+)\s*\|\s*\+?(\d+)%/g,
+    );
     for (const row of pumpRows) {
       activePumps.push({
         symbol: row[1],
         riskScore: parseInt(row[2]),
         currentPrice: parseFloat(row[3]),
         gainPercent: parseFloat(row[4]),
-        promoterName: promoterInfo?.name || 'Unknown',
-        platform: 'Discord',
+        promoterName: promoterInfo?.name || "Unknown",
+        platform: "Discord",
         evidenceLinks: [],
         pumpAndDumpConfirmed: false,
         matchesAtlasPattern: false,
         missingDisclosures: false,
-        notes: 'Active pump - no drop yet',
+        notes: "Active pump - no drop yet",
       });
     }
   }
 
   // Also check for the simpler table format in investigation reports
-  const investigationTablePattern = /\|\s*\*?\*?([A-Z]{2,5})\*?\*?\s*\|\s*(\d+)\s*\|([^|]*)\|/g;
+  const investigationTablePattern =
+    /\|\s*\*?\*?([A-Z]{2,5})\*?\*?\s*\|\s*(\d+)\s*\|([^|]*)\|/g;
   while ((match = investigationTablePattern.exec(content)) !== null) {
     const symbol = match[1];
     // Skip if already found
-    if (promotedStocks.some(s => s.symbol === symbol)) continue;
+    if (promotedStocks.some((s) => s.symbol === symbol)) continue;
 
     const scoreOrActivity = match[2];
     const description = match[3].trim();
 
     // Check if this looks like a promoted stock
-    if (description.toLowerCase().includes('stocktwits') ||
-        description.toLowerCase().includes('reddit') ||
-        description.toLowerCase().includes('promoted') ||
-        description.toLowerCase().includes('bullish')) {
-
+    if (
+      description.toLowerCase().includes("stocktwits") ||
+      description.toLowerCase().includes("reddit") ||
+      description.toLowerCase().includes("promoted") ||
+      description.toLowerCase().includes("bullish")
+    ) {
       promotedStocks.push({
         symbol,
         riskScore: parseInt(scoreOrActivity) || 0,
-        promoterName: 'Social Media',
-        platform: description.includes('Stocktwits') ? 'StockTwits' :
-                  description.includes('Reddit') ? 'Reddit' : 'Social Media',
+        promoterName: "Social Media",
+        platform: description.includes("Stocktwits")
+          ? "StockTwits"
+          : description.includes("Reddit")
+            ? "Reddit"
+            : "Social Media",
         evidenceLinks: [],
         pumpAndDumpConfirmed: false,
         matchesAtlasPattern: false,
@@ -234,9 +261,12 @@ function findLatestReportFile(basePath: string): string | null {
 
   // Look for social media / press report files
   const reportFiles = files
-    .filter(f =>
-      (f.includes('SOCIAL') || f.includes('PRESS') || f.includes('Social_Media')) &&
-      f.endsWith('.md')
+    .filter(
+      (f) =>
+        (f.includes("SOCIAL") ||
+          f.includes("PRESS") ||
+          f.includes("Social_Media")) &&
+        f.endsWith(".md"),
     )
     .sort()
     .reverse();
@@ -250,19 +280,24 @@ function findLatestReportFile(basePath: string): string | null {
 
 async function ingestSocialMediaData(
   parsedReport: ParsedReport,
-  dryRun: boolean = false
+  dryRun: boolean = false,
 ): Promise<{ processed: number; errors: number }> {
   let processed = 0;
   let errors = 0;
 
-  const allStocks = [...parsedReport.promotedStocks, ...parsedReport.activePumps];
+  const allStocks = [
+    ...parsedReport.promotedStocks,
+    ...parsedReport.activePumps,
+  ];
 
   console.log(`\n📱 Ingesting ${allStocks.length} social media records...`);
 
   if (dryRun) {
-    console.log('🔍 DRY RUN - No changes will be made');
+    console.log("🔍 DRY RUN - No changes will be made");
     for (const stock of allStocks) {
-      console.log(`   Would ingest: ${stock.symbol} (Score: ${stock.riskScore}, Platform: ${stock.platform})`);
+      console.log(
+        `   Would ingest: ${stock.symbol} (Score: ${stock.riskScore}, Platform: ${stock.platform})`,
+      );
       processed++;
     }
     return { processed, errors };
@@ -276,12 +311,14 @@ async function ingestSocialMediaData(
       });
 
       if (!dbStock) {
-        console.warn(`   ⚠️ Stock ${stock.symbol} not found in database, creating...`);
+        console.warn(
+          `   ⚠️ Stock ${stock.symbol} not found in database, creating...`,
+        );
         const newStock = await prisma.stock.create({
           data: {
             symbol: stock.symbol,
             name: stock.name || stock.symbol,
-            exchange: 'UNKNOWN',
+            exchange: "UNKNOWN",
           },
         });
 
@@ -400,7 +437,7 @@ async function ingestSocialMediaData(
             entryRiskScore: stock.riskScore,
             peakPrice: stock.peakPrice,
             currentPrice: stock.currentPrice,
-            outcome: stock.pumpAndDumpConfirmed ? 'DUMPED' : 'PUMPING',
+            outcome: stock.pumpAndDumpConfirmed ? "DUMPED" : "PUMPING",
             maxGainPct: stock.gainPercent,
             currentGainPct: stock.gainPercent,
             evidenceLinks: JSON.stringify(stock.evidenceLinks),
@@ -409,14 +446,13 @@ async function ingestSocialMediaData(
           update: {
             currentPrice: stock.currentPrice,
             currentGainPct: stock.gainPercent,
-            outcome: stock.pumpAndDumpConfirmed ? 'DUMPED' : 'PUMPING',
+            outcome: stock.pumpAndDumpConfirmed ? "DUMPED" : "PUMPING",
           },
         });
       }
 
       processed++;
       console.log(`   ✓ ${stock.symbol} (${stock.platform})`);
-
     } catch (error) {
       console.error(`   ❌ Error processing ${stock.symbol}:`, error);
       errors++;
@@ -428,11 +464,11 @@ async function ingestSocialMediaData(
 
 async function main() {
   const args = process.argv.slice(2);
-  const fileArg = args.find((_, i) => args[i - 1] === '--file');
-  const dryRun = args.includes('--dry-run');
+  const fileArg = args.find((_, i) => args[i - 1] === "--file");
+  const dryRun = args.includes("--dry-run");
 
-  console.log('🚀 ScamDunk History DB - Social Media Scan Ingestion');
-  console.log('===================================================\n');
+  console.log("🚀 ScamDunk History DB - Social Media Scan Ingestion");
+  console.log("===================================================\n");
 
   try {
     // Find report file
@@ -448,41 +484,52 @@ async function main() {
       reportFile = findLatestReportFile(REPORTS_PATH);
       if (!reportFile) {
         // Also check the reports subdirectory
-        reportFile = findLatestReportFile('../evaluation/reports');
+        reportFile = findLatestReportFile("../evaluation/reports");
       }
     }
 
     if (!reportFile) {
-      console.error('❌ No social media report files found');
-      console.log('   Looked in:', REPORTS_PATH, '../evaluation/reports');
+      console.error("❌ No social media report files found");
+      console.log("   Looked in:", REPORTS_PATH, "../evaluation/reports");
       process.exit(1);
     }
 
     console.log(`📂 Report file: ${reportFile}`);
 
     // Read and parse the report
-    console.log('\n📖 Reading report...');
-    const content = readFileSync(reportFile, 'utf-8');
+    console.log("\n📖 Reading report...");
+    const content = readFileSync(reportFile, "utf-8");
     const parsed = parseMarkdownReport(content, basename(reportFile));
 
-    console.log(`   Report date: ${format(parsed.reportDate, 'yyyy-MM-dd')}`);
+    console.log(`   Report date: ${format(parsed.reportDate, "yyyy-MM-dd")}`);
     console.log(`   Promoted stocks found: ${parsed.promotedStocks.length}`);
     console.log(`   Active pumps found: ${parsed.activePumps.length}`);
 
     if (parsed.promoterInfo) {
-      console.log(`   Promoter: ${parsed.promoterInfo.name} (${parsed.promoterInfo.platform})`);
+      console.log(
+        `   Promoter: ${parsed.promoterInfo.name} (${parsed.promoterInfo.platform})`,
+      );
       if (parsed.promoterInfo.memberCount) {
-        console.log(`   Group members: ${parsed.promoterInfo.memberCount.toLocaleString()}`);
+        console.log(
+          `   Group members: ${parsed.promoterInfo.memberCount.toLocaleString()}`,
+        );
       }
     }
 
     // Preview found stocks
-    console.log('\n📋 Stocks to ingest:');
-    for (const stock of [...parsed.promotedStocks, ...parsed.activePumps].slice(0, 10)) {
-      console.log(`   ${stock.symbol}: Score ${stock.riskScore}, ${stock.platform}${stock.pumpAndDumpConfirmed ? ' [DUMP CONFIRMED]' : ''}`);
+    console.log("\n📋 Stocks to ingest:");
+    for (const stock of [...parsed.promotedStocks, ...parsed.activePumps].slice(
+      0,
+      10,
+    )) {
+      console.log(
+        `   ${stock.symbol}: Score ${stock.riskScore}, ${stock.platform}${stock.pumpAndDumpConfirmed ? " [DUMP CONFIRMED]" : ""}`,
+      );
     }
     if (parsed.promotedStocks.length + parsed.activePumps.length > 10) {
-      console.log(`   ... and ${parsed.promotedStocks.length + parsed.activePumps.length - 10} more`);
+      console.log(
+        `   ... and ${parsed.promotedStocks.length + parsed.activePumps.length - 10} more`,
+      );
     }
 
     // Connect to database
@@ -494,15 +541,14 @@ async function main() {
     const result = await ingestSocialMediaData(parsed, dryRun);
 
     // Print summary
-    console.log('\n📊 Ingestion Summary');
-    console.log('===================');
+    console.log("\n📊 Ingestion Summary");
+    console.log("===================");
     console.log(`   Processed: ${result.processed}`);
     console.log(`   Errors: ${result.errors}`);
 
-    console.log('\n✅ Social media scan ingestion complete!');
-
+    console.log("\n✅ Social media scan ingestion complete!");
   } catch (error) {
-    console.error('\n❌ Ingestion failed:', error);
+    console.error("\n❌ Ingestion failed:", error);
     process.exit(1);
   } finally {
     await disconnectDB();

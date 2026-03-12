@@ -19,25 +19,31 @@ import { logApiUsage } from "./admin/metrics";
 import { circuitBreakers, CircuitBreakerOpenError } from "./circuit-breaker";
 
 // Zod schemas for external API response validation
-const FMPProfileSchema = z.array(z.object({
-  companyName: z.string().optional(),
-  exchange: z.string().optional(),
-  price: z.number().optional(),
-  marketCap: z.number().optional(),
-  averageVolume: z.number().optional(),
-  volume: z.number().optional(),
-  sector: z.string().optional(),
-  industry: z.string().optional(),
-})).min(1);
+const FMPProfileSchema = z
+  .array(
+    z.object({
+      companyName: z.string().optional(),
+      exchange: z.string().optional(),
+      price: z.number().optional(),
+      marketCap: z.number().optional(),
+      averageVolume: z.number().optional(),
+      volume: z.number().optional(),
+      sector: z.string().optional(),
+      industry: z.string().optional(),
+    }),
+  )
+  .min(1);
 
-const FMPHistoricalSchema = z.array(z.object({
-  date: z.string(),
-  open: z.number(),
-  high: z.number(),
-  low: z.number(),
-  close: z.number(),
-  volume: z.number(),
-}));
+const FMPHistoricalSchema = z.array(
+  z.object({
+    date: z.string(),
+    open: z.number(),
+    high: z.number(),
+    low: z.number(),
+    close: z.number(),
+    volume: z.number(),
+  }),
+);
 
 const AlphaVantageQuoteSchema = z.object({
   "Global Quote": z.object({
@@ -47,17 +53,26 @@ const AlphaVantageQuoteSchema = z.object({
 });
 
 const AlphaVantageTimeSeriesSchema = z.object({
-  "Time Series (Daily)": z.record(z.object({
-    "1. open": z.string(),
-    "2. high": z.string(),
-    "3. low": z.string(),
-    "4. close": z.string(),
-    "5. volume": z.string(),
-  })),
+  "Time Series (Daily)": z.record(
+    z.object({
+      "1. open": z.string(),
+      "2. high": z.string(),
+      "3. low": z.string(),
+      "4. close": z.string(),
+      "5. volume": z.string(),
+    }),
+  ),
 });
 
 // Known OTC exchanges
-const OTC_EXCHANGES = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets", "OTHER_OTC"];
+const OTC_EXCHANGES = [
+  "OTC",
+  "OTCQX",
+  "OTCQB",
+  "PINK",
+  "OTC Markets",
+  "OTHER_OTC",
+];
 
 // Known crypto symbols mapped to CoinGecko IDs
 const CRYPTO_ID_MAP: Record<string, string> = {
@@ -127,7 +142,10 @@ async function fetchFMPQuote(ticker: string): Promise<StockQuote | null> {
 
     const parsed = FMPProfileSchema.safeParse(raw);
     if (!parsed.success) {
-      console.error("FMP quote response validation failed:", parsed.error.message);
+      console.error(
+        "FMP quote response validation failed:",
+        parsed.error.message,
+      );
       return null;
     }
 
@@ -139,7 +157,8 @@ async function fetchFMPQuote(ticker: string): Promise<StockQuote | null> {
       lastPrice: profile.price || 0,
       marketCap: profile.marketCap || 0,
       avgVolume30d: profile.averageVolume || profile.volume || 0,
-      avgDollarVolume30d: (profile.averageVolume || profile.volume || 0) * (profile.price || 0),
+      avgDollarVolume30d:
+        (profile.averageVolume || profile.volume || 0) * (profile.price || 0),
     };
   } catch (error) {
     console.error("Error fetching FMP quote:", error);
@@ -164,7 +183,10 @@ async function fetchFMPPriceHistory(ticker: string): Promise<PriceHistory[]> {
 
     const parsed = FMPHistoricalSchema.safeParse(raw);
     if (!parsed.success) {
-      console.error("FMP history response validation failed:", parsed.error.message);
+      console.error(
+        "FMP history response validation failed:",
+        parsed.error.message,
+      );
       return [];
     }
 
@@ -212,7 +234,10 @@ async function fetchFMPProfile(ticker: string): Promise<{
 
     const parsed = FMPProfileSchema.safeParse(raw);
     if (!parsed.success) {
-      console.error("FMP profile response validation failed:", parsed.error.message);
+      console.error(
+        "FMP profile response validation failed:",
+        parsed.error.message,
+      );
       return null;
     }
 
@@ -250,13 +275,19 @@ async function fetchQuote(ticker: string): Promise<StockQuote | null> {
 
     // Check for API errors
     if (raw["Error Message"] || raw["Note"]) {
-      console.error("Alpha Vantage API error:", raw["Error Message"] || raw["Note"]);
+      console.error(
+        "Alpha Vantage API error:",
+        raw["Error Message"] || raw["Note"],
+      );
       return null;
     }
 
     const parsed = AlphaVantageQuoteSchema.safeParse(raw);
     if (!parsed.success) {
-      console.error("Alpha Vantage quote response validation failed:", parsed.error.message);
+      console.error(
+        "Alpha Vantage quote response validation failed:",
+        parsed.error.message,
+      );
       return null;
     }
 
@@ -327,13 +358,19 @@ async function fetchPriceHistory(ticker: string): Promise<PriceHistory[]> {
     const raw = await response.json();
 
     if (raw["Error Message"] || raw["Note"]) {
-      console.error("Alpha Vantage API error:", raw["Error Message"] || raw["Note"]);
+      console.error(
+        "Alpha Vantage API error:",
+        raw["Error Message"] || raw["Note"],
+      );
       return [];
     }
 
     const parsed = AlphaVantageTimeSeriesSchema.safeParse(raw);
     if (!parsed.success) {
-      console.error("Alpha Vantage history response validation failed:", parsed.error.message);
+      console.error(
+        "Alpha Vantage history response validation failed:",
+        parsed.error.message,
+      );
       return [];
     }
 
@@ -427,7 +464,9 @@ async function fetchCoinGeckoQuote(ticker: string): Promise<StockQuote | null> {
 /**
  * Fetch cryptocurrency price history from CoinGecko
  */
-async function fetchCoinGeckoPriceHistory(ticker: string): Promise<PriceHistory[]> {
+async function fetchCoinGeckoPriceHistory(
+  ticker: string,
+): Promise<PriceHistory[]> {
   const coinId = getCoinGeckoId(ticker);
   if (!coinId) {
     return [];
@@ -462,7 +501,7 @@ async function fetchCoinGeckoPriceHistory(ticker: string): Promise<PriceHistory[
         low: candle[3],
         close: candle[4],
         volume: 0, // OHLC endpoint doesn't include volume
-      })
+      }),
     );
 
     return history;
@@ -475,13 +514,18 @@ async function fetchCoinGeckoPriceHistory(ticker: string): Promise<PriceHistory[
 /**
  * Fetch market data from CoinGecko for cryptocurrencies
  */
-async function fetchMarketDataFromCoinGecko(ticker: string): Promise<MarketData> {
+async function fetchMarketDataFromCoinGecko(
+  ticker: string,
+): Promise<MarketData> {
   const apiStartTime = Date.now();
 
   try {
     // Fetch quote and price history in parallel
     const [quote, priceHistory] = await circuitBreakers.coinGecko.execute(() =>
-      Promise.all([fetchCoinGeckoQuote(ticker), fetchCoinGeckoPriceHistory(ticker)])
+      Promise.all([
+        fetchCoinGeckoQuote(ticker),
+        fetchCoinGeckoPriceHistory(ticker),
+      ]),
     );
 
     if (!quote) {
@@ -517,8 +561,15 @@ async function fetchMarketDataFromCoinGecko(ticker: string): Promise<MarketData>
     };
   } catch (error) {
     if (error instanceof CircuitBreakerOpenError) {
-      console.warn(`CoinGecko circuit breaker open, skipping request for ${ticker}`);
-      return { quote: null, priceHistory: [], isOTC: true, dataAvailable: false };
+      console.warn(
+        `CoinGecko circuit breaker open, skipping request for ${ticker}`,
+      );
+      return {
+        quote: null,
+        priceHistory: [],
+        isOTC: true,
+        dataAvailable: false,
+      };
     }
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
@@ -565,7 +616,7 @@ function calculateAvgVolume30d(priceHistory: PriceHistory[]): number {
  */
 export async function fetchMarketData(
   ticker: string,
-  assetType?: "stock" | "crypto"
+  assetType?: "stock" | "crypto",
 ): Promise<MarketData> {
   const normalizedTicker = ticker.toUpperCase().trim();
 
@@ -581,9 +632,13 @@ export async function fetchMarketData(
   // Handle cryptocurrency using CoinGecko
   if (isCrypto) {
     console.log(`Fetching crypto data for ${normalizedTicker} from CoinGecko`);
-    const coinGeckoResult = await fetchMarketDataFromCoinGecko(normalizedTicker);
+    const coinGeckoResult =
+      await fetchMarketDataFromCoinGecko(normalizedTicker);
     if (coinGeckoResult.dataAvailable) {
-      cacheSet(normalizedTicker, { data: coinGeckoResult, timestamp: Date.now() });
+      cacheSet(normalizedTicker, {
+        data: coinGeckoResult,
+        timestamp: Date.now(),
+      });
       return coinGeckoResult;
     }
     // If CoinGecko fails for crypto, return no data (don't try stock APIs)
@@ -633,7 +688,7 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
   try {
     // Fetch quote and price history in parallel (FMP has generous rate limits)
     const [quote, priceHistory] = await circuitBreakers.fmp.execute(() =>
-      Promise.all([fetchFMPQuote(ticker), fetchFMPPriceHistory(ticker)])
+      Promise.all([fetchFMPQuote(ticker), fetchFMPPriceHistory(ticker)]),
     );
 
     if (!quote) {
@@ -667,8 +722,8 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
     quote.avgDollarVolume30d = avgVolume30d * quote.lastPrice;
 
     // Determine if OTC
-    const isOTC = OTC_EXCHANGES.some(exc =>
-      quote.exchange.toUpperCase().includes(exc.toUpperCase())
+    const isOTC = OTC_EXCHANGES.some((exc) =>
+      quote.exchange.toUpperCase().includes(exc.toUpperCase()),
     );
 
     const responseTime = Date.now() - apiStartTime;
@@ -688,7 +743,12 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
   } catch (error) {
     if (error instanceof CircuitBreakerOpenError) {
       console.warn(`FMP circuit breaker open, skipping request for ${ticker}`);
-      return { quote: null, priceHistory: [], isOTC: false, dataAvailable: false };
+      return {
+        quote: null,
+        priceHistory: [],
+        isOTC: false,
+        dataAvailable: false,
+      };
     }
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
@@ -712,15 +772,17 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
 /**
  * Fetch market data from Alpha Vantage (legacy/fallback)
  */
-async function fetchMarketDataFromAlphaVantage(ticker: string): Promise<MarketData> {
+async function fetchMarketDataFromAlphaVantage(
+  ticker: string,
+): Promise<MarketData> {
   const apiStartTime = Date.now();
   let apiCallCount = 0;
 
   try {
     // Fetch quote and price history in parallel
     // Note: Be careful of rate limits (5 calls/min on free tier)
-    const [quote, priceHistory] = await circuitBreakers.alphaVantage.execute(() =>
-      Promise.all([fetchQuote(ticker), fetchPriceHistory(ticker)])
+    const [quote, priceHistory] = await circuitBreakers.alphaVantage.execute(
+      () => Promise.all([fetchQuote(ticker), fetchPriceHistory(ticker)]),
     );
     apiCallCount = 2;
 
@@ -743,7 +805,7 @@ async function fetchMarketDataFromAlphaVantage(ticker: string): Promise<MarketDa
 
     // Fetch company overview for additional details
     // Adding a small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
     const overview = await fetchCompanyOverview(ticker);
     apiCallCount = 3;
 
@@ -760,8 +822,8 @@ async function fetchMarketDataFromAlphaVantage(ticker: string): Promise<MarketDa
     quote.avgDollarVolume30d = avgVolume30d * quote.lastPrice;
 
     // Determine if OTC
-    const isOTC = OTC_EXCHANGES.some(exc =>
-      quote.exchange.toUpperCase().includes(exc.toUpperCase())
+    const isOTC = OTC_EXCHANGES.some((exc) =>
+      quote.exchange.toUpperCase().includes(exc.toUpperCase()),
     );
 
     // Log successful API usage
@@ -781,8 +843,15 @@ async function fetchMarketDataFromAlphaVantage(ticker: string): Promise<MarketDa
     };
   } catch (error) {
     if (error instanceof CircuitBreakerOpenError) {
-      console.warn(`Alpha Vantage circuit breaker open, skipping request for ${ticker}`);
-      return { quote: null, priceHistory: [], isOTC: false, dataAvailable: false };
+      console.warn(
+        `Alpha Vantage circuit breaker open, skipping request for ${ticker}`,
+      );
+      return {
+        quote: null,
+        priceHistory: [],
+        isOTC: false,
+        dataAvailable: false,
+      };
     }
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
@@ -819,7 +888,8 @@ export async function checkAlertList(ticker: string): Promise<boolean> {
 
   try {
     // First, check our local regulatory database
-    const { checkRegulatoryDatabase, syncOTCMarketsFlags } = await import('@/lib/regulatoryDatabase');
+    const { checkRegulatoryDatabase, syncOTCMarketsFlags } =
+      await import("@/lib/regulatoryDatabase");
     const regulatoryCheck = await checkRegulatoryDatabase(normalizedTicker);
 
     if (regulatoryCheck.isFlagged) {
@@ -850,7 +920,7 @@ export async function checkAlertList(ticker: string): Promise<boolean> {
 async function checkSECFeed(ticker: string): Promise<boolean> {
   try {
     const response = await fetch(
-      "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom"
+      "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom",
     );
     if (!response.ok) return false;
     const text = await response.text();
@@ -875,7 +945,7 @@ export async function checkRegulatoryFlags(ticker: string): Promise<{
     severity: string;
     sourceUrl: string | null;
   }>;
-  highestSeverity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
+  highestSeverity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | null;
   sources: string[];
   otcProfile?: {
     tierCode: string | null;
@@ -888,7 +958,8 @@ export async function checkRegulatoryFlags(ticker: string): Promise<{
   const normalizedTicker = ticker.toUpperCase().trim();
 
   try {
-    const { checkRegulatoryDatabase, syncOTCMarketsFlags } = await import('@/lib/regulatoryDatabase');
+    const { checkRegulatoryDatabase, syncOTCMarketsFlags } =
+      await import("@/lib/regulatoryDatabase");
 
     // Sync OTC Markets data first (adds flags to DB if found)
     await syncOTCMarketsFlags(normalizedTicker).catch(() => {});
@@ -899,7 +970,7 @@ export async function checkRegulatoryFlags(ticker: string): Promise<{
     // Also fetch OTC profile for additional context
     let otcProfile = undefined;
     try {
-      const { fetchOTCProfile } = await import('@/lib/otcMarkets');
+      const { fetchOTCProfile } = await import("@/lib/otcMarkets");
       const profile = await fetchOTCProfile(normalizedTicker);
       if (profile) {
         otcProfile = {
@@ -931,7 +1002,7 @@ export async function checkRegulatoryFlags(ticker: string): Promise<{
  */
 export function calculatePriceChange(
   priceHistory: PriceHistory[],
-  days: number
+  days: number,
 ): number | null {
   if (priceHistory.length < days + 1) return null;
 
@@ -948,7 +1019,7 @@ export function calculatePriceChange(
  */
 export function calculateVolumeRatio(
   priceHistory: PriceHistory[],
-  days: number = 7
+  days: number = 7,
 ): number | null {
   if (priceHistory.length < 30) return null;
 
@@ -1030,7 +1101,7 @@ function mean(arr: number[]): number {
 function std(arr: number[]): number {
   if (arr.length === 0) return 0;
   const avg = mean(arr);
-  const squareDiffs = arr.map(value => Math.pow(value - avg, 2));
+  const squareDiffs = arr.map((value) => Math.pow(value - avg, 2));
   return Math.sqrt(mean(squareDiffs));
 }
 
@@ -1038,7 +1109,10 @@ function std(arr: number[]): number {
  * Calculate RSI (Relative Strength Index)
  * RSI > 70 indicates overbought, RSI < 30 indicates oversold
  */
-export function calculateRSI(priceHistory: PriceHistory[], period: number = 14): number | null {
+export function calculateRSI(
+  priceHistory: PriceHistory[],
+  period: number = 14,
+): number | null {
   if (priceHistory.length < period + 1) return null;
 
   const changes: number[] = [];
@@ -1047,15 +1121,15 @@ export function calculateRSI(priceHistory: PriceHistory[], period: number = 14):
   }
 
   const recentChanges = changes.slice(-period);
-  const gains = recentChanges.filter(c => c > 0);
-  const losses = recentChanges.filter(c => c < 0).map(c => Math.abs(c));
+  const gains = recentChanges.filter((c) => c > 0);
+  const losses = recentChanges.filter((c) => c < 0).map((c) => Math.abs(c));
 
   const avgGain = gains.length > 0 ? mean(gains) : 0;
   const avgLoss = losses.length > 0 ? mean(losses) : 0;
 
   if (avgLoss === 0) return 100;
   const rs = avgGain / avgLoss;
-  return 100 - (100 / (1 + rs));
+  return 100 - 100 / (1 + rs);
 }
 
 /**
@@ -1074,7 +1148,9 @@ export function detectPriceAnomaly(priceHistory: PriceHistory[]): {
   // Calculate daily returns
   const returns: number[] = [];
   for (let i = 1; i < priceHistory.length; i++) {
-    const dailyReturn = (priceHistory[i].close - priceHistory[i - 1].close) / priceHistory[i - 1].close;
+    const dailyReturn =
+      (priceHistory[i].close - priceHistory[i - 1].close) /
+      priceHistory[i - 1].close;
     returns.push(dailyReturn);
   }
 
@@ -1117,7 +1193,7 @@ export function detectVolumeAnomaly(priceHistory: PriceHistory[]): {
     return { isAnomaly: false, zScore: 0, multiplier: 1 };
   }
 
-  const volumes = priceHistory.map(p => p.volume);
+  const volumes = priceHistory.map((p) => p.volume);
   const baselineVolumes = volumes.slice(-30, -1);
   const currentVolume = volumes[volumes.length - 1];
 
@@ -1149,7 +1225,10 @@ export function calculateSurgeMetrics(priceHistory: PriceHistory[]): {
   };
 
   // Extreme surge: >100% in 7 days or >200% in 30 days
-  if ((result.surge7d && result.surge7d > 100) || (result.surge30d && result.surge30d > 200)) {
+  if (
+    (result.surge7d && result.surge7d > 100) ||
+    (result.surge30d && result.surge30d > 200)
+  ) {
     result.isExtremeSurge = true;
   }
 
@@ -1170,7 +1249,9 @@ export function calculateVolatility(priceHistory: PriceHistory[]): {
   // Calculate daily returns
   const returns: number[] = [];
   for (let i = 1; i < priceHistory.length; i++) {
-    const dailyReturn = (priceHistory[i].close - priceHistory[i - 1].close) / priceHistory[i - 1].close;
+    const dailyReturn =
+      (priceHistory[i].close - priceHistory[i - 1].close) /
+      priceHistory[i - 1].close;
     returns.push(dailyReturn);
   }
 
@@ -1198,13 +1279,19 @@ export function runAnomalyDetection(priceHistory: PriceHistory[]): {
   const priceAnomaly = detectPriceAnomaly(priceHistory);
   if (priceAnomaly.isAnomaly) {
     if (priceAnomaly.severity === "extreme") {
-      signals.push(`Extreme price movement detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`);
+      signals.push(
+        `Extreme price movement detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`,
+      );
       anomalyScore += 4;
     } else if (priceAnomaly.severity === "high") {
-      signals.push(`Significant price anomaly detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`);
+      signals.push(
+        `Significant price anomaly detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`,
+      );
       anomalyScore += 3;
     } else if (priceAnomaly.severity === "medium") {
-      signals.push(`Unusual price movement detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`);
+      signals.push(
+        `Unusual price movement detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`,
+      );
       anomalyScore += 2;
     }
   }
@@ -1212,7 +1299,9 @@ export function runAnomalyDetection(priceHistory: PriceHistory[]): {
   // Volume anomaly detection
   const volumeAnomaly = detectVolumeAnomaly(priceHistory);
   if (volumeAnomaly.isAnomaly) {
-    signals.push(`Unusual trading volume: ${volumeAnomaly.multiplier.toFixed(1)}x normal`);
+    signals.push(
+      `Unusual trading volume: ${volumeAnomaly.multiplier.toFixed(1)}x normal`,
+    );
     anomalyScore += volumeAnomaly.multiplier > 5 ? 3 : 2;
   }
 
@@ -1237,7 +1326,9 @@ export function runAnomalyDetection(priceHistory: PriceHistory[]): {
   // Volatility detection
   const volatility = calculateVolatility(priceHistory);
   if (volatility.isHighVolatility) {
-    signals.push(`High volatility: ${volatility.dailyVolatility.toFixed(1)}% daily swings`);
+    signals.push(
+      `High volatility: ${volatility.dailyVolatility.toFixed(1)}% daily swings`,
+    );
     anomalyScore += 1;
   }
 
