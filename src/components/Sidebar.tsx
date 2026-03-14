@@ -111,17 +111,27 @@ export function Sidebar({
   const [recentScans, setRecentScans] = useState<ScanHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Re-fetch scans when sidebar opens OR when refreshKey changes (new scan completed)
+  // Re-fetch when sidebar opens
   useEffect(() => {
     if (session?.user && isOpen) {
       fetchRecentScans();
     }
-  }, [session, isOpen, refreshKey]);
+  }, [session, isOpen]);
+
+  // Also re-fetch when a new scan completes (refreshKey changes), even if sidebar is closed
+  useEffect(() => {
+    if (session?.user && refreshKey > 0) {
+      fetchRecentScans();
+    }
+  }, [refreshKey]);
 
   const fetchRecentScans = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/user/scans?limit=10");
+      const response = await fetch(
+        `/api/user/scans?limit=10&_t=${Date.now()}`,
+        { cache: "no-store" },
+      );
       if (response.ok) {
         const data = await response.json();
         setRecentScans(data.scans || []);
