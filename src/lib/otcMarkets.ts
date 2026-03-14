@@ -51,17 +51,28 @@ export interface OTCRiskAssessment {
 const TIER_RISK: Record<string, { level: string; warning: string | null }> = {
   QX: { level: "LOW", warning: null },
   QB: { level: "LOW", warning: null },
-  PS: { level: "MEDIUM", warning: "Pink Current Information — limited reporting" },
-  PN: { level: "HIGH", warning: "Pink Limited Information — minimal disclosure" },
+  PS: {
+    level: "MEDIUM",
+    warning: "Pink Current Information — limited reporting",
+  },
+  PN: {
+    level: "HIGH",
+    warning: "Pink Limited Information — minimal disclosure",
+  },
   PC: { level: "HIGH", warning: "Pink No Information — no public disclosure" },
   EM: { level: "CRITICAL", warning: "Expert Market — restricted, high risk" },
-  GM: { level: "CRITICAL", warning: "Grey Market — no market maker quotes, unsolicited only" },
+  GM: {
+    level: "CRITICAL",
+    warning: "Grey Market — no market maker quotes, unsolicited only",
+  },
 };
 
 /**
  * Fetch company profile from OTC Markets free public API
  */
-export async function fetchOTCProfile(ticker: string): Promise<OTCCompanyProfile | null> {
+export async function fetchOTCProfile(
+  ticker: string,
+): Promise<OTCCompanyProfile | null> {
   const symbol = ticker.toUpperCase().trim();
 
   try {
@@ -111,29 +122,65 @@ export async function fetchOTCProfile(ticker: string): Promise<OTCCompanyProfile
 /**
  * Parse the OTC Markets API response into a structured profile
  */
-function parseOTCProfile(symbol: string, data: Record<string, unknown>): OTCCompanyProfile {
+function parseOTCProfile(
+  symbol: string,
+  data: Record<string, unknown>,
+): OTCCompanyProfile {
   // The API returns nested data — extract from various possible structures
-  const profile = (data as Record<string, Record<string, unknown>>).profileData || data;
-  const security = (data as Record<string, Record<string, unknown>>).securityData || data;
+  const profile =
+    (data as Record<string, Record<string, unknown>>).profileData || data;
+  const security =
+    (data as Record<string, Record<string, unknown>>).securityData || data;
 
   return {
     symbol,
     companyName: extractString(profile, ["name", "companyName", "issuerName"]),
     tierCode: extractString(security, ["tierCode", "tierName", "tier"]),
-    tierName: extractString(security, ["tierDisplayName", "tierGroupName", "tierName"]),
+    tierName: extractString(security, [
+      "tierDisplayName",
+      "tierGroupName",
+      "tierName",
+    ]),
     caveatEmptor: extractBoolean(security, ["caveatEmptor", "isCaveatEmptor"]),
-    shellRisk: extractBoolean(security, ["shellRisk", "isShellRisk", "isShell"]),
+    shellRisk: extractBoolean(security, [
+      "shellRisk",
+      "isShellRisk",
+      "isShell",
+    ]),
     isDelinquent: extractBoolean(security, ["isDelinquent", "delinquent"]),
     isShell: extractBoolean(security, ["isShell", "shellStatus"]),
-    isDarkOrDefunct: extractBoolean(security, ["isDark", "isDefunct", "isDarkOrDefunct"]),
-    complianceStatus: extractString(security, ["complianceStatus", "reportingStatus"]),
+    isDarkOrDefunct: extractBoolean(security, [
+      "isDark",
+      "isDefunct",
+      "isDarkOrDefunct",
+    ]),
+    complianceStatus: extractString(security, [
+      "complianceStatus",
+      "reportingStatus",
+    ]),
     market: extractString(security, ["market", "marketName"]),
     securityType: extractString(security, ["securityType", "type"]),
-    stateOfIncorporation: extractString(profile, ["stateOfIncorporation", "state"]),
-    countryOfIncorporation: extractString(profile, ["countryOfIncorporation", "country"]),
-    numberOfEmployees: extractNumber(profile, ["numberOfEmployees", "employees"]),
-    outstandingShares: extractNumber(security, ["outstandingShares", "sharesOutstanding"]),
-    hasPromotion: extractBoolean(security, ["hasPromotion", "isPromoted", "promotionStatus"]),
+    stateOfIncorporation: extractString(profile, [
+      "stateOfIncorporation",
+      "state",
+    ]),
+    countryOfIncorporation: extractString(profile, [
+      "countryOfIncorporation",
+      "country",
+    ]),
+    numberOfEmployees: extractNumber(profile, [
+      "numberOfEmployees",
+      "employees",
+    ]),
+    outstandingShares: extractNumber(security, [
+      "outstandingShares",
+      "sharesOutstanding",
+    ]),
+    hasPromotion: extractBoolean(security, [
+      "hasPromotion",
+      "isPromoted",
+      "promotionStatus",
+    ]),
     raw: data as Record<string, unknown>,
   };
 }
@@ -153,7 +200,9 @@ export function assessOTCRisk(profile: OTCCompanyProfile): OTCRiskAssessment {
 
   // Shell risk
   if (profile.shellRisk || profile.isShell) {
-    flags.push("SHELL_RISK: Company identified as a shell or blank-check entity");
+    flags.push(
+      "SHELL_RISK: Company identified as a shell or blank-check entity",
+    );
     maxRisk = escalateRisk(maxRisk, "HIGH");
   }
 
@@ -181,15 +230,19 @@ export function assessOTCRisk(profile: OTCCompanyProfile): OTCRiskAssessment {
     const tierInfo = TIER_RISK[profile.tierCode];
     if (tierInfo) {
       tierWarning = tierInfo.warning;
-      if (tierInfo.level === "CRITICAL") maxRisk = escalateRisk(maxRisk, "CRITICAL");
-      else if (tierInfo.level === "HIGH") maxRisk = escalateRisk(maxRisk, "HIGH");
-      else if (tierInfo.level === "MEDIUM") maxRisk = escalateRisk(maxRisk, "MEDIUM");
+      if (tierInfo.level === "CRITICAL")
+        maxRisk = escalateRisk(maxRisk, "CRITICAL");
+      else if (tierInfo.level === "HIGH")
+        maxRisk = escalateRisk(maxRisk, "HIGH");
+      else if (tierInfo.level === "MEDIUM")
+        maxRisk = escalateRisk(maxRisk, "MEDIUM");
     }
   }
 
-  const details = flags.length > 0
-    ? `OTC Markets data shows ${flags.length} risk flag(s) for ${profile.symbol}`
-    : `No OTC Markets risk flags found for ${profile.symbol}`;
+  const details =
+    flags.length > 0
+      ? `OTC Markets data shows ${flags.length} risk flag(s) for ${profile.symbol}`
+      : `No OTC Markets risk flags found for ${profile.symbol}`;
 
   return { riskLevel: maxRisk, flags, tierWarning, details };
 }
@@ -197,7 +250,10 @@ export function assessOTCRisk(profile: OTCCompanyProfile): OTCRiskAssessment {
 /**
  * Test the OTC Markets connection
  */
-export async function testOTCMarketsConnection(): Promise<{ status: string; message?: string }> {
+export async function testOTCMarketsConnection(): Promise<{
+  status: string;
+  message?: string;
+}> {
   try {
     // Test with a well-known OTC stock
     const profile = await fetchOTCProfile("TCEHY");
@@ -214,7 +270,7 @@ export async function testOTCMarketsConnection(): Promise<{ status: string; mess
       {
         headers: { Accept: "application/json", "User-Agent": "ScamDunk/1.0" },
         signal: controller.signal,
-      }
+      },
     );
 
     clearTimeout(timeout);
@@ -224,7 +280,10 @@ export async function testOTCMarketsConnection(): Promise<{ status: string; mess
       return { status: "CONNECTED" };
     }
 
-    return { status: "ERROR", message: `API returned status ${response.status}` };
+    return {
+      status: "ERROR",
+      message: `API returned status ${response.status}`,
+    };
   } catch (error) {
     return {
       status: "ERROR",
@@ -235,7 +294,10 @@ export async function testOTCMarketsConnection(): Promise<{ status: string; mess
 
 // --- Helpers ---
 
-function extractString(obj: Record<string, unknown>, keys: string[]): string | null {
+function extractString(
+  obj: Record<string, unknown>,
+  keys: string[],
+): string | null {
   for (const key of keys) {
     const val = obj[key];
     if (typeof val === "string" && val.length > 0) return val;
@@ -252,7 +314,10 @@ function extractBoolean(obj: Record<string, unknown>, keys: string[]): boolean {
   return false;
 }
 
-function extractNumber(obj: Record<string, unknown>, keys: string[]): number | null {
+function extractNumber(
+  obj: Record<string, unknown>,
+  keys: string[],
+): number | null {
   for (const key of keys) {
     const val = obj[key];
     if (typeof val === "number" && !isNaN(val)) return val;
@@ -262,7 +327,7 @@ function extractNumber(obj: Record<string, unknown>, keys: string[]): number | n
 
 function escalateRisk(
   current: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
-  proposed: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+  proposed: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
 ): "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" {
   const order = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 };
   return order[proposed] > order[current] ? proposed : current;

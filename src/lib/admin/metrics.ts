@@ -98,7 +98,12 @@ export async function logScanHistory(data: {
     });
 
     // Update daily model metrics
-    await updateDailyModelMetrics(data.riskLevel, data.processingTime, data.totalScore, data.isLegitimate);
+    await updateDailyModelMetrics(
+      data.riskLevel,
+      data.processingTime,
+      data.totalScore,
+      data.isLegitimate,
+    );
   } catch (error) {
     console.error("Failed to log scan history:", error);
   }
@@ -111,7 +116,7 @@ async function updateDailyModelMetrics(
   riskLevel: string,
   processingTime?: number,
   totalScore?: number,
-  isLegitimate?: boolean
+  isLegitimate?: boolean,
 ) {
   const { dayKey } = getDateKeys();
 
@@ -126,22 +131,29 @@ async function updateDailyModelMetrics(
       };
 
       if (riskLevel === "LOW") updates.lowRiskCount = existing.lowRiskCount + 1;
-      if (riskLevel === "MEDIUM") updates.mediumRiskCount = existing.mediumRiskCount + 1;
-      if (riskLevel === "HIGH") updates.highRiskCount = existing.highRiskCount + 1;
-      if (riskLevel === "INSUFFICIENT") updates.insufficientCount = existing.insufficientCount + 1;
-      if (isLegitimate === true) updates.legitDetected = existing.legitDetected + 1;
+      if (riskLevel === "MEDIUM")
+        updates.mediumRiskCount = existing.mediumRiskCount + 1;
+      if (riskLevel === "HIGH")
+        updates.highRiskCount = existing.highRiskCount + 1;
+      if (riskLevel === "INSUFFICIENT")
+        updates.insufficientCount = existing.insufficientCount + 1;
+      if (isLegitimate === true)
+        updates.legitDetected = existing.legitDetected + 1;
 
       // Update averages
       if (processingTime) {
         const newAvgTime = existing.avgProcessingTime
-          ? (existing.avgProcessingTime * existing.totalScans + processingTime) / (existing.totalScans + 1)
+          ? (existing.avgProcessingTime * existing.totalScans +
+              processingTime) /
+            (existing.totalScans + 1)
           : processingTime;
         updates.avgProcessingTime = newAvgTime;
       }
 
       if (totalScore !== undefined) {
         const newAvgScore = existing.avgScore
-          ? (existing.avgScore * existing.totalScans + totalScore) / (existing.totalScans + 1)
+          ? (existing.avgScore * existing.totalScans + totalScore) /
+            (existing.totalScans + 1)
           : totalScore;
         updates.avgScore = newAvgScore;
       }
@@ -284,7 +296,7 @@ export async function getDashboardMetrics() {
         if (row.riskLevel === "INSUFFICIENT") acc.insufficient = row._count;
         return acc;
       },
-      { low: 0, medium: 0, high: 0, insufficient: 0 }
+      { low: 0, medium: 0, high: 0, insufficient: 0 },
     );
 
     const paidUsers = usersByPlan.find((u) => u.plan === "PAID")?._count ?? 0;
@@ -312,7 +324,9 @@ export async function getDashboardMetrics() {
 /**
  * Get API usage summary for cost monitoring
  */
-export async function getApiUsageSummary(period: "day" | "week" | "month" = "month") {
+export async function getApiUsageSummary(
+  period: "day" | "week" | "month" = "month",
+) {
   const now = new Date();
   let startDate: string;
 
@@ -349,7 +363,10 @@ export async function getApiUsageSummary(period: "day" | "week" | "month" = "mon
       },
     });
 
-    const totalCost = usageByService.reduce((sum, s) => sum + (s._sum.estimatedCost || 0), 0);
+    const totalCost = usageByService.reduce(
+      (sum, s) => sum + (s._sum.estimatedCost || 0),
+      0,
+    );
     const totalRequests = usageByService.reduce((sum, s) => sum + s._count, 0);
 
     // Hourly usage for today
@@ -425,7 +442,7 @@ export async function getModelEfficacyMetrics(days: number = 30) {
         legitDetected: 0,
         falsePositives: 0,
         falseNegatives: 0,
-      }
+      },
     );
 
     // Top scanned tickers
@@ -444,11 +461,15 @@ export async function getModelEfficacyMetrics(days: number = 30) {
     });
 
     // High risk detection rate
-    const highRiskRate = totals.totalScans > 0 ? (totals.highRisk / totals.totalScans) * 100 : 0;
+    const highRiskRate =
+      totals.totalScans > 0 ? (totals.highRisk / totals.totalScans) * 100 : 0;
 
     // Accuracy (if manually marked)
     const totalMarked = totals.falsePositives + totals.falseNegatives;
-    const accuracy = totalMarked > 0 ? ((totals.totalScans - totalMarked) / totals.totalScans) * 100 : null;
+    const accuracy =
+      totalMarked > 0
+        ? ((totals.totalScans - totalMarked) / totals.totalScans) * 100
+        : null;
 
     return {
       totals,
@@ -459,12 +480,16 @@ export async function getModelEfficacyMetrics(days: number = 30) {
       })),
       highRiskRate,
       accuracy,
-      avgProcessingTime: metrics.length > 0
-        ? metrics.reduce((sum, m) => sum + (m.avgProcessingTime || 0), 0) / metrics.length
-        : 0,
-      avgScore: metrics.length > 0
-        ? metrics.reduce((sum, m) => sum + (m.avgScore || 0), 0) / metrics.length
-        : 0,
+      avgProcessingTime:
+        metrics.length > 0
+          ? metrics.reduce((sum, m) => sum + (m.avgProcessingTime || 0), 0) /
+            metrics.length
+          : 0,
+      avgScore:
+        metrics.length > 0
+          ? metrics.reduce((sum, m) => sum + (m.avgScore || 0), 0) /
+            metrics.length
+          : 0,
     };
   } catch (error) {
     console.error("Failed to get model efficacy metrics:", error);
@@ -518,11 +543,15 @@ export async function checkAndTriggerAlerts() {
           prisma.apiUsageLog.count({
             where: {
               ...whereFilter,
-              OR: [{ errorMessage: { not: null } }, { statusCode: { gte: 400 } }],
+              OR: [
+                { errorMessage: { not: null } },
+                { statusCode: { gte: 400 } },
+              ],
             },
           }),
         ]);
-        currentValue = totalRequests > 0 ? (errorRequests / totalRequests) * 100 : 0;
+        currentValue =
+          totalRequests > 0 ? (errorRequests / totalRequests) * 100 : 0;
       }
 
       if (currentValue >= alert.threshold) {
@@ -578,7 +607,10 @@ export async function backfillAdminMetrics() {
     }
   >();
 
-  const usageMap = new Map<string, { userId: string; monthKey: string; scanCount: number }>();
+  const usageMap = new Map<
+    string,
+    { userId: string; monthKey: string; scanCount: number }
+  >();
 
   for (const scan of scanHistory) {
     const dateKey = scan.createdAt.toISOString().split("T")[0];
@@ -634,8 +666,11 @@ export async function backfillAdminMetrics() {
   await prisma.$transaction(async (tx) => {
     for (const [dateKey, daily] of dailyEntries) {
       const avgProcessingTime =
-        daily.processingTimeCount > 0 ? daily.processingTimeSum / daily.processingTimeCount : null;
-      const avgScore = daily.scoreCount > 0 ? daily.scoreSum / daily.scoreCount : null;
+        daily.processingTimeCount > 0
+          ? daily.processingTimeSum / daily.processingTimeCount
+          : null;
+      const avgScore =
+        daily.scoreCount > 0 ? daily.scoreSum / daily.scoreCount : null;
 
       await tx.modelMetrics.upsert({
         where: { dateKey },

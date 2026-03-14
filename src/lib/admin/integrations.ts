@@ -24,9 +24,9 @@ import {
 // ---------------------------------------------------------------------------
 
 export interface CredentialField {
-  key: string;       // internal key stored in encrypted JSON (e.g. "apiKey")
-  label: string;     // human-readable label for the form
-  envVar: string;    // corresponding environment variable name
+  key: string; // internal key stored in encrypted JSON (e.g. "apiKey")
+  label: string; // human-readable label for the form
+  envVar: string; // corresponding environment variable name
   sensitive?: boolean; // default true – false for usernames / emails
 }
 
@@ -90,54 +90,78 @@ function maskApiKey(key: string | undefined, showFull = false): string {
 // ---------------------------------------------------------------------------
 
 async function testOpenAI(): Promise<{ status: string; message?: string }> {
-  if (!config.openaiApiKey) return { status: "ERROR", message: "API key not configured" };
+  if (!config.openaiApiKey)
+    return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch("https://api.openai.com/v1/models", {
       headers: { Authorization: `Bearer ${config.openaiApiKey}` },
     });
     if (response.ok) return { status: "CONNECTED" };
     const error = await response.json();
-    return { status: "ERROR", message: error.error?.message || "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error.error?.message || "Connection failed",
+    };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
 async function testFMP(): Promise<{ status: string; message?: string }> {
-  if (!config.fmpApiKey) return { status: "ERROR", message: "API key not configured" };
+  if (!config.fmpApiKey)
+    return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch(
-      `https://financialmodelingprep.com/stable/profile?symbol=AAPL&apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/profile?symbol=AAPL&apikey=${config.fmpApiKey}`,
     );
     if (response.ok) {
       const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) return { status: "CONNECTED" };
-      return { status: "ERROR", message: "API returned empty data — key may be invalid" };
+      if (Array.isArray(data) && data.length > 0)
+        return { status: "CONNECTED" };
+      return {
+        status: "ERROR",
+        message: "API returned empty data — key may be invalid",
+      };
     }
     if (response.status === 401 || response.status === 403) {
       return { status: "ERROR", message: "Invalid or expired API key" };
     }
     return { status: "ERROR", message: `FMP returned ${response.status}` };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
-async function testAlphaVantage(): Promise<{ status: string; message?: string }> {
-  if (!config.alphaVantageApiKey) return { status: "ERROR", message: "API key not configured" };
+async function testAlphaVantage(): Promise<{
+  status: string;
+  message?: string;
+}> {
+  if (!config.alphaVantageApiKey)
+    return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch(
-      `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=AAPL&apikey=${config.alphaVantageApiKey}`
+      `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=AAPL&apikey=${config.alphaVantageApiKey}`,
     );
     if (response.ok) {
       const data = await response.json();
-      if (data["Error Message"]) return { status: "ERROR", message: data["Error Message"] };
-      if (data["Note"]) return { status: "ERROR", message: "Rate limit exceeded" };
+      if (data["Error Message"])
+        return { status: "ERROR", message: data["Error Message"] };
+      if (data["Note"])
+        return { status: "ERROR", message: "Rate limit exceeded" };
       return { status: "CONNECTED" };
     }
     return { status: "ERROR", message: "Connection failed" };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
@@ -146,10 +170,13 @@ async function testPayPal(): Promise<{ status: string; message?: string }> {
     return { status: "ERROR", message: "API credentials not configured" };
   }
   try {
-    const auth = Buffer.from(`${config.paypalClientId}:${config.paypalClientSecret}`).toString("base64");
-    const baseUrl = config.paypalMode === "live"
-      ? "https://api-m.paypal.com"
-      : "https://api-m.sandbox.paypal.com";
+    const auth = Buffer.from(
+      `${config.paypalClientId}:${config.paypalClientSecret}`,
+    ).toString("base64");
+    const baseUrl =
+      config.paypalMode === "live"
+        ? "https://api-m.paypal.com"
+        : "https://api-m.sandbox.paypal.com";
     const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
       method: "POST",
       headers: {
@@ -160,9 +187,15 @@ async function testPayPal(): Promise<{ status: string; message?: string }> {
     });
     if (response.ok) return { status: "CONNECTED" };
     const error = await response.json();
-    return { status: "ERROR", message: error.error_description || "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error.error_description || "Connection failed",
+    };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
@@ -171,7 +204,10 @@ async function testDatabase(): Promise<{ status: string; message?: string }> {
     await prisma.$queryRaw`SELECT 1`;
     return { status: "CONNECTED" };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
@@ -184,52 +220,84 @@ async function testFINRA(): Promise<{ status: string; message?: string }> {
 }
 
 async function testResend(): Promise<{ status: string; message?: string }> {
-  if (!config.resendApiKey) return { status: "ERROR", message: "API key not configured" };
+  if (!config.resendApiKey)
+    return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch("https://api.resend.com/domains", {
       headers: { Authorization: `Bearer ${config.resendApiKey}` },
     });
     if (response.ok) return { status: "CONNECTED" };
-    if (response.status === 401) return { status: "ERROR", message: "Invalid API key" };
+    if (response.status === 401)
+      return { status: "ERROR", message: "Invalid API key" };
     return { status: "ERROR", message: `Resend returned ${response.status}` };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
 async function testYouTube(): Promise<{ status: string; message?: string }> {
-  if (!config.youtubeApiKey) return { status: "ERROR", message: "API key not configured" };
+  if (!config.youtubeApiKey)
+    return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&maxResults=1&key=${config.youtubeApiKey}`
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&maxResults=1&key=${config.youtubeApiKey}`,
     );
     if (response.ok) return { status: "CONNECTED" };
     const error = await response.json();
-    return { status: "ERROR", message: error.error?.message || "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error.error?.message || "Connection failed",
+    };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
-async function testRedditPublic(): Promise<{ status: string; message?: string }> {
+async function testRedditPublic(): Promise<{
+  status: string;
+  message?: string;
+}> {
   try {
-    const response = await fetch("https://www.reddit.com/r/stocks/new.json?limit=1", {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)",
-        Accept: "application/json",
+    const response = await fetch(
+      "https://www.reddit.com/r/stocks/new.json?limit=1",
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)",
+          Accept: "application/json",
+        },
       },
-    });
+    );
     if (response.ok) {
       const data = await response.json();
       if (data?.data?.children?.length > 0) {
-        return { status: "CONNECTED", message: "Public JSON endpoint reachable (no credentials needed)" };
+        return {
+          status: "CONNECTED",
+          message: "Public JSON endpoint reachable (no credentials needed)",
+        };
       }
-      return { status: "CONNECTED", message: "Endpoint reachable but returned no posts" };
+      return {
+        status: "CONNECTED",
+        message: "Endpoint reachable but returned no posts",
+      };
     }
-    if (response.status === 429) return { status: "ERROR", message: "Rate limited — try again in a minute" };
+    if (response.status === 429)
+      return {
+        status: "ERROR",
+        message: "Rate limited — try again in a minute",
+      };
     return { status: "ERROR", message: `Reddit returned ${response.status}` };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
@@ -242,20 +310,24 @@ async function testSerperDev(): Promise<{ status: string; message?: string }> {
       method: "POST",
       headers: {
         "X-API-KEY": config.serperApiKey,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ q: "apple inc", num: 1 })
+      body: JSON.stringify({ q: "apple inc", num: 1 }),
     });
     if (response.ok) return { status: "CONNECTED" };
     const error = await response.json();
     return { status: "ERROR", message: error.message || "Connection failed" };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
 async function testPerplexity(): Promise<{ status: string; message?: string }> {
-  if (!config.perplexityApiKey) return { status: "ERROR", message: "API key not configured" };
+  if (!config.perplexityApiKey)
+    return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch("https://api.perplexity.ai/chat/completions", {
       method: "POST",
@@ -271,14 +343,21 @@ async function testPerplexity(): Promise<{ status: string; message?: string }> {
     });
     if (response.ok) return { status: "CONNECTED" };
     const error = await response.json().catch(() => ({}));
-    return { status: "ERROR", message: error.error?.message || `API returned ${response.status}` };
+    return {
+      status: "ERROR",
+      message: error.error?.message || `API returned ${response.status}`,
+    };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
 async function testAnthropic(): Promise<{ status: string; message?: string }> {
-  if (!config.anthropicApiKey) return { status: "ERROR", message: "API key not configured" };
+  if (!config.anthropicApiKey)
+    return { status: "ERROR", message: "API key not configured" };
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -295,35 +374,50 @@ async function testAnthropic(): Promise<{ status: string; message?: string }> {
     });
     if (response.ok) return { status: "CONNECTED" };
     const error = await response.json().catch(() => ({}));
-    return { status: "ERROR", message: error.error?.message || `API returned ${response.status}` };
+    return {
+      status: "ERROR",
+      message: error.error?.message || `API returned ${response.status}`,
+    };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
 async function testDiscordBot(): Promise<{ status: string; message?: string }> {
-  if (!config.discordBotToken) return { status: "ERROR", message: "Bot token not configured" };
+  if (!config.discordBotToken)
+    return { status: "ERROR", message: "Bot token not configured" };
   try {
     const response = await fetch("https://discord.com/api/v10/users/@me", {
       headers: { Authorization: `Bot ${config.discordBotToken}` },
     });
     if (response.ok) {
       const data = await response.json();
-      return { status: "CONNECTED", message: `Bot: ${data.username}#${data.discriminator}` };
+      return {
+        status: "CONNECTED",
+        message: `Bot: ${data.username}#${data.discriminator}`,
+      };
     }
     return { status: "ERROR", message: `Discord returned ${response.status}` };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
-
 
 /**
  * Test Python AI Backend connection
  */
 async function testAIBackend(): Promise<{ status: string; message?: string }> {
   if (!config.aiBackendUrl || config.aiBackendUrl === "http://localhost:8000") {
-    return { status: "ERROR", message: "AI_BACKEND_URL not configured (using default localhost)" };
+    return {
+      status: "ERROR",
+      message: "AI_BACKEND_URL not configured (using default localhost)",
+    };
   }
 
   try {
@@ -339,7 +433,10 @@ async function testAIBackend(): Promise<{ status: string; message?: string }> {
     }
     return { status: "ERROR", message: `Backend returned ${response.status}` };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
@@ -348,55 +445,85 @@ async function testAIBackend(): Promise<{ status: string; message?: string }> {
  */
 function testBrowserCredential(
   usernameKey: keyof typeof config,
-  passwordKey: keyof typeof config
+  passwordKey: keyof typeof config,
 ): () => Promise<{ status: string; message?: string }> {
   return async () => {
     const username = config[usernameKey];
     const password = config[passwordKey];
     if (!username || !password) {
-      return { status: "ERROR", message: "Username and password not configured" };
+      return {
+        status: "ERROR",
+        message: "Username and password not configured",
+      };
     }
     return { status: "CONNECTED", message: `Credentials set for ${username}` };
   };
 }
 
-async function testBrowserEncryptionKey(): Promise<{ status: string; message?: string }> {
+async function testBrowserEncryptionKey(): Promise<{
+  status: string;
+  message?: string;
+}> {
   if (!config.browserSessionEncryptionKey) {
     return { status: "ERROR", message: "Encryption key not configured" };
   }
   if (config.browserSessionEncryptionKey.length < 32) {
-    return { status: "ERROR", message: "Encryption key must be at least 32 characters" };
+    return {
+      status: "ERROR",
+      message: "Encryption key must be at least 32 characters",
+    };
   }
   return { status: "CONNECTED", message: "Key configured" };
 }
 
 async function testVercelSync(): Promise<{ status: string; message?: string }> {
   if (!config.vercelApiToken || !config.vercelProjectId) {
-    return { status: "ERROR", message: "Vercel API token or project ID not configured" };
+    return {
+      status: "ERROR",
+      message: "Vercel API token or project ID not configured",
+    };
   }
   try {
-    const teamQuery = config.vercelTeamId ? `?teamId=${config.vercelTeamId}` : "";
+    const teamQuery = config.vercelTeamId
+      ? `?teamId=${config.vercelTeamId}`
+      : "";
     const res = await fetch(
       `https://api.vercel.com/v9/projects/${config.vercelProjectId}/env${teamQuery}`,
-      { headers: { Authorization: `Bearer ${config.vercelApiToken}` } }
+      { headers: { Authorization: `Bearer ${config.vercelApiToken}` } },
     );
     if (res.ok) {
       const data = await res.json();
       const count = data.envs?.length ?? 0;
-      return { status: "CONNECTED", message: `Access OK — ${count} env var(s) found` };
+      return {
+        status: "CONNECTED",
+        message: `Access OK — ${count} env var(s) found`,
+      };
     }
     if (res.status === 401 || res.status === 403) {
-      return { status: "ERROR", message: "Invalid token or insufficient permissions" };
+      return {
+        status: "ERROR",
+        message: "Invalid token or insufficient permissions",
+      };
     }
     return { status: "ERROR", message: `Vercel API returned ${res.status}` };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
 async function testGitHubSync(): Promise<{ status: string; message?: string }> {
-  if (!config.githubSyncPat || !config.githubRepoOwner || !config.githubRepoName) {
-    return { status: "ERROR", message: "GitHub PAT, repo owner, or repo name not configured" };
+  if (
+    !config.githubSyncPat ||
+    !config.githubRepoOwner ||
+    !config.githubRepoName
+  ) {
+    return {
+      status: "ERROR",
+      message: "GitHub PAT, repo owner, or repo name not configured",
+    };
   }
   try {
     const res = await fetch(
@@ -407,18 +534,28 @@ async function testGitHubSync(): Promise<{ status: string; message?: string }> {
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
         },
-      }
+      },
     );
-    if (res.ok) return { status: "CONNECTED", message: "Access OK — can read/write secrets" };
+    if (res.ok)
+      return {
+        status: "CONNECTED",
+        message: "Access OK — can read/write secrets",
+      };
     if (res.status === 401 || res.status === 403) {
       return { status: "ERROR", message: "Invalid PAT or missing repo scope" };
     }
     if (res.status === 404) {
-      return { status: "ERROR", message: "Repository not found — check owner/name" };
+      return {
+        status: "ERROR",
+        message: "Repository not found — check owner/name",
+      };
     }
     return { status: "ERROR", message: `GitHub API returned ${res.status}` };
   } catch (error) {
-    return { status: "ERROR", message: error instanceof Error ? error.message : "Connection failed" };
+    return {
+      status: "ERROR",
+      message: error instanceof Error ? error.message : "Connection failed",
+    };
   }
 }
 
@@ -444,7 +581,8 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "FMP",
     displayName: "Financial Modeling Prep",
     category: "API",
-    description: "Primary source for real-time stock quotes, financials, and company data",
+    description:
+      "Primary source for real-time stock quotes, financials, and company data",
     getApiKey: () => config.fmpApiKey,
     testConnection: testFMP,
     rateLimit: 300,
@@ -477,7 +615,11 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     documentation: "https://developer.paypal.com/docs/api/",
     credentialFields: [
       { key: "clientId", label: "Client ID", envVar: "PAYPAL_CLIENT_ID" },
-      { key: "clientSecret", label: "Client Secret", envVar: "PAYPAL_CLIENT_SECRET" },
+      {
+        key: "clientSecret",
+        label: "Client Secret",
+        envVar: "PAYPAL_CLIENT_SECRET",
+      },
       { key: "planId", label: "Plan ID", envVar: "PAYPAL_PLAN_ID" },
       { key: "webhookId", label: "Webhook ID", envVar: "PAYPAL_WEBHOOK_ID" },
     ],
@@ -498,7 +640,8 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "RESEND",
     displayName: "Resend (Email)",
     category: "API",
-    description: "Sends transactional emails — password resets, scan alerts, admin notifications",
+    description:
+      "Sends transactional emails — password resets, scan alerts, admin notifications",
     getApiKey: () => config.resendApiKey,
     testConnection: testResend,
     rateLimit: 100,
@@ -512,12 +655,19 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "AI_BACKEND",
     displayName: "Python AI Backend",
     category: "API",
-    description: "Hybrid ML scam detection (Random Forest + LSTM + anomaly detection)",
+    description:
+      "Hybrid ML scam detection (Random Forest + LSTM + anomaly detection)",
     getApiKey: () => config.aiApiSecret,
     testConnection: testAIBackend,
-    documentation: "https://github.com/Elimiz21/scam-dunk-re-write-claude-code/tree/main/python_ai",
+    documentation:
+      "https://github.com/Elimiz21/scam-dunk-re-write-claude-code/tree/main/python_ai",
     credentialFields: [
-      { key: "url", label: "Backend URL", envVar: "AI_BACKEND_URL", sensitive: false },
+      {
+        key: "url",
+        label: "Backend URL",
+        envVar: "AI_BACKEND_URL",
+        sensitive: false,
+      },
       { key: "apiSecret", label: "API Secret", envVar: "AI_API_SECRET" },
     ],
   },
@@ -526,20 +676,26 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "OTC_MARKETS",
     displayName: "OTC Markets",
     category: "REGULATORY",
-    description: "Caveat Emptor flags, shell risk, tier data, compliance status (free public API)",
+    description:
+      "Caveat Emptor flags, shell risk, tier data, compliance status (free public API)",
     getApiKey: () => config.otcMarketsApiKey || "FREE_PUBLIC_API",
     testConnection: testOTCMarkets,
     rateLimit: 30,
     documentation: "https://www.otcmarkets.com/market-data/overview",
     credentialFields: [
-      { key: "apiKey", label: "API Key (optional)", envVar: "OTC_MARKETS_API_KEY" },
+      {
+        key: "apiKey",
+        label: "API Key (optional)",
+        envVar: "OTC_MARKETS_API_KEY",
+      },
     ],
   },
   {
     name: "FINRA",
     displayName: "FINRA BrokerCheck",
     category: "REGULATORY",
-    description: "Firm disclosures, disciplinary actions, broker misconduct (free public API)",
+    description:
+      "Firm disclosures, disciplinary actions, broker misconduct (free public API)",
     getApiKey: () => config.finraApiKey || "FREE_PUBLIC_API",
     testConnection: testFINRA,
     rateLimit: 20,
@@ -553,7 +709,8 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "YOUTUBE",
     displayName: "YouTube Data API",
     category: "SOCIAL_SCAN",
-    description: "Searches for stock promotion videos on YouTube (10,000 units/day free)",
+    description:
+      "Searches for stock promotion videos on YouTube (10,000 units/day free)",
     getApiKey: () => config.youtubeApiKey,
     testConnection: testYouTube,
     rateLimit: 100,
@@ -566,7 +723,8 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "REDDIT_PUBLIC",
     displayName: "Reddit Public JSON",
     category: "SOCIAL_SCAN",
-    description: "Reddit public JSON endpoints — no credentials needed (10 req/min)",
+    description:
+      "Reddit public JSON endpoints — no credentials needed (10 req/min)",
     getApiKey: () => "No credentials required",
     testConnection: testRedditPublic,
     rateLimit: 10,
@@ -577,7 +735,8 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "SERPER_DEV",
     displayName: "Serper.dev",
     category: "SOCIAL_SCAN",
-    description: "Searches all social media platforms via Google (2,500 free queries)",
+    description:
+      "Searches all social media platforms via Google (2,500 free queries)",
     getApiKey: () => config.serperApiKey,
     testConnection: testSerperDev,
     rateLimit: 100,
@@ -590,7 +749,8 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "PERPLEXITY",
     displayName: "Perplexity AI",
     category: "SOCIAL_SCAN",
-    description: "Web-grounded AI search for social media mentions with real citations",
+    description:
+      "Web-grounded AI search for social media mentions with real citations",
     getApiKey: () => config.perplexityApiKey,
     testConnection: testPerplexity,
     rateLimit: 600,
@@ -603,7 +763,8 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "ANTHROPIC",
     displayName: "Anthropic Claude",
     category: "SOCIAL_SCAN",
-    description: "Deep analysis of suspicious social media patterns using Claude",
+    description:
+      "Deep analysis of suspicious social media patterns using Claude",
     getApiKey: () => config.anthropicApiKey,
     testConnection: testAnthropic,
     rateLimit: 1000,
@@ -616,7 +777,8 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "DISCORD_BOT",
     displayName: "Discord Bot",
     category: "SOCIAL_SCAN",
-    description: "Bot created but not yet linked to any servers. Needs server invites to begin monitoring.",
+    description:
+      "Bot created but not yet linked to any servers. Needs server invites to begin monitoring.",
     getApiKey: () => config.discordBotToken,
     testConnection: testDiscordBot,
     documentation: "https://discord.com/developers/docs",
@@ -629,84 +791,178 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "BROWSER_DISCORD",
     displayName: "Discord (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Owner's personal Discord account for browser-based server scanning",
+    description:
+      "Owner's personal Discord account for browser-based server scanning",
     getApiKey: () => config.browserDiscordEmail,
     showFullKey: true,
-    testConnection: testBrowserCredential("browserDiscordEmail", "browserDiscordPassword"),
+    testConnection: testBrowserCredential(
+      "browserDiscordEmail",
+      "browserDiscordPassword",
+    ),
     credentialFields: [
-      { key: "email", label: "Email", envVar: "BROWSER_DISCORD_EMAIL", sensitive: false },
-      { key: "password", label: "Password", envVar: "BROWSER_DISCORD_PASSWORD" },
-      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_DISCORD_2FA_SECRET" },
+      {
+        key: "email",
+        label: "Email",
+        envVar: "BROWSER_DISCORD_EMAIL",
+        sensitive: false,
+      },
+      {
+        key: "password",
+        label: "Password",
+        envVar: "BROWSER_DISCORD_PASSWORD",
+      },
+      {
+        key: "twoFaSecret",
+        label: "2FA Secret (optional)",
+        envVar: "BROWSER_DISCORD_2FA_SECRET",
+      },
     ],
   },
   {
     name: "BROWSER_REDDIT",
     displayName: "Reddit (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Owner's personal Reddit account for browser-based subreddit scanning",
+    description:
+      "Owner's personal Reddit account for browser-based subreddit scanning",
     getApiKey: () => config.browserRedditUsername,
     showFullKey: true,
-    testConnection: testBrowserCredential("browserRedditUsername", "browserRedditPassword"),
+    testConnection: testBrowserCredential(
+      "browserRedditUsername",
+      "browserRedditPassword",
+    ),
     credentialFields: [
-      { key: "username", label: "Username", envVar: "BROWSER_REDDIT_USERNAME", sensitive: false },
+      {
+        key: "username",
+        label: "Username",
+        envVar: "BROWSER_REDDIT_USERNAME",
+        sensitive: false,
+      },
       { key: "password", label: "Password", envVar: "BROWSER_REDDIT_PASSWORD" },
-      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_REDDIT_2FA_SECRET" },
+      {
+        key: "twoFaSecret",
+        label: "2FA Secret (optional)",
+        envVar: "BROWSER_REDDIT_2FA_SECRET",
+      },
     ],
   },
   {
     name: "BROWSER_TWITTER",
     displayName: "Twitter/X (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Owner's personal Twitter/X account for browser-based cashtag scanning",
+    description:
+      "Owner's personal Twitter/X account for browser-based cashtag scanning",
     getApiKey: () => config.browserTwitterUsername,
     showFullKey: true,
-    testConnection: testBrowserCredential("browserTwitterUsername", "browserTwitterPassword"),
+    testConnection: testBrowserCredential(
+      "browserTwitterUsername",
+      "browserTwitterPassword",
+    ),
     credentialFields: [
-      { key: "username", label: "Username", envVar: "BROWSER_TWITTER_USERNAME", sensitive: false },
-      { key: "password", label: "Password", envVar: "BROWSER_TWITTER_PASSWORD" },
-      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_TWITTER_2FA_SECRET" },
+      {
+        key: "username",
+        label: "Username",
+        envVar: "BROWSER_TWITTER_USERNAME",
+        sensitive: false,
+      },
+      {
+        key: "password",
+        label: "Password",
+        envVar: "BROWSER_TWITTER_PASSWORD",
+      },
+      {
+        key: "twoFaSecret",
+        label: "2FA Secret (optional)",
+        envVar: "BROWSER_TWITTER_2FA_SECRET",
+      },
     ],
   },
   {
     name: "BROWSER_INSTAGRAM",
     displayName: "Instagram (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Owner's personal Instagram account for browser-based hashtag scanning",
+    description:
+      "Owner's personal Instagram account for browser-based hashtag scanning",
     getApiKey: () => config.browserInstagramUsername,
     showFullKey: true,
-    testConnection: testBrowserCredential("browserInstagramUsername", "browserInstagramPassword"),
+    testConnection: testBrowserCredential(
+      "browserInstagramUsername",
+      "browserInstagramPassword",
+    ),
     credentialFields: [
-      { key: "username", label: "Username", envVar: "BROWSER_INSTAGRAM_USERNAME", sensitive: false },
-      { key: "password", label: "Password", envVar: "BROWSER_INSTAGRAM_PASSWORD" },
-      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_INSTAGRAM_2FA_SECRET" },
+      {
+        key: "username",
+        label: "Username",
+        envVar: "BROWSER_INSTAGRAM_USERNAME",
+        sensitive: false,
+      },
+      {
+        key: "password",
+        label: "Password",
+        envVar: "BROWSER_INSTAGRAM_PASSWORD",
+      },
+      {
+        key: "twoFaSecret",
+        label: "2FA Secret (optional)",
+        envVar: "BROWSER_INSTAGRAM_2FA_SECRET",
+      },
     ],
   },
   {
     name: "BROWSER_FACEBOOK",
     displayName: "Facebook (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Owner's personal Facebook account for browser-based group scanning",
+    description:
+      "Owner's personal Facebook account for browser-based group scanning",
     getApiKey: () => config.browserFacebookEmail,
     showFullKey: true,
-    testConnection: testBrowserCredential("browserFacebookEmail", "browserFacebookPassword"),
+    testConnection: testBrowserCredential(
+      "browserFacebookEmail",
+      "browserFacebookPassword",
+    ),
     credentialFields: [
-      { key: "email", label: "Email", envVar: "BROWSER_FACEBOOK_EMAIL", sensitive: false },
-      { key: "password", label: "Password", envVar: "BROWSER_FACEBOOK_PASSWORD" },
-      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_FACEBOOK_2FA_SECRET" },
+      {
+        key: "email",
+        label: "Email",
+        envVar: "BROWSER_FACEBOOK_EMAIL",
+        sensitive: false,
+      },
+      {
+        key: "password",
+        label: "Password",
+        envVar: "BROWSER_FACEBOOK_PASSWORD",
+      },
+      {
+        key: "twoFaSecret",
+        label: "2FA Secret (optional)",
+        envVar: "BROWSER_FACEBOOK_2FA_SECRET",
+      },
     ],
   },
   {
     name: "BROWSER_TIKTOK",
     displayName: "TikTok (Personal Account)",
     category: "BROWSER_AGENT",
-    description: "Owner's personal TikTok account for browser-based hashtag scanning",
+    description:
+      "Owner's personal TikTok account for browser-based hashtag scanning",
     getApiKey: () => config.browserTiktokUsername,
     showFullKey: true,
-    testConnection: testBrowserCredential("browserTiktokUsername", "browserTiktokPassword"),
+    testConnection: testBrowserCredential(
+      "browserTiktokUsername",
+      "browserTiktokPassword",
+    ),
     credentialFields: [
-      { key: "username", label: "Username", envVar: "BROWSER_TIKTOK_USERNAME", sensitive: false },
+      {
+        key: "username",
+        label: "Username",
+        envVar: "BROWSER_TIKTOK_USERNAME",
+        sensitive: false,
+      },
       { key: "password", label: "Password", envVar: "BROWSER_TIKTOK_PASSWORD" },
-      { key: "twoFaSecret", label: "2FA Secret (optional)", envVar: "BROWSER_TIKTOK_2FA_SECRET" },
+      {
+        key: "twoFaSecret",
+        label: "2FA Secret (optional)",
+        envVar: "BROWSER_TIKTOK_2FA_SECRET",
+      },
     ],
   },
   {
@@ -717,7 +973,11 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     getApiKey: () => config.browserSessionEncryptionKey,
     testConnection: testBrowserEncryptionKey,
     credentialFields: [
-      { key: "encryptionKey", label: "Encryption Key (min 32 chars)", envVar: "BROWSER_SESSION_ENCRYPTION_KEY" },
+      {
+        key: "encryptionKey",
+        label: "Encryption Key (min 32 chars)",
+        envVar: "BROWSER_SESSION_ENCRYPTION_KEY",
+      },
     ],
   },
   // Credential Sync — bootstrap tokens (set once, enables dashboard → Vercel/GitHub push)
@@ -725,28 +985,59 @@ const INTEGRATIONS: IntegrationDefinition[] = [
     name: "SYNC_VERCEL",
     displayName: "Vercel Sync",
     category: "SYNC",
-    description: "Pushes credentials to Vercel env vars when saved in dashboard",
+    description:
+      "Pushes credentials to Vercel env vars when saved in dashboard",
     getApiKey: () => config.vercelApiToken,
     testConnection: testVercelSync,
-    documentation: "https://vercel.com/docs/rest-api#endpoints/projects/create-one-or-more-environment-variables",
+    documentation:
+      "https://vercel.com/docs/rest-api#endpoints/projects/create-one-or-more-environment-variables",
     credentialFields: [
-      { key: "apiToken", label: "Vercel API Token", envVar: "VERCEL_API_TOKEN" },
-      { key: "projectId", label: "Project ID", envVar: "VERCEL_PROJECT_ID", sensitive: false },
-      { key: "teamId", label: "Team ID (optional)", envVar: "VERCEL_TEAM_ID", sensitive: false },
+      {
+        key: "apiToken",
+        label: "Vercel API Token",
+        envVar: "VERCEL_API_TOKEN",
+      },
+      {
+        key: "projectId",
+        label: "Project ID",
+        envVar: "VERCEL_PROJECT_ID",
+        sensitive: false,
+      },
+      {
+        key: "teamId",
+        label: "Team ID (optional)",
+        envVar: "VERCEL_TEAM_ID",
+        sensitive: false,
+      },
     ],
   },
   {
     name: "SYNC_GITHUB",
     displayName: "GitHub Secrets Sync",
     category: "SYNC",
-    description: "Pushes credentials to GitHub Actions secrets when saved in dashboard",
+    description:
+      "Pushes credentials to GitHub Actions secrets when saved in dashboard",
     getApiKey: () => config.githubSyncPat,
     testConnection: testGitHubSync,
     documentation: "https://docs.github.com/en/rest/actions/secrets",
     credentialFields: [
-      { key: "pat", label: "Personal Access Token (repo scope)", envVar: "GITHUB_SYNC_PAT" },
-      { key: "owner", label: "Repo Owner", envVar: "GITHUB_REPO_OWNER", sensitive: false },
-      { key: "repo", label: "Repo Name", envVar: "GITHUB_REPO_NAME", sensitive: false },
+      {
+        key: "pat",
+        label: "Personal Access Token (repo scope)",
+        envVar: "GITHUB_SYNC_PAT",
+      },
+      {
+        key: "owner",
+        label: "Repo Owner",
+        envVar: "GITHUB_REPO_OWNER",
+        sensitive: false,
+      },
+      {
+        key: "repo",
+        label: "Repo Name",
+        envVar: "GITHUB_REPO_NAME",
+        sensitive: false,
+      },
     ],
   },
 ];
@@ -784,7 +1075,10 @@ export async function initializeIntegrations() {
       });
     } else {
       const newMasked = maskApiKey(integration.getApiKey(), showFull);
-      if (existing.apiKeyMasked !== newMasked || existing.displayName !== integration.displayName) {
+      if (
+        existing.apiKeyMasked !== newMasked ||
+        existing.displayName !== integration.displayName
+      ) {
         await prisma.integrationConfig.update({
           where: { name: integration.name },
           data: {
@@ -867,7 +1161,7 @@ export async function updateIntegrationConfig(
     isEnabled?: boolean;
     monthlyBudget?: number | null;
     rateLimit?: number | null;
-  }
+  },
 ) {
   const integration = await prisma.integrationConfig.findUnique({
     where: { name },
@@ -895,7 +1189,7 @@ export async function updateIntegrationConfig(
  */
 export async function updateIntegrationCredentials(
   name: string,
-  credentials: Record<string, string>
+  credentials: Record<string, string>,
 ): Promise<{ success: true; sync?: SyncResults }> {
   const definition = INTEGRATIONS.find((i) => i.name === name);
   if (!definition) {
@@ -923,7 +1217,8 @@ export async function updateIntegrationCredentials(
     if (!v) delete merged[k];
   }
 
-  const encrypted = Object.keys(merged).length > 0 ? encryptCredentials(merged) : null;
+  const encrypted =
+    Object.keys(merged).length > 0 ? encryptCredentials(merged) : null;
 
   // Inject into process.env immediately
   for (const field of definition.credentialFields) {
@@ -968,7 +1263,7 @@ export async function updateIntegrationCredentials(
  * Also removes the env vars from Vercel + GitHub if sync is configured.
  */
 export async function clearIntegrationCredentials(
-  name: string
+  name: string,
 ): Promise<{ success: true; sync?: SyncResults }> {
   const definition = INTEGRATIONS.find((i) => i.name === name);
   if (!definition) {

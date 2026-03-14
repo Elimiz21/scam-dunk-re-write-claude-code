@@ -66,7 +66,9 @@ export function decrypt(packed: string): string {
 /**
  * Encrypt a JSON-serializable credentials object.
  */
-export function encryptCredentials(credentials: Record<string, string>): string {
+export function encryptCredentials(
+  credentials: Record<string, string>,
+): string {
   return encrypt(JSON.stringify(credentials));
 }
 
@@ -74,7 +76,9 @@ export function encryptCredentials(credentials: Record<string, string>): string 
  * Decrypt credentials stored in the database.
  * Returns null if the stored value is empty or decryption fails.
  */
-export function decryptCredentials(encrypted: string | null | undefined): Record<string, string> | null {
+export function decryptCredentials(
+  encrypted: string | null | undefined,
+): Record<string, string> | null {
   if (!encrypted) return null;
   try {
     const json = decrypt(encrypted);

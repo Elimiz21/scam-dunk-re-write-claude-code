@@ -100,7 +100,9 @@ export async function searchFirm(query: string): Promise<FINRAFirmResult[]> {
 /**
  * Search for an individual broker/advisor on FINRA BrokerCheck
  */
-export async function searchIndividual(query: string): Promise<FINRAIndividualResult[]> {
+export async function searchIndividual(
+  query: string,
+): Promise<FINRAIndividualResult[]> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
@@ -125,7 +127,9 @@ export async function searchIndividual(query: string): Promise<FINRAIndividualRe
     clearTimeout(timeout);
 
     if (!response.ok) {
-      console.warn(`FINRA BrokerCheck individual search returned ${response.status}`);
+      console.warn(
+        `FINRA BrokerCheck individual search returned ${response.status}`,
+      );
       return [];
     }
 
@@ -144,7 +148,9 @@ export async function searchIndividual(query: string): Promise<FINRAIndividualRe
 /**
  * Check a firm for regulatory risk flags
  */
-export async function assessFirmRisk(firmName: string): Promise<FINRARiskAssessment> {
+export async function assessFirmRisk(
+  firmName: string,
+): Promise<FINRARiskAssessment> {
   const firms = await searchFirm(firmName);
   const flags: string[] = [];
   let maxRisk: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" = "LOW";
@@ -168,25 +174,37 @@ export async function assessFirmRisk(firmName: string): Promise<FINRARiskAssessm
 
   if (topFirm.hasDisclosures) {
     if (disclosureCount >= 10) {
-      flags.push(`FINRA_HIGH_DISCLOSURES: Firm has ${disclosureCount} disclosures on record`);
+      flags.push(
+        `FINRA_HIGH_DISCLOSURES: Firm has ${disclosureCount} disclosures on record`,
+      );
       maxRisk = "HIGH";
     } else if (disclosureCount >= 3) {
-      flags.push(`FINRA_DISCLOSURES: Firm has ${disclosureCount} disclosures on record`);
+      flags.push(
+        `FINRA_DISCLOSURES: Firm has ${disclosureCount} disclosures on record`,
+      );
       maxRisk = "MEDIUM";
     } else {
-      flags.push(`FINRA_MINOR_DISCLOSURES: Firm has ${disclosureCount} disclosure(s) on record`);
+      flags.push(
+        `FINRA_MINOR_DISCLOSURES: Firm has ${disclosureCount} disclosure(s) on record`,
+      );
     }
   }
 
   // Low registration count can indicate a shell-like operation
-  if (topFirm.finraApprovedRegistrationCount < 3 && topFirm.numberOfBranches <= 1) {
-    flags.push("FINRA_SMALL_FIRM: Very small firm with few registered representatives");
+  if (
+    topFirm.finraApprovedRegistrationCount < 3 &&
+    topFirm.numberOfBranches <= 1
+  ) {
+    flags.push(
+      "FINRA_SMALL_FIRM: Very small firm with few registered representatives",
+    );
     maxRisk = escalateRisk(maxRisk, "MEDIUM");
   }
 
-  const details = flags.length > 0
-    ? `FINRA BrokerCheck shows ${flags.length} flag(s) for "${matchedFirmName}"`
-    : `No FINRA risk flags for "${matchedFirmName}"`;
+  const details =
+    flags.length > 0
+      ? `FINRA BrokerCheck shows ${flags.length} flag(s) for "${matchedFirmName}"`
+      : `No FINRA risk flags for "${matchedFirmName}"`;
 
   return {
     riskLevel: maxRisk,
@@ -200,27 +218,36 @@ export async function assessFirmRisk(firmName: string): Promise<FINRARiskAssessm
 /**
  * Test the FINRA BrokerCheck connection
  */
-export async function testFINRAConnection(): Promise<{ status: string; message?: string }> {
+export async function testFINRAConnection(): Promise<{
+  status: string;
+  message?: string;
+}> {
   // If official API key is configured, test that
   if (config.finraApiKey) {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-      const response = await fetch(`${FINRA_OFFICIAL_BASE}/data/group/otcMarket/name/weeklySummary`, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${config.finraApiKey}`,
+      const response = await fetch(
+        `${FINRA_OFFICIAL_BASE}/data/group/otcMarket/name/weeklySummary`,
+        {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${config.finraApiKey}`,
+          },
+          signal: controller.signal,
         },
-        signal: controller.signal,
-      });
+      );
 
       clearTimeout(timeout);
 
       if (response.ok) {
         return { status: "CONNECTED" };
       }
-      return { status: "ERROR", message: `Official FINRA API returned ${response.status}` };
+      return {
+        status: "ERROR",
+        message: `Official FINRA API returned ${response.status}`,
+      };
     } catch (error) {
       return {
         status: "ERROR",
@@ -235,7 +262,10 @@ export async function testFINRAConnection(): Promise<{ status: string; message?:
     if (firms.length > 0) {
       return { status: "CONNECTED" };
     }
-    return { status: "ERROR", message: "BrokerCheck returned no results for test query" };
+    return {
+      status: "ERROR",
+      message: "BrokerCheck returned no results for test query",
+    };
   } catch (error) {
     return {
       status: "ERROR",
@@ -251,23 +281,44 @@ function parseFirmResults(data: Record<string, unknown>): FINRAFirmResult[] {
     // BrokerCheck wraps results in various formats
     const hits = extractHits(data);
     return hits.map((hit: Record<string, unknown>) => {
-      const fields = (hit.fields || hit._source || hit) as Record<string, unknown>;
+      const fields = (hit.fields || hit._source || hit) as Record<
+        string,
+        unknown
+      >;
       return {
-        sourceId: String(fields.bc_source_id || fields.sourceId || fields.source_id || ""),
-        name: String(fields.bc_firm_name || fields.name || fields.firm_name || "Unknown"),
-        otherNames: extractStringArray(fields, ["bc_other_names", "otherNames", "other_names"]),
+        sourceId: String(
+          fields.bc_source_id || fields.sourceId || fields.source_id || "",
+        ),
+        name: String(
+          fields.bc_firm_name || fields.name || fields.firm_name || "Unknown",
+        ),
+        otherNames: extractStringArray(fields, [
+          "bc_other_names",
+          "otherNames",
+          "other_names",
+        ]),
         score: Number(fields.bc_score || fields.score || 0),
-        secNumber: extractStr(fields, ["bc_sec_number", "secNumber", "sec_number"]),
-        numberOfBranches: Number(fields.bc_number_of_branches || fields.numberOfBranches || 0),
+        secNumber: extractStr(fields, [
+          "bc_sec_number",
+          "secNumber",
+          "sec_number",
+        ]),
+        numberOfBranches: Number(
+          fields.bc_number_of_branches || fields.numberOfBranches || 0,
+        ),
         finraApprovedRegistrationCount: Number(
           fields.bc_finra_approved_registration_count ||
-          fields.finraApprovedRegistrationCount ||
-          0
+            fields.finraApprovedRegistrationCount ||
+            0,
         ),
         hasDisclosures: Boolean(
-          fields.bc_has_disclosures || fields.hasDisclosures || fields.has_disclosures
+          fields.bc_has_disclosures ||
+          fields.hasDisclosures ||
+          fields.has_disclosures,
         ),
-        disclosureCount: Number(fields.bc_disclosure_count || fields.disclosureCount || 0),
+        disclosureCount: Number(
+          fields.bc_disclosure_count || fields.disclosureCount || 0,
+        ),
         branchLocations: extractBranches(fields),
       };
     });
@@ -276,19 +327,29 @@ function parseFirmResults(data: Record<string, unknown>): FINRAFirmResult[] {
   }
 }
 
-function parseIndividualResults(data: Record<string, unknown>): FINRAIndividualResult[] {
+function parseIndividualResults(
+  data: Record<string, unknown>,
+): FINRAIndividualResult[] {
   try {
     const hits = extractHits(data);
     return hits.map((hit: Record<string, unknown>) => {
-      const fields = (hit.fields || hit._source || hit) as Record<string, unknown>;
+      const fields = (hit.fields || hit._source || hit) as Record<
+        string,
+        unknown
+      >;
       return {
         sourceId: String(fields.bc_source_id || fields.sourceId || ""),
         firstName: String(fields.bc_firstname || fields.firstName || ""),
         lastName: String(fields.bc_lastname || fields.lastName || ""),
         middleName: extractStr(fields, ["bc_middlename", "middleName"]),
-        primaryEmployer: extractStr(fields, ["bc_primary_employer", "primaryEmployer"]),
+        primaryEmployer: extractStr(fields, [
+          "bc_primary_employer",
+          "primaryEmployer",
+        ]),
         hasDisclosures: Boolean(
-          fields.bc_has_disclosures || fields.hasDisclosures || fields.has_disclosures
+          fields.bc_has_disclosures ||
+          fields.hasDisclosures ||
+          fields.has_disclosures,
         ),
         currentEmployments: extractBranches(fields),
       };
@@ -320,7 +381,10 @@ function extractHits(data: Record<string, unknown>): Record<string, unknown>[] {
   return [];
 }
 
-function extractStr(obj: Record<string, unknown>, keys: string[]): string | null {
+function extractStr(
+  obj: Record<string, unknown>,
+  keys: string[],
+): string | null {
   for (const key of keys) {
     const val = obj[key];
     if (typeof val === "string" && val.length > 0) return val;
@@ -328,7 +392,10 @@ function extractStr(obj: Record<string, unknown>, keys: string[]): string | null
   return null;
 }
 
-function extractStringArray(obj: Record<string, unknown>, keys: string[]): string[] {
+function extractStringArray(
+  obj: Record<string, unknown>,
+  keys: string[],
+): string[] {
   for (const key of keys) {
     const val = obj[key];
     if (Array.isArray(val)) return val.map(String);
@@ -337,20 +404,23 @@ function extractStringArray(obj: Record<string, unknown>, keys: string[]): strin
   return [];
 }
 
-function extractBranches(fields: Record<string, unknown>): FINRABranchLocation[] {
-  const branches = fields.bc_branch_locations || fields.branchLocations || fields.branches;
+function extractBranches(
+  fields: Record<string, unknown>,
+): FINRABranchLocation[] {
+  const branches =
+    fields.bc_branch_locations || fields.branchLocations || fields.branches;
   if (!Array.isArray(branches)) return [];
 
   return branches.slice(0, 5).map((b: Record<string, unknown>) => ({
-    city: (typeof b.city === "string" ? b.city : null),
-    state: (typeof b.state === "string" ? b.state : null),
-    zip: (typeof b.zip === "string" ? b.zip : null),
+    city: typeof b.city === "string" ? b.city : null,
+    state: typeof b.state === "string" ? b.state : null,
+    zip: typeof b.zip === "string" ? b.zip : null,
   }));
 }
 
 function escalateRisk(
   current: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
-  proposed: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+  proposed: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
 ): "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" {
   const order = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 };
   return order[proposed] > order[current] ? proposed : current;

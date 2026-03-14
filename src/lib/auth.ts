@@ -68,7 +68,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               errorType: "LOGIN_FAILED",
               errorCode: "INVALID_CREDENTIALS",
               message: "Missing email or password",
-            }
+            },
           );
           return null;
         }
@@ -84,22 +84,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { email },
           });
         } catch (dbError) {
-          const errorMsg = dbError instanceof Error ? dbError.message : String(dbError);
-          console.error("[AUTH] DATABASE CONNECTION ERROR during login:", errorMsg);
-          console.error("[AUTH] DATABASE_URL defined:", !!process.env.DATABASE_URL);
-          console.error("[AUTH] DATABASE_URL prefix:", process.env.DATABASE_URL?.substring(0, 20) + "...");
+          const errorMsg =
+            dbError instanceof Error ? dbError.message : String(dbError);
+          console.error(
+            "[AUTH] DATABASE CONNECTION ERROR during login:",
+            errorMsg,
+          );
+          console.error(
+            "[AUTH] DATABASE_URL defined:",
+            !!process.env.DATABASE_URL,
+          );
+          console.error(
+            "[AUTH] DATABASE_URL prefix:",
+            process.env.DATABASE_URL?.substring(0, 20) + "...",
+          );
 
           // Detect common Supabase/Postgres failure modes
-          const isTimeout = errorMsg.includes("timed out") || errorMsg.includes("ETIMEDOUT");
-          const isRefused = errorMsg.includes("ECONNREFUSED") || errorMsg.includes("Connection refused");
-          const isPaused = errorMsg.includes("Project is paused") || errorMsg.includes("too many clients");
-          const isDns = errorMsg.includes("ENOTFOUND") || errorMsg.includes("getaddrinfo");
+          const isTimeout =
+            errorMsg.includes("timed out") || errorMsg.includes("ETIMEDOUT");
+          const isRefused =
+            errorMsg.includes("ECONNREFUSED") ||
+            errorMsg.includes("Connection refused");
+          const isPaused =
+            errorMsg.includes("Project is paused") ||
+            errorMsg.includes("too many clients");
+          const isDns =
+            errorMsg.includes("ENOTFOUND") || errorMsg.includes("getaddrinfo");
 
           let hint = "Database connection failed";
-          if (isPaused) hint = "Database appears to be paused (Supabase free-tier auto-pause)";
-          else if (isTimeout) hint = "Database connection timed out — server may be paused or unreachable";
-          else if (isRefused) hint = "Database connection refused — check DATABASE_URL and server status";
-          else if (isDns) hint = "Database hostname not found — check DATABASE_URL";
+          if (isPaused)
+            hint =
+              "Database appears to be paused (Supabase free-tier auto-pause)";
+          else if (isTimeout)
+            hint =
+              "Database connection timed out — server may be paused or unreachable";
+          else if (isRefused)
+            hint =
+              "Database connection refused — check DATABASE_URL and server status";
+          else if (isDns)
+            hint = "Database hostname not found — check DATABASE_URL";
 
           console.error("[AUTH] DIAGNOSIS:", hint);
 
@@ -109,7 +132,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               errorType: "LOGIN_FAILED",
               errorCode: "DATABASE_ERROR",
               message: `${hint}: ${errorMsg}`,
-            }
+            },
           );
           throw new Error(`DATABASE_UNAVAILABLE: ${hint}`);
         }
@@ -122,7 +145,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               errorType: "LOGIN_FAILED",
               errorCode: "USER_NOT_FOUND",
               message: "User not found",
-            }
+            },
           );
           return null;
         }
@@ -135,13 +158,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               errorType: "LOGIN_FAILED",
               errorCode: "INVALID_CREDENTIALS",
               message: "User has no password set (OAuth account)",
-            }
+            },
           );
           return null;
         }
 
         console.log("[AUTH] User found, checking password");
-        const passwordMatch = await bcrypt.compare(password, user.hashedPassword);
+        const passwordMatch = await bcrypt.compare(
+          password,
+          user.hashedPassword,
+        );
 
         if (!passwordMatch) {
           console.log("[AUTH] Password mismatch for:", maskEmail(email));
@@ -151,7 +177,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               errorType: "LOGIN_FAILED",
               errorCode: "INVALID_CREDENTIALS",
               message: "Invalid password",
-            }
+            },
           );
           return null;
         }
@@ -166,7 +192,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               errorType: "LOGIN_FAILED",
               errorCode: "EMAIL_NOT_VERIFIED",
               message: "Email not verified",
-            }
+            },
           );
           throw new EmailNotVerifiedError();
         }
@@ -182,7 +208,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user, trigger }: { token: JWT; user?: User; trigger?: string }) {
+    async jwt({
+      token,
+      user,
+      trigger,
+    }: {
+      token: JWT;
+      user?: User;
+      trigger?: string;
+    }) {
       if (user) {
         token.id = user.id;
         token.plan = user.plan;
@@ -219,7 +253,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 export async function registerUser(
   email: string,
   password: string,
-  name?: string
+  name?: string,
 ): Promise<{ success: boolean; error?: string; userId?: string }> {
   try {
     // Check if user already exists

@@ -152,7 +152,8 @@ export async function incrementScanCount(userId: string): Promise<UsageInfo> {
  * Get usage info object for API response
  */
 export async function getUsageInfo(userId: string): Promise<UsageInfo> {
-  const { plan, scansUsedThisMonth, scansLimitThisMonth } = await getUserUsage(userId);
+  const { plan, scansUsedThisMonth, scansLimitThisMonth } =
+    await getUserUsage(userId);
 
   return {
     plan,

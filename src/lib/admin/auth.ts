@@ -28,7 +28,10 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Verify a password against a hash
  */
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hashedPassword: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword);
 }
 
@@ -46,7 +49,7 @@ export async function adminLogin(
   email: string,
   password: string,
   ipAddress?: string,
-  userAgent?: string
+  userAgent?: string,
 ): Promise<{ success: boolean; error?: string; admin?: AdminSessionData }> {
   try {
     const adminUser = await prisma.adminUser.findUnique({
@@ -214,7 +217,10 @@ export async function requireAdminAuth(): Promise<AdminSessionData> {
 /**
  * Check if admin has specific role
  */
-export function hasRole(session: AdminSessionData, allowedRoles: string[]): boolean {
+export function hasRole(
+  session: AdminSessionData,
+  allowedRoles: string[],
+): boolean {
   return allowedRoles.includes(session.role);
 }
 
@@ -224,7 +230,7 @@ export function hasRole(session: AdminSessionData, allowedRoles: string[]): bool
 export async function createAdminInvite(
   inviterSession: AdminSessionData,
   email: string,
-  role: string = "ADMIN"
+  role: string = "ADMIN",
 ): Promise<{ success: boolean; token?: string; error?: string }> {
   try {
     // Only OWNER can invite
@@ -292,7 +298,7 @@ export async function createAdminInvite(
 export async function acceptAdminInvite(
   token: string,
   name: string,
-  password: string
+  password: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const invite = await prisma.adminInvite.findUnique({
@@ -343,7 +349,7 @@ export async function acceptAdminInvite(
 export async function createOwnerAdmin(
   email: string,
   password: string,
-  name?: string
+  name?: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Check if any admin exists

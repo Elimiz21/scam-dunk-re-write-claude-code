@@ -8,14 +8,14 @@
  * - OTC Markets (Caveat Emptor, Grey Market)
  */
 
-import { prisma } from '@/lib/db';
-import { fetchOTCProfile, assessOTCRisk } from '@/lib/otcMarkets';
-import { searchFirm } from '@/lib/finra';
+import { prisma } from "@/lib/db";
+import { fetchOTCProfile, assessOTCRisk } from "@/lib/otcMarkets";
+import { searchFirm } from "@/lib/finra";
 
 export interface RegulatoryCheck {
   isFlagged: boolean;
   flags: RegulatoryFlagInfo[];
-  highestSeverity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
+  highestSeverity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | null;
   sources: string[];
 }
 
@@ -32,7 +32,9 @@ export interface RegulatoryFlagInfo {
 /**
  * Check if a stock has any active regulatory flags
  */
-export async function checkRegulatoryDatabase(ticker: string): Promise<RegulatoryCheck> {
+export async function checkRegulatoryDatabase(
+  ticker: string,
+): Promise<RegulatoryCheck> {
   const normalizedTicker = ticker.toUpperCase().trim();
 
   try {
@@ -40,13 +42,10 @@ export async function checkRegulatoryDatabase(ticker: string): Promise<Regulator
       where: {
         ticker: normalizedTicker,
         isActive: true,
-        OR: [
-          { expiryDate: null },
-          { expiryDate: { gte: new Date() } },
-        ],
+        OR: [{ expiryDate: null }, { expiryDate: { gte: new Date() } }],
       },
       orderBy: {
-        flagDate: 'desc',
+        flagDate: "desc",
       },
       take: 100,
     });
@@ -61,7 +60,7 @@ export async function checkRegulatoryDatabase(ticker: string): Promise<Regulator
     }
 
     const severityOrder = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
-    let highestSeverity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'LOW';
+    let highestSeverity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" = "LOW";
     const sources = new Set<string>();
 
     const flagInfos: RegulatoryFlagInfo[] = flags.map((flag) => {
@@ -90,7 +89,7 @@ export async function checkRegulatoryDatabase(ticker: string): Promise<Regulator
       sources: Array.from(sources),
     };
   } catch (error) {
-    console.error('Error checking regulatory database:', error);
+    console.error("Error checking regulatory database:", error);
     // Don't block the scan if database check fails
     return {
       isFlagged: false,
@@ -105,24 +104,24 @@ export async function checkRegulatoryDatabase(ticker: string): Promise<Regulator
  * Format regulatory flags for display to user
  */
 export function formatRegulatoryWarning(check: RegulatoryCheck): string {
-  if (!check.isFlagged) return '';
+  if (!check.isFlagged) return "";
 
   const sourceLabels: Record<string, string> = {
-    SEC: 'SEC (Securities and Exchange Commission)',
-    FINRA: 'FINRA (Financial Industry Regulatory Authority)',
-    NYSE: 'NYSE (New York Stock Exchange)',
-    NASDAQ: 'NASDAQ',
-    OTC: 'OTC Markets',
+    SEC: "SEC (Securities and Exchange Commission)",
+    FINRA: "FINRA (Financial Industry Regulatory Authority)",
+    NYSE: "NYSE (New York Stock Exchange)",
+    NASDAQ: "NASDAQ",
+    OTC: "OTC Markets",
   };
 
   const flagTypeLabels: Record<string, string> = {
-    TRADING_SUSPENSION: 'Trading Suspension',
-    ENFORCEMENT_ACTION: 'Enforcement Action',
-    DELISTING_WARNING: 'Delisting Warning',
-    FRAUD_ALERT: 'Fraud Alert',
-    PUMP_DUMP_WARNING: 'Pump & Dump Warning',
-    CAVEAT_EMPTOR: 'Caveat Emptor (Buyer Beware)',
-    SHELL_RISK: 'Shell Company Risk',
+    TRADING_SUSPENSION: "Trading Suspension",
+    ENFORCEMENT_ACTION: "Enforcement Action",
+    DELISTING_WARNING: "Delisting Warning",
+    FRAUD_ALERT: "Fraud Alert",
+    PUMP_DUMP_WARNING: "Pump & Dump Warning",
+    CAVEAT_EMPTOR: "Caveat Emptor (Buyer Beware)",
+    SHELL_RISK: "Shell Company Risk",
   };
 
   const warnings: string[] = [];
@@ -137,16 +136,17 @@ export function formatRegulatoryWarning(check: RegulatoryCheck): string {
       warning += `\n  - ${flag.title}`;
     }
     if (flag.description) {
-      const shortDesc = flag.description.length > 200
-        ? flag.description.substring(0, 200) + '...'
-        : flag.description;
+      const shortDesc =
+        flag.description.length > 200
+          ? flag.description.substring(0, 200) + "..."
+          : flag.description;
       warning += `\n  - ${shortDesc}`;
     }
 
     warnings.push(warning);
   }
 
-  return warnings.join('\n\n');
+  return warnings.join("\n\n");
 }
 
 /**
@@ -165,7 +165,7 @@ export async function syncSECTradingSuspensions(): Promise<{
   try {
     // Fetch SEC trading suspensions RSS feed
     const response = await fetch(
-      'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom'
+      "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom",
     );
 
     if (!response.ok) {
@@ -181,7 +181,7 @@ export async function syncSECTradingSuspensions(): Promise<{
     const titlePattern = /<title[^>]*>([^<]+)<\/title>/g;
 
     // Extract entries from the feed
-    const entries = text.split('<entry>').slice(1);
+    const entries = text.split("<entry>").slice(1);
 
     for (const entry of entries) {
       const titleMatch = entry.match(/<title[^>]*>([^<]+)<\/title>/);
@@ -196,15 +196,17 @@ export async function syncSECTradingSuspensions(): Promise<{
 
       // Look for common suspension patterns
       if (
-        title.toLowerCase().includes('trading suspension') ||
-        title.toLowerCase().includes('order of suspension')
+        title.toLowerCase().includes("trading suspension") ||
+        title.toLowerCase().includes("order of suspension")
       ) {
         // Extract ticker symbols from the title
         const tickers = title.match(/\b([A-Z]{2,5})\b/g) || [];
 
         for (const ticker of tickers) {
           // Skip common words that look like tickers
-          if (['THE', 'AND', 'FOR', 'INC', 'LLC', 'LTD', 'SEC'].includes(ticker)) {
+          if (
+            ["THE", "AND", "FOR", "INC", "LLC", "LTD", "SEC"].includes(ticker)
+          ) {
             continue;
           }
 
@@ -213,19 +215,19 @@ export async function syncSECTradingSuspensions(): Promise<{
               where: {
                 ticker_source_flagType_flagDate: {
                   ticker,
-                  source: 'SEC',
-                  flagType: 'TRADING_SUSPENSION',
+                  source: "SEC",
+                  flagType: "TRADING_SUSPENSION",
                   flagDate: new Date(dateStr),
                 },
               },
               create: {
                 ticker,
-                source: 'SEC',
-                flagType: 'TRADING_SUSPENSION',
+                source: "SEC",
+                flagType: "TRADING_SUSPENSION",
                 title,
                 flagDate: new Date(dateStr),
                 sourceUrl,
-                severity: 'CRITICAL',
+                severity: "CRITICAL",
                 isActive: true,
               },
               update: {
@@ -250,12 +252,12 @@ export async function syncSECTradingSuspensions(): Promise<{
     // Log sync result
     await prisma.regulatoryDatabaseSync.create({
       data: {
-        source: 'SEC',
+        source: "SEC",
         lastSyncAt: new Date(),
         recordsAdded: added,
         recordsUpdated: updated,
-        status: errors.length > 0 ? 'PARTIAL' : 'SUCCESS',
-        errorMessage: errors.length > 0 ? errors.join('; ') : null,
+        status: errors.length > 0 ? "PARTIAL" : "SUCCESS",
+        errorMessage: errors.length > 0 ? errors.join("; ") : null,
       },
     });
   } catch (error) {
@@ -263,12 +265,12 @@ export async function syncSECTradingSuspensions(): Promise<{
 
     await prisma.regulatoryDatabaseSync.create({
       data: {
-        source: 'SEC',
+        source: "SEC",
         lastSyncAt: new Date(),
         recordsAdded: 0,
         recordsUpdated: 0,
-        status: 'FAILED',
-        errorMessage: errors.join('; '),
+        status: "FAILED",
+        errorMessage: errors.join("; "),
       },
     });
   }
@@ -293,10 +295,14 @@ export async function syncOTCMarketsFlags(ticker: string): Promise<{
   try {
     // Check if OTC Markets integration is enabled
     const integration = await prisma.integrationConfig.findUnique({
-      where: { name: 'OTC_MARKETS' },
+      where: { name: "OTC_MARKETS" },
     });
     if (integration && !integration.isEnabled) {
-      return { added: 0, updated: 0, errors: ['OTC Markets integration is disabled'] };
+      return {
+        added: 0,
+        updated: 0,
+        errors: ["OTC Markets integration is disabled"],
+      };
     }
 
     const profile = await fetchOTCProfile(normalizedTicker);
@@ -316,31 +322,33 @@ export async function syncOTCMarketsFlags(ticker: string): Promise<{
           where: {
             ticker_source_flagType_flagDate: {
               ticker: normalizedTicker,
-              source: 'OTC',
-              flagType: 'CAVEAT_EMPTOR',
+              source: "OTC",
+              flagType: "CAVEAT_EMPTOR",
               flagDate: now,
             },
           },
           create: {
             ticker: normalizedTicker,
-            source: 'OTC',
-            flagType: 'CAVEAT_EMPTOR',
+            source: "OTC",
+            flagType: "CAVEAT_EMPTOR",
             title: `Caveat Emptor — Buyer Beware Warning`,
-            description: `OTC Markets has designated ${normalizedTicker} (${profile.companyName || 'Unknown'}) with a Caveat Emptor warning, indicating a public interest concern.`,
+            description: `OTC Markets has designated ${normalizedTicker} (${profile.companyName || "Unknown"}) with a Caveat Emptor warning, indicating a public interest concern.`,
             flagDate: now,
-            severity: 'CRITICAL',
+            severity: "CRITICAL",
             isActive: true,
             sourceUrl: `https://www.otcmarkets.com/stock/${normalizedTicker}/company-info`,
           },
           update: {
             isActive: true,
-            description: `OTC Markets has designated ${normalizedTicker} (${profile.companyName || 'Unknown'}) with a Caveat Emptor warning, indicating a public interest concern.`,
+            description: `OTC Markets has designated ${normalizedTicker} (${profile.companyName || "Unknown"}) with a Caveat Emptor warning, indicating a public interest concern.`,
           },
         });
         if (result.createdAt.getTime() === result.updatedAt.getTime()) added++;
         else updated++;
       } catch (err) {
-        errors.push(`Failed to upsert Caveat Emptor for ${normalizedTicker}: ${err}`);
+        errors.push(
+          `Failed to upsert Caveat Emptor for ${normalizedTicker}: ${err}`,
+        );
       }
     }
 
@@ -351,19 +359,19 @@ export async function syncOTCMarketsFlags(ticker: string): Promise<{
           where: {
             ticker_source_flagType_flagDate: {
               ticker: normalizedTicker,
-              source: 'OTC',
-              flagType: 'SHELL_RISK',
+              source: "OTC",
+              flagType: "SHELL_RISK",
               flagDate: now,
             },
           },
           create: {
             ticker: normalizedTicker,
-            source: 'OTC',
-            flagType: 'SHELL_RISK',
+            source: "OTC",
+            flagType: "SHELL_RISK",
             title: `Shell Company Risk`,
             description: `${normalizedTicker} has been identified as a shell or blank-check entity by OTC Markets.`,
             flagDate: now,
-            severity: 'HIGH',
+            severity: "HIGH",
             isActive: true,
             sourceUrl: `https://www.otcmarkets.com/stock/${normalizedTicker}/company-info`,
           },
@@ -374,31 +382,34 @@ export async function syncOTCMarketsFlags(ticker: string): Promise<{
         if (result.createdAt.getTime() === result.updatedAt.getTime()) added++;
         else updated++;
       } catch (err) {
-        errors.push(`Failed to upsert Shell Risk for ${normalizedTicker}: ${err}`);
+        errors.push(
+          `Failed to upsert Shell Risk for ${normalizedTicker}: ${err}`,
+        );
       }
     }
 
     // Upsert Grey Market / Expert Market flag
-    if (profile.tierCode === 'GM' || profile.tierCode === 'EM') {
-      const tierLabel = profile.tierCode === 'GM' ? 'Grey Market' : 'Expert Market';
+    if (profile.tierCode === "GM" || profile.tierCode === "EM") {
+      const tierLabel =
+        profile.tierCode === "GM" ? "Grey Market" : "Expert Market";
       try {
         const result = await prisma.regulatoryFlag.upsert({
           where: {
             ticker_source_flagType_flagDate: {
               ticker: normalizedTicker,
-              source: 'OTC',
-              flagType: 'DELISTING_WARNING',
+              source: "OTC",
+              flagType: "DELISTING_WARNING",
               flagDate: now,
             },
           },
           create: {
             ticker: normalizedTicker,
-            source: 'OTC',
-            flagType: 'DELISTING_WARNING',
+            source: "OTC",
+            flagType: "DELISTING_WARNING",
             title: `${tierLabel} Designation`,
             description: `${normalizedTicker} trades on the OTC ${tierLabel}, indicating extremely limited transparency and liquidity.`,
             flagDate: now,
-            severity: 'HIGH',
+            severity: "HIGH",
             isActive: true,
             sourceUrl: `https://www.otcmarkets.com/stock/${normalizedTicker}/security`,
           },
@@ -410,7 +421,9 @@ export async function syncOTCMarketsFlags(ticker: string): Promise<{
         if (result.createdAt.getTime() === result.updatedAt.getTime()) added++;
         else updated++;
       } catch (err) {
-        errors.push(`Failed to upsert tier flag for ${normalizedTicker}: ${err}`);
+        errors.push(
+          `Failed to upsert tier flag for ${normalizedTicker}: ${err}`,
+        );
       }
     }
 
@@ -421,19 +434,19 @@ export async function syncOTCMarketsFlags(ticker: string): Promise<{
           where: {
             ticker_source_flagType_flagDate: {
               ticker: normalizedTicker,
-              source: 'OTC',
-              flagType: 'PUMP_DUMP_WARNING',
+              source: "OTC",
+              flagType: "PUMP_DUMP_WARNING",
               flagDate: now,
             },
           },
           create: {
             ticker: normalizedTicker,
-            source: 'OTC',
-            flagType: 'PUMP_DUMP_WARNING',
+            source: "OTC",
+            flagType: "PUMP_DUMP_WARNING",
             title: `Active Stock Promotion Detected`,
             description: `OTC Markets has flagged active promotional activity for ${normalizedTicker}. Promoted stocks carry elevated pump-and-dump risk.`,
             flagDate: now,
-            severity: 'HIGH',
+            severity: "HIGH",
             isActive: true,
             sourceUrl: `https://www.otcmarkets.com/stock/${normalizedTicker}/company-info`,
           },
@@ -444,19 +457,21 @@ export async function syncOTCMarketsFlags(ticker: string): Promise<{
         if (result.createdAt.getTime() === result.updatedAt.getTime()) added++;
         else updated++;
       } catch (err) {
-        errors.push(`Failed to upsert promotion flag for ${normalizedTicker}: ${err}`);
+        errors.push(
+          `Failed to upsert promotion flag for ${normalizedTicker}: ${err}`,
+        );
       }
     }
 
     // Log sync
     await prisma.regulatoryDatabaseSync.create({
       data: {
-        source: 'OTC',
+        source: "OTC",
         lastSyncAt: now,
         recordsAdded: added,
         recordsUpdated: updated,
-        status: errors.length > 0 ? 'PARTIAL' : 'SUCCESS',
-        errorMessage: errors.length > 0 ? errors.join('; ') : null,
+        status: errors.length > 0 ? "PARTIAL" : "SUCCESS",
+        errorMessage: errors.length > 0 ? errors.join("; ") : null,
       },
     });
   } catch (error) {
@@ -464,12 +479,12 @@ export async function syncOTCMarketsFlags(ticker: string): Promise<{
 
     await prisma.regulatoryDatabaseSync.create({
       data: {
-        source: 'OTC',
+        source: "OTC",
         lastSyncAt: new Date(),
         recordsAdded: 0,
         recordsUpdated: 0,
-        status: 'FAILED',
-        errorMessage: errors.join('; '),
+        status: "FAILED",
+        errorMessage: errors.join("; "),
       },
     });
   }
@@ -481,7 +496,10 @@ export async function syncOTCMarketsFlags(ticker: string): Promise<{
  * Sync FINRA data for a specific firm name
  * Uses the free public api.brokercheck.finra.org API
  */
-export async function syncFINRAFlags(firmName: string, ticker?: string): Promise<{
+export async function syncFINRAFlags(
+  firmName: string,
+  ticker?: string,
+): Promise<{
   added: number;
   updated: number;
   errors: string[];
@@ -493,10 +511,14 @@ export async function syncFINRAFlags(firmName: string, ticker?: string): Promise
   try {
     // Check if FINRA integration is enabled
     const integration = await prisma.integrationConfig.findUnique({
-      where: { name: 'FINRA' },
+      where: { name: "FINRA" },
     });
     if (integration && !integration.isEnabled) {
-      return { added: 0, updated: 0, errors: ['FINRA integration is disabled'] };
+      return {
+        added: 0,
+        updated: 0,
+        errors: ["FINRA integration is disabled"],
+      };
     }
 
     const firms = await searchFirm(firmName);
@@ -505,27 +527,37 @@ export async function syncFINRAFlags(firmName: string, ticker?: string): Promise
     }
 
     const now = new Date();
-    const targetTicker = ticker?.toUpperCase().trim() || firmName.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 5);
+    const targetTicker =
+      ticker?.toUpperCase().trim() ||
+      firmName
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "")
+        .substring(0, 5);
 
     for (const firm of firms.slice(0, 3)) {
       if (!firm.hasDisclosures || firm.disclosureCount === 0) continue;
 
-      const severity = firm.disclosureCount >= 10 ? 'HIGH' : firm.disclosureCount >= 3 ? 'MEDIUM' : 'LOW';
+      const severity =
+        firm.disclosureCount >= 10
+          ? "HIGH"
+          : firm.disclosureCount >= 3
+            ? "MEDIUM"
+            : "LOW";
 
       try {
         const result = await prisma.regulatoryFlag.upsert({
           where: {
             ticker_source_flagType_flagDate: {
               ticker: targetTicker,
-              source: 'FINRA',
-              flagType: 'ENFORCEMENT_ACTION',
+              source: "FINRA",
+              flagType: "ENFORCEMENT_ACTION",
               flagDate: now,
             },
           },
           create: {
             ticker: targetTicker,
-            source: 'FINRA',
-            flagType: 'ENFORCEMENT_ACTION',
+            source: "FINRA",
+            flagType: "ENFORCEMENT_ACTION",
             title: `FINRA Disclosures: ${firm.name}`,
             description: `${firm.name} (CRD #${firm.sourceId}) has ${firm.disclosureCount} disclosure(s) on FINRA BrokerCheck, which may include customer complaints, regulatory actions, or disciplinary proceedings.`,
             flagDate: now,
@@ -550,12 +582,12 @@ export async function syncFINRAFlags(firmName: string, ticker?: string): Promise
     // Log sync
     await prisma.regulatoryDatabaseSync.create({
       data: {
-        source: 'FINRA',
+        source: "FINRA",
         lastSyncAt: now,
         recordsAdded: added,
         recordsUpdated: updated,
-        status: errors.length > 0 ? 'PARTIAL' : 'SUCCESS',
-        errorMessage: errors.length > 0 ? errors.join('; ') : null,
+        status: errors.length > 0 ? "PARTIAL" : "SUCCESS",
+        errorMessage: errors.length > 0 ? errors.join("; ") : null,
       },
     });
   } catch (error) {
@@ -563,12 +595,12 @@ export async function syncFINRAFlags(firmName: string, ticker?: string): Promise
 
     await prisma.regulatoryDatabaseSync.create({
       data: {
-        source: 'FINRA',
+        source: "FINRA",
         lastSyncAt: new Date(),
         recordsAdded: 0,
         recordsUpdated: 0,
-        status: 'FAILED',
-        errorMessage: errors.join('; '),
+        status: "FAILED",
+        errorMessage: errors.join("; "),
       },
     });
   }
@@ -588,17 +620,17 @@ export async function getRegulatoryDatabaseStatus(): Promise<{
   }>;
   totalActiveFlags: number;
 }> {
-  const sources = ['SEC', 'FINRA', 'NYSE', 'NASDAQ', 'OTC'];
+  const sources = ["SEC", "FINRA", "NYSE", "NASDAQ", "OTC"];
 
   // Batch: fetch all syncs and flag counts in 2 queries instead of 10
   const [allSyncs, flagCounts, totalActiveFlags] = await Promise.all([
     prisma.regulatoryDatabaseSync.findMany({
       where: { source: { in: sources } },
-      orderBy: { lastSyncAt: 'desc' },
-      distinct: ['source'] as const,
+      orderBy: { lastSyncAt: "desc" },
+      distinct: ["source"] as const,
     }),
     prisma.regulatoryFlag.groupBy({
-      by: ['source'],
+      by: ["source"],
       where: { source: { in: sources }, isActive: true },
       _count: true,
     }),
@@ -614,16 +646,16 @@ export async function getRegulatoryDatabaseStatus(): Promise<{
         lastSyncAt: s.lastSyncAt,
         status: String(s.status),
       },
-    ])
+    ]),
   );
   const flagCountMap = new Map<string, number>(
-    flagCounts.map((f) => [f.source, f._count])
+    flagCounts.map((f) => [f.source, f._count]),
   );
 
-  const result = sources.map(source => ({
+  const result = sources.map((source) => ({
     source,
     lastSyncAt: syncMap.get(source)?.lastSyncAt || null,
-    status: syncMap.get(source)?.status || 'NEVER_SYNCED',
+    status: syncMap.get(source)?.status || "NEVER_SYNCED",
     totalFlags: flagCountMap.get(source) || 0,
   }));
 
