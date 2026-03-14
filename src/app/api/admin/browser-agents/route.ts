@@ -8,7 +8,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { getScanTargetsFromLatestDailyScan } from "@/lib/social-scan/get-scan-targets";
-import { settledVal } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -270,23 +269,26 @@ async function getBrowserAgentStats() {
       }),
     ]);
 
+    const val = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
+      r.status === "fulfilled" ? r.value : fallback;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const platformBreakdown = settledVal(results[5] as any, []) as any[];
+    const platformBreakdown = val(results[5] as any, []) as any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const avgResult = settledVal(results[6] as any, {
+    const avgResult = val(results[6] as any, {
       _avg: { browserMinutes: null },
     }) as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const suspResult = settledVal(results[7] as any, {
+    const suspResult = val(results[7] as any, {
       _sum: { suspensionCount: 0 },
     }) as any;
 
     return {
-      totalSessions: settledVal(results[0], 0) as number,
-      todaySessions: settledVal(results[1], 0) as number,
-      weekSessions: settledVal(results[2], 0) as number,
-      totalEvidence: settledVal(results[3], 0) as number,
-      runningSessions: settledVal(results[4], 0) as number,
+      totalSessions: val(results[0], 0) as number,
+      todaySessions: val(results[1], 0) as number,
+      weekSessions: val(results[2], 0) as number,
+      totalEvidence: val(results[3], 0) as number,
+      runningSessions: val(results[4], 0) as number,
       platformBreakdown: platformBreakdown.map(
         (p: Record<string, unknown>) => ({
           platform: p.platform,

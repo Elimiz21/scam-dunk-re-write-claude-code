@@ -17,7 +17,6 @@ import {
   MessageCircle,
   Eye,
 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
 
 interface BlogPost {
   id: string;
@@ -100,6 +99,17 @@ export default function NewsClient({
   const regularMentions = mediaMentions.filter(
     (mention) => !mention.isFeatured,
   );
+
+  function formatDate(dateValue: string | null) {
+    if (!dateValue) {
+      return "Unscheduled";
+    }
+    return new Date(dateValue).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
 
   const handleNewScan = () => {
     window.location.href = "/";

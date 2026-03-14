@@ -26,7 +26,6 @@ import {
   Info,
 } from "lucide-react";
 import Link from "next/link";
-import { formatDateTime } from "@/lib/utils";
 
 // ─── Types matching scan-status-{DATE}.json ────────────────────────
 
@@ -192,6 +191,15 @@ function formatDuration(ms: number | null | undefined): string {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
   return `${(ms / 60_000).toFixed(1)}m`;
+}
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "-";
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return iso;
+  }
 }
 
 function timeAgo(iso: string): string {
@@ -1146,9 +1154,9 @@ export default function ScanStatusPage() {
             {/* Timestamps */}
             {data.startedAt && (
               <div className="text-xs text-muted-foreground flex flex-wrap gap-4">
-                <span>Started: {formatDateTime(data.startedAt)}</span>
+                <span>Started: {formatDate(data.startedAt)}</span>
                 {data.completedAt && (
-                  <span>Completed: {formatDateTime(data.completedAt)}</span>
+                  <span>Completed: {formatDate(data.completedAt)}</span>
                 )}
               </div>
             )}

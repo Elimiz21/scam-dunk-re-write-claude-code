@@ -13,7 +13,6 @@ import {
   Search,
   ArrowLeft,
 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
 
 interface BlogPost {
   id: string;
@@ -95,6 +94,14 @@ export default function AdminBlogListPage() {
       (filterStatus === "drafts" && !post.isPublished);
     return matchesSearch && matchesFilter;
   });
+
+  function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
 
   return (
     <AdminLayout>

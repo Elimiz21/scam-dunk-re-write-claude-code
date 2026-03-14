@@ -9,27 +9,21 @@ import jwt from "jsonwebtoken";
 import { prisma } from "./db";
 import { Plan } from "./types";
 
-// JWT Configuration - lazy getters so module can be imported during next build
-// without requiring env vars at build time (they're only available at runtime on Vercel)
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    throw new Error("FATAL: JWT_SECRET or NEXTAUTH_SECRET must be set");
-  }
-  return secret;
+// JWT Configuration - separate secrets for access and refresh tokens
+const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET or NEXTAUTH_SECRET must be set");
 }
-
-function getJwtRefreshSecret(): string {
-  if (process.env.JWT_REFRESH_SECRET) {
-    return process.env.JWT_REFRESH_SECRET;
-  }
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "FATAL: JWT_REFRESH_SECRET must be set in production. Generate a unique secret separate from JWT_SECRET.",
-    );
-  }
-  return getJwtSecret() + "_REFRESH";
-}
+const JWT_REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET ||
+  (() => {
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        "WARNING: JWT_REFRESH_SECRET not set. Set a unique secret in production.",
+      );
+    }
+    return JWT_SECRET + "_REFRESH";
+  })();
 // Short access token expiry mitigates stateless JWT revocation limitation.
 // Refresh tokens are longer-lived; revocation requires a future token blacklist.
 const JWT_EXPIRY = "15m";
@@ -59,7 +53,7 @@ export function generateAccessToken(userId: string, email: string): string {
     email,
     type: "access",
   };
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: JWT_EXPIRY });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 }
 
 /**
@@ -71,7 +65,7 @@ export function generateRefreshToken(userId: string, email: string): string {
     email,
     type: "refresh",
   };
-  return jwt.sign(payload, getJwtRefreshSecret(), {
+  return jwt.sign(payload, JWT_REFRESH_SECRET, {
     expiresIn: JWT_REFRESH_EXPIRY,
   });
 }
@@ -85,8 +79,7 @@ export function verifyToken(
   expectedType: "access" | "refresh" = "access",
 ): JWTPayload | null {
   try {
-    const secret =
-      expectedType === "refresh" ? getJwtRefreshSecret() : getJwtSecret();
+    const secret = expectedType === "refresh" ? JWT_REFRESH_SECRET : JWT_SECRET;
     const decoded = jwt.verify(token, secret) as JWTPayload;
     return decoded;
   } catch (error) {

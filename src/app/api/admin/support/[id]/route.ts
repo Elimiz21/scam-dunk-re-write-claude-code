@@ -2,18 +2,10 @@
  * Admin Support Ticket Detail API - View and respond to individual tickets
  */
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { sendSupportTicketResponse } from "@/lib/email";
-import {
-  apiSuccess,
-  apiError,
-  apiUnauthorized,
-  apiForbidden,
-  apiNotFound,
-  apiBadRequest,
-} from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +16,7 @@ export async function GET(
   try {
     const session = await getAdminSession();
     if (!session) {
-      return apiUnauthorized();
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const ticketId = params.id;
@@ -39,7 +31,7 @@ export async function GET(
     });
 
     if (!ticket) {
-      return apiNotFound("Ticket not found");
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     }
 
     // Get assigned admin info if exists
@@ -52,7 +44,7 @@ export async function GET(
       assignedAdmin = admin;
     }
 
-    return apiSuccess({
+    return NextResponse.json({
       ticket: {
         ...ticket,
         assignedAdmin,
@@ -60,7 +52,10 @@ export async function GET(
     });
   } catch (error) {
     console.error("Get support ticket error:", error);
-    return apiError("Failed to fetch support ticket");
+    return NextResponse.json(
+      { error: "Failed to fetch support ticket" },
+      { status: 500 },
+    );
   }
 }
 
@@ -71,11 +66,14 @@ export async function POST(
   try {
     const session = await getAdminSession();
     if (!session) {
-      return apiUnauthorized();
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
-      return apiForbidden();
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const ticketId = params.id;
@@ -83,7 +81,10 @@ export async function POST(
     const { message, sendEmail = true } = body;
 
     if (!message || typeof message !== "string" || message.trim().length < 10) {
-      return apiBadRequest("Response message must be at least 10 characters");
+      return NextResponse.json(
+        { error: "Response message must be at least 10 characters" },
+        { status: 400 },
+      );
     }
 
     const ticket = await prisma.supportTicket.findUnique({
@@ -91,7 +92,7 @@ export async function POST(
     });
 
     if (!ticket) {
-      return apiNotFound("Ticket not found");
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     }
 
     // Create the response
@@ -155,7 +156,7 @@ export async function POST(
       },
     });
 
-    return apiSuccess({
+    return NextResponse.json({
       success: true,
       message: emailSent
         ? "Response sent and email delivered"
@@ -169,7 +170,10 @@ export async function POST(
     });
   } catch (error) {
     console.error("Send support ticket response error:", error);
-    return apiError("Failed to send response");
+    return NextResponse.json(
+      { error: "Failed to send response" },
+      { status: 500 },
+    );
   }
 }
 
@@ -180,11 +184,14 @@ export async function DELETE(
   try {
     const session = await getAdminSession();
     if (!session) {
-      return apiUnauthorized();
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!hasRole(session, ["OWNER"])) {
-      return apiForbidden("Only owners can delete tickets");
+      return NextResponse.json(
+        { error: "Only owners can delete tickets" },
+        { status: 403 },
+      );
     }
 
     const ticketId = params.id;
@@ -194,7 +201,7 @@ export async function DELETE(
     });
 
     if (!ticket) {
-      return apiNotFound("Ticket not found");
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     }
 
     // Delete ticket (responses will cascade delete)
@@ -216,12 +223,15 @@ export async function DELETE(
       },
     });
 
-    return apiSuccess({
+    return NextResponse.json({
       success: true,
       message: "Ticket deleted successfully",
     });
   } catch (error) {
     console.error("Delete support ticket error:", error);
-    return apiError("Failed to delete ticket");
+    return NextResponse.json(
+      { error: "Failed to delete ticket" },
+      { status: 500 },
+    );
   }
 }

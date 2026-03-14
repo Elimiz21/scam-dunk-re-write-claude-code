@@ -5,9 +5,9 @@
  * to show detailed pipeline execution status on the admin dashboard.
  */
 
+import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { getSupabaseClient, EVALUATION_BUCKET } from "@/lib/supabase";
-import { apiSuccess, apiError, apiUnauthorized } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return apiUnauthorized();
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
 
     if (statusListError) {
       console.error("Error listing scan-status files:", statusListError);
-      return apiSuccess({
+      return NextResponse.json({
         available: false,
         error: "Could not list scan status files from storage",
       });
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
 
     const scanStatus = JSON.parse(await fileData.text());
 
-    return apiSuccess({
+    return NextResponse.json({
       available: true,
       source: "scan-status",
       ...scanStatus,
@@ -112,7 +112,10 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Scan status error:", error);
-    return apiError("Failed to fetch scan status");
+    return NextResponse.json(
+      { available: false, error: "Failed to fetch scan status" },
+      { status: 500 },
+    );
   }
 }
 
@@ -131,7 +134,7 @@ async function fallbackToDailyReport(
     });
 
   if (!reportFiles || reportFiles.length === 0) {
-    return apiSuccess({
+    return NextResponse.json({
       available: false,
       error:
         "No scan status or daily report files found. The pipeline may not have run yet.",
@@ -146,7 +149,7 @@ async function fallbackToDailyReport(
     if (match) {
       targetFile = match;
     } else {
-      return apiSuccess({
+      return NextResponse.json({
         available: false,
         error: `No scan data found for ${requestedDate}`,
         history:
@@ -164,7 +167,7 @@ async function fallbackToDailyReport(
     .download(targetFile.name);
 
   if (!fileData) {
-    return apiSuccess({
+    return NextResponse.json({
       available: false,
       error: "Could not download daily report",
     });
@@ -188,7 +191,7 @@ async function fallbackToDailyReport(
   }
   combinedHistory.sort((a, b) => b.date.localeCompare(a.date));
 
-  return apiSuccess({
+  return NextResponse.json({
     available: true,
     source: "daily-report",
     date: dateMatch ? dateMatch[1] : report.date,

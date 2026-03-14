@@ -18,7 +18,6 @@ import {
   PenLine,
 } from "lucide-react";
 import mammoth from "mammoth";
-import DOMPurify from "isomorphic-dompurify";
 import ImageUploadModal from "@/components/admin/editor/ImageUploadModal";
 
 const RichTextEditor = lazy(
@@ -631,9 +630,7 @@ export default function AdminBlogEditorPage() {
                       {post.content ? (
                         <div
                           className="tiptap prose prose-sm sm:prose-base max-w-none"
-                          dangerouslySetInnerHTML={{
-                            __html: DOMPurify.sanitize(post.content),
-                          }}
+                          dangerouslySetInnerHTML={{ __html: post.content }}
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">

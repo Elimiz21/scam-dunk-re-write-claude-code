@@ -29,7 +29,6 @@ import {
   TestTube,
   Clock,
 } from "lucide-react";
-import { formatDateTime, formatRelativeDate } from "@/lib/utils";
 
 // ============ Types ============
 
@@ -417,6 +416,25 @@ export default function EmailManagementPage() {
   }
 
   // ============ Helpers ============
+
+  function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleString();
+  }
+
+  function formatRelativeDate(dateString: string) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  }
 
   function parseCategories(cats: string | null): string[] {
     if (!cats) return [];
@@ -1377,7 +1395,7 @@ export default function EmailManagementPage() {
                             <td className="px-4 py-3 whitespace-nowrap">
                               <span
                                 className="text-sm text-muted-foreground"
-                                title={formatDateTime(log.createdAt)}
+                                title={formatDate(log.createdAt)}
                               >
                                 {formatRelativeDate(log.createdAt)}
                               </span>

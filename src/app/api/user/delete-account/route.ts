@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/db";
-import { cancelSubscription } from "@/lib/paypal";
 
 export const dynamic = "force-dynamic";
 
@@ -67,14 +66,20 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Cancel PayPal subscription if active (direct call, not HTTP loopback)
+    // Cancel PayPal subscription if active
     if (user.billingCustomerId) {
       try {
-        const cancelResult = await cancelSubscription(userId);
-        if (!cancelResult.success) {
+        const cancelResponse = await fetch(
+          `${process.env.NEXTAUTH_URL || ""}/api/billing/paypal/cancel`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user.id }),
+          },
+        );
+        if (!cancelResponse.ok) {
           console.warn(
-            "Failed to cancel PayPal subscription during account deletion:",
-            cancelResult.error,
+            "Failed to cancel PayPal subscription during account deletion, continuing...",
           );
         }
       } catch (cancelError) {

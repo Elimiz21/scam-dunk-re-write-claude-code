@@ -16,7 +16,7 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
-import { reserveScanSlot } from "@/lib/usage";
+import { canUserScan } from "@/lib/usage";
 import { sendAPIFailureAlert } from "@/lib/email";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
@@ -189,9 +189,9 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Atomically check scan limit and reserve a slot
-    const { reserved } = await reserveScanSlot(userId);
-    if (!reserved) {
+    // Check scan limit
+    const { canScan } = await canUserScan(userId);
+    if (!canScan) {
       return NextResponse.json(
         { error: "Scan limit reached" },
         { status: 429 },
@@ -331,8 +331,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Analysis failed. Please try again later." },
+      { error: `Analysis failed: ${errorMessage}` },
       { status: 500 },
     );
   }

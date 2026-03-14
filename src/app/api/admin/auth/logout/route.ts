@@ -2,17 +2,17 @@
  * Admin Logout API
  */
 
+import { NextResponse } from "next/server";
 import { adminLogout } from "@/lib/admin/auth";
-import { apiSuccess, apiError } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
     await adminLogout();
-    return apiSuccess({ success: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Admin logout error:", error);
-    return apiError("Logout failed");
+    return NextResponse.json({ error: "Logout failed" }, { status: 500 });
   }
 }

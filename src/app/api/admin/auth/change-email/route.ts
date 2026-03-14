@@ -3,17 +3,9 @@
  * Only OWNER role can change their own email
  */
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth, verifyPassword } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
-import {
-  apiSuccess,
-  apiError,
-  apiBadRequest,
-  apiForbidden,
-  apiUnauthorized,
-  apiNotFound,
-} from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -23,19 +15,28 @@ export async function POST(request: NextRequest) {
 
     // Only OWNER can change email
     if (session.role !== "OWNER") {
-      return apiForbidden("Only the owner can change their email");
+      return NextResponse.json(
+        { error: "Only the owner can change their email" },
+        { status: 403 },
+      );
     }
 
     const { newEmail, password } = await request.json();
 
     if (!newEmail || !password) {
-      return apiBadRequest("New email and current password are required");
+      return NextResponse.json(
+        { error: "New email and current password are required" },
+        { status: 400 },
+      );
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail)) {
-      return apiBadRequest("Invalid email address");
+      return NextResponse.json(
+        { error: "Invalid email address" },
+        { status: 400 },
+      );
     }
 
     // Verify current password
@@ -44,12 +45,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (!adminUser) {
-      return apiNotFound("Admin user not found");
+      return NextResponse.json(
+        { error: "Admin user not found" },
+        { status: 404 },
+      );
     }
 
     const isValid = await verifyPassword(password, adminUser.hashedPassword);
     if (!isValid) {
-      return apiUnauthorized("Password is incorrect");
+      return NextResponse.json(
+        { error: "Password is incorrect" },
+        { status: 401 },
+      );
     }
 
     // Check if email is already in use
@@ -58,7 +65,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (existing && existing.id !== session.id) {
-      return apiError("Email is already in use by another admin", 409);
+      return NextResponse.json(
+        { error: "Email is already in use by another admin" },
+        { status: 409 },
+      );
     }
 
     // Update email
@@ -81,12 +91,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return apiSuccess({ success: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return apiUnauthorized();
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("Change email error:", error);
-    return apiError("Failed to change email");
+    return NextResponse.json(
+      { error: "Failed to change email" },
+      { status: 500 },
+    );
   }
 }

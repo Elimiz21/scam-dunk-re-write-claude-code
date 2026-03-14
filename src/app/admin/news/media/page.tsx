@@ -14,7 +14,6 @@ import {
   ArrowLeft,
   ExternalLink,
 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
 
 interface MediaMention {
   id: string;
@@ -116,6 +115,14 @@ export default function AdminMediaListPage() {
       filterType === "all" || mention.sourceType === filterType;
     return matchesSearch && matchesFilter;
   });
+
+  function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
 
   return (
     <AdminLayout>

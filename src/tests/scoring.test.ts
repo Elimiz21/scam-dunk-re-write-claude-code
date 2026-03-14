@@ -62,13 +62,13 @@ function createMockMarketData(
 // Helper to create scoring input
 function createScoringInput(
   marketData: MarketData,
-  overrides: {
-    pitchText?: string;
-    unsolicited?: boolean;
-    promisesHighReturns?: boolean;
-    urgencyPressure?: boolean;
-    secrecyInsideInfo?: boolean;
-  } = {},
+  overrides: Partial<{
+    pitchText: string;
+    unsolicited: boolean;
+    promisesHighReturns: boolean;
+    urgencyPressure: boolean;
+    secrecyInsideInfo: boolean;
+  }> = {},
 ): ScoringInput {
   return {
     marketData,
