@@ -43,6 +43,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Auto-cleanup: mark scans stuck in RUNNING for >10 minutes as TIMED_OUT
+    try {
+      const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
+      await prisma.socialScanRun.updateMany({
+        where: {
+          status: "RUNNING",
+          createdAt: { lt: staleThreshold },
+        },
+        data: {
+          status: "TIMED_OUT",
+          errors: JSON.stringify([
+            "Scan timed out — no status update received within 10 minutes",
+          ]),
+        },
+      });
+    } catch (cleanupErr) {
+      console.error("Stale scan cleanup failed:", cleanupErr);
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
@@ -334,11 +353,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Run the actual scan (this takes time — up to a few minutes)
-    const result = await runSocialScanAndStore({
-      scanRunId: scanRun.id,
-      triggeredBy,
-      manualTickers,
-    });
+    // Wrap in try/catch so the scanRun record is always updated to a terminal state
+    let result;
+    try {
+      result = await runSocialScanAndStore({
+        scanRunId: scanRun.id,
+        triggeredBy,
+        manualTickers,
+      });
+    } catch (scanError: any) {
+      // Ensure the scan record doesn't stay stuck as RUNNING
+      console.error("Social scan execution failed:", scanError);
+      try {
+        await prisma.socialScanRun.update({
+          where: { id: scanRun.id },
+          data: {
+            status: "FAILED",
+            errors: JSON.stringify([scanError?.message || "Unknown error"]),
+            duration: Date.now() - scanRun.createdAt.getTime(),
+          },
+        });
+      } catch {
+        /* best-effort cleanup */
+      }
+      return NextResponse.json(
+        {
+          scanRunId: scanRun.id,
+          status: "FAILED",
+          error: scanError?.message || "Scan execution failed",
+        },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({
       scanRunId: scanRun.id,

@@ -48,6 +48,7 @@ function checkAdminRateLimit(ip: string): boolean {
 }
 
 // Admin auth paths that don't require an existing session
+// Routes listed here handle their own authentication (e.g. Bearer token for pipeline)
 const ADMIN_PUBLIC_PATHS = [
   "/api/admin/auth/login",
   "/api/admin/auth/logout",
@@ -55,6 +56,9 @@ const ADMIN_PUBLIC_PATHS = [
   "/api/admin/auth/preview-login",
   "/api/admin/init",
   "/api/admin/setup",
+  "/api/admin/social-scan", // Accepts Bearer API key for daily pipeline
+  "/api/admin/social-scan/ingest", // Accepts Bearer API key for data ingestion
+  "/api/admin/ingest-evaluation", // Accepts Bearer API key for pipeline uploads
 ];
 
 export default async function middleware(request: NextRequest) {
