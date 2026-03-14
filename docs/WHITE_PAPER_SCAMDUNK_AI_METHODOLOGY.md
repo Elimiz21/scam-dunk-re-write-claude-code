@@ -1,4 +1,5 @@
 # ScamDunk AI Scanning Methodology
+
 ## A Technical White Paper on Multi-Layer Stock Scam Detection
 
 **Version 1.0 | February 2026**
@@ -65,6 +66,7 @@ This means:
 - **No "black box" scoring** that cannot be explained
 
 This approach ensures:
+
 - ✅ Consistent, predictable scoring across all assessments
 - ✅ Full auditability for regulatory compliance
 - ✅ Transparency that builds user trust
@@ -72,13 +74,13 @@ This approach ensures:
 
 ### Design Principles
 
-| Principle | Implementation |
-|-----------|----------------|
-| **Early Warning** | Detect patterns before full manipulation materializes |
-| **Multi-Signal Fusion** | Combine multiple data sources for robust detection |
-| **False Positive Mitigation** | Distinguish legitimate volatility from manipulation |
-| **Explainability** | Every score has traceable, understandable factors |
-| **Conservative Risk Assessment** | Err on the side of warning investors |
+| Principle                        | Implementation                                        |
+| -------------------------------- | ----------------------------------------------------- |
+| **Early Warning**                | Detect patterns before full manipulation materializes |
+| **Multi-Signal Fusion**          | Combine multiple data sources for robust detection    |
+| **False Positive Mitigation**    | Distinguish legitimate volatility from manipulation   |
+| **Explainability**               | Every score has traceable, understandable factors     |
+| **Conservative Risk Assessment** | Err on the side of warning investors                  |
 
 ---
 
@@ -156,12 +158,12 @@ Our detection engine operates on the principle of **defense in depth**—multipl
 
 ### Layer Overview
 
-| Layer | Type | Purpose | Key Technologies |
-|-------|------|---------|------------------|
-| **Layer 1** | Deterministic | Rule-based structural and behavioral signals | Weighted scoring algorithm |
-| **Layer 2** | Statistical | Detect anomalies in price/volume patterns | Z-scores, Isolation Forest, Mahalanobis distance |
-| **Layer 3** | Machine Learning | Pattern classification | Random Forest Classifier |
-| **Layer 4** | Deep Learning | Temporal sequence analysis | LSTM Neural Network |
+| Layer       | Type             | Purpose                                      | Key Technologies                                 |
+| ----------- | ---------------- | -------------------------------------------- | ------------------------------------------------ |
+| **Layer 1** | Deterministic    | Rule-based structural and behavioral signals | Weighted scoring algorithm                       |
+| **Layer 2** | Statistical      | Detect anomalies in price/volume patterns    | Z-scores, Isolation Forest, Mahalanobis distance |
+| **Layer 3** | Machine Learning | Pattern classification                       | Random Forest Classifier                         |
+| **Layer 4** | Deep Learning    | Temporal sequence analysis                   | LSTM Neural Network                              |
 
 Each layer contributes to the final risk assessment, with different weights applied based on the reliability and specificity of each signal type.
 
@@ -176,47 +178,52 @@ The first layer of our detection engine uses rule-based signals derived from SEC
 Signals are organized into four categories:
 
 #### A. Structural Signals
+
 These identify stocks inherently vulnerable to manipulation:
 
-| Signal | Trigger | Weight | Reasoning |
-|--------|---------|--------|-----------|
-| **MICROCAP_PRICE** | Price < $5 | 2 | Penny stocks are prime manipulation targets due to low barriers to price movement |
-| **SMALL_MARKET_CAP** | Market cap < $300M | 2 | Smaller companies have less institutional oversight and analyst coverage |
-| **MICRO_LIQUIDITY** | Avg daily volume < $150K | 2 | Low liquidity enables price manipulation with minimal capital |
-| **OTC_EXCHANGE** | Listed on OTC/Pink Sheets | 3 | OTC markets have lower regulatory oversight and listing requirements |
+| Signal               | Trigger                   | Weight | Reasoning                                                                         |
+| -------------------- | ------------------------- | ------ | --------------------------------------------------------------------------------- |
+| **MICROCAP_PRICE**   | Price < $5                | 2      | Penny stocks are prime manipulation targets due to low barriers to price movement |
+| **SMALL_MARKET_CAP** | Market cap < $300M        | 2      | Smaller companies have less institutional oversight and analyst coverage          |
+| **MICRO_LIQUIDITY**  | Avg daily volume < $150K  | 2      | Low liquidity enables price manipulation with minimal capital                     |
+| **OTC_EXCHANGE**     | Listed on OTC/Pink Sheets | 3      | OTC markets have lower regulatory oversight and listing requirements              |
 
 #### B. Pattern Signals
+
 These detect suspicious price and volume movements:
 
-| Signal | Trigger | Weight | Reasoning |
-|--------|---------|--------|-----------|
-| **SPIKE_7D** | 50-100% price increase in 7 days | 3-4 | Rapid price spikes are hallmarks of pump schemes |
-| **VOLUME_EXPLOSION** | Volume 5-10x+ 30-day average | 2-3 | Abnormal volume precedes or accompanies manipulation |
-| **SPIKE_THEN_DROP** | 50%+ spike followed by 40%+ drop within 15 days | 3 | Classic pump-and-dump signature pattern |
+| Signal               | Trigger                                         | Weight | Reasoning                                            |
+| -------------------- | ----------------------------------------------- | ------ | ---------------------------------------------------- |
+| **SPIKE_7D**         | 50-100% price increase in 7 days                | 3-4    | Rapid price spikes are hallmarks of pump schemes     |
+| **VOLUME_EXPLOSION** | Volume 5-10x+ 30-day average                    | 2-3    | Abnormal volume precedes or accompanies manipulation |
+| **SPIKE_THEN_DROP**  | 50%+ spike followed by 40%+ drop within 15 days | 3      | Classic pump-and-dump signature pattern              |
 
 #### C. Alert Signals
+
 Regulatory warnings carry the highest weight:
 
-| Signal | Trigger | Weight | Reasoning |
-|--------|---------|--------|-----------|
-| **ALERT_LIST_HIT** | Appears on SEC trading suspension list | 5 | Regulatory alerts indicate confirmed fraud concerns |
+| Signal             | Trigger                                | Weight | Reasoning                                           |
+| ------------------ | -------------------------------------- | ------ | --------------------------------------------------- |
+| **ALERT_LIST_HIT** | Appears on SEC trading suspension list | 5      | Regulatory alerts indicate confirmed fraud concerns |
 
 #### D. Behavioral Signals
+
 These analyze how the stock was presented (pitch text analysis):
 
-| Signal | Trigger | Weight | Reasoning |
-|--------|---------|--------|-----------|
-| **UNSOLICITED** | Tip received without asking | 1 | Classic scam delivery method |
-| **PROMISED_RETURNS** | "Guaranteed", "risk-free", "100%" language | 2 | No legitimate investment can guarantee returns |
-| **URGENCY** | "Act now", "limited time" pressure | 2 | Creates artificial urgency to prevent due diligence |
-| **SECRECY** | "Insider info", "confidential" claims | 2 | Claims of secret information are almost always fraudulent |
-| **SPECIFIC_RETURN_CLAIM** | "X% in Y days/weeks" | 1 | Specific predictions are red flags |
+| Signal                    | Trigger                                    | Weight | Reasoning                                                 |
+| ------------------------- | ------------------------------------------ | ------ | --------------------------------------------------------- |
+| **UNSOLICITED**           | Tip received without asking                | 1      | Classic scam delivery method                              |
+| **PROMISED_RETURNS**      | "Guaranteed", "risk-free", "100%" language | 2      | No legitimate investment can guarantee returns            |
+| **URGENCY**               | "Act now", "limited time" pressure         | 2      | Creates artificial urgency to prevent due diligence       |
+| **SECRECY**               | "Insider info", "confidential" claims      | 2      | Claims of secret information are almost always fraudulent |
+| **SPECIFIC_RETURN_CLAIM** | "X% in Y days/weeks"                       | 1      | Specific predictions are red flags                        |
 
 ### 5.2 Natural Language Processing for Behavioral Detection
 
 We employ keyword pattern matching and regular expression analysis to detect behavioral signals in pitch text:
 
 **Guaranteed Returns Keywords:**
+
 - guaranteed, guaranteed return, guaranteed profit
 - 100%, double your money, triple your money
 - 10x, 100x, 1000%
@@ -224,12 +231,14 @@ We employ keyword pattern matching and regular expression analysis to detect beh
 - easy money, get rich, millionaire
 
 **Urgency Keywords:**
+
 - act now, act fast, limited time
 - expires, today only, last chance
 - don't miss, hurry, urgent, immediately
 - before it's too late, running out
 
 **Secrecy Keywords:**
+
 - insider, insider info, confidential, secret
 - don't tell, keep quiet, exclusive
 - private tip, behind closed doors
@@ -237,12 +246,12 @@ We employ keyword pattern matching and regular expression analysis to detect beh
 
 ### 5.3 Risk Level Calculation
 
-| Risk Level | Condition |
-|------------|-----------|
-| **HIGH** | Total score ≥ 7 OR Alert list hit |
-| **MEDIUM** | Total score 3-6 |
-| **LOW** | Total score < 3 |
-| **INSUFFICIENT** | No market data available |
+| Risk Level       | Condition                         |
+| ---------------- | --------------------------------- |
+| **HIGH**         | Total score ≥ 7 OR Alert list hit |
+| **MEDIUM**       | Total score 3-6                   |
+| **LOW**          | Total score < 3                   |
+| **INSUFFICIENT** | No market data available          |
 
 ---
 
@@ -261,11 +270,13 @@ Z-Score = (Current Value - Rolling Mean) / Rolling Standard Deviation
 ```
 
 **Z-Score Categories:**
+
 - **Return Z-Scores**: Detect unusual daily/weekly returns
 - **Price Z-Scores**: Detect deviation from historical price mean
 - **Volume Z-Scores**: Detect unusual trading volume
 
 **Thresholds (calibrated from research):**
+
 - Standard Z-score threshold: 2.5 (captures ~99% of normal variation)
 - Volume Z-score threshold: 2.5
 
@@ -280,6 +291,7 @@ Lower Band = Middle - (2.0 × ATR)
 ```
 
 **Keltner Position Metric:**
+
 ```
 Position = (Current Price - Lower Band) / (Upper Band - Lower Band)
 ```
@@ -306,19 +318,19 @@ ATR% = (14-day ATR / Current Price) × 100
 Volume Surge = (7-day Average Volume) / (30-day Average Volume)
 ```
 
-| Surge Factor | Classification | Implication |
-|--------------|----------------|-------------|
-| < 3.0x | Normal | Typical volume fluctuation |
-| 3.0x - 5.0x | Moderate Explosion | Early warning indicator |
-| > 5.0x | Extreme Explosion | Highly suspicious activity |
+| Surge Factor | Classification     | Implication                |
+| ------------ | ------------------ | -------------------------- |
+| < 3.0x       | Normal             | Typical volume fluctuation |
+| 3.0x - 5.0x  | Moderate Explosion | Early warning indicator    |
+| > 5.0x       | Extreme Explosion  | Highly suspicious activity |
 
 #### Price Surge Detection
 
-| Timeframe | Threshold | Classification |
-|-----------|-----------|----------------|
-| 1-day | > 10% | Daily surge |
-| 7-day | > 25% | Weekly pump indicator |
-| 7-day | > 50% | Extreme weekly movement |
+| Timeframe | Threshold | Classification          |
+| --------- | --------- | ----------------------- |
+| 1-day     | > 10%     | Daily surge             |
+| 7-day     | > 25%     | Weekly pump indicator   |
+| 7-day     | > 50%     | Extreme weekly movement |
 
 ### 6.3 Pattern Detection
 
@@ -327,6 +339,7 @@ Volume Surge = (7-day Average Volume) / (30-day Average Volume)
 We detect the classic pump-and-dump signature by analyzing price action over a 14-day lookback window:
 
 **Detection Criteria:**
+
 1. Price peaks in the middle third of the analysis window
 2. Pre-peak return > 20% (pump phase)
 3. Post-peak return < -15% (dump phase)
@@ -343,12 +356,12 @@ This captures the characteristic "mountain" shape of manipulated price movement.
 
 Individual anomaly scores are combined using weighted averaging:
 
-| Component | Weight | Reasoning |
-|-----------|--------|-----------|
-| Z-Score Anomalies | 0.25 | Broad statistical deviation |
-| Volatility Anomalies | 0.20 | Technical breakout indicators |
-| Surge Anomalies | 0.35 | Most indicative of pump/dump |
-| Pattern Anomalies | 0.20 | Complex pattern recognition |
+| Component            | Weight | Reasoning                     |
+| -------------------- | ------ | ----------------------------- |
+| Z-Score Anomalies    | 0.25   | Broad statistical deviation   |
+| Volatility Anomalies | 0.20   | Technical breakout indicators |
+| Surge Anomalies      | 0.35   | Most indicative of pump/dump  |
+| Pattern Anomalies    | 0.20   | Complex pattern recognition   |
 
 **Final Anomaly Score**: 0.0 - 1.0 scale, with >0.4 triggering "anomaly detected" status.
 
@@ -376,31 +389,37 @@ The third layer employs a Random Forest Classifier trained to distinguish betwee
 The Random Forest model uses a 31-dimensional feature vector:
 
 **Price-Based Features (3):**
+
 - return_zscore_short
 - return_zscore_long
 - price_zscore_long
 
 **Volume Features (3):**
+
 - volume_zscore_short
 - volume_zscore_long
 - volume_surge_factor
 
 **Volatility Features (4):**
+
 - atr_percent
 - keltner_position
 - keltner_breakout_upper
 - keltner_breakout_lower
 
 **Surge & Pattern Features (8):**
+
 - price_change_1d, price_change_7d, price_change_30d
 - is_pumping_7d, is_dumping_7d
 - volume_explosion_moderate, volume_explosion_extreme
 - pump_pattern
 
 **Momentum Features (3):**
+
 - roc_7, roc_14, rsi_14
 
 **Contextual Features (9):**
+
 - log_market_cap
 - is_micro_cap, is_small_cap
 - is_micro_liquidity, is_low_liquidity
@@ -415,6 +434,7 @@ The Random Forest model uses a 31-dimensional feature vector:
 The model is trained on synthetic data that mimics known patterns:
 
 **Scam Scenarios (characteristics):**
+
 - High Z-scores (1.5 - 4.0)
 - Volume surge factors (5x - 20x)
 - High ATR% (8% - 25%)
@@ -423,6 +443,7 @@ The model is trained on synthetic data that mimics known patterns:
 - No news explanations
 
 **Normal Scenarios (characteristics):**
+
 - Moderate Z-scores (-1.5 to 1.5)
 - Normal volume (0.5x - 3.0x average)
 - Low ATR% (1% - 5%)
@@ -431,12 +452,14 @@ The model is trained on synthetic data that mimics known patterns:
 - Often has news catalyst
 
 **Edge Cases:**
+
 - Legitimate high-volatility events (e.g., earnings surprises)
 - Characterized by: high volatility + news catalyst + major exchange
 
 ### 7.4 Model Performance
 
 Typical training metrics:
+
 - **Accuracy**: ~95%+
 - **Precision**: ~93%+ (minimizes false positives)
 - **Recall**: ~94%+ (minimizes missed scams)
@@ -529,16 +552,17 @@ Each timestep in the 30-day sequence contains:
 
 ### 8.4 Training Configuration
 
-| Parameter | Value |
-|-----------|-------|
-| Sequence Length | 30 days |
-| Epochs | 50 (with early stopping) |
-| Batch Size | 32 |
-| Validation Split | 20% |
-| Optimizer | Adam (learning rate: 0.001) |
-| Loss Function | Binary Cross-Entropy |
+| Parameter        | Value                       |
+| ---------------- | --------------------------- |
+| Sequence Length  | 30 days                     |
+| Epochs           | 50 (with early stopping)    |
+| Batch Size       | 32                          |
+| Validation Split | 20%                         |
+| Optimizer        | Adam (learning rate: 0.001) |
+| Loss Function    | Binary Cross-Entropy        |
 
 **Callbacks:**
+
 - Early Stopping (patience: 10 epochs)
 - Learning Rate Reduction on Plateau (factor: 0.5, patience: 5)
 
@@ -564,6 +588,7 @@ Phase 3 (Dump): Days 21-30
 ```
 
 **Normal Sequences:**
+
 - Random walk price movement
 - Consistent volume patterns
 - Normal Z-score distributions
@@ -579,6 +604,7 @@ The final risk score combines outputs from all detection layers:
 **Starting Point**: Random Forest probability
 
 **LSTM Integration** (if available):
+
 ```
 If use_max_strategy:
     combined = max(rf_prob, lstm_prob)
@@ -591,18 +617,21 @@ Else:
 The combined probability is adjusted based on contextual factors:
 
 **Anomaly Boost:**
+
 ```
 If anomaly_detected:
     combined = combined + (anomaly_score × 0.3)
 ```
 
 **SEC Flag Boost:**
+
 ```
 If sec_flagged:
     combined = max(combined, 0.85)  # Minimum 85% probability
 ```
 
 **Structural Risk Boosts:**
+
 ```
 If OTC and (price_change_7d > 15% or volume_surge > 2.5x):
     combined = max(combined, 0.45)
@@ -612,8 +641,9 @@ If OTC and micro_cap:
 ```
 
 **Severe Pattern Boosts:**
+
 ```
-Severe patterns: pump_and_dump, pump_pattern, 
+Severe patterns: pump_and_dump, pump_pattern,
                  extreme_volume_explosion, extreme_weekly_move
 
 If severe_pattern:
@@ -627,6 +657,7 @@ If severe_pattern and OTC and micro_cap:
 ```
 
 **Multi-Factor Boost:**
+
 ```
 risk_factors = [OTC, micro_cap, severe_pattern, anomaly, sec_flagged]
 
@@ -642,10 +673,10 @@ If 4+ factors:
 Final probability thresholds:
 
 | Probability | Risk Level |
-|-------------|------------|
-| < 0.25 | LOW |
-| 0.25 - 0.55 | MEDIUM |
-| ≥ 0.55 | HIGH |
+| ----------- | ---------- |
+| < 0.25      | LOW        |
+| 0.25 - 0.55 | MEDIUM     |
+| ≥ 0.55      | HIGH       |
 
 ---
 
@@ -656,6 +687,7 @@ Final probability thresholds:
 **Primary Provider**: Alpha Vantage API
 
 **Data Points Retrieved:**
+
 - Current price and real-time quotes
 - Market capitalization
 - Average daily trading volume
@@ -668,6 +700,7 @@ Final probability thresholds:
 ### 10.2 Regulatory Data
 
 **SEC Integration:**
+
 - Trading suspension database
 - Real-time check on each scan
 - Currently covers SEC suspensions
@@ -675,6 +708,7 @@ Final probability thresholds:
 ### 10.3 Behavioral Data
 
 **User Input:**
+
 - Stock ticker symbol
 - Pitch text (analyzed for NLP signals)
 - Contextual flags (unsolicited, urgency, secrecy, etc.)
@@ -686,12 +720,14 @@ Final probability thresholds:
 ### 11.1 Model Performance
 
 **Random Forest Classifier:**
+
 - Accuracy: ~95%
 - Precision: ~93%
 - Recall: ~94%
 - F1 Score: ~93%
 
 **LSTM Neural Network:**
+
 - Validation Accuracy: ~90%+
 - AUC: ~0.92
 
@@ -725,16 +761,19 @@ ScamDunk is an educational tool designed to help investors identify potential re
 ### Planned Enhancements
 
 **Short-Term (2026):**
+
 - Enhanced NLP with transformer models for pitch text analysis
 - Integration with additional regulatory databases
 - Cryptocurrency market coverage
 
 **Medium-Term (2026-2027):**
+
 - Social media sentiment integration (Reddit, Twitter/X)
 - Real-time alerting for watched tickers
 - Multi-language support
 
 **Long-Term (2027+):**
+
 - International market coverage
 - Institutional-grade API offering
 - Regulatory compliance reporting tools
@@ -760,4 +799,4 @@ Email: info@scamdunk.com
 
 ---
 
-*This white paper is confidential and intended for informational purposes only. © 2026 ScamDunk Technologies. All rights reserved.*
+_This white paper is confidential and intended for informational purposes only. © 2026 ScamDunk Technologies. All rights reserved._
