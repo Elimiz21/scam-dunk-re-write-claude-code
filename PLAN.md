@@ -1,256 +1,170 @@
-# Admin Dashboard Redesign: Scan Intelligence Hub
+# Plan: Rich Content Editor for ScamDunk Admin News Page
 
-## Overview
+## Current State
 
-Redesign the admin dashboard's Market Intelligence section to provide a comprehensive,
-intuitive view into the daily stock scan pipeline, AI backend results, suspicious stock
-monitoring, and scheme tracking. The goal is to give admin users the ability to:
+The blog post editor at `/admin/news/blog/[id]` currently uses a plain `<textarea>` for content input with basic markdown support. Cover images are added via manual URL entry only. There is no image upload, no text formatting toolbar, no media embedding, and no table/chart support.
 
-1. See at a glance what happened on the latest scan
-2. Drill down into individual stocks with full AI layer data
-3. Track active schemes across days with timeline visualization
-4. Explore promoted/suspicious stocks with filtering and sorting
-5. Compare scan results across dates
+## Recommended Approach: Tiptap Editor
 
-All work will be done on a new branch: `claude/admin-scan-intelligence-Y9d4k`
+**Why Tiptap** (over Quill, Slate, Lexical, etc.):
 
----
+- **Headless architecture** - works natively with Tailwind CSS and the existing shadcn-style component system (no fighting pre-built themes)
+- **ProseMirror-based** - battle-tested editing engine used by the New York Times, Atlassian, GitLab
+- **Rich extension ecosystem** - first-party extensions for tables, images, videos, embeds, code blocks, and more
+- **React-first** - `@tiptap/react` provides hooks and components designed for React 18
+- **HTML output** - stores content as HTML, which is directly compatible with the existing `content String @db.Text` Prisma field (no schema migration needed for basic content)
+- **Used by** WordPress.com (Gutenberg alternative), GitLab, Substack-style platforms
 
-## Design Direction
+## Implementation Steps
 
-**Aesthetic:** Refined data intelligence dashboard — dark-mode-forward, data-dense but
-breathable. Leverages the existing warm guardian palette (coral/amber/teal) with the
-Playfair Display + DM Sans type pairing already in place.
+### Phase 1: Core Rich Text Editor
 
-**Principles from frontend-design skill:**
-- Bold risk-level color coding (already established with risk-glow classes)
-- Dense data grids with generous whitespace between sections
-- Animated number transitions and staggered card reveals on load
-- Glass-card layering for drill-down panels
-- No generic layouts — asymmetric grids where it adds clarity
+**1.1 Install Tiptap and extensions**
 
-**Libraries:** No new dependencies. The existing stack (Tailwind + Lucide + custom
-components) is sufficient. We'll enhance the existing ChartCard and DataTable components
-rather than adding new chart libraries.
+```
+npm install @tiptap/react @tiptap/starter-kit @tiptap/pm
+npm install @tiptap/extension-image @tiptap/extension-link @tiptap/extension-youtube
+npm install @tiptap/extension-table @tiptap/extension-table-row @tiptap/extension-table-cell @tiptap/extension-table-header
+npm install @tiptap/extension-text-align @tiptap/extension-underline @tiptap/extension-color @tiptap/extension-text-style
+npm install @tiptap/extension-highlight @tiptap/extension-placeholder @tiptap/extension-code-block-lowlight
+npm install lowlight
+```
 
----
+**1.2 Create the `RichTextEditor` component** (`src/components/admin/RichTextEditor.tsx`)
 
-## Architecture: New API Routes
+A self-contained editor component that:
 
-### 1. `/api/admin/scan-intelligence` (NEW)
-Fetches the latest scan results directly from the scam-dunk-data GitHub repo or Supabase.
-Returns:
-- Latest daily-report summary
-- Risk distribution
-- AI layer statistics (how many stocks used backend, layer coverage)
-- Top suspicious stocks (by risk score, with aiLayers data)
-- Scheme status summary
-- Comparison with previous scan date
+- Accepts `content` (HTML string) and `onChange` callback as props
+- Initializes Tiptap with all extensions
+- Renders a formatting toolbar and the editor area
+- Matches the existing rounded-2xl card styling
 
-### 2. `/api/admin/scan-intelligence/stocks` (NEW)
-Paginated, filterable stock list from the latest enhanced-evaluation file.
-Query params: `riskLevel`, `minScore`, `hasAiBackend`, `hasPumpPattern`,
-`sortBy`, `page`, `limit`
-Returns full stock objects with aiLayers, signals, news, social data.
+**1.3 Build the editor toolbar**
 
-### 3. `/api/admin/scan-intelligence/stock/[symbol]` (NEW)
-Deep drill-down for a single stock across all scan dates.
-Returns: All historical snapshots, scheme membership, social evidence,
-news timeline, AI layer score progression.
+A floating/sticky toolbar with grouped controls:
 
-### 4. `/api/admin/scan-intelligence/schemes` (NEW)
-Returns the full scheme database with timeline data for each active scheme.
+| Group          | Controls                                                                    |
+| -------------- | --------------------------------------------------------------------------- |
+| **Text Style** | Bold, Italic, Underline, Strikethrough, Highlight, Text Color               |
+| **Headings**   | H1, H2, H3 dropdown                                                         |
+| **Alignment**  | Left, Center, Right, Justify                                                |
+| **Lists**      | Bullet list, Ordered list, Task list                                        |
+| **Insert**     | Image, Video/YouTube, Table, Horizontal Rule, Code Block, Block Quote, Link |
+| **Utilities**  | Undo, Redo, Clear Formatting                                                |
 
-### 5. `/api/admin/scan-intelligence/history` (NEW)
-Returns scan-over-scan comparison data: date, stocks scanned, HIGH count,
-suspicious count, schemes detected, processing time — for every scan date.
+**1.4 Replace the textarea in the blog editor page**
 
-### 6. Enhance existing `/api/admin/pipeline-health`
-Add the scan history comparison data to the existing endpoint.
+Swap the current `<textarea>` in `src/app/admin/news/blog/[id]/page.tsx` with the new `<RichTextEditor>` component. The content continues to be stored as HTML in the same `content` field.
 
----
+### Phase 2: Media Upload & Management
 
-## Pages & Components
+**2.1 Create a Supabase storage bucket for news media**
 
-### Page 1: Scan Intelligence Dashboard (`/admin/scan-intelligence`)
+Add a new `news-media` bucket (alongside the existing `evaluation-data` bucket) with helper functions in `src/lib/supabase.ts`.
 
-This becomes the primary "what happened today" page. Replaces nothing — it's a new
-page added to the Market Intelligence nav category.
+**2.2 Create a media upload API route** (`src/app/api/admin/news/media-upload/route.ts`)
 
-**Layout (top to bottom):**
+- Accepts `multipart/form-data` with image/video files
+- Validates file type (images: jpg, png, gif, webp, svg; video: mp4, webm) and size limits
+- Uploads to `news-media` Supabase bucket
+- Returns the public URL
+- Supports multiple files in one request
 
-**A. Scan Status Bar** (full-width, compact)
-- Latest scan date + time
-- Pipeline status badge (healthy/degraded/failing)
-- Processing duration
-- "Compare with previous" toggle
-- Link to GitHub Actions run
+**2.3 Build an image upload component for the editor**
 
-**B. Key Metrics Row** (4 cards)
-- Stocks Scanned (with delta from previous)
-- HIGH Risk Count (with delta, red-tinted if increased)
-- Suspicious After Filters (the actionable number)
-- Active Schemes (with scheme count badge)
+- Clicking the "Image" button in the toolbar opens a modal/popover with two options:
+  - **Upload**: Drag-and-drop or file picker that uploads to Supabase and inserts the image
+  - **URL**: Paste an external image URL directly
+- Images inserted into the editor are resizable via drag handles (Tiptap's image extension supports this)
 
-**C. AI Backend Status Panel** (2-column)
-Left: Layer activation status — 4 horizontal bars showing Layer 1-4 coverage
-(% of stocks that received each layer's score). Visual indicator of which
-layers are online/offline/partial.
-Right: Combined score distribution — mini histogram showing distribution of
-AI combined scores across all stocks (helps understand if scoring is
-well-distributed or clustered).
+**2.4 Add cover image upload**
 
-**D. Risk Funnel** (visual pipeline)
-A horizontal funnel visualization showing:
-`6,557 evaluated → 1,031 HIGH → 15 filtered (cap) → 252 filtered (news) → 764 suspicious`
-Each stage is a card with the count, and arrows between them. This tells the
-story of how we narrowed down.
+Replace the current cover image URL-only input in the sidebar with:
 
-**E. Top Suspicious Stocks Table** (sortable, filterable)
-Shows the top 20 stocks by risk score from the remaining suspicious pool.
-Columns: Symbol, Company, Risk Score (heat-colored), AI Combined, Layer 2,
-Layer 4, Signals (tag chips), 7d Price Change, Market Cap, Pump Pattern flag
-Click a row → opens drill-down panel.
+- A drag-and-drop upload zone
+- File picker button
+- URL input as fallback
+- Image preview with remove button
 
-**F. Active Schemes Tracker** (cards)
-Each active scheme gets a card showing:
-- Ticker + company name
-- Status badge (ONGOING / COOLING / NEW)
-- Risk score + promotion score
-- Price at detection → current price (with % change)
-- Days active
-- Mini sparkline of risk score over time
-- Platform icons where promotion was detected
+### Phase 3: Tables, Charts & Embeds
 
-**G. Scan History Timeline** (bottom)
-A compact horizontal timeline showing the last 10 scan dates.
-Each date shows: stock count, HIGH count, suspicious count.
-Click a date to load that scan's data into the page above.
+**3.1 Table support**
 
----
+Using Tiptap's table extensions:
 
-### Page 2: Stock Deep Dive (`/admin/scan-intelligence/stock/[symbol]`)
+- Insert table with configurable rows/columns
+- Add/delete rows and columns
+- Merge/split cells
+- Table header row styling
+- Styled with Tailwind to match the admin theme
 
-Accessed by clicking a stock in the table above or via direct URL.
+**3.2 Video & embed support**
 
-**Layout:**
+- YouTube/Vimeo embed via URL (using `@tiptap/extension-youtube`)
+- Generic iframe embed for other services
+- GIF support via the image extension (GIFs are just images)
 
-**A. Stock Header**
-- Symbol (large), company name, exchange badge, sector/industry
-- Current risk level (full-width colored banner)
-- Current price, 7d change, 30d change
+**3.3 Chart/visualization embeds**
 
-**B. AI Analysis Panel** (the unique value prop)
-- 4-column layout showing each AI layer's score for this stock
-- Layer 1: Deterministic score + signal list
-- Layer 2: Anomaly score + which anomalies fired
-- Layer 3: RF probability (or "Not trained" indicator)
-- Layer 4: LSTM probability
-- Combined ensemble score with confidence indicator
+For charts and data visualizations, rather than building a full chart editor inside the text editor (which is extremely complex and rarely done well in CMS tools), the practical approach used by platforms like Substack, Ghost, and Medium is:
 
-**C. Signal Breakdown**
-- Visual grid of all detected signals, grouped by category (STRUCTURAL, PATTERN, ALERT)
-- Each signal shows: name, weight, description
-- Color-coded by severity
+- **Embed approach**: Provide an "Embed" block where admins paste a URL or iframe snippet from chart tools (Datawrapper, Flourish, Google Charts, Infogram, Tableau Public)
+- **Image approach**: Charts created externally can be uploaded as images with the image upload feature
+- This matches industry standard practice - even WordPress and Notion handle charts this way
 
-**D. News & SEC Analysis**
-- Timeline of recent news articles
-- OpenAI classification result (LEGITIMATE / SUSPICIOUS)
-- News analysis text
+### Phase 4: Editor Polish & UX
 
-**E. Social Media Evidence**
-- Platform-by-platform breakdown
-- Mention counts, activity levels, promotion risk
-- Links to external evidence
+**4.1 Slash command menu**
 
-**F. Scheme Membership** (if applicable)
-- Which scheme this stock belongs to
-- Full scheme timeline
-- Related stocks in same scheme
+Add a "/" slash command menu (like Notion) that appears when the user types "/" at the start of a line, offering quick access to:
 
-**G. Historical Charts**
-- Risk score over time (line)
-- Price over time (line)
-- Volume over time (bar)
+- Headings, lists, images, tables, videos, code blocks, quotes, dividers
 
----
+**4.2 Bubble menu**
 
-### Enhanced Existing Pages
+Add a floating bubble menu that appears when text is selected, offering quick formatting options (bold, italic, link, highlight) without needing to reach for the toolbar.
 
-**Dashboard page (`/admin/dashboard`)**
-- Keep the Pipeline Health section we already added
-- Add a "Latest Scan Quick Stats" card linking to the full Scan Intelligence page
+**4.3 Content preview**
 
-**Market Analysis (`/admin/market-analysis`)**
-- Add a link/button: "View Full Scan Intelligence →"
+Add a "Preview" tab alongside the editor that renders the HTML content as it would appear on the public-facing blog page.
 
----
+**4.4 Editor keyboard shortcuts**
 
-## Implementation Plan (Ordered Steps)
-
-### Step 1: Create the feature branch
-Branch off from current branch, create `claude/admin-scan-intelligence-Y9d4k`
-
-### Step 2: Build API routes (backend first)
-1. `/api/admin/scan-intelligence` - Main dashboard data
-2. `/api/admin/scan-intelligence/stocks` - Paginated stock list
-3. `/api/admin/scan-intelligence/stock/[symbol]` - Single stock deep dive
-4. `/api/admin/scan-intelligence/schemes` - Scheme database
-5. `/api/admin/scan-intelligence/history` - Scan date comparison
-
-Data source: Fetch from Supabase storage (evaluation-data bucket) and the
-GitHub raw content API for the scam-dunk-data repo as fallback.
-
-### Step 3: Build reusable components
-1. `RiskFunnel` - The pipeline visualization
-2. `AILayerPanel` - 4-layer score display with coverage bars
-3. `SchemeCard` - Individual scheme tracker card
-4. `StockRow` - Enhanced table row with expandable detail
-5. `ScanTimeline` - Horizontal date timeline
-6. `SignalGrid` - Visual signal breakdown by category
-7. Enhance existing `ChartCard` to support sparklines
-
-### Step 4: Build the Scan Intelligence page
-Wire up all components with API data. Implement loading states,
-error handling, empty states.
-
-### Step 5: Build the Stock Deep Dive page
-Full drill-down page for individual stocks.
-
-### Step 6: Add navigation
-Add "Scan Intelligence" to the Market Intelligence category in AdminLayout.
-Add quick-link cards from existing dashboard and market-analysis pages.
-
-### Step 7: Apply frontend-design skill polish
-- Staggered card reveal animations on page load
-- Risk-level glow effects on high-risk items
-- Glass-card overlays for drill-down panels
-- Spring-eased number transitions
-- Responsive layout adjustments for mobile/tablet
-
-### Step 8: Test, commit, push
-Verify all pages load correctly with real data from Supabase/GitHub.
-Commit to feature branch and push for review.
-
----
+Standard shortcuts: Cmd+B (bold), Cmd+I (italic), Cmd+U (underline), Cmd+K (link), Cmd+Shift+H (highlight), etc. These come built-in with Tiptap.
 
 ## Files to Create/Modify
 
-**New files:**
-- `src/app/api/admin/scan-intelligence/route.ts`
-- `src/app/api/admin/scan-intelligence/stocks/route.ts`
-- `src/app/api/admin/scan-intelligence/stock/[symbol]/route.ts`
-- `src/app/api/admin/scan-intelligence/schemes/route.ts`
-- `src/app/api/admin/scan-intelligence/history/route.ts`
-- `src/app/admin/scan-intelligence/page.tsx`
-- `src/app/admin/scan-intelligence/stock/[symbol]/page.tsx`
-- `src/components/admin/RiskFunnel.tsx`
-- `src/components/admin/AILayerPanel.tsx`
-- `src/components/admin/SchemeCard.tsx`
-- `src/components/admin/ScanTimeline.tsx`
-- `src/components/admin/SignalGrid.tsx`
+### New Files
 
-**Modified files:**
-- `src/components/admin/AdminLayout.tsx` (add nav item)
-- `src/components/admin/ChartCard.tsx` (add sparkline support)
-- `src/app/admin/dashboard/page.tsx` (add quick-link card)
+| File                                           | Purpose                                                    |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| `src/components/admin/RichTextEditor.tsx`      | Main Tiptap editor component with toolbar                  |
+| `src/components/admin/EditorToolbar.tsx`       | Toolbar component with formatting controls                 |
+| `src/components/admin/ImageUploadModal.tsx`    | Modal for uploading/inserting images                       |
+| `src/components/admin/MediaUploader.tsx`       | Reusable media upload component (for cover image + inline) |
+| `src/app/api/admin/news/media-upload/route.ts` | API route for file uploads to Supabase                     |
+
+### Modified Files
+
+| File                                    | Change                                                       |
+| --------------------------------------- | ------------------------------------------------------------ |
+| `src/app/admin/news/blog/[id]/page.tsx` | Replace textarea with RichTextEditor, add cover image upload |
+| `src/lib/supabase.ts`                   | Add news media bucket helpers                                |
+| `package.json`                          | Add Tiptap dependencies                                      |
+
+### No Schema Changes Required
+
+The existing `content String @db.Text` field in the BlogPost model stores the content as a string. It currently holds markdown text - it will now hold HTML from Tiptap. No Prisma migration is needed since both are just strings.
+
+## Implementation Order
+
+1. Install dependencies
+2. Create `RichTextEditor.tsx` with toolbar (Phase 1)
+3. Integrate into blog editor page, replacing textarea (Phase 1)
+4. Create media upload API route (Phase 2)
+5. Build image upload modal and cover image uploader (Phase 2)
+6. Add table support to editor (Phase 3)
+7. Add video/embed support (Phase 3)
+8. Add slash commands and bubble menu (Phase 4)
+9. Add content preview mode (Phase 4)
+10. Verify build succeeds
