@@ -37,7 +37,12 @@ interface DashboardData {
   availableDates: string[];
   dailyReport: {
     totalStocksScanned: number;
-    byRiskLevel: { LOW: number; MEDIUM: number; HIGH: number; INSUFFICIENT: number };
+    byRiskLevel: {
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      INSUFFICIENT: number;
+    };
     highRiskBeforeFilters: number;
     filteredByMarketCap: number;
     filteredByVolume: number;
@@ -119,7 +124,12 @@ interface Stock {
   lastPrice: number | null;
   riskLevel: string;
   totalScore: number;
-  signals: { code: string; category: string; weight: number; description: string }[];
+  signals: {
+    code: string;
+    category: string;
+    weight: number;
+    description: string;
+  }[];
   aiLayers: {
     layer1_deterministic: number | null;
     layer2_anomaly: number | null;
@@ -159,7 +169,12 @@ interface Scheme {
   firstDetected: string;
   lastSeen: string;
   promotionPlatforms: string[];
-  promoterAccounts?: { platform: string; identifier: string; postCount: number; confidence: string }[];
+  promoterAccounts?: {
+    platform: string;
+    identifier: string;
+    postCount: number;
+    confidence: string;
+  }[];
   coordinationIndicators?: string[];
   signalsDetected: string[];
   timeline: { date: string; event: string; significance?: string }[];
@@ -174,7 +189,11 @@ interface PromoterSummary {
   riskLevel: string;
   isActive: boolean;
   stocksPromoted: { symbol: string; schemeStatus: string }[];
-  coPromoters: { identifier: string; platform: string; sharedStocks: string[] }[];
+  coPromoters: {
+    identifier: string;
+    platform: string;
+    sharedStocks: string[];
+  }[];
 }
 
 interface PromotedStock {
@@ -203,7 +222,12 @@ interface SocialEvidence {
 interface StockListResponse {
   date: string;
   stocks: Stock[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 interface HistoryEntry {
@@ -283,7 +307,8 @@ export default function ScanIntelligencePage() {
       fetchData(dateParam);
     }
     if (schemeFilter === "new") setStockListSort("evaluatedAt");
-    if (schemeFilter === "active" || schemeFilter === "ongoing") setStockListUnfilteredOnly(false);
+    if (schemeFilter === "active" || schemeFilter === "ongoing")
+      setStockListUnfilteredOnly(false);
   }, [fetchData]);
 
   useEffect(() => {
@@ -301,17 +326,24 @@ export default function ScanIntelligencePage() {
           minScore: String(stockListMinScore),
           unfilteredOnly: String(stockListUnfilteredOnly),
         });
-        if (stockListSearch.trim()) params.set("search", stockListSearch.trim());
+        if (stockListSearch.trim())
+          params.set("search", stockListSearch.trim());
         if (stockListRisk) params.set("riskLevel", stockListRisk);
         if (stockListPumpOnly) params.set("hasPumpPattern", "true");
 
-        const res = await fetch(`/api/admin/scan-intelligence/stocks?${params.toString()}`);
+        const res = await fetch(
+          `/api/admin/scan-intelligence/stocks?${params.toString()}`,
+        );
         if (!res.ok) throw new Error("Failed to fetch stock explorer list");
         const result = await res.json();
         if (!cancelled) setStockList(result);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to fetch stock explorer list");
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to fetch stock explorer list",
+          );
         }
       } finally {
         if (!cancelled) setStockListLoading(false);
@@ -341,9 +373,20 @@ export default function ScanIntelligencePage() {
 
   useEffect(() => {
     setStockListPage(1);
-  }, [stockListSearch, stockListRisk, stockListSort, stockListMinScore, stockListPumpOnly, stockListUnfilteredOnly]);
+  }, [
+    stockListSearch,
+    stockListRisk,
+    stockListSort,
+    stockListMinScore,
+    stockListPumpOnly,
+    stockListUnfilteredOnly,
+  ]);
 
-  function trendLabel(value: number | null | undefined, positiveLabel = "Up", negativeLabel = "Down") {
+  function trendLabel(
+    value: number | null | undefined,
+    positiveLabel = "Up",
+    negativeLabel = "Down",
+  ) {
     if (value == null || value === 0) return "Flat";
     return value > 0 ? positiveLabel : negativeLabel;
   }
@@ -357,7 +400,10 @@ export default function ScanIntelligencePage() {
           <div className="h-10 bg-card rounded-xl w-64" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-card rounded-2xl border border-border h-28" />
+              <div
+                key={i}
+                className="bg-card rounded-2xl border border-border h-28"
+              />
             ))}
           </div>
           <div className="bg-card rounded-2xl border border-border h-40" />
@@ -370,7 +416,11 @@ export default function ScanIntelligencePage() {
   if (error && !data) {
     return (
       <AdminLayout>
-        <AlertBanner type="error" title="Error Loading Scan Intelligence" message={error} />
+        <AlertBanner
+          type="error"
+          title="Error Loading Scan Intelligence"
+          message={error}
+        />
       </AdminLayout>
     );
   }
@@ -383,7 +433,9 @@ export default function ScanIntelligencePage() {
     const q = stockFilter.toUpperCase();
     return s.symbol.includes(q) || s.name.toUpperCase().includes(q);
   });
-  const displayStocks = showAllStocks ? filteredStocks : filteredStocks.slice(0, 15);
+  const displayStocks = showAllStocks
+    ? filteredStocks
+    : filteredStocks.slice(0, 15);
 
   return (
     <AdminLayout>
@@ -403,7 +455,9 @@ export default function ScanIntelligencePage() {
             {/* Date pill */}
             <div className="flex items-center gap-2 bg-card border border-border rounded-full px-4 py-2">
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm font-medium tabular-nums">{data.date}</span>
+              <span className="text-sm font-medium tabular-nums">
+                {data.date}
+              </span>
               {report && (
                 <span className="text-xs text-muted-foreground">
                   {report.processingTimeMinutes}min
@@ -421,7 +475,9 @@ export default function ScanIntelligencePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Stocks Evaluated"
-            value={report?.totalStocksScanned || data.fmpSummary?.evaluated || 0}
+            value={
+              report?.totalStocksScanned || data.fmpSummary?.evaluated || 0
+            }
             icon={Activity}
             color="blue"
             change={data.deltas?.stocksScanned}
@@ -456,8 +512,12 @@ export default function ScanIntelligencePage() {
         {/* ── Executive Market Pulse ─────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-card rounded-2xl border border-border p-5">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">High-risk trend</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">{trendLabel(data.deltas?.highRisk)}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              High-risk trend
+            </p>
+            <p className="mt-2 text-2xl font-bold text-foreground">
+              {trendLabel(data.deltas?.highRisk)}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {data.deltas?.highRisk != null
                 ? `${Math.abs(data.deltas.highRisk)} vs previous scan`
@@ -466,7 +526,9 @@ export default function ScanIntelligencePage() {
           </div>
 
           <div className="bg-card rounded-2xl border border-border p-5">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">More stocks promoted?</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              More stocks promoted?
+            </p>
             <p className="mt-2 text-2xl font-bold text-foreground">
               {data.promotionDeltas?.promotedStocks == null
                 ? "Unknown"
@@ -482,8 +544,12 @@ export default function ScanIntelligencePage() {
           </div>
 
           <div className="bg-card rounded-2xl border border-border p-5">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Promotional activity trend</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">{trendLabel(data.promotionDeltas?.totalPromotions)}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Promotional activity trend
+            </p>
+            <p className="mt-2 text-2xl font-bold text-foreground">
+              {trendLabel(data.promotionDeltas?.totalPromotions)}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {data.promotionDeltas?.totalPromotions != null
                 ? `${Math.abs(data.promotionDeltas.totalPromotions)} high/medium promo mentions delta`
@@ -492,7 +558,9 @@ export default function ScanIntelligencePage() {
           </div>
 
           <div className="bg-card rounded-2xl border border-border p-5">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Source boundaries</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Source boundaries
+            </p>
             <p className="mt-2 text-sm font-semibold text-foreground">
               Social Scan = API + feed monitoring
             </p>
@@ -511,11 +579,37 @@ export default function ScanIntelligencePage() {
             </h3>
             <RiskFunnel
               stages={[
-                { label: "Evaluated", value: data.funnel.evaluated, color: "#6366f1" },
-                { label: "HIGH Risk", value: data.funnel.highRisk, color: "#ef4444" },
-                { label: "After Cap Filter", value: data.funnel.highRisk - data.funnel.filteredMarketCap, color: "#f59e0b", detail: `${data.funnel.filteredMarketCap} removed` },
-                { label: "After News Filter", value: data.funnel.highRisk - data.funnel.filteredMarketCap - data.funnel.filteredNews, color: "#f97316", detail: `${data.funnel.filteredNews} legit` },
-                { label: "Suspicious", value: data.funnel.suspicious, color: "#dc2626", detail: "Actionable" },
+                {
+                  label: "Evaluated",
+                  value: data.funnel.evaluated,
+                  color: "#6366f1",
+                },
+                {
+                  label: "HIGH Risk",
+                  value: data.funnel.highRisk,
+                  color: "#ef4444",
+                },
+                {
+                  label: "After Cap Filter",
+                  value: data.funnel.highRisk - data.funnel.filteredMarketCap,
+                  color: "#f59e0b",
+                  detail: `${data.funnel.filteredMarketCap} removed`,
+                },
+                {
+                  label: "After News Filter",
+                  value:
+                    data.funnel.highRisk -
+                    data.funnel.filteredMarketCap -
+                    data.funnel.filteredNews,
+                  color: "#f97316",
+                  detail: `${data.funnel.filteredNews} legit`,
+                },
+                {
+                  label: "Suspicious",
+                  value: data.funnel.suspicious,
+                  color: "#dc2626",
+                  detail: "Actionable",
+                },
               ]}
             />
           </div>
@@ -533,23 +627,58 @@ export default function ScanIntelligencePage() {
               Data Coverage
             </h3>
             <div className="space-y-2 text-xs">
-              <button onClick={() => setStockListUnfilteredOnly(false)} className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40">
-                <span className="text-muted-foreground">Top stocks with scheme link</span>
-                <span className="font-semibold tabular-nums">{data.coverage?.topStocksWithSchemes ?? 0}/{data.topStocks.length}</span>
+              <button
+                onClick={() => setStockListUnfilteredOnly(false)}
+                className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40"
+              >
+                <span className="text-muted-foreground">
+                  Top stocks with scheme link
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {data.coverage?.topStocksWithSchemes ?? 0}/
+                  {data.topStocks.length}
+                </span>
               </button>
-              <button onClick={() => router.push('/admin/social-scan')} className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40">
-                <span className="text-muted-foreground">Top stocks with social scan</span>
-                <span className="font-semibold tabular-nums">{data.coverage?.topStocksWithSocial ?? 0}/{data.topStocks.length}</span>
+              <button
+                onClick={() => router.push("/admin/social-scan")}
+                className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40"
+              >
+                <span className="text-muted-foreground">
+                  Top stocks with social scan
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {data.coverage?.topStocksWithSocial ?? 0}/
+                  {data.topStocks.length}
+                </span>
               </button>
-              <button onClick={() => setStockListPumpOnly(true)} className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40">
-                <span className="text-muted-foreground">Active schemes with promoters</span>
-                <span className="font-semibold tabular-nums">{data.coverage?.activeSchemesWithPromoters ?? 0}/{data.activeSchemes.length}</span>
+              <button
+                onClick={() => setStockListPumpOnly(true)}
+                className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40"
+              >
+                <span className="text-muted-foreground">
+                  Active schemes with promoters
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {data.coverage?.activeSchemesWithPromoters ?? 0}/
+                  {data.activeSchemes.length}
+                </span>
               </button>
-              <button onClick={() => setStockListPumpOnly(false)} className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40">
-                <span className="text-muted-foreground">Schemes missing promoter links</span>
-                <span className="font-semibold tabular-nums text-amber-600">{data.coverage?.activeSchemesWithoutPromoters ?? 0}</span>
+              <button
+                onClick={() => setStockListPumpOnly(false)}
+                className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-secondary/40"
+              >
+                <span className="text-muted-foreground">
+                  Schemes missing promoter links
+                </span>
+                <span className="font-semibold tabular-nums text-amber-600">
+                  {data.coverage?.activeSchemesWithoutPromoters ?? 0}
+                </span>
               </button>
-              {data.coverage?.source && <p className="text-[10px] text-muted-foreground mt-2">Source: {data.coverage.source}</p>}
+              {data.coverage?.source && (
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  Source: {data.coverage.source}
+                </p>
+              )}
             </div>
           </div>
 
@@ -558,7 +687,9 @@ export default function ScanIntelligencePage() {
               <h3 className="text-sm font-medium font-display italic text-foreground">
                 Latest High-Priority Social Evidence
               </h3>
-              <span className="text-xs text-muted-foreground">{data.socialEvidence?.length || 0} posts</span>
+              <span className="text-xs text-muted-foreground">
+                {data.socialEvidence?.length || 0} posts
+              </span>
             </div>
             {data.socialEvidence && data.socialEvidence.length > 0 ? (
               <div className="space-y-2">
@@ -593,7 +724,9 @@ export default function ScanIntelligencePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No social evidence is currently indexed in the scan DB.</p>
+              <p className="text-sm text-muted-foreground">
+                No social evidence is currently indexed in the scan DB.
+              </p>
             )}
           </div>
         </div>
@@ -631,35 +764,61 @@ export default function ScanIntelligencePage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">Symbol</th>
-                  <th className="text-left py-2 px-2 text-muted-foreground font-medium hidden lg:table-cell">Company</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">Score</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">AI Combined</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground font-medium hidden md:table-cell">L2 Anomaly</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground font-medium hidden md:table-cell">L4 LSTM</th>
-                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Price</th>
-                  <th className="text-right py-2 px-2 text-muted-foreground font-medium hidden lg:table-cell">Mkt Cap</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">Signals</th>
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">
+                    Symbol
+                  </th>
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium hidden lg:table-cell">
+                    Company
+                  </th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">
+                    Score
+                  </th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">
+                    AI Combined
+                  </th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium hidden md:table-cell">
+                    L2 Anomaly
+                  </th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium hidden md:table-cell">
+                    L4 LSTM
+                  </th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">
+                    Price
+                  </th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium hidden lg:table-cell">
+                    Mkt Cap
+                  </th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">
+                    Signals
+                  </th>
                   <th className="text-center py-2 px-2 text-muted-foreground font-medium w-8"></th>
                 </tr>
               </thead>
               <tbody>
                 {displayStocks.map((stock) => {
                   const isExpanded = expandedStock === stock.symbol;
-                  const hasPump = stock.signals.some((s) => s.code.includes("PUMP") || s.code.includes("DUMP"));
+                  const hasPump = stock.signals.some(
+                    (s) => s.code.includes("PUMP") || s.code.includes("DUMP"),
+                  );
 
                   return (
                     <>
                       <tr
                         key={stock.symbol}
                         className={`border-b border-border/50 transition-colors cursor-pointer ${
-                          isExpanded ? "bg-secondary/50" : "hover:bg-secondary/30"
+                          isExpanded
+                            ? "bg-secondary/50"
+                            : "hover:bg-secondary/30"
                         }`}
-                        onClick={() => setExpandedStock(isExpanded ? null : stock.symbol)}
+                        onClick={() =>
+                          setExpandedStock(isExpanded ? null : stock.symbol)
+                        }
                       >
                         <td className="py-2.5 px-2">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-foreground">{stock.symbol}</span>
+                            <span className="font-bold text-foreground">
+                              {stock.symbol}
+                            </span>
                             {hasPump && (
                               <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-red-500/10 text-red-600">
                                 PUMP
@@ -676,10 +835,15 @@ export default function ScanIntelligencePage() {
                           {stock.name}
                         </td>
                         <td className="py-2.5 px-2 text-center">
-                          <span className={`font-bold tabular-nums ${
-                            stock.totalScore >= 16 ? "text-red-600" :
-                            stock.totalScore >= 14 ? "text-amber-600" : "text-foreground"
-                          }`}>
+                          <span
+                            className={`font-bold tabular-nums ${
+                              stock.totalScore >= 16
+                                ? "text-red-600"
+                                : stock.totalScore >= 14
+                                  ? "text-amber-600"
+                                  : "text-foreground"
+                            }`}
+                          >
                             {stock.totalScore}
                           </span>
                         </td>
@@ -693,19 +857,24 @@ export default function ScanIntelligencePage() {
                         <td className="py-2.5 px-2 text-center hidden md:table-cell">
                           <span className="tabular-nums text-muted-foreground">
                             {stock.aiLayers?.layer2_anomaly != null
-                              ? (stock.aiLayers.layer2_anomaly * 100).toFixed(0) + "%"
+                              ? (stock.aiLayers.layer2_anomaly * 100).toFixed(
+                                  0,
+                                ) + "%"
                               : "—"}
                           </span>
                         </td>
                         <td className="py-2.5 px-2 text-center hidden md:table-cell">
                           <span className="tabular-nums text-muted-foreground">
                             {stock.aiLayers?.layer4_lstm != null
-                              ? (stock.aiLayers.layer4_lstm * 100).toFixed(0) + "%"
+                              ? (stock.aiLayers.layer4_lstm * 100).toFixed(0) +
+                                "%"
                               : "—"}
                           </span>
                         </td>
                         <td className="py-2.5 px-2 text-right tabular-nums">
-                          {stock.lastPrice ? `$${stock.lastPrice.toFixed(2)}` : "—"}
+                          {stock.lastPrice
+                            ? `$${stock.lastPrice.toFixed(2)}`
+                            : "—"}
                         </td>
                         <td className="py-2.5 px-2 text-right tabular-nums text-muted-foreground hidden lg:table-cell">
                           {stock.marketCap
@@ -715,7 +884,9 @@ export default function ScanIntelligencePage() {
                             : "—"}
                         </td>
                         <td className="py-2.5 px-2 text-center">
-                          <span className="text-muted-foreground">{stock.signals.length}</span>
+                          <span className="text-muted-foreground">
+                            {stock.signals.length}
+                          </span>
                         </td>
                         <td className="py-2.5 px-2 text-center">
                           {isExpanded ? (
@@ -728,12 +899,17 @@ export default function ScanIntelligencePage() {
 
                       {/* Expanded detail row */}
                       {isExpanded && (
-                        <tr key={`${stock.symbol}-detail`} className="bg-secondary/30">
+                        <tr
+                          key={`${stock.symbol}-detail`}
+                          className="bg-secondary/30"
+                        >
                           <td colSpan={10} className="p-4">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                               {/* Signals */}
                               <div>
-                                <h4 className="text-xs font-semibold text-foreground mb-2">Detected Signals</h4>
+                                <h4 className="text-xs font-semibold text-foreground mb-2">
+                                  Detected Signals
+                                </h4>
                                 <SignalGrid signals={stock.signals} compact />
                               </div>
 
@@ -741,15 +917,21 @@ export default function ScanIntelligencePage() {
                               <div className="space-y-3">
                                 {stock.newsAnalysis && (
                                   <div>
-                                    <h4 className="text-xs font-semibold text-foreground mb-1">News Analysis</h4>
-                                    <p className="text-[11px] text-muted-foreground leading-relaxed">{stock.newsAnalysis}</p>
+                                    <h4 className="text-xs font-semibold text-foreground mb-1">
+                                      News Analysis
+                                    </h4>
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                      {stock.newsAnalysis}
+                                    </p>
                                   </div>
                                 )}
                                 <div className="flex items-center gap-2">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      router.push(`/admin/scan-intelligence/stock/${stock.symbol}`);
+                                      router.push(
+                                        `/admin/scan-intelligence/stock/${stock.symbol}`,
+                                      );
                                     }}
                                     className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
                                   >
@@ -790,7 +972,8 @@ export default function ScanIntelligencePage() {
                 Stock Explorer
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Search, filter, and interrogate the full suspicious-stock list for {selectedDate}
+                Search, filter, and interrogate the full suspicious-stock list
+                for {selectedDate}
               </p>
             </div>
             {stockListLoading ? (
@@ -832,7 +1015,9 @@ export default function ScanIntelligencePage() {
               <input
                 type="number"
                 value={stockListMinScore}
-                onChange={(e) => setStockListMinScore(Number(e.target.value || 0))}
+                onChange={(e) =>
+                  setStockListMinScore(Number(e.target.value || 0))
+                }
                 className="w-14 bg-transparent outline-none"
               />
             </label>
@@ -858,41 +1043,74 @@ export default function ScanIntelligencePage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">Symbol</th>
-                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">Company</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">Score</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">AI</th>
-                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">Signals</th>
-                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Actions</th>
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">
+                    Symbol
+                  </th>
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">
+                    Company
+                  </th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">
+                    Score
+                  </th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">
+                    AI
+                  </th>
+                  <th className="text-center py-2 px-2 text-muted-foreground font-medium">
+                    Signals
+                  </th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {(stockList?.stocks || []).map((stock) => (
-                  <tr key={`explorer-${stock.symbol}`} className="border-b border-border/50">
+                  <tr
+                    key={`explorer-${stock.symbol}`}
+                    className="border-b border-border/50"
+                  >
                     <td className="py-2 px-2 font-semibold">{stock.symbol}</td>
-                    <td className="py-2 px-2 text-muted-foreground">{stock.name}</td>
-                    <td className="py-2 px-2 text-center tabular-nums">{stock.totalScore}</td>
-                    <td className="py-2 px-2 text-center tabular-nums">
-                      {stock.aiLayers?.combined != null ? `${Math.round(stock.aiLayers.combined * 100)}%` : "—"}
+                    <td className="py-2 px-2 text-muted-foreground">
+                      {stock.name}
                     </td>
-                    <td className="py-2 px-2 text-center">{stock.signals.length}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">
+                      {stock.totalScore}
+                    </td>
+                    <td className="py-2 px-2 text-center tabular-nums">
+                      {stock.aiLayers?.combined != null
+                        ? `${Math.round(stock.aiLayers.combined * 100)}%`
+                        : "—"}
+                    </td>
+                    <td className="py-2 px-2 text-center">
+                      {stock.signals.length}
+                    </td>
                     <td className="py-2 px-2">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => router.push(`/admin/scan-intelligence/stock/${stock.symbol}`)}
+                          onClick={() =>
+                            router.push(
+                              `/admin/scan-intelligence/stock/${stock.symbol}`,
+                            )
+                          }
                           className="text-[11px] text-primary hover:underline"
                         >
                           Stock
                         </button>
                         {stock.schemeId ? (
                           <button
-                            onClick={() => router.push(`/admin/scan-intelligence/scheme/${stock.schemeId}`)}
+                            onClick={() =>
+                              router.push(
+                                `/admin/scan-intelligence/scheme/${stock.schemeId}`,
+                              )
+                            }
                             className="text-[11px] text-primary hover:underline"
                           >
                             Scheme
                           </button>
                         ) : (
-                          <span className="text-[11px] text-muted-foreground">No scheme</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            No scheme
+                          </span>
                         )}
                       </div>
                     </td>
@@ -909,17 +1127,23 @@ export default function ScanIntelligencePage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setStockListPage((p) => Math.max(1, p - 1))}
-                disabled={!stockList?.pagination || stockList.pagination.page <= 1}
+                disabled={
+                  !stockList?.pagination || stockList.pagination.page <= 1
+                }
                 className="px-2 py-1 rounded border border-border disabled:opacity-50"
               >
                 Prev
               </button>
               <span className="tabular-nums">
-                {stockList?.pagination?.page || 1}/{stockList?.pagination?.totalPages || 1}
+                {stockList?.pagination?.page || 1}/
+                {stockList?.pagination?.totalPages || 1}
               </span>
               <button
                 onClick={() => setStockListPage((p) => p + 1)}
-                disabled={!stockList?.pagination || stockList.pagination.page >= stockList.pagination.totalPages}
+                disabled={
+                  !stockList?.pagination ||
+                  stockList.pagination.page >= stockList.pagination.totalPages
+                }
                 className="px-2 py-1 rounded border border-border disabled:opacity-50"
               >
                 Next
@@ -953,7 +1177,11 @@ export default function ScanIntelligencePage() {
                 <SchemeCard
                   key={scheme.schemeId}
                   scheme={scheme}
-                  onClick={() => router.push(`/admin/scan-intelligence/scheme/${scheme.schemeId}`)}
+                  onClick={() =>
+                    router.push(
+                      `/admin/scan-intelligence/scheme/${scheme.schemeId}`,
+                    )
+                  }
                 />
               ))}
             </div>
@@ -961,7 +1189,10 @@ export default function ScanIntelligencePage() {
             <div className="text-center py-8 text-muted-foreground">
               <Shield className="h-8 w-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No active schemes detected</p>
-              <p className="text-xs mt-1">Schemes are tracked automatically when high-risk stocks show coordinated promotion patterns</p>
+              <p className="text-xs mt-1">
+                Schemes are tracked automatically when high-risk stocks show
+                coordinated promotion patterns
+              </p>
             </div>
           )}
         </div>
@@ -978,9 +1209,9 @@ export default function ScanIntelligencePage() {
                 {promoters.length} tracked
               </span>
             </div>
-            {promoters.filter(p => p.isActive).length > 0 && (
+            {promoters.filter((p) => p.isActive).length > 0 && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-600">
-                {promoters.filter(p => p.isActive).length} active now
+                {promoters.filter((p) => p.isActive).length} active now
               </span>
             )}
           </div>
@@ -989,15 +1220,22 @@ export default function ScanIntelligencePage() {
             <div className="space-y-2">
               {promoters.slice(0, 10).map((promoter) => {
                 const riskColor =
-                  promoter.riskLevel === "SERIAL_OFFENDER" ? "text-red-600 bg-red-500/10" :
-                  promoter.riskLevel === "HIGH" ? "text-red-600 bg-red-500/10" :
-                  promoter.riskLevel === "MEDIUM" ? "text-amber-600 bg-amber-500/10" :
-                  "text-muted-foreground bg-secondary";
+                  promoter.riskLevel === "SERIAL_OFFENDER"
+                    ? "text-red-600 bg-red-500/10"
+                    : promoter.riskLevel === "HIGH"
+                      ? "text-red-600 bg-red-500/10"
+                      : promoter.riskLevel === "MEDIUM"
+                        ? "text-amber-600 bg-amber-500/10"
+                        : "text-muted-foreground bg-secondary";
 
                 return (
                   <button
                     key={promoter.promoterId}
-                    onClick={() => router.push(`/admin/scan-intelligence/promoter/${promoter.promoterId}`)}
+                    onClick={() =>
+                      router.push(
+                        `/admin/scan-intelligence/promoter/${promoter.promoterId}`,
+                      )
+                    }
                     className="w-full flex items-center justify-between p-3 rounded-xl border border-border hover:border-purple-500/30 hover:bg-purple-500/5 transition-all text-left"
                   >
                     <div className="flex items-center gap-3">
@@ -1006,8 +1244,12 @@ export default function ScanIntelligencePage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">{promoter.identifier}</span>
-                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${riskColor}`}>
+                          <span className="text-sm font-medium text-foreground">
+                            {promoter.identifier}
+                          </span>
+                          <span
+                            className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${riskColor}`}
+                          >
                             {promoter.riskLevel.replace(/_/g, " ")}
                           </span>
                           {promoter.isActive && (
@@ -1017,9 +1259,15 @@ export default function ScanIntelligencePage() {
                           )}
                         </div>
                         <div className="text-[10px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                          <span className="flex items-center gap-0.5"><Globe className="h-3 w-3" />{promoter.platform}</span>
+                          <span className="flex items-center gap-0.5">
+                            <Globe className="h-3 w-3" />
+                            {promoter.platform}
+                          </span>
                           {promoter.coPromoters.length > 0 && (
-                            <span className="flex items-center gap-0.5"><Link2 className="h-3 w-3" />{promoter.coPromoters.length} linked</span>
+                            <span className="flex items-center gap-0.5">
+                              <Link2 className="h-3 w-3" />
+                              {promoter.coPromoters.length} linked
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1027,11 +1275,16 @@ export default function ScanIntelligencePage() {
                     <div className="flex items-center gap-4 flex-shrink-0">
                       <div className="flex gap-1">
                         {promoter.stocksPromoted.slice(0, 4).map((s, i) => (
-                          <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
-                            s.schemeStatus === "ONGOING" ? "bg-red-500/10 text-red-600" :
-                            s.schemeStatus === "COOLING" ? "bg-amber-500/10 text-amber-600" :
-                            "bg-secondary text-muted-foreground"
-                          }`}>
+                          <span
+                            key={i}
+                            className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                              s.schemeStatus === "ONGOING"
+                                ? "bg-red-500/10 text-red-600"
+                                : s.schemeStatus === "COOLING"
+                                  ? "bg-amber-500/10 text-amber-600"
+                                  : "bg-secondary text-muted-foreground"
+                            }`}
+                          >
                             {s.symbol}
                           </span>
                         ))}
@@ -1042,8 +1295,12 @@ export default function ScanIntelligencePage() {
                         )}
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-bold tabular-nums">{promoter.totalPosts}</div>
-                        <div className="text-[10px] text-muted-foreground">posts</div>
+                        <div className="text-sm font-bold tabular-nums">
+                          {promoter.totalPosts}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          posts
+                        </div>
                       </div>
                     </div>
                   </button>
@@ -1051,7 +1308,9 @@ export default function ScanIntelligencePage() {
               })}
               {promoters.length > 10 && (
                 <button
-                  onClick={() => {/* Could navigate to a full promoters page */}}
+                  onClick={() => {
+                    /* Could navigate to a full promoters page */
+                  }}
                   className="w-full py-2 text-xs font-medium text-primary hover:bg-primary/5 rounded-lg transition-colors"
                 >
                   View all {promoters.length} promoters
@@ -1063,7 +1322,8 @@ export default function ScanIntelligencePage() {
               <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No promoter accounts identified yet</p>
               <p className="text-xs mt-1">
-                Promoters are tracked when social media scans detect specific accounts pushing stocks
+                Promoters are tracked when social media scans detect specific
+                accounts pushing stocks
               </p>
             </div>
           )}
@@ -1082,28 +1342,49 @@ export default function ScanIntelligencePage() {
               {data.topPromoted.map((stock) => (
                 <button
                   key={stock.symbol}
-                  onClick={() => router.push(`/admin/scan-intelligence/stock/${stock.symbol}`)}
+                  onClick={() =>
+                    router.push(
+                      `/admin/scan-intelligence/stock/${stock.symbol}`,
+                    )
+                  }
                   className="text-left p-3 rounded-xl border border-border hover:border-primary/30 hover:bg-secondary/30 transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-foreground">{stock.symbol}</span>
-                        <span className="text-xs text-muted-foreground">${stock.price}</span>
-                        <span className="text-[10px] text-muted-foreground">{stock.marketCap}</span>
+                        <span className="font-bold text-foreground">
+                          {stock.symbol}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          ${stock.price}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {stock.marketCap}
+                        </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{stock.name}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                        {stock.name}
+                      </p>
                     </div>
-                    <span className={`text-sm font-bold tabular-nums ${
-                      stock.riskScore >= 16 ? "text-red-600" : stock.riskScore >= 14 ? "text-amber-600" : "text-foreground"
-                    }`}>
+                    <span
+                      className={`text-sm font-bold tabular-nums ${
+                        stock.riskScore >= 16
+                          ? "text-red-600"
+                          : stock.riskScore >= 14
+                            ? "text-amber-600"
+                            : "text-foreground"
+                      }`}
+                    >
                       {stock.riskScore}
                     </span>
                   </div>
                   {/* Red flags */}
                   <div className="flex flex-wrap gap-1 mt-2">
                     {stock.redFlags.slice(0, 4).map((flag, i) => (
-                      <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 line-clamp-1">
+                      <span
+                        key={i}
+                        className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 line-clamp-1"
+                      >
                         {flag}
                       </span>
                     ))}

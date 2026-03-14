@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { z } from "zod";
-import { fetchMarketData, runAnomalyDetection, checkAlertList } from "@/lib/marketData";
+import {
+  fetchMarketData,
+  runAnomalyDetection,
+  checkAlertList,
+} from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
 import { generateNarrative } from "@/lib/narrative";
 import { canUserScan, incrementScanCount } from "@/lib/usage";
@@ -27,7 +31,12 @@ class ServiceUnavailableError extends Error {
   assetType: string;
   originalError: string;
 
-  constructor(apiName: string, ticker: string, assetType: string, originalError: string) {
+  constructor(
+    apiName: string,
+    ticker: string,
+    assetType: string,
+    originalError: string,
+  ) {
     super(`Service unavailable: ${apiName} failed for ${assetType} ${ticker}`);
     this.apiName = apiName;
     this.ticker = ticker;
@@ -59,12 +68,15 @@ const checkRequestSchema = z.object({
   companyName: z.string().optional(),
   assetType: z.enum(["stock", "crypto"]).optional().default("stock"),
   pitchText: z.string().max(10000).optional(),
-  context: z.object({
-    unsolicited: z.boolean().optional().default(false),
-    promisesHighReturns: z.boolean().optional().default(false),
-    urgencyPressure: z.boolean().optional().default(false),
-    secrecyInsideInfo: z.boolean().optional().default(false),
-  }).optional().default({}),
+  context: z
+    .object({
+      unsolicited: z.boolean().optional().default(false),
+      promisesHighReturns: z.boolean().optional().default(false),
+      urgencyPressure: z.boolean().optional().default(false),
+      secrecyInsideInfo: z.boolean().optional().default(false),
+    })
+    .optional()
+    .default({}),
 });
 
 /**
@@ -73,7 +85,7 @@ const checkRequestSchema = z.object({
 async function callPythonAIBackend(
   ticker: string,
   assetType: string,
-  secFlagged?: boolean
+  secFlagged?: boolean,
 ): Promise<{
   success: boolean;
   failReason?: string;
@@ -115,7 +127,9 @@ async function callPythonAIBackend(
 
     console.log(`Calling Python AI backend: ${AI_BACKEND_URL}/analyze`);
 
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
     if (process.env.AI_API_SECRET) {
       headers["X-API-Key"] = process.env.AI_API_SECRET;
     }
@@ -147,24 +161,40 @@ async function callPythonAIBackend(
           detail.api_name || "Unknown API",
           detail.ticker || ticker,
           detail.asset_type || assetType,
-          detail.original_error || "Data API unavailable"
+          detail.original_error || "Data API unavailable",
         );
       }
 
       console.error(`AI backend returned ${response.status}`);
-      return { success: false, failReason: `AI backend returned HTTP ${response.status}` };
+      return {
+        success: false,
+        failReason: `AI backend returned HTTP ${response.status}`,
+      };
     }
 
     const data = await response.json();
-    console.log(`AI backend response for ${ticker}: ${data.risk_level} (${data.risk_probability})`);
+    console.log(
+      `AI backend response for ${ticker}: ${data.risk_level} (${data.risk_probability})`,
+    );
 
     // Map signals from Python format to TypeScript format
-    const signals: RiskSignal[] = (data.signals || []).map((s: { code: string; category: string; description: string; weight: number }) => ({
-      code: s.code,
-      category: s.category as "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL",
-      description: s.description,
-      weight: s.weight,
-    }));
+    const signals: RiskSignal[] = (data.signals || []).map(
+      (s: {
+        code: string;
+        category: string;
+        description: string;
+        weight: number;
+      }) => ({
+        code: s.code,
+        category: s.category as
+          | "STRUCTURAL"
+          | "PATTERN"
+          | "ALERT"
+          | "BEHAVIORAL",
+        description: s.description,
+        weight: s.weight,
+      }),
+    );
 
     return {
       success: true,
@@ -178,21 +208,27 @@ async function callPythonAIBackend(
       secFlagged: data.sec_flagged,
       isOtc: data.is_otc,
       isMicroCap: data.is_micro_cap,
-      stockInfo: data.stock_info ? {
-        companyName: data.stock_info.company_name,
-        exchange: data.stock_info.exchange,
-        lastPrice: data.stock_info.last_price,
-        marketCap: data.stock_info.market_cap,
-        avgVolume: data.stock_info.avg_volume,
-      } : undefined,
-      newsVerification: data.news_verification ? {
-        hasLegitimateCatalyst: data.news_verification.has_legitimate_catalyst,
-        hasSecFilings: data.news_verification.has_sec_filings,
-        hasPromotionalSignals: data.news_verification.has_promotional_signals,
-        catalystSummary: data.news_verification.catalyst_summary,
-        shouldReduceRisk: data.news_verification.should_reduce_risk,
-        recommendedLevel: data.news_verification.recommended_level,
-      } : undefined,
+      stockInfo: data.stock_info
+        ? {
+            companyName: data.stock_info.company_name,
+            exchange: data.stock_info.exchange,
+            lastPrice: data.stock_info.last_price,
+            marketCap: data.stock_info.market_cap,
+            avgVolume: data.stock_info.avg_volume,
+          }
+        : undefined,
+      newsVerification: data.news_verification
+        ? {
+            hasLegitimateCatalyst:
+              data.news_verification.has_legitimate_catalyst,
+            hasSecFilings: data.news_verification.has_sec_filings,
+            hasPromotionalSignals:
+              data.news_verification.has_promotional_signals,
+            catalystSummary: data.news_verification.catalyst_summary,
+            shouldReduceRisk: data.news_verification.should_reduce_risk,
+            recommendedLevel: data.news_verification.recommended_level,
+          }
+        : undefined,
     };
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : "Unknown error";
@@ -210,7 +246,8 @@ export async function POST(request: NextRequest) {
     // Wrapped in try/catch because Upstash Redis uses fetch internally and can fail
     currentStep = "RATE_LIMIT";
     try {
-      const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "heavy");
+      const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+        await rateLimit(request, "heavy");
       if (!rateLimitSuccess) {
         return rateLimitExceededResponse(rateLimitHeaders);
       }
@@ -219,7 +256,7 @@ export async function POST(request: NextRequest) {
       console.error("Rate limit check failed:", rateLimitError);
       return NextResponse.json(
         { error: "Service temporarily unavailable. Please try again later." },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -264,7 +301,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -289,7 +326,11 @@ export async function POST(request: NextRequest) {
     // TRY PYTHON AI BACKEND FIRST (Full ML Models)
     // =====================================================
     currentStep = "AI_BACKEND";
-    const aiResult = await callPythonAIBackend(ticker, checkRequest.assetType || "stock", secFlagged);
+    const aiResult = await callPythonAIBackend(
+      ticker,
+      checkRequest.assetType || "stock",
+      secFlagged,
+    );
 
     let scoringResult;
     let marketData;
@@ -311,15 +352,23 @@ export async function POST(request: NextRequest) {
       // instead of converting probability to score (which produced low values
       // because the ML models were trained on synthetic data).
       const aiTotalScore = aiResult.signals
-        ? aiResult.signals.reduce((sum: number, s: RiskSignal) => sum + s.weight, 0)
+        ? aiResult.signals.reduce(
+            (sum: number, s: RiskSignal) => sum + s.weight,
+            0,
+          )
         : 0;
 
       scoringResult = {
-        riskLevel: aiResult.riskLevel as "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT",
+        riskLevel: aiResult.riskLevel as
+          | "LOW"
+          | "MEDIUM"
+          | "HIGH"
+          | "INSUFFICIENT",
         totalScore: aiTotalScore,
         signals: aiResult.signals,
         isInsufficient: false,
-        isLegitimate: aiResult.riskLevel === "LOW" && (aiResult.signals?.length || 0) === 0,
+        isLegitimate:
+          aiResult.riskLevel === "LOW" && (aiResult.signals?.length || 0) === 0,
         // Additional AI data
         rfProbability: aiResult.rfProbability,
         lstmProbability: aiResult.lstmProbability,
@@ -349,7 +398,7 @@ export async function POST(request: NextRequest) {
           if (baselinePriority > aiPriority) {
             console.log(
               `No-downgrade guard: AI=${scoringResult.riskLevel}(${scoringResult.totalScore}), ` +
-              `baseline=${baselineResult.riskLevel}(${baselineResult.totalScore}) → using baseline`
+                `baseline=${baselineResult.riskLevel}(${baselineResult.totalScore}) → using baseline`,
             );
             // Baseline wins — use its result and clear AI overrides
             scoringResult = baselineResult;
@@ -358,7 +407,10 @@ export async function POST(request: NextRequest) {
           }
         } catch (baselineError) {
           // Resilient: if baseline comparison fails, keep AI result (#2)
-          console.warn("Baseline comparison failed, keeping AI result:", baselineError);
+          console.warn(
+            "Baseline comparison failed, keeping AI result:",
+            baselineError,
+          );
         }
       }
     } else {
@@ -372,7 +424,9 @@ export async function POST(request: NextRequest) {
       marketData = await fetchMarketData(ticker, checkRequest.assetType);
 
       if (!marketData.dataAvailable) {
-        console.warn(`No market data available for ${ticker} — scoring will return INSUFFICIENT. Check that FMP_API_KEY or ALPHA_VANTAGE_API_KEY is configured.`);
+        console.warn(
+          `No market data available for ${ticker} — scoring will return INSUFFICIENT. Check that FMP_API_KEY or ALPHA_VANTAGE_API_KEY is configured.`,
+        );
       }
 
       // Compute risk score using TypeScript (returns INSUFFICIENT when no data)
@@ -387,7 +441,10 @@ export async function POST(request: NextRequest) {
     // Build stock summary - prefer AI backend data when available
     const stockSummary: StockSummary = {
       ticker,
-      companyName: checkRequest.companyName || aiStockInfo?.companyName || marketData.quote?.companyName,
+      companyName:
+        checkRequest.companyName ||
+        aiStockInfo?.companyName ||
+        marketData.quote?.companyName,
       exchange: aiStockInfo?.exchange || marketData.quote?.exchange,
       lastPrice: aiStockInfo?.lastPrice ?? marketData.quote?.lastPrice,
       marketCap: aiStockInfo?.marketCap ?? marketData.quote?.marketCap,
@@ -403,13 +460,13 @@ export async function POST(request: NextRequest) {
       scoringResult.totalScore,
       scoringResult.signals,
       stockSummary,
-      scoringResult.isLegitimate
+      scoringResult.isLegitimate,
     );
 
     // Add AI backend info to narrative if used
     if (usedAIBackend) {
       narrative.disclaimers.push(
-        "Analysis powered by AI models: Random Forest + LSTM + Anomaly Detection"
+        "Analysis powered by AI models: Random Forest + LSTM + Anomaly Detection",
       );
     }
 
@@ -422,16 +479,23 @@ export async function POST(request: NextRequest) {
 
     // Get client IP for logging (optional)
     const forwardedFor = request.headers.get("x-forwarded-for");
-    const ipAddress = forwardedFor ? forwardedFor.split(",")[0].trim() : undefined;
+    const ipAddress = forwardedFor
+      ? forwardedFor.split(",")[0].trim()
+      : undefined;
 
     // Save scan to history and update model metrics for dashboard
     currentStep = "LOG_HISTORY";
     // Derive segment classification from scoring signals and market data
-    const isOtcScan = marketData.isOTC || scoringResult.signals.some(s => s.code === "OTC_EXCHANGE");
-    const isMicroCapScan = (marketData.quote?.marketCap ?? 0) < 50_000_000
-      || scoringResult.signals.some(s => s.code === "SMALL_MARKET_CAP" || s.code === "MICRO_CAP");
+    const isOtcScan =
+      marketData.isOTC ||
+      scoringResult.signals.some((s) => s.code === "OTC_EXCHANGE");
+    const isMicroCapScan =
+      (marketData.quote?.marketCap ?? 0) < 50_000_000 ||
+      scoringResult.signals.some(
+        (s) => s.code === "SMALL_MARKET_CAP" || s.code === "MICRO_CAP",
+      );
     const isHighVolumeScan = scoringResult.signals.some(
-      s => s.code === "VOLUME_EXPLOSION" || s.code === "VOLUME_ANOMALY"
+      (s) => s.code === "VOLUME_EXPLOSION" || s.code === "VOLUME_ANOMALY",
     );
 
     await logScanHistory({
@@ -461,17 +525,24 @@ export async function POST(request: NextRequest) {
       narrative,
       usage: updatedUsage,
       isLegitimate: scoringResult.isLegitimate,
-      ...(aiResult.newsVerification ? { newsVerification: aiResult.newsVerification } : {}),
+      ...(aiResult.newsVerification
+        ? { newsVerification: aiResult.newsVerification }
+        : {}),
     };
 
     return NextResponse.json(response);
   } catch (error) {
     const elapsed = Date.now() - startTime;
-    console.error(`Check API error at step [${currentStep}] after ${elapsed}ms:`, error);
+    console.error(
+      `Check API error at step [${currentStep}] after ${elapsed}ms:`,
+      error,
+    );
 
     // Handle service unavailable errors (data APIs are down)
     if (error instanceof ServiceUnavailableError) {
-      console.error(`SERVICE UNAVAILABLE - API: ${error.apiName}, Ticker: ${error.ticker}, Type: ${error.assetType}`);
+      console.error(
+        `SERVICE UNAVAILABLE - API: ${error.apiName}, Ticker: ${error.ticker}, Type: ${error.assetType}`,
+      );
       console.error(`Original error: ${error.originalError}`);
 
       // Send email notification to admin (non-blocking)
@@ -479,7 +550,7 @@ export async function POST(request: NextRequest) {
         error.apiName,
         error.ticker,
         error.originalError,
-        error.assetType
+        error.assetType,
       ).catch((emailError) => {
         console.error("Failed to send admin alert email:", emailError);
       });
@@ -488,16 +559,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "service_unavailable",
-          message: "The scanning system is currently offline. Please try again later.",
+          message:
+            "The scanning system is currently offline. Please try again later.",
           retryAfter: 60, // Suggest retry after 60 seconds
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     return NextResponse.json(
       { error: "An internal error occurred. Please try again later." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

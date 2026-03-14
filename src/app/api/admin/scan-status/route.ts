@@ -15,7 +15,9 @@ function buildSchemeSummary(summary: any = {}) {
   const newSchemes = Number(summary.newSchemes || 0);
   const ongoingSchemes = Number(summary.ongoingSchemes || 0);
   const totalActiveSchemes = Number(
-    summary.totalActiveSchemes ?? summary.activeSchemes ?? (newSchemes + ongoingSchemes)
+    summary.totalActiveSchemes ??
+      summary.activeSchemes ??
+      newSchemes + ongoingSchemes,
   );
 
   return {
@@ -28,10 +30,11 @@ function buildSchemeSummary(summary: any = {}) {
 
 const metricDefinitions = {
   newSchemes: "Schemes first detected on this selected scan date.",
-  ongoingSchemes: "Previously detected schemes that remain active in this scan.",
-  totalActiveSchemes: "All active schemes for the scan date (NEW + ONGOING + COOLING statuses).",
+  ongoingSchemes:
+    "Previously detected schemes that remain active in this scan.",
+  totalActiveSchemes:
+    "All active schemes for the scan date (NEW + ONGOING + COOLING statuses).",
 };
-
 
 export async function GET(request: Request) {
   try {
@@ -111,7 +114,7 @@ export async function GET(request: Request) {
     console.error("Scan status error:", error);
     return NextResponse.json(
       { available: false, error: "Failed to fetch scan status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -120,7 +123,7 @@ export async function GET(request: Request) {
 async function fallbackToDailyReport(
   supabase: ReturnType<typeof getSupabaseClient>,
   requestedDate?: string | null,
-  existingHistory?: Array<{ date: string; filename: string }>
+  existingHistory?: Array<{ date: string; filename: string }>,
 ) {
   const { data: reportFiles } = await supabase.storage
     .from(EVALUATION_BUCKET)
@@ -133,7 +136,8 @@ async function fallbackToDailyReport(
   if (!reportFiles || reportFiles.length === 0) {
     return NextResponse.json({
       available: false,
-      error: "No scan status or daily report files found. The pipeline may not have run yet.",
+      error:
+        "No scan status or daily report files found. The pipeline may not have run yet.",
       history: existingHistory || [],
     });
   }
@@ -148,10 +152,12 @@ async function fallbackToDailyReport(
       return NextResponse.json({
         available: false,
         error: `No scan data found for ${requestedDate}`,
-        history: existingHistory || reportFiles.map((f) => {
-          const m = f.name.match(/daily-report-(\d{4}-\d{2}-\d{2})/);
-          return { date: m ? m[1] : "unknown", filename: f.name };
-        }),
+        history:
+          existingHistory ||
+          reportFiles.map((f) => {
+            const m = f.name.match(/daily-report-(\d{4}-\d{2}-\d{2})/);
+            return { date: m ? m[1] : "unknown", filename: f.name };
+          }),
       });
     }
   }
@@ -193,7 +199,12 @@ async function fallbackToDailyReport(
     summary: buildSchemeSummary({
       totalStocks: report.totalStocksScanned || 0,
       processed: report.totalStocksScanned || 0,
-      riskCounts: report.byRiskLevel || { LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 },
+      riskCounts: report.byRiskLevel || {
+        LOW: 0,
+        MEDIUM: 0,
+        HIGH: 0,
+        INSUFFICIENT: 0,
+      },
       highRiskBeforeFilters: report.highRiskBeforeFilters || 0,
       filteredByMarketCap: report.filteredByMarketCap || 0,
       filteredByVolume: report.filteredByVolume || 0,

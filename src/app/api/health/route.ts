@@ -12,7 +12,9 @@ async function cleanupExpiredTokens() {
     await Promise.all([
       prisma.session.deleteMany({ where: { expires: { lt: now } } }),
       prisma.verificationToken.deleteMany({ where: { expires: { lt: now } } }),
-      prisma.emailVerificationToken.deleteMany({ where: { expires: { lt: now } } }),
+      prisma.emailVerificationToken.deleteMany({
+        where: { expires: { lt: now } },
+      }),
       prisma.passwordResetToken.deleteMany({ where: { expires: { lt: now } } }),
       prisma.adminSession.deleteMany({ where: { expiresAt: { lt: now } } }),
     ]);
@@ -55,7 +57,9 @@ export async function GET(request: Request) {
 
     // Run expired token cleanup if last run > 24h ago
     if (Date.now() - lastCleanupRun > CLEANUP_INTERVAL_MS) {
-      cleanupExpiredTokens().catch((err) => console.error("Token cleanup error:", err));
+      cleanupExpiredTokens().catch((err) =>
+        console.error("Token cleanup error:", err),
+      );
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -65,16 +69,32 @@ export async function GET(request: Request) {
       checks.databaseError = errorMsg;
 
       // Diagnose common failure modes
-      const isTimeout = errorMsg.includes("timed out") || errorMsg.includes("ETIMEDOUT");
-      const isRefused = errorMsg.includes("ECONNREFUSED") || errorMsg.includes("Connection refused");
-      const isPaused = errorMsg.includes("Project is paused") || errorMsg.includes("too many clients");
-      const isDns = errorMsg.includes("ENOTFOUND") || errorMsg.includes("getaddrinfo");
+      const isTimeout =
+        errorMsg.includes("timed out") || errorMsg.includes("ETIMEDOUT");
+      const isRefused =
+        errorMsg.includes("ECONNREFUSED") ||
+        errorMsg.includes("Connection refused");
+      const isPaused =
+        errorMsg.includes("Project is paused") ||
+        errorMsg.includes("too many clients");
+      const isDns =
+        errorMsg.includes("ENOTFOUND") || errorMsg.includes("getaddrinfo");
 
-      if (isPaused) checks.databaseHint = "Database appears paused — restore it in Supabase dashboard";
-      else if (isTimeout) checks.databaseHint = "Connection timed out — database may be paused or unreachable";
-      else if (isRefused) checks.databaseHint = "Connection refused — check DATABASE_URL and server status";
-      else if (isDns) checks.databaseHint = "Hostname not found — DATABASE_URL may be incorrect";
-      else checks.databaseHint = "Unexpected error — check DATABASE_URL in Vercel environment variables";
+      if (isPaused)
+        checks.databaseHint =
+          "Database appears paused — restore it in Supabase dashboard";
+      else if (isTimeout)
+        checks.databaseHint =
+          "Connection timed out — database may be paused or unreachable";
+      else if (isRefused)
+        checks.databaseHint =
+          "Connection refused — check DATABASE_URL and server status";
+      else if (isDns)
+        checks.databaseHint =
+          "Hostname not found — DATABASE_URL may be incorrect";
+      else
+        checks.databaseHint =
+          "Unexpected error — check DATABASE_URL in Vercel environment variables";
     }
   }
 

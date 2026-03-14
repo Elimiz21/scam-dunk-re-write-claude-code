@@ -37,9 +37,18 @@ interface AlertsData {
 
 const alertTypeLabels: Record<string, { label: string; color: string }> = {
   NEW_HIGH_RISK: { label: "New High Risk", color: "bg-red-100 text-red-800" },
-  RISK_INCREASED: { label: "Risk Increased", color: "bg-orange-100 text-orange-800" },
-  RISK_DECREASED: { label: "Risk Decreased", color: "bg-green-100 text-green-800" },
-  PUMP_DETECTED: { label: "Pump Detected", color: "bg-purple-100 text-purple-800" },
+  RISK_INCREASED: {
+    label: "Risk Increased",
+    color: "bg-orange-100 text-orange-800",
+  },
+  RISK_DECREASED: {
+    label: "Risk Decreased",
+    color: "bg-green-100 text-green-800",
+  },
+  PUMP_DETECTED: {
+    label: "Pump Detected",
+    color: "bg-purple-100 text-purple-800",
+  },
   DUMP_DETECTED: { label: "Dump Detected", color: "bg-red-100 text-red-800" },
 };
 
@@ -178,9 +187,11 @@ export default function RiskAlertsPage() {
             {Object.entries(alertTypeLabels).map(([type, { label, color }]) => (
               <div
                 key={type}
-                className={`p-4 rounded-2xl ${color.replace('text-', 'bg-').split(' ')[0]} bg-opacity-50`}
+                className={`p-4 rounded-2xl ${color.replace("text-", "bg-").split(" ")[0]} bg-opacity-50`}
               >
-                <div className="text-2xl font-bold">{data.countsByType[type] || 0}</div>
+                <div className="text-2xl font-bold">
+                  {data.countsByType[type] || 0}
+                </div>
                 <div className="text-sm">{label}</div>
               </div>
             ))}
@@ -193,20 +204,39 @@ export default function RiskAlertsPage() {
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-secondary/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Symbol</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Alert Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Risk Change</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Score</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Action</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Symbol
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Alert Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Risk Change
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Score
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-card divide-y divide-border">
                 {!data || data.alerts.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
+                    <td
+                      colSpan={8}
+                      className="px-6 py-8 text-center text-muted-foreground"
+                    >
                       <Bell className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                       No alerts found. Run daily evaluations to generate alerts.
                     </td>
@@ -226,24 +256,34 @@ export default function RiskAlertsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="font-medium text-primary">{alert.symbol}</div>
+                          <div className="font-medium text-primary">
+                            {alert.symbol}
+                          </div>
                           <div className="text-xs text-muted-foreground truncate max-w-[150px]">
                             {alert.stockName}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${
-                          alertTypeLabels[alert.alertType]?.color || "bg-secondary text-foreground"
-                        }`}>
-                          {alertTypeLabels[alert.alertType]?.label || alert.alertType}
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded ${
+                            alertTypeLabels[alert.alertType]?.color ||
+                            "bg-secondary text-foreground"
+                          }`}
+                        >
+                          {alertTypeLabels[alert.alertType]?.label ||
+                            alert.alertType}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-1">
                           {alert.previousRiskLevel && (
                             <>
-                              <span className={riskLevelColors[alert.previousRiskLevel]}>
+                              <span
+                                className={
+                                  riskLevelColors[alert.previousRiskLevel]
+                                }
+                              >
                                 {alert.previousRiskLevel}
                               </span>
                               <span className="text-muted-foreground">→</span>
@@ -256,12 +296,16 @@ export default function RiskAlertsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {alert.previousScore !== null && (
-                          <span className="text-muted-foreground">{alert.previousScore} → </span>
+                          <span className="text-muted-foreground">
+                            {alert.previousScore} →{" "}
+                          </span>
                         )}
                         <span className="font-medium">{alert.newScore}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                        {alert.priceAtAlert ? `$${alert.priceAtAlert.toFixed(2)}` : "-"}
+                        {alert.priceAtAlert
+                          ? `$${alert.priceAtAlert.toFixed(2)}`
+                          : "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                         {new Date(alert.alertDate).toLocaleDateString()}

@@ -27,7 +27,8 @@ function isPreviewEnvironment(): boolean {
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: strict for preview login (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "strict");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     if (!isPreviewEnvironment()) {
       return NextResponse.json(
         { error: "Preview login is only available in preview deployments" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -64,7 +65,12 @@ export async function POST(request: NextRequest) {
       undefined;
     const userAgent = request.headers.get("user-agent") || undefined;
 
-    let result = await adminLogin(PREVIEW_EMAIL, PREVIEW_PASSWORD, ipAddress, userAgent);
+    let result = await adminLogin(
+      PREVIEW_EMAIL,
+      PREVIEW_PASSWORD,
+      ipAddress,
+      userAgent,
+    );
 
     if (!result.success) {
       const hashedPassword = await hashPassword(PREVIEW_PASSWORD);
@@ -72,9 +78,17 @@ export async function POST(request: NextRequest) {
         where: { email: PREVIEW_EMAIL },
         data: { hashedPassword, isActive: true },
       });
-      result = await adminLogin(PREVIEW_EMAIL, PREVIEW_PASSWORD, ipAddress, userAgent);
+      result = await adminLogin(
+        PREVIEW_EMAIL,
+        PREVIEW_PASSWORD,
+        ipAddress,
+        userAgent,
+      );
       if (!result.success) {
-        return NextResponse.json({ error: "Preview login failed" }, { status: 500 });
+        return NextResponse.json(
+          { error: "Preview login failed" },
+          { status: 500 },
+        );
       }
     }
 
@@ -110,7 +124,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Preview login error:", error);
-    return NextResponse.json({ error: "Preview login failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Preview login failed" },
+      { status: 500 },
+    );
   }
 }
 
@@ -141,12 +158,42 @@ async function seedIntegrations() {
 
 async function seedBrowserPlatformConfigs() {
   const platforms = [
-    { platform: "discord", isEnabled: true, dailyPageLimit: 100, dailyPagesUsed: 34 },
-    { platform: "reddit", isEnabled: true, dailyPageLimit: 150, dailyPagesUsed: 67 },
-    { platform: "twitter", isEnabled: true, dailyPageLimit: 75, dailyPagesUsed: 12 },
-    { platform: "instagram", isEnabled: false, dailyPageLimit: 75, dailyPagesUsed: 0 },
-    { platform: "facebook", isEnabled: false, dailyPageLimit: 50, dailyPagesUsed: 0 },
-    { platform: "tiktok", isEnabled: false, dailyPageLimit: 50, dailyPagesUsed: 0 },
+    {
+      platform: "discord",
+      isEnabled: true,
+      dailyPageLimit: 100,
+      dailyPagesUsed: 34,
+    },
+    {
+      platform: "reddit",
+      isEnabled: true,
+      dailyPageLimit: 150,
+      dailyPagesUsed: 67,
+    },
+    {
+      platform: "twitter",
+      isEnabled: true,
+      dailyPageLimit: 75,
+      dailyPagesUsed: 12,
+    },
+    {
+      platform: "instagram",
+      isEnabled: false,
+      dailyPageLimit: 75,
+      dailyPagesUsed: 0,
+    },
+    {
+      platform: "facebook",
+      isEnabled: false,
+      dailyPageLimit: 50,
+      dailyPagesUsed: 0,
+    },
+    {
+      platform: "tiktok",
+      isEnabled: false,
+      dailyPageLimit: 50,
+      dailyPagesUsed: 0,
+    },
   ];
 
   for (const p of platforms) {
@@ -238,7 +285,9 @@ async function seedBrowserAgentSessions() {
       browserMinutes: 4.8,
       memoryPeakMb: 523,
       suspensionCount: 1,
-      errors: JSON.stringify(["Memory limit exceeded at 523MB, session saved and suspended"]),
+      errors: JSON.stringify([
+        "Memory limit exceeded at 523MB, session saved and suspended",
+      ]),
     },
     {
       scanDate: new Date(now.getTime() - 48 * 3600000), // 2 days ago
@@ -286,12 +335,20 @@ async function seedBrowserAgentSessions() {
 
     // Create evidence items for completed sessions with mentions
     if (sessionData.status === "COMPLETED" && sessionData.mentionsFound > 0) {
-      const sessionTickers = JSON.parse(sessionData.tickersSearched) as string[];
+      const sessionTickers = JSON.parse(
+        sessionData.tickersSearched,
+      ) as string[];
       const evidenceCount = Math.min(sessionData.mentionsFound, 5);
 
       const sampleAuthors = [
-        "StockGuru2026", "PennyKing_", "MoonShot_Trades", "CryptoStockz",
-        "WallStreetWhale", "PumpAlert_Bot", "DiamondHands99", "TickerSniper",
+        "StockGuru2026",
+        "PennyKing_",
+        "MoonShot_Trades",
+        "CryptoStockz",
+        "WallStreetWhale",
+        "PumpAlert_Bot",
+        "DiamondHands99",
+        "TickerSniper",
       ];
 
       const sampleContent = [
@@ -311,22 +368,32 @@ async function seedBrowserAgentSessions() {
             sessionId: session.id,
             ticker,
             platform: sessionData.platform,
-            textContent: sampleContent[i % sampleContent.length].replace("$TICKER", `$${ticker}`),
-            author: sampleAuthors[Math.floor(Math.random() * sampleAuthors.length)],
+            textContent: sampleContent[i % sampleContent.length].replace(
+              "$TICKER",
+              `$${ticker}`,
+            ),
+            author:
+              sampleAuthors[Math.floor(Math.random() * sampleAuthors.length)],
             promotionScore: score,
             redFlags: JSON.stringify(
               score >= 60
-                ? ["Urgency language", "Unrealistic gains claim", "Low-cap pump pattern"]
+                ? [
+                    "Urgency language",
+                    "Unrealistic gains claim",
+                    "Low-cap pump pattern",
+                  ]
                 : score >= 40
-                ? ["Urgency language", "Price target without basis"]
-                : ["Promotional tone"]
+                  ? ["Urgency language", "Price target without basis"]
+                  : ["Promotional tone"],
             ),
             engagement: JSON.stringify({
               upvotes: Math.floor(Math.random() * 500) + 10,
               comments: Math.floor(Math.random() * 80) + 2,
               views: Math.floor(Math.random() * 5000) + 100,
             }),
-            postDate: new Date(sessionData.scanDate.getTime() - Math.random() * 86400000),
+            postDate: new Date(
+              sessionData.scanDate.getTime() - Math.random() * 86400000,
+            ),
             url: `https://${sessionData.platform}.com/example/${ticker.toLowerCase()}/${Math.floor(Math.random() * 99999)}`,
           },
         });
@@ -350,7 +417,12 @@ async function seedSocialScanData() {
       tickersScanned: 5,
       tickersWithMentions: 3,
       totalMentions: 14,
-      platformsUsed: JSON.stringify(["google_cse", "reddit_public", "youtube_api", "discord_bot"]),
+      platformsUsed: JSON.stringify([
+        "google_cse",
+        "reddit_public",
+        "youtube_api",
+        "discord_bot",
+      ]),
       duration: 45000,
       triggeredBy: "scheduled",
     },
@@ -363,7 +435,12 @@ async function seedSocialScanData() {
       tickersScanned: 5,
       tickersWithMentions: 2,
       totalMentions: 8,
-      platformsUsed: JSON.stringify(["google_cse", "perplexity", "reddit_public", "stocktwits"]),
+      platformsUsed: JSON.stringify([
+        "google_cse",
+        "perplexity",
+        "reddit_public",
+        "stocktwits",
+      ]),
       duration: 38000,
       triggeredBy: "scheduled",
     },
@@ -379,13 +456,18 @@ async function seedSocialScanData() {
       source: "r/pennystocks",
       discoveredVia: "reddit_public",
       title: "ACME is ready to blow up next week - DD inside",
-      content: "I've been researching ACME Corp for months. Revenue is up 300% QoQ, new FDA approval pending, and insider buying detected. Price target: $5 by end of month. Currently at $0.12. This is the play of the year.",
+      content:
+        "I've been researching ACME Corp for months. Revenue is up 300% QoQ, new FDA approval pending, and insider buying detected. Price target: $5 by end of month. Currently at $0.12. This is the play of the year.",
       author: "StockGuru2026",
       postDate: new Date(now.getTime() - 3 * 3600000),
       sentiment: "bullish",
       isPromotional: true,
       promotionScore: 78,
-      redFlags: JSON.stringify(["Unrealistic price target", "Urgency language", "Low-cap stock promotion"]),
+      redFlags: JSON.stringify([
+        "Unrealistic price target",
+        "Urgency language",
+        "Low-cap stock promotion",
+      ]),
       url: "https://reddit.com/r/pennystocks/example_acme",
       engagement: JSON.stringify({ upvotes: 234, comments: 67 }),
     },
@@ -397,13 +479,18 @@ async function seedSocialScanData() {
       source: "PennyStockKing Channel",
       discoveredVia: "youtube_api",
       title: "ACME Stock Analysis - 1000% Potential Gains (Must Watch)",
-      content: "In today's video we look at ACME Corp and why I think this penny stock could deliver massive returns...",
+      content:
+        "In today's video we look at ACME Corp and why I think this penny stock could deliver massive returns...",
       author: "PennyStockKing",
       postDate: new Date(now.getTime() - 5 * 3600000),
       sentiment: "bullish",
       isPromotional: true,
       promotionScore: 85,
-      redFlags: JSON.stringify(["Clickbait title", "Unrealistic gains claim", "Pump pattern detected"]),
+      redFlags: JSON.stringify([
+        "Clickbait title",
+        "Unrealistic gains claim",
+        "Pump pattern detected",
+      ]),
       url: "https://youtube.com/watch?v=example_acme",
       engagement: JSON.stringify({ views: 12400, likes: 890, comments: 234 }),
     },
@@ -415,13 +502,17 @@ async function seedSocialScanData() {
       source: "Penny Stock Alerts Server",
       discoveredVia: "discord_bot",
       title: null,
-      content: "NEW ALERT: $DEFG breaking out! Volume surge detected. Entry under $0.05. Target $0.50. DYOR but this looks prime.",
+      content:
+        "NEW ALERT: $DEFG breaking out! Volume surge detected. Entry under $0.05. Target $0.50. DYOR but this looks prime.",
       author: "AlertBot",
       postDate: new Date(now.getTime() - 4 * 3600000),
       sentiment: "bullish",
       isPromotional: true,
       promotionScore: 72,
-      redFlags: JSON.stringify(["Alert-style promotion", "10x target without basis"]),
+      redFlags: JSON.stringify([
+        "Alert-style promotion",
+        "10x target without basis",
+      ]),
       engagement: JSON.stringify({ reactions: 45 }),
     },
     {
@@ -431,14 +522,20 @@ async function seedSocialScanData() {
       platform: "Web",
       source: "Google CSE",
       discoveredVia: "google_cse",
-      title: "Pump Industries: The Hidden Gem Wall Street Doesn't Want You to Know About",
-      content: "Sponsored article discussing PUMP Industries' revolutionary technology and massive growth potential...",
+      title:
+        "Pump Industries: The Hidden Gem Wall Street Doesn't Want You to Know About",
+      content:
+        "Sponsored article discussing PUMP Industries' revolutionary technology and massive growth potential...",
       author: null,
       postDate: new Date(now.getTime() - 8 * 3600000),
       sentiment: "bullish",
       isPromotional: true,
       promotionScore: 91,
-      redFlags: JSON.stringify(["Paid promotion suspected", "Sensational headline", "No disclosure"]),
+      redFlags: JSON.stringify([
+        "Paid promotion suspected",
+        "Sensational headline",
+        "No disclosure",
+      ]),
       url: "https://example-finance-blog.com/pump-industries-hidden-gem",
       engagement: JSON.stringify({}),
     },
@@ -450,7 +547,8 @@ async function seedSocialScanData() {
       source: "StockTwits Feed",
       discoveredVia: "stocktwits",
       title: null,
-      content: "$ACME looking bullish. Chart setup is clean. Watching for breakout above $0.15 resistance.",
+      content:
+        "$ACME looking bullish. Chart setup is clean. Watching for breakout above $0.15 resistance.",
       author: "TechnicalTrader42",
       postDate: new Date(now.getTime() - 6 * 3600000),
       sentiment: "bullish",
@@ -467,13 +565,17 @@ async function seedSocialScanData() {
       source: "r/wallstreetbets",
       discoveredVia: "reddit_public",
       title: "XYZZ YOLO - putting my life savings in",
-      content: "This is not financial advice but XYZZ is about to go parabolic. Shorted to oblivion, low float, high SI%...",
+      content:
+        "This is not financial advice but XYZZ is about to go parabolic. Shorted to oblivion, low float, high SI%...",
       author: "YOLO_Trader_69",
       postDate: new Date(now.getTime() - 28 * 3600000),
       sentiment: "bullish",
       isPromotional: true,
       promotionScore: 65,
-      redFlags: JSON.stringify(["YOLO culture promotion", "Short squeeze narrative"]),
+      redFlags: JSON.stringify([
+        "YOLO culture promotion",
+        "Short squeeze narrative",
+      ]),
       url: "https://reddit.com/r/wallstreetbets/example_xyzz",
       engagement: JSON.stringify({ upvotes: 1200, comments: 456 }),
     },

@@ -32,20 +32,32 @@ interface EvaluationStock {
   totalScore: number;
   isLegitimate?: boolean;
   isInsufficient?: boolean;
-  signals: Array<{ code: string; category: string; weight: number; description?: string }>;
+  signals: Array<{
+    code: string;
+    category: string;
+    weight: number;
+    description?: string;
+  }>;
   signalSummary?: string;
   evaluatedAt: string;
   priceDataSource?: string;
 }
 
-type IngestionErrorType = "MISSING_FILE" | "BAD_JSON" | "INVALID_SUPABASE_CONFIG" | "FETCH_ERROR";
+type IngestionErrorType =
+  | "MISSING_FILE"
+  | "BAD_JSON"
+  | "INVALID_SUPABASE_CONFIG"
+  | "FETCH_ERROR";
 
 interface EvaluationSummary {
   totalStocks: number;
   evaluated: number;
   skippedNoData: number;
   byRiskLevel: Record<string, number>;
-  byExchange: Record<string, { total: number; LOW: number; MEDIUM: number; HIGH: number }>;
+  byExchange: Record<
+    string,
+    { total: number; LOW: number; MEDIUM: number; HIGH: number }
+  >;
   startTime?: string;
   endTime?: string;
   durationMinutes?: number;
@@ -80,9 +92,11 @@ function toInt(value: number | null | undefined): number | null {
   return Math.round(value);
 }
 
-async function fetchEvaluationFile(
-  filename: string
-): Promise<{ data: EvaluationStock[] | null; error?: string; errorType?: IngestionErrorType }> {
+async function fetchEvaluationFile(filename: string): Promise<{
+  data: EvaluationStock[] | null;
+  error?: string;
+  errorType?: IngestionErrorType;
+}> {
   // Get public URL from Supabase Storage
   let urlData: { publicUrl: string };
   try {
@@ -110,7 +124,8 @@ async function fetchEvaluationFile(
     // Check content type - accept both application/json and application/octet-stream
     // (Supabase may return octet-stream for some uploads)
     const contentType = response.headers.get("content-type") || "";
-    const isJsonLike = contentType.includes("application/json") ||
+    const isJsonLike =
+      contentType.includes("application/json") ||
       contentType.includes("application/octet-stream") ||
       contentType.includes("text/plain");
 
@@ -162,9 +177,11 @@ async function fetchEvaluationFile(
   }
 }
 
-async function fetchSummaryFile(
-  filename: string
-): Promise<{ data: EvaluationSummary | null; error?: string; errorType?: IngestionErrorType }> {
+async function fetchSummaryFile(filename: string): Promise<{
+  data: EvaluationSummary | null;
+  error?: string;
+  errorType?: IngestionErrorType;
+}> {
   let urlData: { publicUrl: string };
   try {
     ({ data: urlData } = supabase.storage
@@ -189,16 +206,22 @@ async function fetchSummaryFile(
       const data = JSON.parse(text);
       return { data };
     } catch {
-      return { data: null, errorType: "BAD_JSON", error: "Invalid JSON in summary file" };
+      return {
+        data: null,
+        errorType: "BAD_JSON",
+        error: "Invalid JSON in summary file",
+      };
     }
   } catch (error) {
     return { data: null, errorType: "BAD_JSON", error: String(error) };
   }
 }
 
-async function fetchPromotedStocksFile(
-  filename: string
-): Promise<{ data: PromotedStocksReport | null; error?: string; errorType?: IngestionErrorType }> {
+async function fetchPromotedStocksFile(filename: string): Promise<{
+  data: PromotedStocksReport | null;
+  error?: string;
+  errorType?: IngestionErrorType;
+}> {
   let urlData: { publicUrl: string };
   try {
     ({ data: urlData } = supabase.storage
@@ -223,7 +246,11 @@ async function fetchPromotedStocksFile(
       const data = JSON.parse(text);
       return { data };
     } catch {
-      return { data: null, errorType: "BAD_JSON", error: "Invalid JSON in promoted stocks file" };
+      return {
+        data: null,
+        errorType: "BAD_JSON",
+        error: "Invalid JSON in promoted stocks file",
+      };
     }
   } catch (error) {
     return { data: null, errorType: "BAD_JSON", error: String(error) };
@@ -260,7 +287,10 @@ export async function POST(request: Request) {
     const { date } = body; // Format: YYYY-MM-DD
 
     if (!date) {
-      return NextResponse.json({ error: "Date required (YYYY-MM-DD)" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Date required (YYYY-MM-DD)" },
+        { status: 400 },
+      );
     }
 
     console.log(`[ingest] Starting ingestion for ${date}...`);
@@ -310,14 +340,16 @@ export async function POST(request: Request) {
                   : `Evaluation file not found or invalid for ${date}`,
           details: evaluationResult.error || "Unknown error",
           errorType: evaluationResult.errorType,
-          hint: "Make sure the file exists in Supabase Storage and is valid JSON"
+          hint: "Make sure the file exists in Supabase Storage and is valid JSON",
         },
-        { status: statusCode }
+        { status: statusCode },
       );
     }
 
     const evaluationData = evaluationResult.data;
-    console.log(`[ingest] Loaded ${evaluationData.length} stocks from evaluation file`);
+    console.log(
+      `[ingest] Loaded ${evaluationData.length} stocks from evaluation file`,
+    );
 
     const summaryResult = await fetchSummaryFile(summaryFilename);
     const summaryData = summaryResult.data;
@@ -332,10 +364,12 @@ export async function POST(request: Request) {
 
     // Filter valid stocks
     const validStocks = evaluationData.filter(
-      (stock) => stock.symbol && stock.name && stock.exchange
+      (stock) => stock.symbol && stock.name && stock.exchange,
     );
     const skippedCount = evaluationData.length - validStocks.length;
-    console.log(`[ingest] ${validStocks.length} valid stocks (${skippedCount} skipped)`);
+    console.log(
+      `[ingest] ${validStocks.length} valid stocks (${skippedCount} skipped)`,
+    );
 
     // Step 1: Get all existing stocks - query in batches for large symbol lists
     const symbols = validStocks.map((s) => s.symbol);
@@ -349,27 +383,32 @@ export async function POST(request: Request) {
       });
       existingStocks.forEach((s) => existingStockMap.set(s.symbol, s.id));
     }
-    console.log(`[ingest] Found ${existingStockMap.size} existing stocks in DB`);
+    console.log(
+      `[ingest] Found ${existingStockMap.size} existing stocks in DB`,
+    );
 
     // Step 2: Identify stocks to create
-    const stocksToCreate = validStocks.filter((s) => !existingStockMap.has(s.symbol));
+    const stocksToCreate = validStocks.filter(
+      (s) => !existingStockMap.has(s.symbol),
+    );
 
     // Step 3: Batch create new stocks
     let stocksCreated = 0;
     if (stocksToCreate.length > 0) {
       console.log(`[ingest] Creating ${stocksToCreate.length} new stocks...`);
       stocksCreated = await batchCreateMany(
-        (batch) => prisma.trackedStock.createMany({
-          data: batch.map((stock) => ({
-            symbol: stock.symbol,
-            name: stock.name,
-            exchange: stock.exchange,
-            sector: stock.sector || null,
-            industry: stock.industry || null,
-            isOTC: stock.exchange === "OTC",
-          })),
-          skipDuplicates: true,
-        }),
+        (batch) =>
+          prisma.trackedStock.createMany({
+            data: batch.map((stock) => ({
+              symbol: stock.symbol,
+              name: stock.name,
+              exchange: stock.exchange,
+              sector: stock.sector || null,
+              industry: stock.industry || null,
+              isOTC: stock.exchange === "OTC",
+            })),
+            skipDuplicates: true,
+          }),
         stocksToCreate,
       );
 
@@ -401,7 +440,9 @@ export async function POST(request: Request) {
       });
       existingSnapshots.forEach((s) => existingSnapshotSet.add(s.stockId));
     }
-    console.log(`[ingest] Found ${existingSnapshotSet.size} existing snapshots for ${date}`);
+    console.log(
+      `[ingest] Found ${existingSnapshotSet.size} existing snapshots for ${date}`,
+    );
 
     // Step 5: Prepare snapshots to create (only for stocks without existing snapshots)
     const snapshotsToCreate = validStocks
@@ -413,7 +454,9 @@ export async function POST(request: Request) {
         const stockId = existingStockMap.get(stock.symbol)!;
         let evaluatedAt: Date;
         try {
-          evaluatedAt = stock.evaluatedAt ? new Date(stock.evaluatedAt) : scanDate;
+          evaluatedAt = stock.evaluatedAt
+            ? new Date(stock.evaluatedAt)
+            : scanDate;
           if (isNaN(evaluatedAt.getTime())) evaluatedAt = scanDate;
         } catch {
           evaluatedAt = scanDate;
@@ -446,12 +489,15 @@ export async function POST(request: Request) {
     // Step 6: Batch create snapshots
     let snapshotsCreated = 0;
     if (snapshotsToCreate.length > 0) {
-      console.log(`[ingest] Creating ${snapshotsToCreate.length} snapshots in batches of ${BATCH_SIZE}...`);
+      console.log(
+        `[ingest] Creating ${snapshotsToCreate.length} snapshots in batches of ${BATCH_SIZE}...`,
+      );
       snapshotsCreated = await batchCreateMany(
-        (batch) => prisma.stockDailySnapshot.createMany({
-          data: batch,
-          skipDuplicates: true,
-        }),
+        (batch) =>
+          prisma.stockDailySnapshot.createMany({
+            data: batch,
+            skipDuplicates: true,
+          }),
         snapshotsToCreate,
       );
       console.log(`[ingest] Created ${snapshotsCreated} snapshots`);
@@ -497,12 +543,15 @@ export async function POST(request: Request) {
         }));
 
       if (alertsToCreate.length > 0) {
-        console.log(`[ingest] Creating ${alertsToCreate.length} risk alerts...`);
+        console.log(
+          `[ingest] Creating ${alertsToCreate.length} risk alerts...`,
+        );
         alertsCreated = await batchCreateMany(
-          (batch) => prisma.stockRiskAlert.createMany({
-            data: batch,
-            skipDuplicates: true,
-          }),
+          (batch) =>
+            prisma.stockRiskAlert.createMany({
+              data: batch,
+              skipDuplicates: true,
+            }),
           alertsToCreate,
         );
         console.log(`[ingest] Created ${alertsCreated} risk alerts`);
@@ -551,14 +600,14 @@ export async function POST(request: Request) {
           const match = promoted.marketCap.match(/([\d.]+)([BMK])?/i);
           if (match) {
             marketCapNum = parseFloat(match[1]);
-            if (match[2]?.toUpperCase() === 'B') marketCapNum *= 1_000_000_000;
-            else if (match[2]?.toUpperCase() === 'M') marketCapNum *= 1_000_000;
-            else if (match[2]?.toUpperCase() === 'K') marketCapNum *= 1_000;
+            if (match[2]?.toUpperCase() === "B") marketCapNum *= 1_000_000_000;
+            else if (match[2]?.toUpperCase() === "M") marketCapNum *= 1_000_000;
+            else if (match[2]?.toUpperCase() === "K") marketCapNum *= 1_000;
           }
         }
 
         // Create promoted stock record (upsert to avoid duplicates)
-        const platform = promoted.platforms[0] || 'Unknown';
+        const platform = promoted.platforms[0] || "Unknown";
         try {
           await prisma.promotedStock.upsert({
             where: {
@@ -570,28 +619,32 @@ export async function POST(request: Request) {
             create: {
               symbol: promoted.symbol,
               addedDate: scanDate,
-              promoterName: promoted.tier === 'HIGH' ? 'Social Media Alert' : 'Risk Flag',
+              promoterName:
+                promoted.tier === "HIGH" ? "Social Media Alert" : "Risk Flag",
               promotionPlatform: platform,
-              promotionGroup: promoted.platforms.join(', '),
+              promotionGroup: promoted.platforms.join(", "),
               entryPrice: promoted.price || 0,
               entryMarketCap: marketCapNum,
               entryRiskScore: promoted.riskScore || 0,
-              evidenceLinks: promoted.sources.join('\n'),
-              outcome: 'MONITORING',
+              evidenceLinks: promoted.sources.join("\n"),
+              outcome: "MONITORING",
               isActive: true,
             },
             update: {
               promotionPlatform: platform,
-              promotionGroup: promoted.platforms.join(', '),
+              promotionGroup: promoted.platforms.join(", "),
               entryPrice: promoted.price || undefined,
               entryMarketCap: marketCapNum || undefined,
               entryRiskScore: promoted.riskScore || undefined,
-              evidenceLinks: promoted.sources.join('\n'),
+              evidenceLinks: promoted.sources.join("\n"),
             },
           });
           promotedStocksCreated++;
         } catch (e) {
-          console.error(`Failed to create promoted stock ${promoted.symbol}:`, e);
+          console.error(
+            `Failed to create promoted stock ${promoted.symbol}:`,
+            e,
+          );
         }
       }
     }
@@ -652,7 +705,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(
       { error: "Failed to ingest evaluation data", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -684,7 +737,7 @@ export async function GET() {
           details: error instanceof Error ? error.message : String(error),
           errorType: "INVALID_SUPABASE_CONFIG",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -695,9 +748,9 @@ export async function GET() {
           error: "Storage listing error - RLS policy may be missing",
           details: storageError.message,
           errorType: "FETCH_ERROR",
-          hint: "Run this SQL in Supabase: CREATE POLICY \"Allow public read access to evaluation-data\" ON storage.objects FOR SELECT USING (bucket_id = 'evaluation-data');"
+          hint: "Run this SQL in Supabase: CREATE POLICY \"Allow public read access to evaluation-data\" ON storage.objects FOR SELECT USING (bucket_id = 'evaluation-data');",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -705,9 +758,11 @@ export async function GET() {
     // Supports both enhanced format (enhanced-evaluation-YYYY-MM-DD.json)
     // and legacy format (fmp-evaluation-YYYY-MM-DD.json)
     const evaluationFiles = (files || [])
-      .filter((f) =>
-        (f.name.startsWith("fmp-evaluation-") || f.name.startsWith("enhanced-evaluation-")) &&
-        f.name.endsWith(".json")
+      .filter(
+        (f) =>
+          (f.name.startsWith("fmp-evaluation-") ||
+            f.name.startsWith("enhanced-evaluation-")) &&
+          f.name.endsWith(".json"),
       )
       .map((f) => ({
         filename: f.name,
@@ -721,7 +776,9 @@ export async function GET() {
 
     // Extract dates from summary files (format: fmp-summary-YYYY-MM-DD.json)
     const summaryFiles = (files || [])
-      .filter((f) => f.name.startsWith("fmp-summary-") && f.name.endsWith(".json"))
+      .filter(
+        (f) => f.name.startsWith("fmp-summary-") && f.name.endsWith(".json"),
+      )
       .map((f) => ({
         filename: f.name,
         date: f.name.replace("fmp-summary-", "").replace(".json", ""),
@@ -729,7 +786,10 @@ export async function GET() {
 
     // Extract dates from promoted stocks files (format: promoted-stocks-YYYY-MM-DD.json)
     const promotedFiles = (files || [])
-      .filter((f) => f.name.startsWith("promoted-stocks-") && f.name.endsWith(".json"))
+      .filter(
+        (f) =>
+          f.name.startsWith("promoted-stocks-") && f.name.endsWith(".json"),
+      )
       .map((f) => ({
         filename: f.name,
         date: f.name.replace("promoted-stocks-", "").replace(".json", ""),
@@ -737,7 +797,9 @@ export async function GET() {
 
     // Extract dates from comparison files (format: comparison-YYYY-MM-DD.json)
     const comparisonFiles = (files || [])
-      .filter((f) => f.name.startsWith("comparison-") && f.name.endsWith(".json"))
+      .filter(
+        (f) => f.name.startsWith("comparison-") && f.name.endsWith(".json"),
+      )
       .map((f) => ({
         filename: f.name,
         date: f.name.replace("comparison-", "").replace(".json", ""),
@@ -752,8 +814,8 @@ export async function GET() {
     // Get all unique dates across all file types
     const allDates = new Set([
       ...evaluationDates,
-      ...promotedFiles.map(f => f.date),
-      ...comparisonFiles.map(f => f.date),
+      ...promotedFiles.map((f) => f.date),
+      ...comparisonFiles.map((f) => f.date),
     ]);
 
     // Build available dates with file status
@@ -772,7 +834,9 @@ export async function GET() {
       select: { scanDate: true },
       orderBy: { scanDate: "desc" },
     });
-    const ingestedDates = ingestedSummaries.map((s) => s.scanDate.toISOString().split("T")[0]);
+    const ingestedDates = ingestedSummaries.map(
+      (s) => s.scanDate.toISOString().split("T")[0],
+    );
 
     const lastIngestion = await prisma.adminAuditLog.findFirst({
       where: { action: "INGEST_EVALUATION" },
@@ -796,19 +860,26 @@ export async function GET() {
       debug: {
         filesFound: files?.length || 0,
         evaluationFiles: evaluationFiles.length,
-        enhancedEvaluationFiles: (files || []).filter(f => f.name.startsWith("enhanced-evaluation-")).length,
-        legacyEvaluationFiles: (files || []).filter(f => f.name.startsWith("fmp-evaluation-")).length,
+        enhancedEvaluationFiles: (files || []).filter((f) =>
+          f.name.startsWith("enhanced-evaluation-"),
+        ).length,
+        legacyEvaluationFiles: (files || []).filter((f) =>
+          f.name.startsWith("fmp-evaluation-"),
+        ).length,
         summaryFiles: summaryFiles.length,
         promotedFiles: promotedFiles.length,
         comparisonFiles: comparisonFiles.length,
-        allFileNames: files?.map(f => f.name) || [],
+        allFileNames: files?.map((f) => f.name) || [],
       },
     });
   } catch (error) {
     console.error("List evaluations error:", error);
-    return NextResponse.json({
-      error: "Failed to list evaluations",
-      details: String(error)
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to list evaluations",
+        details: String(error),
+      },
+      { status: 500 },
+    );
   }
 }

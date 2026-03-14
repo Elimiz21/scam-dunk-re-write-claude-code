@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth, verifyPassword } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (session.role !== "OWNER") {
       return NextResponse.json(
         { error: "Only the owner can change their email" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (!newEmail || !password) {
       return NextResponse.json(
         { error: "New email and current password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (!emailRegex.test(newEmail)) {
       return NextResponse.json(
         { error: "Invalid email address" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (!adminUser) {
       return NextResponse.json(
         { error: "Admin user not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (!isValid) {
       return NextResponse.json(
         { error: "Password is incorrect" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     if (existing && existing.id !== session.id) {
       return NextResponse.json(
         { error: "Email is already in use by another admin" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     console.error("Change email error:", error);
     return NextResponse.json(
       { error: "Failed to change email" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

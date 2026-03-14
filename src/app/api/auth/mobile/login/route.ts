@@ -26,7 +26,8 @@ const loginSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: strict for login (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "strict");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
       if (!isValid) {
         return NextResponse.json(
           { error: "CAPTCHA verification failed. Please try again." },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (!user || !user.hashedPassword) {
       return NextResponse.json(
         { error: "Invalid email or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (!passwordValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
     if (!user.emailVerified) {
       return NextResponse.json(
         { error: "Please verify your email address before logging in." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     console.error("Mobile login error:", error);
     return NextResponse.json(
       { error: "Login failed. Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

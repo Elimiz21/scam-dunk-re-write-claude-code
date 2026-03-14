@@ -102,7 +102,8 @@ function ResetPasswordForm() {
           </div>
           <CardTitle>Password reset successful</CardTitle>
           <CardDescription>
-            Your password has been reset. You can now log in with your new password.
+            Your password has been reset. You can now log in with your new
+            password.
           </CardDescription>
         </CardHeader>
         <CardFooter>
@@ -123,9 +124,7 @@ function ResetPasswordForm() {
           </div>
         </div>
         <CardTitle>Reset your password</CardTitle>
-        <CardDescription>
-          Enter your new password below
-        </CardDescription>
+        <CardDescription>Enter your new password below</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">

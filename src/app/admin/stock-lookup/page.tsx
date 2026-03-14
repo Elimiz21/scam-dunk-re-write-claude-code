@@ -91,7 +91,9 @@ export default function StockLookupPage() {
     }
 
     try {
-      const res = await fetch(`/api/admin/stock-lookup?q=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(
+        `/api/admin/stock-lookup?q=${encodeURIComponent(searchQuery)}`,
+      );
       if (res.ok) {
         const data = await res.json();
         setSearchResults(data.results || []);
@@ -108,7 +110,9 @@ export default function StockLookupPage() {
     setQuery(symbol);
 
     try {
-      const res = await fetch(`/api/admin/stock-lookup?symbol=${symbol}&days=${days}`);
+      const res = await fetch(
+        `/api/admin/stock-lookup?symbol=${symbol}&days=${days}`,
+      );
       if (!res.ok) {
         if (res.status === 404) {
           setError(`Stock ${symbol} not found in tracking database`);
@@ -128,17 +132,19 @@ export default function StockLookupPage() {
     }
   }
 
-  const scoreHistory = stockData?.riskHistory.map((h) => ({
-    label: h.date.slice(5),
-    value: h.totalScore,
-  })) || [];
-
-  const priceHistory = stockData?.riskHistory
-    .filter((h) => h.price !== null)
-    .map((h) => ({
+  const scoreHistory =
+    stockData?.riskHistory.map((h) => ({
       label: h.date.slice(5),
-      value: h.price!,
+      value: h.totalScore,
     })) || [];
+
+  const priceHistory =
+    stockData?.riskHistory
+      .filter((h) => h.price !== null)
+      .map((h) => ({
+        label: h.date.slice(5),
+        value: h.price!,
+      })) || [];
 
   return (
     <AdminLayout>
@@ -181,10 +187,16 @@ export default function StockLookupPage() {
                       className="w-full px-4 py-2 text-left hover:bg-secondary flex justify-between items-center"
                     >
                       <div>
-                        <span className="font-medium text-primary">{result.symbol}</span>
-                        <span className="ml-2 text-sm text-muted-foreground">{result.name}</span>
+                        <span className="font-medium text-primary">
+                          {result.symbol}
+                        </span>
+                        <span className="ml-2 text-sm text-muted-foreground">
+                          {result.name}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">{result.exchange}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {result.exchange}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -201,7 +213,9 @@ export default function StockLookupPage() {
               <option value={365}>1 year</option>
             </select>
             <button
-              onClick={() => query.trim() && lookupStock(query.trim().toUpperCase())}
+              onClick={() =>
+                query.trim() && lookupStock(query.trim().toUpperCase())
+              }
               disabled={loading || !query.trim()}
               className="px-6 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50"
             >
@@ -220,22 +234,34 @@ export default function StockLookupPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-bold text-foreground">{stockData.stock.symbol}</h2>
+                    <h2 className="text-2xl font-bold text-foreground">
+                      {stockData.stock.symbol}
+                    </h2>
                     {stockData.stock.isOTC && (
-                      <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-800 rounded">OTC</span>
+                      <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-800 rounded">
+                        OTC
+                      </span>
                     )}
-                    <span className="text-sm text-muted-foreground">{stockData.stock.exchange}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {stockData.stock.exchange}
+                    </span>
                   </div>
-                  <p className="text-muted-foreground mt-1">{stockData.stock.name}</p>
+                  <p className="text-muted-foreground mt-1">
+                    {stockData.stock.name}
+                  </p>
                   {stockData.stock.sector && (
                     <p className="text-sm text-muted-foreground mt-1">
-                      {stockData.stock.sector} {stockData.stock.industry && `• ${stockData.stock.industry}`}
+                      {stockData.stock.sector}{" "}
+                      {stockData.stock.industry &&
+                        `• ${stockData.stock.industry}`}
                     </p>
                   )}
                 </div>
                 {stockData.current && (
                   <div className="text-right">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${riskLevelColors[stockData.current.riskLevel]}`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${riskLevelColors[stockData.current.riskLevel]}`}
+                    >
                       {stockData.current.riskLevel} RISK
                     </span>
                     <div className="mt-2 text-2xl font-bold">
@@ -254,11 +280,16 @@ export default function StockLookupPage() {
                       Price
                     </div>
                     <div className="mt-1 font-semibold">
-                      {stockData.current.lastPrice ? `$${stockData.current.lastPrice.toFixed(2)}` : "-"}
+                      {stockData.current.lastPrice
+                        ? `$${stockData.current.lastPrice.toFixed(2)}`
+                        : "-"}
                     </div>
                     {stockData.current.priceChangePct !== null && (
-                      <div className={`text-xs ${stockData.current.priceChangePct >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        {stockData.current.priceChangePct >= 0 ? "+" : ""}{stockData.current.priceChangePct.toFixed(2)}%
+                      <div
+                        className={`text-xs ${stockData.current.priceChangePct >= 0 ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {stockData.current.priceChangePct >= 0 ? "+" : ""}
+                        {stockData.current.priceChangePct.toFixed(2)}%
                       </div>
                     )}
                   </div>
@@ -268,7 +299,9 @@ export default function StockLookupPage() {
                       Volume
                     </div>
                     <div className="mt-1 font-semibold">
-                      {stockData.current.volume ? stockData.current.volume.toLocaleString() : "-"}
+                      {stockData.current.volume
+                        ? stockData.current.volume.toLocaleString()
+                        : "-"}
                     </div>
                     {stockData.current.volumeRatio !== null && (
                       <div className="text-xs text-muted-foreground">
@@ -281,7 +314,9 @@ export default function StockLookupPage() {
                       <AlertTriangle className="h-4 w-4 mr-1" />
                       Signals
                     </div>
-                    <div className="mt-1 font-semibold">{stockData.current.signalCount}</div>
+                    <div className="mt-1 font-semibold">
+                      {stockData.current.signalCount}
+                    </div>
                   </div>
                   <div className="bg-secondary/50 rounded-2xl p-3">
                     <div className="flex items-center text-muted-foreground text-sm">
@@ -289,7 +324,9 @@ export default function StockLookupPage() {
                       Last Scan
                     </div>
                     <div className="mt-1 font-semibold text-sm">
-                      {new Date(stockData.current.scanDate).toLocaleDateString()}
+                      {new Date(
+                        stockData.current.scanDate,
+                      ).toLocaleDateString()}
                     </div>
                   </div>
                   <div className="bg-secondary/50 rounded-2xl p-3">
@@ -297,7 +334,9 @@ export default function StockLookupPage() {
                       <Activity className="h-4 w-4 mr-1" />
                       Days Tracked
                     </div>
-                    <div className="mt-1 font-semibold">{stockData.daysTracked}</div>
+                    <div className="mt-1 font-semibold">
+                      {stockData.daysTracked}
+                    </div>
                   </div>
                 </div>
               )}
@@ -334,7 +373,9 @@ export default function StockLookupPage() {
 
             {/* Risk Distribution */}
             <div className="bg-card rounded-2xl shadow p-6">
-              <h3 className="text-lg font-medium text-foreground mb-4">Risk Level Distribution</h3>
+              <h3 className="text-lg font-medium text-foreground mb-4">
+                Risk Level Distribution
+              </h3>
               <div className="flex gap-4">
                 {Object.entries(stockData.riskCounts).map(([level, count]) => (
                   <div
@@ -352,13 +393,20 @@ export default function StockLookupPage() {
             {stockData.alerts.length > 0 && (
               <div className="bg-card rounded-2xl shadow">
                 <div className="px-6 py-4 border-b border-border">
-                  <h3 className="text-lg font-medium text-foreground">Recent Alerts</h3>
+                  <h3 className="text-lg font-medium text-foreground">
+                    Recent Alerts
+                  </h3>
                 </div>
                 <div className="divide-y divide-border">
                   {stockData.alerts.map((alert, idx) => (
-                    <div key={idx} className="px-6 py-4 flex items-center justify-between">
+                    <div
+                      key={idx}
+                      className="px-6 py-4 flex items-center justify-between"
+                    >
                       <div>
-                        <span className="font-medium">{alert.alertType.replace(/_/g, " ")}</span>
+                        <span className="font-medium">
+                          {alert.alertType.replace(/_/g, " ")}
+                        </span>
                         <span className="text-muted-foreground ml-2">
                           {alert.previousRiskLevel} → {alert.newRiskLevel}
                         </span>
@@ -375,20 +423,33 @@ export default function StockLookupPage() {
             {/* Signals */}
             {stockData.current && stockData.current.signals !== "[]" && (
               <div className="bg-card rounded-2xl shadow p-6">
-                <h3 className="text-lg font-medium text-foreground mb-4">Current Signals</h3>
+                <h3 className="text-lg font-medium text-foreground mb-4">
+                  Current Signals
+                </h3>
                 <div className="flex flex-wrap gap-2">
-                  {JSON.parse(stockData.current.signals).map((signal: { code: string; category: string; weight: number }, idx: number) => (
-                    <span
-                      key={idx}
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        signal.weight >= 20 ? "bg-red-100 text-red-800" :
-                        signal.weight >= 10 ? "bg-yellow-100 text-yellow-800" :
-                        "bg-secondary text-foreground"
-                      }`}
-                    >
-                      {signal.code} ({signal.weight})
-                    </span>
-                  ))}
+                  {JSON.parse(stockData.current.signals).map(
+                    (
+                      signal: {
+                        code: string;
+                        category: string;
+                        weight: number;
+                      },
+                      idx: number,
+                    ) => (
+                      <span
+                        key={idx}
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          signal.weight >= 20
+                            ? "bg-red-100 text-red-800"
+                            : signal.weight >= 10
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-secondary text-foreground"
+                        }`}
+                      >
+                        {signal.code} ({signal.weight})
+                      </span>
+                    ),
+                  )}
                 </div>
               </div>
             )}
@@ -399,9 +460,12 @@ export default function StockLookupPage() {
         {!stockData && !loading && !error && (
           <div className="bg-card rounded-2xl shadow p-12 text-center">
             <Search className="h-12 w-12 mx-auto text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-medium text-foreground">Search for a Stock</h3>
+            <h3 className="mt-4 text-lg font-medium text-foreground">
+              Search for a Stock
+            </h3>
             <p className="mt-2 text-muted-foreground">
-              Enter a stock symbol or company name to view historical risk analysis
+              Enter a stock symbol or company name to view historical risk
+              analysis
             </p>
           </div>
         )}

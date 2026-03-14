@@ -11,17 +11,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAdminSession } from "@/lib/admin/auth";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
     // Check admin session
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get count of unverified users first
@@ -54,7 +51,7 @@ export async function POST(request: NextRequest) {
     console.error("Fix unverified users error:", error);
     return NextResponse.json(
       { error: "Failed to fix unverified users" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -65,10 +62,7 @@ export async function GET(request: NextRequest) {
     // Check admin session
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const unverifiedCount = await prisma.user.count({
@@ -86,7 +80,7 @@ export async function GET(request: NextRequest) {
     console.error("Check unverified users error:", error);
     return NextResponse.json(
       { error: "Failed to check unverified users" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

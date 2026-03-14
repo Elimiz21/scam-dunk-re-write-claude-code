@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!config.openaiApiKey) {
       return NextResponse.json(
         { error: "OpenAI API key is not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -125,14 +125,14 @@ SUBHEADLINE GUIDELINES:
     console.error("Generate homepage heroes error:", error);
     return NextResponse.json(
       { error: "Failed to generate homepage content" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 function buildPrompt(
   count: number,
-  existingHeroes: Array<{ headline: string; subheadline: string }>
+  existingHeroes: Array<{ headline: string; subheadline: string }>,
 ): string {
   let prompt = `Generate ${count} different landing page hero headline + subheadline combinations for ScamDunk.
 

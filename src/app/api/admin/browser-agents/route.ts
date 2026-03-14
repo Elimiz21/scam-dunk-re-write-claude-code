@@ -58,15 +58,25 @@ export async function GET(request: NextRequest) {
     ]);
 
     const sessions = results[0].status === "fulfilled" ? results[0].value : [];
-    const totalSessions = results[1].status === "fulfilled" ? results[1].value : 0;
-    const platformConfigs = results[2].status === "fulfilled" ? results[2].value : [];
-    const stats = results[3].status === "fulfilled" ? results[3].value : getEmptyStats();
-    const recentEvidence = results[4].status === "fulfilled" ? results[4].value : [];
+    const totalSessions =
+      results[1].status === "fulfilled" ? results[1].value : 0;
+    const platformConfigs =
+      results[2].status === "fulfilled" ? results[2].value : [];
+    const stats =
+      results[3].status === "fulfilled" ? results[3].value : getEmptyStats();
+    const recentEvidence =
+      results[4].status === "fulfilled" ? results[4].value : [];
 
     // Log any individual failures for debugging
     results.forEach((r, i) => {
       if (r.status === "rejected") {
-        const labels = ["sessions", "sessionCount", "platformConfigs", "stats", "evidence"];
+        const labels = [
+          "sessions",
+          "sessionCount",
+          "platformConfigs",
+          "stats",
+          "evidence",
+        ];
         console.error(`Browser agents query failed [${labels[i]}]:`, r.reason);
       }
     });
@@ -87,7 +97,7 @@ export async function GET(request: NextRequest) {
     console.error("Get browser agents error:", error);
     return NextResponse.json(
       { error: "Failed to fetch browser agent data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -102,7 +112,7 @@ export async function POST(request: NextRequest) {
     if (!hasRole(session, ["OWNER", "ADMIN"])) {
       return NextResponse.json(
         { error: "Insufficient permissions" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -118,15 +128,21 @@ export async function POST(request: NextRequest) {
           const { targets } = await getScanTargetsFromLatestDailyScan(20);
           if (targets.length === 0) {
             return NextResponse.json(
-              { error: "No tickers provided and no high-risk stocks found in the latest daily scan. Enter tickers manually or run the daily pipeline first." },
-              { status: 400 }
+              {
+                error:
+                  "No tickers provided and no high-risk stocks found in the latest daily scan. Enter tickers manually or run the daily pipeline first.",
+              },
+              { status: 400 },
             );
           }
-          tickers = targets.map(t => t.ticker);
+          tickers = targets.map((t) => t.ticker);
         } catch {
           return NextResponse.json(
-            { error: "No tickers provided and could not load from daily scan. Enter tickers manually." },
-            { status: 400 }
+            {
+              error:
+                "No tickers provided and could not load from daily scan. Enter tickers manually.",
+            },
+            { status: 400 },
           );
         }
       }
@@ -153,7 +169,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Browser scan queued for ${tickers.length} ticker(s): ${tickers.slice(0, 5).join(', ')}${tickers.length > 5 ? ` +${tickers.length - 5} more` : ''}`,
+        message: `Browser scan queued for ${tickers.length} ticker(s): ${tickers.slice(0, 5).join(", ")}${tickers.length > 5 ? ` +${tickers.length - 5} more` : ""}`,
         sessionId: scanSession.id,
         tickers,
       });
@@ -193,7 +209,7 @@ export async function POST(request: NextRequest) {
     console.error("Browser agents POST error:", error);
     return NextResponse.json(
       { error: "Failed to process request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -214,7 +230,11 @@ function getEmptyStats() {
 async function getBrowserAgentStats() {
   try {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const weekAgo = new Date(todayStart);
     weekAgo.setDate(weekAgo.getDate() - 7);
 
@@ -255,9 +275,13 @@ async function getBrowserAgentStats() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const platformBreakdown = val(results[5] as any, []) as any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const avgResult = val(results[6] as any, { _avg: { browserMinutes: null } }) as any;
+    const avgResult = val(results[6] as any, {
+      _avg: { browserMinutes: null },
+    }) as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const suspResult = val(results[7] as any, { _sum: { suspensionCount: 0 } }) as any;
+    const suspResult = val(results[7] as any, {
+      _sum: { suspensionCount: 0 },
+    }) as any;
 
     return {
       totalSessions: val(results[0], 0) as number,
@@ -265,13 +289,18 @@ async function getBrowserAgentStats() {
       weekSessions: val(results[2], 0) as number,
       totalEvidence: val(results[3], 0) as number,
       runningSessions: val(results[4], 0) as number,
-      platformBreakdown: platformBreakdown.map((p: Record<string, unknown>) => ({
-        platform: p.platform,
-        sessions: (p._count as Record<string, number>)?.id || 0,
-        mentions: (p._sum as Record<string, number>)?.mentionsFound || 0,
-        pagesVisited: (p._sum as Record<string, number>)?.pagesVisited || 0,
-        browserMinutes: Math.round(((p._sum as Record<string, number>)?.browserMinutes || 0) * 10) / 10,
-      })),
+      platformBreakdown: platformBreakdown.map(
+        (p: Record<string, unknown>) => ({
+          platform: p.platform,
+          sessions: (p._count as Record<string, number>)?.id || 0,
+          mentions: (p._sum as Record<string, number>)?.mentionsFound || 0,
+          pagesVisited: (p._sum as Record<string, number>)?.pagesVisited || 0,
+          browserMinutes:
+            Math.round(
+              ((p._sum as Record<string, number>)?.browserMinutes || 0) * 10,
+            ) / 10,
+        }),
+      ),
       avgBrowserMinutes:
         Math.round((avgResult._avg?.browserMinutes || 0) * 10) / 10,
       totalSuspensions: suspResult._sum?.suspensionCount || 0,

@@ -96,10 +96,13 @@ export async function GET(request: Request) {
     }));
 
     // Count risk level occurrences
-    const riskCounts = snapshots.reduce((acc, s) => {
-      acc[s.riskLevel] = (acc[s.riskLevel] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const riskCounts = snapshots.reduce(
+      (acc, s) => {
+        acc[s.riskLevel] = (acc[s.riskLevel] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return NextResponse.json({
       stock: {
@@ -110,17 +113,19 @@ export async function GET(request: Request) {
         industry: stock.industry,
         isOTC: stock.isOTC,
       },
-      current: latestSnapshot ? {
-        riskLevel: latestSnapshot.riskLevel,
-        totalScore: latestSnapshot.totalScore,
-        lastPrice: latestSnapshot.lastPrice,
-        priceChangePct: latestSnapshot.priceChangePct,
-        volume: latestSnapshot.volume,
-        volumeRatio: latestSnapshot.volumeRatio,
-        signalCount: latestSnapshot.signalCount,
-        signals: latestSnapshot.signals,
-        scanDate: latestSnapshot.scanDate,
-      } : null,
+      current: latestSnapshot
+        ? {
+            riskLevel: latestSnapshot.riskLevel,
+            totalScore: latestSnapshot.totalScore,
+            lastPrice: latestSnapshot.lastPrice,
+            priceChangePct: latestSnapshot.priceChangePct,
+            volume: latestSnapshot.volume,
+            volumeRatio: latestSnapshot.volumeRatio,
+            signalCount: latestSnapshot.signalCount,
+            signals: latestSnapshot.signals,
+            scanDate: latestSnapshot.scanDate,
+          }
+        : null,
       riskHistory: riskHistory.reverse(),
       riskCounts,
       alerts: alerts.map((a) => ({
@@ -131,21 +136,23 @@ export async function GET(request: Request) {
         previousScore: a.previousScore,
         newScore: a.newScore,
       })),
-      promotion: promotion ? {
-        promoterName: promotion.promoterName,
-        platform: promotion.promotionPlatform,
-        entryPrice: promotion.entryPrice,
-        addedDate: promotion.addedDate,
-        outcome: promotion.outcome,
-        currentGainPct: promotion.currentGainPct,
-      } : null,
+      promotion: promotion
+        ? {
+            promoterName: promotion.promoterName,
+            platform: promotion.promotionPlatform,
+            entryPrice: promotion.entryPrice,
+            addedDate: promotion.addedDate,
+            outcome: promotion.outcome,
+            currentGainPct: promotion.currentGainPct,
+          }
+        : null,
       daysTracked: snapshots.length,
     });
   } catch (error) {
     console.error("Stock lookup error:", error);
     return NextResponse.json(
       { error: "Failed to lookup stock" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

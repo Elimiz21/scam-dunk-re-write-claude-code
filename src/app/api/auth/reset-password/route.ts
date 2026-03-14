@@ -14,7 +14,8 @@ const resetPasswordSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: auth for password reset (10 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "auth");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "auth");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +36,10 @@ export async function POST(request: NextRequest) {
     const result = await consumePasswordResetToken(token);
 
     if (!result.valid || !result.email) {
-      const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+      const ip =
+        request.headers.get("x-forwarded-for") ||
+        request.headers.get("x-real-ip") ||
+        undefined;
       await logAuthError(
         {
           ipAddress: ip,
@@ -46,11 +50,11 @@ export async function POST(request: NextRequest) {
           errorType: "PASSWORD_RESET_FAILED",
           errorCode: "TOKEN_EXPIRED",
           message: "Invalid or expired reset token",
-        }
+        },
       );
       return NextResponse.json(
         { error: "Invalid or expired reset token" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,7 +75,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Reset password error:", error);
-    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      undefined;
     await logAuthError(
       {
         ipAddress: ip,
@@ -83,11 +90,11 @@ export async function POST(request: NextRequest) {
         errorCode: "UNKNOWN_ERROR",
         message: "Failed to reset password",
         error: error instanceof Error ? error : undefined,
-      }
+      },
     );
     return NextResponse.json(
       { error: "Failed to reset password" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

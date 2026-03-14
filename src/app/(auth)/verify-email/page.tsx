@@ -19,9 +19,9 @@ function VerifyEmailContent() {
   const router = useRouter();
   const token = searchParams.get("token");
 
-  const [status, setStatus] = useState<"loading" | "success" | "error" | "no-token">(
-    token ? "loading" : "no-token"
-  );
+  const [status, setStatus] = useState<
+    "loading" | "success" | "error" | "no-token"
+  >(token ? "loading" : "no-token");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -79,7 +79,8 @@ function VerifyEmailContent() {
           </div>
           <CardTitle>Email verified!</CardTitle>
           <CardDescription>
-            Your email has been successfully verified. You can now log in to your account.
+            Your email has been successfully verified. You can now log in to
+            your account.
           </CardDescription>
         </CardHeader>
         <CardFooter>
@@ -134,16 +135,22 @@ function VerifyEmailContent() {
         </div>
         <CardTitle>Check your email</CardTitle>
         <CardDescription>
-          We&apos;ve sent you a verification link. Please check your email inbox and click the link to verify your account.
+          We&apos;ve sent you a verification link. Please check your email inbox
+          and click the link to verify your account.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center">
         <p className="text-sm text-muted-foreground">
-          Didn&apos;t receive the email? Check your spam folder or request a new verification link.
+          Didn&apos;t receive the email? Check your spam folder or request a new
+          verification link.
         </p>
       </CardContent>
       <CardFooter>
-        <Button onClick={() => router.push("/login")} variant="outline" className="w-full">
+        <Button
+          onClick={() => router.push("/login")}
+          variant="outline"
+          className="w-full"
+        >
           Back to login
         </Button>
       </CardFooter>

@@ -64,12 +64,14 @@ function CheckEmailContent() {
           </div>
           <CardTitle>Check your inbox</CardTitle>
           <CardDescription>
-            If an account exists for {email}, we&apos;ve sent a new verification link.
+            If an account exists for {email}, we&apos;ve sent a new verification
+            link.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center">
           <p className="text-sm text-muted-foreground">
-            The link will expire in 24 hours. Check your spam folder if you don&apos;t see it.
+            The link will expire in 24 hours. Check your spam folder if you
+            don&apos;t see it.
           </p>
         </CardContent>
         <CardFooter>
@@ -91,7 +93,8 @@ function CheckEmailContent() {
         </div>
         <CardTitle>Resend verification email</CardTitle>
         <CardDescription>
-          Enter your email address and we&apos;ll send you a new verification link
+          Enter your email address and we&apos;ll send you a new verification
+          link
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleResendVerification}>

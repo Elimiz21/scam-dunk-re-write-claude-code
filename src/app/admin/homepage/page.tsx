@@ -122,7 +122,7 @@ export default function HomepagePage() {
       fetchHeroes();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to update headline"
+        err instanceof Error ? err.message : "Failed to update headline",
       );
     }
   };
@@ -141,7 +141,7 @@ export default function HomepagePage() {
       fetchHeroes();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to activate headline"
+        err instanceof Error ? err.message : "Failed to activate headline",
       );
     }
   };
@@ -160,7 +160,7 @@ export default function HomepagePage() {
       fetchHeroes();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to delete headline"
+        err instanceof Error ? err.message : "Failed to delete headline",
       );
     }
   };
@@ -189,7 +189,7 @@ export default function HomepagePage() {
       setShowSuggestions(true);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to generate suggestions"
+        err instanceof Error ? err.message : "Failed to generate suggestions",
       );
     } finally {
       setGenerating(false);
@@ -216,12 +216,12 @@ export default function HomepagePage() {
         prev.filter(
           (s) =>
             s.headline !== suggestion.headline ||
-            s.subheadline !== suggestion.subheadline
-        )
+            s.subheadline !== suggestion.subheadline,
+        ),
       );
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to save suggestion"
+        err instanceof Error ? err.message : "Failed to save suggestion",
       );
     }
   };
@@ -323,9 +323,7 @@ export default function HomepagePage() {
             ) : (
               <Sparkles className="h-4 w-4" />
             )}
-            {generating
-              ? "Generating..."
-              : "Generate AI Recommendations"}
+            {generating ? "Generating..." : "Generate AI Recommendations"}
           </button>
         </div>
 
@@ -342,7 +340,7 @@ export default function HomepagePage() {
                   type="text"
                   value={newHeadline}
                   onChange={(e) => setNewHeadline(e.target.value)}
-                  placeholder='e.g., Don&apos;t invest blind. Detect scams before they cost you.'
+                  placeholder="e.g., Don't invest blind. Detect scams before they cost you."
                   className="w-full px-3 py-2 border border-border rounded-2xl bg-card text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={120}
                 />
@@ -606,12 +604,12 @@ export default function HomepagePage() {
               options using GPT-4
             </li>
             <li>
-              • If no headline is active, the{" "}
-              <strong>default content</strong> is shown automatically
+              • If no headline is active, the <strong>default content</strong>{" "}
+              is shown automatically
             </li>
             <li>
-              • Changes take effect{" "}
-              <strong>immediately</strong> on the live landing page
+              • Changes take effect <strong>immediately</strong> on the live
+              landing page
             </li>
           </ul>
         </div>

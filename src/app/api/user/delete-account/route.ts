@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const deleteAccountSchema = z.object({
   password: z.string().min(1, "Password is required"),
@@ -24,10 +24,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -36,7 +33,7 @@ export async function DELETE(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -45,13 +42,18 @@ export async function DELETE(request: NextRequest) {
     // Get user with password
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, hashedPassword: true, billingCustomerId: true },
+      select: {
+        id: true,
+        email: true,
+        hashedPassword: true,
+        billingCustomerId: true,
+      },
     });
 
     if (!user || !user.hashedPassword) {
       return NextResponse.json(
         { error: "User not found or no password set" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -60,7 +62,7 @@ export async function DELETE(request: NextRequest) {
     if (!isValid) {
       return NextResponse.json(
         { error: "Incorrect password" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,19 +75,28 @@ export async function DELETE(request: NextRequest) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId: user.id }),
-          }
+          },
         );
         if (!cancelResponse.ok) {
-          console.warn("Failed to cancel PayPal subscription during account deletion, continuing...");
+          console.warn(
+            "Failed to cancel PayPal subscription during account deletion, continuing...",
+          );
         }
       } catch (cancelError) {
-        console.warn("PayPal cancel error during account deletion:", cancelError);
+        console.warn(
+          "PayPal cancel error during account deletion:",
+          cancelError,
+        );
       }
     }
 
     // Delete all related data (same pattern as admin deleteUser)
-    await prisma.emailVerificationToken.deleteMany({ where: { email: user.email } });
-    await prisma.passwordResetToken.deleteMany({ where: { email: user.email } });
+    await prisma.emailVerificationToken.deleteMany({
+      where: { email: user.email },
+    });
+    await prisma.passwordResetToken.deleteMany({
+      where: { email: user.email },
+    });
     await prisma.scanUsage.deleteMany({ where: { userId } });
     await prisma.scanHistory.deleteMany({ where: { userId } });
     await prisma.session.deleteMany({ where: { userId } });
@@ -93,12 +104,15 @@ export async function DELETE(request: NextRequest) {
     // Finally delete the user
     await prisma.user.delete({ where: { id: userId } });
 
-    return NextResponse.json({ success: true, message: "Account deleted successfully" });
+    return NextResponse.json({
+      success: true,
+      message: "Account deleted successfully",
+    });
   } catch (error) {
     console.error("Account deletion error:", error);
     return NextResponse.json(
       { error: "Failed to delete account" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -45,11 +45,16 @@ interface MediaMention {
 
 const CATEGORY_COLORS: Record<string, string> = {
   General: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-  "Security Tips": "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  "Industry News": "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  "Product Updates": "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-  "Case Studies": "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  Guides: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
+  "Security Tips":
+    "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  "Industry News":
+    "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  "Product Updates":
+    "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+  "Case Studies":
+    "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+  Guides:
+    "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
 };
 
 const SOURCE_TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -69,12 +74,18 @@ type NewsClientProps = {
   mediaMentions: MediaMention[];
 };
 
-export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps) {
+export default function NewsClient({
+  blogPosts,
+  mediaMentions,
+}: NewsClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const categories = useMemo(
-    () => ["all", ...Array.from(new Set(blogPosts.map((post) => post.category)))],
+    () => [
+      "all",
+      ...Array.from(new Set(blogPosts.map((post) => post.category))),
+    ],
     [blogPosts],
   );
   const filteredPosts =
@@ -82,8 +93,12 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
       ? blogPosts
       : blogPosts.filter((post) => post.category === selectedCategory);
 
-  const featuredMentions = mediaMentions.filter((mention) => mention.isFeatured);
-  const regularMentions = mediaMentions.filter((mention) => !mention.isFeatured);
+  const featuredMentions = mediaMentions.filter(
+    (mention) => mention.isFeatured,
+  );
+  const regularMentions = mediaMentions.filter(
+    (mention) => !mention.isFeatured,
+  );
 
   function formatDate(dateValue: string | null) {
     if (!dateValue) {
@@ -124,11 +139,14 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
                 <Eye className="h-2.5 w-2.5 text-white" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold mb-4 font-display italic">News & Updates</h1>
+            <h1 className="text-4xl font-bold mb-4 font-display italic">
+              News & Updates
+            </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Stay informed with the latest from{" "}
-              <span className="font-display italic">ScamDunk</span>. Read our blog for security tips,
-              product updates, and see what others are saying about us.
+              <span className="font-display italic">ScamDunk</span>. Read our
+              blog for security tips, product updates, and see what others are
+              saying about us.
             </p>
           </div>
 
@@ -164,7 +182,9 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
               {filteredPosts.length === 0 ? (
                 <div className="text-center py-12 card-elevated rounded-xl">
                   <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No blog posts yet. Check back soon!</p>
+                  <p className="text-muted-foreground">
+                    No blog posts yet. Check back soon!
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -205,7 +225,9 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
                           {post.title}
                         </h3>
                         {post.excerpt && (
-                          <p className="text-muted-foreground text-sm line-clamp-3">{post.excerpt}</p>
+                          <p className="text-muted-foreground text-sm line-clamp-3">
+                            {post.excerpt}
+                          </p>
                         )}
                         <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
                           <span>By {post.author}</span>
@@ -233,7 +255,10 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
               {featuredMentions.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                   {featuredMentions.map((mention) => (
-                    <div key={mention.id} className="card-elevated rounded-xl p-6">
+                    <div
+                      key={mention.id}
+                      className="card-elevated rounded-xl p-6"
+                    >
                       <div className="flex items-center gap-3 mb-4">
                         {mention.logoUrl ? (
                           <img
@@ -248,9 +273,12 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
                         )}
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold">{mention.source}</span>
+                            <span className="font-semibold">
+                              {mention.source}
+                            </span>
                             <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">
-                              {SOURCE_TYPE_LABELS[mention.sourceType] || mention.sourceType}
+                              {SOURCE_TYPE_LABELS[mention.sourceType] ||
+                                mention.sourceType}
                             </span>
                           </div>
                           {mention.mentionDate && (
@@ -261,7 +289,9 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
                         </div>
                       </div>
 
-                      <h3 className="text-lg font-semibold mb-2">{mention.title}</h3>
+                      <h3 className="text-lg font-semibold mb-2">
+                        {mention.title}
+                      </h3>
                       {mention.quoteText && (
                         <blockquote className="border-l-2 border-primary pl-4 text-muted-foreground italic mb-3">
                           <Quote className="h-4 w-4 inline-block mr-2 text-primary" />
@@ -269,7 +299,9 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
                         </blockquote>
                       )}
                       {mention.description && (
-                        <p className="text-muted-foreground text-sm mb-4">{mention.description}</p>
+                        <p className="text-muted-foreground text-sm mb-4">
+                          {mention.description}
+                        </p>
                       )}
                       {mention.sourceUrl && (
                         <a
@@ -289,7 +321,10 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
               {regularMentions.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {regularMentions.map((mention) => (
-                    <div key={mention.id} className="card-elevated rounded-xl p-5">
+                    <div
+                      key={mention.id}
+                      className="card-elevated rounded-xl p-5"
+                    >
                       <div className="flex items-center gap-3 mb-3">
                         {mention.logoUrl ? (
                           <img
@@ -303,15 +338,20 @@ export default function NewsClient({ blogPosts, mediaMentions }: NewsClientProps
                           </div>
                         )}
                         <div>
-                          <p className="font-semibold text-sm">{mention.source}</p>
+                          <p className="font-semibold text-sm">
+                            {mention.source}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            {SOURCE_TYPE_LABELS[mention.sourceType] || mention.sourceType}
+                            {SOURCE_TYPE_LABELS[mention.sourceType] ||
+                              mention.sourceType}
                           </p>
                         </div>
                       </div>
                       <h3 className="font-semibold mb-2">{mention.title}</h3>
                       {mention.description && (
-                        <p className="text-sm text-muted-foreground mb-3">{mention.description}</p>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {mention.description}
+                        </p>
                       )}
                       {mention.sourceUrl && (
                         <a

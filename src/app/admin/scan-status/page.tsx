@@ -65,7 +65,12 @@ interface ScanStatusData {
     totalStocks?: number;
     processed?: number;
     skippedNoData?: number;
-    riskCounts?: { LOW: number; MEDIUM: number; HIGH: number; INSUFFICIENT: number };
+    riskCounts?: {
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      INSUFFICIENT: number;
+    };
     highRiskBeforeFilters?: number;
     filteredByMarketCap?: number;
     filteredByVolume?: number;
@@ -138,7 +143,10 @@ interface LiveBackendData {
 // ─── Helper components ─────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
+  const config: Record<
+    string,
+    { bg: string; text: string; icon: React.ReactNode }
+  > = {
     completed: {
       bg: "bg-emerald-500/10",
       text: "text-emerald-700",
@@ -169,7 +177,9 @@ function StatusBadge({ status }: { status: string }) {
   const c = config[status] || config.pending;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text}`}
+    >
       {c.icon}
       {status.toUpperCase()}
     </span>
@@ -214,7 +224,8 @@ function PhaseRow({
   children?: React.ReactNode;
 }) {
   const [expanded, setExpanded] = useState(phase.status === "failed");
-  const hasDetails = Object.keys(phase.details || {}).length > 0 || phase.error || children;
+  const hasDetails =
+    Object.keys(phase.details || {}).length > 0 || phase.error || children;
 
   return (
     <div className="border border-border rounded-xl overflow-hidden">
@@ -236,18 +247,21 @@ function PhaseRow({
           )}
         </div>
         <StatusBadge status={phase.status} />
-        {hasDetails && (
-          expanded
-            ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            : <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        )}
+        {hasDetails &&
+          (expanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          ))}
       </button>
 
       {expanded && hasDetails && (
         <div className="px-5 pb-4 border-t border-border bg-secondary/20">
           {phase.error && (
             <div className="mt-3 p-3 bg-red-500/10 rounded-lg">
-              <p className="text-sm text-red-700 font-mono break-all">{phase.error}</p>
+              <p className="text-sm text-red-700 font-mono break-all">
+                {phase.error}
+              </p>
             </div>
           )}
           {Object.keys(phase.details || {}).length > 0 && (
@@ -255,12 +269,19 @@ function PhaseRow({
               {Object.entries(phase.details).map(([key, val]) => {
                 if (typeof val === "object" && val !== null) return null;
                 return (
-                  <div key={key} className="bg-card rounded-lg p-3 border border-border">
+                  <div
+                    key={key}
+                    className="bg-card rounded-lg p-3 border border-border"
+                  >
                     <p className="text-xs text-muted-foreground">
-                      {key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}
+                      {key
+                        .replace(/([A-Z])/g, " $1")
+                        .replace(/^./, (s) => s.toUpperCase())}
                     </p>
                     <p className="text-sm font-medium text-foreground mt-0.5">
-                      {typeof val === "number" ? val.toLocaleString() : String(val)}
+                      {typeof val === "number"
+                        ? val.toLocaleString()
+                        : String(val)}
                     </p>
                   </div>
                 );
@@ -276,7 +297,10 @@ function PhaseRow({
 
 // ─── Layer icon lookup ──────────────────────────────────────────────
 
-const LAYER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+const LAYER_ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   deterministic: Activity,
   anomaly: Brain,
   random_forest: TreePine,
@@ -339,10 +363,14 @@ function LiveAIBackendPanel() {
 
   const riskLevelColor = (level: string) => {
     switch (level) {
-      case "HIGH": return "text-red-700 bg-red-500/10";
-      case "MEDIUM": return "text-amber-700 bg-amber-500/10";
-      case "LOW": return "text-emerald-700 bg-emerald-500/10";
-      default: return "text-gray-600 bg-gray-500/10";
+      case "HIGH":
+        return "text-red-700 bg-red-500/10";
+      case "MEDIUM":
+        return "text-amber-700 bg-amber-500/10";
+      case "LOW":
+        return "text-emerald-700 bg-emerald-500/10";
+      default:
+        return "text-gray-600 bg-gray-500/10";
     }
   };
 
@@ -355,13 +383,23 @@ function LiveAIBackendPanel() {
             <Zap className="h-5 w-5 text-primary" />
             <span
               className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
-                allOnline ? "bg-emerald-500" : someOffline ? "bg-amber-500" : "bg-red-500"
+                allOnline
+                  ? "bg-emerald-500"
+                  : someOffline
+                    ? "bg-amber-500"
+                    : "bg-red-500"
               }`}
-              style={allOnline ? { animation: "pulse-dot 2s ease-in-out infinite" } : undefined}
+              style={
+                allOnline
+                  ? { animation: "pulse-dot 2s ease-in-out infinite" }
+                  : undefined
+              }
             />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-foreground">Live AI Backend</h3>
+            <h3 className="text-sm font-medium text-foreground">
+              Live AI Backend
+            </h3>
             <p className="text-[11px] text-muted-foreground">
               Real-time status for user-facing scans
             </p>
@@ -420,8 +458,12 @@ function LiveAIBackendPanel() {
                     <XCircle className="h-3.5 w-3.5 text-red-400" />
                   )}
                 </div>
-                <p className="text-xs font-medium text-foreground">{layer.name}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{layer.description}</p>
+                <p className="text-xs font-medium text-foreground">
+                  {layer.name}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {layer.description}
+                </p>
               </div>
             );
           })}
@@ -430,21 +472,27 @@ function LiveAIBackendPanel() {
         {/* Live activity stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-secondary/40 rounded-xl p-3">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Last Hour</p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+              Last Hour
+            </p>
             <p className="text-lg font-semibold text-foreground mt-0.5 tabular-nums">
               {live.activity.scansLastHour}
             </p>
             <p className="text-[10px] text-muted-foreground">scans</p>
           </div>
           <div className="bg-secondary/40 rounded-xl p-3">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Today</p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+              Today
+            </p>
             <p className="text-lg font-semibold text-foreground mt-0.5 tabular-nums">
               {live.activity.scansToday}
             </p>
             <p className="text-[10px] text-muted-foreground">scans</p>
           </div>
           <div className="bg-secondary/40 rounded-xl p-3">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Avg Time</p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+              Avg Time
+            </p>
             <p className="text-lg font-semibold text-foreground mt-0.5 tabular-nums">
               {live.activity.avgProcessingTimeMs != null
                 ? formatDuration(live.activity.avgProcessingTimeMs)
@@ -464,38 +512,58 @@ function LiveAIBackendPanel() {
               {live.activity.riskBreakdown.low > 0 && (
                 <div
                   className="bg-emerald-500 transition-all"
-                  style={{ width: `${(live.activity.riskBreakdown.low / live.activity.scansToday) * 100}%` }}
+                  style={{
+                    width: `${(live.activity.riskBreakdown.low / live.activity.scansToday) * 100}%`,
+                  }}
                   title={`LOW: ${live.activity.riskBreakdown.low}`}
                 />
               )}
               {live.activity.riskBreakdown.medium > 0 && (
                 <div
                   className="bg-amber-500 transition-all"
-                  style={{ width: `${(live.activity.riskBreakdown.medium / live.activity.scansToday) * 100}%` }}
+                  style={{
+                    width: `${(live.activity.riskBreakdown.medium / live.activity.scansToday) * 100}%`,
+                  }}
                   title={`MEDIUM: ${live.activity.riskBreakdown.medium}`}
                 />
               )}
               {live.activity.riskBreakdown.high > 0 && (
                 <div
                   className="bg-red-500 transition-all"
-                  style={{ width: `${(live.activity.riskBreakdown.high / live.activity.scansToday) * 100}%` }}
+                  style={{
+                    width: `${(live.activity.riskBreakdown.high / live.activity.scansToday) * 100}%`,
+                  }}
                   title={`HIGH: ${live.activity.riskBreakdown.high}`}
                 />
               )}
               {live.activity.riskBreakdown.insufficient > 0 && (
                 <div
                   className="bg-gray-400 transition-all"
-                  style={{ width: `${(live.activity.riskBreakdown.insufficient / live.activity.scansToday) * 100}%` }}
+                  style={{
+                    width: `${(live.activity.riskBreakdown.insufficient / live.activity.scansToday) * 100}%`,
+                  }}
                   title={`INSUFFICIENT: ${live.activity.riskBreakdown.insufficient}`}
                 />
               )}
             </div>
             <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />LOW {live.activity.riskBreakdown.low}</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" />MED {live.activity.riskBreakdown.medium}</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" />HIGH {live.activity.riskBreakdown.high}</span>
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                LOW {live.activity.riskBreakdown.low}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                MED {live.activity.riskBreakdown.medium}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+                HIGH {live.activity.riskBreakdown.high}
+              </span>
               {live.activity.riskBreakdown.insufficient > 0 && (
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-gray-400" />N/A {live.activity.riskBreakdown.insufficient}</span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-gray-400" />
+                  N/A {live.activity.riskBreakdown.insufficient}
+                </span>
               )}
             </div>
           </div>
@@ -517,7 +585,9 @@ function LiveAIBackendPanel() {
                     <span className="text-xs font-semibold text-foreground tabular-nums">
                       {scan.ticker}
                     </span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${riskLevelColor(scan.riskLevel)}`}>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${riskLevelColor(scan.riskLevel)}`}
+                    >
                       {scan.riskLevel}
                     </span>
                   </div>
@@ -533,15 +603,22 @@ function LiveAIBackendPanel() {
         {/* Footer */}
         <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border">
           <span>Auto-refreshes every 30s</span>
-          {lastRefresh && <span>Updated {timeAgo(lastRefresh.toISOString())}</span>}
+          {lastRefresh && (
+            <span>Updated {timeAgo(lastRefresh.toISOString())}</span>
+          )}
         </div>
       </div>
 
       {/* Pulsing dot animation */}
       <style jsx>{`
         @keyframes pulse-dot {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
+          0%,
+          100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.4;
+          }
         }
       `}</style>
     </div>
@@ -572,7 +649,9 @@ export default function ScanStatusPage() {
       setData(json);
       setSelectedDate(json.date || date || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load scan status");
+      setError(
+        err instanceof Error ? err.message : "Failed to load scan status",
+      );
     } finally {
       setLoading(false);
       setDateLoading(false);
@@ -596,7 +675,10 @@ export default function ScanStatusPage() {
           <div className="h-8 bg-secondary rounded w-60" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-card rounded-2xl border border-border h-28" />
+              <div
+                key={i}
+                className="bg-card rounded-2xl border border-border h-28"
+              />
             ))}
           </div>
           <div className="bg-card rounded-2xl border border-border h-96" />
@@ -608,7 +690,11 @@ export default function ScanStatusPage() {
   if (error && !data) {
     return (
       <AdminLayout>
-        <AlertBanner type="error" title="Error Loading Scan Status" message={error} />
+        <AlertBanner
+          type="error"
+          title="Error Loading Scan Status"
+          message={error}
+        />
       </AdminLayout>
     );
   }
@@ -617,13 +703,18 @@ export default function ScanStatusPage() {
     return (
       <AdminLayout>
         <div className="space-y-6">
-          <h1 className="text-2xl font-bold font-display italic text-foreground">Scan Status</h1>
+          <h1 className="text-2xl font-bold font-display italic text-foreground">
+            Scan Status
+          </h1>
           {/* Still show live panel even when no pipeline data exists */}
           <LiveAIBackendPanel />
           <AlertBanner
             type="warning"
             title="No Scan Data Available"
-            message={data?.error || "The daily scan pipeline has not produced any status data yet. Status data will appear after the next scan completes."}
+            message={
+              data?.error ||
+              "The daily scan pipeline has not produced any status data yet. Status data will appear after the next scan completes."
+            }
           />
         </div>
       </AdminLayout>
@@ -643,7 +734,9 @@ export default function ScanStatusPage() {
         {/* Header */}
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold font-display italic text-foreground">Scan Status</h1>
+            <h1 className="text-2xl font-bold font-display italic text-foreground">
+              Scan Status
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Pipeline results &amp; live AI backend monitoring
             </p>
@@ -654,7 +747,9 @@ export default function ScanStatusPage() {
               disabled={dateLoading}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${dateLoading ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${dateLoading ? "animate-spin" : ""}`}
+              />
               Refresh
             </button>
             {data?.source === "daily-report" && (
@@ -673,7 +768,9 @@ export default function ScanStatusPage() {
           <div className="bg-card rounded-2xl border border-border p-5">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium text-foreground">Scan History</h3>
+              <h3 className="text-sm font-medium text-foreground">
+                Scan History
+              </h3>
               <span className="text-xs text-muted-foreground">
                 ({data.history.length} available)
               </span>
@@ -733,30 +830,46 @@ export default function ScanStatusPage() {
               <AlertBanner
                 type="error"
                 title={`Pipeline FAILED${data.failedAtPhase ? ` at: ${data.failedAtPhase}` : ""}`}
-                message={data.error || (data as any)?.failedAtPhase || "The scan did not complete successfully."}
+                message={
+                  data.error ||
+                  (data as any)?.failedAtPhase ||
+                  "The scan did not complete successfully."
+                }
               />
             )}
 
             {/* Top-level summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-card rounded-2xl border border-border p-5">
-                <p className="text-xs font-medium text-muted-foreground">Scan Date</p>
-                <p className="mt-1 text-xl font-semibold text-foreground">{data.date}</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Scan Date
+                </p>
+                <p className="mt-1 text-xl font-semibold text-foreground">
+                  {data.date}
+                </p>
               </div>
               <div className="bg-card rounded-2xl border border-border p-5">
-                <p className="text-xs font-medium text-muted-foreground">Status</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Status
+                </p>
                 <div className="mt-2">
                   <StatusBadge status={data.pipelineStatus || "unknown"} />
                 </div>
               </div>
               <div className="bg-card rounded-2xl border border-border p-5">
-                <p className="text-xs font-medium text-muted-foreground">Duration</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Duration
+                </p>
                 <p className="mt-1 text-xl font-semibold text-foreground">
-                  {data.durationMinutes != null ? `${data.durationMinutes}m` : "-"}
+                  {data.durationMinutes != null
+                    ? `${data.durationMinutes}m`
+                    : "-"}
                 </p>
               </div>
               <div className="bg-card rounded-2xl border border-border p-5">
-                <p className="text-xs font-medium text-muted-foreground">Stocks Scanned</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Stocks Scanned
+                </p>
                 <p className="mt-1 text-xl font-semibold text-foreground">
                   {(s.processed ?? s.totalStocks ?? 0).toLocaleString()}
                 </p>
@@ -768,8 +881,18 @@ export default function ScanStatusPage() {
               <div className="bg-card rounded-2xl border border-border p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Cpu className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-foreground">AI Backend (Pipeline Run)</h3>
-                  <StatusBadge status={ai.available ? "completed" : ai.configured ? "failed" : "skipped"} />
+                  <h3 className="text-sm font-medium text-foreground">
+                    AI Backend (Pipeline Run)
+                  </h3>
+                  <StatusBadge
+                    status={
+                      ai.available
+                        ? "completed"
+                        : ai.configured
+                          ? "failed"
+                          : "skipped"
+                    }
+                  />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {ai.layersUsed.map((layer) => (
@@ -782,7 +905,9 @@ export default function ScanStatusPage() {
                     </span>
                   ))}
                   {!ai.available && ai.configured && (
-                    <span className="text-xs text-red-600">Backend configured but not reachable</span>
+                    <span className="text-xs text-red-600">
+                      Backend configured but not reachable
+                    </span>
                   )}
                   {!ai.configured && (
                     <span className="text-xs text-muted-foreground">
@@ -796,28 +921,41 @@ export default function ScanStatusPage() {
             {/* Phase-by-phase breakdown */}
             {phases && (
               <div className="space-y-3">
-                <h2 className="text-lg font-medium font-display italic text-foreground">Pipeline Phases</h2>
+                <h2 className="text-lg font-medium font-display italic text-foreground">
+                  Pipeline Phases
+                </h2>
 
                 <PhaseRow phase={phases.phase1_riskScoring} icon={Shield}>
                   {phases.phase1_riskScoring.details?.riskCounts && (
                     <div className="mt-3">
-                      <p className="text-xs text-muted-foreground mb-2">Risk Distribution</p>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Risk Distribution
+                      </p>
                       <div className="grid grid-cols-4 gap-2">
-                        {Object.entries(phases.phase1_riskScoring.details.riskCounts as Record<string, number>).map(
-                          ([level, count]) => {
-                            const color =
-                              level === "HIGH" ? "text-red-700 bg-red-500/10"
-                              : level === "MEDIUM" ? "text-amber-700 bg-amber-500/10"
-                              : level === "LOW" ? "text-emerald-700 bg-emerald-500/10"
-                              : "text-gray-600 bg-gray-500/10";
-                            return (
-                              <div key={level} className={`rounded-lg p-2 text-center ${color}`}>
-                                <p className="text-xs font-medium">{level}</p>
-                                <p className="text-lg font-semibold">{count.toLocaleString()}</p>
-                              </div>
-                            );
-                          }
-                        )}
+                        {Object.entries(
+                          phases.phase1_riskScoring.details
+                            .riskCounts as Record<string, number>,
+                        ).map(([level, count]) => {
+                          const color =
+                            level === "HIGH"
+                              ? "text-red-700 bg-red-500/10"
+                              : level === "MEDIUM"
+                                ? "text-amber-700 bg-amber-500/10"
+                                : level === "LOW"
+                                  ? "text-emerald-700 bg-emerald-500/10"
+                                  : "text-gray-600 bg-gray-500/10";
+                          return (
+                            <div
+                              key={level}
+                              className={`rounded-lg p-2 text-center ${color}`}
+                            >
+                              <p className="text-xs font-medium">{level}</p>
+                              <p className="text-lg font-semibold">
+                                {count.toLocaleString()}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -830,7 +968,9 @@ export default function ScanStatusPage() {
                 <PhaseRow phase={phases.phase4_socialMedia} icon={Radio}>
                   {social && social.platformResults.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-xs text-muted-foreground mb-2">Platform Results</p>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Platform Results
+                      </p>
                       <div className="space-y-2">
                         {social.platformResults.map((p) => (
                           <div
@@ -848,14 +988,19 @@ export default function ScanStatusPage() {
                                 <XCircle className="h-4 w-4 text-red-600" />
                               )}
                               <div>
-                                <p className="text-sm font-medium text-foreground">{p.platform}</p>
-                                <p className="text-xs text-muted-foreground">{p.scanner}</p>
+                                <p className="text-sm font-medium text-foreground">
+                                  {p.platform}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {p.scanner}
+                                </p>
                               </div>
                             </div>
                             <div className="text-right">
                               {p.success ? (
                                 <p className="text-sm font-medium text-foreground">
-                                  {p.mentionsFound} mention{p.mentionsFound !== 1 ? "s" : ""}
+                                  {p.mentionsFound} mention
+                                  {p.mentionsFound !== 1 ? "s" : ""}
                                 </p>
                               ) : (
                                 <p className="text-xs text-red-600 max-w-xs truncate">
@@ -867,22 +1012,42 @@ export default function ScanStatusPage() {
                         ))}
                       </div>
                       <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>Total mentions: <span className="font-medium text-foreground">{social.totalMentions}</span></span>
-                        <span>Tickers scanned: <span className="font-medium text-foreground">{social.tickersScanned}</span></span>
-                        <span>With mentions: <span className="font-medium text-foreground">{social.tickersWithMentions}</span></span>
+                        <span>
+                          Total mentions:{" "}
+                          <span className="font-medium text-foreground">
+                            {social.totalMentions}
+                          </span>
+                        </span>
+                        <span>
+                          Tickers scanned:{" "}
+                          <span className="font-medium text-foreground">
+                            {social.tickersScanned}
+                          </span>
+                        </span>
+                        <span>
+                          With mentions:{" "}
+                          <span className="font-medium text-foreground">
+                            {social.tickersWithMentions}
+                          </span>
+                        </span>
                       </div>
                     </div>
                   )}
                 </PhaseRow>
 
-                <PhaseRow phase={phases.phase5_schemeTracking} icon={TrendingUp} />
+                <PhaseRow
+                  phase={phases.phase5_schemeTracking}
+                  icon={TrendingUp}
+                />
               </div>
             )}
 
             {/* Filtering funnel */}
             {s.highRiskBeforeFilters != null && (
               <div className="bg-card rounded-2xl border border-border p-6">
-                <h2 className="text-lg font-medium font-display italic text-foreground mb-4">Filtering Funnel</h2>
+                <h2 className="text-lg font-medium font-display italic text-foreground mb-4">
+                  Filtering Funnel
+                </h2>
                 <div className="space-y-3">
                   <FunnelRow
                     label="High-risk stocks (before filters)"
@@ -922,33 +1087,66 @@ export default function ScanStatusPage() {
             )}
 
             {/* Scheme tracking summary */}
-            {(s.newSchemes != null || s.totalActiveSchemes != null || s.activeSchemes != null) && (
+            {(s.newSchemes != null ||
+              s.totalActiveSchemes != null ||
+              s.activeSchemes != null) && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Link href={`/admin/scan-intelligence?date=${encodeURIComponent(selectedDate || "")}&schemeFilter=new`} className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:bg-secondary/20 transition-colors">
-                  <p className="text-xs font-medium text-muted-foreground">New Schemes</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{s.newSchemes ?? 0}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{data.metricDefinitions?.newSchemes || "Detected for the first time on this scan date."}</p>
+                <Link
+                  href={`/admin/scan-intelligence?date=${encodeURIComponent(selectedDate || "")}&schemeFilter=new`}
+                  className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:bg-secondary/20 transition-colors"
+                >
+                  <p className="text-xs font-medium text-muted-foreground">
+                    New Schemes
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">
+                    {s.newSchemes ?? 0}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {data.metricDefinitions?.newSchemes ||
+                      "Detected for the first time on this scan date."}
+                  </p>
                 </Link>
-                <Link href={`/admin/scan-intelligence?date=${encodeURIComponent(selectedDate || "")}&schemeFilter=ongoing`} className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:bg-secondary/20 transition-colors">
-                  <p className="text-xs font-medium text-muted-foreground">Ongoing Schemes</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{s.ongoingSchemes ?? 0}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{data.metricDefinitions?.ongoingSchemes || "Still active from prior scans and not yet resolved."}</p>
+                <Link
+                  href={`/admin/scan-intelligence?date=${encodeURIComponent(selectedDate || "")}&schemeFilter=ongoing`}
+                  className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:bg-secondary/20 transition-colors"
+                >
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Ongoing Schemes
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold text-foreground">
+                    {s.ongoingSchemes ?? 0}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {data.metricDefinitions?.ongoingSchemes ||
+                      "Still active from prior scans and not yet resolved."}
+                  </p>
                 </Link>
-                <Link href={`/admin/scan-intelligence?date=${encodeURIComponent(selectedDate || "")}&schemeFilter=active`} className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:bg-secondary/20 transition-colors">
-                  <p className="text-xs font-medium text-muted-foreground">Total Active Schemes</p>
+                <Link
+                  href={`/admin/scan-intelligence?date=${encodeURIComponent(selectedDate || "")}&schemeFilter=active`}
+                  className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:bg-secondary/20 transition-colors"
+                >
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Total Active Schemes
+                  </p>
                   <p className="mt-1 text-2xl font-semibold text-foreground">
                     {s.totalActiveSchemes ?? s.activeSchemes ?? 0}
                   </p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{data.metricDefinitions?.totalActiveSchemes || "All currently active statuses (NEW, ONGOING, COOLING)."}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {data.metricDefinitions?.totalActiveSchemes ||
+                      "All currently active statuses (NEW, ONGOING, COOLING)."}
+                  </p>
                 </Link>
               </div>
             )}
 
-            {((s.newSchemes ?? 0) + (s.ongoingSchemes ?? 0)) !== (s.totalActiveSchemes ?? s.activeSchemes ?? 0) && (
+            {(s.newSchemes ?? 0) + (s.ongoingSchemes ?? 0) !==
+              (s.totalActiveSchemes ?? s.activeSchemes ?? 0) && (
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 flex items-start gap-2">
                 <Info className="h-4 w-4 mt-0.5" />
                 <p>
-                  New + Ongoing does not equal Total Active because the sets can overlap or use different status windows (e.g. COOLING + NEW in the same run).
+                  New + Ongoing does not equal Total Active because the sets can
+                  overlap or use different status windows (e.g. COOLING + NEW in
+                  the same run).
                 </p>
               </div>
             )}
@@ -957,7 +1155,9 @@ export default function ScanStatusPage() {
             {data.startedAt && (
               <div className="text-xs text-muted-foreground flex flex-wrap gap-4">
                 <span>Started: {formatDate(data.startedAt)}</span>
-                {data.completedAt && <span>Completed: {formatDate(data.completedAt)}</span>}
+                {data.completedAt && (
+                  <span>Completed: {formatDate(data.completedAt)}</span>
+                )}
               </div>
             )}
           </>

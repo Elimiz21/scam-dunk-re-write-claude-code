@@ -16,7 +16,7 @@ import {
   CheckCircle,
   XCircle,
   ArrowRight,
-  Eye
+  Eye,
 } from "lucide-react";
 
 export default function HowItWorksContent() {
@@ -31,9 +31,7 @@ export default function HowItWorksContent() {
       />
 
       <div className="flex flex-col min-h-screen">
-        <Header
-          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-        />
+        <Header onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
 
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-4 py-8">
@@ -49,15 +47,18 @@ export default function HowItWorksContent() {
                 How <span className="font-display italic">ScamDunk</span> Works
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Our multi-step analysis helps identify potential stock manipulation patterns
-                using market data and behavioral indicators.
+                Our multi-step analysis helps identify potential stock
+                manipulation patterns using market data and behavioral
+                indicators.
               </p>
             </div>
 
             {/* Analysis Pipeline */}
             <section className="mb-12 animate-slide-up">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Zap className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
+                  <Zap className="h-4 w-4 text-white" />
+                </span>
                 The Analysis Process
               </h2>
 
@@ -66,41 +67,50 @@ export default function HowItWorksContent() {
                   {
                     step: 1,
                     title: "Market Data Collection",
-                    description: "We fetch real-time and historical market data including price, volume, market cap, and trading history for the stock you're analyzing.",
+                    description:
+                      "We fetch real-time and historical market data including price, volume, market cap, and trading history for the stock you're analyzing.",
                     icon: Database,
                   },
                   {
                     step: 2,
                     title: "Pattern Detection",
-                    description: "Our algorithms scan for price and volume patterns that are commonly associated with pump-and-dump schemes and other manipulation tactics.",
+                    description:
+                      "Our algorithms scan for price and volume patterns that are commonly associated with pump-and-dump schemes and other manipulation tactics.",
                     icon: TrendingUp,
                   },
                   {
                     step: 3,
                     title: "Structural Analysis",
-                    description: "We evaluate characteristics that make stocks more vulnerable to manipulation, such as market size, trading liquidity, and exchange listing.",
+                    description:
+                      "We evaluate characteristics that make stocks more vulnerable to manipulation, such as market size, trading liquidity, and exchange listing.",
                     icon: BarChart3,
                   },
                   {
                     step: 4,
                     title: "Behavioral Analysis",
-                    description: "If you provide promotional text, we analyze it for red-flag language like guaranteed returns, urgency tactics, or claims of insider information.",
+                    description:
+                      "If you provide promotional text, we analyze it for red-flag language like guaranteed returns, urgency tactics, or claims of insider information.",
                     icon: Search,
                   },
                   {
                     step: 5,
                     title: "Regulatory Check",
-                    description: "We cross-reference against SEC trading suspension lists and other regulatory databases for known problem securities.",
+                    description:
+                      "We cross-reference against SEC trading suspension lists and other regulatory databases for known problem securities.",
                     icon: Shield,
                   },
                   {
                     step: 6,
                     title: "Risk Assessment",
-                    description: "All signals are combined into an overall risk score and classification, with a detailed breakdown of what was detected.",
+                    description:
+                      "All signals are combined into an overall risk score and classification, with a detailed breakdown of what was detected.",
                     icon: AlertTriangle,
                   },
                 ].map((item) => (
-                  <div key={item.step} className="flex gap-4 p-4 rounded-xl card-interactive">
+                  <div
+                    key={item.step}
+                    className="flex gap-4 p-4 rounded-xl card-interactive"
+                  >
                     <div className="flex-shrink-0 w-10 h-10 gradient-brand text-white rounded-xl flex items-center justify-center font-semibold">
                       {item.step}
                     </div>
@@ -109,7 +119,9 @@ export default function HowItWorksContent() {
                         <item.icon className="h-4 w-4 text-muted-foreground" />
                         {item.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.description}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -119,7 +131,9 @@ export default function HowItWorksContent() {
             {/* Signal Categories */}
             <section className="mb-12 animate-slide-up delay-1">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><BarChart3 className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
+                  <BarChart3 className="h-4 w-4 text-white" />
+                </span>
                 What We Analyze
               </h2>
 
@@ -130,7 +144,8 @@ export default function HowItWorksContent() {
                     <h3 className="font-medium">Structural Factors</h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Stock characteristics that make them more vulnerable to manipulation:
+                    Stock characteristics that make them more vulnerable to
+                    manipulation:
                   </p>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li>• Stock price levels (penny stocks)</li>
@@ -192,7 +207,9 @@ export default function HowItWorksContent() {
             {/* Risk Levels */}
             <section className="mb-12 animate-slide-up delay-2">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Shield className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
+                  <Shield className="h-4 w-4 text-white" />
+                </span>
                 Understanding Risk Levels
               </h2>
 
@@ -200,33 +217,42 @@ export default function HowItWorksContent() {
                 <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 risk-glow-high">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <h3 className="font-medium text-red-600 dark:text-red-400">HIGH Risk</h3>
+                    <h3 className="font-medium text-red-600 dark:text-red-400">
+                      HIGH Risk
+                    </h3>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Multiple significant red flags detected. The stock shows strong indicators commonly
-                    associated with manipulation schemes. Exercise extreme caution.
+                    Multiple significant red flags detected. The stock shows
+                    strong indicators commonly associated with manipulation
+                    schemes. Exercise extreme caution.
                   </p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 risk-glow-medium">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <h3 className="font-medium text-yellow-600 dark:text-yellow-400">MEDIUM Risk</h3>
+                    <h3 className="font-medium text-yellow-600 dark:text-yellow-400">
+                      MEDIUM Risk
+                    </h3>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Some concerning signals detected. The stock has characteristics that warrant
-                    additional research before making any decisions.
+                    Some concerning signals detected. The stock has
+                    characteristics that warrant additional research before
+                    making any decisions.
                   </p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 risk-glow-low">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-3 h-3 rounded-full bg-green-500" />
-                    <h3 className="font-medium text-green-600 dark:text-green-400">LOW Risk</h3>
+                    <h3 className="font-medium text-green-600 dark:text-green-400">
+                      LOW Risk
+                    </h3>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Few or no manipulation indicators detected. This does NOT mean the stock is a good
-                    investment—only that obvious scam signals were not found.
+                    Few or no manipulation indicators detected. This does NOT
+                    mean the stock is a good investment—only that obvious scam
+                    signals were not found.
                   </p>
                 </div>
               </div>
@@ -235,7 +261,9 @@ export default function HowItWorksContent() {
             {/* Important Limitations */}
             <section className="mb-12 animate-slide-up delay-3">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><AlertTriangle className="h-4 w-4 text-white" /></span>
+                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
+                  <AlertTriangle className="h-4 w-4 text-white" />
+                </span>
                 Important Limitations
               </h2>
 

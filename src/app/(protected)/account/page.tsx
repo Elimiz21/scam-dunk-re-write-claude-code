@@ -93,7 +93,8 @@ function AccountContent() {
   const [passwordError, setPasswordError] = useState("");
 
   // Subscription management
-  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
+  const [subscriptionInfo, setSubscriptionInfo] =
+    useState<SubscriptionInfo | null>(null);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -157,7 +158,8 @@ function AccountContent() {
         addToast({
           type: "success",
           title: "Subscription cancelled",
-          description: "Your plan has been downgraded to Free. You can re-subscribe at any time.",
+          description:
+            "Your plan has been downgraded to Free. You can re-subscribe at any time.",
         });
         setShowCancelConfirm(false);
         // Refresh data
@@ -185,7 +187,8 @@ function AccountContent() {
     addToast({
       type: "success",
       title: "Subscription activated!",
-      description: "Welcome to ScamDunk Pro. You now have 200 checks per month.",
+      description:
+        "Welcome to ScamDunk Pro. You now have 200 checks per month.",
     });
     // Refresh the page to update UI
     router.refresh();
@@ -337,7 +340,9 @@ function AccountContent() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-            <span className="text-xl sm:text-2xl font-bold font-display italic">ScamDunk</span>
+            <span className="text-xl sm:text-2xl font-bold font-display italic">
+              ScamDunk
+            </span>
           </Link>
           <nav className="flex items-center gap-2 sm:gap-4">
             <Link href="/">
@@ -356,7 +361,9 @@ function AccountContent() {
 
       <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
-          <h1 className="text-2xl sm:text-3xl font-bold font-display italic">Account Settings</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display italic">
+            Account Settings
+          </h1>
 
           {/* Success/Canceled alerts */}
           <Suspense fallback={null}>
@@ -495,9 +502,15 @@ function AccountContent() {
                       />
                       <button
                         type="button"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        onClick={() =>
+                          setShowCurrentPassword(!showCurrentPassword)
+                        }
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showCurrentPassword
+                            ? "Hide password"
+                            : "Show password"
+                        }
                       >
                         {showCurrentPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -522,7 +535,9 @@ function AccountContent() {
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        aria-label={showNewPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showNewPassword ? "Hide password" : "Show password"
+                        }
                       >
                         {showNewPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -536,7 +551,9 @@ function AccountContent() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                    <Label htmlFor="confirmNewPassword">
+                      Confirm New Password
+                    </Label>
                     <Input
                       id="confirmNewPassword"
                       type="password"
@@ -549,7 +566,12 @@ function AccountContent() {
                   <div className="flex gap-2">
                     <Button
                       onClick={handleChangePassword}
-                      disabled={isSavingPassword || !currentPassword || !newPassword || !confirmNewPassword}
+                      disabled={
+                        isSavingPassword ||
+                        !currentPassword ||
+                        !newPassword ||
+                        !confirmNewPassword
+                      }
                       size="sm"
                     >
                       {isSavingPassword ? (
@@ -602,7 +624,9 @@ function AccountContent() {
                       {usage?.plan === "PAID" ? "Pro" : "Free"}
                     </Badge>
                     {usage?.plan === "PAID" && (
-                      <span className="text-sm text-muted-foreground">$4.99/month</span>
+                      <span className="text-sm text-muted-foreground">
+                        $4.99/month
+                      </span>
                     )}
                   </div>
                 </div>
@@ -624,7 +648,7 @@ function AccountContent() {
                         Math.round(
                           (usage.scansUsedThisMonth /
                             usage.scansLimitThisMonth) *
-                            100
+                            100,
                         )}
                       % used
                     </span>
@@ -639,7 +663,7 @@ function AccountContent() {
                                 ((usage.scansUsedThisMonth ?? 0) /
                                   usage.scansLimitThisMonth) *
                                   100,
-                                100
+                                100,
                               )
                             : 0
                         }%`,
@@ -656,7 +680,9 @@ function AccountContent() {
               {usage?.plan === "PAID" && (
                 <div className="pt-4 border-t space-y-4">
                   <div>
-                    <p className="text-sm font-medium mb-2">Subscription Details</p>
+                    <p className="text-sm font-medium mb-2">
+                      Subscription Details
+                    </p>
                     {isLoadingSubscription ? (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -666,10 +692,13 @@ function AccountContent() {
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
                         Next billing date:{" "}
-                        {new Date(subscriptionInfo.nextBillingDate).toLocaleDateString(
-                          "en-US",
-                          { year: "numeric", month: "long", day: "numeric" }
-                        )}
+                        {new Date(
+                          subscriptionInfo.nextBillingDate,
+                        ).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
                       </div>
                     ) : subscriptionInfo?.subscriptionId ? (
                       <p className="text-sm text-muted-foreground">
@@ -694,11 +723,14 @@ function AccountContent() {
                       <div className="flex items-start gap-2">
                         <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                         <div>
-                          <p className="text-sm font-medium">Cancel your Pro subscription?</p>
+                          <p className="text-sm font-medium">
+                            Cancel your Pro subscription?
+                          </p>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Your plan will be downgraded to Free immediately. You will
-                            lose access to 200 monthly checks and be limited to 5 checks
-                            per month. You can re-subscribe at any time.
+                            Your plan will be downgraded to Free immediately.
+                            You will lose access to 200 monthly checks and be
+                            limited to 5 checks per month. You can re-subscribe
+                            at any time.
                           </p>
                         </div>
                       </div>
@@ -739,7 +771,9 @@ function AccountContent() {
             <Card className="border-primary gradient-brand-subtle">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display italic">
-                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl"><Zap className="h-4 w-4 text-white" /></span>
+                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
+                    <Zap className="h-4 w-4 text-white" />
+                  </span>
                   Upgrade to Pro
                 </CardTitle>
               </CardHeader>
@@ -790,7 +824,8 @@ function AccountContent() {
               {!showDeleteConfirm ? (
                 <div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Permanently delete your account and all associated data. This action cannot be undone.
+                    Permanently delete your account and all associated data.
+                    This action cannot be undone.
                   </p>
                   <Button
                     variant="destructive"
@@ -811,14 +846,20 @@ function AccountContent() {
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                       <div>
-                        <p className="text-sm font-medium">Are you sure you want to delete your account?</p>
+                        <p className="text-sm font-medium">
+                          Are you sure you want to delete your account?
+                        </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          This will permanently delete your account, all scan history, usage data, and cancel any active subscription. This action cannot be undone.
+                          This will permanently delete your account, all scan
+                          history, usage data, and cancel any active
+                          subscription. This action cannot be undone.
                         </p>
                       </div>
                     </div>
                     <div className="space-y-2 ml-7">
-                      <Label htmlFor="deletePassword">Enter your password to confirm</Label>
+                      <Label htmlFor="deletePassword">
+                        Enter your password to confirm
+                      </Label>
                       <Input
                         id="deletePassword"
                         type="password"
@@ -862,7 +903,6 @@ function AccountContent() {
               )}
             </CardContent>
           </Card>
-
         </div>
       </main>
     </div>

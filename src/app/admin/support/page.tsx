@@ -99,13 +99,40 @@ interface Stats {
   };
 }
 
-const categoryLabels: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  SUPPORT: { label: "Technical Support", icon: <HelpCircle className="h-4 w-4" />, color: "text-blue-600" },
-  FEEDBACK: { label: "Feedback", icon: <Lightbulb className="h-4 w-4" />, color: "text-yellow-600" },
-  BUG_REPORT: { label: "Bug Report", icon: <Bug className="h-4 w-4" />, color: "text-red-600" },
-  FEATURE_REQUEST: { label: "Feature Request", icon: <MessageSquare className="h-4 w-4" />, color: "text-purple-600" },
-  BILLING: { label: "Billing", icon: <CreditCard className="h-4 w-4" />, color: "text-green-600" },
-  OTHER: { label: "Other", icon: <Mail className="h-4 w-4" />, color: "text-muted-foreground" },
+const categoryLabels: Record<
+  string,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
+  SUPPORT: {
+    label: "Technical Support",
+    icon: <HelpCircle className="h-4 w-4" />,
+    color: "text-blue-600",
+  },
+  FEEDBACK: {
+    label: "Feedback",
+    icon: <Lightbulb className="h-4 w-4" />,
+    color: "text-yellow-600",
+  },
+  BUG_REPORT: {
+    label: "Bug Report",
+    icon: <Bug className="h-4 w-4" />,
+    color: "text-red-600",
+  },
+  FEATURE_REQUEST: {
+    label: "Feature Request",
+    icon: <MessageSquare className="h-4 w-4" />,
+    color: "text-purple-600",
+  },
+  BILLING: {
+    label: "Billing",
+    icon: <CreditCard className="h-4 w-4" />,
+    color: "text-green-600",
+  },
+  OTHER: {
+    label: "Other",
+    icon: <Mail className="h-4 w-4" />,
+    color: "text-muted-foreground",
+  },
 };
 
 const statusColors: Record<string, string> = {
@@ -136,7 +163,9 @@ export default function SupportPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
-  const [selectedTicket, setSelectedTicket] = useState<TicketDetails | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<TicketDetails | null>(
+    null,
+  );
   const [loadingTicket, setLoadingTicket] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [responseText, setResponseText] = useState("");
@@ -190,13 +219,19 @@ export default function SupportPage() {
       const data = await res.json();
       setSelectedTicket(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load ticket details");
+      setError(
+        err instanceof Error ? err.message : "Failed to load ticket details",
+      );
     } finally {
       setLoadingTicket(false);
     }
   }
 
-  async function performAction(ticketId: string, action: string, value?: string) {
+  async function performAction(
+    ticketId: string,
+    action: string,
+    value?: string,
+  ) {
     setActionLoading(true);
     setError("");
     try {
@@ -249,16 +284,27 @@ export default function SupportPage() {
 
   function getStatusBadge(status: string) {
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status] || "bg-secondary text-foreground"}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status] || "bg-secondary text-foreground"}`}
+      >
         {status.replace(/_/g, " ")}
       </span>
     );
   }
 
   function getPriorityBadge(priority: string) {
-    const Icon = priority === "URGENT" ? AlertTriangle : priority === "HIGH" ? ArrowUp : priority === "LOW" ? ArrowDown : null;
+    const Icon =
+      priority === "URGENT"
+        ? AlertTriangle
+        : priority === "HIGH"
+          ? ArrowUp
+          : priority === "LOW"
+            ? ArrowDown
+            : null;
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityColors[priority] || "bg-secondary text-foreground"}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityColors[priority] || "bg-secondary text-foreground"}`}
+      >
         {Icon && <Icon className="h-3 w-3" />}
         {priority}
       </span>
@@ -266,7 +312,11 @@ export default function SupportPage() {
   }
 
   function getCategoryBadge(category: string) {
-    const cat = categoryLabels[category] || { label: category, icon: <Mail className="h-4 w-4" />, color: "text-muted-foreground" };
+    const cat = categoryLabels[category] || {
+      label: category,
+      icon: <Mail className="h-4 w-4" />,
+      color: "text-muted-foreground",
+    };
     return (
       <span className={`inline-flex items-center gap-1 text-sm ${cat.color}`}>
         {cat.icon}
@@ -297,7 +347,9 @@ export default function SupportPage() {
       render: (item: Ticket) => (
         <div className="max-w-xs">
           <p className="font-medium text-foreground truncate">{item.subject}</p>
-          <p className="text-sm text-muted-foreground truncate">{item.name} &lt;{item.email}&gt;</p>
+          <p className="text-sm text-muted-foreground truncate">
+            {item.name} &lt;{item.email}&gt;
+          </p>
         </div>
       ),
     },
@@ -327,7 +379,9 @@ export default function SupportPage() {
       key: "createdAt",
       header: "Created",
       render: (item: Ticket) => (
-        <span className="text-muted-foreground text-sm">{formatDate(item.createdAt)}</span>
+        <span className="text-muted-foreground text-sm">
+          {formatDate(item.createdAt)}
+        </span>
       ),
     },
     {
@@ -352,33 +406,56 @@ export default function SupportPage() {
             {menuOpen === item.id && (
               <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-10">
                 <div className="py-1">
-                  <div className="px-4 py-2 text-xs text-muted-foreground uppercase">Status</div>
-                  {["NEW", "OPEN", "IN_PROGRESS", "WAITING_ON_USER", "RESOLVED", "CLOSED"].map((status) => (
+                  <div className="px-4 py-2 text-xs text-muted-foreground uppercase">
+                    Status
+                  </div>
+                  {[
+                    "NEW",
+                    "OPEN",
+                    "IN_PROGRESS",
+                    "WAITING_ON_USER",
+                    "RESOLVED",
+                    "CLOSED",
+                  ].map((status) => (
                     <button
                       key={status}
-                      onClick={() => performAction(item.id, "updateStatus", status)}
+                      onClick={() =>
+                        performAction(item.id, "updateStatus", status)
+                      }
                       disabled={actionLoading || item.status === status}
                       className={`flex items-center w-full px-4 py-2 text-sm hover:bg-secondary ${
-                        item.status === status ? "text-muted-foreground" : "text-foreground"
+                        item.status === status
+                          ? "text-muted-foreground"
+                          : "text-foreground"
                       }`}
                     >
                       {status.replace(/_/g, " ")}
-                      {item.status === status && <CheckCircle className="h-3 w-3 ml-auto text-green-500" />}
+                      {item.status === status && (
+                        <CheckCircle className="h-3 w-3 ml-auto text-green-500" />
+                      )}
                     </button>
                   ))}
                   <hr className="my-1" />
-                  <div className="px-4 py-2 text-xs text-muted-foreground uppercase">Priority</div>
+                  <div className="px-4 py-2 text-xs text-muted-foreground uppercase">
+                    Priority
+                  </div>
                   {["LOW", "NORMAL", "HIGH", "URGENT"].map((priority) => (
                     <button
                       key={priority}
-                      onClick={() => performAction(item.id, "updatePriority", priority)}
+                      onClick={() =>
+                        performAction(item.id, "updatePriority", priority)
+                      }
                       disabled={actionLoading || item.priority === priority}
                       className={`flex items-center w-full px-4 py-2 text-sm hover:bg-secondary ${
-                        item.priority === priority ? "text-muted-foreground" : "text-foreground"
+                        item.priority === priority
+                          ? "text-muted-foreground"
+                          : "text-foreground"
                       }`}
                     >
                       {priority}
-                      {item.priority === priority && <CheckCircle className="h-3 w-3 ml-auto text-green-500" />}
+                      {item.priority === priority && (
+                        <CheckCircle className="h-3 w-3 ml-auto text-green-500" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -396,7 +473,9 @@ export default function SupportPage() {
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Customer Support</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Customer Support
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Manage support tickets and user feedback
             </p>
@@ -411,16 +490,31 @@ export default function SupportPage() {
         </div>
 
         {error && (
-          <AlertBanner type="error" title="Error" message={error} onDismiss={() => setError("")} />
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
         )}
         {success && (
-          <AlertBanner type="success" title="Success" message={success} onDismiss={() => setSuccess("")} />
+          <AlertBanner
+            type="success"
+            title="Success"
+            message={success}
+            onDismiss={() => setSuccess("")}
+          />
         )}
 
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatCard title="Total Tickets" value={stats.total} icon={Headphones} color="blue" />
+            <StatCard
+              title="Total Tickets"
+              value={stats.total}
+              icon={Headphones}
+              color="blue"
+            />
             <StatCard
               title="New / Open"
               value={stats.new + stats.open}
@@ -471,7 +565,9 @@ export default function SupportPage() {
                 <MessageSquare className="h-4 w-4" />
                 <span className="text-sm font-medium">Feature Requests</span>
               </div>
-              <p className="text-2xl font-bold">{stats.byCategory.featureRequest}</p>
+              <p className="text-2xl font-bold">
+                {stats.byCategory.featureRequest}
+              </p>
             </div>
           </div>
         )}
@@ -547,10 +643,17 @@ export default function SupportPage() {
             <div className="bg-card rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
               <div className="sticky top-0 bg-card border-b px-6 py-4 flex justify-between items-center">
                 <div>
-                  <h3 className="text-lg font-medium text-foreground">Ticket Details</h3>
-                  <p className="text-sm text-muted-foreground font-mono">{selectedTicket.ticket.id}</p>
+                  <h3 className="text-lg font-medium text-foreground">
+                    Ticket Details
+                  </h3>
+                  <p className="text-sm text-muted-foreground font-mono">
+                    {selectedTicket.ticket.id}
+                  </p>
                 </div>
-                <button onClick={() => setSelectedTicket(null)} className="text-muted-foreground hover:text-muted-foreground">
+                <button
+                  onClick={() => setSelectedTicket(null)}
+                  className="text-muted-foreground hover:text-muted-foreground"
+                >
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -566,18 +669,34 @@ export default function SupportPage() {
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div>
-                          <p className="text-sm text-muted-foreground">Subject</p>
-                          <p className="font-medium text-lg">{selectedTicket.ticket.subject}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Subject
+                          </p>
+                          <p className="font-medium text-lg">
+                            {selectedTicket.ticket.subject}
+                          </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">From</p>
-                            <p className="font-medium">{selectedTicket.ticket.name}</p>
-                            <p className="text-sm text-muted-foreground">{selectedTicket.ticket.email}</p>
+                            <p className="text-sm text-muted-foreground">
+                              From
+                            </p>
+                            <p className="font-medium">
+                              {selectedTicket.ticket.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedTicket.ticket.email}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Created</p>
-                            <p className="font-medium">{new Date(selectedTicket.ticket.createdAt).toLocaleString()}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Created
+                            </p>
+                            <p className="font-medium">
+                              {new Date(
+                                selectedTicket.ticket.createdAt,
+                              ).toLocaleString()}
+                            </p>
                           </div>
                         </div>
                         <div className="flex gap-3 flex-wrap">
@@ -588,11 +707,19 @@ export default function SupportPage() {
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <p className="text-sm text-muted-foreground mb-2">Quick Actions</p>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Quick Actions
+                          </p>
                           <div className="flex flex-wrap gap-2">
                             {selectedTicket.ticket.status !== "RESOLVED" && (
                               <button
-                                onClick={() => performAction(selectedTicket.ticket.id, "updateStatus", "RESOLVED")}
+                                onClick={() =>
+                                  performAction(
+                                    selectedTicket.ticket.id,
+                                    "updateStatus",
+                                    "RESOLVED",
+                                  )
+                                }
                                 disabled={actionLoading}
                                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:opacity-50"
                               >
@@ -602,7 +729,13 @@ export default function SupportPage() {
                             )}
                             {selectedTicket.ticket.status === "NEW" && (
                               <button
-                                onClick={() => performAction(selectedTicket.ticket.id, "updateStatus", "IN_PROGRESS")}
+                                onClick={() =>
+                                  performAction(
+                                    selectedTicket.ticket.id,
+                                    "updateStatus",
+                                    "IN_PROGRESS",
+                                  )
+                                }
                                 disabled={actionLoading}
                                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 disabled:opacity-50"
                               >
@@ -612,7 +745,13 @@ export default function SupportPage() {
                             )}
                             {selectedTicket.ticket.priority !== "URGENT" && (
                               <button
-                                onClick={() => performAction(selectedTicket.ticket.id, "updatePriority", "URGENT")}
+                                onClick={() =>
+                                  performAction(
+                                    selectedTicket.ticket.id,
+                                    "updatePriority",
+                                    "URGENT",
+                                  )
+                                }
                                 disabled={actionLoading}
                                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:opacity-50"
                               >
@@ -624,9 +763,12 @@ export default function SupportPage() {
                         </div>
                         {selectedTicket.ticket.assignedAdmin && (
                           <div>
-                            <p className="text-sm text-muted-foreground">Assigned To</p>
+                            <p className="text-sm text-muted-foreground">
+                              Assigned To
+                            </p>
                             <p className="font-medium">
-                              {selectedTicket.ticket.assignedAdmin.name || selectedTicket.ticket.assignedAdmin.email}
+                              {selectedTicket.ticket.assignedAdmin.name ||
+                                selectedTicket.ticket.assignedAdmin.email}
                             </p>
                           </div>
                         )}
@@ -635,22 +777,31 @@ export default function SupportPage() {
 
                     {/* Original Message */}
                     <div className="border-t pt-4">
-                      <p className="text-sm text-muted-foreground mb-2">Original Message</p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Original Message
+                      </p>
                       <div className="bg-secondary/50 rounded-2xl p-4">
-                        <p className="text-foreground whitespace-pre-wrap">{selectedTicket.ticket.message}</p>
+                        <p className="text-foreground whitespace-pre-wrap">
+                          {selectedTicket.ticket.message}
+                        </p>
                       </div>
                     </div>
 
                     {/* Conversation Thread */}
                     {selectedTicket.ticket.responses.length > 0 && (
                       <div className="border-t pt-4">
-                        <p className="text-sm text-muted-foreground mb-3">Conversation ({selectedTicket.ticket.responses.length} replies)</p>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Conversation ({selectedTicket.ticket.responses.length}{" "}
+                          replies)
+                        </p>
                         <div className="space-y-4">
                           {selectedTicket.ticket.responses.map((response) => (
                             <div
                               key={response.id}
                               className={`p-4 rounded-2xl ${
-                                response.isFromAdmin ? "bg-primary/5 ml-4" : "bg-secondary/50 mr-4"
+                                response.isFromAdmin
+                                  ? "bg-primary/5 ml-4"
+                                  : "bg-secondary/50 mr-4"
                               }`}
                             >
                               <div className="flex justify-between items-start mb-2">
@@ -664,18 +815,23 @@ export default function SupportPage() {
                                       {selectedTicket.ticket.name}
                                     </span>
                                   )}
-                                  {response.isFromAdmin && response.emailSent && (
-                                    <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                                      <Mail className="h-3 w-3" />
-                                      Emailed
-                                    </span>
-                                  )}
+                                  {response.isFromAdmin &&
+                                    response.emailSent && (
+                                      <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                                        <Mail className="h-3 w-3" />
+                                        Emailed
+                                      </span>
+                                    )}
                                 </div>
                                 <span className="text-xs text-muted-foreground">
-                                  {new Date(response.createdAt).toLocaleString()}
+                                  {new Date(
+                                    response.createdAt,
+                                  ).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="text-foreground whitespace-pre-wrap">{response.message}</p>
+                              <p className="text-foreground whitespace-pre-wrap">
+                                {response.message}
+                              </p>
                             </div>
                           ))}
                         </div>
@@ -684,7 +840,9 @@ export default function SupportPage() {
 
                     {/* Reply Form */}
                     <div className="border-t pt-4">
-                      <p className="text-sm text-muted-foreground mb-2">Send a Reply</p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Send a Reply
+                      </p>
                       <textarea
                         value={responseText}
                         onChange={(e) => setResponseText(e.target.value)}
@@ -720,9 +878,13 @@ export default function SupportPage() {
                     {/* Internal Notes */}
                     {selectedTicket.ticket.internalNotes && (
                       <div className="border-t pt-4">
-                        <p className="text-sm text-muted-foreground mb-2">Internal Notes</p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Internal Notes
+                        </p>
                         <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
-                          <p className="text-foreground whitespace-pre-wrap text-sm">{selectedTicket.ticket.internalNotes}</p>
+                          <p className="text-foreground whitespace-pre-wrap text-sm">
+                            {selectedTicket.ticket.internalNotes}
+                          </p>
                         </div>
                       </div>
                     )}

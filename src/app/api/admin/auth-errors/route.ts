@@ -25,14 +25,21 @@ export async function GET(request: NextRequest) {
 
     switch (view) {
       case "recent": {
-        const errorType = searchParams.get("errorType") as AuthErrorType | undefined;
+        const errorType = searchParams.get("errorType") as
+          | AuthErrorType
+          | undefined;
         const isResolved = searchParams.get("isResolved");
         const limit = parseInt(searchParams.get("limit") || "50", 10);
 
         const errors = await getRecentAuthErrors({
           limit,
           errorType: errorType || undefined,
-          isResolved: isResolved === "true" ? true : isResolved === "false" ? false : undefined,
+          isResolved:
+            isResolved === "true"
+              ? true
+              : isResolved === "false"
+                ? false
+                : undefined,
         });
 
         return NextResponse.json({ errors });
@@ -59,7 +66,7 @@ export async function GET(request: NextRequest) {
         if (!errorType) {
           return NextResponse.json(
             { error: "errorType is required for breakdown view" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -102,15 +109,18 @@ export async function GET(request: NextRequest) {
 
       default:
         return NextResponse.json(
-          { error: "Invalid view parameter. Use: recent, summary, today, breakdown, or overview" },
-          { status: 400 }
+          {
+            error:
+              "Invalid view parameter. Use: recent, summary, today, breakdown, or overview",
+          },
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("Auth errors API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch auth errors" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -129,28 +139,24 @@ export async function POST(request: NextRequest) {
       if (!errorId) {
         return NextResponse.json(
           { error: "errorId is required" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
-      const resolved = await resolveAuthError(
-        errorId,
-        session.id,
-        resolution
-      );
+      const resolved = await resolveAuthError(errorId, session.id, resolution);
 
       return NextResponse.json({ success: true, error: resolved });
     }
 
     return NextResponse.json(
       { error: "Invalid action. Use: resolve" },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error("Auth errors action error:", error);
     return NextResponse.json(
       { error: "Failed to perform action" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

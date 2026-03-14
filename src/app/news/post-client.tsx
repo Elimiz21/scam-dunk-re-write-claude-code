@@ -85,7 +85,6 @@ export default function BlogPostClient({
     window.location.href = "/";
   };
 
-
   return (
     <div className="min-h-screen bg-background">
       {articleSchema && <JsonLd data={articleSchema} />}
@@ -122,10 +121,14 @@ export default function BlogPostClient({
               </div>
             )}
 
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">{post.title}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              {post.title}
+            </h1>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6">
-              <Link href={`/authors/${post.author.toLowerCase().replace(/\s+/g, "-")}`}>
+              <Link
+                href={`/authors/${post.author.toLowerCase().replace(/\s+/g, "-")}`}
+              >
                 <span className="inline-flex items-center gap-1 hover:text-primary cursor-pointer">
                   <User className="h-4 w-4" />
                   {post.author}
@@ -148,7 +151,9 @@ export default function BlogPostClient({
             </div>
 
             {post.excerpt && (
-              <p className="text-lg text-muted-foreground mb-6">{post.excerpt}</p>
+              <p className="text-lg text-muted-foreground mb-6">
+                {post.excerpt}
+              </p>
             )}
 
             <div
@@ -160,7 +165,10 @@ export default function BlogPostClient({
           {post.tags && (
             <div className="mt-6 flex flex-wrap gap-2">
               {post.tags.split(",").map((tag) => (
-                <span key={tag} className="text-xs px-2 py-1 rounded-full bg-secondary">
+                <span
+                  key={tag}
+                  className="text-xs px-2 py-1 rounded-full bg-secondary"
+                >
                   #{tag.trim()}
                 </span>
               ))}
@@ -192,11 +200,14 @@ export default function BlogPostClient({
                       )}
                       {relatedPost.publishedAt && (
                         <p className="text-xs text-muted-foreground">
-                          {new Date(relatedPost.publishedAt).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
+                          {new Date(relatedPost.publishedAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )}
                         </p>
                       )}
                     </div>

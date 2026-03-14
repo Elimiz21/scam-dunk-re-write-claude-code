@@ -15,7 +15,8 @@ const forgotPasswordSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: strict for password reset requests (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } = await rateLimit(request, "strict");
+    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
+      await rateLimit(request, "strict");
     if (!rateLimitSuccess) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -38,17 +39,20 @@ export async function POST(request: NextRequest) {
       if (!turnstileToken) {
         return NextResponse.json(
           { error: "Please complete the CAPTCHA verification" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
-      const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+      const ip =
+        request.headers.get("x-forwarded-for") ||
+        request.headers.get("x-real-ip") ||
+        undefined;
       const isValidCaptcha = await verifyTurnstileToken(turnstileToken, ip);
 
       if (!isValidCaptcha) {
         return NextResponse.json(
           { error: "CAPTCHA verification failed. Please try again." },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -70,7 +74,10 @@ export async function POST(request: NextRequest) {
 
     if (!emailSent) {
       console.error("Failed to send password reset email to:", email);
-      const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+      const ip =
+        request.headers.get("x-forwarded-for") ||
+        request.headers.get("x-real-ip") ||
+        undefined;
       await logAuthError(
         {
           email,
@@ -84,7 +91,7 @@ export async function POST(request: NextRequest) {
           errorCode: "RESEND_API_ERROR",
           message: "Failed to send password reset email",
           details: { stage: "password-reset" },
-        }
+        },
       );
       // Still return success to prevent email enumeration, but log the failure
     }
@@ -92,7 +99,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Forgot password error:", error);
-    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined;
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      undefined;
     await logAuthError(
       {
         ipAddress: ip,
@@ -104,11 +114,11 @@ export async function POST(request: NextRequest) {
         errorCode: "UNKNOWN_ERROR",
         message: "Failed to process password reset request",
         error: error instanceof Error ? error : undefined,
-      }
+      },
     );
     return NextResponse.json(
       { error: "Failed to process request" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

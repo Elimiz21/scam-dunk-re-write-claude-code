@@ -22,7 +22,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
-async function findStockInPath(path: string, symbol: string): Promise<EnhancedStock | null> {
+async function findStockInPath(
+  path: string,
+  symbol: string,
+): Promise<EnhancedStock | null> {
   const partial = await fetchPartialArray<EnhancedStock>(path, 3_000_000);
   const partialMatch = partial.find((s) => s.symbol.toUpperCase() === symbol);
   if (partialMatch) return partialMatch;
@@ -34,7 +37,7 @@ async function findStockInPath(path: string, symbol: string): Promise<EnhancedSt
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ symbol: string }> }
+  { params }: { params: Promise<{ symbol: string }> },
 ) {
   try {
     const session = await getAdminSession();
@@ -54,7 +57,9 @@ export async function GET(
     for (const date of dates.slice(0, 5)) {
       const highRiskPath = getHighRiskPath(date, files);
       const evalPath = getEvalPath(date, files);
-      const searchPaths = [highRiskPath, evalPath].filter((p): p is string => Boolean(p));
+      const searchPaths = [highRiskPath, evalPath].filter((p): p is string =>
+        Boolean(p),
+      );
       if (searchPaths.length === 0) continue;
 
       let match: EnhancedStock | null = null;
@@ -72,19 +77,19 @@ export async function GET(
     if (!latestStock || !foundDate) {
       return NextResponse.json(
         { error: `Stock ${upperSymbol} not found in recent scans` },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Get social media data for this stock
     let socialData = null;
     const socialScan = await fetchSmallFile<SocialScanFile>(
-      `social-media-scans/social-media-scan-${foundDate}.json`
+      `social-media-scans/social-media-scan-${foundDate}.json`,
     ).catch(() => null);
 
     if (socialScan) {
       const socialMatch = socialScan.results?.find(
-        (r) => r.symbol.toUpperCase() === upperSymbol
+        (r) => r.symbol.toUpperCase() === upperSymbol,
       );
       if (socialMatch) {
         socialData = socialMatch;
@@ -93,7 +98,7 @@ export async function GET(
 
     // Check scheme membership
     const schemeDb = await fetchSmallFile<SchemeDatabase>(
-      "scheme-tracking/scheme-database.json"
+      "scheme-tracking/scheme-database.json",
     );
     let schemeData = null;
     if (schemeDb) {
@@ -106,7 +111,13 @@ export async function GET(
     }
 
     // Build historical data (risk score across dates)
-    const history: { date: string; totalScore: number; riskLevel: string; price: number | null; aiCombined: number | null }[] = [];
+    const history: {
+      date: string;
+      totalScore: number;
+      riskLevel: string;
+      price: number | null;
+      aiCombined: number | null;
+    }[] = [];
 
     // Check last 10 dates for this stock
     for (const date of dates.slice(0, 10)) {
@@ -137,7 +148,7 @@ export async function GET(
     console.error("Stock deep dive error:", error);
     return NextResponse.json(
       { error: "Failed to fetch stock data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
