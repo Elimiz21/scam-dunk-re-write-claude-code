@@ -44,6 +44,7 @@ interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   onNewScan: () => void;
+  refreshKey?: number;
 }
 
 function getRiskIcon(riskLevel: string) {
@@ -85,16 +86,37 @@ function getRiskBg(riskLevel: string) {
   }
 }
 
-export function Sidebar({ isOpen, onToggle, onNewScan }: SidebarProps) {
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+export function Sidebar({
+  isOpen,
+  onToggle,
+  onNewScan,
+  refreshKey = 0,
+}: SidebarProps) {
   const { data: session } = useSession();
   const [recentScans, setRecentScans] = useState<ScanHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Re-fetch scans when sidebar opens OR when refreshKey changes (new scan completed)
   useEffect(() => {
     if (session?.user && isOpen) {
       fetchRecentScans();
     }
-  }, [session, isOpen]);
+  }, [session, isOpen, refreshKey]);
 
   const fetchRecentScans = async () => {
     setIsLoading(true);

@@ -24,6 +24,14 @@ import { LandingOptionA } from "@/components/landing/LandingOptionA";
 import { useToast } from "@/components/ui/toast";
 import { Step } from "@/components/LoadingStepper";
 
+/** Normalize raw risk score to 0-100 (matches mobile app) */
+function normalizeRiskScore(rawScore: number): number {
+  if (rawScore <= 0) return 0;
+  if (rawScore < 2) return Math.round((rawScore / 2) * 30);
+  if (rawScore < 5) return Math.round(30 + ((rawScore - 2) / 3) * 30);
+  return Math.min(Math.round(60 + ((rawScore - 5) / 15) * 40), 100);
+}
+
 export default function HomeContent() {
   const { data: session, status } = useSession();
   const { addToast } = useToast();
@@ -31,9 +39,15 @@ export default function HomeContent() {
   // Sidebar defaults closed for non-logged-in users (landing page)
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Open sidebar once session is confirmed
+  // Open sidebar once session is confirmed (desktop only — mobile users should see the scan input)
   useEffect(() => {
-    if (session) setSidebarOpen(true);
+    if (session) {
+      const isMobile =
+        typeof window !== "undefined" && window.innerWidth < 1024;
+      if (!isMobile) {
+        setSidebarOpen(true);
+      }
+    }
   }, [session]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -44,6 +58,7 @@ export default function HomeContent() {
   const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [currentTicker, setCurrentTicker] = useState("");
   const [hasChatData, setHasChatData] = useState(false);
+  const [scanRefreshKey, setScanRefreshKey] = useState(0);
 
   const [steps, setSteps] = useState<Step[]>([
     { label: "Validating ticker symbol", status: "pending" },
@@ -335,6 +350,7 @@ export default function HomeContent() {
       } else {
         setResult(responseData as RiskResponse);
         setUsage(responseData.usage);
+        setScanRefreshKey((k) => k + 1);
         setSidebarOpen(false);
       }
     } catch (err) {
@@ -355,7 +371,8 @@ export default function HomeContent() {
 
   const handleShare = async () => {
     if (result) {
-      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${result.riskLevel} RISK (Score: ${result.totalScore})\n\nCheck your stocks for scam red flags at ScamDunk.`;
+      const normalizedScore = normalizeRiskScore(result.totalScore);
+      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${result.riskLevel} RISK (Score: ${normalizedScore}/100)\n\nCheck your stocks for scam red flags at ScamDunk.`;
       const shareUrl =
         typeof window !== "undefined" ? window.location.href : "";
 
@@ -408,6 +425,7 @@ export default function HomeContent() {
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onNewScan={handleNewScan}
+        refreshKey={scanRefreshKey}
       />
 
       {/* Main Content */}

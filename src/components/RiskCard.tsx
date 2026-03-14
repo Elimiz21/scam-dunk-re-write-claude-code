@@ -100,6 +100,50 @@ function getRiskGlowClass(level: RiskLevel) {
   }
 }
 
+/**
+ * Normalize raw risk score (typically 0-20+) to a 0-100 scale.
+ * Aligns with the mobile app's normalizeRiskScore():
+ *   LOW  (raw 0-1)  → 0-29
+ *   MEDIUM (raw 2-4) → 30-59
+ *   HIGH  (raw 5+)   → 60-100  (caps at 100, treats 20 as practical max)
+ */
+function normalizeRiskScore(rawScore: number): number {
+  if (rawScore <= 0) return 0;
+  if (rawScore < 2) {
+    return Math.round((rawScore / 2) * 30);
+  }
+  if (rawScore < 5) {
+    return Math.round(30 + ((rawScore - 2) / 3) * 30);
+  }
+  return Math.min(Math.round(60 + ((rawScore - 5) / 15) * 40), 100);
+}
+
+function getRiskHeroBg(level: RiskLevel) {
+  switch (level) {
+    case "LOW":
+      return "bg-emerald-500/10 border-emerald-500/30";
+    case "MEDIUM":
+      return "bg-amber-500/10 border-amber-500/30";
+    case "HIGH":
+      return "bg-red-500/10 border-red-500/30";
+    case "INSUFFICIENT":
+      return "bg-gray-500/10 border-gray-500/30";
+  }
+}
+
+function getRiskScoreColor(level: RiskLevel) {
+  switch (level) {
+    case "LOW":
+      return "text-emerald-600 dark:text-emerald-400";
+    case "MEDIUM":
+      return "text-amber-600 dark:text-amber-400";
+    case "HIGH":
+      return "text-red-600 dark:text-red-400";
+    case "INSUFFICIENT":
+      return "text-gray-500 dark:text-gray-400";
+  }
+}
+
 function getRiskNarrativeClass(level: RiskLevel) {
   switch (level) {
     case "LOW":
@@ -291,36 +335,59 @@ function buildRiskFactorSummary(
 export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
   const riskFactorSummary = buildRiskFactorSummary(signals, riskLevel);
+  const displayScore = normalizeRiskScore(totalScore);
 
   return (
     <Card
       className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}
     >
-      {/* Header with Risk Level */}
+      {/* Hero Header — prominent risk level, score, and stock name */}
       <CardHeader className="pb-3">
-        {/* Top row: badge + score on left, ticker + company on right */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5">
-            {getRiskIcon(riskLevel)}
-            <Badge variant={getRiskBadgeVariant(riskLevel)} className="text-xs">
-              {riskLevel} RISK
-            </Badge>
-            <span className="text-sm text-muted-foreground inline-flex items-center gap-1 font-medium">
-              Score:{" "}
-              <span className="font-bold text-foreground">{totalScore}</span>
-              <InfoTooltip
-                term={RISK_LEVEL_TERMS.riskScore.term}
-                definition={RISK_LEVEL_TERMS.riskScore.definition}
-              />
-            </span>
-          </div>
-          <div className="text-right flex-shrink-0">
-            <p className={`font-bold text-lg ${getRiskTickerClass(riskLevel)}`}>
-              {stockSummary.ticker}
-            </p>
-            <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-              {stockSummary.companyName}
-            </p>
+        <div
+          className={`rounded-xl border p-4 sm:p-6 ${getRiskHeroBg(riskLevel)}`}
+        >
+          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
+            {/* Left: Risk level + score */}
+            <div className="flex flex-col items-center sm:items-start gap-2">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-background/80 flex items-center justify-center">
+                  {getRiskIcon(riskLevel)}
+                </div>
+                <div>
+                  <Badge
+                    variant={getRiskBadgeVariant(riskLevel)}
+                    className="text-sm px-3 py-1 font-bold"
+                  >
+                    {riskLevel} RISK
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span
+                  className={`text-4xl sm:text-5xl font-extrabold tracking-tight ${getRiskScoreColor(riskLevel)}`}
+                >
+                  {displayScore}
+                </span>
+                <span className="text-lg sm:text-xl text-muted-foreground font-medium">
+                  / 100
+                </span>
+                <InfoTooltip
+                  term={RISK_LEVEL_TERMS.riskScore.term}
+                  definition={RISK_LEVEL_TERMS.riskScore.definition}
+                />
+              </div>
+            </div>
+            {/* Right: Ticker + company name */}
+            <div className="text-center sm:text-right">
+              <p
+                className={`font-extrabold text-2xl sm:text-3xl tracking-tight ${getRiskTickerClass(riskLevel)}`}
+              >
+                {stockSummary.ticker}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-[250px]">
+                {stockSummary.companyName}
+              </p>
+            </div>
           </div>
         </div>
         {/* Narrative summary — full width, risk-accented, sits between header row and content */}
