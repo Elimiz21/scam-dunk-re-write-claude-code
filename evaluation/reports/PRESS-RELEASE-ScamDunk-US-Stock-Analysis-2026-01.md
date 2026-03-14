@@ -18,39 +18,39 @@ The analysis detected **183 stocks actively showing pump-and-dump price patterns
 
 ### Risk Distribution Across US Markets
 
-| Risk Level | Number of Stocks | Percentage |
-|------------|------------------|------------|
-| **HIGH RISK** | 1,096 | 17.4% |
-| MEDIUM RISK | 1,570 | 25.0% |
-| LOW RISK | 3,624 | 57.6% |
+| Risk Level    | Number of Stocks | Percentage |
+| ------------- | ---------------- | ---------- |
+| **HIGH RISK** | 1,096            | 17.4%      |
+| MEDIUM RISK   | 1,570            | 25.0%      |
+| LOW RISK      | 3,624            | 57.6%      |
 
 ### Pattern-Based Warning Signals Detected
 
 These signals are based on real-time price and volume analysis from Yahoo Finance data:
 
-| Warning Signal | Stocks Affected | Description |
-|----------------|-----------------|-------------|
-| **Pump-and-Dump Pattern** | 183 (2.9%) | Price spiked 25%+ then dropped 20%+ — classic manipulation signature |
-| **7-Day Price Spike** | 239 (3.8%) | Abnormal price movement (25-50%+) in past week |
-| **Volume Explosion** | 90 (1.4%) | Trading volume 3-5x above 30-day average |
-| High Volatility | 954 (15.2%) | Daily price swings exceeding 5% |
-| Overbought RSI | 374 (5.9%) | Technical indicator showing unsustainable price levels |
+| Warning Signal            | Stocks Affected | Description                                                          |
+| ------------------------- | --------------- | -------------------------------------------------------------------- |
+| **Pump-and-Dump Pattern** | 183 (2.9%)      | Price spiked 25%+ then dropped 20%+ — classic manipulation signature |
+| **7-Day Price Spike**     | 239 (3.8%)      | Abnormal price movement (25-50%+) in past week                       |
+| **Volume Explosion**      | 90 (1.4%)       | Trading volume 3-5x above 30-day average                             |
+| High Volatility           | 954 (15.2%)     | Daily price swings exceeding 5%                                      |
+| Overbought RSI            | 374 (5.9%)      | Technical indicator showing unsustainable price levels               |
 
 ### Structural Risk Factors
 
-| Risk Factor | Stocks Affected | Description |
-|-------------|-----------------|-------------|
-| Small Market Cap | 2,019 (32.1%) | Under $300M — easier to manipulate |
-| Penny Stock Price | 1,709 (27.2%) | Trading below $5/share |
-| Micro Liquidity | 883 (14.0%) | Very low daily trading volume |
+| Risk Factor       | Stocks Affected | Description                        |
+| ----------------- | --------------- | ---------------------------------- |
+| Small Market Cap  | 2,019 (32.1%)   | Under $300M — easier to manipulate |
+| Penny Stock Price | 1,709 (27.2%)   | Trading below $5/share             |
+| Micro Liquidity   | 883 (14.0%)     | Very low daily trading volume      |
 
 ### Risk by Exchange
 
-| Exchange | Total Analyzed | HIGH Risk | % High Risk |
-|----------|---------------|-----------|-------------|
-| **AMEX** | 272 | 103 | **37.9%** |
-| **NASDAQ** | 3,677 | 953 | **25.9%** |
-| NYSE | 2,341 | 40 | 1.7% |
+| Exchange   | Total Analyzed | HIGH Risk | % High Risk |
+| ---------- | -------------- | --------- | ----------- |
+| **AMEX**   | 272            | 103       | **37.9%**   |
+| **NASDAQ** | 3,677          | 953       | **25.9%**   |
+| NYSE       | 2,341          | 40        | 1.7%        |
 
 **Key Insight:** AMEX and NASDAQ small-cap listings show significantly higher manipulation risk compared to NYSE-listed securities.
 
@@ -60,18 +60,18 @@ These signals are based on real-time price and volume analysis from Yahoo Financ
 
 The following stocks scored highest on ScamDunk's risk assessment (scores 14-15 out of possible 20+):
 
-| Rank | Symbol | Company | Risk Score | Key Warning Signals |
-|------|--------|---------|------------|---------------------|
-| 1 | ZCMD | Zhongchao Inc. | 15 | Pump-and-dump pattern, volume explosion, penny stock |
-| 2 | VSSYW | Versus Systems Warrants | 15 | 53.6% daily volatility, pump-and-dump pattern |
-| 3 | HXHX | Haoxin Holdings | 14 | Volume explosion, spike-then-drop pattern |
-| 4 | PCLA | Processa Pharmaceuticals | 14 | Multiple manipulation signals |
-| 5 | HIHO | Highway Holdings | 14 | Pump-and-dump pattern detected |
-| 6 | XTKG | X3 Holdings | 14 | Volume explosion, high volatility |
-| 7 | RPGL | Recruit Global | 14 | Classic pump pattern |
-| 8 | SOBR | SOBR Safe Inc. | 14 | Multiple warning signals |
-| 9 | ECDA | ECD Automotive | 14 | Pump-and-dump indicators |
-| 10 | GVH | Globavend Holdings | 14 | Pattern manipulation signals |
+| Rank | Symbol | Company                  | Risk Score | Key Warning Signals                                  |
+| ---- | ------ | ------------------------ | ---------- | ---------------------------------------------------- |
+| 1    | ZCMD   | Zhongchao Inc.           | 15         | Pump-and-dump pattern, volume explosion, penny stock |
+| 2    | VSSYW  | Versus Systems Warrants  | 15         | 53.6% daily volatility, pump-and-dump pattern        |
+| 3    | HXHX   | Haoxin Holdings          | 14         | Volume explosion, spike-then-drop pattern            |
+| 4    | PCLA   | Processa Pharmaceuticals | 14         | Multiple manipulation signals                        |
+| 5    | HIHO   | Highway Holdings         | 14         | Pump-and-dump pattern detected                       |
+| 6    | XTKG   | X3 Holdings              | 14         | Volume explosion, high volatility                    |
+| 7    | RPGL   | Recruit Global           | 14         | Classic pump pattern                                 |
+| 8    | SOBR   | SOBR Safe Inc.           | 14         | Multiple warning signals                             |
+| 9    | ECDA   | ECD Automotive           | 14         | Pump-and-dump indicators                             |
+| 10   | GVH    | Globavend Holdings       | 14         | Pattern manipulation signals                         |
 
 **Disclaimer:** These stocks are flagged based on quantitative pattern analysis. Inclusion on this list does not constitute proof of illegal activity. Investors should conduct their own due diligence.
 
@@ -80,6 +80,7 @@ The following stocks scored highest on ScamDunk's risk assessment (scores 14-15 
 ## Methodology
 
 ### Data Sources
+
 - **Stock Universe:** 6,290 US-listed stocks (NASDAQ, NYSE, AMEX) with available price data
 - **Price Data:** 60 days of historical OHLCV data from Yahoo Finance
 - **Analysis Date:** January 2026
@@ -107,6 +108,7 @@ ScamDunk employs a multi-factor risk scoring system:
    - **LOW Risk:** Score < 2
 
 ### Validation
+
 - Real Yahoo Finance price data used for 100% of analyzed stocks
 - Pattern detection algorithms validated against known historical manipulation cases
 - Thresholds calibrated based on SEC enforcement action research
@@ -118,6 +120,7 @@ ScamDunk employs a multi-factor risk scoring system:
 ### The Pump-and-Dump Problem
 
 Pump-and-dump schemes remain one of the most common forms of securities fraud targeting retail investors. The SEC has noted an increase in such schemes, particularly involving:
+
 - Small-cap and micro-cap stocks
 - Companies with limited public information
 - Securities promoted through social media and messaging apps
@@ -125,6 +128,7 @@ Pump-and-dump schemes remain one of the most common forms of securities fraud ta
 ### Protecting Retail Investors
 
 The 2021 "meme stock" phenomenon and subsequent market events have highlighted the vulnerability of retail investors to coordinated manipulation. ScamDunk's AI-powered analysis provides:
+
 - **Early Warning:** Detection of manipulation patterns as they develop
 - **Quantified Risk:** Objective scoring system for investment decisions
 - **Transparency:** Clear explanation of why stocks are flagged
@@ -134,12 +138,14 @@ The 2021 "meme stock" phenomenon and subsequent market events have highlighted t
 ## About ScamDunk
 
 ScamDunk is an AI-powered investment protection platform that helps retail investors identify potential stock scams before they lose money. The system analyzes:
+
 - Market data patterns
 - Price and volume anomalies
 - Structural risk factors
 - Communication red flags (unsolicited tips, pressure tactics, secrecy)
 
 ### Technology Stack
+
 - Real-time market data integration
 - Machine learning anomaly detection
 - Research-validated risk thresholds
@@ -203,4 +209,4 @@ Score Range    Count    Notable Examples
 
 **END OF PRESS RELEASE**
 
-*This analysis is provided for informational purposes only and does not constitute investment advice. Past patterns do not guarantee future results. Always consult with a qualified financial advisor before making investment decisions.*
+_This analysis is provided for informational purposes only and does not constitute investment advice. Past patterns do not guarantee future results. Always consult with a qualified financial advisor before making investment decisions._

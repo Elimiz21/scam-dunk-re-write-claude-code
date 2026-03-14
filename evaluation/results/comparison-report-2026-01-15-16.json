@@ -1,9 +1,6 @@
 {
   "reportDate": "2026-01-24T18:39:22.652224Z",
-  "scanDates": [
-    "2026-01-15",
-    "2026-01-16"
-  ],
+  "scanDates": ["2026-01-15", "2026-01-16"],
   "summary": {
     "jan15": {
       "totalEvaluated": 6552,
@@ -1370,11 +1367,7 @@
         "scoreJan15": 11,
         "scoreJan16": 6,
         "maxScore": 11,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "PTIXW",
@@ -1667,11 +1660,7 @@
         "scoreJan15": 10,
         "scoreJan16": 6,
         "maxScore": 10,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "SDOT",
@@ -1730,11 +1719,7 @@
         "scoreJan15": 9,
         "scoreJan16": 6,
         "maxScore": 9,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "OPTX",
@@ -1761,11 +1746,7 @@
         "scoreJan15": 9,
         "scoreJan16": 6,
         "maxScore": 9,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "AGRZ",
@@ -1776,11 +1757,7 @@
         "scoreJan15": 9,
         "scoreJan16": 6,
         "maxScore": 9,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "MGRX",
@@ -1871,11 +1848,7 @@
         "scoreJan15": 9,
         "scoreJan16": 6,
         "maxScore": 9,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "CYCN",
@@ -1886,11 +1859,7 @@
         "scoreJan15": 9,
         "scoreJan16": 6,
         "maxScore": 9,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "MASK",
@@ -1933,11 +1902,7 @@
         "scoreJan15": 9,
         "scoreJan16": 7,
         "maxScore": 9,
-        "signalsJan16": [
-          "SPIKE_7D",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["SPIKE_7D", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "SHFSW",
@@ -1964,11 +1929,7 @@
         "scoreJan15": 8,
         "scoreJan16": 5,
         "maxScore": 8,
-        "signalsJan16": [
-          "SPIKE_THEN_DROP",
-          "OVERBOUGHT_RSI",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["SPIKE_THEN_DROP", "OVERBOUGHT_RSI", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "APUS",
@@ -2603,11 +2564,7 @@
         "scoreJan15": 8,
         "scoreJan16": 7,
         "maxScore": 8,
-        "signalsJan16": [
-          "SPIKE_7D",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["SPIKE_7D", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "KPLTW",
@@ -2890,11 +2847,7 @@
         "scoreJan15": 7,
         "scoreJan16": 7,
         "maxScore": 7,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "MICRO_LIQUIDITY",
-          "SPIKE_THEN_DROP"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "SPIKE_THEN_DROP"]
       },
       {
         "symbol": "CPHI",
@@ -2905,11 +2858,7 @@
         "scoreJan15": 7,
         "scoreJan16": 7,
         "maxScore": 7,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "MICRO_LIQUIDITY",
-          "SPIKE_THEN_DROP"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "SPIKE_THEN_DROP"]
       },
       {
         "symbol": "BRLSW",
@@ -2920,11 +2869,7 @@
         "scoreJan15": 7,
         "scoreJan16": 7,
         "maxScore": 7,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "MICRO_LIQUIDITY",
-          "SPIKE_THEN_DROP"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "MICRO_LIQUIDITY", "SPIKE_THEN_DROP"]
       },
       {
         "symbol": "CNTX",
@@ -2935,11 +2880,7 @@
         "scoreJan15": 7,
         "scoreJan16": 6,
         "maxScore": 7,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "AFJK",
@@ -2950,11 +2891,7 @@
         "scoreJan15": 7,
         "scoreJan16": 7,
         "maxScore": 7,
-        "signalsJan16": [
-          "SPIKE_7D",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["SPIKE_7D", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "MXC",
@@ -2965,10 +2902,7 @@
         "scoreJan15": 7,
         "scoreJan16": 5,
         "maxScore": 7,
-        "signalsJan16": [
-          "MICRO_LIQUIDITY",
-          "SPIKE_THEN_DROP"
-        ]
+        "signalsJan16": ["MICRO_LIQUIDITY", "SPIKE_THEN_DROP"]
       },
       {
         "symbol": "ASTI",
@@ -2979,11 +2913,7 @@
         "scoreJan15": 6,
         "scoreJan16": 7,
         "maxScore": 7,
-        "signalsJan16": [
-          "SPIKE_7D",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["SPIKE_7D", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "IRWD",
@@ -3026,11 +2956,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "ASPCU",
@@ -3056,11 +2982,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "NTRB",
@@ -3071,11 +2993,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "YMT",
@@ -3086,11 +3004,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "AIRJ",
@@ -3101,11 +3015,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "AEHL",
@@ -3116,11 +3026,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "VNRX",
@@ -3131,11 +3037,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "HYFM",
@@ -3146,11 +3048,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "ATGL",
@@ -3176,11 +3074,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "SRFM",
@@ -3191,11 +3085,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "WOK",
@@ -3206,11 +3096,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "LHSW",
@@ -3221,11 +3107,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "DTCK",
@@ -3236,11 +3118,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "CBUS",
@@ -3251,11 +3129,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "GRDX",
@@ -3266,11 +3140,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "ILAG",
@@ -3281,11 +3151,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "OPTT",
@@ -3296,11 +3162,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "TSE",
@@ -3311,11 +3173,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "CETX",
@@ -3326,11 +3184,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "FMFC",
@@ -3341,11 +3195,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "ANGH",
@@ -3356,11 +3206,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "MEHA",
@@ -3371,11 +3217,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "FAT",
@@ -3386,11 +3228,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "CCHH",
@@ -3401,11 +3239,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "PFSA",
@@ -3416,11 +3250,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "UPC",
@@ -3431,11 +3261,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "NVAWW",
@@ -3461,11 +3287,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "ABVE",
@@ -3476,11 +3298,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "CABR",
@@ -3491,11 +3309,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "LVRO",
@@ -3506,11 +3320,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "FTEL",
@@ -3521,11 +3331,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "TMDE",
@@ -3536,11 +3342,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "CHOW",
@@ -3551,11 +3353,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "MRKR",
@@ -3566,11 +3364,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "WTO",
@@ -3581,11 +3375,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "ORBS",
@@ -3596,11 +3386,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "VVOS",
@@ -3611,11 +3397,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "BNZI",
@@ -3626,11 +3408,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "TDIC",
@@ -3641,11 +3419,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "TDTH",
@@ -3656,11 +3430,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "PAVS",
@@ -3671,11 +3441,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "CCTG",
@@ -3686,11 +3452,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "MENS",
@@ -3701,11 +3463,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "TOVX",
@@ -3716,11 +3474,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "CUE",
@@ -3731,11 +3485,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "DAIC",
@@ -3746,11 +3496,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "CANF",
@@ -3761,11 +3507,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "SOPA",
@@ -3776,11 +3518,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "STAI",
@@ -3791,11 +3529,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "GVH",
@@ -3806,11 +3540,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "LZMH",
@@ -3821,11 +3551,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "UAVS",
@@ -3836,11 +3562,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "MIMI",
@@ -3851,11 +3573,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "RPGL",
@@ -3866,11 +3584,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "IBIO",
@@ -3881,11 +3595,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "SLS",
@@ -3896,11 +3606,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "GPUS",
@@ -3911,11 +3617,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "SHMDW",
@@ -3926,11 +3628,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "ULY",
@@ -3941,11 +3639,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "HYFT",
@@ -3956,11 +3650,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "VSME",
@@ -3971,11 +3661,7 @@
         "scoreJan15": 6,
         "scoreJan16": 6,
         "maxScore": 6,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP",
-          "HIGH_VOLATILITY"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP", "HIGH_VOLATILITY"]
       },
       {
         "symbol": "MAMO",
@@ -3986,10 +3672,7 @@
         "scoreJan15": 5,
         "scoreJan16": 5,
         "maxScore": 5,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP"]
       },
       {
         "symbol": "AMIX",
@@ -4000,10 +3683,7 @@
         "scoreJan15": 5,
         "scoreJan16": 5,
         "maxScore": 5,
-        "signalsJan16": [
-          "MICROCAP_PRICE",
-          "SPIKE_THEN_DROP"
-        ]
+        "signalsJan16": ["MICROCAP_PRICE", "SPIKE_THEN_DROP"]
       },
       {
         "symbol": "ADXN",
@@ -4014,10 +3694,7 @@
         "scoreJan15": 5,
         "scoreJan16": 5,
         "maxScore": 5,
-        "signalsJan16": [
-          "MICRO_LIQUIDITY",
-          "SPIKE_THEN_DROP"
-        ]
+        "signalsJan16": ["MICRO_LIQUIDITY", "SPIKE_THEN_DROP"]
       }
     ]
   }

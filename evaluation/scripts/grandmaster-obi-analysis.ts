@@ -4,18 +4,18 @@
  * Uses real FMP API price data
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 const FMP_API_KEY = process.env.FMP_API_KEY;
-const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
+const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 
 interface StockInfo {
   symbol: string;
   name: string;
   promotionDate: string;
   promotionPrice: number;
-  peakPrice: number;  // From press release
+  peakPrice: number; // From press release
   riskScore: number;
   sector: string;
   industry: string;
@@ -51,112 +51,115 @@ interface StockAnalysis {
 // Stocks from January 2026 ScamDunk Press Release - Grandmaster-Obi promotions
 const STOCKS_TO_ANALYZE: StockInfo[] = [
   {
-    symbol: 'LVRO',
-    name: 'Lavoro Limited',
-    promotionDate: '2025-12-31',
+    symbol: "LVRO",
+    name: "Lavoro Limited",
+    promotionDate: "2025-12-31",
     promotionPrice: 0.18,
     peakPrice: 1.25,
     riskScore: 14,
-    sector: 'Basic Materials',
-    industry: 'Agricultural Inputs'
+    sector: "Basic Materials",
+    industry: "Agricultural Inputs",
   },
   {
-    symbol: 'SIDU',
-    name: 'Sidus Space, Inc.',
-    promotionDate: '2025-12-31',
-    promotionPrice: 0.90,
+    symbol: "SIDU",
+    name: "Sidus Space, Inc.",
+    promotionDate: "2025-12-31",
+    promotionPrice: 0.9,
     peakPrice: 4.44,
     riskScore: 13,
-    sector: 'Industrials',
-    industry: 'Aerospace & Defense'
+    sector: "Industrials",
+    industry: "Aerospace & Defense",
   },
   {
-    symbol: 'ANPA',
-    name: 'Rich Sparkle Holdings Limited',
-    promotionDate: '2026-01-07',
-    promotionPrice: 24.40,
+    symbol: "ANPA",
+    name: "Rich Sparkle Holdings Limited",
+    promotionDate: "2026-01-07",
+    promotionPrice: 24.4,
     peakPrice: 108.68,
     riskScore: 9,
-    sector: 'Industrials',
-    industry: 'Specialty Business Services'
+    sector: "Industrials",
+    industry: "Specialty Business Services",
   },
   {
-    symbol: 'MRNO',
-    name: 'Murano Global Investments PLC',
-    promotionDate: '2025-12-31',
+    symbol: "MRNO",
+    name: "Murano Global Investments PLC",
+    promotionDate: "2025-12-31",
     promotionPrice: 0.55,
-    peakPrice: 2.20,
+    peakPrice: 2.2,
     riskScore: 12,
-    sector: 'Real Estate',
-    industry: 'Real Estate - Development'
+    sector: "Real Estate",
+    industry: "Real Estate - Development",
   },
   {
-    symbol: 'UAVS',
-    name: 'AgEagle Aerial Systems, Inc.',
-    promotionDate: '2025-12-31',
-    promotionPrice: 0.83,  // Estimated based on 105% 7-day gain to $1.70
-    peakPrice: 1.70,
+    symbol: "UAVS",
+    name: "AgEagle Aerial Systems, Inc.",
+    promotionDate: "2025-12-31",
+    promotionPrice: 0.83, // Estimated based on 105% 7-day gain to $1.70
+    peakPrice: 1.7,
     riskScore: 12,
-    sector: 'Technology',
-    industry: 'Computer Hardware'
+    sector: "Technology",
+    industry: "Computer Hardware",
   },
   {
-    symbol: 'INBS',
-    name: 'Intelligent Bio Solutions Inc.',
-    promotionDate: '2025-12-31',
-    promotionPrice: 6.90,
-    peakPrice: 17.92,  // Current as of Jan 11 report, may have gone higher
+    symbol: "INBS",
+    name: "Intelligent Bio Solutions Inc.",
+    promotionDate: "2025-12-31",
+    promotionPrice: 6.9,
+    peakPrice: 17.92, // Current as of Jan 11 report, may have gone higher
     riskScore: 10,
-    sector: 'Healthcare',
-    industry: 'Medical - Diagnostics & Research'
+    sector: "Healthcare",
+    industry: "Medical - Diagnostics & Research",
   },
   {
-    symbol: 'GPUS',
-    name: 'Hyperscale Data, Inc.',
-    promotionDate: '2026-01-02',
+    symbol: "GPUS",
+    name: "Hyperscale Data, Inc.",
+    promotionDate: "2026-01-02",
     promotionPrice: 0.25,
     peakPrice: 0.38,
     riskScore: 11,
-    sector: 'Industrials',
-    industry: 'Aerospace & Defense'
+    sector: "Industrials",
+    industry: "Aerospace & Defense",
   },
   {
-    symbol: 'MNTS',
-    name: 'Momentus Inc.',
-    promotionDate: '2025-12-31',
+    symbol: "MNTS",
+    name: "Momentus Inc.",
+    promotionDate: "2025-12-31",
     promotionPrice: 7.12,
-    peakPrice: 12.46,  // Current as of Jan 11, showing SPIKE_THEN_DROP
+    peakPrice: 12.46, // Current as of Jan 11, showing SPIKE_THEN_DROP
     riskScore: 12,
-    sector: 'Industrials',
-    industry: 'Aerospace & Defense'
+    sector: "Industrials",
+    industry: "Aerospace & Defense",
   },
   {
-    symbol: 'VTYX',
-    name: 'Ventyx Biosciences, Inc.',
-    promotionDate: '2025-12-31',
-    promotionPrice: 8.74,  // Estimated based on 58% gain to $13.81
+    symbol: "VTYX",
+    name: "Ventyx Biosciences, Inc.",
+    promotionDate: "2025-12-31",
+    promotionPrice: 8.74, // Estimated based on 58% gain to $13.81
     peakPrice: 13.81,
     riskScore: 12,
-    sector: 'Healthcare',
-    industry: 'Biotechnology'
+    sector: "Healthcare",
+    industry: "Biotechnology",
   },
   {
-    symbol: 'DVLT',
-    name: 'Datavault AI Inc.',
-    promotionDate: '2025-12-31',
+    symbol: "DVLT",
+    name: "Datavault AI Inc.",
+    promotionDate: "2025-12-31",
     promotionPrice: 0.62,
-    peakPrice: 1.50,
+    peakPrice: 1.5,
     riskScore: 12,
-    sector: 'Technology',
-    industry: 'Information Technology Services'
+    sector: "Technology",
+    industry: "Information Technology Services",
   },
 ];
 
 async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchHistoricalPrices(symbol: string, from: string): Promise<any[]> {
+async function fetchHistoricalPrices(
+  symbol: string,
+  from: string,
+): Promise<any[]> {
   const url = `${FMP_BASE_URL}/historical-price-eod/full?symbol=${symbol}&from=${from}&apikey=${FMP_API_KEY}`;
 
   try {
@@ -189,7 +192,7 @@ async function fetchCurrentQuote(symbol: string): Promise<any | null> {
 function analyzeStock(
   stockInfo: StockInfo,
   historicalPrices: any[],
-  currentQuote: any | null
+  currentQuote: any | null,
 ): StockAnalysis | null {
   if (!historicalPrices || historicalPrices.length === 0) {
     console.log(`No historical data for ${stockInfo.symbol}`);
@@ -198,13 +201,13 @@ function analyzeStock(
 
   // Sort by date ascending
   const sorted = [...historicalPrices].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
   const promoDateObj = new Date(stockInfo.promotionDate);
 
   // Find Day 1 price (first trading day on or after promotion)
-  let day1Index = sorted.findIndex(p => new Date(p.date) >= promoDateObj);
+  let day1Index = sorted.findIndex((p) => new Date(p.date) >= promoDateObj);
   if (day1Index === -1) day1Index = 0;
 
   const day1Price = sorted[day1Index]?.close || stockInfo.promotionPrice;
@@ -220,7 +223,7 @@ function analyzeStock(
       peakIndex = i;
     }
   }
-  const peakDate = sorted[peakIndex]?.date || '';
+  const peakDate = sorted[peakIndex]?.date || "";
   const daysToPeak = peakIndex - day1Index;
 
   // Find trough after peak
@@ -233,49 +236,52 @@ function analyzeStock(
       troughIndex = i;
     }
   }
-  const troughDate = sorted[troughIndex]?.date || '';
+  const troughDate = sorted[troughIndex]?.date || "";
   const daysToTrough = troughIndex - peakIndex;
 
   // Current price
-  const currentPrice = currentQuote?.price || sorted[sorted.length - 1]?.close || troughPrice;
+  const currentPrice =
+    currentQuote?.price || sorted[sorted.length - 1]?.close || troughPrice;
   const currentDate = currentQuote?.timestamp
-    ? new Date(currentQuote.timestamp * 1000).toISOString().split('T')[0]
-    : sorted[sorted.length - 1]?.date || '';
+    ? new Date(currentQuote.timestamp * 1000).toISOString().split("T")[0]
+    : sorted[sorted.length - 1]?.date || "";
 
   // Calculate metrics
-  const gainToPeak = stockInfo.promotionPrice > 0
-    ? ((peakPrice - stockInfo.promotionPrice) / stockInfo.promotionPrice) * 100
-    : 0;
+  const gainToPeak =
+    stockInfo.promotionPrice > 0
+      ? ((peakPrice - stockInfo.promotionPrice) / stockInfo.promotionPrice) *
+        100
+      : 0;
 
-  const peakToTroughDecline = peakPrice > 0
-    ? ((troughPrice - peakPrice) / peakPrice) * 100
-    : 0;
+  const peakToTroughDecline =
+    peakPrice > 0 ? ((troughPrice - peakPrice) / peakPrice) * 100 : 0;
 
-  const troughVsPromotion = stockInfo.promotionPrice > 0
-    ? ((troughPrice - stockInfo.promotionPrice) / stockInfo.promotionPrice) * 100
-    : 0;
+  const troughVsPromotion =
+    stockInfo.promotionPrice > 0
+      ? ((troughPrice - stockInfo.promotionPrice) / stockInfo.promotionPrice) *
+        100
+      : 0;
 
-  const troughVsDay1 = day1Price > 0
-    ? ((troughPrice - day1Price) / day1Price) * 100
-    : 0;
+  const troughVsDay1 =
+    day1Price > 0 ? ((troughPrice - day1Price) / day1Price) * 100 : 0;
 
-  const currentVsPromotion = stockInfo.promotionPrice > 0
-    ? ((currentPrice - stockInfo.promotionPrice) / stockInfo.promotionPrice) * 100
-    : 0;
+  const currentVsPromotion =
+    stockInfo.promotionPrice > 0
+      ? ((currentPrice - stockInfo.promotionPrice) / stockInfo.promotionPrice) *
+        100
+      : 0;
 
-  const currentVsDay1 = day1Price > 0
-    ? ((currentPrice - day1Price) / day1Price) * 100
-    : 0;
+  const currentVsDay1 =
+    day1Price > 0 ? ((currentPrice - day1Price) / day1Price) * 100 : 0;
 
-  const currentVsPeak = peakPrice > 0
-    ? ((currentPrice - peakPrice) / peakPrice) * 100
-    : 0;
+  const currentVsPeak =
+    peakPrice > 0 ? ((currentPrice - peakPrice) / peakPrice) * 100 : 0;
 
   // Determine signals
   const signals: string[] = [];
-  if (gainToPeak > 100) signals.push('SPIKE_7D');
-  if (peakToTroughDecline < -30) signals.push('SPIKE_THEN_DROP');
-  if (stockInfo.promotionPrice < 5) signals.push('MICROCAP_PRICE');
+  if (gainToPeak > 100) signals.push("SPIKE_7D");
+  if (peakToTroughDecline < -30) signals.push("SPIKE_THEN_DROP");
+  if (stockInfo.promotionPrice < 5) signals.push("MICROCAP_PRICE");
 
   return {
     symbol: stockInfo.symbol,
@@ -306,26 +312,46 @@ function analyzeStock(
 }
 
 function generateMarkdownReport(analyses: StockAnalysis[]): string {
-  const validAnalyses = analyses.filter(a => a !== null) as StockAnalysis[];
+  const validAnalyses = analyses.filter((a) => a !== null) as StockAnalysis[];
 
   // Calculate averages
-  const avgDaysToPeak = validAnalyses.reduce((sum, a) => sum + a.daysToPeak, 0) / validAnalyses.length;
-  const avgDaysToTrough = validAnalyses.reduce((sum, a) => sum + a.daysToTrough, 0) / validAnalyses.length;
-  const avgGainToPeak = validAnalyses.reduce((sum, a) => sum + a.gainToPeak, 0) / validAnalyses.length;
-  const avgDecline = validAnalyses.reduce((sum, a) => sum + a.peakToTroughDecline, 0) / validAnalyses.length;
-  const avgTroughVsPromo = validAnalyses.reduce((sum, a) => sum + a.troughVsPromotion, 0) / validAnalyses.length;
-  const avgTroughVsDay1 = validAnalyses.reduce((sum, a) => sum + a.troughVsDay1, 0) / validAnalyses.length;
-  const avgCurrentVsPromo = validAnalyses.reduce((sum, a) => sum + a.currentVsPromotion, 0) / validAnalyses.length;
-  const avgCurrentVsDay1 = validAnalyses.reduce((sum, a) => sum + a.currentVsDay1, 0) / validAnalyses.length;
-  const avgCurrentVsPeak = validAnalyses.reduce((sum, a) => sum + a.currentVsPeak, 0) / validAnalyses.length;
+  const avgDaysToPeak =
+    validAnalyses.reduce((sum, a) => sum + a.daysToPeak, 0) /
+    validAnalyses.length;
+  const avgDaysToTrough =
+    validAnalyses.reduce((sum, a) => sum + a.daysToTrough, 0) /
+    validAnalyses.length;
+  const avgGainToPeak =
+    validAnalyses.reduce((sum, a) => sum + a.gainToPeak, 0) /
+    validAnalyses.length;
+  const avgDecline =
+    validAnalyses.reduce((sum, a) => sum + a.peakToTroughDecline, 0) /
+    validAnalyses.length;
+  const avgTroughVsPromo =
+    validAnalyses.reduce((sum, a) => sum + a.troughVsPromotion, 0) /
+    validAnalyses.length;
+  const avgTroughVsDay1 =
+    validAnalyses.reduce((sum, a) => sum + a.troughVsDay1, 0) /
+    validAnalyses.length;
+  const avgCurrentVsPromo =
+    validAnalyses.reduce((sum, a) => sum + a.currentVsPromotion, 0) /
+    validAnalyses.length;
+  const avgCurrentVsDay1 =
+    validAnalyses.reduce((sum, a) => sum + a.currentVsDay1, 0) /
+    validAnalyses.length;
+  const avgCurrentVsPeak =
+    validAnalyses.reduce((sum, a) => sum + a.currentVsPeak, 0) /
+    validAnalyses.length;
 
   // Sort by decline (worst first)
-  const sortedByDecline = [...validAnalyses].sort((a, b) => a.peakToTroughDecline - b.peakToTroughDecline);
+  const sortedByDecline = [...validAnalyses].sort(
+    (a, b) => a.peakToTroughDecline - b.peakToTroughDecline,
+  );
 
   let report = `# Pump-and-Dump Scheme Analysis Report
 ## Grandmaster-Obi / "Making Easy Money" Discord Operation
 
-**Report Date:** ${new Date().toISOString().split('T')[0]}
+**Report Date:** ${new Date().toISOString().split("T")[0]}
 **Analysis Period:** December 31, 2025 - Present
 **Data Source:** Financial Modeling Prep API, ScamDunk Risk Engine
 **Stocks Analyzed:** ${validAnalyses.length} HIGH-risk stocks promoted through Discord
@@ -348,10 +374,10 @@ The analysis tracks price movements from promotion date through peak and subsequ
 | **Average Days from Peak to Trough** | ${avgDaysToTrough.toFixed(1)} trading days |
 | **Average Gain During Pump Phase** | +${avgGainToPeak.toFixed(1)}% |
 | **Average Peak-to-Trough Decline** | ${avgDecline.toFixed(1)}% |
-| **Average Trough vs Promotion Price** | ${avgTroughVsPromo >= 0 ? '+' : ''}${avgTroughVsPromo.toFixed(1)}% |
-| **Average Trough vs Day 1 Price** | ${avgTroughVsDay1 >= 0 ? '+' : ''}${avgTroughVsDay1.toFixed(1)}% |
-| **Average Current vs Promotion Price** | ${avgCurrentVsPromo >= 0 ? '+' : ''}${avgCurrentVsPromo.toFixed(1)}% |
-| **Average Current vs Day 1 Price** | ${avgCurrentVsDay1 >= 0 ? '+' : ''}${avgCurrentVsDay1.toFixed(1)}% |
+| **Average Trough vs Promotion Price** | ${avgTroughVsPromo >= 0 ? "+" : ""}${avgTroughVsPromo.toFixed(1)}% |
+| **Average Trough vs Day 1 Price** | ${avgTroughVsDay1 >= 0 ? "+" : ""}${avgTroughVsDay1.toFixed(1)}% |
+| **Average Current vs Promotion Price** | ${avgCurrentVsPromo >= 0 ? "+" : ""}${avgCurrentVsPromo.toFixed(1)}% |
+| **Average Current vs Day 1 Price** | ${avgCurrentVsDay1 >= 0 ? "+" : ""}${avgCurrentVsDay1.toFixed(1)}% |
 | **Average Current vs Peak** | ${avgCurrentVsPeak.toFixed(1)}% |
 
 ---
@@ -385,8 +411,8 @@ All ${validAnalyses.length} stocks triggered multiple HIGH-risk signals:
 `;
 
   for (const analysis of validAnalyses) {
-    const gainIcon = analysis.currentVsDay1 >= 0 ? '📈' : '📉';
-    const outcome = analysis.currentVsDay1 >= 0 ? 'GAIN' : 'LOSS';
+    const gainIcon = analysis.currentVsDay1 >= 0 ? "📈" : "📉";
+    const outcome = analysis.currentVsDay1 >= 0 ? "GAIN" : "LOSS";
 
     report += `### ${analysis.symbol} - ${analysis.name}
 
@@ -405,14 +431,14 @@ All ${validAnalyses.length} stocks triggered multiple HIGH-risk signals:
 | Trough Price | $${analysis.troughPrice.toFixed(2)} |
 | Days Peak to Trough | ${analysis.daysToTrough} |
 | **Peak-to-Trough Decline** | **${analysis.peakToTroughDecline.toFixed(1)}%** |
-| **Trough vs Promotion** | **${analysis.troughVsPromotion >= 0 ? '+' : ''}${analysis.troughVsPromotion.toFixed(1)}%** |
-| **Trough vs Day 1** | **${analysis.troughVsDay1 >= 0 ? '+' : ''}${analysis.troughVsDay1.toFixed(1)}%** |
+| **Trough vs Promotion** | **${analysis.troughVsPromotion >= 0 ? "+" : ""}${analysis.troughVsPromotion.toFixed(1)}%** |
+| **Trough vs Day 1** | **${analysis.troughVsDay1 >= 0 ? "+" : ""}${analysis.troughVsDay1.toFixed(1)}%** |
 | Current Price | $${analysis.currentPrice.toFixed(2)} |
-| **Current vs Promotion** | **${analysis.currentVsPromotion >= 0 ? '+' : ''}${analysis.currentVsPromotion.toFixed(1)}%** |
-| **Current vs Day 1** | **${analysis.currentVsDay1 >= 0 ? '+' : ''}${analysis.currentVsDay1.toFixed(1)}%** ${gainIcon} |
+| **Current vs Promotion** | **${analysis.currentVsPromotion >= 0 ? "+" : ""}${analysis.currentVsPromotion.toFixed(1)}%** |
+| **Current vs Day 1** | **${analysis.currentVsDay1 >= 0 ? "+" : ""}${analysis.currentVsDay1.toFixed(1)}%** ${gainIcon} |
 | **Current vs Peak** | **${analysis.currentVsPeak.toFixed(1)}%** |
 
-**Day 1 Investor Outcome:** ${outcome} (${analysis.currentVsDay1 >= 0 ? '+' : ''}${analysis.currentVsDay1.toFixed(1)}%)
+**Day 1 Investor Outcome:** ${outcome} (${analysis.currentVsDay1 >= 0 ? "+" : ""}${analysis.currentVsDay1.toFixed(1)}%)
 
 ---
 
@@ -441,7 +467,7 @@ All ${validAnalyses.length} stocks triggered multiple HIGH-risk signals:
 `;
 
   sortedByDecline.forEach((a, i) => {
-    report += `| ${i + 1} | ${a.symbol} | +${a.gainToPeak.toFixed(0)}% | **${a.peakToTroughDecline.toFixed(1)}%** | ${a.troughVsPromotion >= 0 ? '+' : ''}${a.troughVsPromotion.toFixed(0)}% | ${a.troughVsDay1 >= 0 ? '+' : ''}${a.troughVsDay1.toFixed(0)}% | ${a.currentVsDay1 >= 0 ? '+' : ''}${a.currentVsDay1.toFixed(0)}% |\n`;
+    report += `| ${i + 1} | ${a.symbol} | +${a.gainToPeak.toFixed(0)}% | **${a.peakToTroughDecline.toFixed(1)}%** | ${a.troughVsPromotion >= 0 ? "+" : ""}${a.troughVsPromotion.toFixed(0)}% | ${a.troughVsDay1 >= 0 ? "+" : ""}${a.troughVsDay1.toFixed(0)}% | ${a.currentVsDay1 >= 0 ? "+" : ""}${a.currentVsDay1.toFixed(0)}% |\n`;
   });
 
   report += `
@@ -453,12 +479,12 @@ All ${validAnalyses.length} stocks triggered multiple HIGH-risk signals:
 `;
 
   for (const a of validAnalyses) {
-    const outcome = a.currentVsDay1 >= 0 ? '✅ GAIN' : '❌ LOSS';
-    report += `| ${a.symbol} | $${a.day1Price.toFixed(2)} | ${a.troughVsDay1 >= 0 ? '+' : ''}${a.troughVsDay1.toFixed(1)}% | ${a.currentVsDay1 >= 0 ? '+' : ''}${a.currentVsDay1.toFixed(1)}% | ${outcome} |\n`;
+    const outcome = a.currentVsDay1 >= 0 ? "✅ GAIN" : "❌ LOSS";
+    report += `| ${a.symbol} | $${a.day1Price.toFixed(2)} | ${a.troughVsDay1 >= 0 ? "+" : ""}${a.troughVsDay1.toFixed(1)}% | ${a.currentVsDay1 >= 0 ? "+" : ""}${a.currentVsDay1.toFixed(1)}% | ${outcome} |\n`;
   }
 
-  const losers = validAnalyses.filter(a => a.currentVsDay1 < 0);
-  const winners = validAnalyses.filter(a => a.currentVsDay1 >= 0);
+  const losers = validAnalyses.filter((a) => a.currentVsDay1 < 0);
+  const winners = validAnalyses.filter((a) => a.currentVsDay1 >= 0);
 
   report += `
 
@@ -472,8 +498,8 @@ All ${validAnalyses.length} stocks triggered multiple HIGH-risk signals:
 | Average Days Peak to Trough | ${avgDaysToTrough.toFixed(1)} |
 | Average Gain to Peak | +${avgGainToPeak.toFixed(1)}% |
 | Average Peak-to-Trough Decline | ${avgDecline.toFixed(1)}% |
-| Average Trough vs Day 1 | ${avgTroughVsDay1 >= 0 ? '+' : ''}${avgTroughVsDay1.toFixed(1)}% |
-| Average Current vs Day 1 | ${avgCurrentVsDay1 >= 0 ? '+' : ''}${avgCurrentVsDay1.toFixed(1)}% |
+| Average Trough vs Day 1 | ${avgTroughVsDay1 >= 0 ? "+" : ""}${avgTroughVsDay1.toFixed(1)}% |
+| Average Current vs Day 1 | ${avgCurrentVsDay1 >= 0 ? "+" : ""}${avgCurrentVsDay1.toFixed(1)}% |
 
 ---
 
@@ -499,7 +525,7 @@ Investors who bought during peak FOMO lost an average of ${Math.abs(avgDecline).
 
 | Bought At | Trough vs Day 1 | Current vs Day 1 |
 |-----------|-----------------|------------------|
-| Day 1 price | ${avgTroughVsDay1 >= 0 ? '+' : ''}${avgTroughVsDay1.toFixed(1)}% | ${avgCurrentVsDay1 >= 0 ? '+' : ''}${avgCurrentVsDay1.toFixed(1)}% |
+| Day 1 price | ${avgTroughVsDay1 >= 0 ? "+" : ""}${avgTroughVsDay1.toFixed(1)}% | ${avgCurrentVsDay1 >= 0 ? "+" : ""}${avgCurrentVsDay1.toFixed(1)}% |
 
 ${losers.length} of ${validAnalyses.length} stocks (${((losers.length / validAnalyses.length) * 100).toFixed(0)}%) show losses for Day 1 investors.
 
@@ -537,37 +563,50 @@ One defendant texted: *"we're robbing fucking idiots of their money"*
 
 async function main() {
   if (!FMP_API_KEY) {
-    console.error('FMP_API_KEY environment variable is required');
+    console.error("FMP_API_KEY environment variable is required");
     process.exit(1);
   }
 
-  console.log('='.repeat(60));
-  console.log('PUMP-AND-DUMP ANALYSIS: Grandmaster-Obi / Making Easy Money');
-  console.log('='.repeat(60));
-  console.log('');
+  console.log("=".repeat(60));
+  console.log("PUMP-AND-DUMP ANALYSIS: Grandmaster-Obi / Making Easy Money");
+  console.log("=".repeat(60));
+  console.log("");
 
   const analyses: (StockAnalysis | null)[] = [];
 
   for (const stock of STOCKS_TO_ANALYZE) {
     console.log(`\nAnalyzing ${stock.symbol} (${stock.name})...`);
-    console.log(`  Promotion: ${stock.promotionDate} at $${stock.promotionPrice.toFixed(2)}`);
+    console.log(
+      `  Promotion: ${stock.promotionDate} at $${stock.promotionPrice.toFixed(2)}`,
+    );
 
     // Fetch historical prices from before promotion date
     const fromDate = new Date(stock.promotionDate);
     fromDate.setDate(fromDate.getDate() - 7);
-    const historical = await fetchHistoricalPrices(stock.symbol, fromDate.toISOString().split('T')[0]);
+    const historical = await fetchHistoricalPrices(
+      stock.symbol,
+      fromDate.toISOString().split("T")[0],
+    );
     console.log(`  Found ${historical.length} historical price records`);
 
     // Fetch current quote
     const currentQuote = await fetchCurrentQuote(stock.symbol);
-    console.log(`  Current price: ${currentQuote ? '$' + currentQuote.price?.toFixed(2) : 'N/A'}`);
+    console.log(
+      `  Current price: ${currentQuote ? "$" + currentQuote.price?.toFixed(2) : "N/A"}`,
+    );
 
     // Analyze
     const analysis = analyzeStock(stock, historical, currentQuote);
     if (analysis) {
-      console.log(`  Peak: $${analysis.peakPrice.toFixed(2)} on ${analysis.peakDate} (+${analysis.gainToPeak.toFixed(1)}%)`);
-      console.log(`  Trough: $${analysis.troughPrice.toFixed(2)} (${analysis.peakToTroughDecline.toFixed(1)}% from peak)`);
-      console.log(`  Current vs Day 1: ${analysis.currentVsDay1 >= 0 ? '+' : ''}${analysis.currentVsDay1.toFixed(1)}%`);
+      console.log(
+        `  Peak: $${analysis.peakPrice.toFixed(2)} on ${analysis.peakDate} (+${analysis.gainToPeak.toFixed(1)}%)`,
+      );
+      console.log(
+        `  Trough: $${analysis.troughPrice.toFixed(2)} (${analysis.peakToTroughDecline.toFixed(1)}% from peak)`,
+      );
+      console.log(
+        `  Current vs Day 1: ${analysis.currentVsDay1 >= 0 ? "+" : ""}${analysis.currentVsDay1.toFixed(1)}%`,
+      );
       analyses.push(analysis);
     } else {
       console.log(`  Could not analyze - insufficient data`);
@@ -577,33 +616,43 @@ async function main() {
     await sleep(500);
   }
 
-  console.log('\n' + '='.repeat(60));
-  console.log('Generating report...');
+  console.log("\n" + "=".repeat(60));
+  console.log("Generating report...");
 
   // Generate markdown report
   const report = generateMarkdownReport(analyses);
 
   // Save report
-  const resultsDir = path.join(__dirname, '..', 'results');
+  const resultsDir = path.join(__dirname, "..", "results");
   if (!fs.existsSync(resultsDir)) {
     fs.mkdirSync(resultsDir, { recursive: true });
   }
 
-  const reportPath = path.join(resultsDir, 'grandmaster-obi-pump-dump-report.md');
+  const reportPath = path.join(
+    resultsDir,
+    "grandmaster-obi-pump-dump-report.md",
+  );
   fs.writeFileSync(reportPath, report);
   console.log(`\nReport saved to: ${reportPath}`);
 
   // Also save JSON for programmatic use
-  const jsonPath = path.join(resultsDir, 'grandmaster-obi-pump-dump-data.json');
-  fs.writeFileSync(jsonPath, JSON.stringify({
-    generatedAt: new Date().toISOString(),
-    stocks: STOCKS_TO_ANALYZE,
-    analyses: analyses.filter(a => a !== null),
-  }, null, 2));
+  const jsonPath = path.join(resultsDir, "grandmaster-obi-pump-dump-data.json");
+  fs.writeFileSync(
+    jsonPath,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        stocks: STOCKS_TO_ANALYZE,
+        analyses: analyses.filter((a) => a !== null),
+      },
+      null,
+      2,
+    ),
+  );
   console.log(`JSON data saved to: ${jsonPath}`);
 
-  console.log('\n' + '='.repeat(60));
-  console.log('Analysis complete!');
+  console.log("\n" + "=".repeat(60));
+  console.log("Analysis complete!");
 }
 
 main().catch(console.error);
