@@ -79,7 +79,11 @@ const navigationCategories: NavCategory[] = [
     items: [
       { name: "Landing Page", href: "/admin/homepage", icon: Home },
       { name: "News", href: "/admin/news", icon: Newspaper },
-      { name: "Scan Messages", href: "/admin/scan-messages", icon: MessageSquare },
+      {
+        name: "Scan Messages",
+        href: "/admin/scan-messages",
+        icon: MessageSquare,
+      },
     ],
   },
   {
@@ -87,8 +91,16 @@ const navigationCategories: NavCategory[] = [
     icon: BarChart3,
     items: [
       { name: "Scan Status", href: "/admin/scan-status", icon: Activity },
-      { name: "Scan Intelligence", href: "/admin/scan-intelligence", icon: Radar },
-      { name: "Market Analysis", href: "/admin/market-analysis", icon: TrendingUp },
+      {
+        name: "Scan Intelligence",
+        href: "/admin/scan-intelligence",
+        icon: Radar,
+      },
+      {
+        name: "Market Analysis",
+        href: "/admin/market-analysis",
+        icon: TrendingUp,
+      },
       { name: "Risk Alerts", href: "/admin/risk-alerts", icon: AlertTriangle },
       { name: "Social Scan", href: "/admin/social-scan", icon: Radio },
       { name: "Browser Agents", href: "/admin/browser-agents", icon: Monitor },
@@ -119,20 +131,26 @@ const navigationCategories: NavCategory[] = [
 // Helper to get category containing a path
 function getCategoryForPath(path: string): string | null {
   for (const category of navigationCategories) {
-    if (category.items.some(item => path.startsWith(item.href))) {
+    if (category.items.some((item) => path.startsWith(item.href))) {
       return category.name;
     }
   }
   return null;
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Initialize expanded categories based on current path
   const initializeExpandedCategories = useCallback(() => {
@@ -177,7 +195,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   function toggleCategory(categoryName: string) {
-    setExpandedCategories(prev => {
+    setExpandedCategories((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(categoryName)) {
         newSet.delete(categoryName);
@@ -189,7 +207,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   function isCategoryActive(category: NavCategory): boolean {
-    return category.items.some(item => pathname.startsWith(item.href));
+    return category.items.some((item) => pathname.startsWith(item.href));
   }
 
   if (loading) {
@@ -216,12 +234,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Mobile sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:hidden ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
         <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-          <span className="text-xl font-bold text-foreground">ScamDunk Admin</span>
-          <button onClick={() => setSidebarOpen(false)} className="text-muted-foreground hover:text-foreground">
+          <span className="text-xl font-bold text-foreground">
+            ScamDunk Admin
+          </span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -312,9 +336,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
             </div>
             <span className="ml-2 font-display tracking-tight italic text-foreground">
-              Scam<span className="gradient-brand-text not-italic font-sans font-bold">Dunk</span>
+              Scam
+              <span className="gradient-brand-text not-italic font-sans font-bold">
+                Dunk
+              </span>
             </span>
-            <span className="ml-2 text-xs text-muted-foreground uppercase font-semibold tracking-wider">Admin</span>
+            <span className="ml-2 text-xs text-muted-foreground uppercase font-semibold tracking-wider">
+              Admin
+            </span>
           </div>
           <nav className="flex-1 mt-4 px-2 space-y-1 overflow-y-auto">
             {/* Dashboard - standalone item */}
@@ -328,7 +357,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <dashboardItem.icon className="h-5 w-5 mr-3" />
               {dashboardItem.name}
-              {pathname === dashboardItem.href && <ChevronRight className="ml-auto h-4 w-4" />}
+              {pathname === dashboardItem.href && (
+                <ChevronRight className="ml-auto h-4 w-4" />
+              )}
             </Link>
 
             {/* Category divider */}
@@ -380,7 +411,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           >
                             <item.icon className="h-4 w-4 mr-3" />
                             {item.name}
-                            {isItemActive && <ChevronRight className="ml-auto h-4 w-4" />}
+                            {isItemActive && (
+                              <ChevronRight className="ml-auto h-4 w-4" />
+                            )}
                           </Link>
                         );
                       })}
@@ -403,7 +436,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <p className="text-sm font-medium text-foreground truncate">
                   {session.name || session.email}
                 </p>
-                <p className="text-xs text-muted-foreground uppercase">{session.role}</p>
+                <p className="text-xs text-muted-foreground uppercase">
+                  {session.role}
+                </p>
               </div>
             </div>
             <button

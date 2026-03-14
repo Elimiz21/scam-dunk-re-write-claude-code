@@ -14,7 +14,11 @@ interface ScanTimelineProps {
   onSelectDate: (date: string) => void;
 }
 
-export default function ScanTimeline({ entries, selectedDate, onSelectDate }: ScanTimelineProps) {
+export default function ScanTimeline({
+  entries,
+  selectedDate,
+  onSelectDate,
+}: ScanTimelineProps) {
   if (entries.length === 0) return null;
 
   const maxHigh = Math.max(...entries.map((e) => e.highRisk), 1);
@@ -42,14 +46,20 @@ export default function ScanTimeline({ entries, selectedDate, onSelectDate }: Sc
               <div className="h-10 flex items-end">
                 <div
                   className={`w-5 rounded-t transition-all duration-300 ${
-                    isSelected ? "bg-primary" : isEmpty ? "bg-muted-foreground/20" : "bg-muted-foreground/40"
+                    isSelected
+                      ? "bg-primary"
+                      : isEmpty
+                        ? "bg-muted-foreground/20"
+                        : "bg-muted-foreground/40"
                   }`}
                   style={{ height: `${barHeight}px` }}
                 />
               </div>
 
               {/* Date label */}
-              <div className={`text-[10px] tabular-nums whitespace-nowrap ${isSelected ? "font-bold text-primary" : "text-muted-foreground"}`}>
+              <div
+                className={`text-[10px] tabular-nums whitespace-nowrap ${isSelected ? "font-bold text-primary" : "text-muted-foreground"}`}
+              >
                 {entry.date.slice(5)}
               </div>
 
@@ -60,10 +70,16 @@ export default function ScanTimeline({ entries, selectedDate, onSelectDate }: Sc
 
               {/* Format badge */}
               {entry.format === "enhanced" && (
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Enhanced pipeline" />
+                <div
+                  className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                  title="Enhanced pipeline"
+                />
               )}
               {entry.format === "legacy" && (
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Legacy pipeline" />
+                <div
+                  className="w-1.5 h-1.5 rounded-full bg-amber-500"
+                  title="Legacy pipeline"
+                />
               )}
             </button>
           );

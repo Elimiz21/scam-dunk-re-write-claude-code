@@ -39,10 +39,19 @@ interface LandingOptionAProps {
   subheadline?: string;
 }
 
-const DEFAULT_HEADLINE = "Don\u2019t invest blind. Detect scams before they cost you.";
-const DEFAULT_SUBHEADLINE = "Enter any stock or crypto ticker and get an instant risk analysis. We scan for pump-and-dump patterns, manipulation signals, and regulatory red flags in seconds.";
+const DEFAULT_HEADLINE =
+  "Don\u2019t invest blind. Detect scams before they cost you.";
+const DEFAULT_SUBHEADLINE =
+  "Enter any stock or crypto ticker and get an instant risk analysis. We scan for pump-and-dump patterns, manipulation signals, and regulatory red flags in seconds.";
 
-export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline, subheadline }: LandingOptionAProps) {
+export function LandingOptionA({
+  onSubmit,
+  isLoading,
+  disabled,
+  error,
+  headline,
+  subheadline,
+}: LandingOptionAProps) {
   const heroHeadline = headline || DEFAULT_HEADLINE;
   const heroSubheadline = subheadline || DEFAULT_SUBHEADLINE;
   // Animated step cycling for "How ScamDunk Protects You"
@@ -75,14 +84,19 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline,
             ) : (
               <>
                 Don&apos;t invest blind.{" "}
-                <span className="gradient-brand-text not-italic">Detect scams</span>{" "}
+                <span className="gradient-brand-text not-italic">
+                  Detect scams
+                </span>{" "}
                 before they cost you.
               </>
             )}
           </h1>
 
           {/* Subheadline — dynamic from admin */}
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+          <p
+            className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in"
+            style={{ animationDelay: "0.1s" }}
+          >
             {heroSubheadline}
           </p>
 
@@ -115,7 +129,10 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline,
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: "0.25s" }}>
+          <div
+            className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground animate-fade-in"
+            style={{ animationDelay: "0.25s" }}
+          >
             <div className="flex items-center gap-1.5">
               <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
               <span>Free to use</span>
@@ -136,8 +153,16 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline,
       <section className="py-10 px-4 bg-card border-y border-border">
         <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
           {[
-            { value: "$68B+", label: "Investment fraud losses in 2024", icon: AlertTriangle },
-            { value: "300%", label: "Rise in crypto scams since 2020", icon: TrendingUp },
+            {
+              value: "$68B+",
+              label: "Investment fraud losses in 2024",
+              icon: AlertTriangle,
+            },
+            {
+              value: "300%",
+              label: "Rise in crypto scams since 2020",
+              icon: TrendingUp,
+            },
             { value: "30K+", label: "Scans performed", icon: BarChart3 },
             { value: "<15s", label: "Average scan time", icon: Zap },
           ].map((stat) => (
@@ -155,10 +180,12 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline,
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="font-display text-2xl sm:text-3xl font-bold mb-3 italic">
-              How <span className="font-display italic">ScamDunk</span> Protects You
+              How <span className="font-display italic">ScamDunk</span> Protects
+              You
             </h2>
             <p className="text-muted-foreground max-w-lg mx-auto">
-              Three simple steps stand between you and potential financial disaster.
+              Three simple steps stand between you and potential financial
+              disaster.
             </p>
           </div>
 
@@ -181,7 +208,9 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline,
                 </div>
                 <span
                   className={`text-sm font-medium transition-colors duration-300 ${
-                    i === activeStep ? "text-foreground" : "text-muted-foreground"
+                    i === activeStep
+                      ? "text-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
                   {step.label}
@@ -335,8 +364,8 @@ export function LandingOptionA({ onSubmit, isLoading, disabled, error, headline,
             Ready to protect your investments?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Join thousands of investors who check before they invest.
-            It&apos;s free, fast, and could save you everything.
+            Join thousands of investors who check before they invest. It&apos;s
+            free, fast, and could save you everything.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link

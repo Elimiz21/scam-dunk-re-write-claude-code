@@ -64,11 +64,7 @@ const INFO_PANELS = [
 
 /* ─── Info Panel Component with hover tooltip ─── */
 
-function InfoPanel({
-  panel,
-}: {
-  panel: (typeof INFO_PANELS)[number];
-}) {
+function InfoPanel({ panel }: { panel: (typeof INFO_PANELS)[number] }) {
   const [isHovered, setIsHovered] = useState(false);
   const Icon = panel.icon;
 
@@ -82,7 +78,7 @@ function InfoPanel({
         <div
           className={cn(
             "h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0",
-            panel.iconBg
+            panel.iconBg,
           )}
         >
           <Icon className={cn("h-4 w-4", panel.iconColor)} />
@@ -95,13 +91,13 @@ function InfoPanel({
             "h-5 w-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all duration-200",
             isHovered
               ? "border-primary bg-primary/10"
-              : "border-border bg-secondary/50"
+              : "border-border bg-secondary/50",
           )}
         >
           <Info
             className={cn(
               "h-3 w-3 transition-colors duration-200",
-              isHovered ? "text-primary" : "text-muted-foreground/50"
+              isHovered ? "text-primary" : "text-muted-foreground/50",
             )}
           />
         </div>
@@ -111,7 +107,7 @@ function InfoPanel({
       <div
         className={cn(
           "overflow-hidden transition-all duration-300 ease-out",
-          isHovered ? "max-h-96 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"
+          isHovered ? "max-h-96 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0",
         )}
       >
         <div className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line border-t border-border/50 pt-3">
@@ -124,7 +120,11 @@ function InfoPanel({
 
 /* ─── Main Layout ─── */
 
-export function ScanResultsLayout({ result, hasChatData, onNewScan }: ScanResultsLayoutProps) {
+export function ScanResultsLayout({
+  result,
+  hasChatData,
+  onNewScan,
+}: ScanResultsLayoutProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Main content area — fills remaining viewport height */}
@@ -165,12 +165,14 @@ export function ScanResultsLayout({ result, hasChatData, onNewScan }: ScanResult
         <div className="max-w-[1400px] mx-auto flex items-start gap-2">
           <Info className="h-3.5 w-3.5 text-muted-foreground/50 mt-0.5 flex-shrink-0" />
           <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-            <span className="font-medium">Disclaimer:</span> ScamDunk is not a financial advisor.
-            This analysis does not constitute financial advice, investment advice, trading advice,
-            or any other sort of advice. You should not treat any of the content as such.
-            ScamDunk does not recommend that any asset should be bought, sold, or held by you.
-            Do conduct your own due diligence and consult your financial advisor before making
-            any investment decisions. ScamDunk is an educational tool only.
+            <span className="font-medium">Disclaimer:</span> ScamDunk is not a
+            financial advisor. This analysis does not constitute financial
+            advice, investment advice, trading advice, or any other sort of
+            advice. You should not treat any of the content as such. ScamDunk
+            does not recommend that any asset should be bought, sold, or held by
+            you. Do conduct your own due diligence and consult your financial
+            advisor before making any investment decisions. ScamDunk is an
+            educational tool only.
           </p>
         </div>
       </div>

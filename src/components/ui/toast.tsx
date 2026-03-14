@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -71,13 +77,23 @@ function ToastContainer() {
       aria-label="Notifications"
     >
       {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onDismiss={() => removeToast(toast.id)} />
+        <ToastItem
+          key={toast.id}
+          toast={toast}
+          onDismiss={() => removeToast(toast.id)}
+        />
       ))}
     </div>
   );
 }
 
-function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
+function ToastItem({
+  toast,
+  onDismiss,
+}: {
+  toast: Toast;
+  onDismiss: () => void;
+}) {
   const icons = {
     success: <CheckCircle className="h-5 w-5 text-green-500" />,
     error: <AlertCircle className="h-5 w-5 text-red-500" />,
@@ -86,17 +102,19 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
   };
 
   const bgColors = {
-    success: "bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800",
+    success:
+      "bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800",
     error: "bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800",
     info: "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800",
-    warning: "bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800",
+    warning:
+      "bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800",
   };
 
   return (
     <div
       className={cn(
         "pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg animate-slide-in-right",
-        bgColors[toast.type]
+        bgColors[toast.type],
       )}
       role="alert"
       aria-live="assertive"
@@ -105,7 +123,9 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm">{toast.title}</p>
         {toast.description && (
-          <p className="mt-1 text-sm text-muted-foreground">{toast.description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {toast.description}
+          </p>
         )}
       </div>
       <button
@@ -123,31 +143,35 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
 export function useSuccessToast() {
   const { addToast } = useToast();
   return useCallback(
-    (title: string, description?: string) => addToast({ type: "success", title, description }),
-    [addToast]
+    (title: string, description?: string) =>
+      addToast({ type: "success", title, description }),
+    [addToast],
   );
 }
 
 export function useErrorToast() {
   const { addToast } = useToast();
   return useCallback(
-    (title: string, description?: string) => addToast({ type: "error", title, description }),
-    [addToast]
+    (title: string, description?: string) =>
+      addToast({ type: "error", title, description }),
+    [addToast],
   );
 }
 
 export function useInfoToast() {
   const { addToast } = useToast();
   return useCallback(
-    (title: string, description?: string) => addToast({ type: "info", title, description }),
-    [addToast]
+    (title: string, description?: string) =>
+      addToast({ type: "info", title, description }),
+    [addToast],
   );
 }
 
 export function useWarningToast() {
   const { addToast } = useToast();
   return useCallback(
-    (title: string, description?: string) => addToast({ type: "warning", title, description }),
-    [addToast]
+    (title: string, description?: string) =>
+      addToast({ type: "warning", title, description }),
+    [addToast],
   );
 }

@@ -12,19 +12,28 @@ interface ChartCardProps {
   color?: string;
 }
 
-export default function ChartCard({ title, data, type = "bar", color = "hsl(var(--primary))" }: ChartCardProps) {
+export default function ChartCard({
+  title,
+  data,
+  type = "bar",
+  color = "hsl(var(--primary))",
+}: ChartCardProps) {
   const maxValue = Math.max(...data.map((d) => d.value), 1);
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm p-6">
-      <h3 className="text-lg font-semibold text-foreground mb-4 font-display italic">{title}</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-4 font-display italic">
+        {title}
+      </h3>
       <div className="space-y-3">
         {type === "bar" ? (
           data.map((item, index) => (
             <div key={index}>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-muted-foreground">{item.label}</span>
-                <span className="font-medium text-foreground">{item.value.toLocaleString()}</span>
+                <span className="font-medium text-foreground">
+                  {item.value.toLocaleString()}
+                </span>
               </div>
               <div className="w-full bg-secondary rounded-full h-2">
                 <div

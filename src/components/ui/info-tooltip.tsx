@@ -34,7 +34,9 @@ export function InfoTooltip({ term, definition, className }: InfoTooltipProps) {
       const spaceBelow = window.innerHeight - rect.bottom;
 
       // Prefer top, but use bottom if not enough space
-      setPosition(spaceAbove < 120 && spaceBelow > spaceAbove ? "bottom" : "top");
+      setPosition(
+        spaceAbove < 120 && spaceBelow > spaceAbove ? "bottom" : "top",
+      );
     }
   }, [isVisible]);
 
@@ -74,7 +76,7 @@ export function InfoTooltip({ term, definition, className }: InfoTooltipProps) {
           "hover:bg-secondary/80",
           "transition-all duration-200 ease-out",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-          "cursor-help"
+          "cursor-help",
         )}
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
@@ -86,7 +88,9 @@ export function InfoTooltip({ term, definition, className }: InfoTooltipProps) {
           setIsVisible(!isVisible);
         }}
         aria-label={`Learn more about ${term}`}
-        aria-describedby={isVisible ? `tooltip-${term.replace(/\s+/g, "-")}` : undefined}
+        aria-describedby={
+          isVisible ? `tooltip-${term.replace(/\s+/g, "-")}` : undefined
+        }
       >
         <Info className="h-3.5 w-3.5" />
       </button>
@@ -116,8 +120,12 @@ export function InfoTooltip({ term, definition, className }: InfoTooltipProps) {
             ? "opacity-100 scale-100 translate-y-0"
             : "opacity-0 scale-95 pointer-events-none",
           position === "top"
-            ? isVisible ? "translate-y-0" : "translate-y-1"
-            : isVisible ? "translate-y-0" : "-translate-y-1"
+            ? isVisible
+              ? "translate-y-0"
+              : "translate-y-1"
+            : isVisible
+              ? "translate-y-0"
+              : "-translate-y-1",
         )}
       >
         {/* Arrow */}
@@ -129,7 +137,7 @@ export function InfoTooltip({ term, definition, className }: InfoTooltipProps) {
             "rotate-45",
             position === "top"
               ? "bottom-[-5px] border-r border-b"
-              : "top-[-5px] border-l border-t"
+              : "top-[-5px] border-l border-t",
           )}
         />
 
@@ -155,7 +163,12 @@ interface TermWithTooltipProps {
   className?: string;
 }
 
-export function TermWithTooltip({ children, term, definition, className }: TermWithTooltipProps) {
+export function TermWithTooltip({
+  children,
+  term,
+  definition,
+  className,
+}: TermWithTooltipProps) {
   return (
     <span className={cn("inline-flex items-center", className)}>
       <span>{children}</span>

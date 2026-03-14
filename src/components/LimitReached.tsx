@@ -26,15 +26,18 @@ export function LimitReached({
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert variant="warning">
-          <AlertTitle>You&apos;ve used all your free checks this month</AlertTitle>
+          <AlertTitle>
+            You&apos;ve used all your free checks this month
+          </AlertTitle>
           <AlertDescription>
             Plan: {plan} ({scansUsed}/{scansLimit} checks used)
           </AlertDescription>
         </Alert>
 
         <p className="text-sm text-muted-foreground">
-          Your monthly check limit resets at the beginning of each month. Upgrade
-          to Pro to get 200 checks per month and continue analyzing stocks.
+          Your monthly check limit resets at the beginning of each month.
+          Upgrade to Pro to get 200 checks per month and continue analyzing
+          stocks.
         </p>
 
         <div className="mt-4">
