@@ -22,14 +22,17 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Reddit Public JSON Scanner (no OAuth needed)
 // ─────────────────────────────────────────────────────────────
 
+// Use a realistic browser UA — Reddit blocks identifiable bots with HTML login pages
 const REDDIT_USER_AGENT =
-  "Mozilla/5.0 (compatible; ScamDunk/1.0; Stock Research Tool)";
-const REDDIT_DELAY_MS = 2000; // 2s between requests (was 6.5s — too slow for 50 tickers)
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const REDDIT_DELAY_MS = 2500; // 2.5s between requests — respect Reddit's ~10 req/min unauthenticated limit
 
 async function redditGet(url: string): Promise<any> {
   const headers: Record<string, string> = {
     "User-Agent": REDDIT_USER_AGENT,
-    Accept: "application/json",
+    Accept:
+      "text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7",
+    "Accept-Language": "en-US,en;q=0.9",
   };
   const fetchOpts: RequestInit = { headers, redirect: "follow" };
 
@@ -109,6 +112,10 @@ export class RedditScanner implements SocialScanner {
     const allMentions: SocialMention[] = [];
     const promotionSubs = new Set(PROMOTION_SUBREDDITS);
 
+    // Track fetch failures to accurately report success/failure
+    let fetchAttempts = 0;
+    let fetchFailures = 0;
+
     // Single combined query per ticker to avoid timeout with 50+ tickers
     // Serper's site:reddit.com query provides additional Reddit coverage
     const seenUrls = new Set<string>();
@@ -117,8 +124,12 @@ export class RedditScanner implements SocialScanner {
       try {
         const query = `${target.ticker} OR $${target.ticker}`;
         const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=50`;
+        fetchAttempts++;
         const data = await redditGet(url);
-        if (!data) continue;
+        if (!data) {
+          fetchFailures++;
+          continue;
+        }
 
         for (const post of data?.data?.children || []) {
           const d = post.data;
@@ -185,10 +196,14 @@ export class RedditScanner implements SocialScanner {
     const topSubs = ["wallstreetbets", "pennystocks", "shortsqueeze"];
     for (const sub of topSubs) {
       try {
+        fetchAttempts++;
         const data = await redditGet(
           `https://www.reddit.com/r/${sub}/new.json?limit=100`,
         );
-        if (!data) continue; // Reddit blocked this request
+        if (!data) {
+          fetchFailures++;
+          continue;
+        }
         for (const post of data?.data?.children || []) {
           const d = post.data;
           const title = d.title || "";
@@ -249,11 +264,24 @@ export class RedditScanner implements SocialScanner {
           allMentions.length
         : 0;
 
+    // Report failure if ALL fetch attempts failed (Reddit is blocking us)
+    const allFailed = fetchAttempts > 0 && fetchFailures === fetchAttempts;
+    if (allFailed) {
+      console.error(
+        `[Reddit] ALL ${fetchAttempts} fetch attempts failed — Reddit is likely blocking requests. Check User-Agent and IP.`,
+      );
+    }
+
     return [
       {
         platform: "Reddit",
         scanner: this.name,
-        success: true,
+        success: !allFailed,
+        error: allFailed
+          ? `All ${fetchAttempts} Reddit requests failed — blocked or rate limited`
+          : fetchFailures > 0
+            ? `${fetchFailures}/${fetchAttempts} requests failed`
+            : undefined,
         mentionsFound: allMentions.length,
         mentions: allMentions,
         activityLevel:

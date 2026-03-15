@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.socialMention.findMany({
         where: mentionWhere,
-        orderBy: [{ promotionScore: "desc" }, { createdAt: "desc" }],
+        orderBy: [{ createdAt: "desc" }, { promotionScore: "desc" }],
         skip: (page - 1) * limit,
         take: limit,
         select: {
