@@ -164,7 +164,7 @@ function LoginForm() {
         <Button
           type="submit"
           className="w-full"
-          disabled={isLoading || !turnstileToken}
+          disabled={isLoading}
         >
           {isLoading ? (
             <>
