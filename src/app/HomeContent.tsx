@@ -547,7 +547,7 @@ export default function HomeContent() {
                     />
                   </div>
                 </div>
-              ) : status !== "loading" ? (
+              ) : (
                 <LandingOptionA
                   onSubmit={handleSubmit}
                   isLoading={isLoading}
@@ -556,7 +556,7 @@ export default function HomeContent() {
                   headline={heroContent.headline}
                   subheadline={heroContent.subheadline}
                 />
-              ) : null}
+              )}
             </>
           )}
         </main>

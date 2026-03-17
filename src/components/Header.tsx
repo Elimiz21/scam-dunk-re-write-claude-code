@@ -123,9 +123,7 @@ export function Header({
           )}
 
           {/* User menu */}
-          {status === "loading" ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : session ? (
+          {session ? (
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
