@@ -23,24 +23,29 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getAdminSession();
     if (!session) {
-      return NextResponse.json(
-        {
-          definitions: {
-            totalMentions:
-              "Total indexed social posts matching the current filters.",
-            promotionalCount:
-              "Mentions flagged promotional (isPromotional=true).",
-            avgPromotionScore:
-              "Average promotionScore (0-100) across filtered mentions.",
-            tickersTracked: "Unique ticker count across filtered mentions.",
-            tickersScanned: "Tickers submitted to scanner for a run.",
-            tickersWithMentions:
-              "Submitted tickers that returned at least 1 mention.",
+      // Fall back to API key auth for pipeline/CLI access
+      const authHeader = request.headers.get("authorization");
+      const apiKey = process.env.SOCIAL_SCAN_API_KEY;
+      if (!apiKey || authHeader !== `Bearer ${apiKey}`) {
+        return NextResponse.json(
+          {
+            definitions: {
+              totalMentions:
+                "Total indexed social posts matching the current filters.",
+              promotionalCount:
+                "Mentions flagged promotional (isPromotional=true).",
+              avgPromotionScore:
+                "Average promotionScore (0-100) across filtered mentions.",
+              tickersTracked: "Unique ticker count across filtered mentions.",
+              tickersScanned: "Tickers submitted to scanner for a run.",
+              tickersWithMentions:
+                "Submitted tickers that returned at least 1 mention.",
+            },
+            error: "Unauthorized",
           },
-          error: "Unauthorized",
-        },
-        { status: 401 },
-      );
+          { status: 401 },
+        );
+      }
     }
 
     // Auto-cleanup: mark scans stuck in RUNNING for >10 minutes as TIMED_OUT

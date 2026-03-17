@@ -425,3 +425,34 @@ export function getHighRiskPath(
   if (files.some((f) => f.path === legacy)) return legacy;
   return null;
 }
+
+/**
+ * Compute AI layer coverage stats from an array of high-risk stocks.
+ * Shared by scan-status and scan-intelligence API routes.
+ */
+export function computeAIStats(stocks: EnhancedStock[]) {
+  if (stocks.length === 0) {
+    return {
+      total: 0,
+      withBackend: 0,
+      layer1: 0,
+      layer2: 0,
+      layer3: 0,
+      layer4: 0,
+    };
+  }
+  let withBackend = 0,
+    layer1 = 0,
+    layer2 = 0,
+    layer3 = 0,
+    layer4 = 0;
+  for (const s of stocks) {
+    if (!s.aiLayers) continue;
+    if (s.aiLayers.usedPythonBackend) withBackend++;
+    if (s.aiLayers.layer1_deterministic !== null) layer1++;
+    if (s.aiLayers.layer2_anomaly !== null) layer2++;
+    if (s.aiLayers.layer3_rf !== null) layer3++;
+    if (s.aiLayers.layer4_lstm !== null) layer4++;
+  }
+  return { total: stocks.length, withBackend, layer1, layer2, layer3, layer4 };
+}

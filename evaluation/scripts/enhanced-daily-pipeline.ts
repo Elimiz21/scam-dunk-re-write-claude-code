@@ -121,6 +121,9 @@ interface EnhancedStockResult {
   socialMediaScanned: boolean;
   socialMediaFindings?: ComprehensiveScanResult | null;
 
+  // Pre-pump baseline price (lowest close in 30 days before spike)
+  prePumpBasePrice: number | null;
+
   // Scheme tracking
   schemeId: string | null;
   schemeStatus: "NEW" | "ONGOING" | "RESOLVED" | null;
@@ -670,6 +673,45 @@ async function fetchSECFilings(symbol: string): Promise<any[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Compute the pre-pump baseline price from price history.
+ * Looks at the 30-day window ending 5 days before the most recent date
+ * (to exclude the current spike) and returns the minimum closing price.
+ */
+function computePrePumpBasePrice(
+  priceHistory: PriceHistory[],
+  lastPrice: number,
+): number | null {
+  if (!priceHistory || priceHistory.length < 10) return null;
+
+  // priceHistory is ordered oldest-to-newest (reversed in fetchFMPHistory)
+  const len = priceHistory.length;
+  const endIdx = Math.max(0, len - 5); // exclude last 5 days (spike window)
+  const startIdx = Math.max(0, endIdx - 30); // look back 30 days from there
+
+  if (startIdx >= endIdx) return null;
+
+  const window = priceHistory.slice(startIdx, endIdx);
+  if (window.length === 0) return null;
+
+  let minClose = Infinity;
+  for (const day of window) {
+    if (day.close > 0 && day.close < minClose) minClose = day.close;
+  }
+
+  if (minClose === Infinity) return null;
+
+  // If the minimum is within 10% of the current price, the stock may not
+  // actually be pumped — use the 30-day average as a more stable baseline.
+  if (lastPrice > 0 && Math.abs(minClose - lastPrice) / lastPrice < 0.1) {
+    const avgClose =
+      window.reduce((sum, d) => sum + d.close, 0) / window.length;
+    return avgClose;
+  }
+
+  return minClose;
 }
 
 // Fetch press releases
@@ -1272,6 +1314,10 @@ async function runEnhancedPipeline(): Promise<void> {
         secFilings: [],
         socialMediaScanned: false,
         socialMediaFindings: null,
+        prePumpBasePrice: computePrePumpBasePrice(
+          marketData.priceHistory,
+          extendedQuote?.lastPrice || 0,
+        ),
         schemeId: null,
         schemeStatus: null,
         evaluatedAt: new Date().toISOString(),
@@ -1551,19 +1597,65 @@ async function runEnhancedPipeline(): Promise<void> {
         console.log("  ✅ Results stored to Supabase and visible on dashboard");
 
         // Build a compatible scanRunResult for downstream code
+        const platforms = Array.isArray(apiResult.platformsUsed)
+          ? typeof apiResult.platformsUsed[0] === "string"
+            ? apiResult.platformsUsed
+            : (apiResult.platformsUsed as any).scanners || []
+          : [];
         scanRunResult = {
           status: apiResult.status || "COMPLETED",
-          platformsUsed: Array.isArray(apiResult.platformsUsed)
-            ? typeof apiResult.platformsUsed[0] === "string"
-              ? apiResult.platformsUsed
-              : (apiResult.platformsUsed as any).scanners || []
-            : [],
+          platformsUsed: platforms,
           totalMentions: apiResult.totalMentions || 0,
           tickersScanned: apiResult.tickersScanned || 0,
           tickersWithMentions: apiResult.tickersWithMentions || 0,
           errors: apiResult.errors || [],
-          results: [], // Individual results not returned by API — mentions are in DB
+          results: [], // Will be populated from DB fetch below
         };
+
+        // Fetch per-ticker mention data back from the DB via the GET API
+        // so we can build ComprehensiveScanResult for scheme tracking
+        if (apiResult.scanRunId && apiResult.totalMentions > 0) {
+          try {
+            console.log(
+              "  Fetching per-ticker mention data from DB for scheme tracking...",
+            );
+            const mentionsRes = await fetch(
+              `${SOCIAL_SCAN_APP_URL}/api/admin/social-scan?scanRunId=${apiResult.scanRunId}&limit=500`,
+              {
+                headers: {
+                  Authorization: `Bearer ${SOCIAL_SCAN_API_KEY}`,
+                },
+                signal: AbortSignal.timeout(30_000),
+              },
+            );
+            if (mentionsRes.ok) {
+              const mentionsData = await mentionsRes.json();
+              const mentions = mentionsData.mentions || [];
+
+              // Group mentions by ticker
+              const byTicker = new Map<string, any[]>();
+              for (const m of mentions) {
+                const t = (m.ticker || "").toUpperCase();
+                if (!byTicker.has(t)) byTicker.set(t, []);
+                byTicker.get(t)!.push(m);
+              }
+
+              // Store in a map the pipeline can use to build ComprehensiveScanResult
+              (scanRunResult as any)._mentionsByTicker = byTicker;
+              console.log(
+                `  Retrieved ${mentions.length} mentions across ${byTicker.size} ticker(s)`,
+              );
+            } else {
+              console.log(
+                `  ⚠️  Could not fetch mentions from GET API: ${mentionsRes.status}`,
+              );
+            }
+          } catch (fetchErr: any) {
+            console.log(
+              `  ⚠️  Mention fetch failed (non-blocking): ${fetchErr.message}`,
+            );
+          }
+        }
       } catch (apiError: any) {
         console.log(`  ⚠️  Deployed API failed: ${apiError.message}`);
         console.log("  Falling back to local social scan...");
@@ -1591,11 +1683,137 @@ async function runEnhancedPipeline(): Promise<void> {
 
     // Map results back to each stock in afterNewsFilter
     for (const result of afterNewsFilter) {
-      // When using deployed API, we don't get per-ticker results back
-      // (they're stored directly in Supabase). Mark as scanned.
+      // When using deployed API, build ComprehensiveScanResult from DB mentions
       if (usedDeployedAPI) {
         result.socialMediaScanned = true;
-        result.socialMediaFindings = null; // Data is in Supabase, not local JSON
+        const mentionsByTicker = (scanRunResult as any)._mentionsByTicker as
+          | Map<string, any[]>
+          | undefined;
+        const tickerMentions = mentionsByTicker?.get(
+          result.symbol.toUpperCase(),
+        );
+
+        if (tickerMentions && tickerMentions.length > 0) {
+          // Build a ComprehensiveScanResult-compatible structure from DB mentions
+          const avgScore = Math.round(
+            tickerMentions.reduce(
+              (sum: number, m: any) => sum + (m.promotionScore || 0),
+              0,
+            ) / tickerMentions.length,
+          );
+          const promoMentions = tickerMentions.filter(
+            (m: any) => m.isPromotional,
+          );
+
+          // Group by platform
+          const platformMap = new Map<string, any[]>();
+          for (const m of tickerMentions) {
+            const plat = m.platform || "unknown";
+            if (!platformMap.has(plat)) platformMap.set(plat, []);
+            platformMap.get(plat)!.push(m);
+          }
+
+          const platformResults = Array.from(platformMap.entries()).map(
+            ([platform, mentions]) => {
+              const platAvg = Math.round(
+                mentions.reduce(
+                  (s: number, m: any) => s + (m.promotionScore || 0),
+                  0,
+                ) / mentions.length,
+              );
+              return {
+                platform,
+                success: true,
+                dataSource: "real" as const,
+                mentionsFound: mentions.length,
+                mentions: mentions.map((m: any) => ({
+                  platform: m.platform,
+                  source: m.source || "",
+                  title: m.title || "",
+                  content: m.content || "",
+                  url: m.url || "",
+                  author: m.author || "",
+                  date: m.postDate || "",
+                  engagement: m.engagement || {},
+                  sentiment: m.sentiment || "neutral",
+                  isPromotional: m.isPromotional || false,
+                  promotionScore: m.promotionScore || 0,
+                  redFlags: m.redFlags || [],
+                })),
+                overallActivityLevel:
+                  mentions.length >= 5
+                    ? "high"
+                    : mentions.length >= 2
+                      ? "medium"
+                      : "low",
+                promotionRisk:
+                  platAvg >= 60 ? "high" : platAvg >= 30 ? "medium" : "low",
+                error: null,
+              };
+            },
+          );
+
+          // Find potential promoters (authors with multiple promo mentions)
+          const authorCounts = new Map<
+            string,
+            { platform: string; count: number; totalScore: number }
+          >();
+          for (const m of promoMentions) {
+            if (!m.author) continue;
+            const key = `${m.platform}:${m.author}`;
+            const existing = authorCounts.get(key) || {
+              platform: m.platform,
+              count: 0,
+              totalScore: 0,
+            };
+            existing.count++;
+            existing.totalScore += m.promotionScore || 0;
+            authorCounts.set(key, existing);
+          }
+
+          const potentialPromoters = Array.from(authorCounts.entries())
+            .filter(([, v]) => v.count >= 2)
+            .map(([key, v]) => ({
+              platform: v.platform,
+              username: key.split(":").slice(1).join(":"),
+              postCount: v.count,
+              confidence: (v.totalScore / v.count >= 60
+                ? "high"
+                : v.totalScore / v.count >= 30
+                  ? "medium"
+                  : "low") as "high" | "medium" | "low",
+            }));
+
+          result.socialMediaFindings = {
+            symbol: result.symbol,
+            name: result.name,
+            scanDate: evaluationDate,
+            platforms: platformResults,
+            overallPromotionScore: avgScore,
+            riskLevel:
+              avgScore >= 60 ? "high" : avgScore >= 30 ? "medium" : "low",
+            hasRealSocialEvidence: tickerMentions.length > 0,
+            potentialPromoters,
+            summary: `${tickerMentions.length} mentions found across ${platformMap.size} platform(s). Avg promotion score: ${avgScore}/100.`,
+          };
+
+          if (avgScore >= 60) {
+            console.log(
+              `  🔴 ${result.symbol}: HIGH promotion score: ${avgScore}/100 (from DB)`,
+            );
+          } else if (avgScore >= 40) {
+            console.log(
+              `  🟡 ${result.symbol}: MEDIUM promotion score: ${avgScore}/100 (from DB)`,
+            );
+          } else {
+            console.log(
+              `  🟢 ${result.symbol}: LOW promotion score: ${avgScore}/100 (from DB)`,
+            );
+          }
+        } else {
+          result.socialMediaFindings = null;
+          console.log(`  ⚪ ${result.symbol}: No mention data in DB`);
+        }
         suspiciousStocks.push(result);
         continue;
       }
@@ -1950,10 +2168,17 @@ async function runEnhancedPipeline(): Promise<void> {
         hadSocialMediaPromotion: result.socialMediaFindings.platforms.some(
           (p) => p.promotionRisk === "high" && p.dataSource === "real",
         ),
-        priceAtDetection: result.lastPrice || 0,
+        priceAtDetection: result.prePumpBasePrice || result.lastPrice || 0,
         peakPrice: result.lastPrice || 0,
         currentPrice: result.lastPrice || 0,
-        priceChangeFromDetection: 0,
+        priceChangeFromDetection:
+          result.prePumpBasePrice &&
+          result.prePumpBasePrice > 0 &&
+          result.lastPrice
+            ? ((result.lastPrice - result.prePumpBasePrice) /
+                result.prePumpBasePrice) *
+              100
+            : 0,
         priceChangeFromPeak: 0,
         volumeAtDetection: result.avgDailyVolume || 0,
         peakVolume: result.avgDailyVolume || 0,
@@ -2003,12 +2228,16 @@ async function runEnhancedPipeline(): Promise<void> {
     coolingSchemes,
     resolvedSchemes,
     noScamSchemes,
-    totalActiveSchemes: schemeDB.size,
+    totalActiveSchemes: Array.from(schemeDB.values()).filter((s) =>
+      ["NEW", "ONGOING", "COOLING"].includes(s.status),
+    ).length,
   };
   scanStatus.summary.remainingSuspicious = suspiciousStocks.length;
   scanStatus.summary.newSchemes = newSchemes;
   scanStatus.summary.ongoingSchemes = ongoingSchemes;
-  scanStatus.summary.totalActiveSchemes = schemeDB.size;
+  scanStatus.summary.totalActiveSchemes = Array.from(schemeDB.values()).filter(
+    (s) => ["NEW", "ONGOING", "COOLING"].includes(s.status),
+  ).length;
 
   // Generate reports
   const endTime = Date.now();
@@ -2023,7 +2252,9 @@ async function runEnhancedPipeline(): Promise<void> {
     filteredByVolume,
     filteredByNews,
     remainingSuspicious: suspiciousStocks.length,
-    activeSchemes: schemeDB.size,
+    activeSchemes: Array.from(schemeDB.values()).filter((s) =>
+      ["NEW", "ONGOING", "COOLING"].includes(s.status),
+    ).length,
     newSchemes,
     processingTimeMinutes: durationMinutes,
   };

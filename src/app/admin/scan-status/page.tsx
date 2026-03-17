@@ -54,6 +54,14 @@ interface ScanStatusData {
     available: boolean;
     layersUsed: string[];
   };
+  aiStats?: {
+    total: number;
+    withBackend: number;
+    layer1: number;
+    layer2: number;
+    layer3: number;
+    layer4: number;
+  };
   phases?: {
     phase1_riskScoring: PhaseStatus;
     phase2_sizeFiltering: PhaseStatus;
@@ -725,6 +733,7 @@ export default function ScanStatusPage() {
   const phases = data?.phases;
   const social = data?.socialMediaDetails;
   const ai = data?.aiBackend;
+  const aiStats = data?.aiStats;
 
   const pipelineFailed = data?.pipelineStatus === "failed";
 
@@ -914,6 +923,67 @@ export default function ScanStatusPage() {
                       AI_BACKEND_URL not set - using Layer 1 only
                     </span>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* AI Backend Offline Warning */}
+            {aiStats && aiStats.total > 0 && aiStats.withBackend === 0 && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">
+                      Python AI Backend Offline
+                    </p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Only Layer 1 (Deterministic) contributed to risk scoring.
+                      Layers 2-4 (Anomaly Detection, Random Forest, LSTM)
+                      require AI_BACKEND_URL to be configured. All{" "}
+                      {aiStats.total} high-risk stocks were scored with
+                      deterministic rules only.
+                    </p>
+                    <div className="flex gap-3 mt-2">
+                      {[
+                        {
+                          name: "L1 Deterministic",
+                          count: aiStats.layer1,
+                          active: true,
+                        },
+                        {
+                          name: "L2 Anomaly",
+                          count: aiStats.layer2,
+                          active: false,
+                        },
+                        {
+                          name: "L3 Random Forest",
+                          count: aiStats.layer3,
+                          active: false,
+                        },
+                        {
+                          name: "L4 LSTM",
+                          count: aiStats.layer4,
+                          active: false,
+                        },
+                      ].map((layer) => (
+                        <span
+                          key={layer.name}
+                          className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full ${
+                            layer.count > 0
+                              ? "bg-emerald-500/10 text-emerald-700"
+                              : "bg-gray-200 text-gray-500"
+                          }`}
+                        >
+                          {layer.count > 0 ? (
+                            <CheckCircle2 className="h-3 w-3" />
+                          ) : (
+                            <XCircle className="h-3 w-3" />
+                          )}
+                          {layer.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

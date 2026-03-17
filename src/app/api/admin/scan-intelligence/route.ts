@@ -16,6 +16,7 @@ import {
   fetchPartialArray,
   getHighRiskPath,
   generateSchemeName,
+  computeAIStats,
   type DailyReport,
   type FmpSummary,
   type SchemeDatabase,
@@ -27,15 +28,23 @@ import {
 export const dynamic = "force-dynamic";
 
 function deriveSchemeMilestones(scheme: any) {
-  const floorPriceBeforePump = Math.min(
-    scheme.priceAtDetection ?? 0,
-    scheme.currentPrice ?? 0,
-    scheme.peakPrice ?? 0,
-  );
-  const troughPriceAfterPeak = Math.min(
-    scheme.currentPrice ?? 0,
-    scheme.peakPrice ?? 0,
-  );
+  const priceAtDetection = scheme.priceAtDetection || 0;
+  const peakPrice = scheme.peakPrice || 0;
+  const currentPrice = scheme.currentPrice || 0;
+
+  // Floor = pre-pump baseline price (priceAtDetection should be the pre-pump price)
+  // Only fall back to min of other prices if priceAtDetection is clearly wrong (0 or same as peak)
+  const floorPriceBeforePump =
+    priceAtDetection > 0 && priceAtDetection < peakPrice
+      ? priceAtDetection
+      : priceAtDetection > 0
+        ? priceAtDetection
+        : Math.min(currentPrice || Infinity, peakPrice || Infinity) || 0;
+
+  // Trough = lowest price after peak (dump phase)
+  const troughPriceAfterPeak =
+    currentPrice > 0 && currentPrice < peakPrice ? currentPrice : peakPrice;
+
   const daysFloorToPeak = Math.max(
     0,
     Math.round((scheme.daysActive || 0) * 0.4),
@@ -44,16 +53,24 @@ function deriveSchemeMilestones(scheme: any) {
     0,
     (scheme.daysActive || 0) - daysFloorToPeak,
   );
+
+  // Pump: floor → peak
   const pumpPct =
     floorPriceBeforePump > 0
-      ? ((scheme.peakPrice - floorPriceBeforePump) / floorPriceBeforePump) * 100
+      ? ((peakPrice - floorPriceBeforePump) / floorPriceBeforePump) * 100
       : 0;
+
+  // Dump: peak → current
+  const dumpPct =
+    peakPrice > 0 ? ((currentPrice - peakPrice) / peakPrice) * 100 : 0;
+
   return {
     floorPriceBeforePump,
     troughPriceAfterPeak,
     daysFloorToPeak,
     daysPeakToTrough,
     pumpPct,
+    dumpPct,
     weakPumpSignal: pumpPct < 5,
   };
 }
@@ -182,12 +199,65 @@ export async function GET(req: Request) {
           }))
       : [];
 
-    // Compute social scan summary
-    const socialSummary = socialScan
+    // Compute social scan summary — fall back to DB if JSON file has no results
+    // (this happens when the deployed API path stores data directly in Supabase)
+    let effectiveSocialScan = socialScan;
+    if (!socialScan || socialScan.socialMediaScannedCount === 0) {
+      try {
+        const targetDateStart = new Date(targetDate + "T00:00:00Z");
+        const targetDateEnd = new Date(targetDate + "T23:59:59Z");
+
+        const scanRun = await prisma.socialScanRun.findFirst({
+          where: {
+            scanDate: { gte: targetDateStart, lte: targetDateEnd },
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            status: true,
+            tickersScanned: true,
+            tickersWithMentions: true,
+            totalMentions: true,
+            platformsUsed: true,
+            errors: true,
+          },
+        });
+
+        if (scanRun && (scanRun.tickersScanned ?? 0) > 0) {
+          const mentionStats = await prisma.socialMention.groupBy({
+            by: ["ticker"],
+            where: { scanRunId: scanRun.id },
+            _count: true,
+            _avg: { promotionScore: true },
+          });
+
+          const highPromo = mentionStats.filter(
+            (m) => (m._avg.promotionScore || 0) >= 60,
+          ).length;
+          const medPromo = mentionStats.filter((m) => {
+            const avg = m._avg.promotionScore || 0;
+            return avg >= 40 && avg < 60;
+          }).length;
+
+          effectiveSocialScan = {
+            scanDate: targetDate,
+            totalScanned: scanRun.tickersScanned ?? 0,
+            socialMediaScannedCount: scanRun.tickersWithMentions ?? 0,
+            highPromotionCount: highPromo,
+            mediumPromotionCount: medPromo,
+            results: [],
+          } as SocialScanFile;
+        }
+      } catch {
+        /* non-blocking — keep file-based data */
+      }
+    }
+
+    const socialSummary = effectiveSocialScan
       ? {
-          totalScanned: socialScan.totalScanned,
-          highPromotion: socialScan.highPromotionCount,
-          mediumPromotion: socialScan.mediumPromotionCount,
+          totalScanned: effectiveSocialScan.totalScanned,
+          highPromotion: effectiveSocialScan.highPromotionCount,
+          mediumPromotion: effectiveSocialScan.mediumPromotionCount,
         }
       : null;
 
@@ -320,29 +390,4 @@ export async function GET(req: Request) {
   }
 }
 
-function computeAIStats(stocks: EnhancedStock[]) {
-  if (stocks.length === 0) {
-    return {
-      total: 0,
-      withBackend: 0,
-      layer1: 0,
-      layer2: 0,
-      layer3: 0,
-      layer4: 0,
-    };
-  }
-  let withBackend = 0,
-    layer1 = 0,
-    layer2 = 0,
-    layer3 = 0,
-    layer4 = 0;
-  for (const s of stocks) {
-    if (!s.aiLayers) continue;
-    if (s.aiLayers.usedPythonBackend) withBackend++;
-    if (s.aiLayers.layer1_deterministic !== null) layer1++;
-    if (s.aiLayers.layer2_anomaly !== null) layer2++;
-    if (s.aiLayers.layer3_rf !== null) layer3++;
-    if (s.aiLayers.layer4_lstm !== null) layer4++;
-  }
-  return { total: stocks.length, withBackend, layer1, layer2, layer3, layer4 };
-}
+// computeAIStats is now imported from @/lib/admin/scan-data
