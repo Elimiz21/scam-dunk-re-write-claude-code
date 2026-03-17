@@ -8,6 +8,13 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { getSupabaseClient, EVALUATION_BUCKET } from "@/lib/supabase";
+import {
+  getRepoTree,
+  fetchPartialArray,
+  getHighRiskPath,
+  computeAIStats,
+  type EnhancedStock,
+} from "@/lib/admin/scan-data";
 
 export const dynamic = "force-dynamic";
 
@@ -175,6 +182,47 @@ async function fallbackToDailyReport(
 
   const report = JSON.parse(await fileData.text());
   const dateMatch = targetFile.name.match(/daily-report-(\d{4}-\d{2}-\d{2})/);
+  const reportDate = dateMatch ? dateMatch[1] : report.date;
+
+  // Fetch AI layer stats from high-risk data (honest reporting of which layers ran)
+  let aiStats = {
+    total: 0,
+    withBackend: 0,
+    layer1: 0,
+    layer2: 0,
+    layer3: 0,
+    layer4: 0,
+  };
+  let aiBackend = {
+    configured: false,
+    available: false,
+    layersUsed: ["Deterministic"],
+  };
+  try {
+    const repoFiles = await getRepoTree();
+    const highRiskPath = getHighRiskPath(reportDate, repoFiles);
+    if (highRiskPath) {
+      const highRisk = await fetchPartialArray<EnhancedStock>(
+        highRiskPath,
+        200_000,
+      );
+      const unfiltered = highRisk.filter((s) => !s.isFiltered);
+      aiStats = computeAIStats(unfiltered);
+      const hasBackend = aiStats.withBackend > 0;
+      aiBackend = {
+        configured: hasBackend,
+        available: hasBackend,
+        layersUsed: [
+          "Deterministic",
+          ...(aiStats.layer2 > 0 ? ["Anomaly Detection"] : []),
+          ...(aiStats.layer3 > 0 ? ["Random Forest"] : []),
+          ...(aiStats.layer4 > 0 ? ["LSTM"] : []),
+        ],
+      };
+    }
+  } catch {
+    /* non-blocking — keep defaults */
+  }
 
   // Merge daily-report dates into the history if we have an existing one from scan-status
   const reportHistory = reportFiles.map((f) => {
@@ -194,8 +242,10 @@ async function fallbackToDailyReport(
   return NextResponse.json({
     available: true,
     source: "daily-report",
-    date: dateMatch ? dateMatch[1] : report.date,
+    date: reportDate,
     pipelineStatus: "completed",
+    aiBackend,
+    aiStats,
     summary: buildSchemeSummary({
       totalStocks: report.totalStocksScanned || 0,
       processed: report.totalStocksScanned || 0,
