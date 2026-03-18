@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useCallback } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Shield, Loader2, Eye } from "lucide-react";
-import { Turnstile } from "@/components/turnstile";
 
 function LoginForm() {
   const router = useRouter();
@@ -33,24 +32,14 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [turnstileToken, setTurnstileToken] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
-
-  const handleTurnstileVerify = useCallback((token: string) => {
-    setTurnstileToken(token);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setShowVerificationPrompt(false);
-
-    if (!turnstileToken) {
-      setError("Please complete the CAPTCHA verification");
-      return;
-    }
 
     setIsLoading(true);
 
@@ -158,7 +147,6 @@ function LoginForm() {
             disabled={isLoading}
           />
         </div>
-        <Turnstile onVerify={handleTurnstileVerify} />
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
         <Button

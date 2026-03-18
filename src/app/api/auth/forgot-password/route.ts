@@ -34,15 +34,8 @@ export async function POST(request: NextRequest) {
     const { email: rawEmail, turnstileToken } = validation.data;
     const email = rawEmail.toLowerCase().trim();
 
-    // Verify CAPTCHA if Turnstile is configured
-    if (process.env.TURNSTILE_SECRET_KEY) {
-      if (!turnstileToken) {
-        return NextResponse.json(
-          { error: "Please complete the CAPTCHA verification" },
-          { status: 400 },
-        );
-      }
-
+    // Verify CAPTCHA if Turnstile is configured and token was provided
+    if (process.env.TURNSTILE_SECRET_KEY && turnstileToken) {
       const ip =
         request.headers.get("x-forwarded-for") ||
         request.headers.get("x-real-ip") ||

@@ -38,11 +38,6 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
 
-    if (!turnstileToken) {
-      setError("Please complete the CAPTCHA verification");
-      return;
-    }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
