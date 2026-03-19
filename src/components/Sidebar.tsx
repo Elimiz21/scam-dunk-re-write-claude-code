@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import {
@@ -110,38 +110,67 @@ export function Sidebar({
   const { data: session } = useSession();
   const [recentScans, setRecentScans] = useState<ScanHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const fetchControllerRef = useRef<AbortController | null>(null);
 
-  // Re-fetch when sidebar opens
-  useEffect(() => {
-    if (session?.user && isOpen) {
-      fetchRecentScans();
-    }
-  }, [session, isOpen]);
+  const fetchRecentScans = useCallback(async () => {
+    if (!session?.user) return;
 
-  // Also re-fetch when a new scan completes (refreshKey changes), even if sidebar is closed
-  useEffect(() => {
-    if (session?.user && refreshKey > 0) {
-      fetchRecentScans();
-    }
-  }, [refreshKey]);
+    // Cancel any in-flight request to avoid stale data overwriting fresh data
+    fetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    fetchControllerRef.current = controller;
 
-  const fetchRecentScans = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(
         `/api/user/scans?limit=10&_t=${Date.now()}`,
-        { cache: "no-store" },
+        {
+          cache: "no-store",
+          signal: controller.signal,
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        },
       );
+      if (controller.signal.aborted) return;
       if (response.ok) {
         const data = await response.json();
         setRecentScans(data.scans || []);
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("Failed to fetch recent scans:", err);
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, [session?.user]);
+
+  // Fetch when sidebar opens
+  useEffect(() => {
+    if (session?.user && isOpen) {
+      fetchRecentScans();
+    }
+  }, [session?.user, isOpen, fetchRecentScans]);
+
+  // Re-fetch when a new scan completes (refreshKey changes), even if sidebar is closed
+  useEffect(() => {
+    if (session?.user && refreshKey > 0) {
+      fetchRecentScans();
+    }
+  }, [refreshKey, session?.user, fetchRecentScans]);
+
+  // Re-fetch when user returns to the tab (catches stale data after background time)
+  useEffect(() => {
+    if (!session?.user) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchRecentScans();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [session?.user, fetchRecentScans]);
 
   return (
     <>

@@ -59,17 +59,26 @@ export async function GET(request: NextRequest) {
       analyzedAt: scan.createdAt.toISOString(),
     }));
 
-    return NextResponse.json({
-      history,
-      scans, // Keep for backwards compatibility
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasMore: page * limit < total,
+    return NextResponse.json(
+      {
+        history,
+        scans, // Keep for backwards compatibility
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasMore: page * limit < total,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      },
+    );
   } catch (error) {
     console.error("Fetch scans error:", error);
     return NextResponse.json(
