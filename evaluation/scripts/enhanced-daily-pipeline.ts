@@ -1740,14 +1740,16 @@ async function runEnhancedPipeline(): Promise<void> {
                   promotionScore: m.promotionScore || 0,
                   redFlags: m.redFlags || [],
                 })),
-                overallActivityLevel:
-                  mentions.length >= 5
-                    ? "high"
-                    : mentions.length >= 2
-                      ? "medium"
-                      : "low",
-                promotionRisk:
-                  platAvg >= 60 ? "high" : platAvg >= 30 ? "medium" : "low",
+                overallActivityLevel: (mentions.length >= 5
+                  ? "high"
+                  : mentions.length >= 2
+                    ? "medium"
+                    : "low") as "high" | "medium" | "low",
+                promotionRisk: (platAvg >= 60
+                  ? "high"
+                  : platAvg >= 30
+                    ? "medium"
+                    : "low") as "high" | "medium" | "low",
                 error: null,
               };
             },
