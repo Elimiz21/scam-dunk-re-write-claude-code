@@ -479,6 +479,7 @@ interface PythonAIResult {
 
 async function callPythonAIBackend(
   symbol: string,
+  options?: { onWatchlist?: boolean },
 ): Promise<PythonAIResult | null> {
   if (!AI_BACKEND_URL) {
     return null;
@@ -488,12 +489,23 @@ async function callPythonAIBackend(
     // Build auth header if API secret is configured
     const authHeader = AI_API_SECRET ? `-H "X-API-Key: ${AI_API_SECRET}" ` : "";
 
+    // Build request body with optional watchlist context
+    const requestBody: Record<string, any> = {
+      ticker: symbol,
+      asset_type: "stock",
+      use_live_data: true,
+    };
+    if (options?.onWatchlist) {
+      requestBody.on_watchlist = true;
+    }
+    const bodyJson = JSON.stringify(requestBody).replace(/'/g, "'\\''");
+
     // Use -w to append HTTP status code, separated by newline
     const cmd =
       `curl -s --max-time 30 -w '\\n%{http_code}' -X POST "${AI_BACKEND_URL}/analyze" ` +
       `-H "Content-Type: application/json" ` +
       authHeader +
-      `-d '{"ticker": "${symbol}", "asset_type": "stock", "use_live_data": true}'`;
+      `-d '${bodyJson}'`;
 
     const result = execSync(cmd, {
       encoding: "utf-8",
@@ -956,6 +968,7 @@ interface ScanStatus {
     layersUsed: string[];
   };
   phases: {
+    phase0_socialEarlyWarning: PhaseStatus;
     phase1_riskScoring: PhaseStatus;
     phase2_sizeFiltering: PhaseStatus;
     phase3_newsAnalysis: PhaseStatus;
@@ -1017,6 +1030,7 @@ function createInitialScanStatus(date: string): ScanStatus {
     failedAtPhase: null,
     aiBackend: { configured: false, available: false, layersUsed: [] },
     phases: {
+      phase0_socialEarlyWarning: emptyPhase("Social Early Warning & Pre-Pump Scan"),
       phase1_riskScoring: emptyPhase("Risk Scoring All Stocks"),
       phase2_sizeFiltering: emptyPhase("Size & Volume Filtering"),
       phase3_newsAnalysis: emptyPhase("News & SEC Filing Analysis"),
@@ -1158,6 +1172,103 @@ async function runEnhancedPipeline(): Promise<void> {
   let filteredByNews = 0;
   const riskCounts = { LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 };
 
+  // ============================================================
+  // PHASE 0: Social Early Warning + Pre-Pump Structural Signals
+  // ============================================================
+  console.log("\n Phase 0: Social Early Warning & Pre-Pump Scan...");
+  scanStatus.phases.phase0_socialEarlyWarning.status = "running";
+  scanStatus.phases.phase0_socialEarlyWarning.startedAt = new Date().toISOString();
+
+  const watchlistTickers = new Set<string>();
+
+  if (AI_BACKEND_URL) {
+    try {
+      // Filter to OTC/penny stocks
+      const otcTickers = stocks
+        .filter((s: any) => {
+          const exchange = (s.exchange || "").toUpperCase();
+          return (
+            ["OTC", "OTCQX", "OTCQB", "PINK", "GREY"].includes(exchange) ||
+            (s.marketCap && s.marketCap < 300_000_000)
+          );
+        })
+        .map((s: any) => s.symbol);
+
+      console.log(`  Scanning ${otcTickers.length} OTC/penny tickers for social signals...`);
+
+      // Social early warning scan
+      const socialResp = await fetch(`${AI_BACKEND_URL}/social-early-warning`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": AI_API_SECRET || "",
+        },
+        body: JSON.stringify({ tickers: otcTickers.slice(0, 500) }),
+      });
+
+      if (socialResp.ok) {
+        const socialData = await socialResp.json();
+        for (const [ticker] of Object.entries(socialData.watchlist || {})) {
+          watchlistTickers.add(ticker);
+        }
+        console.log(`  Social early warning: ${watchlistTickers.size} tickers flagged`);
+      }
+
+      // Pre-pump structural scan
+      const fundamentalsMap: Record<string, any> = {};
+      for (const s of stocks.filter((s: any) => otcTickers.includes(s.symbol))) {
+        fundamentalsMap[s.symbol] = {
+          market_cap: s.marketCap,
+          exchange: s.exchange,
+          sector: s.sector,
+        };
+      }
+
+      const prePumpResp = await fetch(`${AI_BACKEND_URL}/pre-pump-scan`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": AI_API_SECRET || "",
+        },
+        body: JSON.stringify({
+          tickers: otcTickers.slice(0, 200),
+          fundamentals: fundamentalsMap,
+        }),
+      });
+
+      if (prePumpResp.ok) {
+        const prePumpData = await prePumpResp.json();
+        for (const [ticker, data] of Object.entries(prePumpData.results || {})) {
+          if ((data as any).watchlist_recommended) {
+            watchlistTickers.add(ticker);
+          }
+        }
+        console.log(
+          `  Pre-pump scan: ${Object.keys(prePumpData.results || {}).length} tickers with structural signals`,
+        );
+      }
+    } catch (error) {
+      console.error("  Phase 0 error (non-fatal, continuing):", error);
+    }
+  }
+
+  scanStatus.phases.phase0_socialEarlyWarning.status = "completed";
+  scanStatus.phases.phase0_socialEarlyWarning.completedAt = new Date().toISOString();
+  scanStatus.phases.phase0_socialEarlyWarning.durationMs =
+    Date.now() - new Date(scanStatus.phases.phase0_socialEarlyWarning.startedAt!).getTime();
+  scanStatus.phases.phase0_socialEarlyWarning.details = {
+    tickersScanned: stocks.filter((s: any) => {
+      const exchange = (s.exchange || "").toUpperCase();
+      return (
+        ["OTC", "OTCQX", "OTCQB", "PINK", "GREY"].includes(exchange) ||
+        (s.marketCap && s.marketCap < 300_000_000)
+      );
+    }).length,
+    watchlistAdded: watchlistTickers.size,
+    existingWatchlist: 0,
+  };
+  console.log(`  Phase 0 complete: ${watchlistTickers.size} tickers on watchlist\n`);
+
   // Phase 1: Run all scans and collect risk scores
   console.log("PHASE 1: Risk Scoring All Stocks");
   console.log("-".repeat(50));
@@ -1233,7 +1344,8 @@ async function runEnhancedPipeline(): Promise<void> {
 
       // Try Python AI backend for full 4-layer analysis
       if (pythonAIAvailable) {
-        const pyResult = await callPythonAIBackend(stock.symbol);
+        const onWatchlist = watchlistTickers.has(stock.symbol);
+        const pyResult = await callPythonAIBackend(stock.symbol, { onWatchlist });
         if (pyResult && pyResult.success) {
           // Cast signals to the expected type (Python backend returns compatible structure)
           const typedSignals = pyResult.signals.map((s) => ({
@@ -1242,7 +1354,8 @@ async function runEnhancedPipeline(): Promise<void> {
               | "STRUCTURAL"
               | "PATTERN"
               | "ALERT"
-              | "BEHAVIORAL",
+              | "BEHAVIORAL"
+              | "SOCIAL",
             weight: s.weight,
             description: s.description,
           }));
