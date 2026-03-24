@@ -422,6 +422,34 @@ async def get_model_status():
     }
 
 
+from pre_pump_signals import scan_pre_pump_signals
+
+
+class PrePumpScanRequest(BaseModel):
+    tickers: List[str] = Field(..., description="List of ticker symbols to scan")
+    fundamentals: Dict[str, Dict] = Field(default_factory=dict)
+
+
+class PrePumpScanResponse(BaseModel):
+    results: Dict[str, Any]
+    tickers_scanned: int
+    tickers_with_signals: int
+
+
+@app.post("/pre-pump-scan", response_model=PrePumpScanResponse)
+async def pre_pump_scan(request: PrePumpScanRequest):
+    """Batch scan tickers for pre-pump structural signals."""
+    loop = asyncio.get_running_loop()
+    results = await loop.run_in_executor(
+        None, lambda: scan_pre_pump_signals(request.tickers, request.fundamentals)
+    )
+    return PrePumpScanResponse(
+        results=results,
+        tickers_scanned=len(request.tickers),
+        tickers_with_signals=len(results),
+    )
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
