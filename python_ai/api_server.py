@@ -423,6 +423,7 @@ async def get_model_status():
 
 
 from pre_pump_signals import scan_pre_pump_signals
+from social_early_warning import scan_social_early_warning
 
 
 class PrePumpScanRequest(BaseModel):
@@ -447,6 +448,31 @@ async def pre_pump_scan(request: PrePumpScanRequest):
         results=results,
         tickers_scanned=len(request.tickers),
         tickers_with_signals=len(results),
+    )
+
+
+class SocialEarlyWarningRequest(BaseModel):
+    tickers: List[str] = Field(...)
+    mention_baselines: Dict[str, float] = Field(default_factory=dict)
+
+
+class SocialEarlyWarningResponse(BaseModel):
+    watchlist: Dict[str, Any]
+    tickers_scanned: int
+    tickers_flagged: int
+
+
+@app.post("/social-early-warning", response_model=SocialEarlyWarningResponse)
+async def social_early_warning(request: SocialEarlyWarningRequest):
+    """Scan tickers for social media early warning signals (Reddit + StockTwits velocity)."""
+    loop = asyncio.get_running_loop()
+    results = await loop.run_in_executor(
+        None, lambda: scan_social_early_warning(request.tickers, request.mention_baselines)
+    )
+    return SocialEarlyWarningResponse(
+        watchlist=results,
+        tickers_scanned=len(request.tickers),
+        tickers_flagged=len(results),
     )
 
 
