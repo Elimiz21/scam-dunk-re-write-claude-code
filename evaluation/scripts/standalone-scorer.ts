@@ -34,7 +34,7 @@ export interface MarketData {
 
 export interface RiskSignal {
   code: string;
-  category: "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL";
+  category: "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL" | "SOCIAL";
   weight: number;
   description: string;
 }
@@ -58,6 +58,10 @@ export const SIGNAL_CODES = {
   SPIKE_THEN_DROP: "SPIKE_THEN_DROP",
   OVERBOUGHT_RSI: "OVERBOUGHT_RSI",
   HIGH_VOLATILITY: "HIGH_VOLATILITY",
+  SPIKE_3D: "SPIKE_3D",
+  VOLUME_SURGE_3D: "VOLUME_SURGE_3D",
+  PRICE_ACCELERATION: "PRICE_ACCELERATION",
+  VOLUME_ACCELERATION: "VOLUME_ACCELERATION",
 } as const;
 
 // Thresholds - Updated based on research analysis
@@ -70,6 +74,38 @@ const THRESHOLDS = {
   volumeExplosionMedium: 3,
   volumeExplosionHigh: 5,
 };
+
+const OTC_THRESHOLDS = {
+  spike7dMedium: 10,
+  spike7dHigh: 25,
+  spike3dMedium: 8,
+  spike3dHigh: 20,
+  volumeExplosionMedium: 2,
+  volumeExplosionHigh: 4,
+  volumeSurge3d: 2,
+  smallMarketCap: 300_000_000,
+  microLiquidity: 150_000,
+};
+
+const MAJOR_THRESHOLDS = { ...THRESHOLDS, spike3dMedium: 15, spike3dHigh: 35, volumeSurge3d: 3 };
+
+const WATCHLIST_THRESHOLDS_TS = {
+  spike7dMedium: 5,
+  spike7dHigh: 15,
+  spike3dMedium: 4,
+  spike3dHigh: 12,
+  volumeExplosionMedium: 1.5,
+  volumeExplosionHigh: 3,
+  volumeSurge3d: 1.5,
+  smallMarketCap: 300_000_000,
+  microLiquidity: 150_000,
+};
+
+function getThresholds(isOTC: boolean, onWatchlist: boolean = false) {
+  if (onWatchlist) return WATCHLIST_THRESHOLDS_TS;
+  if (isOTC) return OTC_THRESHOLDS;
+  return MAJOR_THRESHOLDS;
+}
 
 // Calculate price change percentage over a period
 function calculatePriceChange(
@@ -223,18 +259,20 @@ function checkPatternSignals(marketData: MarketData): RiskSignal[] {
   if (marketData.priceHistory.length < 7) return signals;
 
   const priceHistory = marketData.priceHistory;
+  const isOTC = marketData.isOTC || false;
+  const t = getThresholds(isOTC, (marketData as any).onWatchlist || false);
 
   // SPIKE_7D
   const priceChange7d = calculatePriceChange(priceHistory, 7);
   if (priceChange7d !== null) {
-    if (Math.abs(priceChange7d) >= THRESHOLDS.spike7dHigh) {
+    if (Math.abs(priceChange7d) >= t.spike7dHigh) {
       signals.push({
         code: SIGNAL_CODES.SPIKE_7D,
         category: "PATTERN",
         weight: 4,
         description: `Extreme price movement (${priceChange7d > 0 ? "+" : ""}${priceChange7d.toFixed(0)}%) in 7 days`,
       });
-    } else if (Math.abs(priceChange7d) >= THRESHOLDS.spike7dMedium) {
+    } else if (Math.abs(priceChange7d) >= t.spike7dMedium) {
       signals.push({
         code: SIGNAL_CODES.SPIKE_7D,
         category: "PATTERN",
@@ -247,14 +285,14 @@ function checkPatternSignals(marketData: MarketData): RiskSignal[] {
   // VOLUME_EXPLOSION
   const volumeRatio = calculateVolumeRatio(priceHistory, 7);
   if (volumeRatio !== null) {
-    if (volumeRatio >= THRESHOLDS.volumeExplosionHigh) {
+    if (volumeRatio >= t.volumeExplosionHigh) {
       signals.push({
         code: SIGNAL_CODES.VOLUME_EXPLOSION,
         category: "PATTERN",
         weight: 3,
         description: `Extreme volume surge (${volumeRatio.toFixed(1)}x normal)`,
       });
-    } else if (volumeRatio >= THRESHOLDS.volumeExplosionMedium) {
+    } else if (volumeRatio >= t.volumeExplosionMedium) {
       signals.push({
         code: SIGNAL_CODES.VOLUME_EXPLOSION,
         category: "PATTERN",
@@ -295,6 +333,44 @@ function checkPatternSignals(marketData: MarketData): RiskSignal[] {
       weight: 1,
       description: `High price volatility (${volatility.dailyVolatility.toFixed(1)}% daily)`,
     });
+  }
+
+  // 3-day early detection signals
+  if (priceHistory.length >= 4) {
+    const recent = priceHistory[priceHistory.length - 1];
+    const threeDaysAgo = priceHistory[priceHistory.length - 4];
+    if (recent && threeDaysAgo && threeDaysAgo.close > 0) {
+      const change3d = ((recent.close - threeDaysAgo.close) / threeDaysAgo.close) * 100;
+      if (Math.abs(change3d) >= t.spike3dHigh) {
+        signals.push({ code: SIGNAL_CODES.SPIKE_3D, category: 'PATTERN', description: `Price moved ${change3d.toFixed(1)}% in 3 days`, weight: 3 });
+      } else if (Math.abs(change3d) >= t.spike3dMedium) {
+        signals.push({ code: SIGNAL_CODES.SPIKE_3D, category: 'PATTERN', description: `Price moved ${change3d.toFixed(1)}% in 3 days`, weight: 2 });
+      }
+    }
+
+    // Volume surge 3-day
+    if (priceHistory.length >= 30) {
+      const vol3d = priceHistory.slice(-3).reduce((s, p) => s + (p.volume || 0), 0) / 3;
+      const vol30d = priceHistory.slice(-30).reduce((s, p) => s + (p.volume || 0), 0) / 30;
+      if (vol30d > 0) {
+        const volRatio3d = vol3d / vol30d;
+        if (volRatio3d >= t.volumeSurge3d) {
+          signals.push({ code: SIGNAL_CODES.VOLUME_SURGE_3D, category: 'PATTERN', description: `3-day volume ${volRatio3d.toFixed(1)}x above 30-day average`, weight: 2 });
+        }
+      }
+    }
+
+    // Price acceleration: 3 consecutive days of increasing gains
+    const returns = priceHistory.slice(-4).map((p, i, arr) => i > 0 ? (p.close - arr[i-1].close) / arr[i-1].close : 0).slice(1);
+    if (returns[2] > returns[1] && returns[1] > returns[0] && returns[2] > 0) {
+      signals.push({ code: SIGNAL_CODES.PRICE_ACCELERATION, category: 'PATTERN', description: 'Price gains accelerating over 3 consecutive days', weight: 2 });
+    }
+
+    // Volume acceleration: 3+ consecutive days of increasing volume
+    const vols = priceHistory.slice(-4).map(p => p.volume || 0);
+    if (vols[3] > vols[2] && vols[2] > vols[1] && vols[1] > vols[0]) {
+      signals.push({ code: SIGNAL_CODES.VOLUME_ACCELERATION, category: 'PATTERN', description: 'Volume increasing for 3+ consecutive days', weight: 2 });
+    }
   }
 
   return signals;
