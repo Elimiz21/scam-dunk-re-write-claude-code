@@ -26,7 +26,8 @@ warnings.filterwarnings('ignore')
 # Import all modules
 from config import (
     RISK_THRESHOLDS, ANOMALY_CONFIG, ENSEMBLE_CONFIG,
-    SEC_FLAGGED_TICKERS, OTC_EXCHANGES, MARKET_THRESHOLDS
+    SEC_FLAGGED_TICKERS, OTC_EXCHANGES, MARKET_THRESHOLDS,
+    get_thresholds
 )
 from data_ingestion import (
     create_asset_context, check_sec_flagged_list,
@@ -368,6 +369,49 @@ class ScamDetectionPipeline:
                 weight=2,
             ))
 
+        # --- 3-DAY EARLY DETECTION SIGNALS ---
+        price_change_3d = feat.get('Price_Change_3d', 0)
+        volume_surge_3d = feat.get('Volume_Surge_3d', 1.0)
+        price_accel = feat.get('Price_Acceleration', 0)
+        volume_accel = feat.get('Volume_Acceleration', 0)
+
+        _thresholds = fundamentals.get('_thresholds', ANOMALY_CONFIG)
+        surge_3d_thresh = _thresholds.get('price_surge_3d_threshold', 0.15)
+        vol_3d_thresh = _thresholds.get('volume_surge_3d', 3.0)
+
+        if abs(price_change_3d) >= surge_3d_thresh:
+            weight = 3 if abs(price_change_3d) >= surge_3d_thresh * 2.5 else 2
+            signals.append(SignalDetail(
+                code='SPIKE_3D',
+                category='PATTERN',
+                description=f'Price moved {price_change_3d*100:.1f}% in 3 days',
+                weight=weight,
+            ))
+
+        if volume_surge_3d >= vol_3d_thresh:
+            signals.append(SignalDetail(
+                code='VOLUME_SURGE_3D',
+                category='PATTERN',
+                description=f'3-day volume {volume_surge_3d:.1f}x above 30-day average',
+                weight=2,
+            ))
+
+        if price_accel:
+            signals.append(SignalDetail(
+                code='PRICE_ACCELERATION',
+                category='PATTERN',
+                description='Price gains accelerating over 3 consecutive days',
+                weight=2,
+            ))
+
+        if volume_accel:
+            signals.append(SignalDetail(
+                code='VOLUME_ACCELERATION',
+                category='PATTERN',
+                description='Volume increasing for 3+ consecutive days',
+                weight=2,
+            ))
+
         # ----- ALERT signals -----
         if sec_flagged:
             signals.append(SignalDetail(
@@ -653,6 +697,12 @@ class ScamDetectionPipeline:
         print(f"   SEC Flagged: {sec_flagged}")
         print(f"   Exchange: {fundamentals.get('exchange', 'N/A')}")
 
+        # Derive OTC-tiered thresholds based on exchange and watchlist status
+        is_otc = fundamentals.get('exchange', '').upper() in OTC_EXCHANGES
+        on_watchlist = fundamentals.get('on_watchlist', False)
+        thresholds = get_thresholds(is_otc=is_otc, on_watchlist=on_watchlist)
+        fundamentals['_thresholds'] = thresholds
+
         # Step 2: Feature engineering
         print("\n[Step 2] Computing features...")
         price_data_fe = engineer_all_features(price_data)
@@ -666,7 +716,7 @@ class ScamDetectionPipeline:
 
         # Step 3: Anomaly detection
         print("\n[Step 3] Running anomaly detection...")
-        anomaly_result = detect_anomalies(price_data_fe, news_flag=news_flag)
+        anomaly_result = detect_anomalies(price_data_fe, news_flag=news_flag, thresholds=thresholds)
         print(f"   Anomaly detected: {anomaly_result.is_anomaly}")
         print(f"   Anomaly score: {anomaly_result.anomaly_score:.3f}")
         if anomaly_result.anomaly_types:

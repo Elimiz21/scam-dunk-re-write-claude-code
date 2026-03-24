@@ -56,8 +56,8 @@ def pump_price_data():
     volumes = []
 
     for i in range(n_days - 1):
-        if 24 <= i <= 26:  # pump days (0-indexed: days 25-27)
-            day_in_pump = i - 24  # 0, 1, 2
+        if 26 <= i <= 28:  # pump days at the END (last 3 iterations of the loop)
+            day_in_pump = i - 26  # 0, 1, 2
             surge = 0.12 + day_in_pump * 0.05  # 12%, 17%, 22% gains
             prices.append(prices[-1] * (1 + surge))
             volumes.append(500_000 * (2 + day_in_pump))  # 2x, 3x, 4x volume
@@ -66,8 +66,8 @@ def pump_price_data():
             prices.append(prices[-1] * (1 + change))
             volumes.append(float(np.random.randint(80_000, 120_000)))
 
-    # Append one more volume entry to match n_days
-    volumes.append(float(np.random.randint(80_000, 120_000)))
+    # Append one more volume entry to match n_days (continues the pump peak)
+    volumes.append(500_000 * 5)  # last day is extreme pump volume
 
     prices = np.array(prices)
     volumes = np.array(volumes)

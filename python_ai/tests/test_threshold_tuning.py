@@ -5,6 +5,9 @@ based on stock context (OTC, watchlist, major exchange).
 """
 
 import pytest
+import pandas as pd
+import sys
+sys.path.insert(0, '.')
 from config import (
     get_thresholds,
     OTC_THRESHOLDS,
@@ -12,6 +15,7 @@ from config import (
     WATCHLIST_THRESHOLDS,
     ANOMALY_CONFIG,
 )
+from feature_engineering import compute_surge_metrics
 
 
 class TestOTCThresholdsMoreAggressive:
@@ -132,3 +136,34 @@ class TestWatchlistOverridesOTC:
         assert non_otc_watchlist["price_surge_7d_threshold"] < major["price_surge_7d_threshold"], (
             "Non-OTC on watchlist should still use more aggressive thresholds than major exchange"
         )
+
+
+# ---------------------------------------------------------------------------
+# Task 3: 3-day feature and acceleration tests
+# ---------------------------------------------------------------------------
+
+def test_3d_price_change_computed(pump_price_data):
+    result = compute_surge_metrics(pump_price_data)
+    assert 'Price_Change_3d' in result.columns
+    assert result['Price_Change_3d'].iloc[-1] > 0.05
+
+
+def test_3d_volume_surge_computed(pump_price_data):
+    result = compute_surge_metrics(pump_price_data)
+    assert 'Volume_Surge_3d' in result.columns
+    assert result['Volume_Surge_3d'].iloc[-1] > 1.5
+
+
+def test_price_acceleration_detected(pump_price_data):
+    result = compute_surge_metrics(pump_price_data)
+    assert 'Price_Acceleration' in result.columns
+
+
+def test_volume_acceleration_detected(pump_price_data):
+    result = compute_surge_metrics(pump_price_data)
+    assert 'Volume_Acceleration' in result.columns
+
+
+def test_normal_data_no_acceleration(sample_price_data):
+    result = compute_surge_metrics(sample_price_data)
+    assert result['Price_Acceleration'].sum() < 5

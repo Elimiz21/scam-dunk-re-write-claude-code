@@ -164,20 +164,26 @@ def compute_keltner_channels(
     return df
 
 
-def compute_surge_metrics(df: pd.DataFrame) -> pd.DataFrame:
+def compute_surge_metrics(df: pd.DataFrame, thresholds: dict = None) -> pd.DataFrame:
     """
     Compute price and volume surge metrics.
 
     Args:
         df: DataFrame with OHLCV and rolling statistics
+        thresholds: Optional threshold dict (defaults to ANOMALY_CONFIG)
 
     Returns:
         DataFrame with surge metric columns
     """
     df = df.copy()
 
-    short_window = ANOMALY_CONFIG['short_window']
-    long_window = ANOMALY_CONFIG['long_window']
+    _thresholds = thresholds or ANOMALY_CONFIG
+    short_window = _thresholds['short_window']
+    long_window = _thresholds['long_window']
+
+    # Ensure Return column exists (needed by compute_rolling_statistics)
+    if 'Return' not in df.columns:
+        df['Return'] = df['Close'].pct_change().fillna(0)
 
     # Ensure rolling stats are computed
     if 'Volume_Mean_Long' not in df.columns:
@@ -199,21 +205,46 @@ def compute_surge_metrics(df: pd.DataFrame) -> pd.DataFrame:
     df['Price_Surge_30d'] = df['Price_Change_30d'].abs()
 
     # Directional surges (positive = pump, negative = dump)
-    df['Is_Pumping_7d'] = (df['Price_Change_7d'] > ANOMALY_CONFIG['price_surge_7d_threshold']).astype(int)
-    df['Is_Dumping_7d'] = (df['Price_Change_7d'] < -ANOMALY_CONFIG['price_surge_7d_threshold']).astype(int)
+    df['Is_Pumping_7d'] = (df['Price_Change_7d'] > _thresholds.get('price_surge_7d_threshold', 0.25)).astype(int)
+    df['Is_Dumping_7d'] = (df['Price_Change_7d'] < -_thresholds.get('price_surge_7d_threshold', 0.25)).astype(int)
 
     # Volume explosion detection
     df['Volume_Explosion_Moderate'] = (
-        df['Volume_Surge_Factor'] >= ANOMALY_CONFIG['volume_surge_moderate']
+        df['Volume_Surge_Factor'] >= _thresholds.get('volume_surge_moderate', 3.0)
     ).astype(int)
 
     df['Volume_Explosion_Extreme'] = (
-        df['Volume_Surge_Factor'] >= ANOMALY_CONFIG['volume_surge_extreme']
+        df['Volume_Surge_Factor'] >= _thresholds.get('volume_surge_extreme', 5.0)
     ).astype(int)
 
     # Combined pump pattern: price up + volume explosion
     df['Pump_Pattern'] = (
         (df['Is_Pumping_7d'] == 1) & (df['Volume_Explosion_Moderate'] == 1)
+    ).astype(int)
+
+    # 3-day window features (early pump detection)
+    df['Price_Change_3d'] = df['Close'].pct_change(periods=3)
+
+    # 3-day volume surge vs 30-day average
+    vol_avg_3d = df['Volume'].rolling(window=3, min_periods=1).mean()
+    vol_avg_30d = df['Volume'].rolling(window=long_window, min_periods=5).mean()
+    df['Volume_Surge_3d'] = vol_avg_3d / vol_avg_30d.replace(0, np.nan)
+    df['Volume_Surge_3d'] = df['Volume_Surge_3d'].fillna(1.0)
+
+    # Price acceleration: 3 consecutive days of increasing daily returns
+    daily_returns = df['Close'].pct_change()
+    df['Price_Acceleration'] = (
+        (daily_returns > daily_returns.shift(1)) &
+        (daily_returns.shift(1) > daily_returns.shift(2)) &
+        (daily_returns > 0)
+    ).astype(int)
+
+    # Volume acceleration: 3+ consecutive days of increasing volume
+    vol_increasing = df['Volume'] > df['Volume'].shift(1)
+    df['Volume_Acceleration'] = (
+        vol_increasing &
+        vol_increasing.shift(1) &
+        vol_increasing.shift(2)
     ).astype(int)
 
     return df
@@ -375,6 +406,12 @@ def create_feature_vector(
     features['volume_explosion_moderate'] = latest.get('Volume_Explosion_Moderate', 0)
     features['volume_explosion_extreme'] = latest.get('Volume_Explosion_Extreme', 0)
     features['pump_pattern'] = latest.get('Pump_Pattern', 0)
+
+    # 3-day early detection features
+    features['Price_Change_3d'] = latest.get('Price_Change_3d', 0)
+    features['Volume_Surge_3d'] = latest.get('Volume_Surge_3d', 1.0)
+    features['Price_Acceleration'] = latest.get('Price_Acceleration', 0)
+    features['Volume_Acceleration'] = latest.get('Volume_Acceleration', 0)
 
     # Momentum features
     features['roc_7'] = latest.get('ROC_7', 0)
