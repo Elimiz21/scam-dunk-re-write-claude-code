@@ -1053,3 +1053,23 @@ model PromoterNetwork {
   @@index([confidenceScore])
   @@index([dumpRate])
 }
+
+model PrePumpWatchlist {
+  id                  String    @id @default(uuid())
+  ticker              String
+  addedDate           DateTime  @default(now())
+  source              String    // 'social_velocity', 'edgar_filing', 'short_interest'
+  mentionVelocity     Float?
+  mentionCount24h     Int?
+  uniqueAuthorsRatio  Float?
+  signals             Json?     // array of signal objects that triggered watchlist addition
+  isActive            Boolean   @default(true)
+  deactivatedDate     DateTime?
+  deactivationReason  String?   // 'no_activity_7d', 'confirmed_legitimate', 'scheme_tracked'
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([isActive, ticker])
+  @@index([addedDate])
+  @@map("pre_pump_watchlist")
+}
