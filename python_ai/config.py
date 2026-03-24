@@ -44,6 +44,56 @@ ANOMALY_CONFIG = {
     'pump_dump_fall': -0.15,            # was -0.20 - 15% fall after peak
 }
 
+# --- OTC-tiered threshold system ---
+OTC_THRESHOLDS = {
+    "price_surge_7d_threshold": 0.10,
+    "price_surge_3d_threshold": 0.08,
+    "volume_surge_moderate": 2.0,
+    "volume_surge_3d": 2.0,
+    "volume_surge_extreme": 4.0,
+    "pump_dump_rise": 0.12,
+    "z_score_threshold": 1.8,
+    "volume_z_threshold": 1.5,
+    "price_surge_1d_threshold": 0.08,
+    "price_surge_extreme": 0.35,
+}
+
+MAJOR_EXCHANGE_THRESHOLDS = {
+    "price_surge_7d_threshold": 0.25,
+    "price_surge_3d_threshold": 0.15,
+    "volume_surge_moderate": 3.0,
+    "volume_surge_3d": 3.0,
+    "volume_surge_extreme": 5.0,
+    "pump_dump_rise": 0.20,
+    "z_score_threshold": 2.5,
+    "volume_z_threshold": 2.0,
+    "price_surge_1d_threshold": 0.10,
+    "price_surge_extreme": 0.50,
+}
+
+WATCHLIST_THRESHOLDS = {
+    "price_surge_7d_threshold": 0.05,
+    "price_surge_3d_threshold": 0.04,
+    "volume_surge_moderate": 1.5,
+    "volume_surge_3d": 1.5,
+    "volume_surge_extreme": 3.0,
+    "pump_dump_rise": 0.08,
+    "z_score_threshold": 1.5,
+    "volume_z_threshold": 1.2,
+    "price_surge_1d_threshold": 0.05,
+    "price_surge_extreme": 0.25,
+}
+
+
+def get_thresholds(is_otc: bool, on_watchlist: bool = False) -> dict:
+    """Select threshold tier based on stock context."""
+    if on_watchlist:
+        return {**ANOMALY_CONFIG, **WATCHLIST_THRESHOLDS}
+    if is_otc:
+        return {**ANOMALY_CONFIG, **OTC_THRESHOLDS}
+    return {**ANOMALY_CONFIG, **MAJOR_EXCHANGE_THRESHOLDS}
+
+
 # =============================================================================
 # FEATURE ENGINEERING PARAMETERS
 # =============================================================================
