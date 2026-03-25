@@ -4,7 +4,12 @@ export type Plan = "FREE" | "PAID";
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT";
 
-export type SignalCategory = "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL" | "SOCIAL";
+export type SignalCategory =
+  | "STRUCTURAL"
+  | "PATTERN"
+  | "ALERT"
+  | "BEHAVIORAL"
+  | "SOCIAL";
 
 export interface RiskSignal {
   code: string;

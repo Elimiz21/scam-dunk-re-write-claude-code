@@ -87,7 +87,12 @@ const OTC_THRESHOLDS = {
   microLiquidity: 150_000,
 };
 
-const MAJOR_THRESHOLDS = { ...THRESHOLDS, spike3dMedium: 15, spike3dHigh: 35, volumeSurge3d: 3 };
+const MAJOR_THRESHOLDS = {
+  ...THRESHOLDS,
+  spike3dMedium: 15,
+  spike3dHigh: 35,
+  volumeSurge3d: 3,
+};
 
 const WATCHLIST_THRESHOLDS_TS = {
   spike7dMedium: 5,
@@ -340,36 +345,69 @@ function checkPatternSignals(marketData: MarketData): RiskSignal[] {
     const recent = priceHistory[priceHistory.length - 1];
     const threeDaysAgo = priceHistory[priceHistory.length - 4];
     if (recent && threeDaysAgo && threeDaysAgo.close > 0) {
-      const change3d = ((recent.close - threeDaysAgo.close) / threeDaysAgo.close) * 100;
+      const change3d =
+        ((recent.close - threeDaysAgo.close) / threeDaysAgo.close) * 100;
       if (Math.abs(change3d) >= t.spike3dHigh) {
-        signals.push({ code: SIGNAL_CODES.SPIKE_3D, category: 'PATTERN', description: `Price moved ${change3d.toFixed(1)}% in 3 days`, weight: 3 });
+        signals.push({
+          code: SIGNAL_CODES.SPIKE_3D,
+          category: "PATTERN",
+          description: `Price moved ${change3d.toFixed(1)}% in 3 days`,
+          weight: 3,
+        });
       } else if (Math.abs(change3d) >= t.spike3dMedium) {
-        signals.push({ code: SIGNAL_CODES.SPIKE_3D, category: 'PATTERN', description: `Price moved ${change3d.toFixed(1)}% in 3 days`, weight: 2 });
+        signals.push({
+          code: SIGNAL_CODES.SPIKE_3D,
+          category: "PATTERN",
+          description: `Price moved ${change3d.toFixed(1)}% in 3 days`,
+          weight: 2,
+        });
       }
     }
 
     // Volume surge 3-day
     if (priceHistory.length >= 30) {
-      const vol3d = priceHistory.slice(-3).reduce((s, p) => s + (p.volume || 0), 0) / 3;
-      const vol30d = priceHistory.slice(-30).reduce((s, p) => s + (p.volume || 0), 0) / 30;
+      const vol3d =
+        priceHistory.slice(-3).reduce((s, p) => s + (p.volume || 0), 0) / 3;
+      const vol30d =
+        priceHistory.slice(-30).reduce((s, p) => s + (p.volume || 0), 0) / 30;
       if (vol30d > 0) {
         const volRatio3d = vol3d / vol30d;
         if (volRatio3d >= t.volumeSurge3d) {
-          signals.push({ code: SIGNAL_CODES.VOLUME_SURGE_3D, category: 'PATTERN', description: `3-day volume ${volRatio3d.toFixed(1)}x above 30-day average`, weight: 2 });
+          signals.push({
+            code: SIGNAL_CODES.VOLUME_SURGE_3D,
+            category: "PATTERN",
+            description: `3-day volume ${volRatio3d.toFixed(1)}x above 30-day average`,
+            weight: 2,
+          });
         }
       }
     }
 
     // Price acceleration: 3 consecutive days of increasing gains
-    const returns = priceHistory.slice(-4).map((p, i, arr) => i > 0 ? (p.close - arr[i-1].close) / arr[i-1].close : 0).slice(1);
+    const returns = priceHistory
+      .slice(-4)
+      .map((p, i, arr) =>
+        i > 0 ? (p.close - arr[i - 1].close) / arr[i - 1].close : 0,
+      )
+      .slice(1);
     if (returns[2] > returns[1] && returns[1] > returns[0] && returns[2] > 0) {
-      signals.push({ code: SIGNAL_CODES.PRICE_ACCELERATION, category: 'PATTERN', description: 'Price gains accelerating over 3 consecutive days', weight: 2 });
+      signals.push({
+        code: SIGNAL_CODES.PRICE_ACCELERATION,
+        category: "PATTERN",
+        description: "Price gains accelerating over 3 consecutive days",
+        weight: 2,
+      });
     }
 
     // Volume acceleration: 3+ consecutive days of increasing volume
-    const vols = priceHistory.slice(-4).map(p => p.volume || 0);
+    const vols = priceHistory.slice(-4).map((p) => p.volume || 0);
     if (vols[3] > vols[2] && vols[2] > vols[1] && vols[1] > vols[0]) {
-      signals.push({ code: SIGNAL_CODES.VOLUME_ACCELERATION, category: 'PATTERN', description: 'Volume increasing for 3+ consecutive days', weight: 2 });
+      signals.push({
+        code: SIGNAL_CODES.VOLUME_ACCELERATION,
+        category: "PATTERN",
+        description: "Volume increasing for 3+ consecutive days",
+        weight: 2,
+      });
     }
   }
 

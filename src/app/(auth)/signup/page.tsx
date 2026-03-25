@@ -216,11 +216,7 @@ export default function SignupPage() {
             <Turnstile onVerify={handleTurnstileVerify} />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1030,7 +1030,9 @@ function createInitialScanStatus(date: string): ScanStatus {
     failedAtPhase: null,
     aiBackend: { configured: false, available: false, layersUsed: [] },
     phases: {
-      phase0_socialEarlyWarning: emptyPhase("Social Early Warning & Pre-Pump Scan"),
+      phase0_socialEarlyWarning: emptyPhase(
+        "Social Early Warning & Pre-Pump Scan",
+      ),
       phase1_riskScoring: emptyPhase("Risk Scoring All Stocks"),
       phase2_sizeFiltering: emptyPhase("Size & Volume Filtering"),
       phase3_newsAnalysis: emptyPhase("News & SEC Filing Analysis"),
@@ -1177,7 +1179,8 @@ async function runEnhancedPipeline(): Promise<void> {
   // ============================================================
   console.log("\n Phase 0: Social Early Warning & Pre-Pump Scan...");
   scanStatus.phases.phase0_socialEarlyWarning.status = "running";
-  scanStatus.phases.phase0_socialEarlyWarning.startedAt = new Date().toISOString();
+  scanStatus.phases.phase0_socialEarlyWarning.startedAt =
+    new Date().toISOString();
 
   const watchlistTickers = new Set<string>();
 
@@ -1194,7 +1197,9 @@ async function runEnhancedPipeline(): Promise<void> {
         })
         .map((s: any) => s.symbol);
 
-      console.log(`  Scanning ${otcTickers.length} OTC/penny tickers for social signals...`);
+      console.log(
+        `  Scanning ${otcTickers.length} OTC/penny tickers for social signals...`,
+      );
 
       // Social early warning scan
       const socialResp = await fetch(`${AI_BACKEND_URL}/social-early-warning`, {
@@ -1211,12 +1216,16 @@ async function runEnhancedPipeline(): Promise<void> {
         for (const [ticker] of Object.entries(socialData.watchlist || {})) {
           watchlistTickers.add(ticker);
         }
-        console.log(`  Social early warning: ${watchlistTickers.size} tickers flagged`);
+        console.log(
+          `  Social early warning: ${watchlistTickers.size} tickers flagged`,
+        );
       }
 
       // Pre-pump structural scan
       const fundamentalsMap: Record<string, any> = {};
-      for (const s of stocks.filter((s: any) => otcTickers.includes(s.symbol))) {
+      for (const s of stocks.filter((s: any) =>
+        otcTickers.includes(s.symbol),
+      )) {
         fundamentalsMap[s.symbol] = {
           market_cap: s.marketCap,
           exchange: s.exchange,
@@ -1238,7 +1247,9 @@ async function runEnhancedPipeline(): Promise<void> {
 
       if (prePumpResp.ok) {
         const prePumpData = await prePumpResp.json();
-        for (const [ticker, data] of Object.entries(prePumpData.results || {})) {
+        for (const [ticker, data] of Object.entries(
+          prePumpData.results || {},
+        )) {
           if ((data as any).watchlist_recommended) {
             watchlistTickers.add(ticker);
           }
@@ -1253,9 +1264,11 @@ async function runEnhancedPipeline(): Promise<void> {
   }
 
   scanStatus.phases.phase0_socialEarlyWarning.status = "completed";
-  scanStatus.phases.phase0_socialEarlyWarning.completedAt = new Date().toISOString();
+  scanStatus.phases.phase0_socialEarlyWarning.completedAt =
+    new Date().toISOString();
   scanStatus.phases.phase0_socialEarlyWarning.durationMs =
-    Date.now() - new Date(scanStatus.phases.phase0_socialEarlyWarning.startedAt!).getTime();
+    Date.now() -
+    new Date(scanStatus.phases.phase0_socialEarlyWarning.startedAt!).getTime();
   scanStatus.phases.phase0_socialEarlyWarning.details = {
     tickersScanned: stocks.filter((s: any) => {
       const exchange = (s.exchange || "").toUpperCase();
@@ -1267,7 +1280,9 @@ async function runEnhancedPipeline(): Promise<void> {
     watchlistAdded: watchlistTickers.size,
     existingWatchlist: 0,
   };
-  console.log(`  Phase 0 complete: ${watchlistTickers.size} tickers on watchlist\n`);
+  console.log(
+    `  Phase 0 complete: ${watchlistTickers.size} tickers on watchlist\n`,
+  );
 
   // Phase 1: Run all scans and collect risk scores
   console.log("PHASE 1: Risk Scoring All Stocks");
@@ -1345,7 +1360,9 @@ async function runEnhancedPipeline(): Promise<void> {
       // Try Python AI backend for full 4-layer analysis
       if (pythonAIAvailable) {
         const onWatchlist = watchlistTickers.has(stock.symbol);
-        const pyResult = await callPythonAIBackend(stock.symbol, { onWatchlist });
+        const pyResult = await callPythonAIBackend(stock.symbol, {
+          onWatchlist,
+        });
         if (pyResult && pyResult.success) {
           // Cast signals to the expected type (Python backend returns compatible structure)
           const typedSignals = pyResult.signals.map((s) => ({
