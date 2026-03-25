@@ -58,4 +58,4 @@ ENV PORT=8000
 EXPOSE 8000
 
 # Run the API server with gunicorn (more robust for production)
-CMD ["sh", "-c", "gunicorn api_server:app --bind 0.0.0.0:$PORT --worker-class uvicorn.workers.UvicornWorker --workers ${GUNICORN_WORKERS:-2} --timeout 120 --keep-alive 5 --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "gunicorn api_server:app --bind 0.0.0.0:$PORT --worker-class uvicorn.workers.UvicornWorker --workers ${GUNICORN_WORKERS:-1} --timeout 300 --keep-alive 5 --access-logfile - --error-logfile -"]

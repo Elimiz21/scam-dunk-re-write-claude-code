@@ -34,6 +34,9 @@ AI_API_SECRET = os.environ.get("AI_API_SECRET")
 if not AI_API_SECRET:
     logger.warning("WARNING: AI_API_SECRET is not set. API endpoints are unprotected!")
 
+# Track pipeline initialization error for diagnostics
+pipeline_init_error: Optional[str] = None
+
 # Initialize FastAPI app
 app = FastAPI(
     title="ScamDunk AI API",
@@ -221,10 +224,23 @@ async def get_pipeline():
             return pipeline
 
         except Exception as e:
+            global pipeline_init_error
+            pipeline_init_error = f"{type(e).__name__}: {e}"
             logger.error(f"Failed to initialize pipeline: {e}")
             import traceback
             traceback.print_exc()
             return None
+
+
+@app.on_event("startup")
+async def startup_load_pipeline():
+    """Eagerly load models at startup instead of waiting for first request"""
+    logger.info("Startup: eagerly loading AI pipeline...")
+    result = await get_pipeline()
+    if result is not None:
+        logger.info("Startup: pipeline loaded successfully")
+    else:
+        logger.error(f"Startup: pipeline failed to load - {pipeline_init_error}")
 
 
 # Root endpoint - always works
@@ -243,17 +259,19 @@ async def root():
     }
 
 
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 async def health_check():
     """Check API health and model status"""
     p = pipeline  # Get current state without initializing
-    return HealthResponse(
-        status="healthy",
-        models_loaded=p is not None,
-        rf_ready=p.rf_available if p else False,
-        lstm_ready=p.lstm_available if p else False,
-        version="1.0.0"
-    )
+    status = "healthy" if p is not None else ("error" if pipeline_init_error else "initializing")
+    return {
+        "status": status,
+        "models_loaded": p is not None,
+        "rf_ready": p.rf_available if p else False,
+        "lstm_ready": p.lstm_available if p else False,
+        "version": "1.0.0",
+        "error": pipeline_init_error if p is None else None,
+    }
 
 
 @app.post("/analyze", response_model=AnalysisResponse)
