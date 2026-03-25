@@ -424,6 +424,7 @@ async def get_model_status():
 
 from pre_pump_signals import scan_pre_pump_signals
 from social_early_warning import scan_social_early_warning
+from domain_monitor import scan_domain_infrastructure
 
 
 class PrePumpScanRequest(BaseModel):
@@ -473,6 +474,38 @@ async def social_early_warning(request: SocialEarlyWarningRequest):
         watchlist=results,
         tickers_scanned=len(request.tickers),
         tickers_flagged=len(results),
+    )
+
+
+class DomainCheckRequest(BaseModel):
+    tickers: List[str] = Field(..., description="List of ticker symbols to check")
+    company_names: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Optional ticker -> company name mapping for broader search",
+    )
+
+
+class DomainCheckResponse(BaseModel):
+    results: Dict[str, Any]
+    tickers_scanned: int
+    tickers_with_domains: int
+
+
+@app.post("/domain-check", response_model=DomainCheckResponse)
+async def domain_check(request: DomainCheckRequest):
+    """Scan tickers for promotional domain infrastructure (pre-pump indicator)."""
+    loop = asyncio.get_running_loop()
+    results = await loop.run_in_executor(
+        None,
+        lambda: scan_domain_infrastructure(
+            request.tickers,
+            company_names=request.company_names,
+        ),
+    )
+    return DomainCheckResponse(
+        results=results,
+        tickers_scanned=len(request.tickers),
+        tickers_with_domains=len(results),
     )
 
 
