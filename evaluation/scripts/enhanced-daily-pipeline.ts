@@ -1258,6 +1258,31 @@ async function runEnhancedPipeline(): Promise<void> {
           `  Pre-pump scan: ${Object.keys(prePumpData.results || {}).length} tickers with structural signals`,
         );
       }
+
+      // Domain infrastructure check
+      const domainResp = await fetch(`${AI_BACKEND_URL}/domain-check`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": AI_API_SECRET || "",
+        },
+        body: JSON.stringify({
+          tickers: otcTickers.slice(0, 100), // limit to 100 for DNS check speed
+          company_names: {},
+        }),
+      });
+
+      if (domainResp.ok) {
+        const domainData = await domainResp.json();
+        for (const [ticker, data] of Object.entries(domainData.results || {})) {
+          if ((data as any).has_promotional_domains) {
+            watchlistTickers.add(ticker);
+          }
+        }
+        console.log(
+          `  Domain check: ${Object.keys(domainData.results || {}).length} tickers with promotional domains`,
+        );
+      }
     } catch (error) {
       console.error("  Phase 0 error (non-fatal, continuing):", error);
     }
