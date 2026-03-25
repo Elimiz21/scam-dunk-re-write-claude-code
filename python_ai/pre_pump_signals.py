@@ -5,6 +5,8 @@ Detects early warning patterns for potential pump-and-dump schemes by
 analyzing SEC EDGAR filing patterns and insider trading behavior.
 """
 
+import csv
+import io
 import time
 import logging
 from dataclasses import dataclass
@@ -19,6 +21,15 @@ EDGAR_HEADERS = {
     'User-Agent': 'ScamDunk Research Tool support@scamdunk.com',
     'Accept': 'application/json',
 }
+
+SEC_FTD_HEADERS = {
+    'User-Agent': 'ScamDunk Research Tool support@scamdunk.com',
+}
+
+# ---------------------------------------------------------------------------
+# Module-level cache for FTD data (updated twice monthly — cache is valid)
+# ---------------------------------------------------------------------------
+_ftd_cache: Dict[str, Any] = {}  # key: yyyymmdd -> list of row dicts
 
 REVERSE_MERGER_KEYWORDS = [
     'reverse merger',
@@ -323,6 +334,304 @@ def fetch_insider_filings(ticker: str, cik: Optional[str] = None) -> Dict:
 
 
 # ---------------------------------------------------------------------------
+# FTD / RegSHO analysis functions
+# ---------------------------------------------------------------------------
+
+def analyze_ftd_data(ftd_data: Dict) -> List[PrePumpSignal]:
+    """
+    Analyze SEC Fails-to-Deliver records for a single ticker.
+
+    Args:
+        ftd_data: dict with keys:
+            - ticker (str)
+            - ftd_records (list of {date: str, quantity: int, price: float})
+              sorted descending by date (most recent first)
+            - shares_outstanding (int)
+
+    Returns:
+        List of PrePumpSignal instances.
+    """
+    signals: List[PrePumpSignal] = []
+    records: List[Dict] = ftd_data.get('ftd_records', [])
+    shares_outstanding: int = ftd_data.get('shares_outstanding', 0)
+
+    if not records or shares_outstanding <= 0:
+        return signals
+
+    # Determine which settlement days breach the 0.5% threshold
+    threshold = 0.005 * shares_outstanding  # 0.5% of outstanding
+    breach_days = [r for r in records if r.get('quantity', 0) > threshold]
+
+    if len(breach_days) >= 5:
+        max_qty = max(r.get('quantity', 0) for r in breach_days)
+        max_pct = max_qty / shares_outstanding
+        signals.append(PrePumpSignal(
+            code='HIGH_FTD_RATE',
+            category='short_interest',
+            description=(
+                f'FTDs exceeded 0.5% of shares outstanding on {len(breach_days)} consecutive '
+                f'settlement days (peak: {max_qty:,} shares = {max_pct:.2%} of outstanding)'
+            ),
+            weight=1,
+        ))
+
+    return signals
+
+
+def analyze_threshold_list_status(status: Dict) -> List[PrePumpSignal]:
+    """
+    Analyze RegSHO threshold list membership for a single ticker.
+
+    Args:
+        status: dict with keys:
+            - ticker (str)
+            - on_threshold_list (bool)
+            - consecutive_days (int)
+            - source (str, optional)
+
+    Returns:
+        List of PrePumpSignal instances.
+    """
+    signals: List[PrePumpSignal] = []
+    if not status.get('on_threshold_list'):
+        return signals
+
+    consecutive_days: int = status.get('consecutive_days', 0)
+    source: str = status.get('source', 'unknown exchange')
+    signals.append(PrePumpSignal(
+        code='SHORT_INTEREST_SPIKE',
+        category='short_interest',
+        description=(
+            f'Stock appears on RegSHO threshold securities list ({source}) '
+            f'for {consecutive_days} consecutive day(s) — aggregate FTDs >= 10,000 shares '
+            f'and >= 0.5% of outstanding shares'
+        ),
+        weight=2,
+    ))
+    return signals
+
+
+# ---------------------------------------------------------------------------
+# SEC FTD & RegSHO data fetching helpers
+# ---------------------------------------------------------------------------
+
+def _get_recent_ftd_file_url() -> Optional[str]:
+    """
+    Determine the URL for the most recent SEC FTD CSV file.
+
+    The SEC publishes FTD data twice monthly:
+      - Files are named cnsfails<YYYYMMDD>a.zip / cnsfails<YYYYMMDD>b.zip
+      - 'a' = data for the 1st–15th of the month (published ~end of month)
+      - 'b' = data for the 16th–end of month (published ~mid next month)
+
+    Strategy: try candidate dates going back up to 45 days until one returns
+    a 200 response.
+    """
+    base_url = 'https://www.sec.gov/files/data/fails-deliver-data/'
+    today = date.today()
+    candidates: List[str] = []
+
+    # Generate candidate filenames for the last 45 days (covers ~3 publications)
+    for delta in range(0, 46):
+        candidate_date = today - timedelta(days=delta)
+        yyyymmdd = candidate_date.strftime('%Y%m%d')
+        for suffix in ('b', 'a'):
+            candidates.append(f'cnsfails{yyyymmdd}{suffix}.zip')
+
+    # Deduplicate while preserving order
+    seen: set = set()
+    unique_candidates: List[str] = []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            unique_candidates.append(c)
+
+    for filename in unique_candidates:
+        url = base_url + filename
+        try:
+            resp = requests.head(url, headers=SEC_FTD_HEADERS, timeout=10, allow_redirects=True)
+            if resp.status_code == 200:
+                return url
+        except Exception:
+            continue
+    return None
+
+
+def _parse_ftd_csv(csv_text: str, ticker: str) -> List[Dict]:
+    """
+    Parse a SEC FTD CSV (pipe-delimited) and return rows for the given ticker.
+
+    SEC format (pipe-separated):
+      SETTLEMENT DATE|CUSIP|SYMBOL|QUANTITY (FAILS)|DESCRIPTION|PRICE
+    """
+    results: List[Dict] = []
+    reader = csv.DictReader(io.StringIO(csv_text), delimiter='|')
+    ticker_upper = ticker.upper()
+    for row in reader:
+        symbol = (row.get('SYMBOL') or row.get(' SYMBOL') or '').strip().upper()
+        if symbol != ticker_upper:
+            continue
+        try:
+            quantity = int(str(row.get('QUANTITY (FAILS)', 0)).strip().replace(',', '') or 0)
+        except ValueError:
+            quantity = 0
+        try:
+            price = float(str(row.get('PRICE', 0)).strip() or 0)
+        except ValueError:
+            price = 0.0
+        raw_date = (row.get('SETTLEMENT DATE') or row.get(' SETTLEMENT DATE') or '').strip()
+        # Normalize date to ISO format (SEC uses YYYYMMDD)
+        try:
+            parsed_date = datetime.strptime(raw_date, '%Y%m%d').strftime('%Y-%m-%d')
+        except ValueError:
+            parsed_date = raw_date
+        results.append({'date': parsed_date, 'quantity': quantity, 'price': price})
+
+    # Sort descending by date (most recent first)
+    results.sort(key=lambda r: r['date'], reverse=True)
+    return results
+
+
+def fetch_sec_ftd_data(ticker: str) -> Dict:
+    """
+    Fetch recent Fails-to-Deliver data from SEC for a ticker.
+
+    SEC publishes FTD data as zipped CSVs at:
+    https://www.sec.gov/files/data/fails-deliver-data/
+
+    Returns:
+        {ticker, ftd_days, max_ftd_quantity, has_threshold_violation, ftd_records}
+    """
+    global _ftd_cache
+
+    import zipfile
+
+    ticker_upper = ticker.upper()
+    result_base = {
+        'ticker': ticker_upper,
+        'ftd_days': 0,
+        'max_ftd_quantity': 0,
+        'has_threshold_violation': False,
+        'ftd_records': [],
+    }
+
+    url = _get_recent_ftd_file_url()
+    if not url:
+        logger.warning('Could not locate recent SEC FTD file')
+        return result_base
+
+    # Use URL as cache key
+    if url in _ftd_cache:
+        csv_text = _ftd_cache[url]
+    else:
+        try:
+            resp = requests.get(url, headers=SEC_FTD_HEADERS, timeout=30)
+            resp.raise_for_status()
+            # Content is a zip file
+            zf = zipfile.ZipFile(io.BytesIO(resp.content))
+            # The zip should contain one CSV file
+            csv_name = next(n for n in zf.namelist() if n.endswith('.txt') or n.endswith('.csv'))
+            csv_text = zf.read(csv_name).decode('utf-8', errors='replace')
+            _ftd_cache[url] = csv_text
+            time.sleep(0.2)  # rate limit SEC requests
+        except Exception as exc:
+            logger.warning('Failed to fetch SEC FTD data from %s: %s', url, exc)
+            return result_base
+
+    records = _parse_ftd_csv(csv_text, ticker_upper)
+    if not records:
+        return result_base
+
+    max_qty = max(r['quantity'] for r in records)
+    return {
+        'ticker': ticker_upper,
+        'ftd_days': len(records),
+        'max_ftd_quantity': max_qty,
+        'has_threshold_violation': False,  # caller checks against shares_outstanding
+        'ftd_records': records,
+    }
+
+
+def check_regsho_threshold(ticker: str) -> Dict:
+    """
+    Check if a ticker is on the RegSHO threshold securities list.
+
+    The threshold list is published daily by exchanges:
+    - NASDAQ: https://www.nasdaqtrader.com/trader.aspx?id=RegSHOThreshold
+    - NYSE: https://www.nyse.com/regulation/threshold-securities
+
+    NASDAQ provides a downloadable file at a predictable URL that returns
+    pipe-delimited data for the current trading day.
+
+    Returns:
+        {ticker, on_threshold_list, consecutive_days, source}
+    """
+    ticker_upper = ticker.upper()
+    base_result = {
+        'ticker': ticker_upper,
+        'on_threshold_list': False,
+        'consecutive_days': 0,
+        'source': 'NASDAQ',
+    }
+
+    # NASDAQ publishes current-day threshold list as a downloadable text file
+    nasdaq_url = 'https://www.nasdaqtrader.com/dynamic/symdir/regsho/nasdaqth.txt'
+    try:
+        resp = requests.get(nasdaq_url, headers=SEC_FTD_HEADERS, timeout=15)
+        resp.raise_for_status()
+        text = resp.text
+
+        # The file is pipe-delimited: Date|Symbol|ShortName|Exchange|Reg SHO Threshold Flag|Rules
+        # or sometimes just Symbol in first column. Count occurrences of the ticker.
+        consecutive_days = 0
+        for line in text.splitlines():
+            parts = line.strip().split('|')
+            if len(parts) >= 2:
+                symbol_col = parts[1].strip().upper() if len(parts) > 1 else parts[0].strip().upper()
+                if symbol_col == ticker_upper:
+                    consecutive_days += 1
+
+        if consecutive_days > 0:
+            return {
+                'ticker': ticker_upper,
+                'on_threshold_list': True,
+                'consecutive_days': consecutive_days,
+                'source': 'NASDAQ',
+            }
+
+        time.sleep(0.2)
+    except Exception as exc:
+        logger.warning('Failed to fetch NASDAQ RegSHO threshold list: %s', exc)
+        time.sleep(0.2)
+
+    # Fallback: NYSE threshold list
+    nyse_url = 'https://www.nyse.com/api/regulatory/threshold-securities/download?market=NYSE'
+    try:
+        resp = requests.get(nyse_url, headers=SEC_FTD_HEADERS, timeout=15)
+        resp.raise_for_status()
+        text = resp.text
+        consecutive_days = 0
+        for line in text.splitlines():
+            parts = line.strip().split('|')
+            if len(parts) >= 2:
+                symbol_col = parts[1].strip().upper() if len(parts) > 1 else parts[0].strip().upper()
+                if symbol_col == ticker_upper:
+                    consecutive_days += 1
+
+        if consecutive_days > 0:
+            return {
+                'ticker': ticker_upper,
+                'on_threshold_list': True,
+                'consecutive_days': consecutive_days,
+                'source': 'NYSE',
+            }
+    except Exception as exc:
+        logger.warning('Failed to fetch NYSE RegSHO threshold list: %s', exc)
+
+    return base_result
+
+
+# ---------------------------------------------------------------------------
 # Batch scanner
 # ---------------------------------------------------------------------------
 
@@ -400,6 +709,31 @@ def scan_pre_pump_signals(tickers: List[str], fundamentals: Dict[str, Dict]) -> 
             insider_data['price_change_90d'] = price_change_90d
             insider_signals = analyze_insider_behavior(insider_data)
             all_signals.extend(insider_signals)
+
+        # --- FTD and RegSHO checks (OTC/penny stocks only) ---
+        if is_otc or market_cap is None:
+            shares_outstanding = fund.get('shares_outstanding', 0)
+
+            # SEC FTD check
+            try:
+                ftd_raw = fetch_sec_ftd_data(ticker_upper)
+                ftd_raw['shares_outstanding'] = shares_outstanding
+                ftd_signals = analyze_ftd_data(ftd_raw)
+                all_signals.extend(ftd_signals)
+            except Exception as exc:
+                logger.warning('FTD check failed for %s: %s', ticker_upper, exc)
+
+            time.sleep(0.2)
+
+            # RegSHO threshold list check
+            try:
+                threshold_status = check_regsho_threshold(ticker_upper)
+                regsho_signals = analyze_threshold_list_status(threshold_status)
+                all_signals.extend(regsho_signals)
+            except Exception as exc:
+                logger.warning('RegSHO check failed for %s: %s', ticker_upper, exc)
+
+            time.sleep(0.2)
 
         if all_signals:
             total_weight = sum(s.weight for s in all_signals)
