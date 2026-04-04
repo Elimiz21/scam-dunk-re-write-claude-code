@@ -777,9 +777,14 @@ async function analyzeNewsLegitimacy(
   pressReleases: any[],
 ): Promise<{ hasLegitimateNews: boolean; analysis: string }> {
   if (!OPENAI_API_KEY) {
+    console.error(
+      `  ❌ OPENAI_API_KEY not configured — news filtering SKIPPED for ${symbol}`,
+    );
     return {
       hasLegitimateNews: false,
-      analysis: "OpenAI API key not configured",
+      analysis:
+        "SKIPPED: OpenAI API key not configured — this stock was NOT evaluated for legitimate news",
+      skipped: true,
     };
   }
 
@@ -884,11 +889,13 @@ Respond in JSON format:
       analysis: `${result.explanation || "Unable to analyze"}${result.specificEvent ? ` Event: ${result.specificEvent}` : ""}`,
     };
   } catch (error: any) {
-    console.log(
-      `  Error analyzing news for ${symbol}:`,
-      error?.message || error,
-    );
-    return { hasLegitimateNews: false, analysis: "Error during analysis" };
+    const msg = error?.message || error;
+    console.error(`  ❌ Error analyzing news for ${symbol}: ${msg}`);
+    return {
+      hasLegitimateNews: false,
+      analysis: `ERROR: ${msg}`,
+      skipped: true,
+    };
   }
 }
 
@@ -1601,6 +1608,7 @@ async function runEnhancedPipeline(): Promise<void> {
   scanStatus.phases.phase3_newsAnalysis.startedAt = new Date().toISOString();
 
   const afterNewsFilter: EnhancedStockResult[] = [];
+  let newsFilterSkipped = 0;
 
   for (let i = 0; i < afterSizeFilter.length; i++) {
     const result = afterSizeFilter[i];
@@ -1650,7 +1658,10 @@ async function runEnhancedPipeline(): Promise<void> {
     result.hasLegitimateNews = newsAnalysis.hasLegitimateNews;
     result.newsAnalysis = newsAnalysis.analysis;
 
-    if (newsAnalysis.hasLegitimateNews) {
+    if ((newsAnalysis as any).skipped) {
+      newsFilterSkipped++;
+      afterNewsFilter.push(result);
+    } else if (newsAnalysis.hasLegitimateNews) {
       result.isFiltered = true;
       result.filterReason = `Legitimate news: ${newsAnalysis.analysis}`;
       filteredByNews++;
@@ -1663,10 +1674,19 @@ async function runEnhancedPipeline(): Promise<void> {
     await sleep(500);
   }
 
+  if (newsFilterSkipped > 0) {
+    console.error(
+      `\n  ❌ NEWS FILTER BROKEN: ${newsFilterSkipped} stocks skipped due to missing OPENAI_API_KEY`,
+    );
+    console.error(
+      `  ⚠ filteredByNews=0 is NOT accurate — news analysis was not performed`,
+    );
+  }
   console.log(`\n  Filtered by legitimate news: ${filteredByNews}`);
   console.log(`  Remaining suspicious stocks: ${afterNewsFilter.length}`);
 
-  scanStatus.phases.phase3_newsAnalysis.status = "completed";
+  scanStatus.phases.phase3_newsAnalysis.status =
+    newsFilterSkipped > 0 ? "degraded" : "completed";
   scanStatus.phases.phase3_newsAnalysis.completedAt = new Date().toISOString();
   scanStatus.phases.phase3_newsAnalysis.durationMs =
     Date.now() -
@@ -1675,6 +1695,7 @@ async function runEnhancedPipeline(): Promise<void> {
     stocksAnalyzed: afterSizeFilter.length,
     filteredByNews,
     remainingSuspicious: afterNewsFilter.length,
+    newsFilterSkipped,
   };
   scanStatus.summary.filteredByNews = filteredByNews;
 

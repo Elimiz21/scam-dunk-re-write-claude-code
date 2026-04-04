@@ -313,9 +313,14 @@ async function analyzeNewsLegitimacy(
   pressReleases: any[],
 ): Promise<{ hasLegitimateNews: boolean; analysis: string }> {
   if (!OPENAI_API_KEY) {
+    console.error(
+      `  ❌ OPENAI_API_KEY not configured — news filtering SKIPPED for ${symbol}`,
+    );
     return {
       hasLegitimateNews: false,
-      analysis: "OpenAI API key not configured",
+      analysis:
+        "SKIPPED: OpenAI API key not configured — this stock was NOT evaluated for legitimate news",
+      skipped: true,
     };
   }
 
@@ -407,11 +412,13 @@ Respond in JSON format:
       analysis: `${result.explanation || "Unable to analyze"}${result.specificEvent ? ` Event: ${result.specificEvent}` : ""}`,
     };
   } catch (error: any) {
-    console.log(
-      `  Error analyzing news for ${symbol}:`,
-      error?.message || error,
-    );
-    return { hasLegitimateNews: false, analysis: "Error during analysis" };
+    const msg = error?.message || error;
+    console.error(`  ❌ Error analyzing news for ${symbol}: ${msg}`);
+    return {
+      hasLegitimateNews: false,
+      analysis: `ERROR: ${msg}`,
+      skipped: true,
+    };
   }
 }
 
@@ -516,6 +523,7 @@ async function runPostScanPhases(): Promise<void> {
   console.log("-".repeat(50));
 
   const afterNewsFilter: ProcessedStock[] = [];
+  let newsFilterSkipped = 0;
 
   for (let i = 0; i < afterSizeFilter.length; i++) {
     const stock = afterSizeFilter[i];
@@ -560,7 +568,10 @@ async function runPostScanPhases(): Promise<void> {
     stock.hasLegitimateNews = newsAnalysis.hasLegitimateNews;
     stock.newsAnalysis = newsAnalysis.analysis;
 
-    if (newsAnalysis.hasLegitimateNews) {
+    if ((newsAnalysis as any).skipped) {
+      newsFilterSkipped++;
+      afterNewsFilter.push(stock);
+    } else if (newsAnalysis.hasLegitimateNews) {
       stock.isFiltered = true;
       stock.filterReason = `Legitimate news: ${newsAnalysis.analysis}`;
       filteredByNews++;
@@ -573,6 +584,14 @@ async function runPostScanPhases(): Promise<void> {
     await sleep(500);
   }
 
+  if (newsFilterSkipped > 0) {
+    console.error(
+      `\n  ❌ NEWS FILTER BROKEN: ${newsFilterSkipped} stocks skipped due to missing OPENAI_API_KEY`,
+    );
+    console.error(
+      `  ⚠ filteredByNews=0 is NOT accurate — news analysis was not performed`,
+    );
+  }
   console.log(`\n  Filtered by legitimate news: ${filteredByNews}`);
   console.log(`  Remaining suspicious stocks: ${afterNewsFilter.length}`);
 

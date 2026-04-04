@@ -216,7 +216,7 @@ jobs:
             exit 1
           fi
           if [ -z "$OPENAI_API_KEY" ]; then
-            echo "::warning::OPENAI_API_KEY not set - social media analysis will use pattern matching only"
+            echo "::error::OPENAI_API_KEY not set - Phase 3 news filtering will be SKIPPED, inflating HIGH-risk counts"
           else
             echo "OPENAI_API_KEY configured for AI-powered analysis"
           fi
