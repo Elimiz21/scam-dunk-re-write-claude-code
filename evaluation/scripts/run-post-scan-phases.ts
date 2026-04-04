@@ -311,7 +311,11 @@ async function analyzeNewsLegitimacy(
   news: any[],
   secFilings: any[],
   pressReleases: any[],
-): Promise<{ hasLegitimateNews: boolean; analysis: string }> {
+): Promise<{
+  hasLegitimateNews: boolean;
+  analysis: string;
+  skipped?: boolean;
+}> {
   if (!OPENAI_API_KEY) {
     console.error(
       `  ❌ OPENAI_API_KEY not configured — news filtering SKIPPED for ${symbol}`,
@@ -568,7 +572,7 @@ async function runPostScanPhases(): Promise<void> {
     stock.hasLegitimateNews = newsAnalysis.hasLegitimateNews;
     stock.newsAnalysis = newsAnalysis.analysis;
 
-    if ((newsAnalysis as any).skipped) {
+    if (newsAnalysis.skipped) {
       newsFilterSkipped++;
       afterNewsFilter.push(stock);
     } else if (newsAnalysis.hasLegitimateNews) {
