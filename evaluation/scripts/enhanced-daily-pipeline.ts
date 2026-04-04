@@ -144,6 +144,7 @@ interface DailyReport {
   filteredByMarketCap: number;
   filteredByVolume: number;
   filteredByNews: number;
+  newsFilterSkipped: number;
   remainingSuspicious: number;
   activeSchemes: number;
   newSchemes: number;
@@ -1183,6 +1184,7 @@ async function runEnhancedPipeline(): Promise<void> {
   let filteredByMarketCap = 0;
   let filteredByVolume = 0;
   let filteredByNews = 0;
+  let newsFilterSkipped = 0;
   const riskCounts = { LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 };
 
   // ============================================================
@@ -1612,7 +1614,6 @@ async function runEnhancedPipeline(): Promise<void> {
   scanStatus.phases.phase3_newsAnalysis.startedAt = new Date().toISOString();
 
   const afterNewsFilter: EnhancedStockResult[] = [];
-  let newsFilterSkipped = 0;
 
   for (let i = 0; i < afterSizeFilter.length; i++) {
     const result = afterSizeFilter[i];
@@ -2433,6 +2434,7 @@ async function runEnhancedPipeline(): Promise<void> {
     filteredByMarketCap,
     filteredByVolume,
     filteredByNews,
+    newsFilterSkipped,
     remainingSuspicious: suspiciousStocks.length,
     activeSchemes: Array.from(schemeDB.values()).filter((s) =>
       ["NEW", "ONGOING", "COOLING"].includes(s.status),
