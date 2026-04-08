@@ -17,7 +17,7 @@ const registerSchema = z.object({
     .regex(/[A-Z]/, "Password must contain an uppercase letter")
     .regex(/[0-9]/, "Password must contain a number"),
   name: z.string().optional(),
-  turnstileToken: z.string().optional(),
+  turnstileToken: z.string().min(1, "CAPTCHA verification is required"),
 });
 
 export async function POST(request: NextRequest) {
@@ -41,34 +41,31 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password, name, turnstileToken } = validation.data;
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      undefined;
 
-    // Verify CAPTCHA if token was provided (Turnstile may not render for all users)
-    if (turnstileToken) {
-      const ip =
-        request.headers.get("x-forwarded-for") ||
-        request.headers.get("x-real-ip") ||
-        undefined;
-      const isValidCaptcha = await verifyTurnstileToken(turnstileToken, ip);
-
-      if (!isValidCaptcha) {
-        await logAuthError(
-          {
-            email: validation.data.email,
-            ipAddress: ip,
-            userAgent: request.headers.get("user-agent") || undefined,
-            endpoint: "/api/auth/register",
-          },
-          {
-            errorType: "SIGNUP_FAILED",
-            errorCode: "CAPTCHA_FAILED",
-            message: "CAPTCHA verification failed",
-          },
-        );
-        return NextResponse.json(
-          { error: "CAPTCHA verification failed. Please try again." },
-          { status: 400 },
-        );
-      }
+    // Verify CAPTCHA server-side for every registration request.
+    const isValidCaptcha = await verifyTurnstileToken(turnstileToken, ip);
+    if (!isValidCaptcha) {
+      await logAuthError(
+        {
+          email: validation.data.email,
+          ipAddress: ip,
+          userAgent: request.headers.get("user-agent") || undefined,
+          endpoint: "/api/auth/register",
+        },
+        {
+          errorType: "SIGNUP_FAILED",
+          errorCode: "CAPTCHA_FAILED",
+          message: "CAPTCHA verification failed",
+        },
+      );
+      return NextResponse.json(
+        { error: "CAPTCHA verification failed. Please try again." },
+        { status: 400 },
+      );
     }
 
     // Check if user already exists

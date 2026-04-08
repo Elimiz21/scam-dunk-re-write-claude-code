@@ -23,7 +23,7 @@ const registerSchema = z.object({
     .regex(/[A-Z]/, "Password must contain an uppercase letter")
     .regex(/[0-9]/, "Password must contain a number"),
   name: z.string().optional(),
-  turnstileToken: z.string().optional(),
+  turnstileToken: z.string().min(1, "CAPTCHA verification is required"),
 });
 
 export async function POST(request: NextRequest) {
@@ -47,16 +47,14 @@ export async function POST(request: NextRequest) {
 
     const { email, password, name, turnstileToken } = validation.data;
 
-    // Verify Turnstile CAPTCHA if token provided
-    if (turnstileToken) {
-      const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
-      const isValid = await verifyTurnstileToken(turnstileToken, ip);
-      if (!isValid) {
-        return NextResponse.json(
-          { error: "CAPTCHA verification failed. Please try again." },
-          { status: 400 },
-        );
-      }
+    // Verify Turnstile CAPTCHA for every mobile registration request.
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
+    const isValid = await verifyTurnstileToken(turnstileToken, ip);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: "CAPTCHA verification failed. Please try again." },
+        { status: 400 },
+      );
     }
 
     const normalizedEmail = email.toLowerCase();

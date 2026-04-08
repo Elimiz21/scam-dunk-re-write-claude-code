@@ -27,9 +27,15 @@ interface TurnstileProps {
   onVerify: (token: string) => void;
   onError?: () => void;
   onExpire?: () => void;
+  onUnavailable?: () => void;
 }
 
-export function Turnstile({ onVerify, onError, onExpire }: TurnstileProps) {
+export function Turnstile({
+  onVerify,
+  onError,
+  onExpire,
+  onUnavailable,
+}: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -49,6 +55,11 @@ export function Turnstile({ onVerify, onError, onExpire }: TurnstileProps) {
   }, [siteKey, onVerify, onError, onExpire]);
 
   useEffect(() => {
+    if (!siteKey) {
+      onUnavailable?.();
+      return;
+    }
+
     // Load Turnstile script if not already loaded
     if (!document.querySelector('script[src*="turnstile"]')) {
       const script = document.createElement("script");
@@ -72,9 +83,9 @@ export function Turnstile({ onVerify, onError, onExpire }: TurnstileProps) {
         widgetIdRef.current = null;
       }
     };
-  }, [renderWidget]);
+  }, [renderWidget, siteKey, onUnavailable]);
 
-  // Don't render anything if no site key (development mode)
+  // Don't render anything if no site key.
   if (!siteKey) {
     return null;
   }

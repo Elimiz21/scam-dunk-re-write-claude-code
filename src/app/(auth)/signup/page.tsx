@@ -26,6 +26,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileAvailable, setTurnstileAvailable] = useState(true);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -43,12 +44,19 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    if (password.length < 10) {
+      setError("Password must be at least 10 characters");
+      return;
+    }
+
+    if (!turnstileToken) {
+      setError("Please complete CAPTCHA verification before signing up.");
       return;
     }
 
     setIsLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
       // Register the user
@@ -56,21 +64,26 @@ export default function SignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name, turnstileToken }),
+        signal: controller.signal,
       });
 
       const registerData = await registerResponse.json();
 
       if (!registerResponse.ok) {
         setError(registerData.error || "Registration failed");
-        setIsLoading(false);
         return;
       }
 
       // Show success state - user needs to verify email
       setIsSuccess(true);
-      setIsLoading(false);
-    } catch {
-      setError("An error occurred. Please try again.");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("Signup timed out. Please try again.");
+      } else {
+        setError("An error occurred. Please try again.");
+      }
+    } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
@@ -197,7 +210,7 @@ export default function SignupPage() {
                 aria-describedby="password-hint"
               />
               <p id="password-hint" className="text-xs text-muted-foreground">
-                Must be at least 8 characters
+                Must be at least 10 characters
               </p>
             </div>
             <div className="space-y-2">
@@ -213,10 +226,36 @@ export default function SignupPage() {
                 aria-required="true"
               />
             </div>
-            <Turnstile onVerify={handleTurnstileVerify} />
+            <Turnstile
+              onVerify={(token) => {
+                setError("");
+                setTurnstileAvailable(true);
+                handleTurnstileVerify(token);
+              }}
+              onError={() => {
+                setTurnstileToken("");
+                setTurnstileAvailable(true);
+                setError("CAPTCHA verification failed. Please try again.");
+              }}
+              onExpire={() => {
+                setTurnstileToken("");
+                setError("CAPTCHA expired. Please verify again.");
+              }}
+              onUnavailable={() => {
+                setTurnstileToken("");
+                setTurnstileAvailable(false);
+                setError(
+                  "CAPTCHA is currently unavailable. Please refresh and try again.",
+                );
+              }}
+            />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || !turnstileAvailable || !turnstileToken}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
