@@ -585,7 +585,7 @@ class ScamDetectorLSTM:
             print(f"LSTM model loaded from {model_path}")
             return True
 
-        except (FileNotFoundError, OSError) as e:
+        except Exception as e:
             print(f"Could not load model: {e}")
             return False
 
