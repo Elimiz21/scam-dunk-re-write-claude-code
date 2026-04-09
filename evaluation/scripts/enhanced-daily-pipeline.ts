@@ -504,15 +504,15 @@ async function callPythonAIBackend(
     }
     const bodyJson = JSON.stringify(requestBody).replace(/'/g, "'\\''");
 
-    // Retry with backoff for transient 503s (worker busy)
-    const MAX_RETRIES = 2;
+    // Single retry for transient 503s (worker busy) — kept minimal to
+    // avoid ballooning runtime across 7,000 stocks
+    const MAX_RETRIES = 1;
     let httpStatus = 0;
     let body = "";
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       if (attempt > 0) {
-        // Backoff: 2s, then 4s
-        execSync(`sleep ${attempt * 2}`);
+        execSync(`sleep 1`);
       }
 
       // Use -w to append HTTP status code, separated by newline
