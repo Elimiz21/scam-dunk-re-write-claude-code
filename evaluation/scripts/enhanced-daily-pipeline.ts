@@ -491,34 +491,51 @@ async function callPythonAIBackend(
     const authHeader = AI_API_SECRET ? `-H "X-API-Key: ${AI_API_SECRET}" ` : "";
 
     // Build request body with optional watchlist context
+    // use_live_data=false avoids redundant yfinance fetches — the TypeScript
+    // pipeline already has real FMP data; the Python backend only needs to run
+    // its ML models (anomaly detection, RF, LSTM) on synthetic/cached data.
     const requestBody: Record<string, any> = {
       ticker: symbol,
       asset_type: "stock",
-      use_live_data: true,
+      use_live_data: false,
     };
     if (options?.onWatchlist) {
       requestBody.on_watchlist = true;
     }
     const bodyJson = JSON.stringify(requestBody).replace(/'/g, "'\\''");
 
-    // Use -w to append HTTP status code, separated by newline
-    const cmd =
-      `curl -s --max-time 30 -w '\\n%{http_code}' -X POST "${AI_BACKEND_URL}/analyze" ` +
-      `-H "Content-Type: application/json" ` +
-      authHeader +
-      `-d '${bodyJson}'`;
+    // Retry with backoff for transient 503s (worker busy)
+    const MAX_RETRIES = 2;
+    let httpStatus = 0;
+    let body = "";
 
-    const result = execSync(cmd, {
-      encoding: "utf-8",
-      maxBuffer: 10 * 1024 * 1024,
-    });
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        // Backoff: 2s, then 4s
+        execSync(`sleep ${attempt * 2}`);
+      }
 
-    if (!result) return null;
+      // Use -w to append HTTP status code, separated by newline
+      const cmd =
+        `curl -s --max-time 30 -w '\\n%{http_code}' -X POST "${AI_BACKEND_URL}/analyze" ` +
+        `-H "Content-Type: application/json" ` +
+        authHeader +
+        `-d '${bodyJson}'`;
 
-    // Parse HTTP status code from the last line
-    const lines = result.trim().split("\n");
-    const httpStatus = parseInt(lines[lines.length - 1], 10);
-    const body = lines.slice(0, -1).join("\n");
+      const result = execSync(cmd, {
+        encoding: "utf-8",
+        maxBuffer: 10 * 1024 * 1024,
+      });
+
+      if (!result) return null;
+
+      const lines = result.trim().split("\n");
+      httpStatus = parseInt(lines[lines.length - 1], 10);
+      body = lines.slice(0, -1).join("\n");
+
+      if (httpStatus === 200) break;
+      if (httpStatus !== 503) break; // Only retry on 503
+    }
 
     // Reject non-200 responses instead of silently treating them as LOW
     if (httpStatus !== 200) {
@@ -1214,7 +1231,7 @@ async function runEnhancedPipeline(): Promise<void> {
         `  Scanning ${otcTickers.length} OTC/penny tickers for social signals...`,
       );
 
-      // Social early warning scan
+      // Social early warning scan (60s timeout)
       const socialResp = await fetch(`${AI_BACKEND_URL}/social-early-warning`, {
         method: "POST",
         headers: {
@@ -1222,6 +1239,7 @@ async function runEnhancedPipeline(): Promise<void> {
           "X-API-Key": AI_API_SECRET || "",
         },
         body: JSON.stringify({ tickers: otcTickers.slice(0, 500) }),
+        signal: AbortSignal.timeout(60_000),
       });
 
       if (socialResp.ok) {
@@ -1256,6 +1274,7 @@ async function runEnhancedPipeline(): Promise<void> {
           tickers: otcTickers.slice(0, 200),
           fundamentals: fundamentalsMap,
         }),
+        signal: AbortSignal.timeout(120_000),
       });
 
       if (prePumpResp.ok) {
@@ -1272,7 +1291,7 @@ async function runEnhancedPipeline(): Promise<void> {
         );
       }
 
-      // Domain infrastructure check
+      // Domain infrastructure check (120s timeout — DNS checks are slow)
       const domainResp = await fetch(`${AI_BACKEND_URL}/domain-check`, {
         method: "POST",
         headers: {
@@ -1283,6 +1302,7 @@ async function runEnhancedPipeline(): Promise<void> {
           tickers: otcTickers.slice(0, 100), // limit to 100 for DNS check speed
           company_names: {},
         }),
+        signal: AbortSignal.timeout(120_000),
       });
 
       if (domainResp.ok) {
