@@ -1415,8 +1415,15 @@ async function runEnhancedPipeline(): Promise<void> {
         usedPythonBackend: false,
       };
 
-      // Try Python AI backend for full 4-layer analysis
-      if (pythonAIAvailable) {
+      // Try Python AI backend for full 4-layer analysis — only for stocks
+      // that Layer 1 flagged as MEDIUM or HIGH risk, or that are on the
+      // Phase 0 watchlist. This avoids hammering the backend with 7,000
+      // requests when only ~1,500-2,000 need deeper analysis.
+      const needsDeepAnalysis =
+        scoringResult.riskLevel === "HIGH" ||
+        scoringResult.riskLevel === "MEDIUM" ||
+        watchlistTickers.has(stock.symbol);
+      if (pythonAIAvailable && needsDeepAnalysis) {
         const onWatchlist = watchlistTickers.has(stock.symbol);
         const pyResult = await callPythonAIBackend(stock.symbol, {
           onWatchlist,
