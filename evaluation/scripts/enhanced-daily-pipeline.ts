@@ -761,24 +761,27 @@ async function fetchPressReleases(symbol: string): Promise<any[]> {
   }
 }
 
-// Check if stock should be filtered by size/volume
-function shouldFilterBySize(quote: ExtendedQuote | null): {
+// Check if stock should be filtered by size/volume.
+// Accepts either ExtendedQuote (avgDollarVolume30d) or EnhancedStockResult
+// (avgDollarVolume) since the caller passes the latter cast as the former.
+function shouldFilterBySize(quote: any | null): {
   filtered: boolean;
   reason: string | null;
 } {
   if (!quote) return { filtered: false, reason: null };
 
-  if (quote.marketCap > MARKET_CAP_THRESHOLD) {
+  if (quote.marketCap && quote.marketCap > MARKET_CAP_THRESHOLD) {
     return {
       filtered: true,
       reason: `Large market cap ($${(quote.marketCap / 1_000_000_000).toFixed(1)}B) - not susceptible to pump-and-dump`,
     };
   }
 
-  if (quote.avgDollarVolume30d > VOLUME_THRESHOLD) {
+  const dollarVolume = quote.avgDollarVolume30d ?? quote.avgDollarVolume ?? 0;
+  if (dollarVolume > VOLUME_THRESHOLD) {
     return {
       filtered: true,
-      reason: `High daily volume ($${(quote.avgDollarVolume30d / 1_000_000).toFixed(1)}M) - highly liquid, hard to manipulate`,
+      reason: `High daily volume ($${(dollarVolume / 1_000_000).toFixed(1)}M) - highly liquid, hard to manipulate`,
     };
   }
 
