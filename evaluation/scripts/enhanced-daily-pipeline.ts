@@ -1387,28 +1387,17 @@ async function runEnhancedPipeline(): Promise<void> {
   const stocksToProcess =
     process.env.TEST_MODE === "true" ? stocks.slice(0, 100) : stocks;
 
-  for (let i = 0; i < stocksToProcess.length; i++) {
-    const stock = stocksToProcess[i];
-    const progress = (((i + 1) / stocksToProcess.length) * 100).toFixed(1);
-
-    process.stdout.write(
-      `\r[${progress}%] ${i + 1}/${stocksToProcess.length} | ${stock.symbol.padEnd(6)} | ` +
-        `HIGH: ${riskCounts.HIGH}    `,
-    );
-
+  // Process per-stock work as a single async unit so we can batch in parallel.
+  // Returns null on skip/error so callers can update counters without sharing state.
+  async function processOneStock(
+    stock: any,
+  ): Promise<{ result: EnhancedStockResult; isHigh: boolean } | null> {
     try {
       const marketData = await fetchStockData(stock.symbol);
-
-      if (!marketData || !marketData.dataAvailable) {
-        skippedNoData++;
-        continue;
-      }
+      if (!marketData || !marketData.dataAvailable) return null;
 
       const extendedQuote = marketData.quote as ExtendedQuote;
-
-      // Run risk scoring
-      // If Python AI backend is available, use all 4 layers; otherwise use Layer 1 only
-      let scoringResult = computeRiskScore(marketData); // Layer 1: TypeScript deterministic
+      let scoringResult = computeRiskScore(marketData);
       let aiLayers = {
         layer1_deterministic: scoringResult.totalScore,
         layer2_anomaly: null as number | null,
@@ -1418,10 +1407,6 @@ async function runEnhancedPipeline(): Promise<void> {
         usedPythonBackend: false,
       };
 
-      // Try Python AI backend for full 4-layer analysis — only for stocks
-      // that Layer 1 flagged as MEDIUM or HIGH risk, or that are on the
-      // Phase 0 watchlist. This avoids hammering the backend with 7,000
-      // requests when only ~1,500-2,000 need deeper analysis.
       const needsDeepAnalysis =
         scoringResult.riskLevel === "HIGH" ||
         scoringResult.riskLevel === "MEDIUM" ||
@@ -1432,7 +1417,6 @@ async function runEnhancedPipeline(): Promise<void> {
           onWatchlist,
         });
         if (pyResult && pyResult.success) {
-          // Cast signals to the expected type (Python backend returns compatible structure)
           const typedSignals = pyResult.signals.map((s) => ({
             code: s.code,
             category: s.category as
@@ -1445,7 +1429,6 @@ async function runEnhancedPipeline(): Promise<void> {
             description: s.description,
           }));
 
-          // Record AI layer data regardless of override decision
           aiLayers = {
             layer1_deterministic: aiLayers.layer1_deterministic,
             layer2_anomaly: pyResult.anomaly_score,
@@ -1455,10 +1438,6 @@ async function runEnhancedPipeline(): Promise<void> {
             usedPythonBackend: true,
           };
 
-          // SAFETY: Never let the Python AI backend downgrade the risk level.
-          // TypeScript deterministic scoring is the trusted baseline.
-          // The Python backend can only ELEVATE risk, never lower it.
-          // This prevents a malfunctioning AI model from masking real threats.
           const riskOrder: Record<string, number> = {
             INSUFFICIENT: -1,
             LOW: 0,
@@ -1474,7 +1453,6 @@ async function runEnhancedPipeline(): Promise<void> {
           const pyRiskRank = riskOrder[pyRiskLevel] ?? 0;
 
           if (pyRiskRank >= tsRiskRank) {
-            // Python agrees with or elevates risk — use Python's full result
             scoringResult = {
               riskLevel: pyRiskLevel,
               totalScore: Math.round(pyResult.riskProbability * 20),
@@ -1483,12 +1461,8 @@ async function runEnhancedPipeline(): Promise<void> {
               isInsufficient: false,
             };
           }
-          // Otherwise keep the TypeScript result (Python tried to downgrade — ignored)
         }
       }
-
-      // Increment risk count
-      riskCounts[scoringResult.riskLevel as keyof typeof riskCounts]++;
 
       const result: EnhancedStockResult = {
         symbol: stock.symbol,
@@ -1521,20 +1495,44 @@ async function runEnhancedPipeline(): Promise<void> {
         evaluatedAt: new Date().toISOString(),
       };
 
-      allResults.push(result);
-      processedCount++;
-
-      if (scoringResult.riskLevel === "HIGH") {
-        highRiskBeforeFilter.push(result);
-      }
-
-      await sleep(FMP_DELAY_MS);
+      return { result, isHigh: scoringResult.riskLevel === "HIGH" };
     } catch (error: any) {
       console.error(
         `\nError processing ${stock.symbol}:`,
         error?.message || error,
       );
+      return null;
     }
+  }
+
+  // Batch parallel execution: 5 stocks at a time keeps us within FMP rate
+  // limits (~24 calls/sec) while cutting runtime ~5x vs sequential.
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < stocksToProcess.length; i += BATCH_SIZE) {
+    const batch = stocksToProcess.slice(i, i + BATCH_SIZE);
+    const batchEnd = Math.min(i + BATCH_SIZE, stocksToProcess.length);
+    const progress = ((batchEnd / stocksToProcess.length) * 100).toFixed(1);
+
+    process.stdout.write(
+      `\r[${progress}%] ${batchEnd}/${stocksToProcess.length} | ` +
+        `${batch[0].symbol.padEnd(6)}... | HIGH: ${riskCounts.HIGH}    `,
+    );
+
+    const batchResults = await Promise.all(batch.map(processOneStock));
+
+    for (const item of batchResults) {
+      if (item === null) {
+        skippedNoData++;
+        continue;
+      }
+      riskCounts[item.result.riskLevel as keyof typeof riskCounts]++;
+      allResults.push(item.result);
+      processedCount++;
+      if (item.isHigh) highRiskBeforeFilter.push(item.result);
+    }
+
+    // One sleep per batch (not per stock) — rate-limit FMP at the batch level.
+    await sleep(FMP_DELAY_MS);
   }
 
   console.log("\n\nPhase 1 Complete!");
