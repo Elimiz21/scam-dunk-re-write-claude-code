@@ -179,7 +179,7 @@ jobs:
     needs: check-trading-day
     if: ${{ needs.check-trading-day.outputs.is_trading_day == 'true' || github.event.inputs.force_run == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 480 # 8 hours max for comprehensive evaluation
+    timeout-minutes: 350 # ~5h50m — GitHub-hosted runners cap jobs at 6h
 
     steps:
       - name: Checkout repository
