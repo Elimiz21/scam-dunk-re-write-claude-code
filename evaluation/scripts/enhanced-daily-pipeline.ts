@@ -1645,42 +1645,35 @@ async function runEnhancedPipeline(): Promise<void> {
 
   const afterNewsFilter: EnhancedStockResult[] = [];
 
-  for (let i = 0; i < afterSizeFilter.length; i++) {
-    const result = afterSizeFilter[i];
-    console.log(
-      `[${i + 1}/${afterSizeFilter.length}] Analyzing ${result.symbol}...`,
-    );
-
-    // Fetch news and filings (with defensive array checks)
+  // Fetch + analyze one stock's news. Extracted so we can batch in parallel.
+  // Returns the classification outcome so the caller can update shared counters
+  // sequentially (avoiding race conditions on filteredByNews/newsFilterSkipped).
+  async function analyzeOneStockNews(result: EnhancedStockResult): Promise<{
+    result: EnhancedStockResult;
+    outcome: "skipped" | "filtered" | "suspicious";
+    analysis: string;
+  }> {
     const newsRaw = await fetchStockNews(result.symbol);
     const news = Array.isArray(newsRaw) ? newsRaw : [];
-    await sleep(300);
-
     const secFilingsRaw = await fetchSECFilings(result.symbol);
     const secFilings = Array.isArray(secFilingsRaw) ? secFilingsRaw : [];
-    await sleep(300);
-
     const pressReleasesRaw = await fetchPressReleases(result.symbol);
     const pressReleases = Array.isArray(pressReleasesRaw)
       ? pressReleasesRaw
       : [];
-    await sleep(300);
 
-    // Store news data
     result.recentNews = news.slice(0, 5).map((n: any) => ({
       title: n?.title || "",
       date: n?.publishedDate || "",
       source: n?.site || "",
       url: n?.url || "",
     }));
-
     result.secFilings = secFilings.slice(0, 5).map((f: any) => ({
       type: f?.type || "",
       date: f?.fillingDate || f?.date || "",
       url: f?.finalLink || f?.link || "",
     }));
 
-    // Analyze legitimacy
     const newsAnalysis = await analyzeNewsLegitimacy(
       result.symbol,
       result.name,
@@ -1694,18 +1687,46 @@ async function runEnhancedPipeline(): Promise<void> {
     result.newsAnalysis = newsAnalysis.analysis;
 
     if (newsAnalysis.skipped) {
-      newsFilterSkipped++;
-      afterNewsFilter.push(result);
-    } else if (newsAnalysis.hasLegitimateNews) {
+      return { result, outcome: "skipped", analysis: newsAnalysis.analysis };
+    }
+    if (newsAnalysis.hasLegitimateNews) {
       result.isFiltered = true;
       result.filterReason = `Legitimate news: ${newsAnalysis.analysis}`;
-      filteredByNews++;
-      console.log(`  ✓ Filtered - Legitimate news found`);
-    } else {
-      afterNewsFilter.push(result);
-      console.log(`  ⚠ No legitimate news - remains suspicious`);
+      return { result, outcome: "filtered", analysis: newsAnalysis.analysis };
+    }
+    return { result, outcome: "suspicious", analysis: newsAnalysis.analysis };
+  }
+
+  // Batch of 5 keeps OpenAI requests comfortably under rate limits
+  // (~60 RPM × 5 concurrent ≈ 300 RPM, well below 3500 RPM tier limits).
+  // OpenAI dominates per-stock latency (~2-5s), so parallelizing cuts Phase 3
+  // from ~2h to ~25-30 min on typical batches.
+  const PHASE3_BATCH_SIZE = 5;
+  for (let i = 0; i < afterSizeFilter.length; i += PHASE3_BATCH_SIZE) {
+    const batch = afterSizeFilter.slice(i, i + PHASE3_BATCH_SIZE);
+    const batchEnd = Math.min(i + PHASE3_BATCH_SIZE, afterSizeFilter.length);
+    console.log(
+      `[${batchEnd}/${afterSizeFilter.length}] Analyzing batch: ${batch.map((b) => b.symbol).join(", ")}`,
+    );
+
+    const batchResults = await Promise.all(batch.map(analyzeOneStockNews));
+
+    for (const item of batchResults) {
+      if (item.outcome === "skipped") {
+        newsFilterSkipped++;
+        afterNewsFilter.push(item.result);
+      } else if (item.outcome === "filtered") {
+        filteredByNews++;
+        console.log(`  ✓ ${item.result.symbol}: Legitimate news found`);
+      } else {
+        afterNewsFilter.push(item.result);
+        console.log(
+          `  ⚠ ${item.result.symbol}: No legitimate news - remains suspicious`,
+        );
+      }
     }
 
+    // Brief pause between batches to stay polite to FMP + OpenAI
     await sleep(500);
   }
 
