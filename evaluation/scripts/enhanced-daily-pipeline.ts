@@ -623,13 +623,29 @@ function fetchFMPQuote(symbol: string): ExtendedQuote | null {
   }
 }
 
+let _fmpHistoryDebugLogged = false;
 function fetchFMPHistory(symbol: string): PriceHistory[] {
   const url = `${FMP_BASE_URL}/historical-price-eod/full?symbol=${symbol}&apikey=${FMP_API_KEY}`;
   const response = curlFetch(url);
-  if (!response) return [];
+  if (!response) {
+    if (!_fmpHistoryDebugLogged) {
+      console.error(`  [FMP DEBUG] ${symbol}: curlFetch returned null/empty`);
+      _fmpHistoryDebugLogged = true;
+    }
+    return [];
+  }
 
   try {
     const raw = JSON.parse(response);
+    if (!_fmpHistoryDebugLogged) {
+      const keys = raw ? Object.keys(raw).join(", ") : "null";
+      const isArr = Array.isArray(raw);
+      const hasHist = raw?.historical !== undefined;
+      console.error(
+        `  [FMP DEBUG] ${symbol}: isArray=${isArr}, hasHistorical=${hasHist}, keys=[${keys}], responseLen=${response.length}, first100=${response.slice(0, 200)}`,
+      );
+      _fmpHistoryDebugLogged = true;
+    }
     if (!raw || raw["Error Message"]) return [];
     // FMP stable API wraps history in { historical: [...] }; legacy returns flat array
     const data = Array.isArray(raw)
