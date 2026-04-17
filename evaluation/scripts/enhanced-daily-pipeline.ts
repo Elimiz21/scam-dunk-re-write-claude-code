@@ -597,15 +597,25 @@ interface ExtendedQuote extends StockQuote {
   industry?: string;
 }
 
+let _fmpQuoteDebugLogged = false;
 function fetchFMPQuote(symbol: string): ExtendedQuote | null {
   const url = `${FMP_BASE_URL}/profile?symbol=${symbol}&apikey=${FMP_API_KEY}`;
   const response = curlFetch(url);
   if (!response) return null;
 
   try {
-    const data = JSON.parse(response);
-    if (!data || data.length === 0 || data["Error Message"]) return null;
-    const profile = data[0];
+    const raw = JSON.parse(response);
+    if (!_fmpQuoteDebugLogged) {
+      const preview = response.slice(0, 300);
+      console.log(
+        `  [FMP QUOTE DEBUG] ${symbol}: isArray=${Array.isArray(raw)}, type=${typeof raw}, preview=${preview}`,
+      );
+      _fmpQuoteDebugLogged = true;
+    }
+    if (!raw || raw["Error Message"]) return null;
+    // FMP stable API may return object directly or wrapped in array
+    const profile = Array.isArray(raw) ? raw[0] : raw;
+    if (!profile || !profile.companyName) return null;
     return {
       ticker: symbol.toUpperCase(),
       companyName: profile.companyName || symbol,
