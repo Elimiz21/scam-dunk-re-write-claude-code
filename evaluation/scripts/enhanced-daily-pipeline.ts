@@ -629,8 +629,15 @@ function fetchFMPHistory(symbol: string): PriceHistory[] {
   if (!response) return [];
 
   try {
-    const data = JSON.parse(response);
-    if (!data || data.length === 0 || data["Error Message"]) return [];
+    const raw = JSON.parse(response);
+    if (!raw || raw["Error Message"]) return [];
+    // FMP stable API wraps history in { historical: [...] }; legacy returns flat array
+    const data = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw.historical)
+        ? raw.historical
+        : [];
+    if (data.length === 0) return [];
     return data
       .slice(0, 100)
       .reverse()
