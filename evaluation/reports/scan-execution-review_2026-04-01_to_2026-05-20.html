@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>ScamDunk — Daily Scan Execution Review (Apr 1 – May 20, 2026)</title>
+<style>
+  :root {
+    --bg:#0f1115; --panel:#161a22; --line:#262b36; --text:#e7ebf2; --muted:#8a93a3;
+    --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --info:#3b82f6;
+  }
+  html,body { background:var(--bg); color:var(--text); font:14px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; margin:0; }
+  .wrap { max-width:1100px; margin:0 auto; padding:32px 24px 64px; }
+  h1 { font-size:28px; margin:0 0 4px; }
+  h2 { font-size:20px; margin:28px 0 8px; border-bottom:1px solid var(--line); padding-bottom:6px; }
+  h3 { font-size:16px; margin:18px 0 6px; }
+  p { margin:6px 0; }
+  .sub { color:var(--muted); font-size:13px; }
+  .grid { display:grid; gap:12px; grid-template-columns:repeat(4, 1fr); margin:14px 0; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .card .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  .card .val { font-size:22px; font-weight:600; margin-top:4px; }
+  .card .foot { color:var(--muted); font-size:12px; margin-top:6px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; }
+  .b-good { background:rgba(34,197,94,.15); color:var(--good); }
+  .b-warn { background:rgba(245,158,11,.15); color:var(--warn); }
+  .b-bad  { background:rgba(239,68,68,.18);  color:var(--bad);  }
+  .b-info { background:rgba(59,130,246,.18); color:var(--info); }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin:6px 0 12px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  tr:hover td { background:rgba(255,255,255,.02); }
+  .right { text-align:right; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:10px 0; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  ul { margin:6px 0 6px 18px; }
+  code { background:#0b0e14; padding:1px 6px; border-radius:6px; color:#d6dde9; }
+  .kbd { background:#0b0e14; border:1px solid var(--line); padding:1px 6px; border-radius:6px; font-size:12px; }
+  .heat { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; }
+  .heat .ok { color:var(--good); }
+  .heat .miss { color:var(--bad); }
+  .heat .timeout { color:var(--warn); }
+  .verdict { background:linear-gradient(180deg, rgba(239,68,68,.10), rgba(239,68,68,.02)); border:1px solid rgba(239,68,68,.4); }
+  .footer { color:var(--muted); margin-top:30px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>ScamDunk — Daily Scan Execution Review</h1>
+<p class="sub">Window reviewed: <b>1 April 2026 – 20 May 2026</b> (50 calendar days). Data sources: Supabase project <code>gwzcluijtbuglznwdqqk</code> ("new scam dunk claude code v2 rewrite") + repo <code>scam-dunk-re-write-claude-code</code> on branch <code>claude/review-scan-execution-MG9G5</code>. Report generated 20 May 2026.</p>
+
+<div class="panel verdict">
+  <div class="row" style="justify-content:space-between;">
+    <div>
+      <h3 style="margin:0;">Headline finding</h3>
+      <p style="margin:6px 0 0;">
+        Only the <b>social scan</b> has run on schedule. The <b>main daily stock evaluation</b> (Layer&nbsp;1 deterministic engine across ~6,560 tickers) <b>stopped on 16 March 2026</b> and has not produced a single record in April or May. Layers&nbsp;2, 3 and 4 (statistical / ML / LSTM "AI Engine") <b>were not running at all</b> in the window reviewed — the Python AI backend is not reachable from production and the <code>AI_BACKEND_URL</code> integration sits in <code>UNKNOWN</code> state.
+      </p>
+    </div>
+  </div>
+</div>
+
+<h2>1. What actually ran each day</h2>
+
+<div class="grid">
+  <div class="card"><div class="label">Daily stock evaluation</div><div class="val"><span class="badge b-bad">Not running</span></div><div class="foot">Last <code>DailyScanSummary</code> row: <b>2026-03-16</b>. 0 rows since.</div></div>
+  <div class="card"><div class="label">Stock daily snapshots</div><div class="val"><span class="badge b-bad">Not running</span></div><div class="foot">Last <code>StockDailySnapshot</code>: <b>2026-03-16</b>. 0 rows since.</div></div>
+  <div class="card"><div class="label">Social media scan</div><div class="val"><span class="badge b-warn">Running, degraded</span></div><div class="foot">32 daily runs in window. 0 fully clean. Last successful-ish run: <b>2026-05-19</b>.</div></div>
+  <div class="card"><div class="label">Python AI Engine (L2–L4)</div><div class="val"><span class="badge b-bad">Offline</span></div><div class="foot"><code>AI_BACKEND</code> integration status: <b>UNKNOWN</b>. <code>usedAiBackend</code> = 0 for all 60 user scans in window.</div></div>
+  <div class="card"><div class="label">Risk-change alerts</div><div class="val"><span class="badge b-bad">Not generating</span></div><div class="foot">Last <code>StockRiskAlert</code>: <b>2026-03-09</b>. 0 alerts in window.</div></div>
+  <div class="card"><div class="label">Promoted-stock watchlist</div><div class="val"><span class="badge b-bad">Frozen</span></div><div class="foot">All 397 entries dated <b>2026-02-24</b>. No additions since.</div></div>
+  <div class="card"><div class="label">Browser agent (Reddit/X/etc.)</div><div class="val"><span class="badge b-bad">Stopped</span></div><div class="foot">Last <code>BrowserAgentSession</code>: <b>2026-03-14</b>. Only 4 sessions ever.</div></div>
+  <div class="card"><div class="label">User-initiated scans (ScanHistory)</div><div class="val">60 scans</div><div class="foot">All ran with Layer&nbsp;1 only; AI backend was used <b>zero</b> times.</div></div>
+</div>
+
+<h3>Daily heat-map — Apr 1 → May 19</h3>
+<div class="panel heat">
+<div><b>Main daily evaluation (DailyScanSummary):</b><br>
+Apr <span class="miss">—— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— ——</span>
+May <span class="miss">—— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— —— ——</span>
+&nbsp;&nbsp;<span class="miss">0 / 50 days</span>
+</div>
+<div style="margin-top:10px;"><b>Social scan (SocialScanRun):</b><br>
+Apr 01 <span class="timeout">T</span> · 02 <span class="timeout">T</span> · 04 <span class="ok">P</span> · 06 <span class="timeout">T</span> · 07 <span class="ok">P</span> · 08 <span class="ok">P</span> · 09 <span class="ok">P</span>/<span class="timeout">T</span> · 10 <span class="ok">P</span> · 14 <span class="ok">P</span> · 15 <span class="ok">P</span> · 20 <span class="ok">P</span> · 21 <span class="timeout">T</span> · 22 <span class="ok">P</span> · 23 <span class="timeout">T</span> · 24 <span class="ok">P</span> · 27 <span class="ok">P</span> · 28 <span class="ok">P</span> · 29 <span class="ok">P</span> · 30 <span class="timeout">T</span><br>
+May 01 <span class="timeout">T</span> · 04 <span class="ok">P</span> · 05 <span class="ok">P</span> · 06 <span class="ok">P</span> · 07 <span class="ok">P</span> · 08 <span class="ok">P</span> · 11 <span class="ok">P</span> · 12 <span class="ok">P</span> · 13 <span class="ok">P</span> · 14 <span class="ok">P</span> · 15 <span class="ok">P</span> · 18 <span class="ok">P</span> · 19 <span class="ok">P</span><br>
+&nbsp;&nbsp;<span class="ok">P = PARTIAL (28)</span> · <span class="timeout">T = TIMED_OUT (8)</span> · <span class="ok">COMPLETED = 0</span><br>
+&nbsp;&nbsp;Days with no run at all: Apr 3, 5, 11, 12, 13, 16, 17, 18, 19, 25, 26 · May 2, 3, 9, 10, 16, 17</div>
+</div>
+
+<h2>2. The "four-layer + AI Engine" architecture vs. reality</h2>
+
+<table>
+<thead><tr><th>Layer</th><th>Designed purpose</th><th>Status in window</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td><b>Layer 1</b> — Deterministic rules</td><td>Penny price, microcap, low liquidity, RSI, structural flags</td><td><span class="badge b-warn">Only on user scans</span></td><td>All 60 ScanHistory rows scored with L1; bulk daily L1 sweep stopped 16 Mar</td></tr>
+<tr><td><b>Layer 2</b> — Statistical anomaly</td><td>Z-scores, Isolation Forest, Mahalanobis</td><td><span class="badge b-bad">Not executed</span></td><td>Lives in <code>python_ai/anomaly_detection.py</code>; backend unreachable</td></tr>
+<tr><td><b>Layer 3</b> — Random Forest</td><td>Pattern classification</td><td><span class="badge b-bad">Not executed</span></td><td><code>python_ai/ml_model.py</code>; backend unreachable</td></tr>
+<tr><td><b>Layer 4</b> — LSTM ("AI Engine")</td><td>Temporal sequence analysis</td><td><span class="badge b-bad">Not executed</span></td><td><code>python_ai/lstm_model.py</code>; backend unreachable</td></tr>
+<tr><td><b>Social scan</b></td><td>Promoter / pump discovery across 6 scanners</td><td><span class="badge b-warn">Running, partial</span></td><td>32 runs, 0 fully successful (see §3)</td></tr>
+</tbody>
+</table>
+
+<p>The admin UI already says it plainly: in <code>src/app/admin/scan-status/page.tsx</code> it shows "<i>AI_BACKEND_URL not set — using Layer 1 only</i>" and warns "<i>Only Layer 1 (Deterministic) contributed to risk scoring. Layers 2-4 (Anomaly Detection, Random Forest, LSTM) require AI_BACKEND_URL to be configured.</i>" The <code>IntegrationConfig</code> row for <code>AI_BACKEND</code> has <code>lastCheckedAt = NULL</code> — meaning it has <b>never</b> successfully been health-checked.</p>
+
+<h2>3. Social scan — what's working and what's broken</h2>
+
+<div class="grid">
+  <div class="card"><div class="label">Daily runs in window</div><div class="val">32</div><div class="foot">Triggered by <code>daily-pipeline</code>. Skipped 18 calendar days entirely.</div></div>
+  <div class="card"><div class="label">PARTIAL / TIMED_OUT / COMPLETED</div><div class="val">28 / 8 / 0</div><div class="foot">Not a single fully-clean run.</div></div>
+  <div class="card"><div class="label">Total mentions captured</div><div class="val">~52,000 raw / 31,843 dedup</div><div class="foot">~5,956 flagged promotional · 272 unique tickers</div></div>
+  <div class="card"><div class="label">Avg run duration</div><div class="val">~95 s</div><div class="foot">50 tickers/day — only the top suspicious list, not the universe</div></div>
+</div>
+
+<h3>Scanner-by-scanner health</h3>
+<table>
+<thead><tr><th>Scanner</th><th>Status</th><th>Mentions in window</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>stocktwits</td><td><span class="badge b-good">Healthy</span></td><td>16,730 (52%)</td><td>By far the most productive feed. "Some tickers failed (possibly rate limited)" every run.</td></tr>
+<tr><td>serper_dev (Google)</td><td><span class="badge b-good">Healthy</span></td><td>13,614 (Forum/Reddit/YT/TikTok/X via Google)</td><td>This is now the de-facto Reddit + Twitter + TikTok source because the native scrapers don't work.</td></tr>
+<tr><td>youtube_api</td><td><span class="badge b-good">Healthy</span></td><td>1,573</td><td>Steady ~25–110 mentions/day.</td></tr>
+<tr><td>perplexity</td><td><span class="badge b-warn">Flaky</span></td><td>~190</td><td>Repeated JSON-parse failures on warrant tickers (<code>$KITTW</code>, <code>$SVCCW</code>, etc.).</td></tr>
+<tr><td>reddit_public</td><td><span class="badge b-bad">Broken every run</span></td><td>0</td><td>"All 53 Reddit requests failed — blocked or rate limited" — <b>32/32 runs</b>. Reddit-domain content only reaches us via Google.</td></tr>
+<tr><td>discord_bot</td><td><span class="badge b-bad">Returns nothing</span></td><td>0</td><td>Reports success but produces zero mentions every single day. Either not configured or pointed at empty channels.</td></tr>
+<tr><td>X / Twitter native</td><td><span class="badge b-bad">No scanner</span></td><td>207 (via Google only)</td><td>Twitter has the <b>highest promotional density (44%, avg score 26)</b> but we don't scrape it directly — we're getting only what Google indexes.</td></tr>
+</tbody>
+</table>
+
+<h3>What the social scan is finding</h3>
+<table>
+<thead><tr><th>Ticker</th><th>Mentions</th><th>Promotional</th><th>Avg promo score</th><th>Interpretation</th></tr></thead>
+<tbody>
+<tr><td><b>INVZW</b></td><td>360</td><td>226 (63%)</td><td>29.97</td><td>Strongest pump signal in window — Innoviz warrants.</td></tr>
+<tr><td><b>AIXI</b></td><td>687</td><td>280 (41%)</td><td>19.11</td><td>Heavy, coordinated pump pattern.</td></tr>
+<tr><td><b>SELX</b></td><td>354</td><td>104 (29%)</td><td>16.16</td><td>High promotional density.</td></tr>
+<tr><td>POM</td><td>489</td><td>149 (30%)</td><td>15.44</td><td>Sustained promotion across forums + StockTwits.</td></tr>
+<tr><td>SGBX</td><td>573</td><td>211 (37%)</td><td>15.21</td><td>Safe &amp; Green Holdings — heavy stocktwits chatter.</td></tr>
+<tr><td>CREG</td><td>440</td><td>97 (22%)</td><td>13.27</td><td>—</td></tr>
+<tr><td>EZGO</td><td>404</td><td>98 (24%)</td><td>12.33</td><td>—</td></tr>
+<tr><td>STAI</td><td>1,107</td><td>38 (3%)</td><td>5.52</td><td>High chatter, low promotional pattern — likely legitimate buzz.</td></tr>
+<tr><td>SSKN</td><td>882</td><td>33 (4%)</td><td>6.00</td><td>Same — heavy mention volume but not pump-shaped.</td></tr>
+</tbody>
+</table>
+<p class="sub">Top 9 of 341 unique tickers picked up. The 50-ticker daily watchlist is finding promoters, but the discovery surface is narrow: same tickers recur day after day, suggesting the seed list isn't being refreshed from a current pump-discovery pass.</p>
+
+<h2>4. What the main daily evaluation <i>used</i> to find (last good week, for context)</h2>
+
+<table>
+<thead><tr><th>Scan date</th><th>Stocks evaluated</th><th>HIGH</th><th>MEDIUM</th><th>LOW</th><th>API calls</th></tr></thead>
+<tbody>
+<tr><td>2026-03-16</td><td>6,560</td><td>1,559 (23.8%)</td><td>1,727</td><td>3,274</td><td>—</td></tr>
+<tr><td>2026-03-13</td><td>6,558</td><td>1,043 (15.9%)</td><td>431</td><td>5,084</td><td>—</td></tr>
+<tr><td>2026-03-12</td><td>6,548</td><td>1,045</td><td>432</td><td>5,071</td><td>—</td></tr>
+<tr><td>2026-03-11</td><td>6,550</td><td>1,046</td><td>433</td><td>5,071</td><td>—</td></tr>
+<tr><td>2026-03-10</td><td>6,552</td><td>1,050</td><td>432</td><td>5,070</td><td>—</td></tr>
+<tr><td>2026-02-24 (last full pipeline)</td><td>6,557</td><td>1,491</td><td>1,765</td><td>3,301</td><td>13,114</td></tr>
+</tbody>
+</table>
+
+<p>The signals stored on those snapshots are all <code>STRUCTURAL</code> / <code>PATTERN</code> (Layer 1 categories) — even on the last "good" days the Python AI backend was already silent. So 1,000–1,500 stocks/day were being flagged HIGH using <b>only deterministic rules</b>: penny price + small market cap + low liquidity + RSI extremes. That's a ~16–24% HIGH-risk rate, which is way too high to be actionable — a classic false-positive cliff caused by running L1 in isolation.</p>
+
+<h2>5. API / cost telemetry — confirms the silence</h2>
+
+<table>
+<thead><tr><th>Month</th><th>FMP calls</th><th>OpenAI calls (tokens)</th><th>Alpha Vantage</th><th>What this implies</th></tr></thead>
+<tbody>
+<tr><td>Feb 2026 (typical day)</td><td>~13,940</td><td>bulk</td><td>—</td><td>Daily 6,500-ticker sweep was active</td></tr>
+<tr><td>Apr 2026 (whole month)</td><td>~50 total</td><td>~30 calls / ~25k tokens</td><td>~18</td><td>Only user-initiated scans</td></tr>
+<tr><td>May 1–20</td><td>~10 total</td><td>~10 calls / ~4.6k tokens</td><td>0</td><td>Only user-initiated scans</td></tr>
+</tbody>
+</table>
+
+<p>If the four-layer daily pipeline were running it would generate ~13,000 FMP calls and several thousand OpenAI calls per day. We are seeing single-digit calls per day. The pipeline is unambiguously off.</p>
+
+<h2>6. Effectiveness — my view</h2>
+
+<div class="panel">
+<h3 style="margin-top:0;">Bottom line: the product is currently running on one cylinder of four, and even that cylinder is misfiring.</h3>
+
+<p><b>Coverage.</b> The marketed "Four-Layer Detection Engine" is, in practice, Layer 1 only — and only when a user clicks Scan. There has been no daily sweep of the ~6,500-ticker universe for more than two months. From a product-claims perspective this is a significant gap between the white-paper / blog-post description and what the system is actually doing.</p>
+
+<p><b>Precision.</b> Layer 1 in isolation is structurally a false-positive machine: when it ran (Feb–Mar), 15–24% of all listed stocks came out HIGH. That is not a usable signal — it's "every penny stock is risky", which is true but trivial. Layers 2–4 (anomaly detection, Random Forest, LSTM) exist specifically to suppress those false positives, and they aren't connected.</p>
+
+<p><b>Social scan.</b> It is the only thing earning its keep. 32 runs / 50 days, ~32k deduped mentions, ~6k promotional, and it is correctly surfacing high-conviction pump candidates like INVZW, AIXI, SELX, POM, SGBX. But:</p>
+<ul>
+  <li>It covers only <b>50 tickers per day</b>, and the seed list looks stale (same names recur). With the main scan offline there is no fresh source of "today's suspicious stocks" feeding it.</li>
+  <li><b>Reddit native scraping has failed on 100% of runs</b> for at least 50 days; <b>Discord</b> returns 0 every day; <b>X/Twitter</b> has no direct scraper. The "six platform" claim is effectively "StockTwits + Google search + YouTube" — three sources.</li>
+  <li>0 of 32 runs were COMPLETED — every run is either PARTIAL or TIMED_OUT, so the dashboard's success metric is always amber/red.</li>
+</ul>
+
+<p><b>Alerts &amp; watchlists.</b> Risk-change alerting (<code>StockRiskAlert</code>) hasn't fired since 9 March. The promoted-stock watchlist hasn't been added to since 24 February. So even when the social scan does find a fresh pump, nothing downstream picks it up automatically.</p>
+
+<p><b>Severity.</b> I'd rate the current effectiveness of the daily-scan stack at roughly <b>20–25% of the designed value</b>. The defensible part is the social-mention dataset (which is genuinely large and contains real signal). The undefensible part is that the AI engine and the bulk daily evaluation — the headline features — are silent.</p>
+
+<h3>The three things to fix, in order</h3>
+<ol>
+  <li><b>Bring the Python AI backend online and point <code>AI_BACKEND_URL</code> at it in production.</b> Without this, Layers 2–4 cannot ever run, and Layer 1 will keep generating ~15% HIGH-risk noise. The code is all there in <code>python_ai/</code>; this is a deploy/wiring problem, not a build problem.</li>
+  <li><b>Restart the daily Layer-1 sweep and the alerts pipeline.</b> Whatever cron / Railway worker was running through 16 March stopped — re-enable it, and re-instate the <code>StockRiskAlert</code> generator that drove the 22,084 historical alerts. Even L1-only is more useful when it runs daily and feeds risk-change deltas.</li>
+  <li><b>Fix the social-scan platform mix.</b> Get a working Reddit path (OAuth, not the public JSON which is permanently 403), wire up a real X/Twitter scraper (it has the highest promotional density of any source we have), and either fix or remove the Discord bot. Then expand the seed list past the static 50 tickers — feed it from yesterday's L1 HIGH-risk output.</li>
+</ol>
+</div>
+
+<h2>7. Caveats &amp; gaps in this review</h2>
+<ul>
+  <li>The local repo only contains evaluation artefacts from January / early February 2026 — all April / May data lives in Supabase, which is what this report queried.</li>
+  <li>The <b>ScanduckData</b> GitHub repo could not be read from this session — access is restricted to <code>elimiz21/scam-dunk-re-write-claude-code</code>. If ScanduckData holds an alternative authoritative log of runs (e.g. CI artefacts, scheduled-job output), it has <i>not</i> been incorporated here. Numbers above are from Supabase only.</li>
+  <li>Supabase advisory: <b>RLS is disabled on all 45 public tables</b>, including every scan/log table queried for this report. That's a separate security issue worth surfacing, though it does not affect the conclusions.</li>
+</ul>
+
+<p class="footer">Report compiled by the Claude Code review session. Source queries are reproducible against project <code>gwzcluijtbuglznwdqqk</code>: <code>DailyScanSummary</code>, <code>StockDailySnapshot</code>, <code>StockRiskAlert</code>, <code>SocialScanRun</code>, <code>SocialMention</code>, <code>ApiUsageLog</code>, <code>ScanHistory</code>, <code>BrowserAgentSession</code>, <code>PromotedStock</code>, <code>IntegrationConfig</code>.</p>
+
+</div>
+</body>
+</html>
