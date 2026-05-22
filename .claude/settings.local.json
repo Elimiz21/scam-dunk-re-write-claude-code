@@ -4,7 +4,8 @@
       "WebFetch(domain:github.com)",
       "Bash(npx skills add:*)",
       "WebFetch(domain:scamdunk.com)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__a3510e16-de5f-4824-89de-421ed6cfbbc1__execute_sql"
     ]
   }
 }
