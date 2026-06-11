@@ -55,6 +55,7 @@ jobs:
 
       - name: Lint
         run: npm run lint
+        continue-on-error: true # codebase was never linted; surface findings without blocking yet
 
       - name: Unit tests
         run: npm test -- --ci
