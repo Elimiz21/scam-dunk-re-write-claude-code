@@ -118,11 +118,26 @@ export default function SchemeDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    // Reset error/loading on schemeId change so navigating between schemes
+    // never gets stuck on a stale "not found" / error state.
+    setError(null);
+    setLoading(true);
+    setScheme(null);
+    setSocialMentions([]);
+
     async function load() {
       try {
-        const res = await fetch("/api/admin/scan-intelligence/schemes");
+        const res = await fetch("/api/admin/scan-intelligence/schemes", {
+          signal: controller.signal,
+        });
+        if (res.status === 401) {
+          window.location.href = "/admin/login";
+          return;
+        }
         if (!res.ok) throw new Error("Failed to load");
         const data = await res.json();
+        if (controller.signal.aborted) return;
         const all = [...(data.active || []), ...(data.resolved || [])];
         const match = all.find((s: Scheme) => s.schemeId === schemeId);
         if (!match) {
@@ -133,18 +148,23 @@ export default function SchemeDetailPage() {
 
         const socialRes = await fetch(
           `/api/admin/social-scan?ticker=${encodeURIComponent(match.symbol)}&promotionalOnly=true&limit=25`,
+          { signal: controller.signal },
         );
         if (socialRes.ok) {
           const social = await socialRes.json();
+          if (controller.signal.aborted) return;
           setSocialMentions(social.mentions || []);
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (controller.signal.aborted) return;
         setError("Failed to load scheme data");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
     load();
+    return () => controller.abort();
   }, [schemeId]);
 
   if (loading) {
@@ -336,14 +356,18 @@ export default function SchemeDetailPage() {
                 </div>
               </div>
 
-              {/* Progress bar showing price journey */}
+              {/* Progress bar showing the price journey relative to the peak.
+                  The full track represents the peak (100%); the amber marker is
+                  where the price sat at detection, and the colored bar is the
+                  current price — both as a fraction of peak, so the bar actually
+                  conveys how far the run climbed and where it landed. */}
               <div className="relative h-3 bg-secondary rounded-full overflow-hidden">
                 {scheme.peakPrice > 0 && (
                   <>
                     <div
                       className="absolute h-full bg-amber-500/30 rounded-full"
                       style={{
-                        width: `${Math.min(100, (scheme.peakPrice / scheme.peakPrice) * 100)}%`,
+                        width: `${Math.min(100, (scheme.priceAtDetection / scheme.peakPrice) * 100)}%`,
                       }}
                     />
                     <div

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
   Radio,
@@ -138,6 +138,9 @@ export default function SocialScanPage() {
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [filterTicker, setFilterTicker] = useState("");
+  // Debounced copy of filterTicker — drives the fetch so we don't fire one
+  // request per keystroke.
+  const [debouncedTicker, setDebouncedTicker] = useState("");
   const [filterPlatform, setFilterPlatform] = useState("");
   const [promotionalOnly, setPromotionalOnly] = useState(false);
   const [triggering, setTriggering] = useState(false);
@@ -264,37 +267,62 @@ export default function SocialScanPage() {
     return null;
   };
 
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
   const fetchData = useCallback(async () => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    setError("");
     try {
       const params = new URLSearchParams({
         page: String(page),
         limit: "20",
       });
-      if (filterTicker) params.set("ticker", filterTicker);
+      if (debouncedTicker) params.set("ticker", debouncedTicker);
       if (filterPlatform) params.set("platform", filterPlatform);
       if (promotionalOnly) params.set("promotionalOnly", "true");
       if (filterScanRunId) params.set("scanRunId", filterScanRunId);
       if (filterDateFrom) params.set("dateFrom", filterDateFrom);
       if (filterDateTo) params.set("dateTo", filterDateTo);
 
-      const res = await fetch(`/api/admin/social-scan?${params}`);
+      const res = await fetch(`/api/admin/social-scan?${params}`, {
+        signal: controller.signal,
+      });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch");
       const result = await res.json();
+      if (controller.signal.aborted) return;
       setData(result);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Error loading data");
     } finally {
-      setLoading(false);
+      if (fetchAbortRef.current === controller) setLoading(false);
     }
   }, [
     page,
-    filterTicker,
+    debouncedTicker,
     filterPlatform,
     promotionalOnly,
     filterScanRunId,
     filterDateFrom,
     filterDateTo,
   ]);
+
+  // Debounce the ticker filter; reset to page 1 when the settled value changes.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTicker((prev) => {
+        if (prev !== filterTicker) setPage(1);
+        return filterTicker;
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [filterTicker]);
 
   useEffect(() => {
     fetchData();
@@ -858,10 +886,7 @@ export default function SocialScanPage() {
                 type="text"
                 placeholder="Filter by ticker..."
                 value={filterTicker}
-                onChange={(e) => {
-                  setFilterTicker(e.target.value);
-                  setPage(1);
-                }}
+                onChange={(e) => setFilterTicker(e.target.value)}
                 className="pl-9 pr-3 py-1.5 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>

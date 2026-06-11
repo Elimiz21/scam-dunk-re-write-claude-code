@@ -6,6 +6,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import StatCard from "@/components/admin/StatCard";
 import ChartCard from "@/components/admin/ChartCard";
 import AlertBanner from "@/components/admin/AlertBanner";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import {
   TrendingUp,
   AlertTriangle,
@@ -55,30 +56,20 @@ interface MarketAnalysisData {
 
 export default function MarketAnalysisPage() {
   const router = useRouter();
-  const [data, setData] = useState<MarketAnalysisData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const {
+    data,
+    loading,
+    error,
+    setError,
+    fetchData,
+  } = useAdminFetch<MarketAnalysisData>();
   const [days, setDays] = useState(30);
 
   useEffect(() => {
-    fetchData();
-  }, [days]);
+    fetchData(`/api/admin/market-analysis?days=${days}`);
+  }, [days, fetchData]);
 
-  async function fetchData() {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/market-analysis?days=${days}`);
-      if (!res.ok) throw new Error("Failed to fetch data");
-      const json = await res.json();
-      setData(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (loading) {
+  if (loading && !data) {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-6">
@@ -92,15 +83,23 @@ export default function MarketAnalysisPage() {
     );
   }
 
-  if (error) {
+  // Render the error inline (dismissible) rather than gating the whole page —
+  // a transient failure no longer bricks the view, and a successful refetch
+  // (which clears the error) recovers automatically.
+  if (!data) {
     return (
       <AdminLayout>
-        <AlertBanner type="error" title="Error" message={error} />
+        {error ? (
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
+        ) : null}
       </AdminLayout>
     );
   }
-
-  if (!data) return null;
 
   const trendData = data.riskTrend.map((d) => ({
     label: d.date.slice(5),
@@ -124,6 +123,16 @@ export default function MarketAnalysisPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Inline error — visible during refetch without hiding existing data */}
+        {error ? (
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
+        ) : null}
+
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>

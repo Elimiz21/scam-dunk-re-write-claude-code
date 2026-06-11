@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   X,
   Upload,
@@ -31,6 +31,9 @@ export default function ImageUploadModal({
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  // Remember what was focused before the modal opened so we can restore it.
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const reset = () => {
     setUrl("");
@@ -42,10 +45,31 @@ export default function ImageUploadModal({
     setTab("upload");
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     reset();
     onClose();
-  };
+  }, [onClose]);
+
+  // Focus management + Escape-to-close while the modal is open.
+  useEffect(() => {
+    if (!isOpen) return;
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    // Move focus into the dialog.
+    closeButtonRef.current?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      // Restore focus to whatever was focused before opening.
+      previousFocusRef.current?.focus?.();
+    };
+  }, [isOpen, handleClose]);
 
   const uploadFile = async (file: File) => {
     const maxSize = 10 * 1024 * 1024; // 10MB
@@ -60,10 +84,11 @@ export default function ImageUploadModal({
       "image/gif",
       "image/webp",
       "image/svg+xml",
-      "video/mp4",
     ];
     if (!allowedTypes.includes(file.type)) {
-      setError("Unsupported file type. Use JPEG, PNG, GIF, WebP, SVG, or MP4.");
+      // Note: the editor inserts uploads as <img>, so video is not accepted
+      // here — an mp4 would render as a broken image node.
+      setError("Unsupported file type. Use JPEG, PNG, GIF, WebP, or SVG.");
       return;
     }
 
@@ -132,15 +157,26 @@ export default function ImageUploadModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden animate-fade-in-scale">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={handleClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={coverMode ? "Upload Cover Image" : "Insert Image"}
+        className="bg-card rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden animate-fade-in-scale"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold text-foreground">
             {coverMode ? "Upload Cover Image" : "Insert Image"}
           </h3>
           <button
+            ref={closeButtonRef}
             onClick={handleClose}
+            aria-label="Close dialog"
             className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
           >
             <X size={20} />
@@ -177,10 +213,19 @@ export default function ImageUploadModal({
         <div className="p-5 space-y-4">
           {tab === "upload" && (
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Upload an image file"
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
               className={`cursor-pointer border-2 border-dashed rounded-xl p-8 text-center transition-all ${
                 dragActive
                   ? "border-primary bg-primary/5 scale-[1.01]"
@@ -190,7 +235,7 @@ export default function ImageUploadModal({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,video/mp4"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
                 onChange={handleFileSelect}
                 className="hidden"
               />

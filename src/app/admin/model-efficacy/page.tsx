@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import StatCard from "@/components/admin/StatCard";
 import ChartCard from "@/components/admin/ChartCard";
@@ -86,26 +86,47 @@ export default function ModelEfficacyPage() {
   const [error, setError] = useState("");
   const [days, setDays] = useState(30);
   const [filterRisk, setFilterRisk] = useState("");
+  // Tracks scans with feedback in flight so a double-click can't submit two
+  // feedback rows and skew the accuracy metrics.
+  const [feedbackPending, setFeedbackPending] = useState<Set<string>>(
+    new Set(),
+  );
+  const metricsAbortRef = useRef<AbortController | null>(null);
+  const scansAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     fetchMetrics();
     fetchSegments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days]);
 
   useEffect(() => {
     fetchScans();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, filterRisk]);
 
   async function fetchMetrics() {
+    metricsAbortRef.current?.abort();
+    const controller = new AbortController();
+    metricsAbortRef.current = controller;
+    setError("");
     try {
-      const res = await fetch(`/api/admin/model-efficacy?days=${days}`);
+      const res = await fetch(`/api/admin/model-efficacy?days=${days}`, {
+        signal: controller.signal,
+      });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch metrics");
       const data = await res.json();
+      if (controller.signal.aborted) return;
       setMetrics(data);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed to load metrics");
     } finally {
-      setLoading(false);
+      if (metricsAbortRef.current === controller) setLoading(false);
     }
   }
 
@@ -123,6 +144,9 @@ export default function ModelEfficacyPage() {
   }
 
   async function fetchScans() {
+    scansAbortRef.current?.abort();
+    const controller = new AbortController();
+    scansAbortRef.current = controller;
     try {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
@@ -130,23 +154,39 @@ export default function ModelEfficacyPage() {
       });
       if (filterRisk) params.append("riskLevel", filterRisk);
 
-      const res = await fetch(`/api/admin/model-efficacy/scans?${params}`);
+      const res = await fetch(`/api/admin/model-efficacy/scans?${params}`, {
+        signal: controller.signal,
+      });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch scans");
       const data = await res.json();
+      if (controller.signal.aborted) return;
       setScans(data.scans);
       setPagination(data.pagination);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed to load scans");
     }
   }
 
   async function submitFeedback(scanId: string, feedbackType: string) {
+    // Guard against double-submit — duplicate feedback rows skew the metrics.
+    if (feedbackPending.has(scanId)) return;
+    setFeedbackPending((prev) => new Set(prev).add(scanId));
+    setError("");
     try {
       const res = await fetch("/api/admin/model-efficacy/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scanId, feedbackType }),
       });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to submit feedback");
       await fetchMetrics();
       await fetchScans();
@@ -154,6 +194,12 @@ export default function ModelEfficacyPage() {
       setError(
         err instanceof Error ? err.message : "Failed to submit feedback",
       );
+    } finally {
+      setFeedbackPending((prev) => {
+        const next = new Set(prev);
+        next.delete(scanId);
+        return next;
+      });
     }
   }
 
@@ -212,31 +258,37 @@ export default function ModelEfficacyPage() {
     {
       key: "feedback",
       header: "Feedback",
-      render: (item: Scan) => (
-        <div className="flex space-x-1">
-          <button
-            onClick={() => submitFeedback(item.id, "CORRECT")}
-            className="p-1 text-green-600 hover:bg-green-50 rounded"
-            title="Mark as correct"
-          >
-            <CheckCircle className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => submitFeedback(item.id, "FALSE_POSITIVE")}
-            className="p-1 text-yellow-600 hover:bg-yellow-50 rounded"
-            title="Mark as false positive"
-          >
-            <AlertTriangle className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => submitFeedback(item.id, "FALSE_NEGATIVE")}
-            className="p-1 text-red-600 hover:bg-red-50 rounded"
-            title="Mark as false negative"
-          >
-            <XCircle className="h-4 w-4" />
-          </button>
-        </div>
-      ),
+      render: (item: Scan) => {
+        const pending = feedbackPending.has(item.id);
+        return (
+          <div className="flex space-x-1">
+            <button
+              onClick={() => submitFeedback(item.id, "CORRECT")}
+              disabled={pending}
+              className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Mark as correct"
+            >
+              <CheckCircle className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => submitFeedback(item.id, "FALSE_POSITIVE")}
+              disabled={pending}
+              className="p-1 text-yellow-600 hover:bg-yellow-50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Mark as false positive"
+            >
+              <AlertTriangle className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => submitFeedback(item.id, "FALSE_NEGATIVE")}
+              disabled={pending}
+              className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Mark as false negative"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -496,7 +548,12 @@ export default function ModelEfficacyPage() {
                 </h3>
                 <select
                   value={filterRisk}
-                  onChange={(e) => setFilterRisk(e.target.value)}
+                  onChange={(e) => {
+                    setFilterRisk(e.target.value);
+                    // Reset to page 1 so the filter never leaves us on a
+                    // now-empty page.
+                    setPagination((p) => ({ ...p, page: 1 }));
+                  }}
                   className="border border-border rounded-md px-3 py-2 text-sm bg-card text-foreground"
                 >
                   <option value="">All Risk Levels</option>

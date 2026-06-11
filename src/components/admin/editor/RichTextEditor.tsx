@@ -1,10 +1,8 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, useEditorState } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
-import { Underline } from "@tiptap/extension-underline";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { Link } from "@tiptap/extension-link";
 import { Image } from "@tiptap/extension-image";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
@@ -63,24 +61,65 @@ export default function RichTextEditor({
   } | null>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
 
+  // Debounce the onChange(getHTML()) so typing on a long post doesn't
+  // serialize the whole document + re-render the parent page on every
+  // keystroke. The latest onChange is kept in a ref so the debounce never
+  // fires a stale callback.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const changeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingHtmlRef = useRef<string | null>(null);
+
+  const scheduleChange = useCallback(
+    (html: string) => {
+      pendingHtmlRef.current = html;
+      if (changeTimerRef.current) clearTimeout(changeTimerRef.current);
+      changeTimerRef.current = setTimeout(() => {
+        changeTimerRef.current = null;
+        if (pendingHtmlRef.current !== null) {
+          onChangeRef.current(pendingHtmlRef.current);
+          pendingHtmlRef.current = null;
+        }
+      }, 300);
+    },
+    [],
+  );
+
+  // Flush any pending change on unmount so the last keystroke is never lost.
+  useEffect(() => {
+    return () => {
+      if (changeTimerRef.current) clearTimeout(changeTimerRef.current);
+      if (pendingHtmlRef.current !== null) {
+        onChangeRef.current(pendingHtmlRef.current);
+        pendingHtmlRef.current = null;
+      }
+    };
+  }, []);
+
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
+      // StarterKit v3 already bundles Link + Underline — configure them here
+      // instead of adding duplicate standalone extensions (duplicates would
+      // re-register the mark and defeat openOnClick:false).
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        link: {
+          openOnClick: false,
+          HTMLAttributes: {
+            class:
+              "text-primary underline cursor-pointer hover:text-primary/80",
+          },
+        },
       }),
-      Underline,
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-primary underline cursor-pointer hover:text-primary/80",
-        },
-      }),
       Image.configure({
         inline: false,
-        allowBase64: true,
+        // Disallow base64 so pasting from Word/Docs doesn't embed huge inline
+        // data URIs that balloon post.content; images should be uploaded.
+        allowBase64: false,
         HTMLAttributes: {
           class: "rounded-xl max-w-full mx-auto",
         },
@@ -117,7 +156,17 @@ export default function RichTextEditor({
     ],
     content: content || "",
     onUpdate: ({ editor: ed }) => {
-      onChange(ed.getHTML());
+      scheduleChange(ed.getHTML());
+    },
+    onBlur: ({ editor: ed }) => {
+      // Flush immediately on blur so clicking "Save" right after typing never
+      // loses the last debounced keystrokes.
+      if (changeTimerRef.current) {
+        clearTimeout(changeTimerRef.current);
+        changeTimerRef.current = null;
+      }
+      pendingHtmlRef.current = null;
+      onChangeRef.current(ed.getHTML());
     },
     onSelectionUpdate: ({ editor: ed }) => {
       // Show bubble menu on text selection
@@ -157,25 +206,29 @@ export default function RichTextEditor({
         }
 
         if (showSlashMenu) {
+          // When the filter matches nothing the menu is hidden — only handle
+          // Escape/Backspace/typing here and let Enter/Arrows fall through to
+          // the editor so it doesn't feel dead.
+          const hasItems = filteredSlashItems.length > 0;
           if (event.key === "Escape") {
             setShowSlashMenu(false);
             return true;
           }
-          if (event.key === "ArrowDown") {
+          if (event.key === "ArrowDown" && hasItems) {
             event.preventDefault();
             setSlashSelectedIndex((prev) =>
               prev < filteredSlashItems.length - 1 ? prev + 1 : 0,
             );
             return true;
           }
-          if (event.key === "ArrowUp") {
+          if (event.key === "ArrowUp" && hasItems) {
             event.preventDefault();
             setSlashSelectedIndex((prev) =>
               prev > 0 ? prev - 1 : filteredSlashItems.length - 1,
             );
             return true;
           }
-          if (event.key === "Enter") {
+          if (event.key === "Enter" && hasItems) {
             event.preventDefault();
             const item = filteredSlashItems[slashSelectedIndex];
             if (item) executeSlashCommand(item.id);
@@ -201,6 +254,44 @@ export default function RichTextEditor({
     },
   });
 
+  // Reactive editor state. TipTap v3 defaults shouldRerenderOnTransaction off,
+  // so reading editor.isActive()/getText() during render is stale. useEditorState
+  // re-renders only when the selected slice changes.
+  const editorState = useEditorState({
+    editor,
+    selector: ({ editor: ed }) => {
+      if (!ed) {
+        return {
+          isTable: false,
+          isH1: false,
+          isH2: false,
+          isH3: false,
+          isBold: false,
+          isItalic: false,
+          isUnderline: false,
+          isStrike: false,
+          isLink: false,
+          textLength: 0,
+          wordCount: 0,
+        };
+      }
+      const text = ed.getText();
+      return {
+        isTable: ed.isActive("table"),
+        isH1: ed.isActive("heading", { level: 1 }),
+        isH2: ed.isActive("heading", { level: 2 }),
+        isH3: ed.isActive("heading", { level: 3 }),
+        isBold: ed.isActive("bold"),
+        isItalic: ed.isActive("italic"),
+        isUnderline: ed.isActive("underline"),
+        isStrike: ed.isActive("strike"),
+        isLink: ed.isActive("link"),
+        textLength: text.length,
+        wordCount: text.split(/\s+/).filter(Boolean).length,
+      };
+    },
+  });
+
   // Close slash menu on outside click
   useEffect(() => {
     if (!editor) return;
@@ -209,12 +300,18 @@ export default function RichTextEditor({
     return () => document.removeEventListener("click", handleClick);
   }, [editor]);
 
-  // Sync external content changes
+  // Sync external content changes (e.g. AI import / file import sets new HTML).
+  // Skip when the incoming content matches what's already in the editor OR what
+  // we have queued to emit — that's our own debounced output coming back and
+  // re-applying it would stomp the cursor mid-typing.
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content || "");
+    if (!editor) return;
+    if (content === editor.getHTML()) return;
+    if (pendingHtmlRef.current !== null && content === pendingHtmlRef.current) {
+      return;
     }
-  }, [content]);
+    editor.commands.setContent(content || "", { emitUpdate: false });
+  }, [content, editor]);
 
   const slashItems = [
     {
@@ -383,8 +480,8 @@ export default function RichTextEditor({
 
   if (!editor) return null;
 
-  const textLength = editor.getText().length;
-  const wordCount = editor.getText().split(/\s+/).filter(Boolean).length;
+  const textLength = editorState?.textLength ?? 0;
+  const wordCount = editorState?.wordCount ?? 0;
 
   return (
     <div
@@ -411,7 +508,7 @@ export default function RichTextEditor({
               editor.chain().focus().toggleHeading({ level: 1 }).run();
             }}
             className={`p-1.5 rounded-lg transition-colors ${
-              editor.isActive("heading", { level: 1 })
+              editorState?.isH1
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-secondary"
             }`}
@@ -425,7 +522,7 @@ export default function RichTextEditor({
               editor.chain().focus().toggleHeading({ level: 2 }).run();
             }}
             className={`p-1.5 rounded-lg transition-colors ${
-              editor.isActive("heading", { level: 2 })
+              editorState?.isH2
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-secondary"
             }`}
@@ -439,7 +536,7 @@ export default function RichTextEditor({
               editor.chain().focus().toggleHeading({ level: 3 }).run();
             }}
             className={`p-1.5 rounded-lg transition-colors ${
-              editor.isActive("heading", { level: 3 })
+              editorState?.isH3
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-secondary"
             }`}
@@ -454,7 +551,7 @@ export default function RichTextEditor({
               editor.chain().focus().toggleBold().run();
             }}
             className={`p-1.5 rounded-lg transition-colors ${
-              editor.isActive("bold")
+              editorState?.isBold
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-secondary"
             }`}
@@ -468,7 +565,7 @@ export default function RichTextEditor({
               editor.chain().focus().toggleItalic().run();
             }}
             className={`p-1.5 rounded-lg transition-colors ${
-              editor.isActive("italic")
+              editorState?.isItalic
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-secondary"
             }`}
@@ -482,7 +579,7 @@ export default function RichTextEditor({
               editor.chain().focus().toggleUnderline().run();
             }}
             className={`p-1.5 rounded-lg transition-colors ${
-              editor.isActive("underline")
+              editorState?.isUnderline
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-secondary"
             }`}
@@ -496,7 +593,7 @@ export default function RichTextEditor({
               editor.chain().focus().toggleStrike().run();
             }}
             className={`p-1.5 rounded-lg transition-colors ${
-              editor.isActive("strike")
+              editorState?.isStrike
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-secondary"
             }`}
@@ -530,7 +627,7 @@ export default function RichTextEditor({
               }
             }}
             className={`p-1.5 rounded-lg transition-colors ${
-              editor.isActive("link")
+              editorState?.isLink
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-secondary"
             }`}
@@ -541,7 +638,7 @@ export default function RichTextEditor({
       )}
 
       {/* Table floating controls */}
-      {editor.isActive("table") && (
+      {editorState?.isTable && (
         <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-secondary/20 text-xs">
           <span className="text-muted-foreground font-medium mr-2">Table:</span>
           <button

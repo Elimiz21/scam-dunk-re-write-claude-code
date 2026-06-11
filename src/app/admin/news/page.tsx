@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AdminLayout from "@/components/admin/AdminLayout";
+import AlertBanner from "@/components/admin/AlertBanner";
 import { FileText, Megaphone, Plus, ArrowRight } from "lucide-react";
 
 interface NewsStats {
@@ -21,20 +22,28 @@ interface NewsStats {
 export default function AdminNewsPage() {
   const [stats, setStats] = useState<NewsStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchStats();
   }, []);
 
   async function fetchStats() {
+    setError("");
     try {
       const res = await fetch("/api/admin/news/stats");
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
       }
-    } catch (error) {
-      console.error("Failed to fetch news stats:", error);
+      if (!res.ok) throw new Error("Failed to load news statistics");
+      const data = await res.json();
+      setStats(data);
+    } catch (err) {
+      // Surface the failure instead of silently rendering "0 Total".
+      setError(
+        err instanceof Error ? err.message : "Failed to load news statistics",
+      );
     } finally {
       setLoading(false);
     }
@@ -54,6 +63,15 @@ export default function AdminNewsPage() {
             </p>
           </div>
         </div>
+
+        {error ? (
+          <AlertBanner
+            type="error"
+            title="Could not load statistics"
+            message={error}
+            onDismiss={() => setError("")}
+          />
+        ) : null}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -85,19 +103,19 @@ export default function AdminNewsPage() {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold text-foreground">
-                    {stats?.blogPosts.total || 0}
+                    {stats ? stats.blogPosts.total : "—"}
                   </p>
                   <p className="text-sm text-muted-foreground">Total</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-green-600">
-                    {stats?.blogPosts.published || 0}
+                    {stats ? stats.blogPosts.published : "—"}
                   </p>
                   <p className="text-sm text-muted-foreground">Published</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-yellow-600">
-                    {stats?.blogPosts.drafts || 0}
+                    {stats ? stats.blogPosts.drafts : "—"}
                   </p>
                   <p className="text-sm text-muted-foreground">Drafts</p>
                 </div>
@@ -140,19 +158,19 @@ export default function AdminNewsPage() {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold text-foreground">
-                    {stats?.mediaMentions.total || 0}
+                    {stats ? stats.mediaMentions.total : "—"}
                   </p>
                   <p className="text-sm text-muted-foreground">Total</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-green-600">
-                    {stats?.mediaMentions.published || 0}
+                    {stats ? stats.mediaMentions.published : "—"}
                   </p>
                   <p className="text-sm text-muted-foreground">Published</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-yellow-600">
-                    {stats?.mediaMentions.featured || 0}
+                    {stats ? stats.mediaMentions.featured : "—"}
                   </p>
                   <p className="text-sm text-muted-foreground">Featured</p>
                 </div>
