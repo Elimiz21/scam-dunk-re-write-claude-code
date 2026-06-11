@@ -721,11 +721,12 @@ def scan_pre_pump_signals(tickers: List[str], fundamentals: Dict[str, Dict]) -> 
 
             time.sleep(0.2)
 
-            # Fetch price change via yfinance
+            # Fetch price change via yfinance (bounded by a timeout so one slow
+            # ticker can't stall the whole batch — PY-H6).
             price_change_90d = 0.0
             try:
                 import yfinance as yf
-                hist = yf.Ticker(ticker_upper).history(period='3mo')
+                hist = yf.Ticker(ticker_upper).history(period='3mo', timeout=15)
                 if not hist.empty and len(hist) >= 2:
                     price_start = hist['Close'].iloc[0]
                     price_end = hist['Close'].iloc[-1]

@@ -7,6 +7,7 @@ This module handles:
 - Data preprocessing and cleaning
 """
 
+import os
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -66,6 +67,37 @@ from config import (
 
 warnings.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Short-TTL cache for live yfinance fetches (PY-C5).
+# A single /analyze can touch history + fundamentals (+ news verification for
+# HIGH results), and repeat scans of the same ticker arrive in bursts. Caching
+# for a short window avoids hammering the most rate-limited yfinance calls and
+# keeps a request inside the TS time budget. TTL is deliberately short so data
+# stays fresh.
+# ---------------------------------------------------------------------------
+import time as _time
+
+_LIVE_CACHE: Dict[str, Tuple[float, object]] = {}
+try:
+    LIVE_CACHE_TTL = float(os.environ.get('LIVE_CACHE_TTL', '120'))
+except (TypeError, ValueError):
+    LIVE_CACHE_TTL = 120.0
+
+
+def _cache_get(key: str):
+    entry = _LIVE_CACHE.get(key)
+    if entry is None:
+        return None
+    ts, value = entry
+    if (_time.time() - ts) > LIVE_CACHE_TTL:
+        _LIVE_CACHE.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(key: str, value) -> None:
+    _LIVE_CACHE[key] = (_time.time(), value)
 
 
 class DataIngestionError(Exception):
@@ -272,6 +304,13 @@ def load_stock_data(
         params = synthetic_params or {}
         return generate_synthetic_stock_data(ticker, days=days, **params)
 
+    # Serve from short-TTL cache when available (PY-C5).
+    cache_key = f"history:{ticker.upper()}:{days}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        logger.info(f"Using cached market data for {ticker}")
+        return cached.copy()
+
     # Use yfinance for real market data
     if not YFINANCE_AVAILABLE:
         error_msg = "yfinance library not available"
@@ -337,6 +376,7 @@ def load_stock_data(
             df = df.tail(days).reset_index(drop=True)
 
         logger.info(f"Fetched {len(df)} days of real data for {ticker}")
+        _cache_set(cache_key, df.copy())
         return df
 
     except DataAPIError:
@@ -431,6 +471,13 @@ def get_stock_fundamentals(
             'is_otc': exchange in OTC_EXCHANGES,
         }
 
+    # Serve fundamentals from short-TTL cache when available (PY-C5).
+    fund_cache_key = f"fundamentals:{ticker.upper()}"
+    cached_fund = _cache_get(fund_cache_key)
+    if cached_fund is not None:
+        logger.info(f"Using cached fundamentals for {ticker}")
+        return dict(cached_fund)
+
     # Use yfinance for real fundamentals.
     # IMPORTANT (PY-C3): in live mode we NEVER substitute random synthetic
     # fundamentals on failure. Fabricating a healthy large-cap on a major
@@ -523,6 +570,7 @@ def get_stock_fundamentals(
 
         cap_str = f"${market_cap:,.0f}" if market_cap else "unknown"
         logger.info(f"Fetched fundamentals for {ticker}: market_cap={cap_str}, exchange={exchange}, is_otc={is_otc}")
+        _cache_set(fund_cache_key, dict(fundamentals))
         return fundamentals
 
     except Exception as e:
