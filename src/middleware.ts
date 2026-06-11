@@ -76,6 +76,19 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Admin PAGE routes (not /api/admin): gate the UI shell at the edge so the
+  // admin dashboard isn't loadable by anonymous visitors. /admin/login and the
+  // invite-acceptance flow must remain reachable without a session.
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    const isLoginPage = request.nextUrl.pathname.startsWith("/admin/login");
+    const adminToken = request.cookies.get("admin_session_token")?.value;
+    if (!isLoginPage && !adminToken) {
+      const loginUrl = new URL("/admin/login", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+  }
+
   // Admin API routes: rate limit + auth check (defense-in-depth)
   if (request.nextUrl.pathname.startsWith("/api/admin/")) {
     // Rate limit all admin routes
@@ -150,8 +163,11 @@ export const config = {
     "/account/:path*",
     // API routes that require authentication (except auth routes)
     "/api/check/:path*",
+    "/api/ai-analyze/:path*",
     "/api/billing/:path*",
     "/api/user/:path*",
+    // Admin UI pages: gate the shell at the edge (cookie presence)
+    "/admin/:path*",
     // Admin routes: rate limited + auth check (defense-in-depth)
     "/api/admin/:path*",
   ],

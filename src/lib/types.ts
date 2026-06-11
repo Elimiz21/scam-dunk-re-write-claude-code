@@ -20,16 +20,34 @@ export interface RiskSignal {
 
 export type AssetType = "stock" | "crypto";
 
+/**
+ * Behavioral red-flag context. All flags concrete booleans once normalized.
+ * Use `normalizeBehavioralContext` to turn an optional/partial API payload into this.
+ */
+export interface BehavioralContext {
+  unsolicited: boolean;
+  promisesHighReturns: boolean;
+  urgencyPressure: boolean;
+  secrecyInsideInfo: boolean;
+}
+
 export interface CheckRequest {
   ticker: string;
   companyName?: string;
   assetType?: AssetType;
   pitchText?: string;
-  context?: {
-    unsolicited?: boolean;
-    promisesHighReturns?: boolean;
-    urgencyPressure?: boolean;
-    secrecyInsideInfo?: boolean;
+  context?: Partial<BehavioralContext>;
+}
+
+/** Fill missing behavioral flags with `false` so scoring always sees concrete booleans. */
+export function normalizeBehavioralContext(
+  context?: Partial<BehavioralContext>,
+): BehavioralContext {
+  return {
+    unsolicited: context?.unsolicited ?? false,
+    promisesHighReturns: context?.promisesHighReturns ?? false,
+    urgencyPressure: context?.urgencyPressure ?? false,
+    secrecyInsideInfo: context?.secrecyInsideInfo ?? false,
   };
 }
 
@@ -119,12 +137,7 @@ export interface MarketData {
 export interface ScoringInput {
   marketData: MarketData;
   pitchText: string;
-  context: {
-    unsolicited: boolean;
-    promisesHighReturns: boolean;
-    urgencyPressure: boolean;
-    secrecyInsideInfo: boolean;
-  };
+  context: BehavioralContext;
 }
 
 export interface ScoringResult {

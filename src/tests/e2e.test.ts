@@ -18,7 +18,7 @@ import {
 } from "../lib/marketData";
 import {
   ScoringInput,
-  CheckRequest,
+  BehavioralContext,
   MarketData,
   PriceHistory,
 } from "../lib/types";
@@ -260,7 +260,7 @@ describe("End-to-End Integration Tests", () => {
       // Updated: INSUFFICIENT is only for missing data, not for safe stocks
       // Large-cap stocks with no red flags should be LOW or MEDIUM risk
       // Anomaly detection may trigger minor signals from mock price data
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: false,
         promisesHighReturns: false,
         urgencyPressure: false,
@@ -282,7 +282,7 @@ describe("End-to-End Integration Tests", () => {
     });
 
     it("should score OTC penny stock as HIGH risk", async () => {
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: true,
         promisesHighReturns: true,
         urgencyPressure: true,
@@ -310,7 +310,7 @@ describe("End-to-End Integration Tests", () => {
     });
 
     it("should detect NLP keywords correctly", async () => {
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: false,
         promisesHighReturns: false,
         urgencyPressure: false,
@@ -348,7 +348,7 @@ describe("End-to-End Integration Tests", () => {
         dataAvailable: true,
       };
 
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: false,
         promisesHighReturns: false,
         urgencyPressure: false,
@@ -540,7 +540,7 @@ describe("End-to-End Integration Tests", () => {
 
   describe("Real-World Scenarios", () => {
     it("Scenario: Classic pump-and-dump pitch", async () => {
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: true,
         promisesHighReturns: true,
         urgencyPressure: true,
@@ -595,7 +595,7 @@ describe("End-to-End Integration Tests", () => {
     it("Scenario: Legitimate investment discussion about Apple", async () => {
       // Updated: Legitimate stocks with no red flags return LOW or MEDIUM
       // Anomaly detection may trigger on mock price data, but never HIGH
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: false,
         promisesHighReturns: false,
         urgencyPressure: false,
@@ -625,7 +625,7 @@ describe("End-to-End Integration Tests", () => {
     });
 
     it("Scenario: Subtle manipulation with real ticker", async () => {
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: true,
         promisesHighReturns: false,
         urgencyPressure: false,
@@ -653,7 +653,7 @@ describe("End-to-End Integration Tests", () => {
 
   describe("Edge Cases", () => {
     it("should handle empty pitch text", async () => {
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: false,
         promisesHighReturns: false,
         urgencyPressure: false,
@@ -672,7 +672,7 @@ describe("End-to-End Integration Tests", () => {
     });
 
     it("should handle all behavioral flags without market data issues", async () => {
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: true,
         promisesHighReturns: true,
         urgencyPressure: true,
@@ -701,7 +701,7 @@ describe("End-to-End Integration Tests", () => {
         dataAvailable: false,
       };
 
-      const context: CheckRequest["context"] = {
+      const context: BehavioralContext = {
         unsolicited: true,
         promisesHighReturns: true,
         urgencyPressure: false,
