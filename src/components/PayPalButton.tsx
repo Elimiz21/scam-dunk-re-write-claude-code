@@ -25,8 +25,24 @@ export function PayPalButton({ onSuccess, onError }: PayPalButtonProps) {
   } | null>(null);
   const router = useRouter();
 
-  // Fetch PayPal config
+  // Keep the latest callbacks/router in refs so the effects below don't need
+  // them in their dependency arrays. Without this, a parent that passes fresh
+  // inline arrow functions on every render would re-run config fetching and
+  // tear down + re-render the PayPal button on each re-render (flicker, request
+  // spam, and a reset mid-checkout).
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const routerRef = useRef(router);
+
   useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+    routerRef.current = router;
+  }, [onSuccess, onError, router]);
+
+  // Fetch PayPal config — runs once on mount.
+  useEffect(() => {
+    let cancelled = false;
     async function fetchConfig() {
       try {
         const response = await fetch("/api/billing/paypal/config");
@@ -34,49 +50,26 @@ export function PayPalButton({ onSuccess, onError }: PayPalButtonProps) {
           throw new Error("PayPal not configured");
         }
         const data = await response.json();
-        setConfig(data);
+        if (!cancelled) {
+          setConfig(data);
+        }
       } catch (err) {
+        if (cancelled) return;
         setError("Payment system is not available. Please contact support.");
         setIsLoading(false);
-        if (onError) {
-          onError("PayPal configuration failed");
-        }
+        onErrorRef.current?.("PayPal configuration failed");
       }
     }
     fetchConfig();
-  }, [onError]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  // Load PayPal SDK and render button
+  // Load PayPal SDK and render button. Depends only on [config] so it does not
+  // re-run (and re-render the button) on unrelated parent re-renders.
   useEffect(() => {
     if (!config) return;
-
-    const loadPayPalScript = () => {
-      // Check if script is already loaded
-      if (window.paypal) {
-        renderButton();
-        return;
-      }
-
-      // Load PayPal SDK
-      const script = document.createElement("script");
-      script.src = `https://www.paypal.com/sdk/js?client-id=${config.clientId}&vault=true&intent=subscription`;
-      script.setAttribute("data-sdk-integration-source", "button-factory");
-      script.async = true;
-
-      script.onload = () => {
-        renderButton();
-      };
-
-      script.onerror = () => {
-        setError("Failed to load PayPal. Please try again later.");
-        setIsLoading(false);
-        if (onError) {
-          onError("PayPal SDK failed to load");
-        }
-      };
-
-      document.body.appendChild(script);
-    };
 
     const renderButton = () => {
       if (!window.paypal || !buttonContainerRef.current) {
@@ -100,7 +93,7 @@ export function PayPalButton({ onSuccess, onError }: PayPalButtonProps) {
                 plan_id: config.planId,
               });
             },
-            onApprove: async function (data: any, actions: any) {
+            onApprove: async function (data: any) {
               try {
                 // Send subscription ID to backend to activate
                 const response = await fetch("/api/billing/paypal/activate", {
@@ -118,28 +111,24 @@ export function PayPalButton({ onSuccess, onError }: PayPalButtonProps) {
                 }
 
                 // Success! Refresh the page or redirect
-                if (onSuccess) {
-                  onSuccess();
+                if (onSuccessRef.current) {
+                  onSuccessRef.current();
                 } else {
-                  router.push("/account?upgraded=true");
-                  router.refresh();
+                  routerRef.current.push("/account?upgraded=true");
+                  routerRef.current.refresh();
                 }
               } catch (err) {
                 console.error("Error activating subscription:", err);
                 setError(
                   "Subscription created but activation failed. Please contact support.",
                 );
-                if (onError) {
-                  onError("Activation failed");
-                }
+                onErrorRef.current?.("Activation failed");
               }
             },
             onError: function (err: any) {
               console.error("PayPal button error:", err);
               setError("Payment failed. Please try again.");
-              if (onError) {
-                onError("Payment failed");
-              }
+              onErrorRef.current?.("Payment failed");
             },
             onCancel: function () {
               // User cancelled, just log it
@@ -153,14 +142,38 @@ export function PayPalButton({ onSuccess, onError }: PayPalButtonProps) {
         console.error("Error rendering PayPal button:", err);
         setError("Failed to initialize PayPal button.");
         setIsLoading(false);
-        if (onError) {
-          onError("Button render failed");
-        }
+        onErrorRef.current?.("Button render failed");
       }
     };
 
+    const loadPayPalScript = () => {
+      // Check if script is already loaded
+      if (window.paypal) {
+        renderButton();
+        return;
+      }
+
+      // Load PayPal SDK
+      const script = document.createElement("script");
+      script.src = `https://www.paypal.com/sdk/js?client-id=${config.clientId}&vault=true&intent=subscription`;
+      script.setAttribute("data-sdk-integration-source", "button-factory");
+      script.async = true;
+
+      script.onload = () => {
+        renderButton();
+      };
+
+      script.onerror = () => {
+        setError("Failed to load PayPal. Please try again later.");
+        setIsLoading(false);
+        onErrorRef.current?.("PayPal SDK failed to load");
+      };
+
+      document.body.appendChild(script);
+    };
+
     loadPayPalScript();
-  }, [config, router, onSuccess, onError]);
+  }, [config]);
 
   if (error) {
     return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/Sidebar";
@@ -22,15 +22,8 @@ import {
 import { getRandomTagline, taglines, Tagline } from "@/lib/taglines";
 import { LandingOptionA } from "@/components/landing/LandingOptionA";
 import { useToast } from "@/components/ui/toast";
+import { normalizeRiskScore } from "@/lib/utils";
 import { Step } from "@/components/LoadingStepper";
-
-/** Normalize raw risk score to 0-100 (matches mobile app) */
-function normalizeRiskScore(rawScore: number): number {
-  if (rawScore <= 0) return 0;
-  if (rawScore < 2) return Math.round((rawScore / 2) * 30);
-  if (rawScore < 5) return Math.round(30 + ((rawScore - 2) / 3) * 30);
-  return Math.min(Math.round(60 + ((rawScore - 5) / 15) * 40), 100);
-}
 
 export default function HomeContent() {
   const { data: session, status } = useSession();
@@ -59,6 +52,10 @@ export default function HomeContent() {
   const [currentTicker, setCurrentTicker] = useState("");
   const [hasChatData, setHasChatData] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
+
+  // Flag used to cancel the in-flight progress simulation (e.g. on API error)
+  // so the stepper stops advancing instead of animating behind the error screen.
+  const scanCancelledRef = useRef(false);
 
   const [steps, setSteps] = useState<Step[]>([
     { label: "Validating ticker symbol", status: "pending" },
@@ -104,12 +101,14 @@ export default function HomeContent() {
   // Get random tagline on mount (changes on refresh)
   const [tagline] = useState(() => getRandomTagline());
 
-  // Fetch initial usage
+  // Fetch initial usage — keyed on the user id so we don't refetch on every
+  // NextAuth session-object change (token refresh, window refocus, etc.).
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user?.id) {
       fetchUsage();
     }
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
 
   const fetchUsage = async () => {
     try {
@@ -146,6 +145,7 @@ export default function HomeContent() {
     setIsLoading(true);
     setCurrentTicker(data.ticker);
     setHasChatData(!!data.pitchText?.trim());
+    scanCancelledRef.current = false;
 
     // Reset steps with enhanced granular progress
     const initialSteps: Step[] = [
@@ -179,13 +179,24 @@ export default function HomeContent() {
       });
     }, 3000);
 
+    // Cancellable sleep: resolves false if the scan was cancelled (e.g. on
+    // API error) so the progress simulation can bail out instead of animating
+    // behind the error screen.
+    const sleep = (ms: number) =>
+      new Promise<boolean>((resolve) =>
+        setTimeout(() => resolve(!scanCancelledRef.current), ms),
+      );
+
     try {
-      // Simulate step progress — decoupled from actual scan.
-      // Each step stays grey for at least 1 second after the previous
-      // step turns green, making the scan feel thorough.
+      // Animated step progress. Steps 1-3 ("Validating", "Fetching",
+      // "Running risk analysis") are presentational stages we can honestly
+      // claim are underway. The final two steps (regulatory alerts + report)
+      // are NOT pre-stamped here — they're resolved from the real API outcome
+      // below so we never assert a check that didn't happen. The artificial
+      // floor is capped at ~2s total and aborts early when cancelled.
       const simulateSteps = async () => {
         // Step 1: Validating ticker
-        await new Promise((r) => setTimeout(r, 1200));
+        if (!(await sleep(350))) return;
         setSteps((s) => [
           {
             ...s[0],
@@ -198,8 +209,8 @@ export default function HomeContent() {
           s[4],
         ]);
 
-        // Step 2: Fetching market data (grey 1s → loading → complete)
-        await new Promise((r) => setTimeout(r, 1400));
+        // Step 2: Fetching market data
+        if (!(await sleep(350))) return;
         setSteps((s) => [
           s[0],
           {
@@ -224,7 +235,7 @@ export default function HomeContent() {
         ]);
 
         // Step 3a: Price patterns
-        await new Promise((r) => setTimeout(r, 1200));
+        if (!(await sleep(300))) return;
         setSteps((s) => [
           s[0],
           s[1],
@@ -245,7 +256,7 @@ export default function HomeContent() {
         ]);
 
         // Step 3b: Volume anomalies
-        await new Promise((r) => setTimeout(r, 1100));
+        if (!(await sleep(250))) return;
         setSteps((s) => [
           s[0],
           s[1],
@@ -265,8 +276,9 @@ export default function HomeContent() {
           s[4],
         ]);
 
-        // Step 3c: Pump-and-dump signals
-        await new Promise((r) => setTimeout(r, 1100));
+        // Step 3c: Pump-and-dump signals → leave regulatory step "loading"
+        // until the real response resolves it.
+        if (!(await sleep(250))) return;
         setSteps((s) => [
           s[0],
           s[1],
@@ -286,25 +298,9 @@ export default function HomeContent() {
           { ...s[3], status: "loading" },
           s[4],
         ]);
-
-        // Step 4: Regulatory alerts
-        await new Promise((r) => setTimeout(r, 1200));
-        setSteps((s) => [
-          s[0],
-          s[1],
-          s[2],
-          {
-            ...s[3],
-            status: "complete",
-            detail: "SEC and alert databases checked",
-          },
-          { ...s[4], status: "loading" },
-        ]);
       };
 
       // Run the actual API call and the visual simulation in parallel.
-      // The simulation is deliberately slower — if the API finishes
-      // first, the user still sees the steps finish at their own pace.
       const apiCall = fetch("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -318,24 +314,12 @@ export default function HomeContent() {
 
       const [response] = await Promise.all([apiCall, simulateSteps()]);
 
-      // Complete final step
-      setSteps((s) => [
-        s[0],
-        s[1],
-        s[2],
-        s[3],
-        { ...s[4], status: "complete", detail: "Analysis complete" },
-      ]);
-
-      // Brief pause so the user sees all green before results appear
-      await new Promise((r) => setTimeout(r, 600));
-
-      // Stop tip rotation
-      clearInterval(tipInterval);
-
       const responseData = await response.json();
 
       if (response.status === 429) {
+        // Cancel the simulation; we're switching to the limit screen.
+        scanCancelledRef.current = true;
+        clearInterval(tipInterval);
         setLimitReached(responseData as LimitReachedResponse);
         setUsage({
           plan: responseData.usage.plan,
@@ -344,16 +328,40 @@ export default function HomeContent() {
           limitReached: true,
         });
       } else if (!response.ok) {
+        // Cancel the simulation so the stepper stops animating behind the
+        // error screen.
+        scanCancelledRef.current = true;
+        clearInterval(tipInterval);
         setError(
           responseData.message || responseData.error || "An error occurred",
         );
       } else {
+        // Success — now we can truthfully complete the regulatory + report
+        // steps based on the actual analysis.
+        setSteps((s) => [
+          s[0],
+          s[1],
+          s[2],
+          {
+            ...s[3],
+            status: "complete",
+            detail: "Regulatory and alert checks complete",
+          },
+          { ...s[4], status: "complete", detail: "Analysis complete" },
+        ]);
+
+        // Brief pause so the user sees all green before results appear.
+        await new Promise((r) => setTimeout(r, 400));
+
+        clearInterval(tipInterval);
         setResult(responseData as RiskResponse);
         setUsage(responseData.usage);
         setScanRefreshKey((k) => k + 1);
         setSidebarOpen(false);
       }
     } catch (err) {
+      // Stop the simulation and tip rotation; surface the error.
+      scanCancelledRef.current = true;
       clearInterval(tipInterval);
       setError("An error occurred. Please try again.");
     } finally {

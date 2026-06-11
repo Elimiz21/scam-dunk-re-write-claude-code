@@ -255,14 +255,15 @@ export function Sidebar({
                 No recent scans
               </div>
             ) : (
-              <div className="space-y-0.5">
+              // Rendered as non-interactive rows: there is currently no
+              // endpoint that returns a stored scan's full result and no
+              // /scan/[id] route to navigate to, so making these clickable
+              // would only look interactive while doing nothing.
+              <ul className="space-y-0.5">
                 {recentScans.map((scan) => (
-                  <button
+                  <li
                     key={scan.id}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl hover:bg-secondary transition-all duration-150 text-left group"
-                    onClick={() => {
-                      onToggle();
-                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-left"
                   >
                     <div
                       className={cn(
@@ -290,9 +291,9 @@ export function Sidebar({
                         {formatRelativeDate(scan.createdAt)}
                       </p>
                     </div>
-                  </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </nav>
 

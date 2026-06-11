@@ -8,7 +8,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { JsonLd } from "@/components/JsonLd";
 import { ArrowLeft, Calendar, User, Tag, Share2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/utils";
+import { formatDate, slugify } from "@/lib/utils";
 
 interface BlogPost {
   id: string;
@@ -117,9 +117,7 @@ export default function BlogPostClient({
             </h1>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6">
-              <Link
-                href={`/authors/${post.author.toLowerCase().replace(/\s+/g, "-")}`}
-              >
+              <Link href={`/authors/${slugify(post.author)}`}>
                 <span className="inline-flex items-center gap-1 hover:text-primary cursor-pointer">
                   <User className="h-4 w-4" />
                   {post.author}

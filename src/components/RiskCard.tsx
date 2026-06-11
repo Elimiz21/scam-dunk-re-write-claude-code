@@ -25,7 +25,7 @@ import {
   BarChart3,
   MessageSquareOff,
 } from "lucide-react";
-import { formatNumber, formatPrice } from "@/lib/utils";
+import { formatNumber, formatPrice, normalizeRiskScore } from "@/lib/utils";
 
 interface RiskCardProps {
   result: RiskResponse;
@@ -98,24 +98,6 @@ function getRiskGlowClass(level: RiskLevel) {
     default:
       return "";
   }
-}
-
-/**
- * Normalize raw risk score (typically 0-20+) to a 0-100 scale.
- * Aligns with the mobile app's normalizeRiskScore():
- *   LOW  (raw 0-1)  → 0-29
- *   MEDIUM (raw 2-4) → 30-59
- *   HIGH  (raw 5+)   → 60-100  (caps at 100, treats 20 as practical max)
- */
-function normalizeRiskScore(rawScore: number): number {
-  if (rawScore <= 0) return 0;
-  if (rawScore < 2) {
-    return Math.round((rawScore / 2) * 30);
-  }
-  if (rawScore < 5) {
-    return Math.round(30 + ((rawScore - 2) / 3) * 30);
-  }
-  return Math.min(Math.round(60 + ((rawScore - 5) / 15) * 40), 100);
 }
 
 function getRiskHeroBg(level: RiskLevel) {
