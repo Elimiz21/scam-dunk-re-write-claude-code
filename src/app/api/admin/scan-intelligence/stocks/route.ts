@@ -11,10 +11,12 @@ import {
   getLatestScanDate,
   fetchPartialArray,
   getHighRiskPath,
+  ScanDataFetchError,
   type EnhancedStock,
 } from "@/lib/admin/scan-data";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET(req: Request) {
   try {
@@ -127,6 +129,12 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("Stock list error:", error);
+    if (error instanceof ScanDataFetchError) {
+      return NextResponse.json(
+        { error: "Scan data source is unavailable", code: "scan_data_upstream" },
+        { status: 502 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to fetch stock list" },
       { status: 500 },

@@ -110,73 +110,67 @@ export async function logScanHistory(data: {
 }
 
 /**
- * Update daily model metrics aggregation
+ * Update daily model metrics aggregation.
+ *
+ * Counters are incremented atomically via a single upsert with `{ increment }`,
+ * so concurrent scans never lose increments and the first-scan-of-day no longer
+ * races on create (a unique violation would previously fail the whole
+ * logScanHistory). Averages are NOT maintained as a running mean (which is
+ * race-prone and corrupts the divisor on lost updates) — they are recomputed
+ * exactly from the day's ScanHistory rows, which already include the row this
+ * call corresponds to.
  */
 async function updateDailyModelMetrics(
   riskLevel: string,
-  processingTime?: number,
-  totalScore?: number,
+  _processingTime?: number,
+  _totalScore?: number,
   isLegitimate?: boolean,
 ) {
   const { dayKey } = getDateKeys();
 
   try {
-    const existing = await prisma.modelMetrics.findUnique({
+    // Atomic counter increments — race-free across concurrent scans, and the
+    // upsert handles the first-scan-of-day without a unique-violation crash.
+    await prisma.modelMetrics.upsert({
       where: { dateKey: dayKey },
+      create: {
+        dateKey: dayKey,
+        totalScans: 1,
+        lowRiskCount: riskLevel === "LOW" ? 1 : 0,
+        mediumRiskCount: riskLevel === "MEDIUM" ? 1 : 0,
+        highRiskCount: riskLevel === "HIGH" ? 1 : 0,
+        insufficientCount: riskLevel === "INSUFFICIENT" ? 1 : 0,
+        legitDetected: isLegitimate === true ? 1 : 0,
+      },
+      update: {
+        totalScans: { increment: 1 },
+        ...(riskLevel === "LOW" ? { lowRiskCount: { increment: 1 } } : {}),
+        ...(riskLevel === "MEDIUM"
+          ? { mediumRiskCount: { increment: 1 } }
+          : {}),
+        ...(riskLevel === "HIGH" ? { highRiskCount: { increment: 1 } } : {}),
+        ...(riskLevel === "INSUFFICIENT"
+          ? { insufficientCount: { increment: 1 } }
+          : {}),
+        ...(isLegitimate === true ? { legitDetected: { increment: 1 } } : {}),
+      },
     });
 
-    if (existing) {
-      const updates: Record<string, number | null> = {
-        totalScans: existing.totalScans + 1,
-      };
+    // Recompute the day's averages exactly from ScanHistory (no stale divisor).
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const dayAgg = await prisma.scanHistory.aggregate({
+      where: { createdAt: { gte: startOfDay } },
+      _avg: { processingTime: true, totalScore: true },
+    });
 
-      if (riskLevel === "LOW") updates.lowRiskCount = existing.lowRiskCount + 1;
-      if (riskLevel === "MEDIUM")
-        updates.mediumRiskCount = existing.mediumRiskCount + 1;
-      if (riskLevel === "HIGH")
-        updates.highRiskCount = existing.highRiskCount + 1;
-      if (riskLevel === "INSUFFICIENT")
-        updates.insufficientCount = existing.insufficientCount + 1;
-      if (isLegitimate === true)
-        updates.legitDetected = existing.legitDetected + 1;
-
-      // Update averages
-      if (processingTime) {
-        const newAvgTime = existing.avgProcessingTime
-          ? (existing.avgProcessingTime * existing.totalScans +
-              processingTime) /
-            (existing.totalScans + 1)
-          : processingTime;
-        updates.avgProcessingTime = newAvgTime;
-      }
-
-      if (totalScore !== undefined) {
-        const newAvgScore = existing.avgScore
-          ? (existing.avgScore * existing.totalScans + totalScore) /
-            (existing.totalScans + 1)
-          : totalScore;
-        updates.avgScore = newAvgScore;
-      }
-
-      await prisma.modelMetrics.update({
-        where: { dateKey: dayKey },
-        data: updates,
-      });
-    } else {
-      await prisma.modelMetrics.create({
-        data: {
-          dateKey: dayKey,
-          totalScans: 1,
-          lowRiskCount: riskLevel === "LOW" ? 1 : 0,
-          mediumRiskCount: riskLevel === "MEDIUM" ? 1 : 0,
-          highRiskCount: riskLevel === "HIGH" ? 1 : 0,
-          insufficientCount: riskLevel === "INSUFFICIENT" ? 1 : 0,
-          legitDetected: isLegitimate === true ? 1 : 0,
-          avgProcessingTime: processingTime,
-          avgScore: totalScore,
-        },
-      });
-    }
+    await prisma.modelMetrics.update({
+      where: { dateKey: dayKey },
+      data: {
+        avgProcessingTime: dayAgg._avg.processingTime ?? null,
+        avgScore: dayAgg._avg.totalScore ?? null,
+      },
+    });
   } catch (error) {
     console.error("Failed to update daily metrics:", error);
   }
@@ -201,7 +195,7 @@ export async function getDashboardMetrics() {
     const totalUsers = await prisma.user.count();
 
     const [
-      activeUsers,
+      activeUsersRows,
       monthlyScans,
       scansToday,
       todayMetrics,
@@ -211,14 +205,15 @@ export async function getDashboardMetrics() {
       newUsersToday,
       newUsersThisMonth,
     ] = await Promise.all([
-      // Active users (users with scans in the last 30 days)
-      prisma.scanHistory.groupBy({
-        by: ["userId"],
-        where: {
-          userId: { not: null },
-          createdAt: { gte: thirtyDaysAgo },
-        },
-      }),
+      // Active users (distinct users with scans in the last 30 days).
+      // COUNT(DISTINCT) in SQL — avoids materializing every active userId just
+      // to take .length. Uses the ScanHistory(userId, createdAt) index.
+      prisma.$queryRaw<{ count: bigint }[]>`
+        SELECT COUNT(DISTINCT "userId")::bigint AS count
+        FROM "ScanHistory"
+        WHERE "userId" IS NOT NULL
+          AND "createdAt" >= ${thirtyDaysAgo}
+      `,
 
       // Total scans this month
       prisma.scanHistory.count({
@@ -302,9 +297,11 @@ export async function getDashboardMetrics() {
     const paidUsers = usersByPlan.find((u) => u.plan === "PAID")?._count ?? 0;
     const freeUsers = totalUsers - paidUsers;
 
+    const activeUsers = Number(activeUsersRows[0]?.count ?? 0);
+
     return {
       totalUsers,
-      activeUsers: activeUsers.length,
+      activeUsers,
       monthlyScans,
       scansToday,
       paidUsers,
@@ -497,8 +494,91 @@ export async function getModelEfficacyMetrics(days: number = 30) {
   }
 }
 
+type ApiCostAlertRow = Awaited<
+  ReturnType<typeof prisma.apiCostAlert.findMany>
+>[number];
+
 /**
- * Check alerts and trigger if thresholds exceeded
+ * Compute the current value for a single alert (READ-ONLY, no writes).
+ */
+async function evaluateAlertValue(alert: ApiCostAlertRow): Promise<number> {
+  const { monthKey } = getDateKeys();
+
+  if (alert.alertType === "COST_THRESHOLD") {
+    const usage = await prisma.apiUsageLog.aggregate({
+      where: {
+        service: alert.service === "ALL" ? undefined : alert.service,
+        monthKey,
+      },
+      _sum: { estimatedCost: true },
+    });
+    return usage._sum.estimatedCost || 0;
+  }
+
+  if (alert.alertType === "RATE_LIMIT") {
+    const hourAgo = new Date();
+    hourAgo.setHours(hourAgo.getHours() - 1);
+    return prisma.apiUsageLog.count({
+      where: {
+        service: alert.service === "ALL" ? undefined : alert.service,
+        createdAt: { gte: hourAgo },
+      },
+    });
+  }
+
+  if (alert.alertType === "ERROR_RATE") {
+    const hourAgo = new Date();
+    hourAgo.setHours(hourAgo.getHours() - 1);
+    const whereFilter = {
+      service: alert.service === "ALL" ? undefined : alert.service,
+      createdAt: { gte: hourAgo },
+    };
+    const [totalRequests, errorRequests] = await Promise.all([
+      prisma.apiUsageLog.count({ where: whereFilter }),
+      prisma.apiUsageLog.count({
+        where: {
+          ...whereFilter,
+          OR: [{ errorMessage: { not: null } }, { statusCode: { gte: 400 } }],
+        },
+      }),
+    ]);
+    return totalRequests > 0 ? (errorRequests / totalRequests) * 100 : 0;
+  }
+
+  return 0;
+}
+
+/**
+ * Evaluate active alerts WITHOUT writing (safe to call from GET handlers).
+ * Returns the IDs of alerts currently over threshold. Persisting the trigger
+ * (lastTriggered/currentValue) is the job of {@link checkAndTriggerAlerts},
+ * which should run from a cron — not on every dashboard read.
+ */
+export async function evaluateActiveAlerts(): Promise<string[]> {
+  try {
+    const alerts = await prisma.apiCostAlert.findMany({
+      where: { isActive: true },
+    });
+
+    const results = await Promise.all(
+      alerts.map(async (alert) => ({
+        id: alert.id,
+        over: (await evaluateAlertValue(alert)) >= alert.threshold,
+      })),
+    );
+
+    return results.filter((r) => r.over).map((r) => r.id);
+  } catch (error) {
+    console.error("Failed to evaluate alerts:", error);
+    return [];
+  }
+}
+
+/**
+ * Check alerts and trigger if thresholds exceeded.
+ *
+ * WRITE-BEARING: persists lastTriggered/currentValue. Intended to run from a
+ * scheduled cron (e.g. Vercel Cron) — do NOT call this from a GET handler.
  */
 export async function checkAndTriggerAlerts() {
   try {
@@ -506,53 +586,10 @@ export async function checkAndTriggerAlerts() {
       where: { isActive: true },
     });
 
-    const { monthKey } = getDateKeys();
     const triggeredAlerts: string[] = [];
 
     for (const alert of alerts) {
-      let currentValue = 0;
-
-      if (alert.alertType === "COST_THRESHOLD") {
-        const usage = await prisma.apiUsageLog.aggregate({
-          where: {
-            service: alert.service === "ALL" ? undefined : alert.service,
-            monthKey,
-          },
-          _sum: { estimatedCost: true },
-        });
-        currentValue = usage._sum.estimatedCost || 0;
-      } else if (alert.alertType === "RATE_LIMIT") {
-        const hourAgo = new Date();
-        hourAgo.setHours(hourAgo.getHours() - 1);
-        const count = await prisma.apiUsageLog.count({
-          where: {
-            service: alert.service === "ALL" ? undefined : alert.service,
-            createdAt: { gte: hourAgo },
-          },
-        });
-        currentValue = count;
-      } else if (alert.alertType === "ERROR_RATE") {
-        const hourAgo = new Date();
-        hourAgo.setHours(hourAgo.getHours() - 1);
-        const whereFilter = {
-          service: alert.service === "ALL" ? undefined : alert.service,
-          createdAt: { gte: hourAgo },
-        };
-        const [totalRequests, errorRequests] = await Promise.all([
-          prisma.apiUsageLog.count({ where: whereFilter }),
-          prisma.apiUsageLog.count({
-            where: {
-              ...whereFilter,
-              OR: [
-                { errorMessage: { not: null } },
-                { statusCode: { gte: 400 } },
-              ],
-            },
-          }),
-        ]);
-        currentValue =
-          totalRequests > 0 ? (errorRequests / totalRequests) * 100 : 0;
-      }
+      const currentValue = await evaluateAlertValue(alert);
 
       if (currentValue >= alert.threshold) {
         await prisma.apiCostAlert.update({
@@ -574,158 +611,83 @@ export async function checkAndTriggerAlerts() {
 }
 
 /**
- * Backfill ModelMetrics and ScanUsage from ScanHistory
+ * Backfill ModelMetrics and ScanUsage from ScanHistory.
+ *
+ * Set-based (INSERT ... SELECT ... GROUP BY ... ON CONFLICT) so the whole
+ * aggregation runs inside Postgres — it never loads the ScanHistory table into
+ * the lambda and never does per-row upserts inside one 5s interactive
+ * transaction. Each statement is a single atomic SQL command.
+ *
+ * Date/month keys use the stored (UTC) timestamp via to_char, matching the
+ * previous toISOString()-based keying.
  */
 export async function backfillAdminMetrics() {
-  const scanHistory = await prisma.scanHistory.findMany({
-    select: {
-      userId: true,
-      ticker: true,
-      riskLevel: true,
-      totalScore: true,
-      processingTime: true,
-      isLegitimate: true,
-      createdAt: true,
-    },
-  });
+  // Rebuild ModelMetrics daily rollups from ScanHistory in one statement.
+  const modelMetricsDays = await prisma.$executeRaw`
+    INSERT INTO "ModelMetrics" (
+      "id", "dateKey", "totalScans",
+      "lowRiskCount", "mediumRiskCount", "highRiskCount", "insufficientCount",
+      "legitDetected", "avgProcessingTime", "avgScore",
+      "uniqueTickers", "uniqueUsers", "createdAt", "updatedAt"
+    )
+    SELECT
+      gen_random_uuid()::text,
+      to_char("createdAt", 'YYYY-MM-DD') AS "dateKey",
+      COUNT(*)::int,
+      COUNT(*) FILTER (WHERE "riskLevel" = 'LOW')::int,
+      COUNT(*) FILTER (WHERE "riskLevel" = 'MEDIUM')::int,
+      COUNT(*) FILTER (WHERE "riskLevel" = 'HIGH')::int,
+      COUNT(*) FILTER (WHERE "riskLevel" = 'INSUFFICIENT')::int,
+      COUNT(*) FILTER (WHERE "isLegitimate" = TRUE)::int,
+      AVG("processingTime"),
+      AVG("totalScore"),
+      COUNT(DISTINCT "ticker")::int,
+      COUNT(DISTINCT "userId")::int,
+      NOW(),
+      NOW()
+    FROM "ScanHistory"
+    GROUP BY to_char("createdAt", 'YYYY-MM-DD')
+    ON CONFLICT ("dateKey") DO UPDATE SET
+      "totalScans" = EXCLUDED."totalScans",
+      "lowRiskCount" = EXCLUDED."lowRiskCount",
+      "mediumRiskCount" = EXCLUDED."mediumRiskCount",
+      "highRiskCount" = EXCLUDED."highRiskCount",
+      "insufficientCount" = EXCLUDED."insufficientCount",
+      "legitDetected" = EXCLUDED."legitDetected",
+      "avgProcessingTime" = EXCLUDED."avgProcessingTime",
+      "avgScore" = EXCLUDED."avgScore",
+      "uniqueTickers" = EXCLUDED."uniqueTickers",
+      "uniqueUsers" = EXCLUDED."uniqueUsers",
+      "updatedAt" = NOW()
+  `;
 
-  const dailyMap = new Map<
-    string,
-    {
-      totalScans: number;
-      lowRiskCount: number;
-      mediumRiskCount: number;
-      highRiskCount: number;
-      insufficientCount: number;
-      legitDetected: number;
-      processingTimeSum: number;
-      processingTimeCount: number;
-      scoreSum: number;
-      scoreCount: number;
-      uniqueTickers: Set<string>;
-      uniqueUsers: Set<string>;
-    }
-  >();
+  // Rebuild ScanUsage monthly per-user counts in one statement.
+  const scanUsageEntries = await prisma.$executeRaw`
+    INSERT INTO "ScanUsage" (
+      "id", "userId", "monthKey", "scanCount", "createdAt", "updatedAt"
+    )
+    SELECT
+      gen_random_uuid()::text,
+      "userId",
+      to_char("createdAt", 'YYYY-MM') AS "monthKey",
+      COUNT(*)::int,
+      NOW(),
+      NOW()
+    FROM "ScanHistory"
+    WHERE "userId" IS NOT NULL
+    GROUP BY "userId", to_char("createdAt", 'YYYY-MM')
+    ON CONFLICT ("userId", "monthKey") DO UPDATE SET
+      "scanCount" = EXCLUDED."scanCount",
+      "updatedAt" = NOW()
+  `;
 
-  const usageMap = new Map<
-    string,
-    { userId: string; monthKey: string; scanCount: number }
-  >();
-
-  for (const scan of scanHistory) {
-    const dateKey = scan.createdAt.toISOString().split("T")[0];
-    const monthKey = `${scan.createdAt.getFullYear()}-${String(scan.createdAt.getMonth() + 1).padStart(2, "0")}`;
-
-    if (!dailyMap.has(dateKey)) {
-      dailyMap.set(dateKey, {
-        totalScans: 0,
-        lowRiskCount: 0,
-        mediumRiskCount: 0,
-        highRiskCount: 0,
-        insufficientCount: 0,
-        legitDetected: 0,
-        processingTimeSum: 0,
-        processingTimeCount: 0,
-        scoreSum: 0,
-        scoreCount: 0,
-        uniqueTickers: new Set(),
-        uniqueUsers: new Set(),
-      });
-    }
-
-    const daily = dailyMap.get(dateKey)!;
-    daily.totalScans += 1;
-    if (scan.riskLevel === "LOW") daily.lowRiskCount += 1;
-    if (scan.riskLevel === "MEDIUM") daily.mediumRiskCount += 1;
-    if (scan.riskLevel === "HIGH") daily.highRiskCount += 1;
-    if (scan.riskLevel === "INSUFFICIENT") daily.insufficientCount += 1;
-    if (scan.isLegitimate === true) daily.legitDetected += 1;
-    if (scan.processingTime) {
-      daily.processingTimeSum += scan.processingTime;
-      daily.processingTimeCount += 1;
-    }
-    daily.scoreSum += scan.totalScore;
-    daily.scoreCount += 1;
-    daily.uniqueTickers.add(scan.ticker);
-    if (scan.userId) daily.uniqueUsers.add(scan.userId);
-
-    if (scan.userId) {
-      const usageKey = `${scan.userId}-${monthKey}`;
-      const existing = usageMap.get(usageKey);
-      if (existing) {
-        existing.scanCount += 1;
-      } else {
-        usageMap.set(usageKey, { userId: scan.userId, monthKey, scanCount: 1 });
-      }
-    }
-  }
-
-  const dailyEntries = Array.from(dailyMap.entries());
-  const usageEntries = Array.from(usageMap.values());
-
-  await prisma.$transaction(async (tx) => {
-    for (const [dateKey, daily] of dailyEntries) {
-      const avgProcessingTime =
-        daily.processingTimeCount > 0
-          ? daily.processingTimeSum / daily.processingTimeCount
-          : null;
-      const avgScore =
-        daily.scoreCount > 0 ? daily.scoreSum / daily.scoreCount : null;
-
-      await tx.modelMetrics.upsert({
-        where: { dateKey },
-        create: {
-          dateKey,
-          totalScans: daily.totalScans,
-          lowRiskCount: daily.lowRiskCount,
-          mediumRiskCount: daily.mediumRiskCount,
-          highRiskCount: daily.highRiskCount,
-          insufficientCount: daily.insufficientCount,
-          legitDetected: daily.legitDetected,
-          avgProcessingTime,
-          avgScore,
-          uniqueTickers: daily.uniqueTickers.size,
-          uniqueUsers: daily.uniqueUsers.size,
-        },
-        update: {
-          totalScans: daily.totalScans,
-          lowRiskCount: daily.lowRiskCount,
-          mediumRiskCount: daily.mediumRiskCount,
-          highRiskCount: daily.highRiskCount,
-          insufficientCount: daily.insufficientCount,
-          legitDetected: daily.legitDetected,
-          avgProcessingTime,
-          avgScore,
-          uniqueTickers: daily.uniqueTickers.size,
-          uniqueUsers: daily.uniqueUsers.size,
-        },
-      });
-    }
-
-    for (const usage of usageEntries) {
-      await tx.scanUsage.upsert({
-        where: {
-          userId_monthKey: {
-            userId: usage.userId,
-            monthKey: usage.monthKey,
-          },
-        },
-        create: {
-          userId: usage.userId,
-          monthKey: usage.monthKey,
-          scanCount: usage.scanCount,
-        },
-        update: {
-          scanCount: usage.scanCount,
-        },
-      });
-    }
-  });
+  // Total ScanHistory rows (cheap COUNT, not a table load) for the report.
+  const totalScanHistory = await prisma.scanHistory.count();
 
   return {
-    totalScanHistory: scanHistory.length,
-    modelMetricsDays: dailyEntries.length,
-    scanUsageEntries: usageEntries.length,
+    totalScanHistory,
+    modelMetricsDays,
+    scanUsageEntries,
   };
 }
 
@@ -743,59 +705,72 @@ export async function getSegmentEfficacyMetrics(days: number = 30) {
   startDate.setDate(startDate.getDate() - days);
 
   try {
-    // Helper: compute distribution for a where-clause
-    const getSegmentStats = async (where: Record<string, unknown>) => {
-      const baseWhere = { createdAt: { gte: startDate }, ...where };
+    // Single pass over the date range using conditional aggregation, instead of
+    // 6 segments x 3 queries (18 round-trips contending for a ~3-connection
+    // pool). FILTER (WHERE ...) computes each segment's totals, risk
+    // distribution and averages in one scan over the (createdAt, ...) index.
+    const segmentDefs = [
+      { key: "all", cond: "TRUE" },
+      { key: "otc", cond: '"isOtc" = TRUE' },
+      { key: "microCap", cond: '"isMicroCap" = TRUE' },
+      { key: "highVolume", cond: '"isHighVolume" = TRUE' },
+      { key: "aiBackend", cond: '"usedAiBackend" = TRUE' },
+      { key: "tsFallback", cond: '"usedAiBackend" = FALSE' },
+    ] as const;
 
-      const [total, byRisk, avgData] = await Promise.all([
-        prisma.scanHistory.count({ where: baseWhere }),
-        prisma.scanHistory.groupBy({
-          by: ["riskLevel"],
-          where: baseWhere,
-          _count: true,
-        }),
-        prisma.scanHistory.aggregate({
-          where: baseWhere,
-          _avg: { totalScore: true, processingTime: true },
-        }),
-      ]);
+    const selectExprs = segmentDefs
+      .map(({ key, cond }) => {
+        return [
+          `COUNT(*) FILTER (WHERE ${cond}) AS "${key}_total"`,
+          `COUNT(*) FILTER (WHERE ${cond} AND "riskLevel" = 'LOW') AS "${key}_low"`,
+          `COUNT(*) FILTER (WHERE ${cond} AND "riskLevel" = 'MEDIUM') AS "${key}_medium"`,
+          `COUNT(*) FILTER (WHERE ${cond} AND "riskLevel" = 'HIGH') AS "${key}_high"`,
+          `COUNT(*) FILTER (WHERE ${cond} AND "riskLevel" = 'INSUFFICIENT') AS "${key}_insufficient"`,
+          `AVG("totalScore") FILTER (WHERE ${cond}) AS "${key}_avgScore"`,
+          `AVG("processingTime") FILTER (WHERE ${cond}) AS "${key}_avgTime"`,
+        ].join(",\n        ");
+      })
+      .join(",\n        ");
 
-      const riskMap: Record<string, number> = {};
-      for (const r of byRisk) {
-        riskMap[r.riskLevel] = r._count;
-      }
+    const sql = `
+      SELECT
+        ${selectExprs}
+      FROM "ScanHistory"
+      WHERE "createdAt" >= $1
+    `;
 
+    const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+      sql,
+      startDate,
+    );
+    const row = rows[0] || {};
+
+    const num = (v: unknown): number => (v == null ? 0 : Number(v));
+
+    const buildSegment = (key: string) => {
+      const total = num(row[`${key}_total`]);
+      const high = num(row[`${key}_high`]);
       return {
         totalScans: total,
-        lowRisk: riskMap["LOW"] || 0,
-        mediumRisk: riskMap["MEDIUM"] || 0,
-        highRisk: riskMap["HIGH"] || 0,
-        insufficient: riskMap["INSUFFICIENT"] || 0,
-        highRiskRate: total > 0 ? ((riskMap["HIGH"] || 0) / total) * 100 : 0,
-        avgScore: avgData._avg.totalScore || 0,
-        avgProcessingTime: Math.round(avgData._avg.processingTime || 0),
+        lowRisk: num(row[`${key}_low`]),
+        mediumRisk: num(row[`${key}_medium`]),
+        highRisk: high,
+        insufficient: num(row[`${key}_insufficient`]),
+        highRiskRate: total > 0 ? (high / total) * 100 : 0,
+        avgScore: num(row[`${key}_avgScore`]),
+        avgProcessingTime: Math.round(num(row[`${key}_avgTime`])),
       };
     };
-
-    const [all, otc, microCap, highVolume, aiBackend, tsFallback] =
-      await Promise.all([
-        getSegmentStats({}),
-        getSegmentStats({ isOtc: true }),
-        getSegmentStats({ isMicroCap: true }),
-        getSegmentStats({ isHighVolume: true }),
-        getSegmentStats({ usedAiBackend: true }),
-        getSegmentStats({ usedAiBackend: false }),
-      ]);
 
     return {
       period: days,
       segments: {
-        all,
-        otc,
-        microCap,
-        highVolume,
-        aiBackend,
-        tsFallback,
+        all: buildSegment("all"),
+        otc: buildSegment("otc"),
+        microCap: buildSegment("microCap"),
+        highVolume: buildSegment("highVolume"),
+        aiBackend: buildSegment("aiBackend"),
+        tsFallback: buildSegment("tsFallback"),
       },
     };
   } catch (error) {
