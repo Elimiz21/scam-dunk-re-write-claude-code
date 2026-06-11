@@ -9,10 +9,18 @@ import jwt from "jsonwebtoken";
 import { prisma } from "./db";
 import { Plan } from "./types";
 
-// JWT Configuration - separate secrets for access and refresh tokens
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
-if (!JWT_SECRET) {
-  throw new Error("FATAL: JWT_SECRET or NEXTAUTH_SECRET must be set");
+// JWT Configuration - separate secrets for access and refresh tokens.
+// These are resolved LAZILY (at request time) rather than at module load, so a
+// missing secret fails the specific request that needs it instead of crashing
+// `next build` (which imports route modules with NODE_ENV=production but without
+// runtime secrets present). The security property — fail closed in production —
+// is preserved because the throw still fires whenever a token op is attempted.
+function getAccessSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error("FATAL: JWT_SECRET or NEXTAUTH_SECRET must be set");
+  }
+  return secret;
 }
 
 // Refresh tokens must use a dedicated secret so that compromise of either the
@@ -20,7 +28,7 @@ if (!JWT_SECRET) {
 // required; deriving it from JWT_SECRET (the previous behaviour) meant the two
 // secrets were trivially related. Outside production we fall back to a derived
 // value with a warning so local/test setups keep working.
-const JWT_REFRESH_SECRET = ((): string => {
+function getRefreshSecret(): string {
   const dedicated = process.env.JWT_REFRESH_SECRET;
   if (dedicated) return dedicated;
   if (process.env.NODE_ENV === "production") {
@@ -31,8 +39,8 @@ const JWT_REFRESH_SECRET = ((): string => {
   console.warn(
     "WARNING: JWT_REFRESH_SECRET not set — using a derived dev-only fallback. Set a unique secret in production.",
   );
-  return JWT_SECRET + "_REFRESH";
-})();
+  return getAccessSecret() + "_REFRESH";
+}
 
 // Pin the signing algorithm so a forged token cannot downgrade to "none" or
 // trick verification with an asymmetric-key confusion attack.
@@ -78,7 +86,7 @@ export function generateAccessToken(
     type: "access",
     sessionVersion,
   };
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, getAccessSecret(), {
     expiresIn: JWT_EXPIRY,
     algorithm: JWT_ALGORITHM,
   });
@@ -99,7 +107,7 @@ export function generateRefreshToken(
     type: "refresh",
     sessionVersion,
   };
-  return jwt.sign(payload, JWT_REFRESH_SECRET, {
+  return jwt.sign(payload, getRefreshSecret(), {
     expiresIn: JWT_REFRESH_EXPIRY,
     algorithm: JWT_ALGORITHM,
   });
@@ -115,7 +123,7 @@ export function verifyToken(
   expectedType: "access" | "refresh" = "access",
 ): JWTPayload | null {
   try {
-    const secret = expectedType === "refresh" ? JWT_REFRESH_SECRET : JWT_SECRET;
+    const secret = expectedType === "refresh" ? getRefreshSecret() : getAccessSecret();
     const decoded = jwt.verify(token, secret, {
       algorithms: [JWT_ALGORITHM],
     }) as JWTPayload;
