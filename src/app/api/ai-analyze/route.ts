@@ -17,7 +17,7 @@ import { z } from "zod";
 import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
 import { MIN_HISTORY_POINTS } from "@/lib/scoring/engine";
-import { reserveScanSlot } from "@/lib/usage";
+import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
 import { sendAPIFailureAlert } from "@/lib/email";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { parseAIBackendResponse } from "@/lib/ai-backend-schema";
@@ -154,6 +154,10 @@ async function checkAIBackendHealth(): Promise<boolean> {
 }
 
 export async function POST(request: NextRequest) {
+  // Tracks whether a quota slot has been reserved, so the error path can refund
+  // it (and only it) on failure without refunding requests that never reserved.
+  let userIdForRefund: string | null = null;
+
   try {
     // Rate limit: strict for AI analysis (5 requests per minute)
     const { success: rateLimitSuccess, headers: rateLimitHeaders } =
@@ -201,6 +205,9 @@ export async function POST(request: NextRequest) {
         { status: 429 },
       );
     }
+
+    // A slot is now reserved — the error path below must refund it on failure.
+    userIdForRefund = userId;
 
     // Try the Python AI backend first
     const aiBackendAvailable = await checkAIBackendHealth();
@@ -315,10 +322,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("AI Analyze API error:", error);
 
-    // NOTE: a scan slot may already have been reserved before this 5xx. There
-    // is no refund helper in src/lib/usage.ts (owned by another agent), so the
-    // slot is currently NOT refunded on internal error.
-    // TODO(usage): call a `refundScanSlot(userId)` export here once it exists.
+    // If a scan slot was reserved before this 5xx, refund it so users aren't
+    // charged for a scan that never produced a result (audit ARCH-C4).
+    // Fire-and-forget: a refund hiccup must not itself fail the response.
+    if (userIdForRefund) {
+      void refundScanSlot(userIdForRefund).catch((refundError) => {
+        console.error("Failed to refund scan slot:", refundError);
+      });
+    }
 
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";

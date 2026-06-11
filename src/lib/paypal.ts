@@ -215,6 +215,8 @@ export async function handleWebhook(
         // Subscription was activated (after payment)
         const subscriptionId = resource.id;
         const customId = resource.custom_id; // We'll store userId here
+        const nextBillingTime: string | undefined =
+          resource.billing_info?.next_billing_time;
 
         if (customId) {
           await prisma.user.update({
@@ -222,6 +224,12 @@ export async function handleWebhook(
             data: {
               plan: "PAID",
               billingCustomerId: subscriptionId,
+              // Mark entitlement source + expiry so plan state stays
+              // server-authoritative and consistent with Apple (audit SEC-H2).
+              subscriptionStore: "paypal",
+              subscriptionExpiresAt: nextBillingTime
+                ? new Date(nextBillingTime)
+                : null,
             },
           });
           console.log(`User ${customId} upgraded to PAID plan via PayPal`);
@@ -365,12 +373,20 @@ export async function activateSubscription(
       };
     }
 
-    // Update user to PAID plan
+    // Update user to PAID plan. Persist entitlement so plan state is
+    // server-authoritative and consistent with the Apple path (audit SEC-H2):
+    // store which system granted it and when it next renews/expires.
+    const nextBillingTime: string | undefined =
+      subscription.billing_info?.next_billing_time;
     await prisma.user.update({
       where: { id: userId },
       data: {
         plan: "PAID",
         billingCustomerId: subscriptionId,
+        subscriptionStore: "paypal",
+        subscriptionExpiresAt: nextBillingTime
+          ? new Date(nextBillingTime)
+          : null,
       },
     });
 

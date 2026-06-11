@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/db";
+import { cancelSubscription } from "@/lib/paypal";
 
 export const dynamic = "force-dynamic";
 
@@ -66,20 +67,16 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Cancel PayPal subscription if active
+    // Cancel PayPal subscription if active. Call the cancellation logic directly
+    // (not via an unauthenticated server-to-server fetch, which 401'd and
+    // silently left the subscription billing — audit SEC-L5).
     if (user.billingCustomerId) {
       try {
-        const cancelResponse = await fetch(
-          `${process.env.NEXTAUTH_URL || ""}/api/billing/paypal/cancel`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: user.id }),
-          },
-        );
-        if (!cancelResponse.ok) {
+        const cancelResult = await cancelSubscription(user.id);
+        if (!cancelResult.success) {
           console.warn(
-            "Failed to cancel PayPal subscription during account deletion, continuing...",
+            "Failed to cancel PayPal subscription during account deletion:",
+            cancelResult.error,
           );
         }
       } catch (cancelError) {
@@ -90,19 +87,21 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Delete all related data (same pattern as admin deleteUser)
-    await prisma.emailVerificationToken.deleteMany({
-      where: { email: user.email },
-    });
-    await prisma.passwordResetToken.deleteMany({
-      where: { email: user.email },
-    });
-    await prisma.scanUsage.deleteMany({ where: { userId } });
-    await prisma.scanHistory.deleteMany({ where: { userId } });
-    await prisma.session.deleteMany({ where: { userId } });
-    await prisma.account.deleteMany({ where: { userId } });
-    // Finally delete the user
-    await prisma.user.delete({ where: { id: userId } });
+    // Delete all related data atomically (same pattern as admin deleteUser).
+    // A single transaction prevents half-deleted users on partial failure
+    // (audit ARCH-M13).
+    await prisma.$transaction([
+      prisma.emailVerificationToken.deleteMany({
+        where: { email: user.email },
+      }),
+      prisma.passwordResetToken.deleteMany({ where: { email: user.email } }),
+      prisma.scanUsage.deleteMany({ where: { userId } }),
+      prisma.scanHistory.deleteMany({ where: { userId } }),
+      prisma.session.deleteMany({ where: { userId } }),
+      prisma.account.deleteMany({ where: { userId } }),
+      // Finally delete the user
+      prisma.user.delete({ where: { id: userId } }),
+    ]);
 
     return NextResponse.json({
       success: true,

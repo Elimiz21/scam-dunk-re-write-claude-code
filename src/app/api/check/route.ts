@@ -10,7 +10,7 @@ import {
   getDataCompleteness,
 } from "@/lib/scoring/engine";
 import { generateNarrative } from "@/lib/narrative";
-import { reserveScanSlot } from "@/lib/usage";
+import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
 import { logScanHistory } from "@/lib/admin/metrics";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { sendAPIFailureAlert } from "@/lib/email";
@@ -256,6 +256,9 @@ async function callPythonAIBackend(
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   let currentStep = "INIT";
+  // Tracks whether a quota slot has been reserved, so the error path can refund
+  // it (and only it) on failure without refunding requests that never reserved.
+  let userIdForRefund: string | null = null;
 
   try {
     // Rate limit: heavy for CPU-intensive scan operations (10 requests per minute)
@@ -332,6 +335,9 @@ export async function POST(request: NextRequest) {
       };
       return NextResponse.json(limitResponse, { status: 429 });
     }
+
+    // A slot is now reserved — the error path below must refund it on failure.
+    userIdForRefund = userId;
 
     // =====================================================
     // TRY PYTHON AI BACKEND FIRST (Full ML Models)
@@ -575,11 +581,14 @@ export async function POST(request: NextRequest) {
       error,
     );
 
-    // NOTE: a scan slot may already have been reserved before this 5xx. There
-    // is no refund helper in src/lib/usage.ts (owned by another agent), so the
-    // slot is currently NOT refunded on internal error.
-    // TODO(usage): add a `refundScanSlot(userId)` export to src/lib/usage.ts
-    // and call it here on the 5xx path after reservation.
+    // If a scan slot was reserved before this 5xx, refund it so users aren't
+    // charged for a scan that never produced a result (audit ARCH-C4).
+    // Fire-and-forget: a refund hiccup must not itself fail the response.
+    if (userIdForRefund) {
+      void refundScanSlot(userIdForRefund).catch((refundError) => {
+        console.error("Failed to refund scan slot:", refundError);
+      });
+    }
 
     return NextResponse.json(
       { error: "An internal error occurred. Please try again later." },
