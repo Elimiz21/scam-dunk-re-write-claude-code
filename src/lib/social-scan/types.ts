@@ -590,29 +590,38 @@ export function calculatePromotionScore(
   return { score: Math.min(score, 100), flags };
 }
 
-// Re-export persuasion analysis for consumers that need Cialdini-organized detection
-export {
-  analyzePersuasionTechniques,
-  getAllPersuasionPhrases,
-  getPhraseCounts,
-  PERSUASION_CATEGORIES,
-  PLATFORM_SPECIFIC_PHRASES,
-  PERSUASION_REGEX_PATTERNS,
-  SCARCITY_PHRASES,
-  AUTHORITY_PHRASES,
-  SOCIAL_PROOF_PHRASES,
-  RECIPROCITY_PHRASES,
-  COMMITMENT_PHRASES,
-  LIKING_PHRASES,
-  CALL_TO_ACTION_PHRASES,
-  MONETIZATION_PHRASES,
-  FOMO_PHRASES,
-  EMOTIONAL_MANIPULATION_PHRASES,
-  TRUST_ME_PHRASES,
-} from "./persuasion-phrases";
+// ─── Ticker attribution helpers (SOC-R1 / SOC-L2) ──────────
+// Word-boundary matching replaces naive substring matching so that short
+// tickers (e.g. "YJ", "LSH") don't match arbitrary text. Tickers <= 3 chars
+// require an explicit $CASHTAG to count as a mention.
 
-export type {
-  PersuasionPrinciple,
-  PersuasionAnalysisResult,
-  PersuasionCategory,
-} from "./persuasion-phrases";
+/** Validate a ticker symbol: 1-6 chars, uppercase letters plus . and - */
+export function isValidTicker(ticker: string): boolean {
+  return /^[A-Z.\-]{1,6}$/.test(ticker);
+}
+
+/** Escape regex metacharacters so a ticker can be embedded in a RegExp safely. */
+export function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Build a case-insensitive matcher for a ticker.
+ * - Tickers > 3 chars match either `TICKER` or `$TICKER` on word boundaries.
+ * - Tickers <= 3 chars require the `$TICKER` cashtag form (too ambiguous bare).
+ * Returns null for invalid tickers.
+ */
+export function buildTickerMatcher(ticker: string): RegExp | null {
+  if (!isValidTicker(ticker)) return null;
+  const escaped = escapeRegExp(ticker);
+  const pattern =
+    ticker.length <= 3 ? `\\$${escaped}\\b` : `\\b\\$?${escaped}\\b`;
+  return new RegExp(pattern, "i");
+}
+
+/** True if `text` mentions `ticker` using word-boundary / cashtag rules. */
+export function textMentionsTicker(text: string, ticker: string): boolean {
+  const matcher = buildTickerMatcher(ticker);
+  if (!matcher) return false;
+  return matcher.test(text);
+}
