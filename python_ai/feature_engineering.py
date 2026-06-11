@@ -17,7 +17,8 @@ from config import (
     ANOMALY_CONFIG,
     FEATURE_CONFIG,
     MARKET_THRESHOLDS,
-    OTC_EXCHANGES
+    OTC_EXCHANGES,
+    RF_FEATURE_NAMES,
 )
 
 
@@ -408,10 +409,13 @@ def create_feature_vector(
     features['pump_pattern'] = latest.get('Pump_Pattern', 0)
 
     # 3-day early detection features
-    features['Price_Change_3d'] = latest.get('Price_Change_3d', 0)
-    features['Volume_Surge_3d'] = latest.get('Volume_Surge_3d', 1.0)
-    features['Price_Acceleration'] = latest.get('Price_Acceleration', 0)
-    features['Volume_Acceleration'] = latest.get('Volume_Acceleration', 0)
+    # NOTE: keys are lowercase to match the shared RF_FEATURE_NAMES contract
+    # (the engineered DataFrame columns are capitalised; the feature-vector keys
+    # are not). compute_signals reads these same lowercase keys.
+    features['price_change_3d'] = latest.get('Price_Change_3d', 0)
+    features['volume_surge_3d'] = latest.get('Volume_Surge_3d', 1.0)
+    features['price_acceleration'] = latest.get('Price_Acceleration', 0)
+    features['volume_acceleration'] = latest.get('Volume_Acceleration', 0)
 
     # Momentum features
     features['roc_7'] = latest.get('ROC_7', 0)
@@ -499,8 +503,18 @@ def create_feature_vector(
         features['overbought_days_30d'] = 0
         features['pump_pattern_days_30d'] = 0
 
-    # Convert to array
-    feature_names = list(features.keys())
+    # Emit the vector in the EXACT order/count defined by the shared
+    # RF_FEATURE_NAMES contract so serving features always line up with the
+    # trained model. Any name in the contract that was not populated above is a
+    # programming error (the two lists have drifted) and must fail loudly.
+    missing = [name for name in RF_FEATURE_NAMES if name not in features]
+    if missing:
+        raise ValueError(
+            f"create_feature_vector is missing required RF features: {missing}. "
+            f"feature_engineering.py and config.RF_FEATURE_NAMES have drifted."
+        )
+
+    feature_names = list(RF_FEATURE_NAMES)
     feature_array = np.array([features[name] for name in feature_names])
 
     return feature_array, feature_names

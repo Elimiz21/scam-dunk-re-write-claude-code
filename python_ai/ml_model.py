@@ -27,7 +27,7 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import StandardScaler
 
-from config import RF_MODEL_CONFIG, MODEL_PATHS
+from config import RF_MODEL_CONFIG, MODEL_PATHS, RF_FEATURE_NAMES
 from model_integrity import verify_model_file
 
 
@@ -60,6 +60,51 @@ class ScamDetectorRF:
             class_weight='balanced'  # Handle imbalanced classes
         )
 
+    @staticmethod
+    def _augment_window_features(features: dict, is_scam: bool) -> dict:
+        """Synthesize the window-aggregate features for a single synthetic sample.
+
+        Serving (feature_engineering.create_feature_vector) derives these
+        multi-day aggregates from the price history. For synthetic training we
+        approximate them from the per-sample latest-row features so the training
+        and serving vectors share the same shape and the model learns sensible
+        relationships. Values are derived (not independent noise) to stay
+        internally consistent with the rest of the sample.
+        """
+        rng = np.random
+        rzs = abs(features['return_zscore_short'])
+        rzl = abs(features['return_zscore_long'])
+        vzs = abs(features['volume_zscore_short'])
+        vzl = abs(features['volume_zscore_long'])
+        rsi = features['rsi_14']
+        pumping = features['is_pumping_7d']
+        vol_mod = features['volume_explosion_moderate']
+        keltner_up = features['keltner_breakout_upper']
+        pump_pat = features['pump_pattern']
+
+        # 7-day window aggregates
+        features['max_return_zscore_7d'] = float(rzs * rng.uniform(1.0, 1.4))
+        features['max_volume_zscore_7d'] = float(vzs * rng.uniform(1.0, 1.4))
+        features['pump_days_7d'] = int(rng.randint(2, 6) if (is_scam and pumping) else rng.randint(0, 2))
+        features['vol_explosion_days_7d'] = int(rng.randint(2, 6) if (is_scam and vol_mod) else rng.randint(0, 2))
+        features['keltner_breakout_days_7d'] = int(rng.randint(1, 5) if keltner_up else rng.randint(0, 2))
+
+        # 14-day window aggregates
+        features['max_return_zscore_14d'] = float(rzl * rng.uniform(1.0, 1.5))
+        features['max_volume_zscore_14d'] = float(vzl * rng.uniform(1.0, 1.5))
+        features['high_volume_persistence_14d'] = int(rng.randint(3, 9) if (is_scam and vol_mod) else rng.randint(0, 3))
+        # Reversal pattern is far more common in confirmed pump-and-dumps
+        features['reversal_14d'] = int(rng.choice([0, 1], p=[0.5, 0.5]) if is_scam else rng.choice([0, 1], p=[0.95, 0.05]))
+
+        # 30-day window aggregates
+        features['max_return_zscore_30d'] = float(rzl * rng.uniform(1.0, 1.6))
+        features['max_volume_zscore_30d'] = float(vzl * rng.uniform(1.0, 1.6))
+        features['max_rsi_30d'] = float(min(100.0, rsi * rng.uniform(1.0, 1.1)))
+        features['overbought_days_30d'] = int(rng.randint(5, 15) if rsi > 70 else rng.randint(0, 4))
+        features['pump_pattern_days_30d'] = int(rng.randint(3, 10) if (is_scam and pump_pat) else rng.randint(0, 2))
+
+        return features
+
     def generate_synthetic_training_data(
         self,
         n_scam_samples: int = 500,
@@ -81,18 +126,9 @@ class ScamDetectorRF:
         """
         np.random.seed(42)
 
-        feature_names = [
-            'return_zscore_short', 'return_zscore_long', 'price_zscore_long',
-            'volume_zscore_short', 'volume_zscore_long', 'volume_surge_factor',
-            'atr_percent', 'keltner_position', 'keltner_breakout_upper', 'keltner_breakout_lower',
-            'price_change_1d', 'price_change_7d', 'price_change_30d',
-            'price_change_3d', 'volume_surge_3d', 'price_acceleration', 'volume_acceleration',
-            'is_pumping_7d', 'is_dumping_7d', 'volume_explosion_moderate', 'volume_explosion_extreme',
-            'pump_pattern', 'roc_7', 'roc_14', 'rsi_14',
-            'log_market_cap', 'is_micro_cap', 'is_small_cap',
-            'is_micro_liquidity', 'is_low_liquidity', 'is_otc', 'float_turnover',
-            'sec_flagged', 'has_news', 'sentiment_score'
-        ]
+        # Use the SHARED feature contract so training and serving vectors are
+        # identical in name, order, and count (see config.RF_FEATURE_NAMES).
+        feature_names = list(RF_FEATURE_NAMES)
 
         all_features = []
         all_labels = []
@@ -142,6 +178,7 @@ class ScamDetectorRF:
                 'sentiment_score': np.random.uniform(-0.2, 0.3),  # Mixed/hyped sentiment
             }
 
+            features = self._augment_window_features(features, is_scam=True)
             all_features.append([features[name] for name in feature_names])
             all_labels.append(1)  # Scam label
 
@@ -187,6 +224,7 @@ class ScamDetectorRF:
                 'sentiment_score': np.random.uniform(-0.3, 0.5),  # Normal sentiment range
             }
 
+            features = self._augment_window_features(features, is_scam=False)
             all_features.append([features[name] for name in feature_names])
             all_labels.append(0)  # Normal label
 
@@ -231,6 +269,7 @@ class ScamDetectorRF:
                 'sentiment_score': np.random.uniform(0.3, 0.8),  # Positive sentiment
             }
 
+            features = self._augment_window_features(features, is_scam=False)
             all_features.append([features[name] for name in feature_names])
             all_labels.append(0)  # Normal - explained by news
 
@@ -276,6 +315,7 @@ class ScamDetectorRF:
                 'sentiment_score': np.random.uniform(-0.1, 0.4),
             }
 
+            features = self._augment_window_features(features, is_scam=True)
             all_features.append([features[name] for name in feature_names])
             all_labels.append(1)  # Scam — we want to catch these early
 
@@ -472,6 +512,13 @@ class ScamDetectorRF:
 
         except FileNotFoundError:
             print(f"Model files not found. Train the model first.")
+            return False
+        except Exception as e:
+            # Corrupt joblib, version mismatch, integrity failure, etc.
+            # Never crash the pipeline on a bad artifact — degrade to rule-based.
+            print(f"Failed to load RF model ({type(e).__name__}: {e}). Degrading to rule-based scoring.")
+            self.model = None
+            self.is_trained = False
             return False
 
 

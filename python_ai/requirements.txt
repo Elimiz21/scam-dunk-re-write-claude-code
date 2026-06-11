@@ -3,20 +3,28 @@ numpy==1.24.0
 pandas==2.0.0
 scikit-learn==1.3.0
 
-# Deep Learning - Full TensorFlow for LSTM model
+# Deep Learning - Full TensorFlow for LSTM model.
+# Only needed when ML_MODELS_ENABLED=true (models off by default until retrained
+# on real data). Keep here for the ML-enabled deployment path.
 tensorflow==2.15.0
 
 # Data handling
-yfinance==0.2.30
+# Bumped off the 2-year-old 0.2.30 pin (predates Yahoo's 2024-25 cookie/crumb
+# and anti-bot changes which made it fail/throttle). Use a current version.
+yfinance>=0.2.50
 
 # API Server
-fastapi==0.109.0
+# fastapi>=0.109.1 fixes CVE-2024-24762 (python-multipart ReDoS).
+fastapi>=0.109.1
 uvicorn==0.27.0
-gunicorn==21.0.0
-pydantic==2.5.0
+# gunicorn>=22 fixes CVE-2024-1135 (request smuggling).
+gunicorn>=22.0.0
+pydantic>=2.5.0
+python-multipart>=0.0.7
 
 # HTTP client for live data
-requests==2.31.0
+# requests>=2.32 fixes CVE-2024-35195.
+requests>=2.32.0
 python-dotenv==1.0.0
 
 # Utilities

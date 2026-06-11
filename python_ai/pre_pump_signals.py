@@ -27,9 +27,17 @@ SEC_FTD_HEADERS = {
 }
 
 # ---------------------------------------------------------------------------
-# Module-level cache for FTD data (updated twice monthly — cache is valid)
+# Module-level cache for FTD data (updated twice monthly — cache is valid).
+# Bounded to the single most-recent file so repeated scans don't accumulate
+# decompressed CSVs in memory forever (PY-H6).
 # ---------------------------------------------------------------------------
-_ftd_cache: Dict[str, Any] = {}  # key: yyyymmdd -> list of row dicts
+_ftd_cache: Dict[str, Any] = {}  # key: file URL -> CSV text (kept to 1 entry)
+
+# Module-level TTL cache for the SEC ticker->CIK map. The company_tickers.json
+# file is large (~1MB) and changes rarely; re-downloading it per ticker (the old
+# behaviour) was a major batch-scan amplifier. Cache for CIK_MAP_TTL seconds.
+_cik_map_cache: Dict[str, Any] = {'data': None, 'fetched_at': 0.0}
+CIK_MAP_TTL = 6 * 60 * 60  # 6 hours
 
 REVERSE_MERGER_KEYWORDS = [
     'reverse merger',
@@ -206,20 +214,38 @@ def analyze_insider_behavior(insider_data: Dict) -> List[PrePumpSignal]:
 # EDGAR data fetching helpers
 # ---------------------------------------------------------------------------
 
-def _resolve_cik(ticker: str) -> Optional[str]:
-    """Resolve a ticker symbol to its SEC CIK number."""
+def _get_cik_map() -> Dict[str, str]:
+    """Return a cached {TICKER: zero-padded-CIK} map from SEC.
+
+    Downloads company_tickers.json at most once per CIK_MAP_TTL window and
+    caches it module-level so batch scans don't re-download it per ticker.
+    """
+    now = time.time()
+    cached = _cik_map_cache.get('data')
+    if cached is not None and (now - _cik_map_cache.get('fetched_at', 0.0)) < CIK_MAP_TTL:
+        return cached
     try:
         url = 'https://www.sec.gov/files/company_tickers.json'
         resp = requests.get(url, headers=EDGAR_HEADERS, timeout=15)
         resp.raise_for_status()
         data = resp.json()
-        ticker_upper = ticker.upper()
-        for entry in data.values():
-            if entry.get('ticker', '').upper() == ticker_upper:
-                return str(entry['cik_str']).zfill(10)
+        mapping = {
+            entry.get('ticker', '').upper(): str(entry['cik_str']).zfill(10)
+            for entry in data.values()
+            if entry.get('ticker')
+        }
+        _cik_map_cache['data'] = mapping
+        _cik_map_cache['fetched_at'] = now
+        return mapping
     except Exception as exc:
-        logger.warning('Failed to resolve CIK for %s: %s', ticker, exc)
-    return None
+        logger.warning('Failed to fetch SEC CIK map: %s', exc)
+        # Fall back to any stale cache rather than failing the whole scan.
+        return cached or {}
+
+
+def _resolve_cik(ticker: str) -> Optional[str]:
+    """Resolve a ticker symbol to its SEC CIK number (via cached map)."""
+    return _get_cik_map().get(ticker.upper())
 
 
 def _fetch_submissions(cik_padded: str) -> Optional[Dict]:
@@ -532,6 +558,8 @@ def fetch_sec_ftd_data(ticker: str) -> Dict:
             # The zip should contain one CSV file
             csv_name = next(n for n in zf.namelist() if n.endswith('.txt') or n.endswith('.csv'))
             csv_text = zf.read(csv_name).decode('utf-8', errors='replace')
+            # Bound the cache to the single most-recent file to cap memory use.
+            _ftd_cache.clear()
             _ftd_cache[url] = csv_text
             time.sleep(0.2)  # rate limit SEC requests
         except Exception as exc:
