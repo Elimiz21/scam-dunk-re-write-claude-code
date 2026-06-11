@@ -14,18 +14,32 @@ const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
 if (!JWT_SECRET) {
   throw new Error("FATAL: JWT_SECRET or NEXTAUTH_SECRET must be set");
 }
-const JWT_REFRESH_SECRET =
-  process.env.JWT_REFRESH_SECRET ||
-  (() => {
-    if (process.env.NODE_ENV === "production") {
-      console.warn(
-        "WARNING: JWT_REFRESH_SECRET not set. Set a unique secret in production.",
-      );
-    }
-    return JWT_SECRET + "_REFRESH";
-  })();
+
+// Refresh tokens must use a dedicated secret so that compromise of either the
+// access or refresh secret does not compromise the other. In production this is
+// required; deriving it from JWT_SECRET (the previous behaviour) meant the two
+// secrets were trivially related. Outside production we fall back to a derived
+// value with a warning so local/test setups keep working.
+const JWT_REFRESH_SECRET = ((): string => {
+  const dedicated = process.env.JWT_REFRESH_SECRET;
+  if (dedicated) return dedicated;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "FATAL: JWT_REFRESH_SECRET must be set in production (no insecure fallback allowed)",
+    );
+  }
+  console.warn(
+    "WARNING: JWT_REFRESH_SECRET not set — using a derived dev-only fallback. Set a unique secret in production.",
+  );
+  return JWT_SECRET + "_REFRESH";
+})();
+
+// Pin the signing algorithm so a forged token cannot downgrade to "none" or
+// trick verification with an asymmetric-key confusion attack.
+const JWT_ALGORITHM = "HS256" as const;
+
 // Short access token expiry mitigates stateless JWT revocation limitation.
-// Refresh tokens are longer-lived; revocation requires a future token blacklist.
+// Refresh tokens are longer-lived; revocation is enforced via sessionVersion.
 const JWT_EXPIRY = "15m";
 const JWT_REFRESH_EXPIRY = "7d";
 
@@ -33,6 +47,10 @@ interface JWTPayload {
   userId: string;
   email: string;
   type: "access" | "refresh";
+  // Per-user session generation. Bumped on password reset / credential change;
+  // tokens minted before the bump are rejected, invalidating outstanding
+  // sessions and refresh tokens (SEC-M10 / SEC-M3 rotation).
+  sessionVersion: number;
   iat?: number;
   exp?: number;
 }
@@ -45,34 +63,52 @@ interface MobileUser {
 }
 
 /**
- * Generate an access token for mobile authentication
+ * Generate an access token for mobile authentication.
+ * The caller must pass the user's current sessionVersion so the token can be
+ * invalidated by bumping it (e.g. on password reset).
  */
-export function generateAccessToken(userId: string, email: string): string {
+export function generateAccessToken(
+  userId: string,
+  email: string,
+  sessionVersion: number,
+): string {
   const payload: JWTPayload = {
     userId,
     email,
     type: "access",
+    sessionVersion,
   };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
-}
-
-/**
- * Generate a refresh token for mobile authentication
- */
-export function generateRefreshToken(userId: string, email: string): string {
-  const payload: JWTPayload = {
-    userId,
-    email,
-    type: "refresh",
-  };
-  return jwt.sign(payload, JWT_REFRESH_SECRET, {
-    expiresIn: JWT_REFRESH_EXPIRY,
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRY,
+    algorithm: JWT_ALGORITHM,
   });
 }
 
 /**
- * Verify and decode a JWT token
- * Uses the appropriate secret based on expected token type.
+ * Generate a refresh token for mobile authentication.
+ * Embeds sessionVersion so rotation/invalidation can reject stale tokens.
+ */
+export function generateRefreshToken(
+  userId: string,
+  email: string,
+  sessionVersion: number,
+): string {
+  const payload: JWTPayload = {
+    userId,
+    email,
+    type: "refresh",
+    sessionVersion,
+  };
+  return jwt.sign(payload, JWT_REFRESH_SECRET, {
+    expiresIn: JWT_REFRESH_EXPIRY,
+    algorithm: JWT_ALGORITHM,
+  });
+}
+
+/**
+ * Verify and decode a JWT token.
+ * Uses the appropriate secret based on expected token type and pins the
+ * accepted algorithm to HS256 to prevent algorithm-confusion attacks.
  */
 export function verifyToken(
   token: string,
@@ -80,7 +116,9 @@ export function verifyToken(
 ): JWTPayload | null {
   try {
     const secret = expectedType === "refresh" ? JWT_REFRESH_SECRET : JWT_SECRET;
-    const decoded = jwt.verify(token, secret) as JWTPayload;
+    const decoded = jwt.verify(token, secret, {
+      algorithms: [JWT_ALGORITHM],
+    }) as JWTPayload;
     return decoded;
   } catch (error) {
     console.warn(
@@ -121,13 +159,24 @@ export async function authenticateMobileRequest(
     return null;
   }
 
-  // Verify user still exists in database
+  // Verify user still exists in database and the token's sessionVersion is
+  // current. A password reset / credential change bumps sessionVersion, so any
+  // token minted beforehand is rejected here.
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { id: true },
+    select: { id: true, sessionVersion: true },
   });
 
   if (!user) {
+    return null;
+  }
+
+  // Reject tokens issued before the current session generation. Tokens minted
+  // before this claim existed (sessionVersion === undefined) are also rejected.
+  if (
+    typeof payload.sessionVersion !== "number" ||
+    payload.sessionVersion < user.sessionVersion
+  ) {
     return null;
   }
 

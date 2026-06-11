@@ -474,17 +474,22 @@ async def check_sec_flagged(ticker: str):
 @app.get("/models/status")
 async def get_model_status():
     """Get detailed model status"""
+    from config import ENSEMBLE_CONFIG
+    from pipeline import ml_models_enabled
     p = pipeline
     if p is None:
         return {
             "status": "not_initialized",
             "message": "Models will be loaded on first /analyze request",
+            "ml_models_enabled": ml_models_enabled(),
             "rf_model": None,
             "lstm_model": None
         }
 
     return {
         "status": "ready",
+        "ml_models_enabled": ml_models_enabled(),
+        "scoring_mode": "ml+rules" if (p.rf_available or p.lstm_available) else "rules_only",
         "rf_model": {
             "loaded": p.rf_available,
             "type": "RandomForestClassifier"
@@ -494,9 +499,11 @@ async def get_model_status():
             "type": "LSTM Sequential"
         },
         "ensemble": {
-            "method": "weighted_average",
-            "rf_weight": 0.6,
-            "lstm_weight": 0.4
+            "method": "max" if ENSEMBLE_CONFIG.get("use_max_strategy") else "weighted_average",
+            # Report the ACTUAL configured weights (previously advertised 0.6/0.4
+            # while config used 0.5/0.5 — PY-M9).
+            "rf_weight": ENSEMBLE_CONFIG.get("rf_weight"),
+            "lstm_weight": ENSEMBLE_CONFIG.get("lstm_weight"),
         }
     }
 

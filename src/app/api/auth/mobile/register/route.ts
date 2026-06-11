@@ -13,15 +13,16 @@ import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { createEmailVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { validatePasswordStrength } from "@/lib/config";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(10, "Password must be at least 10 characters")
-    .regex(/[a-z]/, "Password must contain a lowercase letter")
-    .regex(/[A-Z]/, "Password must contain an uppercase letter")
-    .regex(/[0-9]/, "Password must contain a number"),
+  // Single source of truth for the password policy (lib/config) so web/mobile
+  // and the reset flow stay consistent (FE-M8 / SEC-L6).
+  password: z.string().superRefine((pw, ctx) => {
+    const error = validatePasswordStrength(pw);
+    if (error) ctx.addIssue({ code: z.ZodIssueCode.custom, message: error });
+  }),
   name: z.string().optional(),
   turnstileToken: z.string().min(1, "CAPTCHA verification is required"),
 });
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

@@ -16,33 +16,14 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
-import { canUserScan } from "@/lib/usage";
+import { MIN_HISTORY_POINTS } from "@/lib/scoring/engine";
+import { reserveScanSlot } from "@/lib/usage";
 import { sendAPIFailureAlert } from "@/lib/email";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
+import { parseAIBackendResponse } from "@/lib/ai-backend-schema";
 
 // Allow up to 30 seconds for the full AI pipeline
 export const maxDuration = 30;
-
-// Custom error for service unavailable
-class ServiceUnavailableError extends Error {
-  apiName: string;
-  ticker: string;
-  assetType: string;
-  originalError: string;
-
-  constructor(
-    apiName: string,
-    ticker: string,
-    assetType: string,
-    originalError: string,
-  ) {
-    super(`Service unavailable: ${apiName} failed for ${assetType} ${ticker}`);
-    this.apiName = apiName;
-    this.ticker = ticker;
-    this.assetType = assetType;
-    this.originalError = originalError;
-  }
-}
 
 // Python AI backend URL (configurable via environment variable)
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000";
@@ -64,41 +45,38 @@ const aiAnalyzeSchema = z.object({
   pitchText: z.string().max(10000).optional(),
 });
 
-interface AIBackendResponse {
+/** Details describing a backend 503 (data API outage) so the route can alert. */
+interface ServiceUnavailableInfo {
+  apiName: string;
   ticker: string;
-  asset_type: string;
-  risk_level: string;
-  risk_probability: number;
-  risk_score: number;
-  rf_probability: number | null;
-  lstm_probability: number | null;
-  anomaly_score: number;
-  signals: Array<{
-    code: string;
-    category: string;
-    description: string;
-    weight: number;
-  }>;
-  features: Record<string, number | null>;
-  explanations: string[];
-  sec_flagged: boolean;
-  is_otc: boolean;
-  is_micro_cap: boolean;
-  data_available: boolean;
-  analysis_timestamp: string;
+  assetType: string;
+  originalError: string;
+}
+
+interface AIBackendCallResult {
+  ok: boolean;
+  data?: NonNullable<ReturnType<typeof parseAIBackendResponse>>;
+  /** Present when the backend returned 503 — route should alert + fall back. */
+  serviceUnavailable?: ServiceUnavailableInfo;
 }
 
 /**
- * Call the Python AI backend for full ML analysis
+ * Call the Python AI backend for full ML analysis.
+ *
+ * Never throws: a 503 is captured into `serviceUnavailable` so the caller can
+ * alert admins AND fall back to TS scoring rather than hard-failing the user
+ * (audit TS-C2). The payload is validated through the contract zod schema; an
+ * invalid payload falls back (audit TS-H7).
  */
 async function callAIBackend(
   ticker: string,
   assetType: string,
   useLiveData: boolean,
-): Promise<AIBackendResponse | null> {
+): Promise<AIBackendCallResult> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so fallback has time
+    timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so fallback has time
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -122,29 +100,32 @@ async function callAIBackend(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      // Check for 503 Service Unavailable (data API failure)
       if (response.status === 503) {
         const errorData = await response.json().catch(() => ({}));
         const detail = errorData.detail || {};
         console.error(`AI backend returned 503 - Service Unavailable:`, detail);
-
-        // Throw ServiceUnavailableError to be handled by the main handler
-        throw new ServiceUnavailableError(
-          detail.api_name || "Unknown API",
-          detail.ticker || ticker,
-          detail.asset_type || assetType,
-          detail.original_error || "Data API unavailable",
-        );
+        return {
+          ok: false,
+          serviceUnavailable: {
+            apiName: detail.api_name || "Unknown API",
+            ticker: detail.ticker || ticker,
+            assetType: detail.asset_type || assetType,
+            originalError: detail.original_error || "Data API unavailable",
+          },
+        };
       }
-
       console.error(`AI backend returned ${response.status}`);
-      return null;
+      return { ok: false };
     }
 
-    return await response.json();
+    const raw = await response.json();
+    const data = parseAIBackendResponse(raw);
+    if (!data) return { ok: false };
+    return { ok: true, data };
   } catch (error) {
+    if (timeoutId) clearTimeout(timeoutId);
     console.error("AI backend unavailable:", error);
-    return null;
+    return { ok: false };
   }
 }
 
@@ -189,17 +170,9 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Check scan limit
-    const { canScan } = await canUserScan(userId);
-    if (!canScan) {
-      return NextResponse.json(
-        { error: "Scan limit reached" },
-        { status: 429 },
-      );
-    }
-
-    // Parse and validate request body
-    const body = await request.json();
+    // Parse and validate request body BEFORE reserving a slot (don't burn quota
+    // on malformed bodies).
+    const body = await request.json().catch(() => null);
     const validation = aiAnalyzeSchema.safeParse(body);
 
     if (!validation.success) {
@@ -212,35 +185,71 @@ export async function POST(request: NextRequest) {
     const { ticker, assetType, useLiveData, context, pitchText } =
       validation.data;
 
+    // Atomically check the scan limit and reserve a slot. Previously usage was
+    // checked but never consumed (free unmetered scans — audit TS-M12).
+    const { reserved, usage } = await reserveScanSlot(userId);
+    if (!reserved) {
+      return NextResponse.json(
+        {
+          error: "Scan limit reached",
+          usage: {
+            plan: usage.plan,
+            scansUsedThisMonth: usage.scansUsedThisMonth,
+            scansLimitThisMonth: usage.scansLimitThisMonth,
+          },
+        },
+        { status: 429 },
+      );
+    }
+
     // Try the Python AI backend first
     const aiBackendAvailable = await checkAIBackendHealth();
 
     if (aiBackendAvailable) {
-      const aiResult = await callAIBackend(ticker, assetType, useLiveData);
+      const result = await callAIBackend(ticker, assetType, useLiveData);
 
-      if (aiResult) {
-        // Successfully got result from AI backend
+      if (result.ok && result.data) {
+        const aiResult = result.data;
         return NextResponse.json({
           source: "ai_backend",
-          ticker: aiResult.ticker,
+          ticker: aiResult.ticker ?? ticker.toUpperCase(),
           riskLevel: aiResult.risk_level,
+          // Already clamped to [0,1] by the schema.
           riskProbability: aiResult.risk_probability,
           riskScore: aiResult.risk_score,
           models: {
-            rfProbability: aiResult.rf_probability,
-            lstmProbability: aiResult.lstm_probability,
-            anomalyScore: aiResult.anomaly_score,
+            rfProbability: aiResult.rf_probability ?? null,
+            lstmProbability: aiResult.lstm_probability ?? null,
+            anomalyScore: aiResult.anomaly_score ?? 0,
           },
           signals: aiResult.signals,
-          features: aiResult.features,
-          explanations: aiResult.explanations,
+          features: aiResult.features ?? {},
+          explanations: aiResult.explanations ?? [],
           metadata: {
-            secFlagged: aiResult.sec_flagged,
-            isOtc: aiResult.is_otc,
-            isMicroCap: aiResult.is_micro_cap,
+            secFlagged: aiResult.sec_flagged ?? false,
+            isOtc: aiResult.is_otc ?? false,
+            isMicroCap: aiResult.is_micro_cap ?? false,
             dataAvailable: aiResult.data_available,
-            analysisTimestamp: aiResult.analysis_timestamp,
+            analysisTimestamp:
+              aiResult.analysis_timestamp ?? new Date().toISOString(),
           },
+        });
+      }
+
+      // Backend failed. On a data-API outage (503), alert admins asynchronously
+      // and fall through to the TypeScript fallback below (audit TS-C2).
+      if (result.serviceUnavailable) {
+        const info = result.serviceUnavailable;
+        console.error(
+          `AI backend data API unavailable — API: ${info.apiName}, Ticker: ${info.ticker}. Falling back to TypeScript scoring.`,
+        );
+        void sendAPIFailureAlert(
+          info.apiName,
+          info.ticker,
+          info.originalError,
+          info.assetType,
+        ).catch((emailError) => {
+          console.error("Failed to send admin alert email:", emailError);
         });
       }
     }
@@ -252,7 +261,7 @@ export async function POST(request: NextRequest) {
 
     if (!marketData.dataAvailable) {
       console.warn(
-        `No market data available for ${ticker} — scoring will return INSUFFICIENT. Check that FMP_API_KEY or ALPHA_VANTAGE_API_KEY is configured.`,
+        `No market data available for ${ticker} — relying on alert-list/behavioral signals. Check that FMP_API_KEY or ALPHA_VANTAGE_API_KEY is configured.`,
       );
     }
 
@@ -267,9 +276,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Get anomaly detection results
+    // Align the anomaly gate with the engine's pattern-detection threshold
+    // (>= 30, was an off-by-one > 30 — audit TS-M12).
     const anomalyResult =
-      marketData.priceHistory.length > 30
+      marketData.priceHistory.length >= MIN_HISTORY_POINTS
         ? runAnomalyDetection(marketData.priceHistory)
         : { hasAnomalies: false, anomalyScore: 0, signals: [] };
 
@@ -277,7 +287,8 @@ export async function POST(request: NextRequest) {
       source: "typescript_fallback",
       ticker: ticker.toUpperCase(),
       riskLevel: scoringResult.riskLevel,
-      riskProbability: scoringResult.totalScore / 20, // Normalize to 0-1
+      // Pseudo-probability from score, clamped to [0,1] (audit TS-M12).
+      riskProbability: Math.min(1, Math.max(0, scoringResult.totalScore / 20)),
       riskScore: scoringResult.totalScore,
       models: {
         rfProbability: null,
@@ -286,7 +297,8 @@ export async function POST(request: NextRequest) {
       },
       signals: scoringResult.signals,
       features: {},
-      explanations: anomalyResult.signals,
+      // runAnomalyDetection now returns structured signals — expose their text.
+      explanations: anomalyResult.signals.map((s) => s.description),
       metadata: {
         secFlagged: scoringResult.signals.some(
           (s) => s.code === "ALERT_LIST_HIT",
@@ -294,6 +306,7 @@ export async function POST(request: NextRequest) {
         isOtc: marketData.isOTC,
         isMicroCap: (marketData.quote?.marketCap ?? 0) < 50_000_000,
         dataAvailable: marketData.dataAvailable,
+        dataCompleteness: scoringResult.dataCompleteness,
         analysisTimestamp: new Date().toISOString(),
       },
       notice:
@@ -302,34 +315,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("AI Analyze API error:", error);
 
-    // Handle service unavailable errors (data APIs are down)
-    if (error instanceof ServiceUnavailableError) {
-      console.error(
-        `SERVICE UNAVAILABLE - API: ${error.apiName}, Ticker: ${error.ticker}, Type: ${error.assetType}`,
-      );
-      console.error(`Original error: ${error.originalError}`);
-
-      // Send email notification to admin (non-blocking)
-      sendAPIFailureAlert(
-        error.apiName,
-        error.ticker,
-        error.originalError,
-        error.assetType,
-      ).catch((emailError) => {
-        console.error("Failed to send admin alert email:", emailError);
-      });
-
-      // Return user-friendly offline message
-      return NextResponse.json(
-        {
-          error: "service_unavailable",
-          message:
-            "The scanning system is currently offline. Please try again later.",
-          retryAfter: 60, // Suggest retry after 60 seconds
-        },
-        { status: 503 },
-      );
-    }
+    // NOTE: a scan slot may already have been reserved before this 5xx. There
+    // is no refund helper in src/lib/usage.ts (owned by another agent), so the
+    // slot is currently NOT refunded on internal error.
+    // TODO(usage): call a `refundScanSlot(userId)` export here once it exists.
 
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";

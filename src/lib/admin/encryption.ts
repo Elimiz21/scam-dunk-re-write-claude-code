@@ -23,6 +23,15 @@ function getEncryptionKey(): Buffer {
       .digest();
   }
 
+  // In production a dedicated key is mandatory. Falling back to NEXTAUTH_SECRET
+  // means a compromise of the auth secret also exposes every stored integration
+  // credential, so we fail closed instead (SEC-M6).
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "CREDENTIAL_ENCRYPTION_KEY is required in production for credential encryption",
+    );
+  }
+
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret) {
     throw new Error(
@@ -30,11 +39,9 @@ function getEncryptionKey(): Buffer {
     );
   }
 
-  if (process.env.NODE_ENV === "production") {
-    console.warn(
-      "WARNING: Set CREDENTIAL_ENCRYPTION_KEY for production. Falling back to NEXTAUTH_SECRET derivation.",
-    );
-  }
+  console.warn(
+    "WARNING: CREDENTIAL_ENCRYPTION_KEY not set — deriving from NEXTAUTH_SECRET (non-production only). Set a dedicated key before production.",
+  );
 
   return crypto
     .createHmac("sha256", "scamdunk-credential-encryption")

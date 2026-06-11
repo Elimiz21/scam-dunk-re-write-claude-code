@@ -17,6 +17,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Shield, Loader2, Mail, Eye } from "lucide-react";
 import { Turnstile } from "@/components/turnstile";
+import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/config";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -44,8 +45,10 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 10) {
-      setError("Password must be at least 10 characters");
+    // Shared password policy (FE-M8) — also enforces complexity client-side.
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -210,7 +213,8 @@ export default function SignupPage() {
                 aria-describedby="password-hint"
               />
               <p id="password-hint" className="text-xs text-muted-foreground">
-                Must be at least 10 characters
+                Must be at least {MIN_PASSWORD_LENGTH} characters, with
+                uppercase, lowercase, and a number
               </p>
             </div>
             <div className="space-y-2">

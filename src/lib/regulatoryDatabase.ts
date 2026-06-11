@@ -174,14 +174,20 @@ export async function syncSECTradingSuspensions(): Promise<{
 
     const text = await response.text();
 
-    // Parse the RSS feed for suspension notices
-    // The feed contains trading suspension orders under Exchange Act Rule 12(k)
-    const tickerPattern = /\b([A-Z]{1,5})\b/g;
-    const datePattern = /<updated>([^<]+)<\/updated>/g;
-    const titlePattern = /<title[^>]*>([^<]+)<\/title>/g;
-
     // Extract entries from the feed
     const entries = text.split("<entry>").slice(1);
+
+    // Match ONLY an explicitly labelled ticker, e.g. "(Ticker: XYZ)" or
+    // "Symbol: XYZ". The old code extracted EVERY 2-5 letter uppercase word
+    // from the title (stoplist of 7), so "ORDER OF SUSPENSION ... CORP" inserted
+    // ORDER / FIRST / ARENA / CORP as CRITICAL tickers and permanently
+    // false-flagged colliding real symbols as auto-HIGH (audit TS-H8).
+    const explicitTickerPattern =
+      /\((?:ticker|symbol)\s*:?\s*([A-Z]{1,5})\)|(?:ticker|symbol)\s*:\s*([A-Z]{1,5})\b/i;
+
+    // Count entries that actually looked like suspension notices, so we can
+    // warn when a parse silently yields nothing (feed format drift).
+    let suspensionEntriesSeen = 0;
 
     for (const entry of entries) {
       const titleMatch = entry.match(/<title[^>]*>([^<]+)<\/title>/);
@@ -194,59 +200,66 @@ export async function syncSECTradingSuspensions(): Promise<{
       const dateStr = dateMatch[1];
       const sourceUrl = linkMatch ? linkMatch[1] : null;
 
-      // Look for common suspension patterns
+      const lowerTitle = title.toLowerCase();
       if (
-        title.toLowerCase().includes("trading suspension") ||
-        title.toLowerCase().includes("order of suspension")
+        !lowerTitle.includes("trading suspension") &&
+        !lowerTitle.includes("order of suspension") &&
+        !lowerTitle.includes("suspension of trading")
       ) {
-        // Extract ticker symbols from the title
-        const tickers = title.match(/\b([A-Z]{2,5})\b/g) || [];
-
-        for (const ticker of tickers) {
-          // Skip common words that look like tickers
-          if (
-            ["THE", "AND", "FOR", "INC", "LLC", "LTD", "SEC"].includes(ticker)
-          ) {
-            continue;
-          }
-
-          try {
-            const result = await prisma.regulatoryFlag.upsert({
-              where: {
-                ticker_source_flagType_flagDate: {
-                  ticker,
-                  source: "SEC",
-                  flagType: "TRADING_SUSPENSION",
-                  flagDate: new Date(dateStr),
-                },
-              },
-              create: {
-                ticker,
-                source: "SEC",
-                flagType: "TRADING_SUSPENSION",
-                title,
-                flagDate: new Date(dateStr),
-                sourceUrl,
-                severity: "CRITICAL",
-                isActive: true,
-              },
-              update: {
-                title,
-                sourceUrl,
-                isActive: true,
-              },
-            });
-
-            if (result.createdAt.getTime() === result.updatedAt.getTime()) {
-              added++;
-            } else {
-              updated++;
-            }
-          } catch (err) {
-            errors.push(`Failed to upsert ${ticker}: ${err}`);
-          }
-        }
+        continue;
       }
+      suspensionEntriesSeen++;
+
+      // Only act on an explicitly labelled ticker.
+      const match = title.match(explicitTickerPattern);
+      const ticker = (match?.[1] || match?.[2] || "").toUpperCase();
+      if (!ticker) continue;
+
+      try {
+        const result = await prisma.regulatoryFlag.upsert({
+          where: {
+            ticker_source_flagType_flagDate: {
+              ticker,
+              source: "SEC",
+              flagType: "TRADING_SUSPENSION",
+              flagDate: new Date(dateStr),
+            },
+          },
+          create: {
+            ticker,
+            source: "SEC",
+            flagType: "TRADING_SUSPENSION",
+            title,
+            flagDate: new Date(dateStr),
+            sourceUrl,
+            severity: "CRITICAL",
+            isActive: true,
+          },
+          update: {
+            title,
+            sourceUrl,
+            isActive: true,
+          },
+        });
+
+        if (result.createdAt.getTime() === result.updatedAt.getTime()) {
+          added++;
+        } else {
+          updated++;
+        }
+      } catch (err) {
+        errors.push(`Failed to upsert ${ticker}: ${err}`);
+      }
+    }
+
+    // Loud warning when the sync parsed nothing, so a dead/changed feed doesn't
+    // fail silently (audit TS-H8).
+    if (added === 0 && updated === 0) {
+      console.warn(
+        `[regulatoryDatabase] SEC suspension sync parsed 0 flags from ${entries.length} feed entries ` +
+          `(${suspensionEntriesSeen} looked like suspensions). The EDGAR feed format may have changed, ` +
+          `or no explicit "(Ticker: XXX)" labels were present.`,
+      );
     }
 
     // Log sync result
