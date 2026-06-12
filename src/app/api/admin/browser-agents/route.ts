@@ -272,16 +272,15 @@ async function getBrowserAgentStats() {
     const val = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
       r.status === "fulfilled" ? r.value : fallback;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const platformBreakdown = val(results[5] as any, []) as any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const avgResult = val(results[6] as any, {
+    const platformBreakdown = val(results[5] as never, []) as Array<
+      Record<string, unknown>
+    >;
+    const avgResult = val(results[6] as never, {
       _avg: { browserMinutes: null },
-    }) as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const suspResult = val(results[7] as any, {
+    }) as { _avg: { browserMinutes: number | null } };
+    const suspResult = val(results[7] as never, {
       _sum: { suspensionCount: 0 },
-    }) as any;
+    }) as { _sum: { suspensionCount: number | null } };
 
     return {
       totalSessions: val(results[0], 0) as number,
