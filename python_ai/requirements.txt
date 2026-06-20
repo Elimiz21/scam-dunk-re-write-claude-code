@@ -3,10 +3,9 @@ numpy==1.24.0
 pandas==2.0.0
 scikit-learn==1.3.0
 
-# Deep Learning - Full TensorFlow for LSTM model.
-# Only needed when ML_MODELS_ENABLED=true (models off by default until retrained
-# on real data). Keep here for the ML-enabled deployment path.
-tensorflow==2.15.0
+# TensorFlow (LSTM model) is NOT included here — it is only needed when
+# ML_MODELS_ENABLED=true, which requires retraining on real data first.
+# Install requirements-ml.txt on top of this file to add TF for ML-enabled builds.
 
 # Data handling
 # Bumped off the 2-year-old 0.2.30 pin (predates Yahoo's 2024-25 cookie/crumb
