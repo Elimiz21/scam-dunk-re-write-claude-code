@@ -12,18 +12,25 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  hashedPassword    String?
-  name              String?
-  emailVerified     DateTime?
-  image             String?
-  plan              String    @default("FREE") // FREE or PAID
-  formerPro         Boolean   @default(false) // true if user ever cancelled a Pro subscription
-  billingCustomerId String?
-  deletedAt         DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                         String    @id @default(cuid())
+  email                      String    @unique
+  hashedPassword             String?
+  name                       String?
+  emailVerified              DateTime?
+  image                      String?
+  plan                       String    @default("FREE") // FREE or PAID
+  formerPro                  Boolean   @default(false) // true if user ever cancelled a Pro subscription
+  billingCustomerId          String?
+  // Subscription entitlement (server-authoritative). store: "paypal" | "apple".
+  subscriptionStore          String? // which billing system granted the current plan
+  subscriptionExpiresAt      DateTime? // when PAID entitlement lapses; null = no active paid entitlement
+  // Apple original_transaction_id, globally unique so one purchase cannot upgrade many accounts.
+  appleOriginalTransactionId String?   @unique
+  // Bumped on password reset / credential change to invalidate outstanding JWT sessions and refresh tokens.
+  sessionVersion             Int       @default(0)
+  deletedAt                  DateTime?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 
   accounts   Account[]
   sessions   Session[]
@@ -50,6 +57,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -58,6 +66,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -101,7 +111,6 @@ model ScanUsage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, monthKey])
-  @@index([userId, monthKey])
 }
 
 // ==========================================
@@ -122,8 +131,6 @@ model AdminUser {
 
   invitesSent AdminInvite[]  @relation("InvitedBy")
   sessions    AdminSession[]
-
-  @@index([email])
 }
 
 model AdminSession {
@@ -174,6 +181,8 @@ model ApiUsageLog {
 
   @@index([service, monthKey])
   @@index([service, dayKey])
+  @@index([dayKey])
+  @@index([hourKey])
   @@index([createdAt])
 }
 
@@ -212,31 +221,34 @@ model IntegrationConfig {
 }
 
 model ScanHistory {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   userId          String?
   ticker          String
-  assetType       String    @default("stock")
+  assetType       String   @default("stock")
   riskLevel       String // LOW, MEDIUM, HIGH, INSUFFICIENT
   totalScore      Int
   signalsCount    Int
   processingTime  Int? // In milliseconds
   openaiTokens    Int?
-  alphaVantageHit Boolean   @default(false)
+  alphaVantageHit Boolean  @default(false)
   isLegitimate    Boolean?
-  pitchProvided   Boolean   @default(false)
-  contextProvided Boolean   @default(false)
+  pitchProvided   Boolean  @default(false)
+  contextProvided Boolean  @default(false)
   ipAddress       String?
   // Segment classification fields for per-segment efficacy tracking
-  isOtc           Boolean   @default(false)
-  isMicroCap      Boolean   @default(false)
-  isHighVolume    Boolean   @default(false)  // Volume surge >= 3x
-  usedAiBackend   Boolean   @default(false)
-  createdAt       DateTime  @default(now())
+  isOtc           Boolean  @default(false)
+  isMicroCap      Boolean  @default(false)
+  isHighVolume    Boolean  @default(false) // Volume surge >= 3x
+  usedAiBackend   Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   @@index([createdAt])
   @@index([riskLevel])
   @@index([ticker])
-  @@index([userId])
+  // Hot path: /api/user/scans (userId filter, newest first)
+  @@index([userId, createdAt(sort: Desc)])
+  // Hot path: model-efficacy topTickers (date range, grouped by ticker)
+  @@index([createdAt, ticker])
   @@index([isOtc])
   @@index([isMicroCap])
 }
@@ -805,12 +817,18 @@ model SocialMention {
   isPromotional  Boolean       @default(false)
   promotionScore Int           @default(0) // 0-100
   redFlags       String?       @db.Text // JSON array of strings
+  // sha256(url || title || content); bounded so it can back a unique index for in-run dedup.
+  contentHash    String?
   createdAt      DateTime      @default(now())
 
+  // In-run idempotency: the same post for the same ticker is inserted once per run,
+  // making createMany({ skipDuplicates: true }) actually deduplicate.
+  @@unique([scanRunId, ticker, contentHash])
   @@index([ticker, platform])
   @@index([scanRunId])
   @@index([createdAt])
   @@index([ticker, createdAt])
+  @@index([ticker, contentHash])
   @@index([isPromotional])
 }
 
@@ -1055,19 +1073,19 @@ model PromoterNetwork {
 }
 
 model PrePumpWatchlist {
-  id                  String    @id @default(uuid())
-  ticker              String
-  addedDate           DateTime  @default(now())
-  source              String    // 'social_velocity', 'edgar_filing', 'short_interest'
-  mentionVelocity     Float?
-  mentionCount24h     Int?
-  uniqueAuthorsRatio  Float?
-  signals             Json?     // array of signal objects that triggered watchlist addition
-  isActive            Boolean   @default(true)
-  deactivatedDate     DateTime?
-  deactivationReason  String?   // 'no_activity_7d', 'confirmed_legitimate', 'scheme_tracked'
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  ticker             String
+  addedDate          DateTime  @default(now())
+  source             String // 'social_velocity', 'edgar_filing', 'short_interest'
+  mentionVelocity    Float?
+  mentionCount24h    Int?
+  uniqueAuthorsRatio Float?
+  signals            Json? // array of signal objects that triggered watchlist addition
+  isActive           Boolean   @default(true)
+  deactivatedDate    DateTime?
+  deactivationReason String? // 'no_activity_7d', 'confirmed_legitimate', 'scheme_tracked'
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([isActive, ticker])
   @@index([addedDate])

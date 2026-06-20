@@ -6,7 +6,6 @@ import {
   TrendingUp,
   Bitcoin,
   MessageSquare,
-  Upload,
   CheckSquare,
   ChevronDown,
   X,
@@ -14,8 +13,6 @@ import {
   AlertCircle,
   Check,
   Info,
-  Image as ImageIcon,
-  FileText,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,18 +22,11 @@ import { useToast } from "@/components/ui/toast";
 
 type AssetType = "stock" | "crypto";
 
-interface UploadedFile {
-  file: File;
-  preview: string;
-  type: "image" | "text";
-}
-
 interface ScanInputProps {
   onSubmit: (data: {
     ticker: string;
     assetType: AssetType;
     pitchText?: string;
-    chatImages?: File[];
     context?: {
       unsolicited: boolean;
       promisesHighReturns: boolean;
@@ -48,20 +38,10 @@ interface ScanInputProps {
   disabled?: boolean;
 }
 
-// Valid ticker patterns
-const STOCK_TICKER_PATTERN = /^[A-Z]{1,5}$/;
-const CRYPTO_TICKER_PATTERN = /^[A-Z]{2,10}$/;
-
-// Accepted file types
-const ACCEPTED_IMAGE_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/gif",
-  "image/webp",
-];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_FILES = 5;
+// Valid ticker patterns. The server is the final authority — these are
+// intentionally permissive so legitimate symbols (BRK.B, BF-B, 1INCH) pass.
+const STOCK_TICKER_PATTERN = /^[A-Z]{1,5}([.\-][A-Z]{1,2})?$/;
+const CRYPTO_TICKER_PATTERN = /^[A-Z0-9]{2,10}$/;
 
 export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
   const [ticker, setTicker] = useState("");
@@ -71,7 +51,6 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
   const [showContextFlags, setShowContextFlags] = useState(false);
   const [chatText, setChatText] = useState("");
   const [chatAdded, setChatAdded] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [validationError, setValidationError] = useState("");
   const [context, setContext] = useState({
     unsolicited: false,
@@ -79,12 +58,9 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
     urgencyPressure: false,
     secrecyInsideInfo: false,
   });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragCounterRef = useRef(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
   // Focus textarea when chat input opens
@@ -93,13 +69,6 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
       textareaRef.current.focus();
     }
   }, [showChatInput]);
-
-  // Cleanup file previews on unmount
-  useEffect(() => {
-    return () => {
-      uploadedFiles.forEach((f) => URL.revokeObjectURL(f.preview));
-    };
-  }, [uploadedFiles]);
 
   const validateTicker = (value: string): string | null => {
     if (!value.trim()) {
@@ -110,9 +79,9 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
       assetType === "stock" ? STOCK_TICKER_PATTERN : CRYPTO_TICKER_PATTERN;
     if (!pattern.test(value.trim().toUpperCase())) {
       if (assetType === "stock") {
-        return "Invalid ticker format. Stock tickers are 1-5 letters (e.g., AAPL, TSLA)";
+        return "Invalid ticker format. Stock tickers are 1-5 letters (e.g., AAPL, TSLA, BRK.B)";
       } else {
-        return "Invalid symbol format. Crypto symbols are 2-10 letters (e.g., BTC, ETH)";
+        return "Invalid symbol format. Crypto symbols are 2-10 characters (e.g., BTC, ETH, 1INCH)";
       }
     }
 
@@ -143,8 +112,6 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
       ticker: ticker.trim().toUpperCase(),
       assetType,
       pitchText: chatText.trim() || undefined,
-      chatImages:
-        uploadedFiles.length > 0 ? uploadedFiles.map((f) => f.file) : undefined,
       context: Object.values(context).some(Boolean) ? context : undefined,
     });
   };
@@ -160,82 +127,8 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
     setContext((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const remainingSlots = MAX_FILES - uploadedFiles.length;
-    if (remainingSlots <= 0) {
-      addToast({
-        type: "warning",
-        title: "Maximum files reached",
-        description: `You can upload up to ${MAX_FILES} files.`,
-      });
-      return;
-    }
-
-    const newFiles: UploadedFile[] = [];
-    const errors: string[] = [];
-
-    Array.from(files)
-      .slice(0, remainingSlots)
-      .forEach((file) => {
-        // Validate file type
-        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-          errors.push(
-            `${file.name}: Invalid file type. Only images are supported.`,
-          );
-          return;
-        }
-
-        // Validate file size
-        if (file.size > MAX_FILE_SIZE) {
-          errors.push(`${file.name}: File too large. Maximum size is 10MB.`);
-          return;
-        }
-
-        newFiles.push({
-          file,
-          preview: URL.createObjectURL(file),
-          type: "image",
-        });
-      });
-
-    if (errors.length > 0) {
-      addToast({
-        type: "error",
-        title: "Upload error",
-        description: errors[0],
-      });
-    }
-
-    if (newFiles.length > 0) {
-      setUploadedFiles((prev) => [...prev, ...newFiles]);
-      setChatAdded(true);
-      addToast({
-        type: "success",
-        title: `${newFiles.length} file${newFiles.length > 1 ? "s" : ""} added`,
-        description: "Screenshots will be analyzed for scam patterns.",
-      });
-    }
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setUploadedFiles((prev) => {
-      const newFiles = [...prev];
-      URL.revokeObjectURL(newFiles[index].preview);
-      newFiles.splice(index, 1);
-      return newFiles;
-    });
-  };
-
   const handleChatSubmit = () => {
-    if (chatText.trim() || uploadedFiles.length > 0) {
+    if (chatText.trim()) {
       setChatAdded(true);
       setShowChatInput(false);
       addToast({
@@ -250,108 +143,12 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
 
   const handleClearChat = () => {
     setChatText("");
-    uploadedFiles.forEach((f) => URL.revokeObjectURL(f.preview));
-    setUploadedFiles([]);
     setChatAdded(false);
     setShowChatInput(false);
     addToast({
       type: "info",
       title: "Chat removed",
     });
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  // Drag and drop handlers
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current++;
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
-      setIsDragging(true);
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current--;
-    if (dragCounterRef.current === 0) {
-      setIsDragging(false);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    dragCounterRef.current = 0;
-
-    const files = e.dataTransfer.files;
-    if (!files || files.length === 0) return;
-
-    // Process dropped files
-    const remainingSlots = MAX_FILES - uploadedFiles.length;
-    if (remainingSlots <= 0) {
-      addToast({
-        type: "warning",
-        title: "Maximum files reached",
-        description: `You can upload up to ${MAX_FILES} files.`,
-      });
-      return;
-    }
-
-    const newFiles: UploadedFile[] = [];
-    const errors: string[] = [];
-
-    Array.from(files)
-      .slice(0, remainingSlots)
-      .forEach((file) => {
-        // Validate file type
-        if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-          errors.push(
-            `${file.name}: Invalid file type. Only images are supported.`,
-          );
-          return;
-        }
-
-        // Validate file size
-        if (file.size > MAX_FILE_SIZE) {
-          errors.push(`${file.name}: File too large. Maximum size is 10MB.`);
-          return;
-        }
-
-        newFiles.push({
-          file,
-          preview: URL.createObjectURL(file),
-          type: "image",
-        });
-      });
-
-    if (errors.length > 0) {
-      addToast({
-        type: "error",
-        title: "Upload error",
-        description: errors[0],
-      });
-    }
-
-    if (newFiles.length > 0) {
-      setUploadedFiles((prev) => [...prev, ...newFiles]);
-      setChatAdded(true);
-      addToast({
-        type: "success",
-        title: `${newFiles.length} file${newFiles.length > 1 ? "s" : ""} dropped`,
-        description: "Screenshots will be analyzed for scam patterns.",
-      });
-    }
   };
 
   const handleContextDone = () => {
@@ -381,53 +178,25 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
   };
 
   const activeContextCount = Object.values(context).filter(Boolean).length;
-  const hasChatContent = chatText.trim() || uploadedFiles.length > 0;
+  const hasChatContent = !!chatText.trim();
 
   return (
-    <div
-      className="w-full max-w-3xl mx-auto"
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-    >
-      {/* Drag overlay */}
-      {isDragging && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center animate-fade-in">
-          <div className="drop-zone drop-zone-active p-12 text-center max-w-md">
-            <div className="mb-4 p-4 rounded-2xl bg-primary/10 w-fit mx-auto">
-              <Upload className="h-12 w-12 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">
-              Drop your screenshots here
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              We&apos;ll analyze them for scam red flags
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              PNG, JPG, GIF, WebP - Max 10MB each
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={ACCEPTED_IMAGE_TYPES.join(",")}
-        multiple
-        onChange={handleFileSelect}
-        className="hidden"
-        aria-label="Upload chat screenshots"
-      />
+    <div className="w-full max-w-3xl mx-auto">
+      {/*
+        TODO: re-add screenshot analysis once /api/check accepts images.
+        The previous drag-and-drop / file-upload UI was removed because the
+        uploaded screenshots never reached the API — the product was claiming
+        an image analysis it did not perform. Re-introduce the upload UI (and
+        its "Screenshots will be analyzed" messaging) only when the backend
+        actually consumes images.
+      */}
 
       {/* Validation Error */}
       {validationError && (
         <div className="mb-3 animate-fade-in">
           <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            <span>{validationError}</span>
+            <span id="ticker-error">{validationError}</span>
             <button
               onClick={() => setValidationError("")}
               className="ml-auto p-1 hover:bg-destructive/10 rounded"
@@ -448,72 +217,19 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               <span className="text-sm font-medium">Add Chat / Message</span>
             </div>
 
-            {/* Uploaded Images Preview */}
-            {uploadedFiles.length > 0 && (
-              <div className="p-3 bg-card border-x border-border">
-                <p className="text-xs text-muted-foreground mb-2">
-                  Uploaded screenshots ({uploadedFiles.length}/{MAX_FILES})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {uploadedFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="relative group w-20 h-20 rounded-lg overflow-hidden border border-border"
-                    >
-                      <img
-                        src={file.preview}
-                        alt={`Screenshot ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeFile(index)}
-                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label={`Remove screenshot ${index + 1}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {uploadedFiles.length < MAX_FILES && (
-                    <button
-                      type="button"
-                      onClick={handleUploadClick}
-                      className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <Upload className="h-4 w-4" />
-                      <span className="text-[10px]">Add more</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
             <textarea
               ref={textareaRef}
               value={chatText}
               onChange={(e) => setChatText(e.target.value)}
-              placeholder="Paste the chat or message you received about this investment. You can also upload screenshots above..."
+              placeholder="Paste the chat or message you received about this investment..."
               className={cn(
                 "w-full min-h-[120px] p-4 bg-card border border-border resize-none focus:outline-none focus:ring-2 focus:ring-ring text-sm",
-                uploadedFiles.length > 0
-                  ? "border-t-0 rounded-b-2xl"
-                  : "border-t-0 rounded-b-2xl",
+                "border-t-0 rounded-b-2xl",
               )}
               disabled={isLoading || disabled}
               aria-label="Chat text content"
             />
             <div className="absolute bottom-3 right-3 flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleUploadClick}
-                disabled={uploadedFiles.length >= MAX_FILES}
-              >
-                <ImageIcon className="h-4 w-4 mr-1" />
-                Add Image
-              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -545,15 +261,6 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
           <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20 text-sm">
             <MessageSquare className="h-4 w-4 text-primary flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              {uploadedFiles.length > 0 && (
-                <div className="flex items-center gap-1 mb-1">
-                  <ImageIcon className="h-3 w-3" />
-                  <span className="text-xs">
-                    {uploadedFiles.length} screenshot
-                    {uploadedFiles.length > 1 ? "s" : ""}
-                  </span>
-                </div>
-              )}
               {chatText.trim() && (
                 <span className="truncate block">
                   &ldquo;{chatText.slice(0, 50)}
@@ -829,44 +536,6 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                 <span className="hidden sm:inline">Add Chat</span>
                 <Sparkles className="h-3 w-3 text-blue-500 hidden sm:block" />
                 {chatAdded && <Check className="h-3 w-3 text-green-500" />}
-              </Button>
-            </FeatureTooltip>
-
-            {/* Upload Screenshots - Highlighted Feature */}
-            <FeatureTooltip
-              title="Upload Screenshots"
-              description="Have screenshots of suspicious messages? Drag & drop or click to upload them for visual analysis."
-              steps={[
-                "Take a screenshot of the suspicious message",
-                "Drag the image here or click to browse",
-                "Upload up to 5 images (10MB each)",
-              ]}
-              position="top"
-            >
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "gap-1.5 rounded-xl text-xs relative",
-                  "feature-highlight",
-                  uploadedFiles.length > 0 &&
-                    "text-primary bg-primary/15 border-primary/30",
-                )}
-                onClick={handleUploadClick}
-                disabled={
-                  isLoading || disabled || uploadedFiles.length >= MAX_FILES
-                }
-                aria-label="Upload screenshot - drag and drop supported"
-              >
-                <Upload className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Upload</span>
-                <Sparkles className="h-3 w-3 text-purple-500 hidden sm:block" />
-                {uploadedFiles.length > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px]">
-                    {uploadedFiles.length}
-                  </span>
-                )}
               </Button>
             </FeatureTooltip>
 

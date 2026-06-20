@@ -140,7 +140,26 @@ export async function POST(request: NextRequest) {
     );
 
     if (!activeSubscription) {
-      // No active subscription found
+      // No active subscription in this receipt. If the receipt carries an
+      // original_transaction_id that THIS user previously had bound, the
+      // subscription has lapsed — downgrade them to FREE (audit SEC-H2).
+      const expiredOriginalTxnId =
+        allPurchases[0]?.original_transaction_id || undefined;
+
+      if (expiredOriginalTxnId) {
+        await prisma.user.updateMany({
+          where: {
+            id: userId,
+            appleOriginalTransactionId: expiredOriginalTxnId,
+          },
+          data: {
+            plan: "FREE",
+            formerPro: true,
+            subscriptionExpiresAt: null,
+          },
+        });
+      }
+
       return NextResponse.json({
         valid: true,
         active: false,
@@ -149,18 +168,47 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const originalTransactionId = activeSubscription.original_transaction_id;
+
+    // Enforce that an Apple original_transaction_id grants PAID to exactly one
+    // account. A single purchased receipt blob shared across accounts must NOT
+    // upgrade them all (audit SEC-H2). If this transaction is already bound to a
+    // DIFFERENT user, reject without upgrading.
+    const existingOwner = await prisma.user.findUnique({
+      where: { appleOriginalTransactionId: originalTransactionId },
+      select: { id: true },
+    });
+
+    if (existingOwner && existingOwner.id !== userId) {
+      console.warn(
+        `Apple receipt replay blocked: original_transaction_id ${originalTransactionId} ` +
+          `already bound to user ${existingOwner.id}, attempted by user ${userId}`,
+      );
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "This subscription is already linked to another account.",
+        },
+        { status: 409 },
+      );
+    }
+
     // Get subscription expiration
     const expiresAt = activeSubscription.expires_date_ms
       ? new Date(parseInt(activeSubscription.expires_date_ms, 10))
       : null;
 
-    // Update user plan to PAID
+    // Bind the receipt to this user and persist entitlement. plan=PAID only
+    // while the receipt is unexpired (guaranteed here by isSubscriptionActive).
+    // subscriptionStore/subscriptionExpiresAt make plan state server-authoritative.
     await prisma.user.update({
       where: { id: userId },
       data: {
         plan: "PAID",
-        // Store Apple transaction ID for reference
-        billingCustomerId: activeSubscription.original_transaction_id,
+        billingCustomerId: originalTransactionId,
+        appleOriginalTransactionId: originalTransactionId,
+        subscriptionStore: "apple",
+        subscriptionExpiresAt: expiresAt,
       },
     });
 

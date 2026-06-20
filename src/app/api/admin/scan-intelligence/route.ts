@@ -17,6 +17,7 @@ import {
   getHighRiskPath,
   generateSchemeName,
   computeAIStats,
+  ScanDataFetchError,
   type DailyReport,
   type FmpSummary,
   type SchemeDatabase,
@@ -383,6 +384,12 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("Scan intelligence error:", error);
+    if (error instanceof ScanDataFetchError) {
+      return NextResponse.json(
+        { error: "Scan data source is unavailable", code: "scan_data_upstream" },
+        { status: 502 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to fetch scan intelligence data" },
       { status: 500 },

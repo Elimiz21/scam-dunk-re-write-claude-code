@@ -23,6 +23,7 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileAvailable, setTurnstileAvailable] = useState(true);
 
   const handleTurnstileVerify = useCallback((token: string) => {
     setTurnstileToken(token);
@@ -31,6 +32,13 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // CAPTCHA is required by the server (SEC-M2); block submit until it's done.
+    if (!turnstileToken) {
+      setError("Please complete CAPTCHA verification before continuing.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -134,10 +142,36 @@ export default function ForgotPasswordPage() {
                 disabled={isLoading}
               />
             </div>
-            <Turnstile onVerify={handleTurnstileVerify} />
+            <Turnstile
+              onVerify={(token) => {
+                setError("");
+                setTurnstileAvailable(true);
+                handleTurnstileVerify(token);
+              }}
+              onError={() => {
+                setTurnstileToken("");
+                setTurnstileAvailable(true);
+                setError("CAPTCHA verification failed. Please try again.");
+              }}
+              onExpire={() => {
+                setTurnstileToken("");
+                setError("CAPTCHA expired. Please verify again.");
+              }}
+              onUnavailable={() => {
+                setTurnstileToken("");
+                setTurnstileAvailable(false);
+                setError(
+                  "CAPTCHA is currently unavailable. Please refresh and try again.",
+                );
+              }}
+            />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || !turnstileAvailable || !turnstileToken}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

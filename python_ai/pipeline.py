@@ -27,8 +27,26 @@ warnings.filterwarnings('ignore')
 from config import (
     RISK_THRESHOLDS, ANOMALY_CONFIG, ENSEMBLE_CONFIG,
     SEC_FLAGGED_TICKERS, OTC_EXCHANGES, MARKET_THRESHOLDS,
-    get_thresholds
+    RF_FEATURE_NAMES, get_thresholds
 )
+
+
+def ml_models_enabled() -> bool:
+    """Whether the ML models (RF + LSTM) participate in scoring.
+
+    Default is FALSE: the shipped RF/LSTM artifacts are trained on synthetic
+    distributions (raw prices/volumes for the LSTM), so on real market data
+    their output is unreliable. Until they are retrained on real labelled data,
+    the honest default is to score from the rule-based pipeline only
+    (statistical anomaly detection + weighted structural/pattern signals).
+
+    Re-enable by setting the environment variable ML_MODELS_ENABLED=true ONLY
+    after retraining the models on real data and regenerating the artifacts and
+    their SHA-256 hashes in model_hashes.json.
+    """
+    return os.environ.get('ML_MODELS_ENABLED', 'false').strip().lower() in (
+        '1', 'true', 'yes', 'on'
+    )
 from data_ingestion import (
     create_asset_context, check_sec_flagged_list,
     load_stock_data, get_stock_fundamentals, preprocess_price_data
@@ -69,11 +87,17 @@ class RiskAssessment:
     signals: List[SignalDetail] = field(default_factory=list)
     signal_total_score: int = 0
     news_verification: Optional[Dict] = None
+    data_available: bool = True
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
 
 class ScamDetectionPipeline:
     """Main pipeline for scam detection integrating all components."""
+
+    # Minimum rows of price history required for a confident assessment.
+    # Below this the engineered features collapse to zeros and any rating is
+    # noise, so we return INSUFFICIENT / data_available=False instead (PY-H8).
+    MIN_HISTORY_ROWS = 30
 
     def __init__(
         self,
@@ -93,10 +117,37 @@ class ScamDetectionPipeline:
         self.lstm_detector = ScamDetectorLSTM()
         self.rf_available = False
         self.lstm_available = False
+        self.ml_enabled = ml_models_enabled()
 
-        if load_models:
+        # When ML is disabled (the default until models are retrained on real
+        # data), skip loading the RF/LSTM artifacts entirely. Scoring relies on
+        # the rule-based pipeline only. This also avoids loading pickled model
+        # files (RCE surface) in the common path.
+        if load_models and self.ml_enabled:
             self.rf_available = self.rf_detector.load(rf_model_path)
             self.lstm_available = self.lstm_detector.load(lstm_model_path)
+            self._assert_feature_contract()
+
+    def _assert_feature_contract(self) -> None:
+        """Verify the live serving vector matches the trained RF feature_names.
+
+        Guards against the historical 49-vs-35 feature mismatch that forced
+        rf_prob to 0.0 and triggered per-request retraining. Runs once at
+        startup (model load), never per request. If the RF model is loaded but
+        its feature_names disagree with the shared serving contract, we disable
+        the RF model rather than emit silently-wrong probabilities.
+        """
+        if not self.rf_available:
+            return
+        model_names = list(self.rf_detector.feature_names or [])
+        serve_names = list(RF_FEATURE_NAMES)
+        if len(model_names) != len(serve_names) or model_names != serve_names:
+            print(
+                "[STARTUP][WARN] RF feature contract mismatch: "
+                f"model has {len(model_names)} features, serving expects "
+                f"{len(serve_names)}. Disabling RF model (retrain required)."
+            )
+            self.rf_available = False
 
     def train_models(
         self,
@@ -169,6 +220,11 @@ class ScamDetectionPipeline:
         feat = dict(zip(feature_names, features))
 
         # ----- STRUCTURAL signals -----
+        # NOTE: market_cap / avg_volume / exchange may be None when fundamentals
+        # could not be fetched in live mode (PY-C3). We coalesce missing values
+        # to 0/'' so the structural signals are SUPPRESSED rather than fabricated
+        # — a missing market cap must never look like a healthy large-cap, and an
+        # unknown one must never look like a micro-cap.
         current_price = fundamentals.get('current_price') or (
             float(price_data['Close'].iloc[-1]) if len(price_data) > 0 else 0
         )
@@ -179,7 +235,7 @@ class ScamDetectionPipeline:
                 weight=2,
             ))
 
-        market_cap = fundamentals.get('market_cap', 0)
+        market_cap = fundamentals.get('market_cap') or 0
         if 0 < market_cap < MARKET_THRESHOLDS['small_cap']:
             cap_str = f'${market_cap / 1e6:.1f}M'
             signals.append(SignalDetail(
@@ -188,7 +244,7 @@ class ScamDetectionPipeline:
                 weight=2,
             ))
 
-        avg_volume = fundamentals.get('avg_daily_volume', 0)
+        avg_volume = fundamentals.get('avg_daily_volume') or 0
         if 0 < avg_volume < MARKET_THRESHOLDS['micro_liquidity']:
             vol_k = f'${avg_volume / 1e3:.0f}K'
             signals.append(SignalDetail(
@@ -198,11 +254,11 @@ class ScamDetectionPipeline:
             ))
 
         is_otc = fundamentals.get('is_otc', False)
-        exchange = fundamentals.get('exchange', '')
-        if is_otc or exchange.upper() in OTC_EXCHANGES:
+        exchange = fundamentals.get('exchange') or ''
+        if is_otc or (exchange and exchange.upper() in OTC_EXCHANGES):
             signals.append(SignalDetail(
                 code='OTC_EXCHANGE', category='STRUCTURAL',
-                description=f'Traded on OTC market ({exchange}) – less regulatory oversight',
+                description=f'Traded on OTC market ({exchange or "OTC"}) – less regulatory oversight',
                 weight=3,
             ))
 
@@ -370,10 +426,10 @@ class ScamDetectionPipeline:
             ))
 
         # --- 3-DAY EARLY DETECTION SIGNALS ---
-        price_change_3d = feat.get('Price_Change_3d', 0)
-        volume_surge_3d = feat.get('Volume_Surge_3d', 1.0)
-        price_accel = feat.get('Price_Acceleration', 0)
-        volume_accel = feat.get('Volume_Acceleration', 0)
+        price_change_3d = feat.get('price_change_3d', 0)
+        volume_surge_3d = feat.get('volume_surge_3d', 1.0)
+        price_accel = feat.get('price_acceleration', 0)
+        volume_accel = feat.get('volume_acceleration', 0)
 
         _thresholds = fundamentals.get('_thresholds', ANOMALY_CONFIG)
         surge_3d_thresh = _thresholds.get('price_surge_3d_threshold', 0.15)
@@ -568,12 +624,12 @@ class ScamDetectionPipeline:
             key_indicators.append("OTC/Pink Sheets exchange")
             explanations.append("Listed on over-the-counter market (higher risk)")
 
-        # Check market cap
-        market_cap = context['fundamentals'].get('market_cap', 0)
-        if market_cap < MARKET_THRESHOLDS['micro_cap']:
+        # Check market cap (skip entirely when unknown — never assume a value)
+        market_cap = context['fundamentals'].get('market_cap')
+        if market_cap and market_cap < MARKET_THRESHOLDS['micro_cap']:
             key_indicators.append(f"Micro-cap (${market_cap/1e6:.1f}M)")
             explanations.append(f"Very small market cap: ${market_cap/1e6:.1f}M")
-        elif market_cap < MARKET_THRESHOLDS['small_cap']:
+        elif market_cap and market_cap < MARKET_THRESHOLDS['small_cap']:
             key_indicators.append(f"Small-cap (${market_cap/1e6:.1f}M)")
 
         # Check price changes
@@ -625,6 +681,76 @@ class ScamDetectionPipeline:
             explanation = header + body
 
         return explanation, key_indicators
+
+    def _insufficient_assessment(
+        self,
+        ticker: str,
+        asset_type: str,
+        price_data: pd.DataFrame,
+        fundamentals: Dict,
+        sec_flagged: bool,
+        news_flag: bool,
+    ) -> RiskAssessment:
+        """Build an INSUFFICIENT-data assessment (data_available=False).
+
+        Used when there is too little price history to score reliably. A SEC
+        regulatory hit is the one signal that still stands on its own, so it is
+        preserved even when market data is thin.
+        """
+        signals: List[SignalDetail] = []
+        if sec_flagged:
+            signals.append(SignalDetail(
+                code='ALERT_LIST_HIT', category='ALERT',
+                description='Appears on SEC / regulatory alert or suspension list – extreme caution',
+                weight=5,
+            ))
+        risk_level = 'HIGH' if sec_flagged else 'INSUFFICIENT'
+        combined = 0.85 if sec_flagged else 0.0
+        n_rows = len(price_data) if price_data is not None else 0
+        detailed_report = {
+            'data_summary': {
+                'ticker': ticker,
+                'asset_type': asset_type,
+                'data_points': n_rows,
+                'market_cap': fundamentals.get('market_cap'),
+                'exchange': fundamentals.get('exchange'),
+                'company_name': fundamentals.get('long_name') or fundamentals.get('short_name'),
+                'short_name': fundamentals.get('short_name'),
+                'avg_daily_volume': fundamentals.get('avg_daily_volume'),
+            },
+            'model_outputs': {},
+            'anomaly_details': {'is_anomaly': False, 'types': []},
+            'feature_highlights': {},
+            'contextual_flags': {
+                'sec_flagged': sec_flagged,
+                'is_otc': bool(fundamentals.get('is_otc', False)),
+                'has_news': news_flag,
+                'insufficient_data': True,
+            },
+        }
+        return RiskAssessment(
+            ticker=ticker,
+            risk_level=risk_level,
+            risk_score=combined,
+            rf_probability=0.0,
+            lstm_probability=None,
+            combined_probability=combined,
+            anomaly_detected=False,
+            anomaly_score=0.0,
+            anomaly_types=[],
+            sec_flagged=sec_flagged,
+            key_indicators=(['SEC regulatory alert'] if sec_flagged
+                            else ['Insufficient price history for a reliable assessment']),
+            explanation=(
+                'Insufficient historical data to compute a reliable risk score '
+                f'({n_rows} rows available, {self.MIN_HISTORY_ROWS} required).'
+            ),
+            detailed_report=detailed_report,
+            signals=signals,
+            signal_total_score=sum(s.weight for s in signals),
+            news_verification=None,
+            data_available=False,
+        )
 
     def analyze(
         self,
@@ -695,10 +821,23 @@ class ScamDetectionPipeline:
             sec_flagged = context['sec_flagged']['is_flagged']
         print(f"   Data loaded: {len(price_data)} days")
         print(f"   SEC Flagged: {sec_flagged}")
-        print(f"   Exchange: {fundamentals.get('exchange', 'N/A')}")
+        print(f"   Exchange: {fundamentals.get('exchange') or 'N/A'}")
 
-        # Derive OTC-tiered thresholds based on exchange and watchlist status
-        is_otc = fundamentals.get('exchange', '').upper() in OTC_EXCHANGES
+        # ---- Minimum-data guard (PY-H8) ----
+        # Thin tickers (a few rows of history) produce all-zero features and a
+        # falsely-confident LOW. Require at least MIN_HISTORY_ROWS rows of real
+        # history; otherwise return an explicit INSUFFICIENT result with
+        # data_available=False so the TS layer does not treat it as a clean LOW.
+        if len(price_data) < self.MIN_HISTORY_ROWS:
+            print(f"   INSUFFICIENT DATA: {len(price_data)} rows < {self.MIN_HISTORY_ROWS} required")
+            return self._insufficient_assessment(
+                ticker, asset_type, price_data, fundamentals, sec_flagged, news_flag
+            )
+
+        # Derive OTC-tiered thresholds based on exchange and watchlist status.
+        # exchange may be None (fundamentals unavailable) — fall back to is_otc.
+        exchange_str = fundamentals.get('exchange') or ''
+        is_otc = bool(fundamentals.get('is_otc')) or exchange_str.upper() in OTC_EXCHANGES
         on_watchlist = fundamentals.get('on_watchlist', False)
         thresholds = get_thresholds(is_otc=is_otc, on_watchlist=on_watchlist)
         fundamentals['_thresholds'] = thresholds
@@ -723,37 +862,30 @@ class ScamDetectionPipeline:
             print(f"   Types: {', '.join(anomaly_result.anomaly_types[:3])}")
 
         # Step 4: Random Forest prediction
+        # NEVER train inside a request. Models are loaded once at startup. If
+        # the RF model is unavailable or fails to predict, we degrade to a
+        # rule-based-only score (rf_prob = 0.0) rather than retraining.
         print("\n[Step 4] Running Random Forest prediction...")
         rf_prob = 0.0
-        try:
-            if self.rf_available:
+        if not self.ml_enabled:
+            print("   RF disabled (ML_MODELS_ENABLED is false) - rule-based scoring only")
+        elif self.rf_available:
+            try:
                 rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
                 print(f"   RF Probability: {rf_prob:.3f}")
-            else:
-                print("   RF model not available - training now...")
-                self.train_models(train_rf=True, train_lstm=False, save_models=True)
-                rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
-                print(f"   RF Probability: {rf_prob:.3f}")
-        except ValueError as e:
-            if "features" in str(e):
-                # Feature count mismatch (e.g. model trained with fewer features).
-                # Retrain on the fly with current feature set.
-                print(f"   RF feature mismatch ({e}) - retraining...")
-                self.train_models(train_rf=True, train_lstm=False, save_models=True)
-                try:
-                    rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
-                    print(f"   RF Probability after retrain: {rf_prob:.3f}")
-                except Exception as e2:
-                    print(f"   RF still failed after retrain: {e2} - using 0.0")
-                    rf_prob = 0.0
-            else:
-                print(f"   RF prediction failed: {e} - using 0.0")
+            except Exception as e:
+                # Degrade gracefully — do NOT retrain in the request path.
+                print(f"   RF prediction failed: {e} - degrading to 0.0 (no retrain)")
                 rf_prob = 0.0
+        else:
+            print("   RF model not available - degrading to rule-based scoring (no retrain)")
 
         # Step 5: LSTM prediction (if available)
         print("\n[Step 5] Running LSTM prediction...")
         lstm_prob = None
-        if self.lstm_available:
+        if not self.ml_enabled:
+            print("   LSTM disabled (ML_MODELS_ENABLED is false)")
+        elif self.lstm_available:
             try:
                 sequence = self.lstm_detector.prepare_sequence_from_df(price_data_fe)
                 lstm_prob, lstm_pred = self.lstm_detector.predict_lstm_probability(sequence[0])
@@ -762,7 +894,7 @@ class ScamDetectionPipeline:
                 print(f"   LSTM prediction failed: {e}")
                 lstm_prob = None
         else:
-            print("   LSTM model not available (will use RF only)")
+            print("   LSTM model not available (will use rule-based scoring only)")
 
         # Step 6: Compute direct risk signals (primary scoring method)
         print("\n[Step 6] Computing risk signals...")
@@ -776,12 +908,26 @@ class ScamDetectionPipeline:
         for sig in computed_signals[:5]:
             print(f"     [{sig.category}] {sig.code} (weight {sig.weight})")
 
-        # Determine risk level from signal score (matches TS scoring thresholds)
+        # Determine risk level from signal score (matches TS scoring thresholds).
+        #
+        # PY-H3: a HIGH rating requires at least one PATTERN or ALERT signal —
+        # i.e. actual price/volume evidence or a regulatory hit. A stack of
+        # purely STRUCTURAL signals (price<$5 + small cap + low liquidity = 6)
+        # describes a stock that is *vulnerable* to manipulation, not one that is
+        # *being* manipulated, so it caps at MEDIUM. This is deliberately
+        # conservative and SHOULD be recalibrated against a labelled dataset
+        # (report Brier/reliability) before being treated as tuned.
         has_alert = any(s.code == 'ALERT_LIST_HIT' for s in computed_signals)
+        has_pattern_or_alert = any(
+            s.category in ('PATTERN', 'ALERT') for s in computed_signals
+        )
         if has_alert:
             signal_risk_level = 'HIGH'
-        elif signal_total_score >= 5:
+        elif signal_total_score >= 5 and has_pattern_or_alert:
             signal_risk_level = 'HIGH'
+        elif signal_total_score >= 5:
+            # Structural-only stack: vulnerable but no manipulation evidence.
+            signal_risk_level = 'MEDIUM'
         elif signal_total_score >= 2:
             signal_risk_level = 'MEDIUM'
         else:
@@ -790,8 +936,10 @@ class ScamDetectionPipeline:
         # Step 7: ML model ensemble (supplementary)
         print("\n[Step 7] ML ensemble (supplementary)...")
         is_otc = fundamentals.get('is_otc', False)
-        market_cap = fundamentals.get('market_cap', float('inf'))
-        is_micro_cap = market_cap < MARKET_THRESHOLDS['micro_cap']
+        # market_cap may be None when fundamentals are unavailable — treat
+        # unknown as "not micro-cap" so we never fabricate a micro-cap floor.
+        market_cap = fundamentals.get('market_cap')
+        is_micro_cap = market_cap is not None and market_cap < MARKET_THRESHOLDS['micro_cap']
 
         combined_prob = self.combine_predictions(
             rf_prob, lstm_prob, anomaly_result, sec_flagged,
@@ -884,6 +1032,13 @@ class ScamDetectionPipeline:
             }
         }
 
+        # data_available is True here (we passed the min-row guard). In live mode
+        # it is downgraded if fundamentals could not be fetched, because the
+        # structural half of the analysis was then suppressed (PY-C3/PY-H8).
+        data_available = True
+        if not use_synthetic and fundamentals.get('fundamentals_available') is False:
+            data_available = False
+
         # Create final assessment
         assessment = RiskAssessment(
             ticker=ticker,
@@ -901,7 +1056,8 @@ class ScamDetectionPipeline:
             detailed_report=detailed_report,
             signals=computed_signals,
             signal_total_score=signal_total_score,
-            news_verification=news_verification
+            news_verification=news_verification,
+            data_available=data_available,
         )
 
         return assessment

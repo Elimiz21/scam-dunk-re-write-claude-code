@@ -1,0 +1,18 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "@next/next/no-img-element": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/no-unescaped-entities": "warn",
+    "@next/next/no-html-link-for-pages": "off"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "evaluation/",
+    "python_ai/",
+    "scamdunk-history-db/",
+    "scripts/",
+    "prisma/migrations/"
+  ]
+}

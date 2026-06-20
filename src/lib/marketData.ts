@@ -18,6 +18,50 @@ import { config } from "./config";
 import { logApiUsage } from "./admin/metrics";
 import { circuitBreakers, CircuitBreakerOpenError } from "./circuit-breaker";
 
+// Pure price/volume math + anomaly detection now lives in the dependency-free
+// scoring engine (single source of truth shared with the eval harness — audit
+// TS-C7). Re-export here so existing call sites that import these from
+// "@/lib/marketData" keep working unchanged.
+export {
+  calculatePriceChange,
+  calculateVolumeRatio,
+  detectSpikeThenDrop,
+  detectSpikeThenDropDetailed,
+  calculateRSI,
+  calculateSurgeMetrics,
+  calculateVolatility,
+  detectPriceAnomaly,
+  detectVolumeAnomaly,
+  runAnomalyDetection,
+} from "./scoring/engine";
+export type {
+  AnomalySignal,
+  AnomalyCode,
+  AnomalyDetectionResult,
+} from "./scoring/engine";
+
+// Fetch timeout for all external market-data providers (audit TS-M5).
+const FETCH_TIMEOUT_MS = 9000;
+
+/**
+ * fetch() with an AbortController timeout. Throws on timeout/abort so the
+ * circuit breaker can count it as a failure; callers convert to null/[] at the
+ * boundary.
+ */
+async function fetchWithTimeout(
+  url: string,
+  init?: RequestInit,
+  timeoutMs: number = FETCH_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 // Zod schemas for external API response validation
 const FMPProfileSchema = z
   .array(
@@ -132,38 +176,31 @@ const COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3";
 async function fetchFMPQuote(ticker: string): Promise<StockQuote | null> {
   const url = `${FMP_BASE_URL}/profile?symbol=${ticker}&apikey=${config.fmpApiKey}`;
 
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error(`FMP quote API returned ${response.status}`);
-      return null;
-    }
-    const raw = await response.json();
+  // Note: throws on timeout/non-OK so the circuit breaker counts the failure
+  // (audit TS-M5). The fetchMarketDataFromFMP boundary converts to no-data.
+  const response = await fetchWithTimeout(url);
+  if (!response.ok) {
+    throw new Error(`FMP quote API returned ${response.status}`);
+  }
+  const raw = await response.json();
 
-    const parsed = FMPProfileSchema.safeParse(raw);
-    if (!parsed.success) {
-      console.error(
-        "FMP quote response validation failed:",
-        parsed.error.message,
-      );
-      return null;
-    }
-
-    const profile = parsed.data[0];
-    return {
-      ticker: ticker.toUpperCase(),
-      companyName: profile.companyName || ticker.toUpperCase(),
-      exchange: profile.exchange || "Unknown",
-      lastPrice: profile.price || 0,
-      marketCap: profile.marketCap || 0,
-      avgVolume30d: profile.averageVolume || profile.volume || 0,
-      avgDollarVolume30d:
-        (profile.averageVolume || profile.volume || 0) * (profile.price || 0),
-    };
-  } catch (error) {
-    console.error("Error fetching FMP quote:", error);
+  const parsed = FMPProfileSchema.safeParse(raw);
+  if (!parsed.success) {
+    console.error("FMP quote response validation failed:", parsed.error.message);
     return null;
   }
+
+  const profile = parsed.data[0];
+  return {
+    ticker: ticker.toUpperCase(),
+    companyName: profile.companyName || ticker.toUpperCase(),
+    exchange: profile.exchange || "Unknown",
+    lastPrice: profile.price || 0,
+    marketCap: profile.marketCap || 0,
+    avgVolume30d: profile.averageVolume || profile.volume || 0,
+    avgDollarVolume30d:
+      (profile.averageVolume || profile.volume || 0) * (profile.price || 0),
+  };
 }
 
 /**
@@ -173,8 +210,11 @@ async function fetchFMPPriceHistory(ticker: string): Promise<PriceHistory[]> {
   // Get 100 days of historical data for pattern analysis
   const url = `${FMP_BASE_URL}/historical-price-eod/full?symbol=${ticker}&apikey=${config.fmpApiKey}`;
 
+  // History is best-effort: a plan-gated 403 or timeout must degrade to
+  // "quote-only" (not abort the parallel quote fetch or open the breaker), so
+  // this fetcher swallows errors and returns [] rather than throwing.
   try {
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (!response.ok) {
       console.error(`FMP history API returned ${response.status}`);
       return [];
@@ -225,7 +265,7 @@ async function fetchFMPProfile(ticker: string): Promise<{
   const url = `${FMP_BASE_URL}/profile?symbol=${ticker}&apikey=${config.fmpApiKey}`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (!response.ok) {
       console.error(`FMP profile API returned ${response.status}`);
       return null;
@@ -265,49 +305,53 @@ async function fetchFMPProfile(ticker: string): Promise<{
 async function fetchQuote(ticker: string): Promise<StockQuote | null> {
   const url = `${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${config.alphaVantageApiKey}`;
 
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error(`Alpha Vantage quote API returned ${response.status}`);
-      return null;
-    }
-    const raw = await response.json();
+  // Throws on timeout/non-OK so the circuit breaker counts the failure
+  // (audit TS-M5); the AV boundary converts to no-data.
+  const response = await fetchWithTimeout(url);
+  if (!response.ok) {
+    throw new Error(`Alpha Vantage quote API returned ${response.status}`);
+  }
+  const raw = await response.json();
 
-    // Check for API errors
-    if (raw["Error Message"] || raw["Note"]) {
-      console.error(
-        "Alpha Vantage API error:",
-        raw["Error Message"] || raw["Note"],
-      );
-      return null;
-    }
-
-    const parsed = AlphaVantageQuoteSchema.safeParse(raw);
-    if (!parsed.success) {
-      console.error(
-        "Alpha Vantage quote response validation failed:",
-        parsed.error.message,
-      );
-      return null;
-    }
-
-    const quote = parsed.data["Global Quote"];
-    const lastPrice = parseFloat(quote["05. price"]);
-    const volume = parseInt(quote["06. volume"], 10);
-
-    return {
-      ticker: ticker.toUpperCase(),
-      companyName: ticker.toUpperCase(),
-      exchange: "Unknown",
-      lastPrice,
-      marketCap: 0,
-      avgVolume30d: volume,
-      avgDollarVolume30d: volume * lastPrice,
-    };
-  } catch (error) {
-    console.error("Error fetching quote:", error);
+  // Check for API errors
+  if (raw["Error Message"] || raw["Note"]) {
+    console.error(
+      "Alpha Vantage API error:",
+      raw["Error Message"] || raw["Note"],
+    );
     return null;
   }
+
+  const parsed = AlphaVantageQuoteSchema.safeParse(raw);
+  if (!parsed.success) {
+    console.error(
+      "Alpha Vantage quote response validation failed:",
+      parsed.error.message,
+    );
+    return null;
+  }
+
+  const quote = parsed.data["Global Quote"];
+  const lastPrice = parseFloat(quote["05. price"]);
+  const volume = parseInt(quote["06. volume"], 10);
+
+  // Reject non-numeric AV payloads ("N/A"/"--") instead of letting NaN silently
+  // suppress downstream signals as a false LOW (audit TS-M14).
+  if (!Number.isFinite(lastPrice) || lastPrice <= 0) {
+    console.error(`Alpha Vantage returned non-numeric price for ${ticker}`);
+    return null;
+  }
+  const safeVolume = Number.isFinite(volume) ? volume : 0;
+
+  return {
+    ticker: ticker.toUpperCase(),
+    companyName: ticker.toUpperCase(),
+    exchange: "Unknown",
+    lastPrice,
+    marketCap: 0,
+    avgVolume30d: safeVolume,
+    avgDollarVolume30d: safeVolume * lastPrice,
+  };
 }
 
 /**
@@ -321,7 +365,7 @@ async function fetchCompanyOverview(ticker: string): Promise<{
   const url = `${ALPHA_VANTAGE_BASE_URL}?function=OVERVIEW&symbol=${ticker}&apikey=${config.alphaVantageApiKey}`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (!response.ok) {
       console.error(`Alpha Vantage overview API returned ${response.status}`);
       return null;
@@ -332,10 +376,13 @@ async function fetchCompanyOverview(ticker: string): Promise<{
       return null;
     }
 
+    const marketCap = parseInt(data["MarketCapitalization"] || "0", 10);
     return {
       companyName: String(data["Name"] || ticker),
       exchange: String(data["Exchange"] || "Unknown"),
-      marketCap: parseInt(data["MarketCapitalization"] || "0", 10),
+      // Leave non-numeric / missing cap as 0; the engine treats 0 as UNKNOWN
+      // and skips the structural cap signal rather than scoring worst-case.
+      marketCap: Number.isFinite(marketCap) ? marketCap : 0,
     };
   } catch (error) {
     console.error("Error fetching company overview:", error);
@@ -349,8 +396,10 @@ async function fetchCompanyOverview(ticker: string): Promise<{
 async function fetchPriceHistory(ticker: string): Promise<PriceHistory[]> {
   const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${config.alphaVantageApiKey}`;
 
+  // Best-effort (returns [] on failure) so a throttled history call degrades to
+  // quote-only rather than aborting the parallel quote fetch.
   try {
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (!response.ok) {
       console.error(`Alpha Vantage history API returned ${response.status}`);
       return [];
@@ -380,13 +429,18 @@ async function fetchPriceHistory(ticker: string): Promise<PriceHistory[]> {
 
     for (const date of dates) {
       const dayData = timeSeries[date];
+      const close = parseFloat(dayData["4. close"]);
+      const volume = parseInt(dayData["5. volume"], 10);
+      // Drop non-numeric rows ("N/A"/"--") rather than poisoning the series
+      // with NaN, which would corrupt every downstream calculation (TS-M14).
+      if (!Number.isFinite(close) || close <= 0) continue;
       history.push({
         date,
         open: parseFloat(dayData["1. open"]),
         high: parseFloat(dayData["2. high"]),
         low: parseFloat(dayData["3. low"]),
-        close: parseFloat(dayData["4. close"]),
-        volume: parseInt(dayData["5. volume"], 10),
+        close,
+        volume: Number.isFinite(volume) ? volume : 0,
       });
     }
 
@@ -428,7 +482,7 @@ async function fetchCoinGeckoQuote(ticker: string): Promise<StockQuote | null> {
   const url = `${COINGECKO_BASE_URL}/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: {
         Accept: "application/json",
       },
@@ -472,37 +526,62 @@ async function fetchCoinGeckoPriceHistory(
     return [];
   }
 
-  const url = `${COINGECKO_BASE_URL}/coins/${coinId}/ohlc?vs_currency=usd&days=90`;
+  // Use market_chart (daily) instead of /ohlc: ohlc?days=90 returns coarse
+  // 4-day candles (~23 points) which fell below the 30-point pattern-detection
+  // gate AND carried no volume. market_chart gives daily prices + real volumes
+  // and >= 30 points so pattern + anomaly detection actually run (audit TS-C5).
+  const url = `${COINGECKO_BASE_URL}/coins/${coinId}/market_chart?vs_currency=usd&days=90&interval=daily`;
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: {
         Accept: "application/json",
       },
     });
 
     if (!response.ok) {
-      console.error(`CoinGecko OHLC API error: ${response.status}`);
+      console.error(`CoinGecko market_chart API error: ${response.status}`);
       return [];
     }
 
     const data = await response.json();
 
-    if (!data || !Array.isArray(data)) {
-      return [];
+    // market_chart returns { prices: [[ts, price], ...], total_volumes: [[ts, vol], ...] }
+    const prices: [number, number][] = Array.isArray(data?.prices)
+      ? data.prices
+      : [];
+    const volumes: [number, number][] = Array.isArray(data?.total_volumes)
+      ? data.total_volumes
+      : [];
+
+    if (prices.length === 0) return [];
+
+    // Index volumes by day so we can attach the real measured volume.
+    const volumeByDate = new Map<string, number>();
+    for (const [ts, vol] of volumes) {
+      volumeByDate.set(new Date(ts).toISOString().split("T")[0], vol);
     }
 
-    // CoinGecko returns [timestamp, open, high, low, close]
-    const history: PriceHistory[] = data.map(
-      (candle: [number, number, number, number, number]) => ({
-        date: new Date(candle[0]).toISOString().split("T")[0],
-        open: candle[1],
-        high: candle[2],
-        low: candle[3],
-        close: candle[4],
-        volume: 0, // OHLC endpoint doesn't include volume
-      }),
-    );
+    // One point per day (market_chart with interval=daily already returns daily
+    // candles, but de-dup defensively in case a trailing intraday point sneaks in).
+    const byDate = new Map<string, { close: number; ts: number }>();
+    for (const [ts, price] of prices) {
+      const date = new Date(ts).toISOString().split("T")[0];
+      const existing = byDate.get(date);
+      if (!existing || ts > existing.ts) byDate.set(date, { close: price, ts });
+    }
+
+    const history: PriceHistory[] = Array.from(byDate.entries())
+      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+      .map(([date, { close }]) => ({
+        date,
+        // market_chart only exposes close prices; approximate OHLC with close.
+        open: close,
+        high: close,
+        low: close,
+        close,
+        volume: volumeByDate.get(date) ?? 0,
+      }));
 
     return history;
   } catch (error) {
@@ -532,7 +611,7 @@ async function fetchMarketDataFromCoinGecko(
       const responseTime = Date.now() - apiStartTime;
       await logApiUsage({
         service: "COINGECKO",
-        endpoint: "coins+ohlc",
+        endpoint: "coins+market_chart",
         responseTime,
         statusCode: 404,
         errorMessage: "No quote data available",
@@ -540,7 +619,10 @@ async function fetchMarketDataFromCoinGecko(
       return {
         quote: null,
         priceHistory: [],
-        isOTC: true, // Treat crypto as high-risk category
+        // Crypto is its own category — NOT OTC. Marking it isOTC:true made
+        // OTC_EXCHANGE mislabel BTC as an OTC penny stock (audit TS-C5).
+        isOTC: false,
+        category: "CRYPTO",
         dataAvailable: false,
       };
     }
@@ -548,7 +630,7 @@ async function fetchMarketDataFromCoinGecko(
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
       service: "COINGECKO",
-      endpoint: "coins+ohlc",
+      endpoint: "coins+market_chart",
       responseTime,
       statusCode: 200,
     });
@@ -556,7 +638,8 @@ async function fetchMarketDataFromCoinGecko(
     return {
       quote,
       priceHistory,
-      isOTC: true, // Treat crypto as high-risk category (similar to OTC stocks)
+      isOTC: false,
+      category: "CRYPTO",
       dataAvailable: true,
     };
   } catch (error) {
@@ -567,14 +650,15 @@ async function fetchMarketDataFromCoinGecko(
       return {
         quote: null,
         priceHistory: [],
-        isOTC: true,
+        isOTC: false,
+        category: "CRYPTO",
         dataAvailable: false,
       };
     }
     const responseTime = Date.now() - apiStartTime;
     await logApiUsage({
       service: "COINGECKO",
-      endpoint: "coins+ohlc",
+      endpoint: "coins+market_chart",
       responseTime,
       statusCode: 500,
       errorMessage: error instanceof Error ? error.message : "Unknown error",
@@ -584,7 +668,8 @@ async function fetchMarketDataFromCoinGecko(
     return {
       quote: null,
       priceHistory: [],
-      isOTC: true,
+      isOTC: false,
+      category: "CRYPTO",
       dataAvailable: false,
     };
   }
@@ -620,22 +705,30 @@ export async function fetchMarketData(
 ): Promise<MarketData> {
   const normalizedTicker = ticker.toUpperCase().trim();
 
-  // Check cache first
-  const cached = cache.get(normalizedTicker);
+  // Cache key includes assetType so a stock scan and a crypto scan of the same
+  // symbol (e.g. SOL the NYSE stock vs SOL/Solana) never poison each other
+  // (audit TS-C4). Undefined assetType keys as "auto".
+  const cacheKey = `${assetType ?? "auto"}:${normalizedTicker}`;
+
+  const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data;
   }
 
-  // Determine if this is a crypto ticker
-  const isCrypto = assetType === "crypto" || isCryptoTicker(normalizedTicker);
+  // Crypto routing: ONLY treat as crypto when explicitly asked, or when no
+  // asset type was supplied and the symbol is a known coin. An explicit
+  // assetType:"stock" is NEVER routed to CoinGecko — real NYSE tickers that
+  // collide with coin symbols (SOL, APT, LINK) stay on the stock path (TS-C4).
+  const isCrypto =
+    assetType === "crypto" ||
+    (assetType === undefined && isCryptoTicker(normalizedTicker));
 
-  // Handle cryptocurrency using CoinGecko
   if (isCrypto) {
     console.log(`Fetching crypto data for ${normalizedTicker} from CoinGecko`);
     const coinGeckoResult =
       await fetchMarketDataFromCoinGecko(normalizedTicker);
     if (coinGeckoResult.dataAvailable) {
-      cacheSet(normalizedTicker, {
+      cacheSet(cacheKey, {
         data: coinGeckoResult,
         timestamp: Date.now(),
       });
@@ -646,7 +739,8 @@ export async function fetchMarketData(
     return {
       quote: null,
       priceHistory: [],
-      isOTC: true,
+      isOTC: false,
+      category: "CRYPTO",
       dataAvailable: false,
     };
   }
@@ -655,7 +749,7 @@ export async function fetchMarketData(
   if (config.fmpApiKey) {
     const fmpResult = await fetchMarketDataFromFMP(normalizedTicker);
     if (fmpResult.dataAvailable) {
-      cacheSet(normalizedTicker, { data: fmpResult, timestamp: Date.now() });
+      cacheSet(cacheKey, { data: fmpResult, timestamp: Date.now() });
       return fmpResult;
     }
   }
@@ -664,7 +758,7 @@ export async function fetchMarketData(
   if (config.alphaVantageApiKey) {
     const avResult = await fetchMarketDataFromAlphaVantage(normalizedTicker);
     if (avResult.dataAvailable) {
-      cacheSet(normalizedTicker, { data: avResult, timestamp: Date.now() });
+      cacheSet(cacheKey, { data: avResult, timestamp: Date.now() });
       return avResult;
     }
   }
@@ -675,6 +769,7 @@ export async function fetchMarketData(
     quote: null,
     priceHistory: [],
     isOTC: false,
+    category: "UNKNOWN",
     dataAvailable: false,
   };
 }
@@ -738,6 +833,7 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
       quote,
       priceHistory,
       isOTC,
+      category: isOTC ? "OTC" : "MAJOR",
       dataAvailable: true,
     };
   } catch (error) {
@@ -839,6 +935,7 @@ async function fetchMarketDataFromAlphaVantage(
       quote,
       priceHistory,
       isOTC,
+      category: isOTC ? "OTC" : "MAJOR",
       dataAvailable: true,
     };
   } catch (error) {
@@ -915,19 +1012,62 @@ export async function checkAlertList(ticker: string): Promise<boolean> {
 }
 
 /**
- * Check SEC RSS feed for recent trading suspensions
+ * Check SEC RSS feed for recent trading suspensions.
+ *
+ * Previously this did `text.toUpperCase().includes(ticker)` against the ENTIRE
+ * EDGAR XML, so short tickers ("GE" in "EXCHANGE", "ON"/"IT"/"ALL") matched
+ * arbitrary markup and force-flagged real symbols as HIGH — and without a
+ * compliant User-Agent EDGAR 403s the request so the check was often silently
+ * dead (audit TS-C3).
+ *
+ * Now it sends a compliant User-Agent and whole-word matches the ticker against
+ * PARSED <entry><title> text only. The structured regulatory DB
+ * (checkRegulatoryDatabase) remains the primary source; this is a best-effort
+ * supplement.
  */
 async function checkSECFeed(ticker: string): Promise<boolean> {
+  const normalized = ticker.toUpperCase().trim();
+  // Don't whole-word match against arbitrary 1-char tokens.
+  if (normalized.length < 2) return false;
+
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=34-&dateb=&owner=include&count=100&output=atom",
+      {
+        headers: {
+          // SEC requires a descriptive User-Agent with contact info.
+          "User-Agent": "ScamDunk/1.0 (compliance@scamdunk.app)",
+          Accept: "application/atom+xml",
+        },
+      },
     );
     if (!response.ok) return false;
     const text = await response.text();
-    return text.toUpperCase().includes(ticker);
+
+    // Extract <title> values from each <entry> and whole-word match the ticker
+    // against the title text only.
+    const wordBoundary = new RegExp(`\\b${escapeRegExp(normalized)}\\b`);
+    const entries = text.split("<entry>").slice(1);
+    for (const entry of entries) {
+      const titleMatch = entry.match(/<title[^>]*>([^<]+)<\/title>/);
+      if (!titleMatch) continue;
+      const title = titleMatch[1].toUpperCase();
+      // Only treat as a hit if the title is actually a suspension notice.
+      const isSuspension =
+        title.includes("SUSPENSION") || title.includes("SUSPEND");
+      if (isSuspension && wordBoundary.test(title)) {
+        return true;
+      }
+    }
+    return false;
   } catch {
     return false;
   }
+}
+
+/** Escape a string for safe use inside a RegExp. */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -995,346 +1135,4 @@ export async function checkRegulatoryFlags(ticker: string): Promise<{
       sources: [],
     };
   }
-}
-
-/**
- * Calculate price change percentage over a period
- */
-export function calculatePriceChange(
-  priceHistory: PriceHistory[],
-  days: number,
-): number | null {
-  if (priceHistory.length < days + 1) return null;
-
-  const currentPrice = priceHistory[priceHistory.length - 1].close;
-  const pastPrice = priceHistory[priceHistory.length - 1 - days].close;
-
-  if (pastPrice === 0) return null;
-
-  return ((currentPrice - pastPrice) / pastPrice) * 100;
-}
-
-/**
- * Calculate volume ratio compared to 30-day average
- */
-export function calculateVolumeRatio(
-  priceHistory: PriceHistory[],
-  days: number = 7,
-): number | null {
-  if (priceHistory.length < 30) return null;
-
-  // Calculate 30-day average volume
-  const last30Days = priceHistory.slice(-30);
-  const avgVolume30d =
-    last30Days.reduce((sum, day) => sum + day.volume, 0) / 30;
-
-  // Calculate recent average volume
-  const recentDays = priceHistory.slice(-days);
-  const recentAvgVolume =
-    recentDays.reduce((sum, day) => sum + day.volume, 0) / days;
-
-  if (avgVolume30d === 0) return null;
-
-  return recentAvgVolume / avgVolume30d;
-}
-
-/**
- * Detect spike-then-drop pattern (pump-and-dump)
- * Thresholds lowered based on research analysis for earlier detection
- * Returns true if price spiked 25%+ then dropped 20%+ from local max
- */
-export function detectSpikeThenDrop(priceHistory: PriceHistory[]): boolean {
-  if (priceHistory.length < 15) return false;
-
-  // Look at last 15 days
-  const recent = priceHistory.slice(-15);
-  const startPrice = recent[0].close;
-
-  // Find max price in the period
-  let maxPrice = startPrice;
-  let maxIndex = 0;
-  for (let i = 0; i < recent.length; i++) {
-    if (recent[i].high > maxPrice) {
-      maxPrice = recent[i].high;
-      maxIndex = i;
-    }
-  }
-
-  // Check if there was a 25%+ spike (lowered from 50% for earlier detection)
-  // Research: 20-30% rise is typical for smaller pump schemes
-  const spikePercent = ((maxPrice - startPrice) / startPrice) * 100;
-  if (spikePercent < 25) return false;
-
-  // Check if there's been a 20%+ drop from max (lowered from 40%)
-  // Research: 15-20% drop indicates dump phase has begun
-  const currentPrice = recent[recent.length - 1].close;
-  const dropPercent = ((maxPrice - currentPrice) / maxPrice) * 100;
-
-  // Only count as spike-then-drop if max wasn't at the end (still dropping)
-  return dropPercent >= 20 && maxIndex < recent.length - 2;
-}
-
-/**
- * Advanced Anomaly Detection Features
- * Ported from Python AI module for enhanced scam detection
- */
-
-/**
- * Calculate Z-score for a value given mean and standard deviation
- */
-function calculateZScore(value: number, mean: number, std: number): number {
-  if (std === 0) return 0;
-  return (value - mean) / std;
-}
-
-/**
- * Calculate mean of an array
- */
-function mean(arr: number[]): number {
-  if (arr.length === 0) return 0;
-  return arr.reduce((sum, val) => sum + val, 0) / arr.length;
-}
-
-/**
- * Calculate standard deviation of an array
- */
-function std(arr: number[]): number {
-  if (arr.length === 0) return 0;
-  const avg = mean(arr);
-  const squareDiffs = arr.map((value) => Math.pow(value - avg, 2));
-  return Math.sqrt(mean(squareDiffs));
-}
-
-/**
- * Calculate RSI (Relative Strength Index)
- * RSI > 70 indicates overbought, RSI < 30 indicates oversold
- */
-export function calculateRSI(
-  priceHistory: PriceHistory[],
-  period: number = 14,
-): number | null {
-  if (priceHistory.length < period + 1) return null;
-
-  const changes: number[] = [];
-  for (let i = 1; i < priceHistory.length; i++) {
-    changes.push(priceHistory[i].close - priceHistory[i - 1].close);
-  }
-
-  const recentChanges = changes.slice(-period);
-  const gains = recentChanges.filter((c) => c > 0);
-  const losses = recentChanges.filter((c) => c < 0).map((c) => Math.abs(c));
-
-  const avgGain = gains.length > 0 ? mean(gains) : 0;
-  const avgLoss = losses.length > 0 ? mean(losses) : 0;
-
-  if (avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return 100 - 100 / (1 + rs);
-}
-
-/**
- * Detect price anomaly using Z-score analysis
- * Returns anomaly details if current price is statistically unusual
- */
-export function detectPriceAnomaly(priceHistory: PriceHistory[]): {
-  isAnomaly: boolean;
-  zScore: number;
-  severity: "low" | "medium" | "high" | "extreme";
-} {
-  if (priceHistory.length < 30) {
-    return { isAnomaly: false, zScore: 0, severity: "low" };
-  }
-
-  // Calculate daily returns
-  const returns: number[] = [];
-  for (let i = 1; i < priceHistory.length; i++) {
-    const dailyReturn =
-      (priceHistory[i].close - priceHistory[i - 1].close) /
-      priceHistory[i - 1].close;
-    returns.push(dailyReturn);
-  }
-
-  // Use rolling 30-day window for baseline
-  const baselineReturns = returns.slice(-30, -1);
-  const currentReturn = returns[returns.length - 1];
-
-  const returnMean = mean(baselineReturns);
-  const returnStd = std(baselineReturns);
-  const zScore = calculateZScore(currentReturn, returnMean, returnStd);
-
-  // Determine severity based on Z-score thresholds
-  const absZ = Math.abs(zScore);
-  let severity: "low" | "medium" | "high" | "extreme" = "low";
-  let isAnomaly = false;
-
-  if (absZ >= 4) {
-    severity = "extreme";
-    isAnomaly = true;
-  } else if (absZ >= 3) {
-    severity = "high";
-    isAnomaly = true;
-  } else if (absZ >= 2) {
-    severity = "medium";
-    isAnomaly = true;
-  }
-
-  return { isAnomaly, zScore, severity };
-}
-
-/**
- * Detect volume anomaly using Z-score analysis
- */
-export function detectVolumeAnomaly(priceHistory: PriceHistory[]): {
-  isAnomaly: boolean;
-  zScore: number;
-  multiplier: number;
-} {
-  if (priceHistory.length < 30) {
-    return { isAnomaly: false, zScore: 0, multiplier: 1 };
-  }
-
-  const volumes = priceHistory.map((p) => p.volume);
-  const baselineVolumes = volumes.slice(-30, -1);
-  const currentVolume = volumes[volumes.length - 1];
-
-  const volMean = mean(baselineVolumes);
-  const volStd = std(baselineVolumes);
-  const zScore = calculateZScore(currentVolume, volMean, volStd);
-  const multiplier = volMean > 0 ? currentVolume / volMean : 1;
-
-  // Volume anomaly if Z-score > 2 or volume > 3x average
-  const isAnomaly = zScore > 2 || multiplier > 3;
-
-  return { isAnomaly, zScore, multiplier };
-}
-
-/**
- * Calculate surge metrics for different time periods
- */
-export function calculateSurgeMetrics(priceHistory: PriceHistory[]): {
-  surge7d: number | null;
-  surge30d: number | null;
-  surge90d: number | null;
-  isExtremeSurge: boolean;
-} {
-  const result = {
-    surge7d: calculatePriceChange(priceHistory, 7),
-    surge30d: calculatePriceChange(priceHistory, 30),
-    surge90d: calculatePriceChange(priceHistory, 90),
-    isExtremeSurge: false,
-  };
-
-  // Extreme surge: >100% in 7 days or >200% in 30 days
-  if (
-    (result.surge7d && result.surge7d > 100) ||
-    (result.surge30d && result.surge30d > 200)
-  ) {
-    result.isExtremeSurge = true;
-  }
-
-  return result;
-}
-
-/**
- * Calculate volatility metrics
- */
-export function calculateVolatility(priceHistory: PriceHistory[]): {
-  dailyVolatility: number;
-  isHighVolatility: boolean;
-} {
-  if (priceHistory.length < 14) {
-    return { dailyVolatility: 0, isHighVolatility: false };
-  }
-
-  // Calculate daily returns
-  const returns: number[] = [];
-  for (let i = 1; i < priceHistory.length; i++) {
-    const dailyReturn =
-      (priceHistory[i].close - priceHistory[i - 1].close) /
-      priceHistory[i - 1].close;
-    returns.push(dailyReturn);
-  }
-
-  const recentReturns = returns.slice(-14);
-  const dailyVolatility = std(recentReturns) * 100; // As percentage
-
-  // High volatility if daily std > 5%
-  const isHighVolatility = dailyVolatility > 5;
-
-  return { dailyVolatility, isHighVolatility };
-}
-
-/**
- * Comprehensive anomaly detection combining multiple signals
- */
-export function runAnomalyDetection(priceHistory: PriceHistory[]): {
-  hasAnomalies: boolean;
-  anomalyScore: number;
-  signals: string[];
-} {
-  const signals: string[] = [];
-  let anomalyScore = 0;
-
-  // Price anomaly detection
-  const priceAnomaly = detectPriceAnomaly(priceHistory);
-  if (priceAnomaly.isAnomaly) {
-    if (priceAnomaly.severity === "extreme") {
-      signals.push(
-        `Extreme price movement detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`,
-      );
-      anomalyScore += 4;
-    } else if (priceAnomaly.severity === "high") {
-      signals.push(
-        `Significant price anomaly detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`,
-      );
-      anomalyScore += 3;
-    } else if (priceAnomaly.severity === "medium") {
-      signals.push(
-        `Unusual price movement detected (Z-score: ${priceAnomaly.zScore.toFixed(1)})`,
-      );
-      anomalyScore += 2;
-    }
-  }
-
-  // Volume anomaly detection
-  const volumeAnomaly = detectVolumeAnomaly(priceHistory);
-  if (volumeAnomaly.isAnomaly) {
-    signals.push(
-      `Unusual trading volume: ${volumeAnomaly.multiplier.toFixed(1)}x normal`,
-    );
-    anomalyScore += volumeAnomaly.multiplier > 5 ? 3 : 2;
-  }
-
-  // Surge detection
-  const surgeMetrics = calculateSurgeMetrics(priceHistory);
-  if (surgeMetrics.isExtremeSurge) {
-    const surgeVal = surgeMetrics.surge7d || surgeMetrics.surge30d || 0;
-    signals.push(`Extreme price surge: ${surgeVal.toFixed(0)}% gain`);
-    anomalyScore += 3;
-  }
-
-  // RSI overbought detection
-  const rsi = calculateRSI(priceHistory);
-  if (rsi && rsi > 80) {
-    signals.push(`Extremely overbought (RSI: ${rsi.toFixed(0)})`);
-    anomalyScore += 2;
-  } else if (rsi && rsi > 70) {
-    signals.push(`Overbought conditions (RSI: ${rsi.toFixed(0)})`);
-    anomalyScore += 1;
-  }
-
-  // Volatility detection
-  const volatility = calculateVolatility(priceHistory);
-  if (volatility.isHighVolatility) {
-    signals.push(
-      `High volatility: ${volatility.dailyVolatility.toFixed(1)}% daily swings`,
-    );
-    anomalyScore += 1;
-  }
-
-  return {
-    hasAnomalies: signals.length > 0,
-    anomalyScore,
-    signals,
-  };
 }

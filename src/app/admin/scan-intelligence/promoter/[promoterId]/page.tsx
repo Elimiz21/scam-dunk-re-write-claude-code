@@ -98,11 +98,26 @@ export default function PromoterDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    // Reset error + loading on every param change (e.g. clicking a co-promoter)
+    // so navigation never gets permanently stuck on a stale "not found" state.
+    setError(null);
+    setLoading(true);
+    setPromoter(null);
+    setMentions([]);
+
     async function load() {
       try {
-        const res = await fetch("/api/admin/scan-intelligence/promoters");
+        const res = await fetch("/api/admin/scan-intelligence/promoters", {
+          signal: controller.signal,
+        });
+        if (res.status === 401) {
+          window.location.href = "/admin/login";
+          return;
+        }
         if (!res.ok) throw new Error("Failed to load");
         const data = await res.json();
+        if (controller.signal.aborted) return;
         const match =
           (data.promoters || []).find(
             (p: Promoter) => p.promoterId === promoterId,
@@ -123,18 +138,23 @@ export default function PromoterDetailPage() {
 
         const socialRes = await fetch(
           `/api/admin/social-scan?author=${encodeURIComponent(match.identifier)}&platform=${encodeURIComponent(match.platform)}&promotionalOnly=true&limit=25`,
+          { signal: controller.signal },
         );
         if (socialRes.ok) {
           const social = await socialRes.json();
+          if (controller.signal.aborted) return;
           setMentions(social.mentions || []);
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (controller.signal.aborted) return;
         setError("Failed to load promoter data");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
     load();
+    return () => controller.abort();
   }, [fallbackIdentifier, fallbackPlatform, promoterId]);
 
   if (loading) {
@@ -287,7 +307,7 @@ export default function PromoterDetailPage() {
           </h3>
 
           <div className="space-y-2">
-            {promoter.stocksPromoted
+            {[...promoter.stocksPromoted]
               .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
               .map((stock, i) => {
                 const statusColor =
@@ -399,7 +419,7 @@ export default function PromoterDetailPage() {
 
           {promoter.coPromoters.length > 0 ? (
             <div className="space-y-2">
-              {promoter.coPromoters
+              {[...promoter.coPromoters]
                 .sort((a, b) => b.sharedStocks.length - a.sharedStocks.length)
                 .map((co, i) => (
                   <button

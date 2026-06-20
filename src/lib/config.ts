@@ -221,10 +221,30 @@ export function getScanLimit(plan: "FREE" | "PAID"): number {
     : config.freeChecksPerMonth;
 }
 
-// Get current month key in YYYY-MM format
+/**
+ * Single source of truth for the password policy, shared by every flow that
+ * sets a password (register, reset, admin setup, profile change) and their
+ * client forms. Previously these disagreed (10 vs 8), letting the reset flow
+ * bypass the stronger signup minimum.
+ */
+export const MIN_PASSWORD_LENGTH = 10;
+
+/** Returns an error string if the password is too weak, otherwise null. */
+export function validatePasswordStrength(password: string): string | null {
+  if (typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+  }
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return "Password must include uppercase, lowercase, and a number";
+  }
+  return null;
+}
+
+// Get current month key in YYYY-MM format (UTC, so the quota boundary is
+// stable regardless of server/region timezone).
 export function getCurrentMonthKey(): string {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
 }

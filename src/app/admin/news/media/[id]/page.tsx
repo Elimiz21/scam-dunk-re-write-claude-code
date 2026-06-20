@@ -48,13 +48,21 @@ export default function AdminMediaEditorPage() {
 
   useEffect(() => {
     if (!isNew) {
+      setLoading(true);
       fetchMention();
     }
-  }, [isNew]);
+    // Key on params.id (not isNew) so back/forward between mentions refetches
+    // the correct record instead of showing a stale one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]);
 
   async function fetchMention() {
     try {
       const res = await fetch(`/api/admin/news/media/${params.id}`);
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setMention({
@@ -408,6 +416,11 @@ export default function AdminMediaEditorPage() {
                       className="mt-3 w-24 h-24 object-contain rounded-2xl border"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                      onLoad={(e) => {
+                        // Reset visibility so a corrected URL re-shows after a
+                        // prior load error hid the element.
+                        (e.target as HTMLImageElement).style.display = "";
                       }}
                     />
                   )}

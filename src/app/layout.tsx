@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     siteName: "ScamDunk",
     images: [
       {
-        url: `${siteUrl}/og-image.png`,
+        url: `${siteUrl}/opengraph-image`,
         width: 1200,
         height: 630,
         alt: "ScamDunk - Detect Stock Scam Red Flags",
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     title: "ScamDunk - Detect Stock Scam Red Flags",
     description:
       "Spot investment scam red flags instantly. ScamDunk analyzes stock pitches for pump-and-dump signals, volume anomalies, and manipulation patterns.",
-    images: [`${siteUrl}/og-image.png`],
+    images: [`${siteUrl}/opengraph-image`],
   },
   robots: {
     index: true,
@@ -70,6 +70,8 @@ export const metadata: Metadata = {
 };
 
 // Global schema: WebSite + Organization (injected on every page)
+// NOTE: no SearchAction/potentialAction — the site has no `?q=` search
+// endpoint, so advertising one would be misleading structured data.
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -77,14 +79,6 @@ const websiteSchema = {
   url: siteUrl,
   description:
     "Investment scam detection tool that analyzes stock pitches for pump-and-dump signals and manipulation patterns.",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${siteUrl}/?q={search_term_string}`,
-    },
-    "query-input": "required name=search_term_string",
-  },
 };
 
 const organizationSchema = {
@@ -92,7 +86,7 @@ const organizationSchema = {
   "@type": "Organization",
   name: "ScamDunk",
   url: siteUrl,
-  logo: `${siteUrl}/og-image.png`,
+  logo: `${siteUrl}/opengraph-image`,
   description:
     "ScamDunk helps retail investors identify potential stock manipulation and pump-and-dump schemes through data-driven forensic analysis.",
   foundingDate: "2024",

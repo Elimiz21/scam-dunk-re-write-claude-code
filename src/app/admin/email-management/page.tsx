@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import StatCard from "@/components/admin/StatCard";
 import AlertBanner from "@/components/admin/AlertBanner";
@@ -161,7 +161,11 @@ export default function EmailManagementPage() {
   const [logTypeFilter, setLogTypeFilter] = useState("");
   const [logStatusFilter, setLogStatusFilter] = useState("");
   const [logSearch, setLogSearch] = useState("");
+  // Debounced copy of logSearch — drives the fetch so typing doesn't fire one
+  // request per keystroke (which previously raced out-of-order responses).
+  const [debouncedLogSearch, setDebouncedLogSearch] = useState("");
   const [logsLoading, setLogsLoading] = useState(false);
+  const logsAbortRef = useRef<AbortController | null>(null);
 
   // ============ Data Loading ============
 
@@ -196,7 +200,11 @@ export default function EmailManagementPage() {
   }, []);
 
   const loadLogs = useCallback(async () => {
+    logsAbortRef.current?.abort();
+    const controller = new AbortController();
+    logsAbortRef.current = controller;
     setLogsLoading(true);
+    setError("");
     try {
       const params = new URLSearchParams({
         section: "logs",
@@ -205,19 +213,40 @@ export default function EmailManagementPage() {
       });
       if (logTypeFilter) params.append("emailType", logTypeFilter);
       if (logStatusFilter) params.append("status", logStatusFilter);
-      if (logSearch) params.append("search", logSearch);
+      if (debouncedLogSearch) params.append("search", debouncedLogSearch);
 
-      const res = await fetch(`/api/admin/email-management?${params}`);
+      const res = await fetch(`/api/admin/email-management?${params}`, {
+        signal: controller.signal,
+      });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to load email logs");
       const data = await res.json();
+      if (controller.signal.aborted) return;
       setLogs(data.logs || []);
       setLogPagination(data.pagination);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed to load logs");
     } finally {
-      setLogsLoading(false);
+      if (logsAbortRef.current === controller) setLogsLoading(false);
     }
-  }, [logPagination.page, logTypeFilter, logStatusFilter, logSearch]);
+  }, [logPagination.page, logTypeFilter, logStatusFilter, debouncedLogSearch]);
+
+  // Debounce the log search; reset to page 1 when the settled value changes.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedLogSearch((prev) => {
+        if (prev !== logSearch) {
+          setLogPagination((p) => ({ ...p, page: 1 }));
+        }
+        return logSearch;
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [logSearch]);
 
   useEffect(() => {
     loadOverview();
@@ -1280,10 +1309,7 @@ export default function EmailManagementPage() {
                   <input
                     type="text"
                     value={logSearch}
-                    onChange={(e) => {
-                      setLogSearch(e.target.value);
-                      setLogPagination((p) => ({ ...p, page: 1 }));
-                    }}
+                    onChange={(e) => setLogSearch(e.target.value)}
                     placeholder="Search by email or subject..."
                     className="w-full pl-10 pr-4 py-2 border border-border rounded-md text-sm bg-card text-foreground placeholder:text-muted-foreground"
                   />

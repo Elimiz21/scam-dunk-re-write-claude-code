@@ -20,16 +20,49 @@ export interface RiskSignal {
 
 export type AssetType = "stock" | "crypto";
 
+/**
+ * Market category for a security. Distinct from `isOTC` so that crypto assets
+ * are not mislabelled as OTC-traded penny stocks. Used to pick thresholds and
+ * to decide whether the OTC_EXCHANGE structural signal applies.
+ */
+export type MarketCategory = "MAJOR" | "OTC" | "CRYPTO" | "UNKNOWN";
+
+/**
+ * Confidence in the data backing a scoring result.
+ * - "full": quote + >= 30 daily price points (all signal families evaluable)
+ * - "quote-only": quote present but < 30 price points (pattern/anomaly skipped)
+ * - "none": no usable market data at all
+ */
+export type DataCompleteness = "full" | "quote-only" | "none";
+
+/**
+ * Behavioral red-flag context. All flags concrete booleans once normalized.
+ * Use `normalizeBehavioralContext` to turn an optional/partial API payload into this.
+ */
+export interface BehavioralContext {
+  unsolicited: boolean;
+  promisesHighReturns: boolean;
+  urgencyPressure: boolean;
+  secrecyInsideInfo: boolean;
+}
+
 export interface CheckRequest {
   ticker: string;
   companyName?: string;
   assetType?: AssetType;
   pitchText?: string;
-  context?: {
-    unsolicited?: boolean;
-    promisesHighReturns?: boolean;
-    urgencyPressure?: boolean;
-    secrecyInsideInfo?: boolean;
+  context?: Partial<BehavioralContext>;
+}
+
+/** Fill missing behavioral flags with `false` so scoring always sees concrete booleans. */
+export function normalizeBehavioralContext(
+  context?: Partial<BehavioralContext>,
+): BehavioralContext {
+  return {
+    unsolicited: context?.unsolicited ?? false,
+    promisesHighReturns: context?.promisesHighReturns ?? false,
+    urgencyPressure: context?.urgencyPressure ?? false,
+    secrecyInsideInfo: context?.secrecyInsideInfo ?? false,
   };
 }
 
@@ -75,6 +108,12 @@ export interface RiskResponse {
   usage: UsageInfo;
   isLegitimate?: boolean;
   newsVerification?: NewsVerification;
+  /**
+   * Data confidence indicator surfaced to the client so partial-data scans
+   * (e.g. quote present but price history unavailable) are not mistaken for a
+   * confident LOW. See DataCompleteness.
+   */
+  dataCompleteness?: DataCompleteness;
 }
 
 export interface LimitReachedResponse {
@@ -113,18 +152,26 @@ export interface MarketData {
   priceHistory: PriceHistory[];
   isOTC: boolean;
   dataAvailable: boolean;
+  /**
+   * Market category. When omitted, callers should derive it from `isOTC`
+   * (true => "OTC", false => "MAJOR"). Crypto fetchers set this to "CRYPTO"
+   * so OTC_EXCHANGE never mislabels a coin as an OTC penny stock.
+   */
+  category?: MarketCategory;
 }
 
 // Scoring Types
 export interface ScoringInput {
   marketData: MarketData;
   pitchText: string;
-  context: {
-    unsolicited: boolean;
-    promisesHighReturns: boolean;
-    urgencyPressure: boolean;
-    secrecyInsideInfo: boolean;
-  };
+  context: BehavioralContext;
+  /**
+   * Pre-computed regulatory/alert-list hit from the route layer. When true the
+   * engine emits ALERT_LIST_HIT and forces HIGH even with no quote (e.g. a
+   * trading-suspended ticker with no live price). When undefined the async
+   * `computeRiskScore` performs its own alert-list lookup.
+   */
+  secFlagged?: boolean;
 }
 
 export interface ScoringResult {
@@ -133,4 +180,6 @@ export interface ScoringResult {
   riskLevel: RiskLevel;
   isInsufficient: boolean;
   isLegitimate: boolean;
+  /** How complete the underlying market data was. */
+  dataCompleteness: DataCompleteness;
 }

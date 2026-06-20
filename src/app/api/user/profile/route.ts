@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/db";
+import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,14 @@ const updateProfileSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "New password must be at least 8 characters"),
+  // Length floor enforced here; full complexity rules via
+  // validatePasswordStrength below so this path matches register/reset (SEC-L6).
+  newPassword: z
+    .string()
+    .min(
+      MIN_PASSWORD_LENGTH,
+      `New password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+    ),
 });
 
 // Update profile (name)
@@ -125,6 +133,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const { currentPassword, newPassword } = validation.data;
+
+    // Enforce the shared password policy (complexity), consistent with the
+    // register/reset/admin-setup flows (audit SEC-L6).
+    const strengthError = validatePasswordStrength(newPassword);
+    if (strengthError) {
+      return NextResponse.json({ error: strengthError }, { status: 400 });
+    }
 
     // Get user with password
     const user = await prisma.user.findUnique({

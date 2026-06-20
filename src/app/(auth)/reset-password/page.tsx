@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Shield, Loader2, Lock, Check, XCircle } from "lucide-react";
+import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/config";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -37,8 +38,10 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    // Use the shared password policy so reset matches signup (was 8 vs 10) — FE-M8.
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -145,7 +148,8 @@ function ResetPasswordForm() {
               disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground">
-              Must be at least 8 characters
+              Must be at least {MIN_PASSWORD_LENGTH} characters, with uppercase,
+              lowercase, and a number
             </p>
           </div>
           <div className="space-y-2">

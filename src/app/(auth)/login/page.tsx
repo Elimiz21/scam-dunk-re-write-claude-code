@@ -51,14 +51,18 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        // Check if it's an email verification error
-        // NextAuth v5 returns the error code from CredentialsSignin subclasses
-        if (
-          result.error === "EMAIL_NOT_VERIFIED" ||
-          result.error.includes("EMAIL_NOT_VERIFIED")
-        ) {
+        // Check if it's an email verification error.
+        // NextAuth v5 sets result.error = "CredentialsSignin" for ALL failures
+        // and exposes the CredentialsSignin subclass's `code` in result.code.
+        // So EMAIL_NOT_VERIFIED must be detected via result.code, not
+        // result.error (which would never match) — FE-H2.
+        if (result.code === "EMAIL_NOT_VERIFIED") {
           setShowVerificationPrompt(true);
           setError("Please verify your email before logging in.");
+        } else if (result.code === "TOO_MANY_ATTEMPTS") {
+          setError(
+            "Too many login attempts. Please wait a minute and try again.",
+          );
         } else if (result.error === "CredentialsSignin") {
           setError("Invalid email or password");
         } else if (

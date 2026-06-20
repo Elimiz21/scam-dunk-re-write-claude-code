@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScamDunk — What Was Done & What's Left (Plain Language)</title>
+<style>
+  :root{
+    --ink:#1c2230; --muted:#5b6477; --line:#e2e6ed; --bg:#ffffff; --soft:#f6f8fb;
+    --brand:#0b5cab; --branddark:#073f78; --good:#0f766e; --goodbg:#e7f5f2;
+    --warn:#b45309; --warnbg:#fdf3e6; --stop:#b3001b; --stopbg:#fdecee;
+    --todo:#5b3ea6; --todobg:#f1ecfb;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--soft);margin:0;line-height:1.6;font-size:16px}
+  .wrap{max-width:840px;margin:0 auto;padding:32px 24px 80px;background:var(--bg)}
+  header{border-bottom:4px solid var(--brand);padding-bottom:20px;margin-bottom:8px}
+  h1{font-size:28px;margin:0 0 6px;color:var(--branddark);letter-spacing:-.3px}
+  .lead{color:var(--muted);font-size:15px}
+  h2{font-size:22px;color:var(--branddark);margin:34px 0 12px;padding-top:8px}
+  h3{font-size:18px;margin:22px 0 6px}
+  p{margin:10px 0}
+  .tldr{background:var(--goodbg);border:1px solid var(--good);border-radius:10px;padding:16px 20px;margin:18px 0}
+  .tldr h2{margin-top:0;color:var(--good);font-size:18px}
+  .card{border:1px solid var(--line);border-radius:10px;padding:4px 20px 16px;margin:16px 0;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.3px;vertical-align:middle}
+  .pill.done{background:var(--goodbg);color:var(--good)}
+  .pill.todo{background:var(--todobg);color:var(--todo)}
+  .pill.you{background:var(--stopbg);color:var(--stop)}
+  .was{color:var(--stop);font-weight:600}
+  .now{color:var(--good);font-weight:600}
+  .label{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:10px}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:6px 0}
+  .money{background:var(--warnbg);border-left:4px solid var(--warn);padding:2px 14px;border-radius:6px;margin:12px 0}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th{background:var(--brand);color:#fff;text-align:left;padding:8px 10px}
+  td{border:1px solid var(--line);padding:8px 10px;vertical-align:top}
+  tr:nth-child(even) td{background:var(--soft)}
+  .ask{background:#fff;border:2px dashed var(--brand);border-radius:10px;padding:18px 20px;margin:14px 0}
+  .qbtn{display:block;width:100%;text-align:left;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:11px 14px;margin:8px 0;cursor:pointer;font-size:14.5px;color:var(--ink);transition:.12s}
+  .qbtn:hover{background:#eef4fb;border-color:var(--brand)}
+  .qbtn b{color:var(--branddark)}
+  textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font-family:inherit;font-size:14px;min-height:70px;margin-top:6px}
+  .copybtn{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+  .copybtn:hover{background:var(--branddark)}
+  .copied{color:var(--good);font-weight:600;font-size:13px;margin-left:10px}
+  .note{font-size:13.5px;color:var(--muted);background:var(--soft);border-radius:8px;padding:10px 14px;margin:10px 0}
+  code{background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  footer{margin-top:40px;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13px}
+  @media print{body{background:#fff}.wrap{max-width:none;padding:0}.qbtn,.copybtn{display:none}.ask{border-style:solid}}
+</style>
+</head>
+<body><div class="wrap">
+
+<header>
+  <h1>ScamDunk: What I Fixed, and What's Left</h1>
+  <div class="lead">Plain-language summary for the owner · 12 June 2026 · All work is saved on the <code>claude/compassionate-clarke-s6xqk1</code> branch in GitHub</div>
+</header>
+
+<div class="tldr">
+  <h2>The short version</h2>
+  <p>I reviewed your entire app, found 272 issues, and <b>fixed essentially all of them in code</b> — 17 batches of changes, all tested (the app compiles, all automated tests pass, and a real production build succeeds). The work is safely in GitHub but <b>not yet live</b>.</p>
+  <p>To make it live and finish the last few items, I need you to do <b>5 short things</b> (about 30 minutes total — see the separate "Your Steps" page). The most urgent: <b>your database password was visible in the code, so you must change it today.</b></p>
+  <p>A few items are deliberately left for later because they need <i>your data</i> or <i>your decision</i> — not more coding. Those are listed near the bottom, and you can hand any of them back to me with one click.</p>
+</div>
+
+<h2>The three things you were worried about</h2>
+
+<div class="card">
+  <h3>1. The AI risk scores weren't trustworthy <span class="pill done">FIXED IN CODE</span></h3>
+  <p class="label">What was wrong</p>
+  <p>Two separate problems were making the scores unreliable:</p>
+  <ul>
+    <li><span class="was">Almost every small/penny stock was being flagged "HIGH risk"</span> — because the system counted the same warning sign 4–5 times over. When everything looks dangerous, people stop trusting the warnings.</li>
+    <li><span class="was">The "AI brain" wasn't actually running.</span> One of the two machine-learning models was silently broken and contributing nothing on every single scan; the other was trained on fake practice data, so its answers were noise. What customers saw was really just a checklist, not the AI you thought was running.</li>
+    <li><span class="was">The version you tested with was different from the version customers used</span> — so any accuracy you measured didn't reflect reality.</li>
+  </ul>
+  <p class="label">What I changed</p>
+  <ul>
+    <li><span class="now">One scoring system now, used everywhere</span> — what you test is exactly what customers get.</li>
+    <li>Stopped the double-counting, so ordinary stocks are no longer auto-flagged. Missing data is now treated as "unknown" (with a confidence label) instead of silently assuming the worst.</li>
+    <li><span class="now">Turned the broken AI models OFF by default</span> so they can't add noise, and fixed the underlying defect so they can be switched back on once they're trained on <i>real</i> data (that's one of the "later" items).</li>
+    <li>Fixed the regulatory checks (suspended stocks now correctly score HIGH; the fake "SEC list" of placeholder tickers is gone).</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>2. The social-media scans were unstable and expensive <span class="pill done">FIXED IN CODE</span></h3>
+  <div class="money"><b>Money finding:</b> <b>Apify is not used anywhere in your code.</b> I searched everything — the code, the dependency list, even the full history. If you're paying for an Apify subscription, it's money going nowhere. <b>Cancel it.</b> Your real scan costs come from three services (Serper, Perplexity, OpenAI), and they were roughly doubled by the instability below.</div>
+  <p class="label">What was wrong</p>
+  <ul>
+    <li><span class="was">Every full scan was timing out and losing its results</span> — the scan ran too long for the platform's limit, saved nothing until the very end, and got killed. Then a backup process re-ran the <i>same</i> paid searches, paying twice.</li>
+    <li>One scanner mathematically <i>could not</i> finish in the time allowed — it had never once completed a full run.</li>
+  </ul>
+  <p class="label">What I changed</p>
+  <ul>
+    <li><span class="now">Results are now saved as they come in</span>, so a timeout no longer wipes out (and re-bills) the whole scan.</li>
+    <li>Trimmed the searches (fewer, smarter queries; only pay for the expensive service on stocks that already look suspicious; skip posts already seen). <span class="now">Estimated 60–80% lower cost per scan</span> — on top of cancelling Apify.</li>
+    <li>Removed a broken, unused "browser agent" feature that was quietly collecting your personal Discord/Twitter/Instagram passwords (a ban-and-legal risk) while doing nothing.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>3. Security holes <span class="pill done">FIXED IN CODE</span> <span class="pill you">1 STEP NEEDS YOU</span></h3>
+  <p class="label">The urgent one</p>
+  <p><span class="was">Your live database password was written directly in the code</span> — anyone who could see the code could open your database and read every customer's data. I removed it from the code, but the password itself is still valid and is in the project's history. <b>You must change it in Supabase today</b> (Step 1 on your Steps page).</p>
+  <p class="label">Other holes I closed in code</p>
+  <ul>
+    <li><span class="was">Anyone could get unlimited free scans</span> through a side-door that checked your plan limit but never counted the scan. Fixed.</li>
+    <li><span class="was">One Apple purchase could unlock unlimited Pro accounts</span> (the receipt could be reused on any account). Fixed — each purchase is now tied to one account with a real expiry.</li>
+    <li><span class="was">The login page had no limit on password guessing.</span> Added rate-limiting.</li>
+    <li><span class="was">A "preview login" created an admin account with a password printed in the code.</span> Closed.</li>
+    <li><span class="was">Deleting your account didn't actually cancel your PayPal billing</span> — you'd keep being charged. Fixed.</li>
+    <li>Added standard web security headers (clickjacking/HTTPS protections) that were entirely missing.</li>
+  </ul>
+</div>
+
+<h2>Other important fixes you didn't ask about (but needed)</h2>
+<div class="card">
+  <ul>
+    <li><b>Your deploy process could silently delete live customer data.</b> Every deployment was running a command that force-syncs the database and can drop columns. I switched it to the safe, industry-standard "migrations" approach with a full rollback trail. <span class="pill done">FIXED</span> <span class="pill you">you run it once</span></li>
+    <li><b>There was no automated safety net.</b> Nothing checked the code before it went live — so mistakes were first discovered in production (where they could damage the database). I added an automated check that runs on every change. <span class="pill done">FIXED</span></li>
+    <li><b>The admin dashboard could go blank under light load</b> (it read data from GitHub with a tiny hourly limit; two browser tabs could exhaust it). Reduced the load and made failures visible instead of showing empty screens. <span class="pill done">FIXED</span> (a deeper rebuild is a "later" item)</li>
+    <li><b>The "upload a screenshot" feature on your scan page did nothing</b> — images were collected and thrown away, while the screen told users they were being analyzed. On a scam-protection product, that's a trust problem. I removed the misleading feature until the backend can actually process images. <span class="pill done">FIXED</span></li>
+    <li>Dozens of admin-dashboard bugs (pages freezing on a glitch, a draft reply leaking between support tickets, an editor security hole), plus website/SEO fixes. <span class="pill done">FIXED</span></li>
+  </ul>
+</div>
+
+<h2>What's left — and why I didn't just do it</h2>
+<p>None of these are blocked by more coding. They're blocked by needing your <b>data</b>, your <b>decision</b>, or your <b>access</b>. You can hand any one back to me with a click (next section).</p>
+<table>
+  <tr><th>Item</th><th>What it means</th><th>Why it's waiting</th></tr>
+  <tr><td><b>Dial in the score thresholds</b></td><td>Decide the exact line between "Medium" and "High" risk, measured against real outcomes.</td><td>Needs your labeled history (which past stocks really were scams). The engine is ready; I just need the data to tune it.</td></tr>
+  <tr><td><b>Re-train & re-enable the AI models</b></td><td>Train the two ML models on real scam data, then switch them back on.</td><td>Needs a real training dataset. They're safely OFF until then so they can't mislead.</td></tr>
+  <tr><td><b>Move the admin data to your database</b></td><td>Stop reading dashboards from GitHub; read from Postgres instead (faster, no limits).</td><td>A larger rebuild. I added a stop-gap; the full move is best done with database access + testing.</td></tr>
+  <tr><td><b>Upgrade the web framework</b> (Next.js 16)</td><td>Clears the last 5 dependency security warnings.</td><td>It's a "major version" change that can break things; needs careful testing, ideally after the above is stable.</td></tr>
+  <tr><td><b>Final polish</b></td><td>A handful of lower-traffic admin pages and accessibility touch-ups.</td><td>Low impact; I prioritised the engine, security, and stability first. Quick to finish on request.</td></tr>
+</table>
+
+<h2 id="ask">Ask me anything / send work back to me</h2>
+<div class="ask">
+  <p>There's no live chat inside this page. Instead, these buttons <b>copy a ready-made instruction to your clipboard</b> — just paste it into the ScamDunk Claude Code session (the same place you've been talking to me) and send. Click one:</p>
+
+  <button class="qbtn" onclick="copyText(this,'Walk me through granting you database access using a safe Supabase branch database, step by step, and then apply the migration and verify it.')">
+    <b>→ "Help me give you safe database access and finish the database items."</b></button>
+  <button class="qbtn" onclick="copyText(this,'Build the scoring calibration: use my labeled scheme data in evaluation/scheme-database to re-derive the HIGH/MEDIUM thresholds, and show me the precision/recall results before changing anything.')">
+    <b>→ "Tune the risk-score thresholds against my real data."</b></button>
+  <button class="qbtn" onclick="copyText(this,'Plan the full migration of the admin intelligence dashboard from the GitHub data source to Postgres, then implement and test it.')">
+    <b>→ "Do the full admin-dashboard rebuild onto my database."</b></button>
+  <button class="qbtn" onclick="copyText(this,'Attempt the Next.js 16 upgrade on a separate branch, fix what breaks, and report what changed and whether it is safe to merge.')">
+    <b>→ "Try the Next.js 16 upgrade safely on a side branch."</b></button>
+  <button class="qbtn" onclick="copyText(this,'Finish the deferred low-priority polish items from the audit (the remaining admin pages and accessibility fixes).')">
+    <b>→ "Finish the remaining polish items."</b></button>
+  <button class="qbtn" onclick="copyText(this,'Open the pull request for the claude/compassionate-clarke-s6xqk1 branch into main with a clear summary, so I can review and merge it.')">
+    <b>→ "Open a pull request so I can review and merge everything."</b></button>
+
+  <p style="margin-top:16px"><b>Or ask your own question.</b> Type it here, click Copy, and paste it into Claude Code:</p>
+  <textarea id="freeq" placeholder="e.g. Can you explain in more detail how the social-scan cost savings work?"></textarea>
+  <button class="copybtn" onclick="copyFree(this)">Copy my question</button>
+  <span id="freemsg"></span>
+</div>
+<div class="note">Prefer email? You can also forward any of these to your developer, or reply in the Claude Code session. Everything I've done is already in GitHub, so any teammate can review it there.</div>
+
+<footer>
+  Companion documents: <b>Your Steps</b> (the 5 things to do) · the full technical audit (<code>ScamDunk-Code-Audit-2026-06-11.pdf</code>) · the implementation status (<code>IMPLEMENTED.md</code>). All in the <code>audit/2026-06-11/</code> folder of your repository.
+</footer>
+
+<script>
+function copyText(btn, text){
+  navigator.clipboard.writeText(text).then(()=>{
+    var old = btn.innerHTML;
+    btn.innerHTML = old + ' <span class="copied">✓ Copied — now paste into Claude Code</span>';
+    setTimeout(()=>{btn.innerHTML = old;}, 2600);
+  }).catch(()=>{ window.prompt('Copy this text, then paste into Claude Code:', text); });
+}
+function copyFree(btn){
+  var t = document.getElementById('freeq').value.trim();
+  if(!t){ document.getElementById('freemsg').innerHTML = '<span class="copied" style="color:#b3001b">Type a question first.</span>'; return; }
+  navigator.clipboard.writeText(t).then(()=>{
+    document.getElementById('freemsg').innerHTML = '<span class="copied">✓ Copied — now paste into Claude Code</span>';
+  }).catch(()=>{ window.prompt('Copy this text, then paste into Claude Code:', t); });
+}
+</script>
+</div></body>
+</html>

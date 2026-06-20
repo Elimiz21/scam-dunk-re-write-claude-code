@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -75,6 +75,8 @@ function AccountContent() {
   const { addToast } = useToast();
 
   const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [isLoadingUsage, setIsLoadingUsage] = useState(true);
+  const [usageError, setUsageError] = useState(false);
   const [error, setError] = useState("");
 
   // Profile editing
@@ -111,23 +113,33 @@ function AccountContent() {
     }
   }, [status, router]);
 
+  // Key on the user id so we don't refetch on every NextAuth session-object
+  // change (token refresh, window refocus, etc.).
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user?.id) {
       fetchUsage();
       fetchSubscriptionInfo();
       setEditName(session.user.name || "");
     }
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
 
   const fetchUsage = async () => {
+    setIsLoadingUsage(true);
+    setUsageError(false);
     try {
       const response = await fetch("/api/user/usage");
       if (response.ok) {
         const data = await response.json();
         setUsage(data);
+      } else {
+        setUsageError(true);
       }
     } catch (err) {
       console.error("Failed to fetch usage:", err);
+      setUsageError(true);
+    } finally {
+      setIsLoadingUsage(false);
     }
   };
 
@@ -179,7 +191,9 @@ function AccountContent() {
     }
   };
 
-  const handlePayPalSuccess = () => {
+  // Memoized so PayPalButton receives stable callback identities and does not
+  // tear down / re-render the PayPal button on every parent re-render.
+  const handlePayPalSuccess = useCallback(() => {
     // Refresh usage and subscription data
     fetchUsage();
     fetchSubscriptionInfo();
@@ -192,11 +206,12 @@ function AccountContent() {
     });
     // Refresh the page to update UI
     router.refresh();
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addToast, router]);
 
-  const handlePayPalError = (error: string) => {
-    setError(`Payment failed: ${error}`);
-  };
+  const handlePayPalError = useCallback((err: string) => {
+    setError(`Payment failed: ${err}`);
+  }, []);
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
@@ -636,41 +651,56 @@ function AccountContent() {
                 <p className="text-sm text-muted-foreground">
                   Checks Used This Month
                 </p>
-                <div className="mt-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium">
-                      {usage?.scansUsedThisMonth ?? 0} /{" "}
-                      {usage?.scansLimitThisMonth ?? 5}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {usage?.scansLimitThisMonth &&
-                        usage.scansUsedThisMonth !== undefined &&
-                        Math.round(
-                          (usage.scansUsedThisMonth /
-                            usage.scansLimitThisMonth) *
-                            100,
-                        )}
-                      % used
-                    </span>
+                {usageError ? (
+                  <div className="mt-2">
+                    <p className="text-sm text-destructive">
+                      Couldn&apos;t load your usage right now.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={fetchUsage}
+                    >
+                      Retry
+                    </Button>
                   </div>
-                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{
-                        width: `${
-                          usage?.scansLimitThisMonth
-                            ? Math.min(
-                                ((usage.scansUsedThisMonth ?? 0) /
-                                  usage.scansLimitThisMonth) *
-                                  100,
-                                100,
-                              )
-                            : 0
-                        }%`,
-                      }}
-                    />
+                ) : isLoadingUsage || !usage ? (
+                  <div className="mt-2 animate-pulse">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="h-4 w-16 bg-secondary rounded" />
+                      <div className="h-4 w-14 bg-secondary rounded" />
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full" />
                   </div>
-                </div>
+                ) : (
+                  (() => {
+                    const used = usage.scansUsedThisMonth;
+                    const limit = usage.scansLimitThisMonth;
+                    const percentUsed =
+                      limit > 0
+                        ? Math.min(Math.round((used / limit) * 100), 100)
+                        : 0;
+                    return (
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium">
+                            {used} / {limit}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {percentUsed}% used
+                          </span>
+                        </div>
+                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all"
+                            style={{ width: `${percentUsed}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
                 <p className="text-xs text-muted-foreground mt-2">
                   Resets at the beginning of each month
                 </p>

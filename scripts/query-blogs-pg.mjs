@@ -1,10 +1,16 @@
 import pkg from "pg";
 const { Client } = pkg;
 
-const client = new Client({
-  connectionString:
-    "postgresql://postgres.gwzcluijtbuglznwdqqk:Scammers2232%21@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1",
-});
+// Connection string comes from the environment — never hardcode credentials.
+// (A previously committed literal password has been removed; rotate that
+// credential in Supabase per audit/2026-06-11/MORNING-CHECKLIST.md.)
+const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
+if (!connectionString) {
+  console.error("Set DATABASE_URL (or DIRECT_URL) before running this script.");
+  process.exit(1);
+}
+
+const client = new Client({ connectionString });
 
 try {
   await client.connect();

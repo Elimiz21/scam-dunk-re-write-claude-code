@@ -13,6 +13,7 @@ Run with: uvicorn api_server:app --host 0.0.0.0 --port 8000
 
 import os
 import sys
+import secrets
 from typing import Optional, Dict, Any, List, Literal
 from datetime import datetime
 import logging
@@ -31,8 +32,25 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 AI_API_SECRET = os.environ.get("AI_API_SECRET")
+
+# In production we MUST NOT fail open. If the secret is unset we refuse to start
+# unless explicitly opted out (ALLOW_UNAUTHENTICATED=true for local/dev only).
+# When that opt-out is set without a secret, every non-health route is 403'd.
+_ENVIRONMENT = os.environ.get("ENVIRONMENT", os.environ.get("RAILWAY_ENVIRONMENT", "")).strip().lower()
+_IS_PRODUCTION = _ENVIRONMENT in ("production", "prod") or os.environ.get("AI_REQUIRE_AUTH", "").strip().lower() in ("1", "true", "yes")
+_ALLOW_UNAUTHENTICATED = os.environ.get("ALLOW_UNAUTHENTICATED", "").strip().lower() in ("1", "true", "yes")
+
 if not AI_API_SECRET:
-    logger.warning("WARNING: AI_API_SECRET is not set. API endpoints are unprotected!")
+    if _IS_PRODUCTION and not _ALLOW_UNAUTHENTICATED:
+        raise RuntimeError(
+            "AI_API_SECRET is not set in a production environment. Refusing to "
+            "start with unauthenticated endpoints. Set AI_API_SECRET, or set "
+            "ALLOW_UNAUTHENTICATED=true to explicitly run without auth (NOT for production)."
+        )
+    logger.warning(
+        "WARNING: AI_API_SECRET is not set. Non-health endpoints will be REFUSED (403) "
+        "until a secret is configured."
+    )
 
 # Track pipeline initialization error for diagnostics
 pipeline_init_error: Optional[str] = None
@@ -56,12 +74,27 @@ app.add_middleware(
 
 @app.middleware("http")
 async def verify_api_key(request: Request, call_next):
+    # Always allow CORS preflight through so the browser is not blocked by a 401
+    # before CORS headers are applied (PY-L1).
+    if request.method == "OPTIONS":
+        return await call_next(request)
+    # Health/root are always reachable so the platform health check works.
     if request.url.path in ("/", "/health"):
         return await call_next(request)
+
+    provided = request.headers.get("X-API-Key")
     if AI_API_SECRET:
-        api_key = request.headers.get("X-API-Key")
-        if api_key != AI_API_SECRET:
+        # Constant-time comparison to avoid leaking the secret via timing.
+        if not secrets.compare_digest(provided or "", AI_API_SECRET):
             return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+    else:
+        # No secret configured: fail closed on every non-health route rather
+        # than leaving the service open (it only reaches here in non-production
+        # because production refuses to start without a secret).
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Service is not configured with an API key; requests are refused."},
+        )
     return await call_next(request)
 
 # Pipeline will be initialized lazily
@@ -99,20 +132,35 @@ pipeline_lock = asyncio.Lock()
 
 
 class AnalysisRequest(BaseModel):
-    """Request model for scam analysis"""
+    """Request model for scam analysis.
+
+    Matches the TS↔Python contract:
+    { ticker, asset_type, use_live_data, days, sec_flagged, news_flag }
+    """
     ticker: str = Field(..., max_length=10, description="Stock ticker or crypto symbol")
     asset_type: Literal["stock", "crypto"] = Field(default="stock", description="Asset type: 'stock' or 'crypto'")
     days: int = Field(default=90, ge=1, le=365, description="Days of historical data to analyze (1-365)")
     use_live_data: bool = Field(default=True, description="Use live API data (real market data from yfinance)")
     sec_flagged: Optional[bool] = Field(default=None, description="SEC flag result from upstream regulatory database check. Overrides internal SEC list when provided.")
+    news_flag: bool = Field(default=False, description="Whether the upstream layer found a legitimate news catalyst for recent price/volume activity (reduces false positives).")
+
+
+def _severity_from_weight(weight: int) -> str:
+    """Map a signal weight to a coarse severity label for the TS contract."""
+    if weight >= 4:
+        return "high"
+    if weight >= 2:
+        return "medium"
+    return "low"
 
 
 class SignalDetail(BaseModel):
-    """Individual risk signal"""
+    """Individual risk signal (contract: {code, description, weight, severity})."""
     code: str
     category: str
     description: str
     weight: int
+    severity: str = "low"
 
 
 class StockInfo(BaseModel):
@@ -182,42 +230,20 @@ async def get_pipeline():
         logger.info("Initializing ScamDunk AI Pipeline (lazy load)...")
 
         try:
-            from config import SEC_FLAGGED_TICKERS
-            from pipeline import ScamDetectionPipeline
+            from pipeline import ScamDetectionPipeline, ml_models_enabled
 
             loop = asyncio.get_running_loop()
+            # Models are loaded ONCE here (pre-trained artifacts shipped with the
+            # image). We never train in the request path or at startup — when ML
+            # is enabled and an artifact is missing/mismatched the pipeline simply
+            # degrades to rule-based scoring (see ScamDetectionPipeline.analyze).
             pipeline_instance = await loop.run_in_executor(
                 None, lambda: ScamDetectionPipeline(load_models=True)
             )
             logger.info("Pipeline initialized successfully")
-            logger.info(f"  - Random Forest: {'Ready' if pipeline_instance.rf_available else 'Not loaded'}")
-            logger.info(f"  - LSTM Model: {'Ready' if pipeline_instance.lstm_available else 'Not loaded'}")
-
-            # Train models if not available
-            if not pipeline_instance.rf_available:
-                logger.info("Training Random Forest model...")
-                await loop.run_in_executor(
-                    None,
-                    lambda: pipeline_instance.train_models(
-                        train_rf=True, train_lstm=False, save_models=True
-                    )
-                )
-                logger.info("RF training complete")
-
-            # Train LSTM if RF is ready but LSTM is not
-            if pipeline_instance.rf_available and not pipeline_instance.lstm_available:
-                logger.info("Training LSTM model...")
-                try:
-                    await loop.run_in_executor(
-                        None,
-                        lambda: pipeline_instance.train_models(
-                            train_rf=False, train_lstm=True,
-                            lstm_epochs=10, save_models=True
-                        )
-                    )
-                    logger.info("LSTM training complete")
-                except Exception as e:
-                    logger.warning(f"LSTM training failed: {e}")
+            logger.info(f"  - ML models enabled: {ml_models_enabled()}")
+            logger.info(f"  - Random Forest: {'Ready' if pipeline_instance.rf_available else 'Not loaded (rule-based)'}")
+            logger.info(f"  - LSTM Model: {'Ready' if pipeline_instance.lstm_available else 'Not loaded (rule-based)'}")
 
             # Set global pipeline
             pipeline = pipeline_instance
@@ -261,17 +287,32 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Check API health and model status"""
+    """Meaningful health check used by the platform health probe.
+
+    Reports readiness based on whether the pipeline loaded. When the pipeline
+    failed to initialize we return HTTP 503 so the platform does NOT consider a
+    permanently-broken instance healthy (PY-C5/PY-M2). When ML models are
+    disabled (the default), a loaded rule-based pipeline is still "ready".
+    """
+    from pipeline import ml_models_enabled
     p = pipeline  # Get current state without initializing
-    status = "healthy" if p is not None else ("error" if pipeline_init_error else "initializing")
-    return {
-        "status": status,
+    ml_enabled = ml_models_enabled()
+    ready = p is not None
+    body = {
+        "status": "healthy" if ready else ("error" if pipeline_init_error else "initializing"),
+        "ready": ready,
+        "ml_models_enabled": ml_enabled,
         "models_loaded": p is not None,
         "rf_ready": p.rf_available if p else False,
         "lstm_ready": p.lstm_available if p else False,
+        "scoring_mode": ("ml+rules" if (p and (p.rf_available or p.lstm_available)) else "rules_only"),
         "version": "1.0.0",
         "error": pipeline_init_error if p is None else None,
     }
+    if not ready and pipeline_init_error:
+        # Surface a hard failure to the health probe.
+        return JSONResponse(status_code=503, content=body)
+    return body
 
 
 @app.post("/analyze", response_model=AnalysisResponse)
@@ -297,7 +338,9 @@ async def analyze_asset(request: AnalysisRequest):
                 asset_type=request.asset_type,
                 use_synthetic=not request.use_live_data,
                 is_scam_scenario=False,
-                news_flag=False,
+                # Plumb the upstream news flag through so the news-aware
+                # false-positive reduction can actually activate (PY-H7).
+                news_flag=request.news_flag,
                 sec_flagged_override=request.sec_flagged
             )
         )
@@ -310,6 +353,7 @@ async def analyze_asset(request: AnalysisRequest):
                 category=sig.category,
                 description=sig.description,
                 weight=sig.weight,
+                severity=_severity_from_weight(sig.weight),
             ))
 
         total_score = assessment.signal_total_score
@@ -368,8 +412,13 @@ async def analyze_asset(request: AnalysisRequest):
             explanations=explanations if explanations else assessment.key_indicators,
             sec_flagged=assessment.sec_flagged,
             is_otc=contextual_flags.get('is_otc', False),
-            is_micro_cap=data_summary.get('market_cap', float('inf')) < 50_000_000 if data_summary.get('market_cap') else False,
-            data_available=True,
+            is_micro_cap=(
+                data_summary.get('market_cap') is not None
+                and data_summary['market_cap'] < 50_000_000
+            ),
+            # Honour the pipeline's data-availability verdict (PY-H8) instead of
+            # hardcoding True. Thin history / missing fundamentals -> False.
+            data_available=assessment.data_available,
             analysis_timestamp=assessment.timestamp,
             stock_info=stock_info,
             news_verification=news_ver
@@ -400,30 +449,47 @@ async def analyze_asset(request: AnalysisRequest):
 
 @app.get("/sec-check/{ticker}")
 async def check_sec_flagged(ticker: str):
-    """Check if a ticker is on the SEC flagged list"""
+    """NON-AUTHORITATIVE local SEC fallback check.
+
+    The authoritative SEC flag is computed by the TypeScript layer from real
+    regulatory data and passed into /analyze via the `sec_flagged` field. This
+    endpoint only consults the small local demo list and MUST NOT be treated as
+    a real regulatory source — it exists for diagnostics/fallback only.
+    """
     from config import SEC_FLAGGED_TICKERS
     flagged = ticker.upper() in SEC_FLAGGED_TICKERS
     return {
         "ticker": ticker.upper(),
         "sec_flagged": flagged,
-        "message": "This ticker appears on SEC regulatory alerts" if flagged else "Not on SEC alert list"
+        "authoritative": False,
+        "source": "local_demo_list_fallback",
+        "message": (
+            "Ticker is on the local demo fallback list (NOT an authoritative SEC source)"
+            if flagged else
+            "Not on local demo fallback list (authoritative SEC status is computed upstream)"
+        ),
     }
 
 
 @app.get("/models/status")
 async def get_model_status():
     """Get detailed model status"""
+    from config import ENSEMBLE_CONFIG
+    from pipeline import ml_models_enabled
     p = pipeline
     if p is None:
         return {
             "status": "not_initialized",
             "message": "Models will be loaded on first /analyze request",
+            "ml_models_enabled": ml_models_enabled(),
             "rf_model": None,
             "lstm_model": None
         }
 
     return {
         "status": "ready",
+        "ml_models_enabled": ml_models_enabled(),
+        "scoring_mode": "ml+rules" if (p.rf_available or p.lstm_available) else "rules_only",
         "rf_model": {
             "loaded": p.rf_available,
             "type": "RandomForestClassifier"
@@ -433,9 +499,11 @@ async def get_model_status():
             "type": "LSTM Sequential"
         },
         "ensemble": {
-            "method": "weighted_average",
-            "rf_weight": 0.6,
-            "lstm_weight": 0.4
+            "method": "max" if ENSEMBLE_CONFIG.get("use_max_strategy") else "weighted_average",
+            # Report the ACTUAL configured weights (previously advertised 0.6/0.4
+            # while config used 0.5/0.5 — PY-M9).
+            "rf_weight": ENSEMBLE_CONFIG.get("rf_weight"),
+            "lstm_weight": ENSEMBLE_CONFIG.get("lstm_weight"),
         }
     }
 
@@ -445,8 +513,12 @@ from social_early_warning import scan_social_early_warning
 from domain_monitor import scan_domain_infrastructure
 
 
+# Cap batch sizes to bound per-request fan-out / DoS surface (PY-H6).
+MAX_BATCH_TICKERS = 50
+
+
 class PrePumpScanRequest(BaseModel):
-    tickers: List[str] = Field(..., description="List of ticker symbols to scan")
+    tickers: List[str] = Field(..., max_length=MAX_BATCH_TICKERS, description="List of ticker symbols to scan (max 50)")
     fundamentals: Dict[str, Dict] = Field(default_factory=dict)
 
 
@@ -471,7 +543,7 @@ async def pre_pump_scan(request: PrePumpScanRequest):
 
 
 class SocialEarlyWarningRequest(BaseModel):
-    tickers: List[str] = Field(...)
+    tickers: List[str] = Field(..., max_length=MAX_BATCH_TICKERS)
     mention_baselines: Dict[str, float] = Field(default_factory=dict)
 
 
@@ -496,7 +568,7 @@ async def social_early_warning(request: SocialEarlyWarningRequest):
 
 
 class DomainCheckRequest(BaseModel):
-    tickers: List[str] = Field(..., description="List of ticker symbols to check")
+    tickers: List[str] = Field(..., max_length=MAX_BATCH_TICKERS, description="List of ticker symbols to check (max 50)")
     company_names: Dict[str, str] = Field(
         default_factory=dict,
         description="Optional ticker -> company name mapping for broader search",

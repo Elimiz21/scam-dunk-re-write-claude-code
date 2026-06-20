@@ -85,6 +85,9 @@ export default function ScanMessagesPage() {
   // Seed state
   const [seeding, setSeeding] = useState(false);
 
+  // In-flight guard for add/update/delete/restore so buttons can't double-fire.
+  const [mutating, setMutating] = useState(false);
+
   const fetchMessages = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/scan-messages");
@@ -130,8 +133,10 @@ export default function ScanMessagesPage() {
   }, [success]);
 
   const handleAddMessage = async () => {
+    if (mutating) return;
     if (!newHeadline.trim() || !newSubtext.trim()) return;
 
+    setMutating(true);
     try {
       const res = await fetch("/api/admin/scan-messages", {
         method: "POST",
@@ -148,10 +153,14 @@ export default function ScanMessagesPage() {
       fetchMessages();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add message");
+    } finally {
+      setMutating(false);
     }
   };
 
   const handleUpdateMessage = async (id: string) => {
+    if (mutating) return;
+    setMutating(true);
     try {
       const res = await fetch("/api/admin/scan-messages", {
         method: "PUT",
@@ -170,12 +179,16 @@ export default function ScanMessagesPage() {
       fetchMessages();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update message");
+    } finally {
+      setMutating(false);
     }
   };
 
   const handleDeleteMessage = async (id: string) => {
+    if (mutating) return;
     if (!confirm("Are you sure you want to remove this message?")) return;
 
+    setMutating(true);
     try {
       const res = await fetch(`/api/admin/scan-messages?id=${id}`, {
         method: "DELETE",
@@ -187,10 +200,14 @@ export default function ScanMessagesPage() {
       fetchMessages();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete message");
+    } finally {
+      setMutating(false);
     }
   };
 
   const handleRestoreMessage = async (historyId: string) => {
+    if (mutating) return;
+    setMutating(true);
     try {
       const res = await fetch("/api/admin/scan-messages/history", {
         method: "POST",
@@ -207,6 +224,8 @@ export default function ScanMessagesPage() {
       setError(
         err instanceof Error ? err.message : "Failed to restore message",
       );
+    } finally {
+      setMutating(false);
     }
   };
 
@@ -300,10 +319,13 @@ export default function ScanMessagesPage() {
 
     if (draggedIndex === -1 || targetIndex === -1) return;
 
-    // Reorder locally first for instant feedback
-    const newMessages = [...messages];
-    const [removed] = newMessages.splice(draggedIndex, 1);
-    newMessages.splice(targetIndex, 0, removed);
+    // Reorder locally first for instant feedback. Re-stamp each item's `order`
+    // to match its new position so the number badges show the correct sequence
+    // immediately (previously they kept their stale DB order until reload).
+    const reordered = [...messages];
+    const [removed] = reordered.splice(draggedIndex, 1);
+    reordered.splice(targetIndex, 0, removed);
+    const newMessages = reordered.map((m, i) => ({ ...m, order: i + 1 }));
     setMessages(newMessages);
 
     // Save to server
@@ -498,10 +520,12 @@ export default function ScanMessagesPage() {
               <div className="flex gap-2">
                 <button
                   onClick={handleAddMessage}
-                  disabled={!newHeadline.trim() || !newSubtext.trim()}
+                  disabled={
+                    mutating || !newHeadline.trim() || !newSubtext.trim()
+                  }
                   className="px-4 py-2 gradient-brand text-white rounded-2xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Add Message
+                  {mutating ? "Adding..." : "Add Message"}
                 </button>
                 <button
                   onClick={() => {
@@ -671,9 +695,10 @@ export default function ScanMessagesPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleUpdateMessage(message.id)}
-                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                          disabled={mutating}
+                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Save
+                          {mutating ? "Saving..." : "Save"}
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
@@ -756,7 +781,8 @@ export default function ScanMessagesPage() {
                     </div>
                     <button
                       onClick={() => handleRestoreMessage(message.id)}
-                      className="flex items-center gap-1 px-3 py-1 text-sm border border-border rounded-2xl hover:bg-secondary transition-colors"
+                      disabled={mutating}
+                      className="flex items-center gap-1 px-3 py-1 text-sm border border-border rounded-2xl hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Undo2 className="h-3 w-3" />
                       Restore

@@ -9,7 +9,8 @@ import { logAuthError } from "@/lib/auth-error-tracking";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
-  turnstileToken: z.string().optional(),
+  // CAPTCHA is REQUIRED on this endpoint to prevent reset-email bombing (SEC-M2).
+  turnstileToken: z.string().min(1, "CAPTCHA verification is required"),
 });
 
 export async function POST(request: NextRequest) {
@@ -34,20 +35,18 @@ export async function POST(request: NextRequest) {
     const { email: rawEmail, turnstileToken } = validation.data;
     const email = rawEmail.toLowerCase().trim();
 
-    // Verify CAPTCHA if Turnstile is configured and token was provided
-    if (process.env.TURNSTILE_SECRET_KEY && turnstileToken) {
-      const ip =
-        request.headers.get("x-forwarded-for") ||
-        request.headers.get("x-real-ip") ||
-        undefined;
-      const isValidCaptcha = await verifyTurnstileToken(turnstileToken, ip);
-
-      if (!isValidCaptcha) {
-        return NextResponse.json(
-          { error: "CAPTCHA verification failed. Please try again." },
-          { status: 400 },
-        );
-      }
+    // Always verify the CAPTCHA token. verifyTurnstileToken fails closed in
+    // production when TURNSTILE_SECRET_KEY is unset, and is skipped only in dev.
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      undefined;
+    const isValidCaptcha = await verifyTurnstileToken(turnstileToken, ip);
+    if (!isValidCaptcha) {
+      return NextResponse.json(
+        { error: "CAPTCHA verification failed. Please try again." },
+        { status: 400 },
+      );
     }
 
     // Check if user exists

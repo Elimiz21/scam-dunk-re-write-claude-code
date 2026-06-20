@@ -2,48 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { z } from "zod";
+import { fetchMarketData, checkAlertList } from "@/lib/marketData";
+import { computeRiskScore, computeIsLegitimate } from "@/lib/scoring";
 import {
-  fetchMarketData,
-  runAnomalyDetection,
-  checkAlertList,
-} from "@/lib/marketData";
-import { computeRiskScore } from "@/lib/scoring";
+  dedupeSignalScore,
+  calculateRiskLevel,
+  getDataCompleteness,
+} from "@/lib/scoring/engine";
 import { generateNarrative } from "@/lib/narrative";
-import { reserveScanSlot } from "@/lib/usage";
+import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
 import { logScanHistory } from "@/lib/admin/metrics";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { sendAPIFailureAlert } from "@/lib/email";
+import { parseAIBackendResponse } from "@/lib/ai-backend-schema";
 import {
-  CheckRequest,
   LimitReachedResponse,
   RiskResponse,
+  RiskLevel,
   StockSummary,
   RiskSignal,
+  SignalCategory,
 } from "@/lib/types";
 
 // Allow up to 30 seconds for the full AI pipeline (Python backend + market data + narrative)
 export const maxDuration = 30;
-
-// Custom error for service unavailable
-class ServiceUnavailableError extends Error {
-  apiName: string;
-  ticker: string;
-  assetType: string;
-  originalError: string;
-
-  constructor(
-    apiName: string,
-    ticker: string,
-    assetType: string,
-    originalError: string,
-  ) {
-    super(`Service unavailable: ${apiName} failed for ${assetType} ${ticker}`);
-    this.apiName = apiName;
-    this.ticker = ticker;
-    this.assetType = assetType;
-    this.originalError = originalError;
-  }
-}
 
 // Python AI backend URL (must match ai-analyze/route.ts and config.ts default)
 const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000";
@@ -62,6 +44,19 @@ const RISK_PRIORITY: Record<string, number> = {
   HIGH: 2,
 };
 
+const VALID_CATEGORIES: SignalCategory[] = [
+  "STRUCTURAL",
+  "PATTERN",
+  "ALERT",
+  "BEHAVIORAL",
+  "SOCIAL",
+];
+
+function normalizeCategory(category: string | undefined): SignalCategory {
+  const upper = (category || "").toUpperCase() as SignalCategory;
+  return VALID_CATEGORIES.includes(upper) ? upper : "PATTERN";
+}
+
 // Request validation schema - only ticker is required
 const checkRequestSchema = z.object({
   ticker: z.string().min(1, "Ticker is required").max(10),
@@ -79,17 +74,20 @@ const checkRequestSchema = z.object({
     .default({}),
 });
 
-/**
- * Call the Python AI backend for full ML analysis
- */
-async function callPythonAIBackend(
-  ticker: string,
-  assetType: string,
-  secFlagged?: boolean,
-): Promise<{
+/** Details describing a backend 503 (data API outage) so the route can alert. */
+interface ServiceUnavailableInfo {
+  apiName: string;
+  ticker: string;
+  assetType: string;
+  originalError: string;
+}
+
+interface AIBackendCallResult {
   success: boolean;
   failReason?: string;
-  riskLevel?: string;
+  /** Present when the backend returned 503 — route should alert + fall back. */
+  serviceUnavailable?: ServiceUnavailableInfo;
+  riskLevel?: RiskLevel;
   probability?: number;
   signals?: RiskSignal[];
   rfProbability?: number | null;
@@ -114,16 +112,32 @@ async function callPythonAIBackend(
     shouldReduceRisk: boolean;
     recommendedLevel: string;
   };
-}> {
-  // Skip if no backend URL configured
+}
+
+/**
+ * Call the Python AI backend for full ML analysis.
+ *
+ * Never throws: a backend 503 is captured into `serviceUnavailable` so the
+ * caller can fire the admin alert AND gracefully fall back to TypeScript
+ * scoring rather than hard-failing the user (audit TS-C2). The response is
+ * validated through the zod contract schema; an invalid payload is treated as
+ * a failure so we fall back (audit TS-H7).
+ */
+async function callPythonAIBackend(
+  ticker: string,
+  assetType: string,
+  secFlagged?: boolean,
+  newsFlag?: boolean,
+): Promise<AIBackendCallResult> {
   if (!AI_BACKEND_URL) {
     console.log("AI_BACKEND_URL not configured, using TypeScript scoring");
     return { success: false, failReason: "AI_BACKEND_URL not configured" };
   }
 
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so TypeScript fallback has time
+    timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so TS fallback has time
 
     console.log(`Calling Python AI backend: ${AI_BACKEND_URL}/analyze`);
 
@@ -137,12 +151,14 @@ async function callPythonAIBackend(
     const response = await fetch(`${AI_BACKEND_URL}/analyze`, {
       method: "POST",
       headers,
+      // TS <-> Python contract (see ai-backend-schema.ts).
       body: JSON.stringify({
         ticker,
         asset_type: assetType,
         use_live_data: true,
         days: 90,
         sec_flagged: secFlagged ?? null,
+        news_flag: newsFlag ?? null,
       }),
       signal: controller.signal,
     });
@@ -150,19 +166,21 @@ async function callPythonAIBackend(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      // Check for 503 Service Unavailable (data API failure)
       if (response.status === 503) {
         const errorData = await response.json().catch(() => ({}));
         const detail = errorData.detail || {};
         console.error(`AI backend returned 503 - Service Unavailable:`, detail);
-
-        // Throw ServiceUnavailableError to be handled by the main handler
-        throw new ServiceUnavailableError(
-          detail.api_name || "Unknown API",
-          detail.ticker || ticker,
-          detail.asset_type || assetType,
-          detail.original_error || "Data API unavailable",
-        );
+        // Capture (do NOT throw) so the caller can both alert and fall back.
+        return {
+          success: false,
+          failReason: "AI backend 503 (data API unavailable)",
+          serviceUnavailable: {
+            apiName: detail.api_name || "Unknown API",
+            ticker: detail.ticker || ticker,
+            assetType: detail.asset_type || assetType,
+            originalError: detail.original_error || "Data API unavailable",
+          },
+        };
       }
 
       console.error(`AI backend returned ${response.status}`);
@@ -172,37 +190,34 @@ async function callPythonAIBackend(
       };
     }
 
-    const data = await response.json();
+    const raw = await response.json();
+    const data = parseAIBackendResponse(raw);
+    if (!data) {
+      // Payload failed the contract — fall back to TS scoring.
+      return {
+        success: false,
+        failReason: "AI backend response failed schema validation",
+      };
+    }
+
     console.log(
       `AI backend response for ${ticker}: ${data.risk_level} (${data.risk_probability})`,
     );
 
-    // Map signals from Python format to TypeScript format
-    const signals: RiskSignal[] = (data.signals || []).map(
-      (s: {
-        code: string;
-        category: string;
-        description: string;
-        weight: number;
-      }) => ({
-        code: s.code,
-        category: s.category as
-          | "STRUCTURAL"
-          | "PATTERN"
-          | "ALERT"
-          | "BEHAVIORAL",
-        description: s.description,
-        weight: s.weight,
-      }),
-    );
+    const signals: RiskSignal[] = data.signals.map((s) => ({
+      code: s.code,
+      category: normalizeCategory(s.category),
+      description: s.description,
+      weight: s.weight,
+    }));
 
     return {
       success: true,
       riskLevel: data.risk_level,
       probability: data.risk_probability,
       signals,
-      rfProbability: data.rf_probability,
-      lstmProbability: data.lstm_probability,
+      rfProbability: data.rf_probability ?? null,
+      lstmProbability: data.lstm_probability ?? null,
       anomalyScore: data.anomaly_score,
       explanations: data.explanations,
       secFlagged: data.sec_flagged,
@@ -231,6 +246,7 @@ async function callPythonAIBackend(
         : undefined,
     };
   } catch (error) {
+    if (timeoutId) clearTimeout(timeoutId);
     const errMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("AI backend call failed:", error);
     return { success: false, failReason: `Exception: ${errMsg}` };
@@ -240,10 +256,12 @@ async function callPythonAIBackend(
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   let currentStep = "INIT";
+  // Tracks whether a quota slot has been reserved, so the error path can refund
+  // it (and only it) on failure without refunding requests that never reserved.
+  let userIdForRefund: string | null = null;
 
   try {
     // Rate limit: heavy for CPU-intensive scan operations (10 requests per minute)
-    // Wrapped in try/catch because Upstash Redis uses fetch internally and can fail
     currentStep = "RATE_LIMIT";
     try {
       const { success: rateLimitSuccess, headers: rateLimitHeaders } =
@@ -263,13 +281,10 @@ export async function POST(request: NextRequest) {
     // Check authentication - support both session (web) and JWT (mobile)
     currentStep = "AUTH";
     let userId: string | null = null;
-
-    // Try session auth first (web)
     const session = await auth();
     if (session?.user?.id) {
       userId = session.user.id;
     } else {
-      // Fall back to JWT auth (mobile)
       userId = await authenticateMobileRequest(request);
     }
 
@@ -277,7 +292,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Atomically check scan limit and reserve a slot (prevents TOCTOU race)
+    // Parse and validate request body BEFORE reserving a scan slot so malformed
+    // requests don't burn quota (audit TS-M13).
+    currentStep = "PARSE_REQUEST";
+    const body = await request.json().catch(() => null);
+    const validation = checkRequestSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.errors[0].message },
+        { status: 400 },
+      );
+    }
+
+    const checkRequest = validation.data;
+    const ticker = checkRequest.ticker.toUpperCase();
+    const assetType = checkRequest.assetType || "stock";
+
+    const context = {
+      unsolicited: checkRequest.context?.unsolicited ?? false,
+      promisesHighReturns: checkRequest.context?.promisesHighReturns ?? false,
+      urgencyPressure: checkRequest.context?.urgencyPressure ?? false,
+      secrecyInsideInfo: checkRequest.context?.secrecyInsideInfo ?? false,
+    };
+
+    // Cheap regulatory check (no quota consumed) runs BEFORE reserving a slot.
+    currentStep = "SEC_CHECK";
+    const secFlagged = await checkAlertList(ticker);
+
+    // Atomically check scan limit and reserve a slot (prevents TOCTOU race).
     currentStep = "USAGE_CHECK";
     const { reserved, usage } = await reserveScanSlot(userId);
 
@@ -293,103 +336,99 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(limitResponse, { status: 429 });
     }
 
-    // Parse and validate request body
-    currentStep = "PARSE_REQUEST";
-    const body = await request.json();
-    const validation = checkRequestSchema.safeParse(body);
-
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.errors[0].message },
-        { status: 400 },
-      );
-    }
-
-    const checkRequest = validation.data;
-    const ticker = checkRequest.ticker.toUpperCase();
-
-    // Build context with defaults
-    const context = {
-      unsolicited: checkRequest.context?.unsolicited ?? false,
-      promisesHighReturns: checkRequest.context?.promisesHighReturns ?? false,
-      urgencyPressure: checkRequest.context?.urgencyPressure ?? false,
-      secrecyInsideInfo: checkRequest.context?.secrecyInsideInfo ?? false,
-    };
-
-    // =====================================================
-    // CHECK REGULATORY DATABASE (real SEC EDGAR data)
-    // =====================================================
-    currentStep = "SEC_CHECK";
-    const secFlagged = await checkAlertList(ticker);
+    // A slot is now reserved — the error path below must refund it on failure.
+    userIdForRefund = userId;
 
     // =====================================================
     // TRY PYTHON AI BACKEND FIRST (Full ML Models)
     // =====================================================
     currentStep = "AI_BACKEND";
-    const aiResult = await callPythonAIBackend(
-      ticker,
-      checkRequest.assetType || "stock",
-      secFlagged,
-    );
+    const aiResult = await callPythonAIBackend(ticker, assetType, secFlagged);
 
-    let scoringResult;
+    // If the backend reported a data-API outage (503), alert admins
+    // asynchronously and FALL BACK to TypeScript scoring (audit TS-C2) —
+    // never hard-fail the user.
+    if (aiResult.serviceUnavailable) {
+      const info = aiResult.serviceUnavailable;
+      console.error(
+        `AI backend data API unavailable — API: ${info.apiName}, Ticker: ${info.ticker}, Type: ${info.assetType}. Falling back to TypeScript scoring.`,
+      );
+      void sendAPIFailureAlert(
+        info.apiName,
+        info.ticker,
+        info.originalError,
+        info.assetType,
+      ).catch((emailError) => {
+        console.error("Failed to send admin alert email:", emailError);
+      });
+    }
+
+    let scoringResult: {
+      riskLevel: RiskLevel;
+      totalScore: number;
+      signals: RiskSignal[];
+      isInsufficient: boolean;
+      isLegitimate: boolean;
+      dataCompleteness?: RiskResponse["dataCompleteness"];
+    };
     let marketData;
     let usedAIBackend = false;
-
     let aiStockInfo: typeof aiResult.stockInfo | undefined;
 
     if (aiResult.success && aiResult.riskLevel && aiResult.signals) {
-      // Use AI backend results
       usedAIBackend = true;
       aiStockInfo = aiResult.stockInfo;
       console.log(`Using Python AI backend for ${ticker}`);
 
-      // Fetch market data (needed for stock summary and baseline comparison)
+      // Fetch market data (needed for stock summary, legitimacy + baseline).
       currentStep = "MARKET_DATA_AI";
-      marketData = await fetchMarketData(ticker, checkRequest.assetType);
+      marketData = await fetchMarketData(ticker, assetType);
 
-      // Use the signal-weight total_score from the AI backend directly
-      // instead of converting probability to score (which produced low values
-      // because the ML models were trained on synthetic data).
-      const aiTotalScore = aiResult.signals
-        ? aiResult.signals.reduce(
-            (sum: number, s: RiskSignal) => sum + s.weight,
-            0,
-          )
-        : 0;
+      // Derive the displayed score and level CONSISTENTLY from the same set of
+      // signals so we can never show e.g. HIGH with score 0 (audit TS-H7). The
+      // de-dup logic also stops correlated signals double-counting (TS-C1).
+      const aiSignals = aiResult.signals;
+      let aiTotalScore = dedupeSignalScore(aiSignals);
+      if (!Number.isFinite(aiTotalScore)) aiTotalScore = 0;
+
+      // Prefer the backend ensemble level, but never let it contradict an
+      // alert-list hit, and keep level/score coherent.
+      const derivedLevel = calculateRiskLevel(aiTotalScore, aiSignals);
+      const backendPriority = RISK_PRIORITY[aiResult.riskLevel] ?? 0;
+      const derivedPriority = RISK_PRIORITY[derivedLevel] ?? 0;
+      // Take the MORE severe of the backend level and the score-derived level.
+      const aiRiskLevel: RiskLevel =
+        derivedPriority > backendPriority ? derivedLevel : aiResult.riskLevel;
+
+      // isLegitimate via the SHARED check (large-cap/liquidity/major-exchange,
+      // forced false when not LOW) — never "well-established" for an unknown
+      // ticker just because it had no signals (audit TS-H6).
+      const aiIsLegitimate = computeIsLegitimate(
+        marketData,
+        aiSignals,
+        aiRiskLevel,
+      );
 
       scoringResult = {
-        riskLevel: aiResult.riskLevel as
-          | "LOW"
-          | "MEDIUM"
-          | "HIGH"
-          | "INSUFFICIENT",
+        riskLevel: aiRiskLevel,
         totalScore: aiTotalScore,
-        signals: aiResult.signals,
-        isInsufficient: false,
-        isLegitimate:
-          aiResult.riskLevel === "LOW" && (aiResult.signals?.length || 0) === 0,
-        // Additional AI data
-        rfProbability: aiResult.rfProbability,
-        lstmProbability: aiResult.lstmProbability,
-        anomalyScore: aiResult.anomalyScore,
+        signals: aiSignals,
+        isInsufficient: aiRiskLevel === "INSUFFICIENT",
+        isLegitimate: aiIsLegitimate,
+        dataCompleteness: getDataCompleteness(marketData),
       };
 
       // =====================================================
-      // NO-DOWNGRADE GUARD (recommended by all reviewers)
-      // Ensures AI backend is purely additive — can elevate
-      // risk but never mask a high-risk finding from the
-      // deterministic TypeScript baseline.
+      // NO-DOWNGRADE GUARD
       // =====================================================
       if (NO_DOWNGRADE_GUARD && scoringResult.riskLevel !== "HIGH") {
-        // Only run baseline when AI isn't already HIGH (optimization: #3)
-        // If AI is already HIGH, baseline can't be higher so skip it.
         currentStep = "BASELINE_COMPARISON";
         try {
           const baselineResult = await computeRiskScore({
             marketData,
             pitchText: checkRequest.pitchText || "",
             context,
+            secFlagged,
           });
 
           const aiPriority = RISK_PRIORITY[scoringResult.riskLevel] ?? 0;
@@ -400,13 +439,11 @@ export async function POST(request: NextRequest) {
               `No-downgrade guard: AI=${scoringResult.riskLevel}(${scoringResult.totalScore}), ` +
                 `baseline=${baselineResult.riskLevel}(${baselineResult.totalScore}) → using baseline`,
             );
-            // Baseline wins — use its result and clear AI overrides
             scoringResult = baselineResult;
             usedAIBackend = false;
             aiStockInfo = undefined;
           }
         } catch (baselineError) {
-          // Resilient: if baseline comparison fails, keep AI result (#2)
           console.warn(
             "Baseline comparison failed, keeping AI result:",
             baselineError,
@@ -419,32 +456,34 @@ export async function POST(request: NextRequest) {
       // =====================================================
       console.log(`Falling back to TypeScript scoring for ${ticker}`);
 
-      // Fetch market data (pass assetType to use correct API - CoinGecko for crypto)
       currentStep = "MARKET_DATA_TS";
-      marketData = await fetchMarketData(ticker, checkRequest.assetType);
+      marketData = await fetchMarketData(ticker, assetType);
 
       if (!marketData.dataAvailable) {
         console.warn(
-          `No market data available for ${ticker} — scoring will return INSUFFICIENT. Check that FMP_API_KEY or ALPHA_VANTAGE_API_KEY is configured.`,
+          `No market data available for ${ticker} — relying on alert-list/behavioral signals. Check that FMP_API_KEY or ALPHA_VANTAGE_API_KEY is configured.`,
         );
       }
 
-      // Compute risk score using TypeScript (returns INSUFFICIENT when no data)
+      // Pass the already-computed secFlagged so a flagged-but-quoteless ticker
+      // is HIGH rather than INSUFFICIENT (audit TS-C6).
       currentStep = "SCORING";
       scoringResult = await computeRiskScore({
         marketData,
         pitchText: checkRequest.pitchText || "",
         context,
+        secFlagged,
       });
     }
 
-    // Build stock summary - prefer AI backend data when available
+    // Build stock summary - prefer API-derived company name over user-supplied
+    // (audit TS-M8: user-supplied name is untrusted and could carry injection).
     const stockSummary: StockSummary = {
       ticker,
       companyName:
-        checkRequest.companyName ||
         aiStockInfo?.companyName ||
-        marketData.quote?.companyName,
+        marketData.quote?.companyName ||
+        checkRequest.companyName,
       exchange: aiStockInfo?.exchange || marketData.quote?.exchange,
       lastPrice: aiStockInfo?.lastPrice ?? marketData.quote?.lastPrice,
       marketCap: aiStockInfo?.marketCap ?? marketData.quote?.marketCap,
@@ -463,28 +502,29 @@ export async function POST(request: NextRequest) {
       scoringResult.isLegitimate,
     );
 
-    // Add AI backend info to narrative if used
     if (usedAIBackend) {
       narrative.disclaimers.push(
         "Analysis powered by AI models: Random Forest + LSTM + Anomaly Detection",
       );
     }
 
-    // Scan slot was already reserved atomically above — use that usage info
-    const updatedUsage = usage;
+    if (scoringResult.dataCompleteness === "quote-only") {
+      narrative.disclaimers.push(
+        "Limited price history was available — pattern and anomaly detection could not be fully evaluated for this ticker.",
+      );
+    }
 
-    // Calculate processing time
+    const updatedUsage = usage;
     const processingTime = Date.now() - startTime;
 
-    // Get client IP for logging (optional)
     const forwardedFor = request.headers.get("x-forwarded-for");
     const ipAddress = forwardedFor
       ? forwardedFor.split(",")[0].trim()
       : undefined;
 
-    // Save scan to history and update model metrics for dashboard
+    // Save scan to history — fire-and-forget so a metrics hiccup can't 500 a
+    // completed analysis after the slot was consumed (audit TS-M13).
     currentStep = "LOG_HISTORY";
-    // Derive segment classification from scoring signals and market data
     const isOtcScan =
       marketData.isOTC ||
       scoringResult.signals.some((s) => s.code === "OTC_EXCHANGE");
@@ -497,10 +537,10 @@ export async function POST(request: NextRequest) {
       (s) => s.code === "VOLUME_EXPLOSION" || s.code === "VOLUME_ANOMALY",
     );
 
-    await logScanHistory({
+    void logScanHistory({
       userId,
       ticker,
-      assetType: checkRequest.assetType || "stock",
+      assetType,
       riskLevel: scoringResult.riskLevel,
       totalScore: scoringResult.totalScore,
       signalsCount: scoringResult.signals.length,
@@ -513,9 +553,10 @@ export async function POST(request: NextRequest) {
       isMicroCap: isMicroCapScan,
       isHighVolume: isHighVolumeScan,
       usedAiBackend: usedAIBackend,
+    }).catch((logError) => {
+      console.error("Failed to log scan history:", logError);
     });
 
-    // Build response
     const response: RiskResponse = {
       riskLevel: scoringResult.riskLevel,
       totalScore: scoringResult.totalScore,
@@ -524,7 +565,10 @@ export async function POST(request: NextRequest) {
       narrative,
       usage: updatedUsage,
       isLegitimate: scoringResult.isLegitimate,
-      ...(aiResult.newsVerification
+      dataCompleteness: scoringResult.dataCompleteness,
+      // Only attach news verification if the AI result actually drove this
+      // response (not when the no-downgrade guard replaced it — audit TS-L7).
+      ...(usedAIBackend && aiResult.newsVerification
         ? { newsVerification: aiResult.newsVerification }
         : {}),
     };
@@ -537,33 +581,13 @@ export async function POST(request: NextRequest) {
       error,
     );
 
-    // Handle service unavailable errors (data APIs are down)
-    if (error instanceof ServiceUnavailableError) {
-      console.error(
-        `SERVICE UNAVAILABLE - API: ${error.apiName}, Ticker: ${error.ticker}, Type: ${error.assetType}`,
-      );
-      console.error(`Original error: ${error.originalError}`);
-
-      // Send email notification to admin (non-blocking)
-      sendAPIFailureAlert(
-        error.apiName,
-        error.ticker,
-        error.originalError,
-        error.assetType,
-      ).catch((emailError) => {
-        console.error("Failed to send admin alert email:", emailError);
+    // If a scan slot was reserved before this 5xx, refund it so users aren't
+    // charged for a scan that never produced a result (audit ARCH-C4).
+    // Fire-and-forget: a refund hiccup must not itself fail the response.
+    if (userIdForRefund) {
+      void refundScanSlot(userIdForRefund).catch((refundError) => {
+        console.error("Failed to refund scan slot:", refundError);
       });
-
-      // Return user-friendly offline message
-      return NextResponse.json(
-        {
-          error: "service_unavailable",
-          message:
-            "The scanning system is currently offline. Please try again later.",
-          retryAfter: 60, // Suggest retry after 60 seconds
-        },
-        { status: 503 },
-      );
     }
 
     return NextResponse.json(

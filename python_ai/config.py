@@ -112,6 +112,45 @@ FEATURE_CONFIG = {
 }
 
 # =============================================================================
+# RANDOM FOREST FEATURE CONTRACT
+# =============================================================================
+# SINGLE SOURCE OF TRUTH for the Random Forest feature vector.
+#
+# Both training (ml_model.ScamDetectorRF.generate_synthetic_training_data) and
+# serving (feature_engineering.create_feature_vector) MUST emit features with
+# exactly these names, in exactly this order, with exactly this count. A startup
+# assertion (pipeline.ScamDetectionPipeline) verifies that the live serving
+# vector matches the trained model's feature_names so the historical 49-vs-35
+# mismatch (which forced rf_prob to 0.0 and triggered per-request retraining)
+# can never silently recur.
+#
+# NOTE: names are case-sensitive and order-sensitive. Do not reorder or rename
+# without retraining the model and regenerating model artifacts/hashes.
+RF_FEATURE_NAMES = [
+    # --- latest-row technical / contextual features ---
+    'return_zscore_short', 'return_zscore_long', 'price_zscore_long',
+    'volume_zscore_short', 'volume_zscore_long', 'volume_surge_factor',
+    'atr_percent', 'keltner_position', 'keltner_breakout_upper', 'keltner_breakout_lower',
+    'price_change_1d', 'price_change_7d', 'price_change_30d',
+    'is_pumping_7d', 'is_dumping_7d', 'volume_explosion_moderate', 'volume_explosion_extreme',
+    'pump_pattern',
+    # 3-day early-detection features (lowercase to match the engineered columns)
+    'price_change_3d', 'volume_surge_3d', 'price_acceleration', 'volume_acceleration',
+    'roc_7', 'roc_14', 'rsi_14',
+    'log_market_cap', 'is_micro_cap', 'is_small_cap',
+    'is_micro_liquidity', 'is_low_liquidity', 'is_otc', 'float_turnover',
+    'sec_flagged', 'has_news', 'sentiment_score',
+    # --- window-aggregate features (multi-day context) ---
+    'max_return_zscore_7d', 'max_volume_zscore_7d', 'pump_days_7d',
+    'vol_explosion_days_7d', 'keltner_breakout_days_7d',
+    'max_return_zscore_14d', 'max_volume_zscore_14d',
+    'high_volume_persistence_14d', 'reversal_14d',
+    'max_return_zscore_30d', 'max_volume_zscore_30d', 'max_rsi_30d',
+    'overbought_days_30d', 'pump_pattern_days_30d',
+]
+
+
+# =============================================================================
 # MODEL CONFIGURATION
 # =============================================================================
 
@@ -190,7 +229,41 @@ MARKET_THRESHOLDS = {
 # =============================================================================
 # OTC EXCHANGES (Higher risk indicators)
 # =============================================================================
-
+# Includes the Yahoo Finance / yfinance exchange codes (PNK, OQX, OQB, GREY,
+# YHD) that real OTC stocks report. The previous set only had the long-form
+# names ('OTC', 'PINK', ...) which Yahoo never returns, so is_otc never fired
+# for real OTC stocks and every OTC threshold tier / probability floor was dead.
 OTC_EXCHANGES = {
-    'OTC', 'OTCBB', 'OTCQX', 'OTCQB', 'PINK', 'GREY', 'OTC MARKETS'
+    'OTC', 'OTCBB', 'OTCQX', 'OTCQB', 'PINK', 'GREY', 'GRAY', 'OTC MARKETS',
+    # Yahoo / yfinance short exchange codes for OTC venues:
+    'PNK',   # Pink Sheets / OTC Pink
+    'OQX',   # OTCQX
+    'OQB',   # OTCQB
+    'YHD',   # Yahoo OTC / other OTC
+    'OOTC',  # Other OTC
 }
+
+# Substrings that, if present in an exchange / fullExchangeName / quoteType
+# string, indicate an OTC / pink-sheet venue. Matched case-insensitively.
+OTC_EXCHANGE_SUBSTRINGS = (
+    'OTC', 'PINK', 'GREY', 'GRAY', 'OTHER OTC', 'PNK',
+)
+
+
+def is_otc_exchange(*values: str) -> bool:
+    """Return True if any of the given exchange-identifying strings is OTC.
+
+    Accepts any combination of exchange code, fullExchangeName, market, or
+    quoteType strings (e.g. from yfinance .info: 'PNK', 'Other OTC', 'PinkSheet').
+    Matches exact membership in OTC_EXCHANGES OR any OTC substring, so it works
+    for both the short Yahoo codes (PNK/OQX/OQB) and the descriptive names.
+    """
+    for value in values:
+        if not value:
+            continue
+        upper = str(value).upper().strip()
+        if upper in OTC_EXCHANGES:
+            return True
+        if any(sub in upper for sub in OTC_EXCHANGE_SUBSTRINGS):
+            return True
+    return False

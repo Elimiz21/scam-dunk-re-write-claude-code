@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AlertBanner from "@/components/admin/AlertBanner";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import {
   AlertTriangle,
   TrendingUp,
@@ -60,48 +61,34 @@ const riskLevelColors: Record<string, string> = {
 };
 
 export default function RiskAlertsPage() {
-  const [data, setData] = useState<AlertsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { data, loading, error, success, setError, fetchData, mutate } =
+    useAdminFetch<AlertsData>();
   const [days, setDays] = useState(7);
   const [typeFilter, setTypeFilter] = useState<string>("");
   const [showAcknowledged, setShowAcknowledged] = useState(true);
+  const [acknowledging, setAcknowledging] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [days, typeFilter, showAcknowledged]);
-
-  async function fetchData() {
-    setLoading(true);
-    try {
-      let url = `/api/admin/risk-alerts?days=${days}`;
-      if (typeFilter) url += `&type=${typeFilter}`;
-      if (!showAcknowledged) url += `&acknowledged=false`;
-
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch");
-      const json = await res.json();
-      setData(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    } finally {
-      setLoading(false);
-    }
+  function buildUrl() {
+    let url = `/api/admin/risk-alerts?days=${days}`;
+    if (typeFilter) url += `&type=${typeFilter}`;
+    if (!showAcknowledged) url += `&acknowledged=false`;
+    return url;
   }
 
+  useEffect(() => {
+    fetchData(buildUrl());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days, typeFilter, showAcknowledged]);
+
   async function acknowledgeAlert(alertId: string) {
-    try {
-      const res = await fetch("/api/admin/risk-alerts", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alertId, isAcknowledged: true }),
-      });
-      if (res.ok) {
-        fetchData();
-      }
-    } catch (err) {
-      console.error("Failed to acknowledge:", err);
-    }
+    if (acknowledging) return;
+    setAcknowledging(alertId);
+    await mutate(
+      "/api/admin/risk-alerts",
+      { alertId, isAcknowledged: true },
+      { method: "PATCH", refetch: () => fetchData(buildUrl(), { silent: true }) },
+    );
+    setAcknowledging(null);
   }
 
   if (loading && !data) {
@@ -114,10 +101,17 @@ export default function RiskAlertsPage() {
     );
   }
 
-  if (error) {
+  if (!data) {
     return (
       <AdminLayout>
-        <AlertBanner type="error" title="Error" message={error} />
+        {error ? (
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
+        ) : null}
       </AdminLayout>
     );
   }
@@ -125,6 +119,19 @@ export default function RiskAlertsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Inline status banners (visible during refetch / after actions) */}
+        {error ? (
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
+        ) : null}
+        {success ? (
+          <AlertBanner type="success" title="Success" message={success} />
+        ) : null}
+
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -168,6 +175,7 @@ export default function RiskAlertsPage() {
               <option value="RISK_INCREASED">Risk Increased</option>
               <option value="RISK_DECREASED">Risk Decreased</option>
               <option value="PUMP_DETECTED">Pump Detected</option>
+              <option value="DUMP_DETECTED">Dump Detected</option>
             </select>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input
@@ -314,9 +322,12 @@ export default function RiskAlertsPage() {
                         {!alert.isAcknowledged && (
                           <button
                             onClick={() => acknowledgeAlert(alert.id)}
-                            className="text-primary hover:text-primary/80 text-sm font-medium"
+                            disabled={acknowledging === alert.id}
+                            className="text-primary hover:text-primary/80 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            Acknowledge
+                            {acknowledging === alert.id
+                              ? "Acknowledging..."
+                              : "Acknowledge"}
                           </button>
                         )}
                       </td>

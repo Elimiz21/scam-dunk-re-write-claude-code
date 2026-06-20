@@ -322,6 +322,9 @@ class ScamDetectorLSTM:
         """
         sequence_length = sequence_length or self.config.get('sequence_length', 30)
 
+        # Work on a copy so we never mutate the caller's DataFrame.
+        df = df.copy()
+
         # Map available columns to required features
         feature_mapping = {
             'Close': 'Close',
@@ -338,7 +341,9 @@ class ScamDetectorLSTM:
             if source_col in df.columns:
                 available_features.append(source_col)
             else:
-                # Create placeholder with zeros
+                # Missing engineered column on a copy — zero-fill but warn so
+                # the gap is visible rather than silently producing zeros.
+                print(f"   [LSTM] Warning: missing feature column '{source_col}', zero-filling")
                 df[source_col] = 0
                 available_features.append(source_col)
 
@@ -499,6 +504,14 @@ class ScamDetectorLSTM:
         n_samples, n_timesteps, n_features = sequence_data.shape
         seq_reshaped = sequence_data.reshape(-1, n_features)
         seq_scaled = self.scaler.transform(seq_reshaped)
+        # The shipped MinMaxScaler was fit on synthetic price/volume ranges.
+        # Real data (e.g. a $900 mega-cap or an $0.40/80M-share penny stock)
+        # saturates the network far outside [0, 1]. Clip to the training range
+        # so out-of-distribution inputs at least stay bounded. This is a
+        # mitigation only: re-enabling the LSTM for production REQUIRES
+        # retraining on scale-invariant features (returns/z-scores/ratios) from
+        # real labelled sequences. See ml_models_enabled() in pipeline.py.
+        seq_scaled = np.clip(seq_scaled, 0.0, 1.0)
         seq_scaled = seq_scaled.reshape(n_samples, n_timesteps, n_features)
 
         # Predict

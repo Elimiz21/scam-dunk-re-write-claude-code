@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageLayout } from "@/components/PageLayout";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/JsonLd";
+import { slugify } from "@/lib/utils";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
 
 type PageParams = { author: string };
 
-// Simple author data cache (in production, this could come from a database)
+// Known author bios. Unknown authors still resolve to a resilient generic
+// profile (see getAuthorBio) rather than 404ing, so bylines never produce
+// crawlable 404s. Keys MUST be produced by the shared slugify() helper so they
+// line up with the slugs generated for bylines.
 const authorBios: Record<string, string> = {
   "scam-dunk-team":
     "Investment fraud researcher and analyst with a focus on detecting pump-and-dump schemes.",
@@ -18,8 +21,23 @@ const authorBios: Record<string, string> = {
     "Senior security analyst specializing in investment fraud patterns and market manipulation.",
 };
 
+function authorNameFromSlug(slug: string): string {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function getAuthorBio(slug: string, name: string): string {
+  return (
+    authorBios[slug] ??
+    `${name} contributes to the ScamDunk blog, covering investment fraud detection, market manipulation, and how retail investors can spot scam red flags.`
+  );
+}
+
 export async function generateStaticParams(): Promise<PageParams[]> {
-  // Generate pages for all known authors
+  // Pre-render the known authors. Unknown authors are rendered on demand.
   return Object.keys(authorBios).map((author) => ({ author }));
 }
 
@@ -28,18 +46,8 @@ export async function generateMetadata({
 }: {
   params: PageParams;
 }): Promise<Metadata> {
-  const authorSlug = decodeURIComponent(params.author);
-  const authorName = authorSlug
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-
-  if (!authorBios[authorSlug]) {
-    return {
-      title: "Author Not Found | ScamDunk",
-      robots: { index: false, follow: false },
-    };
-  }
+  const authorSlug = slugify(decodeURIComponent(params.author));
+  const authorName = authorNameFromSlug(authorSlug);
 
   const description = `Read articles by ${authorName} on stock fraud detection, investment scams, and market manipulation analysis.`;
 
@@ -60,16 +68,9 @@ export async function generateMetadata({
 }
 
 export default async function AuthorPage({ params }: { params: PageParams }) {
-  const authorSlug = decodeURIComponent(params.author);
-  const authorName = authorSlug
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-  const authorBio = authorBios[authorSlug];
-
-  if (!authorBio) {
-    notFound();
-  }
+  const authorSlug = slugify(decodeURIComponent(params.author));
+  const authorName = authorNameFromSlug(authorSlug);
+  const authorBio = getAuthorBio(authorSlug, authorName);
 
   // Fetch posts by this author
   let authorPosts: Array<{

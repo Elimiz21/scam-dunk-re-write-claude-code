@@ -7,15 +7,16 @@ import { createEmailVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { logAuthError } from "@/lib/auth-error-tracking";
+import { validatePasswordStrength } from "@/lib/config";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(10, "Password must be at least 10 characters")
-    .regex(/[a-z]/, "Password must contain a lowercase letter")
-    .regex(/[A-Z]/, "Password must contain an uppercase letter")
-    .regex(/[0-9]/, "Password must contain a number"),
+  // Single source of truth for the password policy (lib/config) so every flow
+  // enforces the same minimum (FE-M8 / SEC-L6).
+  password: z.string().superRefine((pw, ctx) => {
+    const error = validatePasswordStrength(pw);
+    if (error) ctx.addIssue({ code: z.ZodIssueCode.custom, message: error });
+  }),
   name: z.string().optional(),
   turnstileToken: z.string().min(1, "CAPTCHA verification is required"),
 });
@@ -40,7 +41,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, name, turnstileToken } = validation.data;
+    const { password, name, turnstileToken } = validation.data;
+    // Normalize email before the uniqueness check and insert. Login lowercases
+    // the email, so a MixedCase registration would otherwise create an account
+    // the user can never log into, plus case-variant duplicate accounts (SEC-M1).
+    const email = validation.data.email.toLowerCase().trim();
     const ip =
       request.headers.get("x-forwarded-for") ||
       request.headers.get("x-real-ip") ||
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (!isValidCaptcha) {
       await logAuthError(
         {
-          email: validation.data.email,
+          email,
           ipAddress: ip,
           userAgent: request.headers.get("user-agent") || undefined,
           endpoint: "/api/auth/register",

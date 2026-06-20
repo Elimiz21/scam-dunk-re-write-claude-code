@@ -230,7 +230,7 @@ export function LandingOptionA({
                 icon: BarChart3,
                 title: "Enter a Ticker",
                 description:
-                  "Type any stock symbol or crypto ticker. You can also paste a suspicious chat message or upload screenshots.",
+                  "Type any stock symbol or crypto ticker. You can also paste a suspicious chat message for analysis.",
                 color: "text-blue-500",
                 bg: "bg-blue-500/10",
               },
