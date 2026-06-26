@@ -75,3 +75,6 @@ evaluation/results/checkpoint-*.json
 evaluation/browser-sessions/
 !evaluation/browser-sessions/.gitkeep
 .venv/
+
+# Claude Code worktrees (temporary agent workspaces)
+.claude/worktrees/
