@@ -74,6 +74,19 @@ const FAIL_CLOSED_TIERS: ReadonlySet<RateLimitConfig> = new Set<RateLimitConfig>
 );
 
 /**
+ * Thrown when the shared rate-limit store fails for a fail-closed tier
+ * (strict/auth). The caller — checkLoginRateLimit — catches this and fails
+ * open so a transient DB timeout doesn't permanently lock out all logins.
+ */
+export class RateLimitStoreError extends Error {
+  constructor(cause: unknown) {
+    super("Rate-limit store unavailable");
+    this.name = "RateLimitStoreError";
+    this.cause = cause;
+  }
+}
+
+/**
  * Get client identifier from request
  * Prioritizes Vercel's trusted x-real-ip header to prevent spoofing via x-forwarded-for
  */
@@ -282,14 +295,11 @@ export async function rateLimit(
     );
 
     if (FAIL_CLOSED_TIERS.has(config)) {
-      // Fail closed: deny brute-force-sensitive tiers when the shared store is
-      // down, instead of granting each cold instance a fresh allowance.
-      const configValues = rateLimitConfigs[config];
-      result = {
-        success: false,
-        remaining: 0,
-        reset: Date.now() + configValues.windowMs,
-      };
+      // Throw so callers that wrap us in their own try/catch (e.g.
+      // checkLoginRateLimit) can distinguish a store outage from a legitimate
+      // rate-limit hit and choose to fail open — preventing a transient DB
+      // timeout from permanently locking out all logins.
+      throw new RateLimitStoreError(error);
     } else {
       result = inMemoryRateLimit(identifier, config);
     }
