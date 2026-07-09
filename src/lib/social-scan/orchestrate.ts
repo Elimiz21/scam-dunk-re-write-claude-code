@@ -100,6 +100,17 @@ function parsePostDate(dateStr: string | undefined | null): Date | null {
   return null;
 }
 
+// Posts older than this are dropped rather than stored as fresh signal. The
+// scanners had no lookback floor, so StockTwits/Serper results dated weeks (and
+// in production, years) back were ingested as current mentions (S5).
+const MENTION_LOOKBACK_DAYS = 7;
+
+function isStalePost(postDate: Date | null): boolean {
+  if (!postDate) return false; // undated → keep (can't judge staleness)
+  const ageDays = (Date.now() - postDate.getTime()) / (24 * 60 * 60 * 1000);
+  return ageDays > MENTION_LOOKBACK_DAYS;
+}
+
 /** Build a DB row from an attributed mention. */
 function buildMentionRow(
   scanRunId: string,
@@ -140,6 +151,36 @@ async function persistMentionsIncrementally(
   scanRunId: string,
   rows: ReturnType<typeof buildMentionRow>[],
 ): Promise<number> {
+  // Drop stale posts (S5) before doing any work.
+  rows = rows.filter((r) => !isStalePost(r.postDate));
+
+  // Cross-run dedup (S4): the unique key is (scanRunId, ticker, contentHash),
+  // so the same post is re-inserted on every run — 96% of stored mentions were
+  // duplicates. Skip (ticker, contentHash) pairs already persisted by a prior
+  // run. Best-effort: if the lookup fails we fall back to inserting (the per-run
+  // constraint still prevents within-run dupes). A single active run at a time
+  // (concurrency guard) makes this app-level check race-free in practice.
+  if (rows.length > 0) {
+    try {
+      const hashes = Array.from(new Set(rows.map((r) => r.contentHash)));
+      const existing = await prisma.socialMention.findMany({
+        where: { contentHash: { in: hashes } },
+        select: { ticker: true, contentHash: true },
+      });
+      if (existing.length > 0) {
+        const seen = new Set(
+          existing.map((e) => `${e.ticker}|${e.contentHash}`),
+        );
+        rows = rows.filter((r) => !seen.has(`${r.ticker}|${r.contentHash}`));
+      }
+    } catch (error: any) {
+      console.warn(
+        `[Social Scan] Cross-run dedup lookup failed, inserting without it:`,
+        error?.message,
+      );
+    }
+  }
+
   if (rows.length === 0) {
     await bumpHeartbeat(scanRunId);
     return 0;

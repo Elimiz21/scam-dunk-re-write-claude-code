@@ -442,6 +442,12 @@ export default function SocialScanPage() {
             <AlertTriangle className="h-3 w-3" /> Partial
           </span>
         );
+      case "TIMED_OUT":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+            <AlertTriangle className="h-3 w-3" /> Timed out
+          </span>
+        );
       default:
         return <span className="text-xs text-muted-foreground">{status}</span>;
     }

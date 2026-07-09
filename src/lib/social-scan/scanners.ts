@@ -1273,6 +1273,12 @@ export class DiscordBotScanner implements SocialScanner {
       return res.json();
     };
 
+    // Track read vs. content-bearing messages to detect the missing Message
+    // Content intent (S3): Discord returns empty content, not an error, when the
+    // privileged intent is off — which otherwise reads as a successful 0-result.
+    let messagesRead = 0;
+    let messagesWithContent = 0;
+
     try {
       const guilds = await discordGet("/users/@me/guilds");
 
@@ -1324,8 +1330,10 @@ export class DiscordBotScanner implements SocialScanner {
                 `/channels/${channel.id}/messages?limit=100`,
               );
               for (const msg of messages) {
+                messagesRead++;
                 const content = msg.content || "";
                 if (!content) continue;
+                messagesWithContent++;
 
                 for (const { target, regex } of tickerPatterns) {
                   if (!regex.test(content)) continue;
@@ -1391,6 +1399,28 @@ export class DiscordBotScanner implements SocialScanner {
           scanner: this.name,
           success: false,
           error: `Discord API error: ${error.message}`,
+          mentionsFound: 0,
+          mentions: [],
+          activityLevel: "none",
+          promotionRisk: "low",
+          scanDuration: Date.now() - startTime,
+        },
+      ];
+    }
+
+    // If we read messages but NONE carried content, the bot is missing the
+    // privileged "Message Content" intent (Discord silently returns empty
+    // content). Report it instead of a misleading success:0 (S3).
+    if (messagesRead > 0 && messagesWithContent === 0) {
+      console.warn(
+        `[Discord] Read ${messagesRead} messages but all had empty content — Message Content intent is likely disabled.`,
+      );
+      return [
+        {
+          platform: "Discord",
+          scanner: this.name,
+          success: false,
+          error: `Read ${messagesRead} messages but all had empty content — enable the "Message Content" intent in the Discord Developer Portal (Bot settings) and grant the bot Read Message History.`,
           mentionsFound: 0,
           mentions: [],
           activityLevel: "none",

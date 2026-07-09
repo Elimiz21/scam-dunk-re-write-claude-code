@@ -230,11 +230,24 @@ export async function GET(request: NextRequest) {
           errors,
         };
       }),
-      mentions: mentions.map((m: any) => ({
-        ...m,
-        engagement: m.engagement ? JSON.parse(m.engagement as string) : {},
-        redFlags: m.redFlags ? JSON.parse(m.redFlags as string) : [],
-      })),
+      mentions: mentions.map((m: any) => {
+        // Parse per-field and per-row: a single corrupt engagement/redFlags
+        // value must degrade only that row, not throw into the outer catch and
+        // blank the entire dashboard (S6). Mirrors the scanRuns guard above.
+        let engagement: unknown = {};
+        let redFlags: unknown = [];
+        try {
+          if (m.engagement) engagement = JSON.parse(m.engagement as string);
+        } catch {
+          /* corrupt JSON — use empty object */
+        }
+        try {
+          if (m.redFlags) redFlags = JSON.parse(m.redFlags as string);
+        } catch {
+          /* corrupt JSON — use empty array */
+        }
+        return { ...m, engagement, redFlags };
+      }),
       pagination: {
         page,
         limit,
@@ -258,30 +271,37 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Social scan GET error:", error);
-    // Return empty state instead of 500 so the page still renders
-    return NextResponse.json({
-      definitions: {
-        totalMentions:
-          "Total indexed social posts matching the current filters.",
-        promotionalCount: "Mentions flagged promotional (isPromotional=true).",
-        avgPromotionScore:
-          "Average promotionScore (0-100) across filtered mentions.",
-        tickersTracked: "Unique ticker count across filtered mentions.",
-        tickersScanned: "Tickers submitted to scanner for a run.",
-        tickersWithMentions:
-          "Submitted tickers that returned at least 1 mention.",
+    // Signal the failure with a 500 and an `error` field rather than a silent
+    // empty 200 — otherwise a real DB/query failure is indistinguishable from
+    // "no mentions found" and the admin sees a falsely-empty dashboard (R3).
+    // The body keeps the normal shape so status-agnostic consumers still render.
+    return NextResponse.json(
+      {
+        error: "Failed to load social scan data",
+        definitions: {
+          totalMentions:
+            "Total indexed social posts matching the current filters.",
+          promotionalCount: "Mentions flagged promotional (isPromotional=true).",
+          avgPromotionScore:
+            "Average promotionScore (0-100) across filtered mentions.",
+          tickersTracked: "Unique ticker count across filtered mentions.",
+          tickersScanned: "Tickers submitted to scanner for a run.",
+          tickersWithMentions:
+            "Submitted tickers that returned at least 1 mention.",
+        },
+        scanRuns: [],
+        mentions: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+        stats: {
+          totalMentions: 0,
+          avgPromotionScore: 0,
+          promotionalCount: 0,
+          uniqueTickers: [],
+          platformBreakdown: [],
+        },
       },
-      scanRuns: [],
-      mentions: [],
-      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
-      stats: {
-        totalMentions: 0,
-        avgPromotionScore: 0,
-        promotionalCount: 0,
-        uniqueTickers: [],
-        platformBreakdown: [],
-      },
-    });
+      { status: 500 },
+    );
   }
 }
 
