@@ -656,6 +656,25 @@ function fetchFMPHistory(symbol: string): PriceHistory[] {
   }
 }
 
+// A ticker whose most recent EOD bar is older than this many calendar days is
+// not actively trading (delisted / halted). FMP keeps serving its last-known
+// profile and final ~100 bars indefinitely, so without this the scorer re-rates
+// dead stocks off stale bars and flags them HIGH forever (D2 / zombie stocks).
+// 10 days comfortably clears normal weekend + holiday gaps. Set
+// DISABLE_STALE_FILTER=1 when backfilling old dates (where "now" isn't the
+// reference point).
+const STALE_AFTER_DAYS = 10;
+const STALE_FILTER_ENABLED = process.env.DISABLE_STALE_FILTER !== "1";
+
+function isPriceHistoryStale(priceHistory: PriceHistory[]): boolean {
+  if (priceHistory.length === 0) return true;
+  const latest = priceHistory[priceHistory.length - 1].date; // oldest→newest
+  const latestMs = new Date(`${latest}T00:00:00Z`).getTime();
+  if (Number.isNaN(latestMs)) return false; // unparseable date → don't skip
+  const ageDays = (Date.now() - latestMs) / (24 * 60 * 60 * 1000);
+  return ageDays > STALE_AFTER_DAYS;
+}
+
 async function fetchStockData(symbol: string): Promise<MarketData | null> {
   const quote = fetchFMPQuote(symbol);
   if (!quote) return null;
@@ -667,11 +686,20 @@ async function fetchStockData(symbol: string): Promise<MarketData | null> {
     quote.exchange.toUpperCase().includes(exc.toUpperCase()),
   );
 
+  const stale = STALE_FILTER_ENABLED && isPriceHistoryStale(priceHistory);
+  if (stale) {
+    console.log(
+      `  ⏭️  ${symbol}: latest bar ${priceHistory[priceHistory.length - 1]?.date} is stale (>${STALE_AFTER_DAYS}d) — skipping as not actively trading`,
+    );
+  }
+
   return {
     quote,
     priceHistory,
     isOTC,
-    dataAvailable: priceHistory.length > 0,
+    // Stale price data is treated as "no data" so the stock is counted in
+    // skippedNoData and never scored, instead of re-flagged HIGH on dead bars.
+    dataAvailable: priceHistory.length > 0 && !stale,
   };
 }
 

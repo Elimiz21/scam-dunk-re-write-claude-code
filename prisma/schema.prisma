@@ -400,9 +400,13 @@ model StockRiskAlert {
 
   createdAt DateTime @default(now())
 
+  // One alert per (stock, date, transition type). Makes createMany's
+  // skipDuplicates actually dedupe — previously there was no unique key, so the
+  // same stock could be alerted repeatedly for the same day. The composite also
+  // serves the [stockId, alertDate] prefix lookups (so the old index is dropped).
+  @@unique([stockId, alertDate, alertType])
   @@index([alertDate])
   @@index([alertType])
-  @@index([stockId, alertDate])
 }
 
 model PromotedStock {

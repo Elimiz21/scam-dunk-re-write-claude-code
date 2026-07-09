@@ -3,11 +3,39 @@
  * Shared between the admin manual ingest route and the cron auto-ingest route.
  */
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
 
 // Batch size for createMany operations to avoid overwhelming the DB
 const BATCH_SIZE = 1000;
+
+// While a stock is already HIGH, only emit a fresh RISK_INCREASED alert when
+// the score climbs by at least this much (the risk scale puts HIGH at >=5, so
+// +3 is a material escalation, e.g. new signals appeared). Below this, a stock
+// that stays HIGH day-over-day produces no new alert.
+export const RISK_INCREASE_THRESHOLD = 3;
+
+/**
+ * Decide which alert (if any) a stock's risk transition warrants, comparing the
+ * current evaluation against the most recent PRIOR snapshot. Pure function so
+ * the alert policy is unit-testable without a database.
+ *
+ * - Only HIGH-risk stocks generate alerts.
+ * - A stock that wasn't already HIGH (or that we've never seen) → NEW_HIGH_RISK.
+ * - A stock that stays HIGH → an alert only when its score climbs materially
+ *   (RISK_INCREASED); otherwise null (no daily re-alert spam — the P0-5 bug).
+ */
+export function classifyAlertTransition(
+  prior: { riskLevel: string; totalScore: number } | undefined,
+  currentRiskLevel: string,
+  newScore: number,
+): "NEW_HIGH_RISK" | "RISK_INCREASED" | null {
+  if (currentRiskLevel !== "HIGH") return null;
+  if (!prior || prior.riskLevel !== "HIGH") return "NEW_HIGH_RISK";
+  if (newScore - prior.totalScore >= RISK_INCREASE_THRESHOLD) return "RISK_INCREASED";
+  return null;
+}
 
 export interface IngestResult {
   success: boolean;
@@ -282,15 +310,28 @@ async function fetchPromotedStocksFile(filename: string): Promise<{
  * but have NOT yet been ingested into DailyScanSummary, sorted oldest-first.
  */
 export async function getPendingDates(): Promise<string[]> {
-  // List all files in the evaluation bucket
-  const { data: files, error: storageError } = await supabase.storage
-    .from(EVALUATION_BUCKET)
-    .list("", { limit: 500, sortBy: { column: "name", order: "asc" } });
-
-  if (storageError || !files) {
-    throw new Error(
-      `Failed to list storage files: ${storageError?.message ?? "No data returned"}`,
-    );
+  // List ALL files in the evaluation bucket, paginating. Supabase's list()
+  // returns at most `limit` rows; the bucket accrues ~7 files/day, so a fixed
+  // 500 window (sorted by name asc) silently dropped the newest dates after
+  // ~70 days and auto-ingest quietly stopped seeing new files (D4). Page until
+  // a short page comes back.
+  const PAGE_SIZE = 1000;
+  const files: { name: string }[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data: page, error: storageError } = await supabase.storage
+      .from(EVALUATION_BUCKET)
+      .list("", {
+        limit: PAGE_SIZE,
+        offset,
+        sortBy: { column: "name", order: "asc" },
+      });
+    if (storageError || !page) {
+      throw new Error(
+        `Failed to list storage files: ${storageError?.message ?? "No data returned"}`,
+      );
+    }
+    files.push(...page);
+    if (page.length < PAGE_SIZE) break;
   }
 
   // Extract unique dates from evaluation files (enhanced and legacy formats)
@@ -374,8 +415,12 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const promotedResult = await fetchPromotedStocksFile(promotedFilename);
     const promotedData = promotedResult.data;
 
-    const scanDate = new Date(date);
-    scanDate.setHours(0, 0, 0, 0);
+    // Parse the "YYYY-MM-DD" file date as UTC midnight. `new Date(date)` already
+    // parses date-only strings as UTC, but the following setHours(0,0,0,0) used
+    // LOCAL time, shifting scanDate to the previous day on any non-UTC server —
+    // which broke the ingested-date equality check (daily re-ingest loop) and
+    // keyed snapshots/summaries a day off (D9). Pin to UTC explicitly.
+    const scanDate = new Date(date + "T00:00:00Z");
 
     // Filter valid stocks
     const validStocks = evaluationData.filter(
@@ -473,7 +518,11 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           scanDate,
           riskLevel: stock.riskLevel || "UNKNOWN",
           totalScore: toInt(stock.totalScore) ?? 0,
-          isLegitimate: stock.isLegitimate ?? true,
+          // Never mark a non-LOW stock as "legitimate" — that invariant is
+          // enforced by the scoring engine (checkIsLegitimate forces false when
+          // riskLevel !== LOW), but the old `?? true` default stored HIGH-risk
+          // stocks as legitimate whenever the producer omitted the field (D7).
+          isLegitimate: stock.riskLevel === "LOW" && (stock.isLegitimate ?? true),
           isInsufficient: stock.isInsufficient || false,
           lastPrice: stock.lastPrice || null,
           previousClose: stock.previousClose || null,
@@ -507,7 +556,12 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       console.log(`[ingest-core] Created ${snapshotsCreated} snapshots`);
     }
 
-    // Step 7: Create alerts for HIGH risk stocks
+    // Step 7: Create alerts for HIGH-risk stocks — only on a genuine RISK
+    // TRANSITION, not for every HIGH stock every day. The previous logic
+    // stamped a NEW_HIGH_RISK alert on every HIGH stock on every ingest, so a
+    // stock that stays HIGH (incl. delisted "zombies" re-scored on stale data)
+    // produced a fresh "new" alert daily -> hundreds of thousands of rows and
+    // months-old stocks that always look freshly flagged (P0-5 / D1).
     const highRiskStocks = validStocks.filter((s) => s.riskLevel === "HIGH");
     let alertsCreated = 0;
 
@@ -516,35 +570,81 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         .map((s) => existingStockMap.get(s.symbol))
         .filter((id): id is string => !!id);
 
+      // The most-recent PRIOR snapshot (scanDate < this date) per stock, to
+      // compare against. DISTINCT ON returns one row per stock — the latest
+      // earlier snapshot regardless of gaps/weekends. If a stock has no prior
+      // snapshot at all, it's genuinely new to us.
+      const priorByStock = new Map<
+        string,
+        { riskLevel: string; totalScore: number }
+      >();
+      for (let i = 0; i < highRiskStockIds.length; i += BATCH_SIZE) {
+        const batch = highRiskStockIds.slice(i, i + BATCH_SIZE);
+        const priors = await prisma.$queryRaw<
+          { stockId: string; riskLevel: string; totalScore: number }[]
+        >(Prisma.sql`
+          SELECT DISTINCT ON ("stockId") "stockId", "riskLevel", "totalScore"
+          FROM "StockDailySnapshot"
+          WHERE "stockId" IN (${Prisma.join(batch)}) AND "scanDate" < ${scanDate}
+          ORDER BY "stockId", "scanDate" DESC
+        `);
+        priors.forEach((p) =>
+          priorByStock.set(p.stockId, {
+            riskLevel: p.riskLevel,
+            totalScore: p.totalScore,
+          }),
+        );
+      }
+
+      // Alerts already recorded for THIS date (idempotent re-ingest), keyed by
+      // stockId|alertType so a re-run doesn't duplicate. Belt-and-braces with
+      // the new @@unique([stockId, alertDate, alertType]) constraint.
       const existingAlertSet = new Set<string>();
       for (let i = 0; i < highRiskStockIds.length; i += BATCH_SIZE) {
         const batch = highRiskStockIds.slice(i, i + BATCH_SIZE);
         const existingAlerts = await prisma.stockRiskAlert.findMany({
           where: { stockId: { in: batch }, alertDate: scanDate },
-          select: { stockId: true },
+          select: { stockId: true, alertType: true },
         });
-        existingAlerts.forEach((a) => existingAlertSet.add(a.stockId));
+        existingAlerts.forEach((a) =>
+          existingAlertSet.add(`${a.stockId}|${a.alertType}`),
+        );
       }
 
       const alertsToCreate = highRiskStocks
-        .filter((stock) => {
+        .map((stock) => {
           const stockId = existingStockMap.get(stock.symbol);
-          return stockId && !existingAlertSet.has(stockId);
+          if (!stockId) return null;
+          const prior = priorByStock.get(stockId);
+          const newScore = toInt(stock.totalScore) ?? 0;
+
+          const alertType = classifyAlertTransition(
+            prior,
+            stock.riskLevel,
+            newScore,
+          );
+          if (!alertType) return null; // still HIGH, no material change
+
+          if (existingAlertSet.has(`${stockId}|${alertType}`)) return null;
+
+          return {
+            stockId,
+            alertDate: scanDate,
+            alertType,
+            previousRiskLevel: prior?.riskLevel ?? null,
+            newRiskLevel: stock.riskLevel,
+            previousScore: prior?.totalScore ?? null,
+            newScore,
+            priceAtAlert: stock.lastPrice || null,
+            volumeAtAlert: toInt(stock.volume),
+            triggeringSignals: stock.signalSummary || null,
+          };
         })
-        .map((stock) => ({
-          stockId: existingStockMap.get(stock.symbol)!,
-          alertDate: scanDate,
-          alertType: "NEW_HIGH_RISK",
-          newRiskLevel: stock.riskLevel,
-          newScore: toInt(stock.totalScore) ?? 0,
-          priceAtAlert: stock.lastPrice || null,
-          volumeAtAlert: toInt(stock.volume),
-          triggeringSignals: stock.signalSummary || null,
-        }));
+        .filter((a): a is NonNullable<typeof a> => a !== null);
 
       if (alertsToCreate.length > 0) {
         console.log(
-          `[ingest-core] Creating ${alertsToCreate.length} risk alerts for ${date}...`,
+          `[ingest-core] Creating ${alertsToCreate.length} risk-transition alerts for ${date}...`,
         );
         alertsCreated = await batchCreateMany(
           (batch) =>
