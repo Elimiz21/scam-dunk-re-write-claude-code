@@ -309,16 +309,22 @@ def extract_contextual_features(
     """
     features = {}
 
-    # Market cap features
-    market_cap = fundamentals.get('market_cap', 0)
+    # Market cap features.
+    # NOTE: get_stock_fundamentals deliberately returns None (not 0) when a
+    # field is unavailable, which is the COMMON case for the OTC micro-cap
+    # shells this product targets. Coalesce to 0/UNKNOWN here so feature
+    # extraction never does arithmetic on None (which 500s the whole analyze
+    # request → silent TS fallback, P0-6). `or` handles both an absent key and
+    # a present-but-None value.
+    market_cap = fundamentals.get('market_cap') or 0
     features['market_cap'] = market_cap
     features['is_micro_cap'] = int(market_cap < MARKET_THRESHOLDS['micro_cap'])
     features['is_small_cap'] = int(market_cap < MARKET_THRESHOLDS['small_cap'])
     features['log_market_cap'] = np.log1p(market_cap)
 
     # Float and liquidity
-    float_shares = fundamentals.get('float_shares', 0)
-    avg_volume = fundamentals.get('avg_daily_volume', 0)
+    float_shares = fundamentals.get('float_shares') or 0
+    avg_volume = fundamentals.get('avg_daily_volume') or 0
     features['float_shares'] = float_shares
     features['avg_daily_volume'] = avg_volume
     features['is_micro_liquidity'] = int(avg_volume < MARKET_THRESHOLDS['micro_liquidity'])
@@ -331,7 +337,7 @@ def extract_contextual_features(
         features['float_turnover'] = 0
 
     # Exchange type
-    exchange = fundamentals.get('exchange', 'UNKNOWN')
+    exchange = fundamentals.get('exchange') or 'UNKNOWN'
     features['exchange'] = exchange
     features['is_otc'] = int(exchange.upper() in OTC_EXCHANGES or fundamentals.get('is_otc', False))
 

@@ -157,8 +157,13 @@ async function callPythonAIBackend(
         asset_type: assetType,
         use_live_data: true,
         days: 90,
+        // sec_flagged stays nullable: null means "defer to the backend's own
+        // SEC list", false means "upstream checked and it is not flagged".
         sec_flagged: secFlagged ?? null,
-        news_flag: newsFlag ?? null,
+        // news_flag is a non-nullable bool in the backend contract; send a
+        // concrete false when the upstream layer didn't compute a catalyst,
+        // otherwise the request 422s and every scan silently falls back (P0-4).
+        news_flag: newsFlag ?? false,
       }),
       signal: controller.signal,
     });
@@ -396,9 +401,19 @@ export async function POST(request: NextRequest) {
       const derivedLevel = calculateRiskLevel(aiTotalScore, aiSignals);
       const backendPriority = RISK_PRIORITY[aiResult.riskLevel] ?? 0;
       const derivedPriority = RISK_PRIORITY[derivedLevel] ?? 0;
-      // Take the MORE severe of the backend level and the score-derived level.
+      // Take the MORE severe of the backend level and the score-derived level —
+      // but INSUFFICIENT ("not enough data to rate") is authoritative, not a
+      // low-severity level. A score-derived LOW (score 0 because there were no
+      // signals — indistinguishable from 0-because-no-data) must NOT overwrite
+      // it (A4). Only a genuine MEDIUM/HIGH derived from real signals overrides.
       const aiRiskLevel: RiskLevel =
-        derivedPriority > backendPriority ? derivedLevel : aiResult.riskLevel;
+        aiResult.riskLevel === "INSUFFICIENT"
+          ? derivedPriority >= RISK_PRIORITY.MEDIUM
+            ? derivedLevel
+            : "INSUFFICIENT"
+          : derivedPriority > backendPriority
+            ? derivedLevel
+            : aiResult.riskLevel;
 
       // isLegitimate via the SHARED check (large-cap/liquidity/major-exchange,
       // forced false when not LOW) — never "well-established" for an unknown
@@ -434,7 +449,15 @@ export async function POST(request: NextRequest) {
           const aiPriority = RISK_PRIORITY[scoringResult.riskLevel] ?? 0;
           const baselinePriority = RISK_PRIORITY[baselineResult.riskLevel] ?? 0;
 
-          if (baselinePriority > aiPriority) {
+          // Upgrade to the deterministic baseline when it is genuinely more
+          // severe — but never turn an INSUFFICIENT verdict into a spurious LOW
+          // (the baseline's LOW on the same thin data is 0-because-empty, A4).
+          // A baseline MEDIUM/HIGH still (correctly) overrides INSUFFICIENT.
+          const wouldCoerceInsufficientToLow =
+            scoringResult.riskLevel === "INSUFFICIENT" &&
+            baselineResult.riskLevel === "LOW";
+
+          if (baselinePriority > aiPriority && !wouldCoerceInsufficientToLow) {
             console.log(
               `No-downgrade guard: AI=${scoringResult.riskLevel}(${scoringResult.totalScore}), ` +
                 `baseline=${baselineResult.riskLevel}(${baselineResult.totalScore}) → using baseline`,

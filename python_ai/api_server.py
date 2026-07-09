@@ -142,7 +142,9 @@ class AnalysisRequest(BaseModel):
     days: int = Field(default=90, ge=1, le=365, description="Days of historical data to analyze (1-365)")
     use_live_data: bool = Field(default=True, description="Use live API data (real market data from yfinance)")
     sec_flagged: Optional[bool] = Field(default=None, description="SEC flag result from upstream regulatory database check. Overrides internal SEC list when provided.")
-    news_flag: bool = Field(default=False, description="Whether the upstream layer found a legitimate news catalyst for recent price/volume activity (reduces false positives).")
+    # Accept null as well as bool: some upstream callers omit the catalyst
+    # computation and send null. Treat null as False (see analyze handler).
+    news_flag: Optional[bool] = Field(default=False, description="Whether the upstream layer found a legitimate news catalyst for recent price/volume activity (reduces false positives).")
 
 
 def _severity_from_weight(weight: int) -> str:
@@ -340,7 +342,7 @@ async def analyze_asset(request: AnalysisRequest):
                 is_scam_scenario=False,
                 # Plumb the upstream news flag through so the news-aware
                 # false-positive reduction can actually activate (PY-H7).
-                news_flag=request.news_flag,
+                news_flag=request.news_flag or False,
                 sec_flagged_override=request.sec_flagged
             )
         )

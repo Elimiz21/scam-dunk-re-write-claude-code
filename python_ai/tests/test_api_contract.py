@@ -106,6 +106,20 @@ def test_news_flag_is_accepted(client):
     assert r.status_code == 200, r.text
 
 
+def test_news_flag_null_is_accepted(client):
+    # Regression for P0-4: the main /api/check route sent news_flag: null when
+    # the upstream layer didn't compute a catalyst, which a non-Optional bool
+    # rejected with 422 -> every production scan silently fell back to TS
+    # scoring. The field must tolerate null (treated as False).
+    r = client.post(
+        '/analyze',
+        headers={'X-API-Key': API_KEY},
+        json={'ticker': 'AAPL', 'asset_type': 'stock', 'use_live_data': False,
+              'days': 90, 'sec_flagged': None, 'news_flag': None},
+    )
+    assert r.status_code == 200, r.text
+
+
 def test_batch_endpoint_rejects_oversized_input(client):
     r = client.post(
         '/pre-pump-scan',
@@ -139,3 +153,30 @@ def test_synthetic_fundamentals_still_work():
     fund = get_stock_fundamentals('TEST', use_synthetic=True, is_scam_scenario=True)
     assert fund['market_cap'] is not None
     assert fund['exchange'] in ('OTC', 'PINK', 'OTCBB')
+
+
+def test_none_fundamentals_flow_through_feature_vector():
+    """Regression for P0-6: live-mode fundamentals for an unavailable OTC shell
+    come back with None market_cap/volume/exchange (see the fabrication test
+    above). Feature extraction must coalesce those to 0/UNKNOWN instead of
+    doing arithmetic on None (int(None < x), None.upper()), which raised
+    TypeError -> HTTP 500 -> silent TS fallback for exactly the micro-caps this
+    product targets."""
+    from feature_engineering import extract_contextual_features
+    none_fundamentals = {
+        'market_cap': None,
+        'float_shares': None,
+        'avg_daily_volume': None,
+        'exchange': None,
+    }
+    # Must not raise.
+    feats = extract_contextual_features(none_fundamentals, {'is_flagged': False})
+    assert feats['market_cap'] == 0
+    assert feats['exchange'] == 'UNKNOWN'
+    assert feats['float_turnover'] == 0
+    assert feats['is_otc'] in (0, 1)
+    # A partially-present dict (exchange known, market cap absent) — the common
+    # real case — must also work.
+    partial = {'exchange': 'OTC', 'market_cap': None, 'avg_daily_volume': None}
+    feats2 = extract_contextual_features(partial, {'is_flagged': False})
+    assert feats2['is_otc'] == 1

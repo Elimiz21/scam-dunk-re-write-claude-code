@@ -145,7 +145,12 @@ async function checkAIBackendHealth(): Promise<boolean> {
 
     if (response.ok) {
       const data = await response.json();
-      return data.status === "healthy" && data.rf_ready && data.lstm_ready;
+      // Gate on readiness only. rf_ready/lstm_ready are false whenever the ML
+      // models are disabled (the default, and TensorFlow isn't shipped), but
+      // the backend still serves correct rules-only scoring in that mode.
+      // Requiring them made this route never use a perfectly healthy backend
+      // (A3). `status: "healthy"` already means the pipeline initialized.
+      return data.status === "healthy";
     }
     return false;
   } catch {
