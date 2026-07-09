@@ -1134,6 +1134,12 @@ export async function sendSupportTicketResponse(
   }
 }
 
+// Per-API cooldown so a sustained upstream outage (e.g. FMP down) doesn't email
+// admins on every single scan — one alert per API per window is enough (R8).
+// In-memory / per serverless instance, which is sufficient to stop the storm.
+const API_ALERT_COOLDOWN_MS = 15 * 60 * 1000;
+const lastApiAlertAt = new Map<string, number>();
+
 /**
  * Send an alert email to the admin when an API failure occurs
  */
@@ -1151,6 +1157,17 @@ export async function sendAPIFailureAlert(
     );
     return false;
   }
+
+  // Throttle repeated alerts for the same API.
+  const now = Date.now();
+  const last = lastApiAlertAt.get(apiName) ?? 0;
+  if (now - last < API_ALERT_COOLDOWN_MS) {
+    console.log(
+      `[api-alert] Suppressing duplicate ${apiName} failure alert (cooldown active)`,
+    );
+    return false;
+  }
+  lastApiAlertAt.set(apiName, now);
 
   const timestamp = new Date().toISOString();
 

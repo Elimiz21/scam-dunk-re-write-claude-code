@@ -17,6 +17,9 @@ async function cleanupExpiredTokens() {
       }),
       prisma.passwordResetToken.deleteMany({ where: { expires: { lt: now } } }),
       prisma.adminSession.deleteMany({ where: { expiresAt: { lt: now } } }),
+      // RateLimitEntry was never purged and grew unbounded — it has an
+      // expiresAt index for exactly this sweep (R7).
+      prisma.rateLimitEntry.deleteMany({ where: { expiresAt: { lt: now } } }),
     ]);
     lastCleanupRun = Date.now();
   } catch (error) {
