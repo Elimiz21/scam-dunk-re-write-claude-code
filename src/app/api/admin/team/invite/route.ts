@@ -106,7 +106,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    // Include the email so the login page's post-acceptance auto-login works
+    // (it reads data.email); previously it only got { success } and always fell
+    // back to manual login.
+    return NextResponse.json({ success: true, email: result.email });
   } catch (error) {
     console.error("Accept invite error:", error);
     return NextResponse.json(

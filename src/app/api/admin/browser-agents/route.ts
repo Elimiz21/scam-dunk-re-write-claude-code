@@ -169,7 +169,10 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Browser scan queued for ${tickers.length} ticker(s): ${tickers.slice(0, 5).join(", ")}${tickers.length > 5 ? ` +${tickers.length - 5} more` : ""}`,
+        // Be honest: this records the request but does NOT execute a scan here.
+        // The browser agents run in the scheduled GitHub Actions job; there is
+        // no in-app worker that picks up PENDING rows (U1).
+        message: `Recorded a browser-scan request for ${tickers.length} ticker(s): ${tickers.slice(0, 5).join(", ")}${tickers.length > 5 ? ` +${tickers.length - 5} more` : ""}. Browser agents run on their scheduled GitHub Actions job — results will appear here after the next run.`,
         sessionId: scanSession.id,
         tickers,
       });
@@ -183,7 +186,9 @@ export async function POST(request: NextRequest) {
       const deleted = await prisma.browserAgentSession.deleteMany({
         where: {
           createdAt: { lt: cutoff },
-          status: { in: ["COMPLETED", "FAILED"] },
+          // Include PENDING so stale placeholder rows (from the trigger button,
+          // never picked up by a consumer) can actually be cleared (U1).
+          status: { in: ["COMPLETED", "FAILED", "PENDING"] },
         },
       });
 
@@ -247,8 +252,12 @@ async function getBrowserAgentStats() {
         where: { scanDate: { gte: weekAgo } },
       }),
       prisma.browserEvidence.count(),
+      // Count only genuinely RUNNING sessions. PENDING placeholder rows are
+      // created by the trigger button but executed by the scheduled GitHub
+      // Actions browser-agent job, not this app — counting them as "running"
+      // inflated the stat forever with work nothing was performing (U1).
       prisma.browserAgentSession.count({
-        where: { status: { in: ["RUNNING", "PENDING"] } },
+        where: { status: "RUNNING" },
       }),
       prisma.browserAgentSession.groupBy({
         by: ["platform"],

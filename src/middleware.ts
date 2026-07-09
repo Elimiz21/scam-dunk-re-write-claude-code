@@ -58,7 +58,10 @@ const ADMIN_PUBLIC_PATHS = [
   "/api/admin/setup",
   "/api/admin/social-scan", // Accepts Bearer API key for daily pipeline
   "/api/admin/social-scan/ingest", // Accepts Bearer API key for data ingestion
-  "/api/admin/ingest-evaluation", // Accepts Bearer API key for pipeline uploads
+  // Invite acceptance (PUT) is invite-token-gated and used by not-yet-logged-in
+  // invitees, so it can't require a session cookie. The POST handler on the same
+  // route re-checks the admin session in-route, so exposing the path is safe.
+  "/api/admin/team/invite",
 ];
 
 export default async function middleware(request: NextRequest) {
