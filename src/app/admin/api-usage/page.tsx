@@ -179,17 +179,25 @@ export default function ApiUsagePage() {
     {
       key: "status",
       header: "Status",
-      render: (item: ApiUsageData["activeAlerts"][0]) => (
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-            item.lastTriggered
-              ? "bg-red-100 text-red-800"
-              : "bg-green-100 text-green-800"
-          }`}
-        >
-          {item.lastTriggered ? "Triggered" : "OK"}
-        </span>
-      ),
+      render: (item: ApiUsageData["activeAlerts"][0]) => {
+        // Derive from the route's read-only triggeredAlerts list (the same
+        // source the banner uses). lastTriggered is only written by a cron
+        // (checkAndTriggerAlerts) that has no scheduler, so it was always null
+        // and every row falsely read "OK" even while the banner said triggered
+        // (U3).
+        const isTriggered = data?.triggeredAlerts?.includes(item.id) ?? false;
+        return (
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+              isTriggered
+                ? "bg-red-100 text-red-800"
+                : "bg-green-100 text-green-800"
+            }`}
+          >
+            {isTriggered ? "Triggered" : "OK"}
+          </span>
+        );
+      },
     },
     {
       key: "actions",
@@ -343,8 +351,9 @@ export default function ApiUsagePage() {
                         >
                           <option value="ALL">All Services</option>
                           <option value="OPENAI">OpenAI</option>
+                          <option value="FMP">FMP</option>
+                          <option value="COINGECKO">CoinGecko</option>
                           <option value="ALPHA_VANTAGE">Alpha Vantage</option>
-                          <option value="STRIPE">Stripe</option>
                         </select>
                       </div>
                       <div>

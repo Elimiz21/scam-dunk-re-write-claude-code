@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import { parseDays } from "@/lib/admin/query-params";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get("days") || "7");
+    const days = parseDays(searchParams, 7);
     const type = searchParams.get("type");
     const acknowledged = searchParams.get("acknowledged");
 

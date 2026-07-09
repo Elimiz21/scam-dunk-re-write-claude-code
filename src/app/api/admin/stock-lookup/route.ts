@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import { parseDays } from "@/lib/admin/query-params";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get("symbol")?.toUpperCase();
     const query = searchParams.get("q");
-    const days = parseInt(searchParams.get("days") || "90");
+    const days = parseDays(searchParams, 90);
 
     // Search mode
     if (query && !symbol) {

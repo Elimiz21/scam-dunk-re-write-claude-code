@@ -46,6 +46,10 @@ export async function GET() {
     return NextResponse.json({
       members,
       pendingInvites,
+      // Expose the viewer's role so the UI can hide OWNER-only controls
+      // (invite / role-change / deactivate), which the PATCH handler enforces
+      // server-side anyway (U7).
+      currentRole: session.role,
     });
   } catch (error) {
     console.error("Get team error:", error);

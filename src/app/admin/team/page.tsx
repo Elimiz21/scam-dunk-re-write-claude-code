@@ -46,6 +46,8 @@ export default function TeamPage() {
   const [inviteUrl, setInviteUrl] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string>("");
+  const isOwner = currentRole === "OWNER";
 
   useEffect(() => {
     fetchTeam();
@@ -58,6 +60,7 @@ export default function TeamPage() {
       const data = await res.json();
       setMembers(data.members);
       setPendingInvites(data.pendingInvites);
+      setCurrentRole(data.currentRole || "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load team");
     } finally {
@@ -152,18 +155,20 @@ export default function TeamPage() {
               Manage admin users and invitations
             </p>
           </div>
-          <button
-            onClick={() => {
-              setShowInviteModal(true);
-              setInviteUrl("");
-              setInviteEmail("");
-              setEmailSent(false);
-            }}
-            className="inline-flex items-center px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90"
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Invite User
-          </button>
+          {isOwner && (
+            <button
+              onClick={() => {
+                setShowInviteModal(true);
+                setInviteUrl("");
+                setInviteEmail("");
+                setEmailSent(false);
+              }}
+              className="inline-flex items-center px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite User
+            </button>
+          )}
         </div>
 
         {error && (
@@ -266,7 +271,7 @@ export default function TeamPage() {
                           ? `Last login: ${new Date(member.lastLoginAt).toLocaleDateString()}`
                           : "Never logged in"}
                       </div>
-                      {member.role !== "OWNER" && (
+                      {isOwner && member.role !== "OWNER" && (
                         <div className="relative">
                           <button
                             onClick={() =>

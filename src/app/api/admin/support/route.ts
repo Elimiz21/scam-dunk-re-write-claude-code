@@ -5,8 +5,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import {
+  parsePage,
+  parseLimit,
+  pickSortField,
+  pickSortOrder,
+} from "@/lib/admin/query-params";
 
 export const dynamic = "force-dynamic";
+
+// Whitelisted sort columns — an arbitrary sortBy would make Prisma throw on an
+// unknown column (which the old catch turned into a fake-empty 200).
+const SUPPORT_SORT_FIELDS = [
+  "createdAt",
+  "updatedAt",
+  "status",
+  "priority",
+  "category",
+  "email",
+  "name",
+] as const;
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,14 +34,18 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const page = parsePage(searchParams);
+    const limit = parseLimit(searchParams);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
     const category = searchParams.get("category") || "";
     const priority = searchParams.get("priority") || "";
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
+    const sortBy = pickSortField(
+      searchParams.get("sortBy"),
+      SUPPORT_SORT_FIELDS,
+      "createdAt",
+    );
+    const sortOrder = pickSortOrder(searchParams.get("sortOrder"));
 
     // Build where clause
     const where: Record<string, unknown> = {};
@@ -145,32 +167,38 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Get support tickets error:", error);
-    // Return empty results instead of error when table might not exist or is empty
-    return NextResponse.json({
-      tickets: [],
-      pagination: {
-        page: 1,
-        limit: 20,
-        total: 0,
-        pages: 0,
-      },
-      stats: {
-        total: 0,
-        new: 0,
-        open: 0,
-        inProgress: 0,
-        resolved: 0,
-        closed: 0,
-        ticketsLast7Days: 0,
-        urgentTickets: 0,
-        byCategory: {
-          support: 0,
-          feedback: 0,
-          bugReport: 0,
-          featureRequest: 0,
+    // Signal the failure (500 + error) instead of a silent empty 200 — the
+    // latter made a real DB/query error look identical to "no tickets" (R3).
+    // Body keeps the normal shape so status-agnostic consumers still render.
+    return NextResponse.json(
+      {
+        error: "Failed to load support tickets",
+        tickets: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          pages: 0,
+        },
+        stats: {
+          total: 0,
+          new: 0,
+          open: 0,
+          inProgress: 0,
+          resolved: 0,
+          closed: 0,
+          ticketsLast7Days: 0,
+          urgentTickets: 0,
+          byCategory: {
+            support: 0,
+            feedback: 0,
+            bugReport: 0,
+            featureRequest: 0,
+          },
         },
       },
-    });
+      { status: 500 },
+    );
   }
 }
 

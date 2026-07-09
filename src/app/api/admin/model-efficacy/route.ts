@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { getModelEfficacyMetrics } from "@/lib/admin/metrics";
 import { cached } from "@/lib/cache";
+import { parseDays } from "@/lib/admin/query-params";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const days = parseInt(searchParams.get("days") || "30", 10);
+    const days = parseDays(searchParams, 30);
 
     // Unpersonalized aggregate — cache for 60s.
     const metrics = await cached(`model-efficacy:${days}`, 60, () =>
