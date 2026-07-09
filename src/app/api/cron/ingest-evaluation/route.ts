@@ -17,8 +17,24 @@ export const maxDuration = 800; // 13 min max (Vercel Pro)
 // Time budget: stop processing new dates after this many ms (9 minutes)
 const TIME_BUDGET_MS = 9 * 60 * 1000;
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
   const cronStart = Date.now();
+
+  // 1. Authorize: Vercel Cron sends `Authorization: Bearer ${CRON_SECRET}`
+  // automatically when CRON_SECRET is set. Reject anything else so the
+  // endpoint can't be triggered by the public (the URL is reachable
+  // regardless of repo visibility).
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error("[cron-ingest] CRON_SECRET is not configured — refusing to run");
+    return NextResponse.json(
+      { error: "Server misconfigured: CRON_SECRET not set" },
+      { status: 500 },
+    );
+  }
+  if (request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   // 2. Get all pending dates
   let pendingDates: string[];
