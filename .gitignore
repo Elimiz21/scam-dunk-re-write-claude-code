@@ -78,3 +78,6 @@ evaluation/browser-sessions/
 
 # Claude Code worktrees (temporary agent workspaces)
 .claude/worktrees/
+
+# Models trained on real data by python_ai/train_real_model.py (encode private data)
+python_ai/models/real_*
