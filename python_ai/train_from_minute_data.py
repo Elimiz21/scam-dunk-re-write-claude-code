@@ -138,15 +138,59 @@ def _positional_names(n: int) -> list:
             3: ["datetime", "close", "volume"], 2: ["datetime", "close"]}[n]
 
 
+def _raw_head_lines(path: Path, n: int = 20) -> list:
+    is_gz = path.name.lower().endswith((".csv.gz", ".txt.gz"))
+    opener = (lambda p: gzip.open(p, "rt", encoding="latin-1", errors="ignore")) if is_gz \
+        else (lambda p: open(p, "r", encoding="latin-1", errors="ignore"))
+    out = []
+    with opener(path) as fh:
+        for _ in range(n * 3):
+            ln = fh.readline()
+            if not ln:
+                break
+            if ln.strip():
+                out.append(ln.rstrip("\n"))
+            if len(out) >= n:
+                break
+    return out
+
+
+def _is_number(s: str) -> bool:
+    return bool(re.fullmatch(r"-?\d+(\.\d+)?(\.\d+)?", s.strip()))
+
+
 def _csv_opts(path: Path) -> dict:
-    try:
-        head = pd.read_csv(path, nrows=0)
-    except UnicodeDecodeError:
-        head = pd.read_csv(path, nrows=0, encoding="latin-1")
-    cols = list(head.columns)
-    if _looks_headerless(cols):
-        return {"header": None, "names": _positional_names(len(cols))}
-    return {}
+    """Skip leading comment/metadata lines; detect header vs headerless
+    (FirstRateData) robustly — the variations that silently dropped files."""
+    lines = _raw_head_lines(path)
+    if not lines:
+        return {}
+    skip = 0
+    for ln in lines:
+        s = ln.lstrip("﻿").strip()
+        if not s or s.startswith(("#", "//", ";")) or ("," not in s and "\t" not in s):
+            skip += 1
+        else:
+            break
+    if skip >= len(lines):
+        return {}
+    firstrow = lines[skip].lstrip("﻿")
+    sep = "\t" if ("\t" in firstrow and "," not in firstrow) else ","
+    fields = firstrow.split(sep)
+    first_field = fields[0].strip().strip('"')
+    headerless = (
+        not pd.isna(pd.to_datetime(first_field, errors="coerce"))
+        or sum(_is_number(f) for f in fields) >= max(2, int(0.6 * len(fields)))
+    )
+    opts: dict = {}
+    if sep == "\t":
+        opts["sep"] = "\t"
+    if skip:
+        opts["skiprows"] = skip
+    if headerless:
+        opts["header"] = None
+        opts["names"] = _positional_names(len(fields))
+    return opts
 
 
 def _read_any(path: Path, chunked: bool = False):
@@ -404,7 +448,9 @@ def build_dataset(df: pd.DataFrame) -> pd.DataFrame:
     feats["dist_from_high_20d"] = p / rmax.replace(0, np.nan)
     feats["rsi_14"] = g["close"].transform(_rsi)
     feats["log_price"] = np.log1p(p)
-    dv20 = g.apply(lambda x: (x["close"] * x["volume"]).rolling(20, min_periods=20).mean()).reset_index(level=0, drop=True)
+    dollar_vol = df["close"] * df["volume"]
+    dv20 = dollar_vol.groupby(df["symbol"]).transform(
+        lambda s: s.rolling(20, min_periods=20).mean())
     feats["log_dollar_vol_20d"] = np.log1p(dv20)
 
     vm5 = g["volume"].transform(lambda s: s.rolling(5, min_periods=5).mean())

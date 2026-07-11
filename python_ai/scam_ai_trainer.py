@@ -162,17 +162,63 @@ def _positional_names(n: int) -> list[str]:
             2: ["datetime", "close"]}[n]
 
 
+def _raw_head_lines(path: Path, n: int = 20) -> list:
+    """First n non-empty raw lines, latin-1 (robust), for sniffing structure."""
+    is_gz = path.name.lower().endswith((".csv.gz", ".txt.gz"))
+    opener = (lambda p: gzip.open(p, "rt", encoding="latin-1", errors="ignore")) if is_gz \
+        else (lambda p: open(p, "r", encoding="latin-1", errors="ignore"))
+    out = []
+    with opener(path) as fh:
+        for _ in range(n * 3):
+            ln = fh.readline()
+            if not ln:
+                break
+            if ln.strip():
+                out.append(ln.rstrip("\n"))
+            if len(out) >= n:
+                break
+    return out
+
+
+def _is_number(s: str) -> bool:
+    return bool(re.fullmatch(r"-?\d+(\.\d+)?(\.\d+)?", s.strip()))
+
+
 def _csv_opts(path: Path) -> dict:
-    """Probe a csv/txt file's header row; return read_csv options that make
-    headerless files come back with standard column names."""
-    try:
-        head = pd.read_csv(path, nrows=0)
-    except UnicodeDecodeError:
-        head = pd.read_csv(path, nrows=0, encoding="latin-1")
-    cols = list(head.columns)
-    if _looks_headerless(cols):
-        return {"header": None, "names": _positional_names(len(cols))}
-    return {}
+    """Decide how to read a csv/txt: skip leading comment/metadata lines and
+    detect whether the first REAL line is a header or already data (headerless,
+    FirstRateData-style). Robust to '#' / '//' / ';' comments, blank lines, a
+    BOM, and tab separators — the format variations that were silently dropping
+    files that actually had data."""
+    lines = _raw_head_lines(path)
+    if not lines:
+        return {}
+    skip = 0
+    for ln in lines:
+        s = ln.lstrip("﻿").strip()
+        if not s or s.startswith(("#", "//", ";")) or ("," not in s and "\t" not in s):
+            skip += 1
+        else:
+            break
+    if skip >= len(lines):
+        return {}
+    firstrow = lines[skip].lstrip("﻿")
+    sep = "\t" if ("\t" in firstrow and "," not in firstrow) else ","
+    fields = firstrow.split(sep)
+    first_field = fields[0].strip().strip('"')
+    headerless = (
+        not pd.isna(pd.to_datetime(first_field, errors="coerce"))
+        or sum(_is_number(f) for f in fields) >= max(2, int(0.6 * len(fields)))
+    )
+    opts: dict = {}
+    if sep == "\t":
+        opts["sep"] = "\t"
+    if skip:
+        opts["skiprows"] = skip
+    if headerless:
+        opts["header"] = None
+        opts["names"] = _positional_names(len(fields))
+    return opts
 
 
 def _read_any(path: Path, chunked: bool = False, nrows: int | None = None):
@@ -432,7 +478,9 @@ def build_dataset(df: pd.DataFrame) -> pd.DataFrame:
     feats["dist_from_high_20d"] = p / rmax.replace(0, np.nan)
     feats["rsi_14"] = g["close"].transform(_rsi)
     feats["log_price"] = np.log1p(p)
-    dv20 = g.apply(lambda x: (x["close"] * x["volume"]).rolling(20, min_periods=20).mean()).reset_index(level=0, drop=True)
+    dollar_vol = df["close"] * df["volume"]
+    dv20 = dollar_vol.groupby(df["symbol"]).transform(
+        lambda s: s.rolling(20, min_periods=20).mean())
     feats["log_dollar_vol_20d"] = np.log1p(dv20)
     vm5 = g["volume"].transform(lambda s: s.rolling(5, min_periods=5).mean())
     vm20 = g["volume"].transform(lambda s: s.rolling(20, min_periods=20).mean())
@@ -589,12 +637,127 @@ def write_summary(report: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Diagnostic: why did only N symbols survive?  Cheaply reads each file's LAST
+# timestamp (O(1) tail read, no full parse / no re-crunch) and compares
+# "should survive" (has post-window data) against what actually survived.
+# ---------------------------------------------------------------------------
+def _first_last_lines(path: Path) -> tuple[str, str]:
+    """Cheap first + last non-empty line of a text/csv file (handles .gz)."""
+    if path.suffix.lower() == ".gz" or path.name.lower().endswith((".csv.gz", ".txt.gz")):
+        with gzip.open(path, "rt", encoding="latin-1", errors="ignore") as fh:
+            lines = [ln for ln in fh if ln.strip()]
+        return (lines[0].rstrip("\n"), lines[-1].rstrip("\n")) if lines else ("", "")
+    with open(path, "rb") as fh:
+        first = fh.readline().decode("latin-1", "ignore")
+        try:
+            fh.seek(0, 2); size = fh.tell()
+            fh.seek(max(0, size - 65536))
+            tail = fh.read().decode("latin-1", "ignore")
+        except OSError:
+            tail = first
+    last = next((ln for ln in reversed(tail.splitlines()) if ln.strip()), "")
+    return first.strip(), last.strip()
+
+
+def _line_timestamp(line: str) -> pd.Timestamp:
+    if not line:
+        return pd.NaT
+    return pd.to_datetime(line.split(",")[0], errors="coerce")
+
+
+def cmd_diagnose(root: Path, years: int) -> None:
+    start = pd.Timestamp(datetime.utcnow().date() - timedelta(days=years * 365 + 30))
+    layout, files = discover(root)
+    say(f"Scanning {len(files):,} files for their most-recent date "
+        f"(window start = {start.date()}) ...\n")
+
+    part_ext = ".parquet" if PARQUET_OK else ".csv.gz"
+    parts_dir = RESULTS_DIR / "work" / f"daily_agg.parquet.parts"
+    have_parts = parts_dir.exists()
+
+    should, actually, wrongly, unparsed = 0, 0, [], []
+    for i, f in enumerate(files, 1):
+        first, last = _first_last_lines(f)
+        last_ts = _line_timestamp(last)
+        has_recent = pd.notna(last_ts) and last_ts >= start
+        if has_recent:
+            should += 1
+        survived = False
+        if have_parts:
+            key = re.sub(r"[^A-Za-z0-9._\-]", "_", _stem(f))
+            p = parts_dir / f"{key}{part_ext}"
+            survived = p.exists() and p.stat().st_size > 0
+            if survived:
+                actually += 1
+        if has_recent and have_parts and not survived and len(wrongly) < 8:
+            wrongly.append((f, first, last))
+        if pd.isna(last_ts) and len(unparsed) < 8:
+            unparsed.append((f, first, last))
+        if i % 2000 == 0:
+            say(f"  {i:,}/{len(files):,} ...")
+
+    say("\n=== DIAGNOSIS ===")
+    say(f"Total data files:                         {len(files):,}")
+    say(f"Files with data AFTER {start.date()}:        {should:,}")
+    if have_parts:
+        say(f"Files that actually survived last run:    {actually:,}")
+    if unparsed:
+        say(f"\nFiles whose last line didn't parse as a date ({len(unparsed)} shown) — "
+            "possible format mismatch:")
+        for f, fi, la in unparsed:
+            say(f"  {f.name}\n     first: {fi[:90]}\n     last:  {la[:90]}")
+    if have_parts and wrongly:
+        # Prove whether the CURRENT (hardened) parser now reads these files.
+        recovered = 0
+        for f, _fi, _la in wrongly:
+            try:
+                s = _read_any(f, nrows=500)
+                if hasattr(s, "get_chunk"):
+                    s = s.get_chunk(500)
+                t = _pick(list(s.columns), TIME_CANDS)
+                c = _pick(list(s.columns), COL_MAP["close"])
+                if t and c and _to_dt(s[t]).notna().any():
+                    recovered += 1
+            except Exception:
+                pass
+        say(f"\n*** {should - actually:,} files HAVE recent data but were dropped "
+            "by the PREVIOUS run.")
+        say(f"    Of {len(wrongly)} sampled, the fixed parser now reads "
+            f"{recovered}/{len(wrongly)}.")
+        if recovered:
+            say("    => The fix works. DELETE the ScamDunk_AI_Results folder and "
+                "re-run the trainer to capture all of them.")
+        say("\n    Examples of previously-dropped files (first/last line):")
+        for f, fi, la in wrongly:
+            say(f"      {f.name}\n         first: {fi[:88]}\n         last:  {la[:88]}")
+        say("\n    If the fixed parser did NOT recover them, send these lines to Claude.")
+    elif have_parts and should <= actually + 5:
+        say("\nCONCLUSION: no bug — the files that were skipped genuinely have no "
+            f"data after {start.date()}. The {actually:,} surviving symbols are all "
+            "the tickers in your archive that were still trading in the window.")
+    elif not have_parts:
+        say(f"\n(No previous run found. {should:,} of {len(files):,} files have recent "
+            "data and would be used.)")
+    else:
+        say(f"\nNote: {should:,} files have recent data but only {actually:,} survived — "
+            "send this output to Claude to investigate.")
+
+
+# ---------------------------------------------------------------------------
 def main() -> None:
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("--root", help="data folder (skips the drive picker)")
     ap.add_argument("--years", type=int, default=4)
     ap.add_argument("--yes", action="store_true", help="no prompts (requires --root)")
+    ap.add_argument("--diagnose", action="store_true",
+                    help="explain why only N symbols survived (fast; no re-crunch)")
     args = ap.parse_args()
+
+    if args.diagnose:
+        root = find_drive(args.yes, args.root)
+        say(f"\nUsing data folder: {root}")
+        cmd_diagnose(root, args.years)
+        return
 
     say("\n" + "=" * 62)
     say("  ScamDunk AI trainer — automatic")
