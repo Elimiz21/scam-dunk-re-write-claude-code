@@ -129,12 +129,50 @@ def _pick(cols, cands):
 
 
 def _to_dt(series: pd.Series) -> pd.Series:
-    if np.issubdtype(series.dtype, np.number):
-        v = series.astype("int64")
-        mx = v.max()
+    # is_numeric_dtype (not np.issubdtype) so this is robust to pandas'
+    # StringDtype/Arrow-backed columns, which np.issubdtype can't interpret.
+    if pd.api.types.is_numeric_dtype(series):
+        v = pd.to_numeric(series, errors="coerce").astype("int64")
+        mx = int(v.max())
         unit = "ns" if mx > 10**15 else ("ms" if mx > 10**12 else "s")
         return pd.to_datetime(v, unit=unit, utc=True).dt.tz_localize(None)
-    return pd.to_datetime(series, utc=True, errors="coerce").dt.tz_localize(None)
+    return pd.to_datetime(
+        series.astype("object"), utc=True, errors="coerce"
+    ).dt.tz_localize(None)
+
+
+def _looks_headerless(cols) -> bool:
+    """True when the 'column names' are actually a data row — i.e. the file has
+    no header (FirstRateData-style: datetime,open,high,low,close,volume)."""
+    if len(cols) < 2:
+        return False
+    if not pd.isna(pd.to_datetime(str(cols[0]), errors="coerce")):
+        return True  # first "name" parses as a timestamp
+    num = sum(bool(re.fullmatch(r"-?\d+(\.\d+)?(\.\d+)?", str(c))) for c in cols)
+    return num >= max(2, int(0.8 * len(cols)))  # names are mostly numbers
+
+
+def _positional_names(n: int) -> list[str]:
+    if n >= 6:
+        return ["datetime", "open", "high", "low", "close", "volume"] + [
+            f"extra{i}" for i in range(n - 6)]
+    return {5: ["datetime", "open", "high", "low", "close"],
+            4: ["datetime", "open", "close", "volume"],
+            3: ["datetime", "close", "volume"],
+            2: ["datetime", "close"]}[n]
+
+
+def _csv_opts(path: Path) -> dict:
+    """Probe a csv/txt file's header row; return read_csv options that make
+    headerless files come back with standard column names."""
+    try:
+        head = pd.read_csv(path, nrows=0)
+    except UnicodeDecodeError:
+        head = pd.read_csv(path, nrows=0, encoding="latin-1")
+    cols = list(head.columns)
+    if _looks_headerless(cols):
+        return {"header": None, "names": _positional_names(len(cols))}
+    return {}
 
 
 def _read_any(path: Path, chunked: bool = False, nrows: int | None = None):
@@ -144,6 +182,7 @@ def _read_any(path: Path, chunked: bool = False, nrows: int | None = None):
     if suf == ".feather":
         return pd.read_feather(path)
     kw = dict(low_memory=False)
+    kw.update(_csv_opts(path))  # headerless detection (FirstRateData etc.)
     if chunked:
         kw["chunksize"] = CHUNK_ROWS
     if nrows:
@@ -162,6 +201,13 @@ def _stem(p: Path) -> str:
         if s.lower().endswith(ext):
             return s[: -len(ext)]
     return p.stem
+
+
+def _file_symbol(p: Path) -> str:
+    """Ticker from a filename: 'GAA_full_1min_adjsplitdiv.txt' -> 'GAA',
+    'AAPL.csv' -> 'AAPL', 'BRK.A_full_1min.txt' -> 'BRK.A'."""
+    tok = _stem(p).split("_")[0].upper()
+    return tok or _stem(p).upper()
 
 
 # OS metadata that lives on external drives and must never be read as data:
@@ -187,7 +233,9 @@ def discover(root: Path, limit: int | None = None):
             files.append(p)
             if limit and len(files) >= limit:
                 break
-    stems = [_stem(p) for p in files[:200]]
+    # Judge ticker-likeness on the FIRST underscore token so vendor suffixes
+    # ("GAA_full_1min_adjsplitdiv") still register as per-symbol files.
+    stems = [_file_symbol(p) for p in files[:200]]
     ticker_like = sum(bool(re.fullmatch(r"[A-Za-z][A-Za-z.\-]{0,6}", s)) for s in stems)
     date_like = sum(bool(re.search(r"\d{4}[-_]?\d{2}[-_]?\d{2}", s)) for s in stems)
     layout = "per-symbol" if ticker_like >= date_like else "per-day"
@@ -301,7 +349,7 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None) 
             chunks = reader if hasattr(reader, "__iter__") and not isinstance(reader, pd.DataFrame) else [reader]
             for chunk in chunks:
                 if layout == "per-symbol":
-                    a = _aggregate_frame(chunk, _stem(f).upper(), start)
+                    a = _aggregate_frame(chunk, _file_symbol(f), start)
                     if a is not None:
                         pieces.append(a)
                 else:

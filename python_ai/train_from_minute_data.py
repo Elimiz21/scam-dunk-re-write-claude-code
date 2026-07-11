@@ -112,13 +112,41 @@ def _pick(cols: list[str], cands: list[str]) -> str | None:
 
 
 def _to_dt(series: pd.Series) -> pd.Series:
-    """Parse a timestamp column: ISO strings or epoch s/ms/ns."""
-    if np.issubdtype(series.dtype, np.number):
-        v = series.astype("int64")
-        mx = v.max()
+    """Parse a timestamp column: ISO strings or epoch s/ms/ns. Uses
+    is_numeric_dtype (not np.issubdtype) so StringDtype/Arrow columns work."""
+    if pd.api.types.is_numeric_dtype(series):
+        v = pd.to_numeric(series, errors="coerce").astype("int64")
+        mx = int(v.max())
         unit = "ns" if mx > 10**15 else ("ms" if mx > 10**12 else "s")
         return pd.to_datetime(v, unit=unit, utc=True).dt.tz_localize(None)
-    return pd.to_datetime(series, utc=True, errors="coerce").dt.tz_localize(None)
+    return pd.to_datetime(series.astype("object"), utc=True, errors="coerce").dt.tz_localize(None)
+
+
+def _looks_headerless(cols) -> bool:
+    if len(cols) < 2:
+        return False
+    if not pd.isna(pd.to_datetime(str(cols[0]), errors="coerce")):
+        return True
+    num = sum(bool(re.fullmatch(r"-?\d+(\.\d+)?(\.\d+)?", str(c))) for c in cols)
+    return num >= max(2, int(0.8 * len(cols)))
+
+
+def _positional_names(n: int) -> list:
+    if n >= 6:
+        return ["datetime", "open", "high", "low", "close", "volume"] + [f"extra{i}" for i in range(n - 6)]
+    return {5: ["datetime", "open", "high", "low", "close"], 4: ["datetime", "open", "close", "volume"],
+            3: ["datetime", "close", "volume"], 2: ["datetime", "close"]}[n]
+
+
+def _csv_opts(path: Path) -> dict:
+    try:
+        head = pd.read_csv(path, nrows=0)
+    except UnicodeDecodeError:
+        head = pd.read_csv(path, nrows=0, encoding="latin-1")
+    cols = list(head.columns)
+    if _looks_headerless(cols):
+        return {"header": None, "names": _positional_names(len(cols))}
+    return {}
 
 
 def _read_any(path: Path, chunked: bool = False):
@@ -128,8 +156,9 @@ def _read_any(path: Path, chunked: bool = False):
         return pd.read_parquet(path)
     if suf == ".feather":
         return pd.read_feather(path)
-    # csv / txt, possibly gzipped
+    # csv / txt, possibly gzipped, possibly headerless (FirstRateData etc.)
     kw = dict(low_memory=False)
+    kw.update(_csv_opts(path))
     if chunked:
         kw["chunksize"] = CHUNK_ROWS
     try:
