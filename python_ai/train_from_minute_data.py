@@ -132,14 +132,31 @@ def _read_any(path: Path, chunked: bool = False):
     kw = dict(low_memory=False)
     if chunked:
         kw["chunksize"] = CHUNK_ROWS
-    return pd.read_csv(path, **kw)
+    try:
+        return pd.read_csv(path, **kw)
+    except UnicodeDecodeError:
+        # latin-1 maps every byte — handles non-UTF-8 exports (°, currency signs)
+        return pd.read_csv(path, encoding="latin-1", **kw)
+
+
+# OS metadata on external drives that must never be read as data (macOS
+# AppleDouble ._* companions, Spotlight/Trash dirs, Windows recycle bin, etc.)
+JUNK_DIRS = {".spotlight-v100", ".trashes", ".fseventsd", ".temporaryitems",
+             ".documentrevisions-v100", "system volume information",
+             "$recycle.bin", "lost+found", ".trash"}
+
+
+def _is_junk(p: Path) -> bool:
+    if p.name.startswith("."):
+        return True
+    return any(part.lower() in JUNK_DIRS for part in p.parts)
 
 
 def _discover(root: Path, limit: int | None = None) -> tuple[str, list[Path]]:
     """Find data files and guess the layout: 'per-symbol' or 'per-day'."""
     files = []
     for p in sorted(root.rglob("*")):
-        if not p.is_file():
+        if not p.is_file() or _is_junk(p):
             continue
         suf = p.suffix.lower()
         base = p.name.lower()

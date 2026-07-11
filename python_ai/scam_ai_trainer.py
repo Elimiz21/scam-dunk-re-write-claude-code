@@ -137,7 +137,7 @@ def _to_dt(series: pd.Series) -> pd.Series:
     return pd.to_datetime(series, utc=True, errors="coerce").dt.tz_localize(None)
 
 
-def _read_any(path: Path, chunked: bool = False):
+def _read_any(path: Path, chunked: bool = False, nrows: int | None = None):
     suf = path.suffix.lower()
     if suf == ".parquet":
         return pd.read_parquet(path)
@@ -146,7 +146,14 @@ def _read_any(path: Path, chunked: bool = False):
     kw = dict(low_memory=False)
     if chunked:
         kw["chunksize"] = CHUNK_ROWS
-    return pd.read_csv(path, **kw)
+    if nrows:
+        kw["nrows"] = nrows
+    try:
+        return pd.read_csv(path, **kw)
+    except UnicodeDecodeError:
+        # Not UTF-8 (exports from some tools are latin-1 / cp1252, e.g. a ° in a
+        # header). latin-1 maps every byte, so this can't raise the same error.
+        return pd.read_csv(path, encoding="latin-1", **kw)
 
 
 def _stem(p: Path) -> str:
@@ -157,10 +164,26 @@ def _stem(p: Path) -> str:
     return p.stem
 
 
+# OS metadata that lives on external drives and must never be read as data:
+# macOS AppleDouble companions (._*), .DS_Store, Spotlight/Trash/fsevents dirs,
+# Windows recycle bin / system info, Linux lost+found.
+JUNK_DIRS = {".spotlight-v100", ".trashes", ".fseventsd", ".temporaryitems",
+             ".documentrevisions-v100", "system volume information",
+             "$recycle.bin", "lost+found", ".trash"}
+
+
+def _is_junk(p: Path) -> bool:
+    if p.name.startswith("."):  # ._AAPL.csv, .DS_Store, any hidden file
+        return True
+    return any(part.lower() in JUNK_DIRS for part in p.parts)
+
+
 def discover(root: Path, limit: int | None = None):
     files = []
     for p in sorted(root.rglob("*")):
-        if p.is_file() and (p.suffix.lower() in DATA_EXTS or p.name.lower().endswith((".csv.gz", ".txt.gz"))):
+        if not p.is_file() or _is_junk(p):
+            continue
+        if p.suffix.lower() in DATA_EXTS or p.name.lower().endswith((".csv.gz", ".txt.gz")):
             files.append(p)
             if limit and len(files) >= limit:
                 break
@@ -539,16 +562,27 @@ def main() -> None:
     if not files:
         sys.exit("No CSV/parquet/feather data files found there. If the data is in a "
                  "database or another format, tell Claude what `ls` of the folder shows.")
-    sample = _read_any(files[0])
-    if hasattr(sample, "get_chunk"):
-        sample = sample.get_chunk(1000)
-    tcol = _pick(list(sample.columns), TIME_CANDS)
-    ccol = _pick(list(sample.columns), COL_MAP["close"])
+
+    # Try a handful of files for the format check — a single odd/corrupt file
+    # must not kill the run before it reaches real data.
+    sample, tcol, ccol, errors = None, None, None, []
+    for cand in files[:8]:
+        try:
+            s = _read_any(cand, nrows=2000)
+            if hasattr(s, "get_chunk"):
+                s = s.get_chunk(2000)
+            t, c = _pick(list(s.columns), TIME_CANDS), _pick(list(s.columns), COL_MAP["close"])
+            if t is not None and c is not None:
+                sample, tcol, ccol = s, t, c
+                break
+            errors.append(f"{cand.name}: columns {list(s.columns)[:8]}")
+        except Exception as e:
+            errors.append(f"{cand.name}: {type(e).__name__}: {e}")
+    if sample is None:
+        sys.exit("Couldn't recognize the data format in the first files. "
+                 "Send Claude these lines:\n  " + "\n  ".join(errors[:8]))
     say(f"Format check: {len(files):,}+ files, layout looks like '{layout}', "
         f"time column: {tcol!r}, price column: {ccol!r}")
-    if tcol is None or ccol is None:
-        sys.exit("Couldn't recognize the time/price columns. Send Claude this line:\n"
-                 f"  columns = {list(sample.columns)}")
     if not ask_yn("Look right? Start the quick 2-minute test?", args.yes):
         sys.exit(0)
 
