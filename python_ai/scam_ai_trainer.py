@@ -82,7 +82,8 @@ except ImportError:
 # Bump whenever parsing/aggregation logic changes: cached results stamped with
 # an older version are automatically discarded (stale caches once silently
 # defeated a parser fix — never again).
-PARSER_VERSION = "3"
+VERSION = "3"
+PARSER_VERSION = VERSION
 
 FORWARD_DAYS = 22
 DROP_THRESHOLD = 0.40
@@ -465,11 +466,35 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None) 
     else:
         out_file = out_file.with_suffix(".csv.gz")
         merged.to_csv(out_file, index=False, compression="gzip")
+    n_symbols = merged["symbol"].nunique()
     say(f"Daily dataset ready: {out_file.name} — {len(merged):,} rows, "
-        f"{merged['symbol'].nunique():,} symbols, {merged['date'].min().date()} → {merged['date'].max().date()}")
+        f"{n_symbols:,} symbols, {merged['date'].min().date()} → {merged['date'].max().date()}")
     if merged["active_minutes"].median() < 10:
         say("NOTE: data looks like daily (not minute) bars — training still works, "
             "but intraday features will carry little signal.")
+    # Self-check coverage: if far fewer symbols survived than files exist, find
+    # out whether the rest are genuinely old or were dropped by a format quirk.
+    if limit is None and n_symbols < 0.5 * len(files):
+        say(f"\nCoverage check ({n_symbols:,} symbols from {len(files):,} files) ...")
+        recent_dropped, sampled = 0, 0
+        survived_keys = {p.stem for p in parts_dir.glob(f"*{part_ext}") if p.stat().st_size > 0}
+        for f in files[:: max(1, len(files) // 200)]:
+            key = re.sub(r"[^A-Za-z0-9._\-]", "_", _stem(f))
+            if key in survived_keys:
+                continue
+            sampled += 1
+            try:
+                _first, last = _first_last_lines(f)
+                if pd.notna(_line_timestamp(last)) and _line_timestamp(last) >= start:
+                    recent_dropped += 1
+            except Exception:
+                pass
+        if recent_dropped > sampled * 0.1:
+            say(f"  WARNING: ~{recent_dropped}/{sampled} sampled skipped files still "
+                "have recent data — some are being dropped by format. Run once with "
+                "--diagnose and send Claude the output.")
+        else:
+            say("  OK: the skipped files genuinely have no recent data (correctly excluded).")
     return out_file
 
 
@@ -601,8 +626,10 @@ def train(agg_file: Path, years: int) -> dict:
     wins = ml_f1 > rb_f1
     report = {
         "generated_at": datetime.utcnow().isoformat() + "Z",
+        "trainer_version": VERSION,
         "config": {"forward_days": FORWARD_DAYS, "drop_threshold": DROP_THRESHOLD,
                    "warmup_days": warmup, "fold_days": fold, "years": years},
+        "stocks_analyzed": int(data["symbol"].nunique()),
         "observations": int(len(data)),
         "mean_ml_f1": round(ml_f1, 4), "mean_rules_proxy_f1": round(rb_f1, 4),
         "ml_beats_rules_proxy": bool(wins), "folds": folds,
@@ -637,6 +664,9 @@ def write_summary(report: dict) -> None:
     lines = [
         "ScamDunk AI — training results (plain English)",
         "=" * 48, "",
+        f"Trainer version: {report.get('trainer_version', '?')}   "
+        f"(a full-universe run shows thousands of stocks, not ~335)",
+        f"Stocks analyzed: {report.get('stocks_analyzed', '?'):,}",
         f"Learning examples used: {report['observations']:,}",
         f"Training rounds (walk-forward): {len(report['folds'])}",
         "",
@@ -784,7 +814,8 @@ def main() -> None:
         return
 
     say("\n" + "=" * 62)
-    say("  ScamDunk AI trainer — automatic")
+    say(f"  ScamDunk AI trainer — automatic   ***  VERSION {VERSION}  ***")
+    say("  (if this does not say VERSION 3, you are running an OLD copy)")
     say("=" * 62)
     say("This will: check your data, do a quick test, crunch the last "
         f"{args.years} years,\nrun the training loop, and write a results folder. "
