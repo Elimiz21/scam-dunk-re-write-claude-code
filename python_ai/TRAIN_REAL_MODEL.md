@@ -57,6 +57,28 @@ precision/recall/F1, the **model** precision/recall/F1, whether
 - **Model loses / ties** → your rules are already capturing the signal; don't add
   ML complexity. A real, valuable finding.
 
+## Have a minute-bar archive? Use the bigger pipeline
+
+If you have historical **1-minute bars** (e.g. all US stocks on a local drive),
+`train_from_minute_data.py` is the stronger path — minute data unlocks intraday
+pump signatures (max 5-minute return, volume concentration, VWAP deviation)
+that daily data can't see, and it runs a **walk-forward loop** (train on an
+expanding past window → validate on the next quarter → step forward) instead of
+a single split. Run it **on the machine the drive is attached to**:
+
+```bash
+pip install pandas numpy scikit-learn pyarrow joblib
+python train_from_minute_data.py inspect   --root /path/to/drive     # verify layout
+python train_from_minute_data.py aggregate --root /path/to/drive --limit 50   # smoke test
+python train_from_minute_data.py aggregate --root /path/to/drive --years 4    # full (resumable)
+python train_from_minute_data.py train     --data minute_daily_agg.parquet
+```
+
+The aggregate stage reduces billions of minute rows to one row per symbol-day
+(a few hundred MB) and is resumable; the train stage takes minutes and prints a
+per-fold table plus `models/real_minute_report.json`. Same ship gate: the model
+is saved only if it beats the rules-proxy baseline across folds.
+
 ## Tuning knobs (top of the script)
 
 `FORWARD_DAYS` (horizon), `DROP_THRESHOLD` (what counts as a crash),
