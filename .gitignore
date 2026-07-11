@@ -81,3 +81,4 @@ evaluation/browser-sessions/
 
 # Models trained on real data by python_ai/train_real_model.py (encode private data)
 python_ai/models/real_*
+python_ai/ScamDunk_AI_Results/
