@@ -79,6 +79,11 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Config (kept in sync with python_ai/train_from_minute_data.py)
 # ---------------------------------------------------------------------------
+# Bump whenever parsing/aggregation logic changes: cached results stamped with
+# an older version are automatically discarded (stale caches once silently
+# defeated a parser fix — never again).
+PARSER_VERSION = "3"
+
 FORWARD_DAYS = 22
 DROP_THRESHOLD = 0.40
 MIN_FORWARD_POINTS = 10
@@ -382,6 +387,19 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None) 
     part_ext = ".parquet" if PARQUET_OK else ".csv.gz"
     parts_dir = Path(str(out_file) + ".parts")
     parts_dir.mkdir(parents=True, exist_ok=True)
+    # Cache validity: cached results made by an OLDER parser version are wrong
+    # (e.g. the version that silently dropped files) — wipe them automatically
+    # so a fix can never be defeated by a stale cache. No manual folder
+    # deleting, ever.
+    stamp = parts_dir / "PARSER_VERSION.txt"
+    if not stamp.exists() or stamp.read_text().strip() != PARSER_VERSION:
+        if any(parts_dir.iterdir()):
+            say("Found cached results from an older version of this script — "
+                "clearing them and re-crunching fresh (this is automatic and correct).")
+        import shutil
+        shutil.rmtree(parts_dir, ignore_errors=True)
+        parts_dir.mkdir(parents=True, exist_ok=True)
+        stamp.write_text(PARSER_VERSION)
     say(f"Found {len(files):,} files (layout: {layout}). Keeping data from {start.date()} onward.")
     t0, done_new = time.time(), 0
     for i, f in enumerate(files, 1):
@@ -406,6 +424,12 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None) 
                         a = _aggregate_frame(g, str(sym).upper(), start)
                         if a is not None:
                             pieces.append(a)
+            # Self-heal: if the workspace was deleted mid-run (Finder cleanup,
+            # a second window, cloud-sync tidy-up), recreate it instead of
+            # failing every remaining file with 'non-existent directory'.
+            parts_dir.mkdir(parents=True, exist_ok=True)
+            if not stamp.exists():
+                stamp.write_text(PARSER_VERSION)
             if pieces:
                 res = pd.concat(pieces, ignore_index=True).sort_values(["symbol", "date"])
                 if PARQUET_OK:
