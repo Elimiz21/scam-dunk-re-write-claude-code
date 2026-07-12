@@ -82,7 +82,7 @@ except ImportError:
 # Bump whenever parsing/aggregation logic changes: cached results stamped with
 # an older version are automatically discarded (stale caches once silently
 # defeated a parser fix — never again).
-VERSION = "3"
+VERSION = "4"
 PARSER_VERSION = VERSION
 
 FORWARD_DAYS = 22
@@ -140,6 +140,8 @@ def _to_dt(series: pd.Series) -> pd.Series:
     if pd.api.types.is_numeric_dtype(series):
         v = pd.to_numeric(series, errors="coerce").astype("int64")
         mx = int(v.max())
+        if 19_000_101 <= mx <= 21_001_231:  # YYYYMMDD integers (FX-style dates)
+            return pd.to_datetime(v.astype(str), format="%Y%m%d", errors="coerce")
         unit = "ns" if mx > 10**15 else ("ms" if mx > 10**12 else "s")
         return pd.to_datetime(v, unit=unit, utc=True).dt.tz_localize(None)
     return pd.to_datetime(
@@ -190,13 +192,10 @@ def _is_number(s: str) -> bool:
     return bool(re.fullmatch(r"-?\d+(\.\d+)?(\.\d+)?", s.strip()))
 
 
-def _csv_opts(path: Path) -> dict:
-    """Decide how to read a csv/txt: skip leading comment/metadata lines and
-    detect whether the first REAL line is a header or already data (headerless,
-    FirstRateData-style). Robust to '#' / '//' / ';' comments, blank lines, a
-    BOM, and tab separators — the format variations that were silently dropping
-    files that actually had data."""
-    lines = _raw_head_lines(path)
+def _opts_from_lines(lines) -> dict:
+    """Core format sniffing over the first raw lines of a csv/txt stream:
+    skip leading comment/metadata lines, detect header vs headerless
+    (FirstRateData-style), tab vs comma, and the split date+time variant."""
     if not lines:
         return {}
     skip = 0
@@ -223,8 +222,91 @@ def _csv_opts(path: Path) -> dict:
         opts["skiprows"] = skip
     if headerless:
         opts["header"] = None
-        opts["names"] = _positional_names(len(fields))
+        # Split date+time variant (e.g. FX: 20100101,00:35:00,O,H,L,C,V):
+        # first field a pure date, second a clock time — name col0 'datetime'
+        # (the date parses fine; time-of-day is irrelevant for daily buckets)
+        # and shift OHLCV names right by one.
+        if (len(fields) >= 3 and re.fullmatch(r"\d{8}|\d{4}-\d{2}-\d{2}", first_field)
+                and re.fullmatch(r"\d{2}:\d{2}(:\d{2})?", fields[1].strip())):
+            names = ["datetime", "time", "open", "high", "low", "close", "volume"]
+            opts["names"] = (names[: len(fields)] if len(fields) <= 7 else
+                             names + [f"extra{i}" for i in range(len(fields) - 7)])
+        else:
+            opts["names"] = _positional_names(len(fields))
     return opts
+
+
+def _csv_opts(path: Path) -> dict:
+    return _opts_from_lines(_raw_head_lines(path))
+
+
+# ---------------------------------------------------------------------------
+# ZIP bundles: read vendor archives DIRECTLY (no extraction step needed).
+# ---------------------------------------------------------------------------
+import zipfile
+
+
+def _zip_members(zf: "zipfile.ZipFile"):
+    for m in zf.namelist():
+        base = m.rsplit("/", 1)[-1]
+        if (not base or base.startswith(".") or "__MACOSX" in m
+                or JUNK_NAME_RE.search(Path(base).stem)):
+            continue
+        if base.lower().endswith((".csv", ".txt")):
+            yield m
+
+
+def _zip_head_lines(zf: "zipfile.ZipFile", member: str, n: int = 20) -> list:
+    with zf.open(member) as fh:
+        raw = fh.read(65536).decode("latin-1", "ignore")
+    return [ln for ln in raw.splitlines() if ln.strip()][:n]
+
+
+def _aggregate_zip(zippath: Path, parts_dir: Path, part_ext: str,
+                   start: pd.Timestamp, end, stamp: Path) -> int:
+    """Aggregate every data member inside a zip bundle. Per-member parts, so
+    Ctrl-C resume works mid-zip. Returns members newly processed."""
+    done = 0
+    zkey = re.sub(r"[^A-Za-z0-9._\-]", "_", _stem(zippath))
+    with zipfile.ZipFile(zippath) as zf:
+        members = list(_zip_members(zf))
+        if members:
+            say(f"  [{zippath.name}: {len(members):,} symbols inside]")
+        for j, m in enumerate(members, 1):
+            base = m.rsplit("/", 1)[-1]
+            mkey = re.sub(r"[^A-Za-z0-9._\-]", "_", Path(base).stem)
+            part = parts_dir / f"{zkey}__{mkey}{part_ext}"
+            if part.exists():
+                continue
+            try:
+                opts = _opts_from_lines(_zip_head_lines(zf, m))
+                pieces = []
+                with zf.open(m) as fh:
+                    for chunk in pd.read_csv(fh, chunksize=CHUNK_ROWS,
+                                             low_memory=False, **opts):
+                        a = _aggregate_frame(chunk, _file_symbol(Path(base)), start, end)
+                        if a is not None:
+                            pieces.append(a)
+                parts_dir.mkdir(parents=True, exist_ok=True)
+                if not stamp.exists():
+                    stamp.write_text(PARSER_VERSION)
+                if pieces:
+                    res = pd.concat(pieces, ignore_index=True).sort_values(["symbol", "date"])
+                    if PARQUET_OK:
+                        res.to_parquet(part, index=False)
+                    else:
+                        res.to_csv(part, index=False, compression="gzip")
+                else:
+                    part.touch()
+                done += 1
+            except KeyboardInterrupt:
+                say("\nPaused. Run this again any time — it continues where it left off.")
+                sys.exit(0)
+            except Exception as e:
+                say(f"  ! skipping {zippath.name}:{base}: {type(e).__name__}: {e}")
+            if j % 250 == 0:
+                say(f"    [{zippath.name}: {j:,}/{len(members):,} symbols done]")
+    return done
 
 
 def _read_any(path: Path, chunked: bool = False, nrows: int | None = None):
@@ -276,18 +358,22 @@ def _is_junk(p: Path) -> bool:
     return any(part.lower() in JUNK_DIRS for part in p.parts)
 
 
+JUNK_NAME_RE = re.compile(r"(log|summary|readme|manifest|cache|report|index)", re.I)
+
+
 def discover(root: Path, limit: int | None = None):
     files = []
     for p in sorted(root.rglob("*")):
-        if not p.is_file() or _is_junk(p):
+        if not p.is_file() or _is_junk(p) or JUNK_NAME_RE.search(p.stem):
             continue
-        if p.suffix.lower() in DATA_EXTS or p.name.lower().endswith((".csv.gz", ".txt.gz")):
+        if (p.suffix.lower() in DATA_EXTS or p.suffix.lower() == ".zip"
+                or p.name.lower().endswith((".csv.gz", ".txt.gz"))):
             files.append(p)
             if limit and len(files) >= limit:
                 break
     # Judge ticker-likeness on the FIRST underscore token so vendor suffixes
     # ("GAA_full_1min_adjsplitdiv") still register as per-symbol files.
-    stems = [_file_symbol(p) for p in files[:200]]
+    stems = [_file_symbol(p) for p in files[:200] if p.suffix.lower() != ".zip"]
     ticker_like = sum(bool(re.fullmatch(r"[A-Za-z][A-Za-z.\-]{0,6}", s)) for s in stems)
     date_like = sum(bool(re.search(r"\d{4}[-_]?\d{2}[-_]?\d{2}", s)) for s in stems)
     layout = "per-symbol" if ticker_like >= date_like else "per-day"
@@ -335,7 +421,8 @@ def find_drive(auto_yes: bool, root_arg: str | None) -> Path:
 # ---------------------------------------------------------------------------
 # Aggregation (minute bars -> daily rows with intraday features), resumable
 # ---------------------------------------------------------------------------
-def _aggregate_frame(df: pd.DataFrame, symbol: str, start: pd.Timestamp):
+def _aggregate_frame(df: pd.DataFrame, symbol: str, start: pd.Timestamp,
+                     end: pd.Timestamp | None = None):
     cols = list(df.columns)
     tcol = _pick(cols, TIME_CANDS)
     ccol = _pick(cols, COL_MAP["close"])
@@ -354,6 +441,8 @@ def _aggregate_frame(df: pd.DataFrame, symbol: str, start: pd.Timestamp):
         "volume": pd.to_numeric(df[vcol], errors="coerce") if vcol else 0.0,
     }).dropna(subset=["dt", "close"])
     out = out[(out["dt"] >= start) & (out["close"] > 0)]
+    if end is not None:
+        out = out[out["dt"] <= end + pd.Timedelta(days=1)]
     if out.empty:
         return None
     out = out.sort_values("dt")
@@ -379,8 +468,10 @@ def _aggregate_frame(df: pd.DataFrame, symbol: str, start: pd.Timestamp):
     return pd.DataFrame(rows) if rows else None
 
 
-def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None) -> Path | None:
-    start = pd.Timestamp(datetime.utcnow().date() - timedelta(days=years * 365 + 30))
+def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None,
+              end: pd.Timestamp | None = None) -> Path | None:
+    end = end or pd.Timestamp(datetime.utcnow().date())
+    start = end - timedelta(days=years * 365 + 30)
     layout, files = discover(root, limit=limit)
     if not files:
         say(f"No data files found under {root}.")
@@ -401,9 +492,18 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None) 
         shutil.rmtree(parts_dir, ignore_errors=True)
         parts_dir.mkdir(parents=True, exist_ok=True)
         stamp.write_text(PARSER_VERSION)
-    say(f"Found {len(files):,} files (layout: {layout}). Keeping data from {start.date()} onward.")
+    say(f"Found {len(files):,} files (layout: {layout}). Window: {start.date()} -> {end.date()}.")
     t0, done_new = time.time(), 0
     for i, f in enumerate(files, 1):
+        if f.suffix.lower() == ".zip":
+            try:
+                done_new += 1 if _aggregate_zip(f, parts_dir, part_ext, start, end, stamp) else 0
+            except KeyboardInterrupt:
+                say("\nPaused. Run this again any time — it continues where it left off.")
+                sys.exit(0)
+            except Exception as e:
+                say(f"  ! skipping {f.name}: {type(e).__name__}: {e}")
+            continue
         key = re.sub(r"[^A-Za-z0-9._\-]", "_", _stem(f))
         part = parts_dir / f"{key}{part_ext}"
         if part.exists():
@@ -414,7 +514,7 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None) 
             chunks = reader if hasattr(reader, "__iter__") and not isinstance(reader, pd.DataFrame) else [reader]
             for chunk in chunks:
                 if layout == "per-symbol":
-                    a = _aggregate_frame(chunk, _file_symbol(f), start)
+                    a = _aggregate_frame(chunk, _file_symbol(f), start, end)
                     if a is not None:
                         pieces.append(a)
                 else:
@@ -422,7 +522,7 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None) 
                     if scol is None:
                         raise ValueError("no symbol column in per-day file")
                     for sym, g in chunk.groupby(scol):
-                        a = _aggregate_frame(g, str(sym).upper(), start)
+                        a = _aggregate_frame(g, str(sym).upper(), start, end)
                         if a is not None:
                             pieces.append(a)
             # Self-heal: if the workspace was deleted mid-run (Finder cleanup,
@@ -479,6 +579,8 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None) 
         recent_dropped, sampled = 0, 0
         survived_keys = {p.stem for p in parts_dir.glob(f"*{part_ext}") if p.stat().st_size > 0}
         for f in files[:: max(1, len(files) // 200)]:
+            if f.suffix.lower() == ".zip":
+                continue
             key = re.sub(r"[^A-Za-z0-9._\-]", "_", _stem(f))
             if key in survived_keys:
                 continue
@@ -579,7 +681,7 @@ def _metrics(y, yhat) -> dict:
     }
 
 
-def train(agg_file: Path, years: int) -> dict:
+def train(agg_file: Path, years: int, end: pd.Timestamp | None = None) -> dict:
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import f1_score
     import joblib
@@ -587,6 +689,8 @@ def train(agg_file: Path, years: int) -> dict:
     say("Loading the daily dataset ...")
     df = pd.read_parquet(agg_file) if agg_file.suffix == ".parquet" else pd.read_csv(agg_file)
     df["date"] = pd.to_datetime(df["date"])
+    if end is not None:
+        df = df[df["date"] <= end]
     cutoff = df["date"].max() - pd.Timedelta(days=years * 365)
     df = df[df["date"] >= cutoff]
     say(f"  {len(df):,} rows, {df['symbol'].nunique():,} symbols")
@@ -719,8 +823,9 @@ def _line_timestamp(line: str) -> pd.Timestamp:
     return pd.to_datetime(line.split(",")[0], errors="coerce")
 
 
-def cmd_diagnose(root: Path, years: int) -> None:
-    start = pd.Timestamp(datetime.utcnow().date() - timedelta(days=years * 365 + 30))
+def cmd_diagnose(root: Path, years: int, end: pd.Timestamp | None = None) -> None:
+    end = end or pd.Timestamp(datetime.utcnow().date())
+    start = end - timedelta(days=years * 365 + 30)
     layout, files = discover(root)
     say(f"Scanning {len(files):,} files for their most-recent date "
         f"(window start = {start.date()}) ...\n")
@@ -730,7 +835,12 @@ def cmd_diagnose(root: Path, years: int) -> None:
     have_parts = parts_dir.exists()
 
     should, actually, wrongly, unparsed = 0, 0, [], []
+    n_zip = sum(1 for f in files if f.suffix.lower() == ".zip")
+    if n_zip:
+        say(f"({n_zip} zip bundles found — their contents are read directly by the trainer)")
     for i, f in enumerate(files, 1):
+        if f.suffix.lower() in (".zip", ".parquet", ".feather"):
+            continue  # containers/binary: read by the real parser, not tail lines
         first, last = _first_last_lines(f)
         last_ts = _line_timestamp(last)
         has_recent = pd.notna(last_ts) and last_ts >= start
@@ -802,20 +912,24 @@ def main() -> None:
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("--root", help="data folder (skips the drive picker)")
     ap.add_argument("--years", type=int, default=4)
+    ap.add_argument("--end", help="train window END date YYYY-MM-DD (default: today). "
+                    "Use when the archive's data stops in the past, e.g. --end 2022-06-01 "
+                    "trains on the archive's own final years.")
     ap.add_argument("--yes", action="store_true", help="no prompts (requires --root)")
     ap.add_argument("--diagnose", action="store_true",
                     help="explain why only N symbols survived (fast; no re-crunch)")
     args = ap.parse_args()
+    end = pd.Timestamp(args.end) if args.end else None
 
     if args.diagnose:
         root = find_drive(args.yes, args.root)
         say(f"\nUsing data folder: {root}")
-        cmd_diagnose(root, args.years)
+        cmd_diagnose(root, args.years, end)
         return
 
     say("\n" + "=" * 62)
     say(f"  ScamDunk AI trainer — automatic   ***  VERSION {VERSION}  ***")
-    say("  (if this does not say VERSION 3, you are running an OLD copy)")
+    say(f"  (if this does not say VERSION {VERSION}, you are running an OLD copy)")
     say("=" * 62)
     say("This will: check your data, do a quick test, crunch the last "
         f"{args.years} years,\nrun the training loop, and write a results folder. "
@@ -834,7 +948,17 @@ def main() -> None:
     sample, tcol, ccol, errors = None, None, None, []
     for cand in files[:8]:
         try:
-            s = _read_any(cand, nrows=2000)
+            if cand.suffix.lower() == ".zip":
+                with zipfile.ZipFile(cand) as zf:
+                    member = next(iter(_zip_members(zf)), None)
+                    if member is None:
+                        errors.append(f"{cand.name}: zip has no csv/txt inside")
+                        continue
+                    opts = _opts_from_lines(_zip_head_lines(zf, member))
+                    with zf.open(member) as fh:
+                        s = pd.read_csv(fh, nrows=2000, low_memory=False, **opts)
+            else:
+                s = _read_any(cand, nrows=2000)
             if hasattr(s, "get_chunk"):
                 s = s.get_chunk(2000)
             t, c = _pick(list(s.columns), TIME_CANDS), _pick(list(s.columns), COL_MAP["close"])
@@ -856,7 +980,7 @@ def main() -> None:
     work.mkdir(parents=True, exist_ok=True)
 
     say("\n--- Quick test on the first 40 files ---")
-    smoke = aggregate(root, work / "smoke.parquet", args.years, limit=40)
+    smoke = aggregate(root, work / "smoke.parquet", args.years, limit=40, end=end)
     if smoke is None:
         sys.exit("The quick test produced no usable rows — send Claude the output above.")
     say("Quick test OK.\n")
@@ -864,12 +988,12 @@ def main() -> None:
         sys.exit(0)
 
     say("\n--- Full data crunch ---")
-    agg = aggregate(root, work / "daily_agg.parquet", args.years)
+    agg = aggregate(root, work / "daily_agg.parquet", args.years, end=end)
     if agg is None:
         sys.exit("Aggregation produced nothing — send Claude the output above.")
 
     say("\n--- Training loop ---")
-    report = train(agg, args.years)
+    report = train(agg, args.years, end=end)
     write_summary(report)
 
     say("\n" + "=" * 62)
