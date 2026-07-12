@@ -82,7 +82,7 @@ except ImportError:
 # Bump whenever parsing/aggregation logic changes: cached results stamped with
 # an older version are automatically discarded (stale caches once silently
 # defeated a parser fix — never again).
-VERSION = "4"
+VERSION = "5"
 PARSER_VERSION = VERSION
 
 FORWARD_DAYS = 22
@@ -337,10 +337,21 @@ def _stem(p: Path) -> str:
     return p.stem
 
 
+TICKER_RE = re.compile(r"[A-Za-z][A-Za-z0-9.\-]{0,7}$")
+GENERIC_TOKENS = {"DATA", "FULL", "1MIN", "MIN", "DAILY", "BARS", "PRICES"}
+
+
 def _file_symbol(p: Path) -> str:
-    """Ticker from a filename: 'GAA_full_1min_adjsplitdiv.txt' -> 'GAA',
-    'AAPL.csv' -> 'AAPL', 'BRK.A_full_1min.txt' -> 'BRK.A'."""
+    """Ticker from a path. 'GAA_full_1min_adjsplitdiv.txt' -> 'GAA';
+    'BRK.A_full_1min.txt' -> 'BRK.A'; and for per-ticker folders holding
+    per-year files, 'AAPL/2022.parquet' -> 'AAPL' (year-like or generic
+    stems defer to the parent folder's name)."""
     tok = _stem(p).split("_")[0].upper()
+    year_like = bool(re.fullmatch(r"(19|20)\d{2}([-_]?\d{2}([-_]?\d{2})?)?", tok))
+    if (year_like or tok in GENERIC_TOKENS or not TICKER_RE.fullmatch(tok)):
+        parent = p.parent.name.split("_")[0].upper()
+        if TICKER_RE.fullmatch(parent) and parent not in GENERIC_TOKENS:
+            return parent
     return tok or _stem(p).upper()
 
 
@@ -423,6 +434,9 @@ def find_drive(auto_yes: bool, root_arg: str | None) -> Path:
 # ---------------------------------------------------------------------------
 def _aggregate_frame(df: pd.DataFrame, symbol: str, start: pd.Timestamp,
                      end: pd.Timestamp | None = None):
+    if _pick(list(df.columns), TIME_CANDS) is None and isinstance(df.index, pd.DatetimeIndex):
+        df = df.reset_index()
+        df.columns = ["datetime"] + list(df.columns[1:])  # index becomes the time col
     cols = list(df.columns)
     tcol = _pick(cols, TIME_CANDS)
     ccol = _pick(cols, COL_MAP["close"])
@@ -494,6 +508,17 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None,
         stamp.write_text(PARSER_VERSION)
     say(f"Found {len(files):,} files (layout: {layout}). Window: {start.date()} -> {end.date()}.")
     t0, done_new = time.time(), 0
+    def _part_key(f: Path) -> str:
+        try:
+            rel = str(f.relative_to(root))
+        except ValueError:
+            rel = str(f)
+        for ext in (".csv.gz", ".txt.gz", ".csv", ".txt", ".parquet", ".feather"):
+            if rel.lower().endswith(ext):
+                rel = rel[: -len(ext)]
+                break
+        return re.sub(r"[^A-Za-z0-9._\-]", "_", rel)
+
     for i, f in enumerate(files, 1):
         if f.suffix.lower() == ".zip":
             try:
@@ -504,8 +529,7 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None,
             except Exception as e:
                 say(f"  ! skipping {f.name}: {type(e).__name__}: {e}")
             continue
-        key = re.sub(r"[^A-Za-z0-9._\-]", "_", _stem(f))
-        part = parts_dir / f"{key}{part_ext}"
+        part = parts_dir / f"{_part_key(f)}{part_ext}"
         if part.exists():
             continue
         try:
@@ -548,7 +572,7 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None,
         if i % 100 == 0:
             rate = done_new / max(time.time() - t0, 1)
             def _partpath(x: Path) -> Path:
-                return parts_dir / (re.sub(r"[^A-Za-z0-9._\-]", "_", _stem(x)) + part_ext)
+                return parts_dir / (_part_key(x) + part_ext)
             remaining = sum(1 for x in files[i:] if not _partpath(x).exists())
             eta_min = remaining / max(rate, 0.01) / 60
             say(f"  {i:,}/{len(files):,} done — about {eta_min:,.0f} min remaining")
@@ -581,8 +605,7 @@ def aggregate(root: Path, out_file: Path, years: int, limit: int | None = None,
         for f in files[:: max(1, len(files) // 200)]:
             if f.suffix.lower() == ".zip":
                 continue
-            key = re.sub(r"[^A-Za-z0-9._\-]", "_", _stem(f))
-            if key in survived_keys:
+            if _part_key(f) in survived_keys:
                 continue
             sampled += 1
             try:
@@ -838,6 +861,11 @@ def cmd_diagnose(root: Path, years: int, end: pd.Timestamp | None = None) -> Non
     n_zip = sum(1 for f in files if f.suffix.lower() == ".zip")
     if n_zip:
         say(f"({n_zip} zip bundles found — their contents are read directly by the trainer)")
+    pq = [f for f in files if f.suffix.lower() in (".parquet", ".feather")]
+    if pq:
+        say(f"({len(pq):,} parquet/feather files found — binary, read by the parser; e.g.)")
+        for f in pq[:3]:
+            say(f"    {f}")
     for i, f in enumerate(files, 1):
         if f.suffix.lower() in (".zip", ".parquet", ".feather"):
             continue  # containers/binary: read by the real parser, not tail lines
@@ -962,6 +990,8 @@ def main() -> None:
             if hasattr(s, "get_chunk"):
                 s = s.get_chunk(2000)
             t, c = _pick(list(s.columns), TIME_CANDS), _pick(list(s.columns), COL_MAP["close"])
+            if t is None and isinstance(s.index, pd.DatetimeIndex):
+                t = "datetime (file's index)"
             if t is not None and c is not None:
                 sample, tcol, ccol = s, t, c
                 break
