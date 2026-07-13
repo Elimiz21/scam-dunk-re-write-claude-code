@@ -1,0 +1,334 @@
+{
+  "features": [
+    "ret_1d",
+    "ret_5d",
+    "ret_10d",
+    "ret_20d",
+    "price_zscore_20d",
+    "ret_vol_20d",
+    "max_runup_20d",
+    "drawdown_from_high_20d",
+    "dist_from_high_20d",
+    "rsi_14",
+    "log_price",
+    "log_dollar_vol_20d",
+    "vol_z_5d",
+    "vol_z_20d",
+    "volume_surge_factor",
+    "max5m_ret_5dmax",
+    "intraday_range_5dmax",
+    "vol_top30_share_5dmean",
+    "close_vs_vwap_5dmean",
+    "active_minutes_5dmean"
+  ],
+  "generated_at": "2026-07-12T20:15:14.952773Z",
+  "trainer_version": "5",
+  "config": {
+    "forward_days": 22,
+    "drop_threshold": 0.4,
+    "warmup_days": 252,
+    "fold_days": 63,
+    "years": 4
+  },
+  "stocks_analyzed": 7614,
+  "observations": 11799653,
+  "mean_ml_f1": 0.408,
+  "mean_rules_proxy_f1": 0.115,
+  "ml_beats_rules_proxy": true,
+  "folds": [
+    {
+      "fold": 1,
+      "validate_to": "2023-09-25",
+      "threshold": 0.9,
+      "ml": {
+        "precision": 0.4739,
+        "recall": 0.475,
+        "f1": 0.4744,
+        "flagged": 19603,
+        "n": 723879,
+        "base_rate": 0.027
+      },
+      "rules_proxy": {
+        "precision": 0.3458,
+        "recall": 0.0384,
+        "f1": 0.0691,
+        "flagged": 2172,
+        "n": 723879,
+        "base_rate": 0.027
+      }
+    },
+    {
+      "fold": 2,
+      "validate_to": "2023-12-21",
+      "threshold": 0.9,
+      "ml": {
+        "precision": 0.5129,
+        "recall": 0.4606,
+        "f1": 0.4853,
+        "flagged": 21938,
+        "n": 733652,
+        "base_rate": 0.0333
+      },
+      "rules_proxy": {
+        "precision": 0.3801,
+        "recall": 0.0504,
+        "f1": 0.089,
+        "flagged": 3239,
+        "n": 733652,
+        "base_rate": 0.0333
+      }
+    },
+    {
+      "fold": 3,
+      "validate_to": "2024-03-22",
+      "threshold": 0.9,
+      "ml": {
+        "precision": 0.403,
+        "recall": 0.4705,
+        "f1": 0.4342,
+        "flagged": 23784,
+        "n": 745712,
+        "base_rate": 0.0273
+      },
+      "rules_proxy": {
+        "precision": 0.3966,
+        "recall": 0.0882,
+        "f1": 0.1443,
+        "flagged": 4531,
+        "n": 745712,
+        "base_rate": 0.0273
+      }
+    },
+    {
+      "fold": 4,
+      "validate_to": "2024-06-20",
+      "threshold": 0.9,
+      "ml": {
+        "precision": 0.4206,
+        "recall": 0.4587,
+        "f1": 0.4388,
+        "flagged": 23752,
+        "n": 743603,
+        "base_rate": 0.0293
+      },
+      "rules_proxy": {
+        "precision": 0.399,
+        "recall": 0.0677,
+        "f1": 0.1158,
+        "flagged": 3697,
+        "n": 743603,
+        "base_rate": 0.0293
+      }
+    },
+    {
+      "fold": 5,
+      "validate_to": "2024-09-18",
+      "threshold": 0.9,
+      "ml": {
+        "precision": 0.4139,
+        "recall": 0.4449,
+        "f1": 0.4289,
+        "flagged": 25694,
+        "n": 765974,
+        "base_rate": 0.0312
+      },
+      "rules_proxy": {
+        "precision": 0.3872,
+        "recall": 0.052,
+        "f1": 0.0917,
+        "flagged": 3213,
+        "n": 765974,
+        "base_rate": 0.0312
+      }
+    },
+    {
+      "fold": 6,
+      "validate_to": "2024-12-16",
+      "threshold": 0.875,
+      "ml": {
+        "precision": 0.3728,
+        "recall": 0.5341,
+        "f1": 0.4391,
+        "flagged": 33843,
+        "n": 780038,
+        "base_rate": 0.0303
+      },
+      "rules_proxy": {
+        "precision": 0.332,
+        "recall": 0.0815,
+        "f1": 0.1309,
+        "flagged": 5799,
+        "n": 780038,
+        "base_rate": 0.0303
+      }
+    },
+    {
+      "fold": 7,
+      "validate_to": "2025-03-18",
+      "threshold": 0.9,
+      "ml": {
+        "precision": 0.3983,
+        "recall": 0.3916,
+        "f1": 0.3949,
+        "flagged": 29725,
+        "n": 785365,
+        "base_rate": 0.0385
+      },
+      "rules_proxy": {
+        "precision": 0.4823,
+        "recall": 0.0825,
+        "f1": 0.1408,
+        "flagged": 5169,
+        "n": 785365,
+        "base_rate": 0.0385
+      }
+    },
+    {
+      "fold": 8,
+      "validate_to": "2025-06-16",
+      "threshold": 0.875,
+      "ml": {
+        "precision": 0.322,
+        "recall": 0.384,
+        "f1": 0.3503,
+        "flagged": 33558,
+        "n": 805835,
+        "base_rate": 0.0349
+      },
+      "rules_proxy": {
+        "precision": 0.3815,
+        "recall": 0.066,
+        "f1": 0.1125,
+        "flagged": 4868,
+        "n": 805835,
+        "base_rate": 0.0349
+      }
+    },
+    {
+      "fold": 9,
+      "validate_to": "2025-09-12",
+      "threshold": 0.875,
+      "ml": {
+        "precision": 0.3053,
+        "recall": 0.4801,
+        "f1": 0.3733,
+        "flagged": 30747,
+        "n": 806512,
+        "base_rate": 0.0242
+      },
+      "rules_proxy": {
+        "precision": 0.3317,
+        "recall": 0.0891,
+        "f1": 0.1405,
+        "flagged": 5255,
+        "n": 806512,
+        "base_rate": 0.0242
+      }
+    },
+    {
+      "fold": 10,
+      "validate_to": "2025-12-10",
+      "threshold": 0.875,
+      "ml": {
+        "precision": 0.34,
+        "recall": 0.3715,
+        "f1": 0.355,
+        "flagged": 29476,
+        "n": 835504,
+        "base_rate": 0.0323
+      },
+      "rules_proxy": {
+        "precision": 0.3768,
+        "recall": 0.0689,
+        "f1": 0.1165,
+        "flagged": 4931,
+        "n": 835504,
+        "base_rate": 0.0323
+      }
+    },
+    {
+      "fold": 11,
+      "validate_to": "2026-03-12",
+      "threshold": 0.875,
+      "ml": {
+        "precision": 0.3567,
+        "recall": 0.3701,
+        "f1": 0.3633,
+        "flagged": 27077,
+        "n": 830438,
+        "base_rate": 0.0314
+      },
+      "rules_proxy": {
+        "precision": 0.3511,
+        "recall": 0.0602,
+        "f1": 0.1028,
+        "flagged": 4477,
+        "n": 830438,
+        "base_rate": 0.0314
+      }
+    },
+    {
+      "fold": 12,
+      "validate_to": "2026-05-22",
+      "threshold": 0.875,
+      "ml": {
+        "precision": 0.334,
+        "recall": 0.3874,
+        "f1": 0.3587,
+        "flagged": 13839,
+        "n": 457011,
+        "base_rate": 0.0261
+      },
+      "rules_proxy": {
+        "precision": 0.2909,
+        "recall": 0.0806,
+        "f1": 0.1263,
+        "flagged": 3307,
+        "n": 457011,
+        "base_rate": 0.0261
+      }
+    }
+  ],
+  "top_features": [
+    {
+      "feature": "intraday_range_5dmax",
+      "importance": 0.2575
+    },
+    {
+      "feature": "max5m_ret_5dmax",
+      "importance": 0.1296
+    },
+    {
+      "feature": "log_price",
+      "importance": 0.1179
+    },
+    {
+      "feature": "max_runup_20d",
+      "importance": 0.1104
+    },
+    {
+      "feature": "log_dollar_vol_20d",
+      "importance": 0.0923
+    },
+    {
+      "feature": "ret_vol_20d",
+      "importance": 0.0707
+    },
+    {
+      "feature": "ret_5d",
+      "importance": 0.0453
+    },
+    {
+      "feature": "ret_1d",
+      "importance": 0.0452
+    },
+    {
+      "feature": "dist_from_high_20d",
+      "importance": 0.0233
+    },
+    {
+      "feature": "active_minutes_5dmean",
+      "importance": 0.0192
+    }
+  ]
+}

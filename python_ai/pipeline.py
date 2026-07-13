@@ -87,6 +87,7 @@ class RiskAssessment:
     signals: List[SignalDetail] = field(default_factory=list)
     signal_total_score: int = 0
     news_verification: Optional[Dict] = None
+    real_model: Optional[Dict] = None
     data_available: bool = True
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -842,6 +843,28 @@ class ScamDetectionPipeline:
         thresholds = get_thresholds(is_otc=is_otc, on_watchlist=on_watchlist)
         fundamentals['_thresholds'] = thresholds
 
+        # ---- Real-data crash model (walk-forward validated; additive) ----
+        # Runs only when REAL_MODEL_ENABLED=true. Never changes the rules
+        # verdict and never fails the request — a broken model degrades to
+        # real_model=None in the response.
+        real_model_result = None
+        try:
+            from real_model import real_model_enabled, score_for_pipeline
+            if real_model_enabled() and asset_type == 'stock':
+                minute_df = None
+                if not use_synthetic:
+                    try:
+                        from live_data import fetch_stock_minute_bars
+                        minute_df = fetch_stock_minute_bars(ticker)
+                    except Exception:
+                        minute_df = None
+                real_model_result = score_for_pipeline(price_data, minute_df)
+                print(f"   Real model: p={real_model_result['probability']:.3f} "
+                      f"flagged={real_model_result['flagged']} "
+                      f"imputed={len(real_model_result['imputed_features'])}")
+        except Exception as e:
+            print(f"   Real model skipped: {e}")
+
         # Step 2: Feature engineering
         print("\n[Step 2] Computing features...")
         price_data_fe = engineer_all_features(price_data)
@@ -1041,6 +1064,7 @@ class ScamDetectionPipeline:
 
         # Create final assessment
         assessment = RiskAssessment(
+            real_model=real_model_result,
             ticker=ticker,
             risk_level=risk_level,
             risk_score=combined_prob,

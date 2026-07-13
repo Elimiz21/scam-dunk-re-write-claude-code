@@ -174,6 +174,16 @@ class StockInfo(BaseModel):
     avg_volume: Optional[float] = None
 
 
+class RealModelResult(BaseModel):
+    """Real-data crash model output (REAL_MODEL_ENABLED). Additive: absent
+    when the flag is off or the model can't score this symbol."""
+    probability: float
+    flagged: bool
+    threshold: float
+    imputed_features: List[str] = []
+    model_version: str = ""
+
+
 class NewsVerificationResult(BaseModel):
     """Result of news verification for HIGH risk stocks"""
     has_legitimate_catalyst: bool = False
@@ -206,6 +216,8 @@ class AnalysisResponse(BaseModel):
     stock_info: Optional[StockInfo] = None
     # News verification result (only present for initially-HIGH risk)
     news_verification: Optional[NewsVerificationResult] = None
+    # Real-data crash model (walk-forward validated) — present when enabled
+    real_model: Optional[RealModelResult] = None
 
 
 class HealthResponse(BaseModel):
@@ -400,7 +412,15 @@ async def analyze_asset(request: AnalysisRequest):
                 recommended_level=nv.get('recommended_level', 'HIGH'),
             )
 
+        real_model_out = None
+        if getattr(assessment, "real_model", None):
+            try:
+                real_model_out = RealModelResult(**assessment.real_model)
+            except Exception:
+                real_model_out = None
+
         return AnalysisResponse(
+            real_model=real_model_out,
             ticker=request.ticker.upper(),
             asset_type=request.asset_type,
             risk_level=assessment.risk_level,
@@ -478,12 +498,14 @@ async def get_model_status():
     """Get detailed model status"""
     from config import ENSEMBLE_CONFIG
     from pipeline import ml_models_enabled
+    from real_model import status as real_model_status
     p = pipeline
     if p is None:
         return {
             "status": "not_initialized",
             "message": "Models will be loaded on first /analyze request",
             "ml_models_enabled": ml_models_enabled(),
+            "real_model": real_model_status(),
             "rf_model": None,
             "lstm_model": None
         }
@@ -491,6 +513,7 @@ async def get_model_status():
     return {
         "status": "ready",
         "ml_models_enabled": ml_models_enabled(),
+        "real_model": real_model_status(),
         "scoring_mode": "ml+rules" if (p.rf_available or p.lstm_available) else "rules_only",
         "rf_model": {
             "loaded": p.rf_available,

@@ -562,6 +562,23 @@ SEC_EDGAR_HEADERS = {
 }
 
 
+def fetch_stock_minute_bars(ticker: str, period_days: int = 7):
+    """Recent 1-minute bars via yfinance (covers ~7 calendar days) for the
+    real model's intraday features. Returns a DataFrame or None — callers
+    must treat None as 'impute' (never fail the request on this)."""
+    try:
+        import yfinance as yf
+        rate_limit('yfinance', interval=0.5)
+        hist = yf.Ticker(ticker).history(period=f"{min(period_days, 7)}d",
+                                         interval="1m", auto_adjust=False)
+        if hist is None or len(hist) < 300:  # need several real sessions
+            return None
+        return hist.reset_index()
+    except Exception as e:
+        print(f"   minute-bar fetch failed for {ticker}: {e}")
+        return None
+
+
 def fetch_yfinance_news(ticker: str) -> List[Dict]:
     """
     Fetch recent news for a ticker from Yahoo Finance via yfinance.

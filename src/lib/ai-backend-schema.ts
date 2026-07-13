@@ -83,6 +83,18 @@ export const AIBackendResponseSchema = z.object({
     })
     .optional(),
   news_verification: AIBackendNewsVerificationSchema.optional(),
+  // Real-data crash model (REAL_MODEL_ENABLED on the Python service).
+  // Additive: absent/null when disabled or unavailable for a symbol.
+  real_model: z
+    .object({
+      probability: z.number(),
+      flagged: z.boolean(),
+      threshold: z.number(),
+      imputed_features: z.array(z.string()).optional().default([]),
+      model_version: z.string().optional().default(""),
+    })
+    .nullable()
+    .optional(),
 });
 
 export type AIBackendResponse = z.infer<typeof AIBackendResponseSchema>;

@@ -3,5 +3,6 @@
   "models/random_forest_scam_detector.joblib": null,
   "models/feature_scaler.joblib": null,
   "models/lstm_scam_detector.keras": null,
-  "models/lstm_scam_detector_scaler.npy": null
+  "models/lstm_scam_detector_scaler.npy": null,
+  "models/production/scamdunk_rf_v1.joblib": "effab13d6e37ca2f690c3a66c7bd2bc9e964bc4b65c1e4a21c7aa0796a99703e"
 }
