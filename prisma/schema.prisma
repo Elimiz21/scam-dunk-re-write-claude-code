@@ -35,6 +35,7 @@ model User {
   accounts   Account[]
   sessions   Session[]
   scanUsages ScanUsage[]
+  whatsAppIdentityBindings WhatsAppIdentityBinding[]
 }
 
 // TODO [H-11]: OAuth tokens (refresh_token, access_token, id_token) are stored in plain text.
@@ -111,6 +112,56 @@ model ScanUsage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, monthKey])
+}
+
+// WhatsApp sender identity is never stored in clear text. identityHash is an
+// HMAC lookup key and identityEncrypted is protected with a dedicated key.
+model WhatsAppIdentityBinding {
+  id                    String   @id @default(cuid())
+  userId                String
+  identityHash          String   @unique
+  identityEncrypted     String   @db.Text
+  active                Boolean  @default(false)
+  verificationCodeHash  String?
+  verificationExpiresAt DateTime?
+  verificationAttempts  Int      @default(0)
+  lastVerificationSentAt DateTime?
+  bindingVersion        String   @default("web-template-v1")
+  boundAt               DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inboundEvents WhatsAppInboundEvent[]
+
+  @@index([userId, active])
+}
+
+// Minimal durable idempotency ledger. Raw inbound text is encrypted only while
+// an event is pending/retryable and is purged on the scheduled retention date.
+model WhatsAppInboundEvent {
+  id                   String   @id @default(cuid())
+  providerMessageId    String   @unique
+  senderIdentityHash   String
+  bindingId            String?
+  messageType          String
+  status               String   @default("RECEIVED")
+  reasonCode           String?
+  encryptedText        String?  @db.Text
+  encryptedReply       String?  @db.Text
+  senderIdentityEncrypted String? @db.Text
+  providerReplyMessageId String?
+  attemptCount         Int      @default(0)
+  processedAt          DateTime?
+  purgeAt              DateTime
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  binding WhatsAppIdentityBinding? @relation(fields: [bindingId], references: [id], onDelete: SetNull)
+
+  @@index([senderIdentityHash, createdAt])
+  @@index([status, purgeAt])
 }
 
 // ==========================================

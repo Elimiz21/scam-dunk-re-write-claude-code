@@ -253,7 +253,16 @@ async function callPythonAIBackend(
   }
 }
 
-export async function POST(request: NextRequest) {
+export type AuthorizedStockScanRequest = {
+  userId: string;
+  ticker: string;
+  assetType: "stock";
+};
+
+async function processCheckRequest(
+  request: NextRequest,
+  authenticatedUserId?: string,
+) {
   const startTime = Date.now();
   let currentStep = "INIT";
   // Tracks whether a quota slot has been reserved, so the error path can refund
@@ -280,12 +289,14 @@ export async function POST(request: NextRequest) {
 
     // Check authentication - support both session (web) and JWT (mobile)
     currentStep = "AUTH";
-    let userId: string | null = null;
-    const session = await auth();
-    if (session?.user?.id) {
-      userId = session.user.id;
-    } else {
-      userId = await authenticateMobileRequest(request);
+    let userId: string | null = authenticatedUserId ?? null;
+    if (!userId) {
+      const session = await auth();
+      if (session?.user?.id) {
+        userId = session.user.id;
+      } else {
+        userId = await authenticateMobileRequest(request);
+      }
     }
 
     if (!userId) {
@@ -595,4 +606,32 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+/**
+ * Server-only adapter used by trusted channels. It calls the same in-process
+ * scan operation as the web route, never loops back through public HTTP, and
+ * deliberately offers no way to supply pitch text or client context.
+ */
+export async function runAuthorizedStockScan(
+  input: AuthorizedStockScanRequest,
+) {
+  const request = new NextRequest("http://internal/api/check", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-real-ip": `whatsapp:${input.userId}`,
+    },
+    body: JSON.stringify({ ticker: input.ticker, assetType: input.assetType }),
+  });
+  const response = await processCheckRequest(request, input.userId);
+  const body = await response.json();
+  if (!response.ok) {
+    return { ok: false as const, status: response.status, body };
+  }
+  return { ok: true as const, body: body as RiskResponse };
+}
+
+export async function POST(request: NextRequest) {
+  return processCheckRequest(request);
 }
