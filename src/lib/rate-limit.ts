@@ -56,6 +56,36 @@ export const rateLimitConfigs = {
     window: "1 m" as const, // 10 requests per minute
     windowMs: 60 * 1000,
   },
+  whatsappHourly: {
+    requests: 20,
+    window: "1 h" as const,
+    windowMs: 60 * 60 * 1000,
+  },
+  whatsappDaily: {
+    requests: 60,
+    window: "1 d" as const,
+    windowMs: 24 * 60 * 60 * 1000,
+  },
+  whatsappGlobal: {
+    requests: 100,
+    window: "1 m" as const,
+    windowMs: 60 * 1000,
+  },
+  whatsappBindingUser: {
+    requests: 3,
+    window: "1 h" as const,
+    windowMs: 60 * 60 * 1000,
+  },
+  whatsappBindingIp: {
+    requests: 10,
+    window: "1 h" as const,
+    windowMs: 60 * 60 * 1000,
+  },
+  whatsappBindingGlobal: {
+    requests: 100,
+    window: "1 h" as const,
+    windowMs: 60 * 60 * 1000,
+  },
   // Contact: Contact form submissions (prevent email relay abuse)
   contact: {
     requests: 3,
@@ -70,7 +100,16 @@ type RateLimitConfig = keyof typeof rateLimitConfigs;
 // must deny (fail closed) for these rather than granting each cold instance a
 // fresh allowance.
 const FAIL_CLOSED_TIERS: ReadonlySet<RateLimitConfig> = new Set<RateLimitConfig>(
-  ["strict", "auth"],
+  [
+    "strict",
+    "auth",
+    "whatsappHourly",
+    "whatsappDaily",
+    "whatsappGlobal",
+    "whatsappBindingUser",
+    "whatsappBindingIp",
+    "whatsappBindingGlobal",
+  ],
 );
 
 /**

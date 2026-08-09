@@ -374,6 +374,23 @@ describe("End-to-End Integration Tests", () => {
   });
 
   describe("Narrative Generation (Fallback)", () => {
+    const originalOpenAIKey = process.env.OPENAI_API_KEY;
+
+    beforeAll(() => {
+      // These cases assert the deterministic fallback contract. A developer
+      // shell with an OpenAI key must not turn them into live, nondeterministic
+      // network tests.
+      delete process.env.OPENAI_API_KEY;
+    });
+
+    afterAll(() => {
+      if (originalOpenAIKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = originalOpenAIKey;
+      }
+    });
+
     it("should generate HIGH risk narrative", async () => {
       const signals = [
         {
