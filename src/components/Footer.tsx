@@ -13,6 +13,10 @@ export function Footer() {
             </p>
           </div>
           <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link href="/pricing" className="hover:text-foreground">
+              Pricing
+            </Link>
+            <span aria-hidden>·</span>
             <Link href="/disclaimer" className="hover:text-foreground">
               Disclaimer
             </Link>

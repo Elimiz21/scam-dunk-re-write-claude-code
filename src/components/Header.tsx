@@ -60,7 +60,7 @@ export function Header({
         </div>
 
         {/* Center - Marketing nav (logged-out only) */}
-        {!session && status !== "loading" && (
+        {!session && (
           <nav className="hidden items-center gap-8 lg:flex">
             {NAV_LINKS.map((l) => (
               <Link
