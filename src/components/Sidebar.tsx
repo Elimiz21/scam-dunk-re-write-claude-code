@@ -26,9 +26,9 @@ import {
   Newspaper,
   Mail,
   Sparkles,
-  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/Logo";
 import { cn, formatRelativeDate } from "@/lib/utils";
 
 interface ScanHistoryItem {
@@ -192,20 +192,7 @@ export function Sidebar({
         <div className={cn("flex flex-col h-full", !isOpen && "invisible")}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border/50">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="relative h-7 w-7 rounded-lg gradient-brand flex items-center justify-center">
-                <Shield className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
-                  <Eye className="h-1.5 w-1.5 text-white" />
-                </div>
-              </div>
-              <span className="font-display tracking-tight italic">
-                Scam
-                <span className="gradient-brand-text not-italic font-sans font-bold">
-                  Dunk
-                </span>
-              </span>
-            </Link>
+            <Logo size={32} href="/" />
             <Button
               variant="ghost"
               size="icon"
@@ -221,7 +208,7 @@ export function Sidebar({
           <div className="p-3">
             <Button
               onClick={onNewScan}
-              className="w-full justify-center gap-2 rounded-xl"
+              className="w-full justify-center gap-2"
               variant="brand"
               size="default"
             >
@@ -347,8 +334,8 @@ export function Sidebar({
             {session && (
               <div className="pt-3 mt-2 border-t border-border/50">
                 <div className="flex items-center gap-3 px-2.5 py-2.5">
-                  <div className="h-8 w-8 rounded-xl gradient-brand-subtle flex items-center justify-center border border-primary/10">
-                    <User className="h-4 w-4 text-primary" />
+                  <div className="h-8 w-8 rounded-full flex items-center justify-center border border-border bg-secondary">
+                    <User className="h-4 w-4 text-teal" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">

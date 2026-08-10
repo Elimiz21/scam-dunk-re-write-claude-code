@@ -53,7 +53,7 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
       {/* Overall progress bar */}
       <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full gradient-brand transition-all duration-700 ease-out"
+          className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -81,10 +81,8 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
               <div
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-500",
-                  step.status === "complete" &&
-                    "bg-emerald-500 shadow-sm shadow-emerald-500/25",
-                  step.status === "loading" &&
-                    "gradient-brand shadow-sm shadow-primary/25",
+                  step.status === "complete" && "bg-emerald-500",
+                  step.status === "loading" && "bg-primary",
                   step.status === "pending" &&
                     "bg-secondary/60 border border-border/30",
                 )}
@@ -159,7 +157,7 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
                       className={cn(
                         "flex h-5 w-5 items-center justify-center rounded-md transition-all duration-500",
                         subStep.status === "complete" && "bg-emerald-500",
-                        subStep.status === "loading" && "gradient-brand",
+                        subStep.status === "loading" && "bg-primary",
                         subStep.status === "pending" &&
                           "bg-secondary/40 border border-border/30",
                       )}
@@ -198,9 +196,9 @@ export function LoadingStepper({ steps, currentTip }: LoadingStepperProps) {
       {currentTip && (
         <div
           key={currentTip.headline}
-          className="p-5 rounded-2xl gradient-brand-subtle border border-primary/15 animate-fade-in"
+          className="p-5 rounded-2xl border border-border bg-secondary/60 animate-fade-in"
         >
-          <p className="font-display text-base text-foreground/90 text-center leading-snug italic mb-1.5">
+          <p className="font-editorial text-base text-foreground/90 text-center leading-snug mb-1.5">
             {currentTip.headline}
           </p>
           <p className="text-xs text-muted-foreground/70 text-center tracking-wide uppercase font-medium">
