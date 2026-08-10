@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
-  Shield,
   User,
   CreditCard,
   LogOut,
@@ -30,6 +29,7 @@ import {
 import { UsageInfo } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { PayPalButton } from "@/components/PayPalButton";
+import { Logo } from "@/components/Logo";
 
 interface SubscriptionInfo {
   plan: "FREE" | "PAID";
@@ -445,14 +445,9 @@ function AccountContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-            <span className="text-xl sm:text-2xl font-bold font-display italic">
-              ScamDunk
-            </span>
-          </Link>
+      <header className="border-b border-border/60 bg-background/85 backdrop-blur sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Logo size={40} href="/" />
           <nav className="flex items-center gap-2 sm:gap-4">
             <Link href="/">
               <Button variant="ghost" size="sm">
@@ -470,9 +465,14 @@ function AccountContent() {
 
       <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
-          <h1 className="text-2xl sm:text-3xl font-bold font-display italic">
-            Account Settings
-          </h1>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Account
+            </p>
+            <h1 className="font-editorial mt-2 text-3xl sm:text-4xl leading-tight text-foreground">
+              Account settings
+            </h1>
+          </div>
 
           {/* Success/Canceled alerts */}
           <Suspense fallback={null}>
@@ -926,12 +926,10 @@ function AccountContent() {
 
           {/* Upgrade CTA for free users */}
           {usage?.plan === "FREE" && (
-            <Card className="border-primary gradient-brand-subtle">
+            <Card className="rounded-2xl border-primary/40 bg-card shadow-none">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-display italic">
-                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                    <Zap className="h-4 w-4 text-white" />
-                  </span>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-teal" />
                   Upgrade to Pro
                 </CardTitle>
               </CardHeader>
