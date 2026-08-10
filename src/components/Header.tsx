@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import {
-  Shield,
   User,
   Settings,
   LogOut,
@@ -12,17 +11,24 @@ import {
   Share2,
   ChevronDown,
   CreditCard,
-  Loader2,
   Info,
   FileText,
   Zap,
-  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarToggle } from "./Sidebar";
 import { ThemeToggle } from "./ThemeToggle";
+import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
 import { UsageInfo } from "@/lib/types";
+
+const NAV_LINKS = [
+  { href: "/about", label: "About" },
+  { href: "/news", label: "News" },
+  { href: "/how-it-works", label: "How It Works" },
+  { href: "/help", label: "Help & FAQ" },
+  { href: "/contact", label: "Contact" },
+];
 
 interface HeaderProps {
   onSidebarToggle: () => void;
@@ -45,26 +51,28 @@ export function Header({
     : 0;
 
   return (
-    <header className="sticky top-0 z-40 glass-strong border-b border-border/50">
-      <div className="flex items-center justify-between px-4 h-16">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
+      <div className="flex items-center justify-between px-4 h-16 max-w-6xl mx-auto">
         {/* Left side - Brand */}
         <div className="flex items-center gap-3">
-          <SidebarToggle onClick={onSidebarToggle} />
-          <Link href="/" className="flex items-center gap-2.5 ml-1 group">
-            <div className="relative h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm shadow-primary/20 group-hover:shadow-md group-hover:shadow-primary/30 transition-all duration-200">
-              <Shield className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
-              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
-                <Eye className="h-2 w-2 text-white" />
-              </div>
-            </div>
-            <span className="font-display text-lg hidden sm:inline tracking-tight italic">
-              Scam
-              <span className="gradient-brand-text not-italic font-sans font-bold">
-                Dunk
-              </span>
-            </span>
-          </Link>
+          {session && <SidebarToggle onClick={onSidebarToggle} />}
+          <Logo size={40} className="ml-1" priority />
         </div>
+
+        {/* Center - Marketing nav (logged-out only) */}
+        {!session && status !== "loading" && (
+          <nav className="hidden items-center gap-8 lg:flex">
+            {NAV_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         {/* Center - Usage indicator */}
         {usage && (
@@ -94,18 +102,6 @@ export function Header({
 
         {/* Right side */}
         <div className="flex items-center gap-1.5">
-          {/* About */}
-          <Link href="/about">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
-              aria-label="About"
-            >
-              <Info className="h-4.5 w-4.5" />
-            </Button>
-          </Link>
-
           {/* Theme toggle */}
           <ThemeToggle />
 
@@ -223,20 +219,18 @@ export function Header({
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2 ml-1">
-              <Link href="/login">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-xl font-semibold"
-                >
-                  Log in
-                </Button>
+            <div className="flex items-center gap-3 ml-1">
+              <Link
+                href="/login"
+                className="hidden text-[13px] font-medium text-foreground/70 hover:text-foreground md:inline-block"
+              >
+                Log in
               </Link>
-              <Link href="/signup">
-                <Button variant="brand" size="sm" className="rounded-xl">
-                  Sign up
-                </Button>
+              <Link
+                href="/signup"
+                className="btn-pill btn-pill-primary px-5 py-2 text-[13px]"
+              >
+                Sign up
               </Link>
             </div>
           )}

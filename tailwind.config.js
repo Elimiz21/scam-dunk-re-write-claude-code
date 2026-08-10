@@ -10,12 +10,18 @@ module.exports = {
     fontFamily: {
       sans: [
         "var(--font-sans)",
-        "DM Sans",
+        "Inter",
         "-apple-system",
         "BlinkMacSystemFont",
         "sans-serif",
       ],
-      display: ["var(--font-display)", "Playfair Display", "Georgia", "serif"],
+      display: [
+        "var(--font-display)",
+        "Inter Tight",
+        "ui-sans-serif",
+        "system-ui",
+        "sans-serif",
+      ],
       mono: [
         "ui-monospace",
         "SFMono-Regular",
@@ -67,11 +73,18 @@ module.exports = {
           foreground: "hsl(var(--warning-foreground))",
         },
         risk: {
-          low: "#10b981",
+          low: "#23a036",
           medium: "#f59e0b",
-          high: "#ef4444",
+          high: "#cc2727",
           insufficient: "#6b7280",
         },
+        ink: "hsl(var(--ink))",
+        paper: "hsl(var(--paper))",
+        teal: {
+          DEFAULT: "hsl(var(--teal))",
+          soft: "hsl(var(--teal-soft))",
+        },
+        "brand-blue": "hsl(var(--brand-blue))",
       },
       borderRadius: {
         "2xl": "1rem",
