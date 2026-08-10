@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageLayout } from "@/components/PageLayout";
 import {
-  Search,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
   Shield,
+  ArrowRight,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/JsonLd";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
@@ -49,17 +48,18 @@ export default function HowToDetectStockScamsPage() {
     <div className="min-h-screen bg-background">
       <JsonLd data={articleSchema} />
       <PageLayout>
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
+        <main className="flex-1">
+          <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
             {/* Hero Section */}
-            <div className="mb-12 gradient-mesh rounded-2xl py-12 px-4 md:px-6 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
-                <Search className="h-8 w-8 text-white" />
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 font-display">
-                How to Detect Stock Scams
+            <div className="mb-14 md:mb-20">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Guide
+              </p>
+              <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
+                How to detect{" "}
+                <span className="text-brand-blue">stock scams.</span>
               </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
                 A step-by-step guide to identifying pump-and-dump schemes,
                 manipulation patterns, and red flags that signal investment
                 fraud.
@@ -67,18 +67,20 @@ export default function HowToDetectStockScamsPage() {
             </div>
 
             {/* Content Sections */}
-            <article className="prose prose-neutral dark:prose-invert max-w-none">
-              <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">
-                  Step 1: Research the Company Fundamentals
+            <article className="max-w-none">
+              <section className="mb-14">
+                <h2 className="font-editorial mb-5 text-2xl md:text-3xl leading-tight text-foreground">
+                  Step 1: Research the company fundamentals
                 </h2>
-                <p className="text-lg text-muted-foreground mb-6">
+                <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground mb-6">
                   Start with the basics. Legitimate companies maintain
                   transparent financial records, clear business models, and
                   verifiable management teams.
                 </p>
-                <div className="card-elevated rounded-xl p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4">What to Check</h3>
+                <div className="rounded-xl border border-border bg-card p-6 mb-6">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-4">
+                    What to Check
+                  </h3>
                   <ul className="space-y-3">
                     {[
                       "SEC filings (10-K, 10-Q forms) on Edgar.sec.gov",
@@ -88,8 +90,11 @@ export default function HowToDetectStockScamsPage() {
                       "Revenue history and growth trajectory",
                       "Industry position vs. competitors",
                     ].map((item, idx) => (
-                      <li key={idx} className="flex gap-3">
-                        <CheckCircle className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+                      <li
+                        key={idx}
+                        className="flex gap-3 text-[13px] leading-relaxed text-muted-foreground"
+                      >
+                        <CheckCircle className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -97,18 +102,18 @@ export default function HowToDetectStockScamsPage() {
                 </div>
               </section>
 
-              <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">
-                  Step 2: Analyze Trading Patterns
+              <section className="mb-14 border-t border-border/70 pt-12">
+                <h2 className="font-editorial mb-5 text-2xl md:text-3xl leading-tight text-foreground">
+                  Step 2: Analyze trading patterns
                 </h2>
-                <p className="text-lg text-muted-foreground mb-6">
+                <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground mb-6">
                   Pump-and-dump schemes create distinctive patterns in price and
                   volume. Legitimate stocks show gradual, sustainable growth.
                   Manipulated stocks show sudden, intense activity.
                 </p>
-                <div className="card-elevated rounded-xl p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
+                <div className="rounded-xl border border-border bg-card p-6 mb-6">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-teal" />
                     Red Flag Patterns
                   </h3>
                   <ul className="space-y-3">
@@ -120,8 +125,11 @@ export default function HowToDetectStockScamsPage() {
                       "High short interest followed by aggressive promotion",
                       "Trading halts or SEC trading suspensions",
                     ].map((pattern, idx) => (
-                      <li key={idx} className="flex gap-3">
-                        <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                      <li
+                        key={idx}
+                        className="flex gap-3 text-[13px] leading-relaxed text-muted-foreground"
+                      >
+                        <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                         <span>{pattern}</span>
                       </li>
                     ))}
@@ -129,25 +137,25 @@ export default function HowToDetectStockScamsPage() {
                 </div>
               </section>
 
-              <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">
-                  Step 3: Evaluate Promotional Activity
+              <section className="mb-14 border-t border-border/70 pt-12">
+                <h2 className="font-editorial mb-5 text-2xl md:text-3xl leading-tight text-foreground">
+                  Step 3: Evaluate promotional activity
                 </h2>
-                <p className="text-lg text-muted-foreground mb-6">
+                <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground mb-6">
                   Scammers rely on aggressive marketing to drive up prices
                   quickly. Watch for coordinated hype, especially on social
                   media.
                 </p>
-                <div className="card-elevated rounded-xl p-6 mb-6">
-                  <h3 className="text-xl font-semibold mb-4">
+                <div className="rounded-xl border border-border bg-card p-6 mb-6">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-4">
                     Hype vs. Legitimate News
                   </h3>
                   <div className="space-y-4">
-                    <div className="border-l-4 border-destructive/50 pl-4">
-                      <p className="font-semibold text-sm mb-2">
+                    <div className="border-l-2 border-destructive/50 pl-4">
+                      <p className="text-[13px] font-semibold text-foreground mb-2">
                         🚩 Scam Indicators
                       </p>
-                      <ul className="space-y-2 text-sm">
+                      <ul className="space-y-2 text-[13px] leading-relaxed text-muted-foreground">
                         {[
                           "Unsolicited investment tips from strangers",
                           "Promises of 'guaranteed returns' or 'inside information'",
@@ -159,11 +167,11 @@ export default function HowToDetectStockScamsPage() {
                         ))}
                       </ul>
                     </div>
-                    <div className="border-l-4 border-success/50 pl-4">
-                      <p className="font-semibold text-sm mb-2">
+                    <div className="border-l-2 border-success/50 pl-4">
+                      <p className="text-[13px] font-semibold text-foreground mb-2">
                         ✓ Legitimate News
                       </p>
-                      <ul className="space-y-2 text-sm">
+                      <ul className="space-y-2 text-[13px] leading-relaxed text-muted-foreground">
                         {[
                           "Official press releases from company IR",
                           "News from major financial media outlets",
@@ -179,17 +187,19 @@ export default function HowToDetectStockScamsPage() {
                 </div>
               </section>
 
-              <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">
-                  Step 4: Check Regulatory Status
+              <section className="mb-14 border-t border-border/70 pt-12">
+                <h2 className="font-editorial mb-5 text-2xl md:text-3xl leading-tight text-foreground">
+                  Step 4: Check regulatory status
                 </h2>
-                <p className="text-lg text-muted-foreground mb-6">
+                <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground mb-6">
                   The SEC maintains lists of suspended securities and
                   enforcement actions. Companies with regulatory issues are
                   high-risk.
                 </p>
-                <div className="bg-accent/10 border border-accent/20 rounded-xl p-6 mb-6">
-                  <h3 className="text-lg font-semibold mb-4">Where to Check</h3>
+                <div className="rounded-xl border border-border bg-secondary/60 p-6 mb-6">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-4">
+                    Where to Check
+                  </h3>
                   <ul className="space-y-3">
                     {[
                       "SEC.gov Trading Suspensions — for halted companies",
@@ -197,8 +207,11 @@ export default function HowToDetectStockScamsPage() {
                       "OTC Markets Group — check listing status",
                       "Company CIK number — find all SEC filings",
                     ].map((resource, idx) => (
-                      <li key={idx} className="flex gap-3">
-                        <Shield className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                      <li
+                        key={idx}
+                        className="flex gap-3 text-[13px] leading-relaxed text-muted-foreground"
+                      >
+                        <Shield className="h-4 w-4 text-teal flex-shrink-0 mt-0.5" />
                         <span>{resource}</span>
                       </li>
                     ))}
@@ -206,27 +219,25 @@ export default function HowToDetectStockScamsPage() {
                 </div>
               </section>
 
-              <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">
-                  Step 5: Use Analytical Tools
+              <section className="mb-14 border-t border-border/70 pt-12">
+                <h2 className="font-editorial mb-5 text-2xl md:text-3xl leading-tight text-foreground">
+                  Step 5: Use analytical tools
                 </h2>
-                <p className="text-lg text-muted-foreground mb-6">
+                <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground mb-6">
                   Advanced tools can automatically detect pump-and-dump signals,
                   analyze behavioral patterns, and calculate risk scores.
                 </p>
-                <Link href="/">
-                  <Button size="lg" className="gap-2 mb-6">
-                    <Shield className="h-5 w-5" />
-                    Try ScamDunk's Analysis
-                  </Button>
+                <Link href="/" className="btn-pill btn-pill-primary gap-2 mb-6">
+                  Try ScamDunk&apos;s Analysis
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               </section>
 
-              <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6">
-                  Quick Checklist: Is This Stock Safe?
+              <section className="mb-14 border-t border-border/70 pt-12">
+                <h2 className="font-editorial mb-6 text-2xl md:text-3xl leading-tight text-foreground">
+                  Quick checklist: is this stock safe?
                 </h2>
-                <div className="card-elevated rounded-xl p-8">
+                <div className="rounded-xl border border-border bg-card p-6 md:p-8">
                   <div className="space-y-4">
                     {[
                       {
@@ -264,12 +275,12 @@ export default function HowToDetectStockScamsPage() {
                     ].map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex gap-3 pb-4 border-b border-border last:border-b-0"
+                        className="flex gap-3 pb-4 border-b border-border/70 last:border-b-0 last:pb-0 text-sm leading-relaxed text-muted-foreground"
                       >
                         {item.good ? (
-                          <CheckCircle className="h-6 w-6 text-success flex-shrink-0" />
+                          <CheckCircle className="h-5 w-5 text-success flex-shrink-0" />
                         ) : (
-                          <AlertTriangle className="h-6 w-6 text-destructive flex-shrink-0" />
+                          <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0" />
                         )}
                         <span>{item.q}</span>
                       </div>
@@ -280,28 +291,31 @@ export default function HowToDetectStockScamsPage() {
             </article>
 
             {/* Internal Links */}
-            <section className="mt-16 pt-12 border-t border-border">
-              <h2 className="text-2xl font-bold mb-6">
-                Learn More About Common Scams
+            <section className="mt-16 pt-12 border-t border-border/70">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+                Keep Reading
+              </p>
+              <h2 className="font-editorial mt-3 mb-6 text-2xl md:text-3xl leading-tight text-foreground">
+                Learn more about common scams
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Link href="/investment-scams">
-                  <div className="card-interactive rounded-lg p-6 h-full hover:shadow-lg transition-shadow cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2">
+                <Link href="/investment-scams" className="group">
+                  <div className="rounded-xl border border-border bg-card p-6 h-full transition-colors group-hover:border-foreground/30">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-2">
                       Types of Investment Fraud
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[13px] leading-relaxed text-muted-foreground">
                       Deep dive into pump-and-dump schemes, penny stocks, and
                       cold calling tactics.
                     </p>
                   </div>
                 </Link>
-                <Link href="/social-media-scams">
-                  <div className="card-interactive rounded-lg p-6 h-full hover:shadow-lg transition-shadow cursor-pointer">
-                    <h3 className="font-semibold text-lg mb-2">
+                <Link href="/social-media-scams" className="group">
+                  <div className="rounded-xl border border-border bg-card p-6 h-full transition-colors group-hover:border-foreground/30">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-2">
                       Social Media Scams
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[13px] leading-relaxed text-muted-foreground">
                       How fraudsters use Telegram, Discord, and Reddit to
                       recruit victims.
                     </p>
@@ -311,20 +325,19 @@ export default function HowToDetectStockScamsPage() {
             </section>
 
             {/* CTA Section */}
-            <section className="mt-12 gradient-mesh rounded-2xl p-8 md:p-12 text-center">
-              <h2 className="text-3xl font-bold mb-4">
-                Let ScamDunk Do the Heavy Lifting
+            <section className="mt-14 border-t border-border/70 pt-12 pb-4 text-center">
+              <h2 className="font-editorial text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.15] text-foreground mb-4">
+                Let ScamDunk do the{" "}
+                <span className="text-brand-blue">heavy lifting.</span>
               </h2>
-              <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
+              <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground mb-7">
                 Our AI-powered analysis scans for pump-and-dump signals,
                 behavioral red flags, and market manipulation patterns
                 instantly. Analyze any stock free.
               </p>
-              <Link href="/">
-                <Button size="lg" className="gap-2">
-                  <Search className="h-5 w-5" />
-                  Scan a Stock Now
-                </Button>
+              <Link href="/" className="btn-pill btn-pill-primary gap-2">
+                Scan a Stock Now
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </section>
           </div>
