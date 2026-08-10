@@ -13,7 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 function AuthErrorContent() {
   const searchParams = useSearchParams();
@@ -52,21 +53,19 @@ function AuthErrorContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
-          <Link
-            href="/"
-            className="flex items-center justify-center gap-2 mb-4"
-          >
-            <Shield className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">ScamDunk</span>
-          </Link>
+          <div className="mb-4 flex justify-center">
+            <Logo size={56} href="/" />
+          </div>
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-destructive/10">
-              <AlertTriangle className="h-8 w-8 text-destructive" />
+            <div className="p-3 rounded-full border border-destructive/30 bg-destructive/10">
+              <AlertTriangle className="h-7 w-7 text-destructive" />
             </div>
           </div>
-          <CardTitle>Authentication Error</CardTitle>
+          <CardTitle className="font-editorial text-2xl font-light">
+            Authentication Error
+          </CardTitle>
           <CardDescription>
             Something went wrong during authentication
           </CardDescription>
