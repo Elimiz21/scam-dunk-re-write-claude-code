@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
@@ -70,10 +72,22 @@ export function LimitReached({
               <h4 className="font-medium mb-2">Pro Plan Benefits:</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• 200 stock checks per month</li>
+                <li>
+                  • WhatsApp scanning — text a ticker, get the verdict in your
+                  chat
+                </li>
                 <li>• Full risk analysis for each check</li>
                 <li>• Detailed red flag explanations</li>
                 <li>• Priority support</li>
               </ul>
+              <p className="mt-3 text-sm">
+                <Link
+                  href="/pricing"
+                  className="text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                >
+                  Compare plans →
+                </Link>
+              </p>
             </div>
           </>
         )}
