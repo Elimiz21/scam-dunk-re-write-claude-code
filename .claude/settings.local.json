@@ -1,6 +1,22 @@
 {
+  "skipDangerousModePermissionPrompt": true,
   "permissions": {
     "allow": [
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "TaskCreate",
+      "TaskUpdate",
+      "mcp__Supabase",
+      "mcp__github",
+      "mcp__Claude_Code_Remote",
+      "mcp__Vercel",
       "WebFetch(domain:github.com)",
       "Bash(npx skills add:*)",
       "WebFetch(domain:scamdunk.com)",
