@@ -24,15 +24,26 @@ export function Logo({
 }: LogoProps) {
   const width = Math.round(size * (1012 / 320));
   const img = (
-    <Image
-      src="/images/brand/logo.png"
-      alt="ScamDunk"
-      width={width}
-      height={size}
-      priority={priority}
-      className={cn("w-auto", className)}
-      style={{ height: size }}
-    />
+    <span className={cn("inline-flex items-center", className)}>
+      <Image
+        src="/images/brand/logo.png"
+        alt="ScamDunk"
+        width={width}
+        height={size}
+        priority={priority}
+        className="w-auto dark:hidden"
+        style={{ height: size }}
+      />
+      <Image
+        src="/images/brand/logo-dark.png"
+        alt="ScamDunk"
+        width={width}
+        height={size}
+        priority={priority}
+        className="hidden w-auto dark:block"
+        style={{ height: size }}
+      />
+    </span>
   );
   if (!href) return img;
   return (
