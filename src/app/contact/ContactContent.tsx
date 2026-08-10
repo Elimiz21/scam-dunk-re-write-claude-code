@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import {
   Mail,
   MessageSquare,
@@ -18,7 +19,6 @@ import {
   Clock,
   Shield,
   ArrowRight,
-  Eye,
 } from "lucide-react";
 
 interface FormData {
@@ -43,48 +43,36 @@ const categories = [
     label: "Technical Support",
     description: "Get help with using ScamDunk",
     icon: HelpCircle,
-    color: "text-blue-500",
-    bgColor: "bg-blue-50 dark:bg-blue-950",
   },
   {
     id: "FEEDBACK",
     label: "Feedback & Suggestions",
     description: "Share ideas to improve ScamDunk",
     icon: Lightbulb,
-    color: "text-yellow-500",
-    bgColor: "bg-yellow-50 dark:bg-yellow-950",
   },
   {
     id: "BUG_REPORT",
     label: "Report a Bug",
     description: "Something not working right?",
     icon: Bug,
-    color: "text-red-500",
-    bgColor: "bg-red-50 dark:bg-red-950",
   },
   {
     id: "FEATURE_REQUEST",
     label: "Feature Request",
     description: "Suggest new features",
     icon: MessageSquare,
-    color: "text-purple-500",
-    bgColor: "bg-purple-50 dark:bg-purple-950",
   },
   {
     id: "BILLING",
     label: "Billing Question",
     description: "Payment or subscription issues",
     icon: CreditCard,
-    color: "text-green-500",
-    bgColor: "bg-green-50 dark:bg-green-950",
   },
   {
     id: "OTHER",
     label: "Other",
     description: "Anything else",
     icon: Mail,
-    color: "text-gray-500",
-    bgColor: "bg-gray-50 dark:bg-gray-950",
   },
 ];
 
@@ -210,44 +198,39 @@ export default function ContactContent() {
       <div className="flex flex-col min-h-screen">
         <Header onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-8">
+        <main className="flex-1">
+          <div className="max-w-6xl mx-auto px-4 py-12 md:py-16">
             {/* Hero Section */}
-            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
-                <Mail className="h-8 w-8 text-white" />
-                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
-                  <Eye className="h-2.5 w-2.5 text-white" />
-                </div>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
-                Contact Us
+            <div className="mb-12 md:mb-16">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Contact
+              </p>
+              <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
+                We&apos;re here <span className="text-brand-blue">for you.</span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Have a question, suggestion, or need help? We&apos;re here for
-                you. Our team typically responds within 1-2 business days.
+              <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+                Have a question, suggestion, or need help? Our team typically
+                responds within 1-2 business days.
               </p>
             </div>
 
             {/* Success Message */}
             {submitStatus === "success" && (
-              <div className="mb-8 p-6 rounded-xl bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+              <div className="mb-8 p-5 rounded-xl border border-green-500/30 bg-green-500/5">
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0">
-                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  </div>
+                  <CheckCircle className="h-5 w-5 shrink-0 text-green-600 dark:text-green-400" />
                   <div>
-                    <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">
                       Message Sent Successfully!
                     </h3>
-                    <p className="text-green-800 dark:text-green-200 text-sm mb-2">
+                    <p className="text-[13px] leading-relaxed text-muted-foreground mb-2">
                       Thank you for reaching out. We&apos;ve received your
                       message and will get back to you soon.
                     </p>
                     {ticketId && (
-                      <p className="text-green-700 dark:text-green-300 text-sm">
+                      <p className="text-[13px] text-muted-foreground">
                         Your ticket ID:{" "}
-                        <code className="bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded font-mono">
+                        <code className="rounded bg-secondary px-2 py-0.5 font-mono text-foreground">
                           {ticketId}
                         </code>
                       </p>
@@ -259,16 +242,14 @@ export default function ContactContent() {
 
             {/* Error Message */}
             {submitStatus === "error" && (
-              <div className="mb-8 p-6 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
+              <div className="mb-8 p-5 rounded-xl border border-destructive/30 bg-destructive/5">
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0">
-                    <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
-                  </div>
+                  <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
                   <div>
-                    <h3 className="font-semibold text-red-900 dark:text-red-100 mb-1">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">
                       Something went wrong
                     </h3>
-                    <p className="text-red-800 dark:text-red-200 text-sm">
+                    <p className="text-[13px] leading-relaxed text-muted-foreground">
                       {errorMessage}
                     </p>
                   </div>
@@ -277,23 +258,17 @@ export default function ContactContent() {
             )}
 
             {/* Contact Form */}
-            <div className="grid lg:grid-cols-3 gap-8 animate-slide-up">
+            <div className="grid lg:grid-cols-3 gap-8">
               {/* Form Section */}
               <div className="lg:col-span-2">
-                {/* Form Container with distinct styling */}
-                <div className="p-6 rounded-2xl card-elevated border-2 border-primary/20">
-                  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
-                    <div className="p-2 rounded-xl gradient-brand">
-                      <Send className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="font-semibold text-lg font-display italic">
-                        Submit Your Request
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        Fill out the form below and we&apos;ll get back to you
-                      </p>
-                    </div>
+                <div className="p-6 rounded-2xl border border-border bg-card">
+                  <div className="mb-6 pb-5 border-b border-border">
+                    <h2 className="font-editorial text-2xl leading-tight text-foreground">
+                      Submit your request
+                    </h2>
+                    <p className="mt-1 text-[13px] text-muted-foreground">
+                      Fill out the form below and we&apos;ll get back to you
+                    </p>
                   </div>
 
                   <form
@@ -303,7 +278,7 @@ export default function ContactContent() {
                   >
                     {/* Category Selection */}
                     <div>
-                      <label className="block text-sm font-medium mb-3">
+                      <label className="block text-sm font-medium text-foreground mb-3">
                         What can we help you with?{" "}
                         <span className="text-destructive">*</span>
                       </label>
@@ -315,25 +290,19 @@ export default function ContactContent() {
                             onClick={() =>
                               handleInputChange("category", category.id)
                             }
-                            className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            className={`p-4 rounded-xl border text-left transition-colors ${
                               formData.category === category.id
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:border-primary/50 hover:bg-secondary/50"
+                                ? "border-foreground bg-secondary/70"
+                                : "border-border hover:border-foreground/40"
                             }`}
                           >
                             <div className="flex items-start gap-3">
-                              <div
-                                className={`p-2 rounded-lg ${category.bgColor}`}
-                              >
-                                <category.icon
-                                  className={`h-5 w-5 ${category.color}`}
-                                />
-                              </div>
+                              <category.icon className="mt-0.5 h-4 w-4 shrink-0 text-teal" />
                               <div>
-                                <p className="font-medium text-sm">
+                                <p className="text-[13px] font-semibold text-foreground">
                                   {category.label}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="mt-0.5 text-xs text-muted-foreground">
                                   {category.description}
                                 </p>
                               </div>
@@ -353,7 +322,7 @@ export default function ContactContent() {
                       <div>
                         <label
                           htmlFor="name"
-                          className="block text-sm font-medium mb-2"
+                          className="block text-sm font-medium text-foreground mb-2"
                         >
                           Your Name <span className="text-destructive">*</span>
                         </label>
@@ -364,11 +333,11 @@ export default function ContactContent() {
                           onChange={(e) =>
                             handleInputChange("name", e.target.value)
                           }
-                          className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors ${
+                          className={`w-full px-4 py-3 rounded-xl border bg-background text-sm text-foreground transition-colors ${
                             errors.name
                               ? "border-destructive focus:border-destructive"
-                              : "border-border focus:border-primary"
-                          } focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                              : "border-border focus:border-foreground/50"
+                          } focus:outline-none`}
                           placeholder="John Doe"
                         />
                         {errors.name && (
@@ -380,7 +349,7 @@ export default function ContactContent() {
                       <div>
                         <label
                           htmlFor="email"
-                          className="block text-sm font-medium mb-2"
+                          className="block text-sm font-medium text-foreground mb-2"
                         >
                           Email Address{" "}
                           <span className="text-destructive">*</span>
@@ -392,11 +361,11 @@ export default function ContactContent() {
                           onChange={(e) =>
                             handleInputChange("email", e.target.value)
                           }
-                          className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors ${
+                          className={`w-full px-4 py-3 rounded-xl border bg-background text-sm text-foreground transition-colors ${
                             errors.email
                               ? "border-destructive focus:border-destructive"
-                              : "border-border focus:border-primary"
-                          } focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                              : "border-border focus:border-foreground/50"
+                          } focus:outline-none`}
                           placeholder="john@example.com"
                         />
                         {errors.email && (
@@ -411,7 +380,7 @@ export default function ContactContent() {
                     <div>
                       <label
                         htmlFor="subject"
-                        className="block text-sm font-medium mb-2"
+                        className="block text-sm font-medium text-foreground mb-2"
                       >
                         Subject <span className="text-destructive">*</span>
                       </label>
@@ -422,11 +391,11 @@ export default function ContactContent() {
                         onChange={(e) =>
                           handleInputChange("subject", e.target.value)
                         }
-                        className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors ${
+                        className={`w-full px-4 py-3 rounded-xl border bg-background text-sm text-foreground transition-colors ${
                           errors.subject
                             ? "border-destructive focus:border-destructive"
-                            : "border-border focus:border-primary"
-                        } focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                            : "border-border focus:border-foreground/50"
+                        } focus:outline-none`}
                         placeholder={
                           selectedCategory?.id === "BUG_REPORT"
                             ? "Describe the issue briefly..."
@@ -446,7 +415,7 @@ export default function ContactContent() {
                     <div>
                       <label
                         htmlFor="message"
-                        className="block text-sm font-medium mb-2"
+                        className="block text-sm font-medium text-foreground mb-2"
                       >
                         Message <span className="text-destructive">*</span>
                       </label>
@@ -457,11 +426,11 @@ export default function ContactContent() {
                           handleInputChange("message", e.target.value)
                         }
                         rows={6}
-                        className={`w-full px-4 py-3 rounded-xl border bg-background transition-colors resize-none ${
+                        className={`w-full px-4 py-3 rounded-xl border bg-background text-sm text-foreground transition-colors resize-none ${
                           errors.message
                             ? "border-destructive focus:border-destructive"
-                            : "border-border focus:border-primary"
-                        } focus:outline-none focus:ring-2 focus:ring-primary/20`}
+                            : "border-border focus:border-foreground/50"
+                        } focus:outline-none`}
                         placeholder={
                           selectedCategory?.id === "BUG_REPORT"
                             ? "Please describe the bug in detail. Include steps to reproduce, what you expected to happen, and what actually happened..."
@@ -486,16 +455,16 @@ export default function ContactContent() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full sm:w-auto px-8 py-3 rounded-full gradient-brand text-white font-medium hover:opacity-90 transition-smooth disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-glow-sm"
+                      className="btn-pill btn-pill-primary w-full sm:w-auto gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="h-5 w-5 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                           Sending...
                         </>
                       ) : (
                         <>
-                          <Send className="h-5 w-5" />
+                          <Send className="h-4 w-4" />
                           Send Message
                         </>
                       )}
@@ -505,84 +474,62 @@ export default function ContactContent() {
               </div>
 
               {/* Information Sidebar */}
-              <div className="space-y-4 animate-slide-up delay-1">
-                {/* Information Header */}
-                <div className="p-4 rounded-2xl glass border border-border/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="h-5 w-5 text-muted-foreground" />
-                    <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
-                      Information
-                    </h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Helpful details about contacting our support team
-                  </p>
-                </div>
-
+              <div className="space-y-4">
                 {/* Response Time */}
-                <div className="p-5 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/50">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-                      <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Clock className="h-4 w-4 text-teal" />
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Response Time
                     </h3>
                   </div>
-                  <p className="text-sm text-blue-800/80 dark:text-blue-200/80">
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     We typically respond within 1-2 business days. Urgent issues
                     are prioritized.
                   </p>
                 </div>
 
                 {/* Privacy Note */}
-                <div className="p-5 rounded-xl bg-green-50/50 dark:bg-green-950/30 border border-green-200/50 dark:border-green-800/50">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
-                      <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <h3 className="font-semibold text-green-900 dark:text-green-100">
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Shield className="h-4 w-4 text-teal" />
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Your Privacy
                     </h3>
                   </div>
-                  <p className="text-sm text-green-800/80 dark:text-green-200/80">
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     Your information is secure and will only be used to respond
                     to your inquiry.
                   </p>
                 </div>
 
                 {/* Quick Links */}
-                <div className="p-5 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200/50 dark:border-purple-800/50">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
-                      <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <h3 className="font-semibold text-purple-900 dark:text-purple-100">
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <HelpCircle className="h-4 w-4 text-teal" />
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Quick Links
                     </h3>
                   </div>
                   <div className="space-y-2">
                     <Link
                       href="/help"
-                      className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 transition-colors"
+                      className="flex items-center gap-2 text-[13px] font-medium text-foreground/80 transition-colors hover:text-foreground"
                     >
-                      <HelpCircle className="h-4 w-4" />
-                      Help & FAQ
+                      Help &amp; FAQ
                       <ArrowRight className="h-3 w-3 ml-auto" />
                     </Link>
                     <Link
                       href="/how-it-works"
-                      className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 transition-colors"
+                      className="flex items-center gap-2 text-[13px] font-medium text-foreground/80 transition-colors hover:text-foreground"
                     >
-                      <MessageSquare className="h-4 w-4" />
                       How It Works
                       <ArrowRight className="h-3 w-3 ml-auto" />
                     </Link>
                     <Link
                       href="/about"
-                      className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 transition-colors"
+                      className="flex items-center gap-2 text-[13px] font-medium text-foreground/80 transition-colors hover:text-foreground"
                     >
-                      <Mail className="h-4 w-4" />
                       About Us
                       <ArrowRight className="h-3 w-3 ml-auto" />
                     </Link>
@@ -590,27 +537,25 @@ export default function ContactContent() {
                 </div>
 
                 {/* Direct Email */}
-                <div className="p-5 rounded-xl bg-orange-50/50 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/50">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900">
-                      <Mail className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <h3 className="font-semibold text-orange-900 dark:text-orange-100">
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Mail className="h-4 w-4 text-teal" />
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Direct Email
                     </h3>
                   </div>
-                  <p className="text-sm text-orange-800/80 dark:text-orange-200/80 mb-2">
+                  <p className="text-[13px] leading-relaxed text-muted-foreground mb-2">
                     Prefer to email us directly?
                   </p>
                   <button
                     onClick={handleCopyEmail}
-                    className="text-orange-700 dark:text-orange-300 font-medium hover:underline flex items-center gap-2 transition-colors"
+                    className="flex items-center gap-2 text-[13px] font-medium text-foreground transition-colors hover:text-teal"
                     title="Copy email address"
                   >
                     {emailCopied ? (
                       <>
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-green-600">Copied!</span>
+                        <CheckCircle className="h-4 w-4 text-success" />
+                        <span className="text-success">Copied!</span>
                       </>
                     ) : (
                       <>
@@ -624,6 +569,8 @@ export default function ContactContent() {
             </div>
           </div>
         </main>
+
+        <Footer />
       </div>
     </div>
   );

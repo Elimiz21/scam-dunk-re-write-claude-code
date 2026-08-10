@@ -4,17 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
-import {
-  FileText,
-  AlertTriangle,
-  Scale,
-  Shield,
-  CreditCard,
-  XCircle,
-  CheckCircle,
-  RefreshCw,
-  Eye,
-} from "lucide-react";
+import { Footer } from "@/components/Footer";
+import { XCircle, CheckCircle } from "lucide-react";
 
 export default function TermsContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -30,35 +21,31 @@ export default function TermsContent() {
       <div className="flex flex-col min-h-screen">
         <Header onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-8">
+        <main className="flex-1">
+          <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
             {/* Hero Section */}
-            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
-                <FileText className="h-8 w-8 text-white" />
-                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
-                  <Eye className="h-2.5 w-2.5 text-white" />
-                </div>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
-                Terms of Service
-              </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Please read these terms carefully before using{" "}
-                <span className="font-display italic">ScamDunk</span>.
+            <div className="mb-12 md:mb-16">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Legal
               </p>
-              <p className="text-sm text-muted-foreground mt-2">
+              <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
+                Terms of <span className="text-brand-blue">Service</span>
+              </h1>
+              <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+                Please read these terms carefully before using ScamDunk.
+              </p>
+              <p className="mt-2 text-[13px] text-muted-foreground">
                 Last Updated: December 2024
               </p>
             </div>
 
             {/* Agreement */}
-            <section className="mb-8 animate-slide-up">
-              <div className="p-5 rounded-xl bg-primary/10 border border-primary/20">
-                <h2 className="font-semibold mb-2 font-display italic">
+            <section className="mb-10">
+              <div className="p-5 rounded-xl border border-border bg-secondary/60">
+                <h2 className="text-[15px] font-semibold text-foreground mb-1">
                   Agreement to Terms
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
                   By accessing or using ScamDunk, you agree to these Terms of
                   Service. If you disagree, you may not use the Service.
                 </p>
@@ -66,21 +53,18 @@ export default function TermsContent() {
             </section>
 
             {/* Service Description */}
-            <section className="mb-8 animate-slide-up delay-1">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <Shield className="h-4 w-4 text-white" />
-                </span>
-                Service Description
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                Service description
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
+              <div className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
                 <p className="mb-3">
                   ScamDunk is a stock analysis tool that helps identify
                   potential red flags and manipulation patterns in publicly
                   traded securities.
                 </p>
-                <p className="font-medium">
+                <p className="font-medium text-foreground">
                   The Service is for educational and informational purposes
                   only. ScamDunk does not provide financial advice or investment
                   recommendations.
@@ -89,62 +73,61 @@ export default function TermsContent() {
             </section>
 
             {/* Eligibility */}
-            <section className="mb-8 animate-slide-up delay-2">
-              <h2 className="text-xl font-semibold mb-4 font-display italic">
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
                 Eligibility
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated">
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>You must be at least 18 years old</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>
-                      You must provide accurate registration information
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>You must maintain security of your credentials</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>You must comply with applicable laws</span>
-                  </li>
-                </ul>
-              </div>
+              <ul className="max-w-2xl space-y-2 text-sm leading-relaxed text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                  <span>You must be at least 18 years old</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                  <span>You must provide accurate registration information</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                  <span>You must maintain security of your credentials</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                  <span>You must comply with applicable laws</span>
+                </li>
+              </ul>
             </section>
 
             {/* Subscription Terms */}
-            <section className="mb-8 animate-fade-in delay-3">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <CreditCard className="h-4 w-4 text-white" />
-                </span>
-                Subscription & Payment
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                Subscription &amp; payment
               </h2>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-xl card-elevated">
-                  <h3 className="font-medium mb-2">Free Plan</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-1">
+                    Free Plan
+                  </h3>
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     5 scans per month, resets on the first of each month. No
                     credit card required.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl card-elevated">
-                  <h3 className="font-medium mb-2">Paid Plan</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-1">
+                    Paid Plan
+                  </h3>
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     200 scans per month, billed monthly via Stripe. Prices
                     subject to change with 30 days notice.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl card-elevated">
-                  <h3 className="font-medium mb-2">Billing & Refunds</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-1">
+                    Billing &amp; Refunds
+                  </h3>
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     Subscriptions auto-renew. Cancel anytime; access continues
                     until end of billing period. No refunds for partial months
                     or unused scans.
@@ -154,19 +137,16 @@ export default function TermsContent() {
             </section>
 
             {/* Acceptable Use */}
-            <section className="mb-8 animate-fade-in delay-4">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <CheckCircle className="h-4 w-4 text-white" />
-                </span>
-                Acceptable Use
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                Acceptable use
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated">
-                <p className="text-sm text-muted-foreground mb-3">
+              <div className="max-w-2xl">
+                <p className="text-sm leading-relaxed text-muted-foreground mb-3">
                   You agree NOT to:
                 </p>
-                <ul className="space-y-2 text-sm text-muted-foreground">
+                <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <XCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
                     <span>Use the Service for illegal purposes</span>
@@ -196,16 +176,13 @@ export default function TermsContent() {
             </section>
 
             {/* Disclaimers */}
-            <section className="mb-8 animate-fade-in delay-5">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <AlertTriangle className="h-4 w-4 text-white" />
-                </span>
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
                 Disclaimers
               </h2>
 
-              <div className="p-5 rounded-xl bg-destructive/10 border border-destructive/20 text-sm">
-                <p className="font-medium text-destructive mb-3">
+              <div className="p-5 rounded-xl border border-destructive/25 bg-destructive/5 text-[13px] leading-relaxed">
+                <p className="font-semibold text-destructive mb-3">
                   THE SERVICE IS PROVIDED &quot;AS IS&quot; WITHOUT WARRANTIES
                   OF ANY KIND.
                 </p>
@@ -213,7 +190,7 @@ export default function TermsContent() {
                   We do not warrant that the Service will be uninterrupted,
                   error-free, or that results will be accurate or reliable.
                 </p>
-                <p className="text-muted-foreground font-medium">
+                <p className="font-medium text-foreground">
                   ScamDunk is NOT financial advice. You are solely responsible
                   for investment decisions.
                 </p>
@@ -221,15 +198,12 @@ export default function TermsContent() {
             </section>
 
             {/* Limitation of Liability */}
-            <section className="mb-8 animate-fade-in">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <Scale className="h-4 w-4 text-white" />
-                </span>
-                Limitation of Liability
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                Limitation of liability
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
+              <div className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
                 <p className="mb-3">
                   TO THE MAXIMUM EXTENT PERMITTED BY LAW, SCAMDUNK SHALL NOT BE
                   LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL,
@@ -245,72 +219,66 @@ export default function TermsContent() {
             </section>
 
             {/* Indemnification */}
-            <section className="mb-8 animate-fade-in">
-              <h2 className="text-xl font-semibold mb-4 font-display italic">
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
                 Indemnification
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
-                <p>
-                  You agree to defend, indemnify, and hold harmless ScamDunk
-                  from any claims, damages, or expenses arising from your
-                  violation of these Terms or your use of the Service.
-                </p>
-              </div>
+              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                You agree to defend, indemnify, and hold harmless ScamDunk from
+                any claims, damages, or expenses arising from your violation of
+                these Terms or your use of the Service.
+              </p>
             </section>
 
             {/* Governing Law */}
-            <section className="mb-8 animate-fade-in">
-              <h2 className="text-xl font-semibold mb-4 font-display italic">
-                Governing Law
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                Governing law
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
+              <div className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
                 <p className="mb-3">
-                  <strong>Governing Law:</strong> These Terms are governed by
-                  the laws of Delaware, United States.
+                  <strong className="text-foreground">Governing Law:</strong>{" "}
+                  These Terms are governed by the laws of Delaware, United
+                  States.
                 </p>
                 <p>
-                  <strong>Disputes:</strong> Disputes shall be resolved through
-                  binding arbitration. You waive the right to participate in
-                  class action lawsuits.
+                  <strong className="text-foreground">Disputes:</strong>{" "}
+                  Disputes shall be resolved through binding arbitration. You
+                  waive the right to participate in class action lawsuits.
                 </p>
               </div>
             </section>
 
             {/* Modifications */}
-            <section className="mb-8 animate-fade-in">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <RefreshCw className="h-4 w-4 text-white" />
-                </span>
-                Service Modifications
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                Service modifications
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground">
-                <p>
-                  We may modify, suspend, or discontinue the Service at any
-                  time. We may also modify these Terms; continued use
-                  constitutes acceptance of changes.
-                </p>
-              </div>
+              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                We may modify, suspend, or discontinue the Service at any time.
+                We may also modify these Terms; continued use constitutes
+                acceptance of changes.
+              </p>
             </section>
 
             {/* Contact */}
-            <section className="mb-8 animate-fade-in">
-              <h2 className="text-xl font-semibold mb-4 font-display italic">
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
                 Contact
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated">
-                <p className="text-sm text-muted-foreground mb-2">
+              <div className="p-5 rounded-xl border border-border bg-card">
+                <p className="text-[13px] leading-relaxed text-muted-foreground mb-2">
                   Questions about these Terms:
                 </p>
-                <p className="text-sm">
+                <p className="text-sm text-foreground">
                   <strong>Email:</strong>{" "}
                   <a
                     href="mailto:legal@scamdunk.com"
-                    className="text-primary hover:underline"
+                    className="underline decoration-border underline-offset-2 hover:text-teal"
                   >
                     legal@scamdunk.com
                   </a>
@@ -319,22 +287,18 @@ export default function TermsContent() {
             </section>
 
             {/* Links */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
-              <Link
-                href="/privacy"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
-              >
+            <div className="flex flex-col sm:flex-row gap-3 justify-center border-t border-border/70 pt-10 pb-4">
+              <Link href="/privacy" className="btn-pill btn-pill-ghost">
                 Privacy Policy
               </Link>
-              <Link
-                href="/disclaimer"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
-              >
+              <Link href="/disclaimer" className="btn-pill btn-pill-ghost">
                 Disclaimer
               </Link>
             </div>
           </div>
         </main>
+
+        <Footer />
       </div>
     </div>
   );
