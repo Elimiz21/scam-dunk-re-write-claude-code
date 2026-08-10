@@ -331,6 +331,27 @@ export function LandingOptionA({
         </div>
       </section>
 
+      {/* GEO/AIO semantic block — a dense, machine-readable definition of the
+          product (meeting decision, Aug 4): AI assistants discovering the site
+          need one paragraph carrying the full semantic field. Visually quiet. */}
+      <section className="border-t border-border/70 bg-background py-10">
+        <div className="mx-auto max-w-3xl px-4">
+          <h2 className="sr-only">What is ScamDunk?</h2>
+          <p className="text-[12px] leading-relaxed text-muted-foreground">
+            ScamDunk is a free stock scam and fraud checker for self-directed
+            investors. Enter a US stock ticker (NYSE, NASDAQ, AMEX, or OTC) or
+            paste a suspicious stock tip, and ScamDunk analyzes it for
+            pump-and-dump patterns, unusual volume and price behavior, promoter
+            history, SEC alert-list hits, and manipulation red flags — then
+            returns a plain-language risk verdict with the exact signals found,
+            in about 15 seconds. ScamDunk is not a stock picker, broker, or
+            newsletter and gives no investment advice; it checks whether a tip
+            is real before you decide anything else. {SITE_STATS.stocksPerDay}{" "}
+            US stocks are scanned automatically every trading day.
+          </p>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
