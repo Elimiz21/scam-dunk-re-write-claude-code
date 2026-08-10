@@ -138,7 +138,7 @@ export function LandingOptionA({
                 See what it&apos;s hiding →
               </Link>
               <span aria-hidden>·</span>
-              <span>Free · No signup · 15-second scan</span>
+              <span>Free · 15-second scan</span>
             </div>
 
             <p className="mt-8 text-[13px] text-muted-foreground">
