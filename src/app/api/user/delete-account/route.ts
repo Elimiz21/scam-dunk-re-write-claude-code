@@ -97,6 +97,7 @@ export async function DELETE(request: NextRequest) {
       prisma.passwordResetToken.deleteMany({ where: { email: user.email } }),
       prisma.scanUsage.deleteMany({ where: { userId } }),
       prisma.scanHistory.deleteMany({ where: { userId } }),
+      prisma.watchlistItem.deleteMany({ where: { userId } }),
       prisma.session.deleteMany({ where: { userId } }),
       prisma.account.deleteMany({ where: { userId } }),
       // Finally delete the user

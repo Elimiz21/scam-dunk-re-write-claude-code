@@ -97,6 +97,35 @@ export async function logScanHistory(data: {
       },
     });
 
+    // Keep the user's watchlist current: one row per (user, ticker) with the
+    // latest scan result. isHidden is user-owned — never reset here; a removed
+    // row simply comes back when the user scans that ticker again. Failures
+    // must not take down metrics, so this has its own catch.
+    if (data.userId) {
+      const ticker = data.ticker.toUpperCase();
+      try {
+        await prisma.watchlistItem.upsert({
+          where: { userId_ticker: { userId: data.userId, ticker } },
+          create: {
+            userId: data.userId,
+            ticker,
+            assetType: data.assetType || "stock",
+            lastRiskLevel: data.riskLevel,
+            lastScore: data.totalScore,
+          },
+          update: {
+            assetType: data.assetType || "stock",
+            lastRiskLevel: data.riskLevel,
+            lastScore: data.totalScore,
+            scanCount: { increment: 1 },
+            lastScannedAt: new Date(),
+          },
+        });
+      } catch (error) {
+        console.error("Failed to update watchlist:", error);
+      }
+    }
+
     // Update daily model metrics
     await updateDailyModelMetrics(
       data.riskLevel,

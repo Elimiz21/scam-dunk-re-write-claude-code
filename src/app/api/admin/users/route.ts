@@ -267,6 +267,7 @@ export async function PATCH(request: NextRequest) {
           });
           await prisma.scanUsage.deleteMany({ where: { userId } });
           await prisma.scanHistory.deleteMany({ where: { userId } });
+          await prisma.watchlistItem.deleteMany({ where: { userId } });
           await prisma.session.deleteMany({ where: { userId } });
           await prisma.account.deleteMany({ where: { userId } });
           // Finally delete the user
