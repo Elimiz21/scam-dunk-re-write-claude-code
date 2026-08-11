@@ -15,7 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Loader2, Mail, Check } from "lucide-react";
+import { Loader2, Mail, Check } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 function CheckEmailContent() {
   const searchParams = useSearchParams();
@@ -55,14 +56,16 @@ function CheckEmailContent() {
 
   if (success) {
     return (
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
-              <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+            <div className="p-3 rounded-full border border-success/30 bg-success/10">
+              <Check className="h-7 w-7 text-success" />
             </div>
           </div>
-          <CardTitle>Check your inbox</CardTitle>
+          <CardTitle className="font-editorial text-2xl font-light">
+            Check your inbox
+          </CardTitle>
           <CardDescription>
             If an account exists for {email}, we&apos;ve sent a new verification
             link.
@@ -84,14 +87,16 @@ function CheckEmailContent() {
   }
 
   return (
-    <Card className="w-full max-w-md border-border bg-card">
+    <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <div className="p-3 rounded-full bg-primary/10">
-            <Mail className="h-8 w-8 text-primary" />
+          <div className="p-3 rounded-full border border-border bg-secondary">
+            <Mail className="h-7 w-7 text-teal" />
           </div>
         </div>
-        <CardTitle>Resend verification email</CardTitle>
+        <CardTitle className="font-editorial text-2xl font-light">
+          Resend verification email
+        </CardTitle>
         <CardDescription>
           Enter your email address and we&apos;ll send you a new verification
           link
@@ -144,13 +149,12 @@ export default function CheckEmailPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <Shield className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">ScamDunk</span>
+        <div className="flex items-center justify-center mb-8">
+          <Logo size={56} href="/" />
         </div>
         <Suspense
           fallback={
-            <Card className="w-full max-w-md border-border bg-card">
+            <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
               <CardHeader className="text-center">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto" />
               </CardHeader>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, Playfair_Display } from "next/font/google";
+import { Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -8,14 +8,16 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { JsonLd } from "@/components/JsonLd";
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const playfairDisplay = Playfair_Display({
+const interTight = Inter_Tight({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
   variable: "--font-display",
   display: "swap",
 });
@@ -61,10 +63,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
+      { url: "/images/brand/icon.png", type: "image/png", sizes: "512x512" },
     ],
-    shortcut: "/favicon.svg",
+    shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
 };
@@ -107,8 +109,15 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${dmSans.variable} ${playfairDisplay.variable}`}
+      className={`${inter.variable} ${interTight.variable}`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("scamdunk-theme");var d=t==="dark"||(t!=="light"&&(t==="auto"||!t)&&(new Date().getHours()>=19||new Date().getHours()<6));document.documentElement.classList.add(d?"dark":"light");}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">
         <JsonLd data={[websiteSchema, organizationSchema]} />
         <SessionProvider>

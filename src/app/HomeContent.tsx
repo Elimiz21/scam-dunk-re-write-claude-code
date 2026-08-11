@@ -12,7 +12,7 @@ import {
   ScanResultsLayout,
   LearnMoreCompact,
 } from "@/components/ScanResultsLayout";
-import { Shield, AlertTriangle, Eye } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import {
   RiskResponse,
   LimitReachedResponse,
@@ -473,15 +473,15 @@ export default function HomeContent() {
               <div className="lg:w-3/4 flex items-center justify-center">
                 <div className="max-w-lg w-full animate-fade-in">
                   <div className="text-center mb-8">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                      <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
-                      <span className="text-sm font-semibold text-primary">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border mb-4">
+                      <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Scanning
                       </span>
                     </div>
-                    <h2 className="font-display text-title mb-1 italic">
+                    <h2 className="font-editorial text-3xl md:text-4xl leading-tight text-foreground mb-1">
                       Analyzing{" "}
-                      <span className="gradient-brand-text not-italic font-sans font-bold">
+                      <span className="text-brand-blue">
                         {currentTicker.toUpperCase()}
                       </span>
                     </h2>
@@ -514,25 +514,15 @@ export default function HomeContent() {
             <>
               {/* Logged-in users: simple welcome with ScanInput */}
               {session ? (
-                <div className="flex-1 flex flex-col items-center p-4 pb-8 gradient-mesh overflow-y-auto">
+                <div className="flex-1 flex flex-col items-center p-4 pb-8 bg-background overflow-y-auto">
                   <div className="text-center mb-8 mt-8 sm:mt-16 animate-fade-in">
-                    <div className="flex justify-center mb-6">
-                      <div className="relative">
-                        <div className="h-16 w-16 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/25 animate-gentle-float">
-                          <Shield
-                            className="h-8 w-8 text-white"
-                            strokeWidth={2}
-                          />
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
-                          <Eye className="h-2.5 w-2.5 text-white" />
-                        </div>
-                      </div>
-                    </div>
-                    <h1 className="font-display text-hero-sm sm:text-hero mb-4 max-w-xl mx-auto italic">
+                    <p className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Free stock scam &amp; fraud checker
+                    </p>
+                    <h1 className="font-editorial text-[clamp(2rem,4.5vw,3.25rem)] leading-[1.12] text-foreground mb-4 max-w-xl mx-auto">
                       {tagline.headline}
                     </h1>
-                    <p className="text-subtitle text-muted-foreground max-w-md mx-auto">
+                    <p className="text-[15px] leading-relaxed text-muted-foreground max-w-md mx-auto">
                       {tagline.subtext}
                     </p>
                   </div>

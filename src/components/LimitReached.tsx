@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
@@ -19,9 +21,9 @@ export function LimitReached({
   const isPaid = plan === "PAID";
 
   return (
-    <Card className="w-full border-yellow-200 bg-yellow-50 dark:border-yellow-900/50 dark:bg-yellow-950/30">
+    <Card className="w-full rounded-2xl border-yellow-500/30 bg-yellow-500/5 shadow-none">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+        <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
           <AlertTriangle className="h-5 w-5" />
           Monthly Limit Reached
         </CardTitle>
@@ -66,14 +68,26 @@ export function LimitReached({
               <PayPalButton />
             </div>
 
-            <div className="pt-4 border-t border-yellow-200 dark:border-yellow-900/50">
+            <div className="pt-4 border-t border-yellow-500/25">
               <h4 className="font-medium mb-2">Pro Plan Benefits:</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• 200 stock checks per month</li>
+                <li>
+                  • WhatsApp scanning — text a ticker, get the verdict in your
+                  chat
+                </li>
                 <li>• Full risk analysis for each check</li>
                 <li>• Detailed red flag explanations</li>
                 <li>• Priority support</li>
               </ul>
+              <p className="mt-3 text-sm">
+                <Link
+                  href="/pricing"
+                  className="text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                >
+                  Compare plans →
+                </Link>
+              </p>
             </div>
           </>
         )}

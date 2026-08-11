@@ -4,19 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
-import {
-  Shield,
-  TrendingUp,
-  AlertTriangle,
-  Globe,
-  BarChart3,
-  Database,
-  Clock,
-  CheckCircle,
-  XCircle,
-  ArrowRight,
-  Eye,
-} from "lucide-react";
+import { Footer } from "@/components/Footer";
+import { CheckCircle, XCircle, ArrowRight } from "lucide-react";
 
 export default function AboutContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -32,170 +21,190 @@ export default function AboutContent() {
       <div className="flex flex-col min-h-screen">
         <Header onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-8">
+        <main className="flex-1">
+          <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
             {/* Hero Section */}
-            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
-                <Shield className="h-8 w-8 text-white" />
-                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
-                  <Eye className="h-2.5 w-2.5 text-white" />
-                </div>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
-                About <span className="font-display italic">ScamDunk</span>
+            <div className="mb-14 md:mb-20">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                About
+              </p>
+              <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
+                About <span className="text-brand-blue">ScamDunk</span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
                 Helping retail investors identify potential stock manipulation
                 and pump-and-dump schemes through data-driven analysis.
               </p>
             </div>
 
             {/* Mission Section */}
-            <section className="mb-12 animate-slide-up">
-              <div className="p-6 rounded-xl card-elevated">
-                <h2 className="text-xl font-semibold mb-3 flex items-center gap-2 font-display italic">
-                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                    <Shield className="h-4 w-4 text-white" />
-                  </span>
-                  Our Mission
-                </h2>
-                <p className="text-muted-foreground">
-                  ScamDunk was created to help everyday investors protect
-                  themselves from stock manipulation schemes. We believe that
-                  access to analytical tools shouldn&apos;t be limited to Wall
-                  Street professionals. Our platform analyzes publicly available
-                  market data and identifies patterns commonly associated with
-                  pump-and-dump schemes, helping you make more informed
-                  decisions.
-                </p>
-              </div>
+            <section className="mb-14">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+                Our Mission
+              </p>
+              <h2 className="font-editorial mt-3 text-2xl md:text-3xl leading-tight text-foreground">
+                Analytical tools shouldn&apos;t be limited to Wall Street.
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                ScamDunk was created to help everyday investors protect
+                themselves from stock manipulation schemes. We believe that
+                access to analytical tools shouldn&apos;t be limited to Wall
+                Street professionals. Our platform analyzes publicly available
+                market data and identifies patterns commonly associated with
+                pump-and-dump schemes, helping you make more informed decisions.
+              </p>
             </section>
 
             {/* How Scans Work */}
-            <section className="mb-12 animate-slide-up delay-1">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <BarChart3 className="h-4 w-4 text-white" />
-                </span>
-                How Our Scans Work
+            <section className="mb-14 border-t border-border/70 pt-12">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+                Methodology
+              </p>
+              <h2 className="font-editorial mt-3 mb-8 text-2xl md:text-3xl leading-tight text-foreground">
+                How our scans work
               </h2>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-5 rounded-xl card-interactive">
-                  <h3 className="font-medium mb-2">1. Market Data Analysis</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-2">
+                    1. Market Data Analysis
+                  </h3>
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     We fetch real-time price, volume, and company data from
                     regulated financial data providers.
                   </p>
                 </div>
-                <div className="p-5 rounded-xl card-interactive">
-                  <h3 className="font-medium mb-2">2. Pattern Detection</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-2">
+                    2. Pattern Detection
+                  </h3>
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     Our algorithms identify price spikes, volume anomalies, and
                     classic pump-and-dump signatures.
                   </p>
                 </div>
-                <div className="p-5 rounded-xl card-interactive">
-                  <h3 className="font-medium mb-2">3. Structural Assessment</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-2">
+                    3. Structural Assessment
+                  </h3>
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     We evaluate stock characteristics like market cap and
                     liquidity that affect manipulation risk.
                   </p>
                 </div>
-                <div className="p-5 rounded-xl card-interactive">
-                  <h3 className="font-medium mb-2">4. Behavioral Analysis</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-2">
+                    4. Behavioral Analysis
+                  </h3>
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     If you provide pitch text, we analyze it for manipulation
                     red-flag language patterns.
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 text-center">
+              <p className="mt-6 text-sm text-muted-foreground">
                 <Link
                   href="/how-it-works"
-                  className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                  className="inline-flex items-center gap-1 font-medium text-foreground/80 hover:text-foreground"
                 >
                   Learn more about our methodology
                   <ArrowRight className="h-3 w-3" />
                 </Link>
-              </div>
+              </p>
             </section>
 
             {/* Coverage Section */}
-            <section className="mb-12 animate-slide-up delay-2">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <Globe className="h-4 w-4 text-white" />
-                </span>
+            <section className="mb-14 border-t border-border/70 pt-12">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
                 Coverage
+              </p>
+              <h2 className="font-editorial mt-3 mb-8 text-2xl md:text-3xl leading-tight text-foreground">
+                What we cover, and what we don&apos;t
               </h2>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-5 rounded-xl card-elevated">
-                  <h3 className="font-medium mb-3 flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-success" />
                     What We Cover
                   </h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
+                  <ul className="space-y-2 text-[13px] leading-relaxed text-muted-foreground">
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-0.5">✓</span>
+                      <span className="text-success mt-0.5">✓</span>
                       <span>
-                        <strong>US Stocks</strong> - NYSE, NASDAQ, OTC Markets
+                        <strong className="text-foreground">US Stocks</strong> -
+                        NYSE, NASDAQ, OTC Markets
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-0.5">✓</span>
+                      <span className="text-success mt-0.5">✓</span>
                       <span>
-                        <strong>Real-time data</strong> - Current prices and
-                        volumes
+                        <strong className="text-foreground">
+                          Real-time data
+                        </strong>{" "}
+                        - Current prices and volumes
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-0.5">✓</span>
+                      <span className="text-success mt-0.5">✓</span>
                       <span>
-                        <strong>Historical patterns</strong> - 100 days of price
-                        history
+                        <strong className="text-foreground">
+                          Historical patterns
+                        </strong>{" "}
+                        - 100 days of price history
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-0.5">✓</span>
+                      <span className="text-success mt-0.5">✓</span>
                       <span>
-                        <strong>SEC alerts</strong> - Trading suspension lists
+                        <strong className="text-foreground">SEC alerts</strong>{" "}
+                        - Trading suspension lists
                       </span>
                     </li>
                   </ul>
                 </div>
 
-                <div className="p-5 rounded-xl card-elevated">
-                  <h3 className="font-medium mb-3 flex items-center gap-2">
-                    <XCircle className="h-4 w-4 text-red-500" />
+                <div className="p-5 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <XCircle className="h-4 w-4 text-destructive" />
                     Not Currently Supported
                   </h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
+                  <ul className="space-y-2 text-[13px] leading-relaxed text-muted-foreground">
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-0.5">✗</span>
+                      <span className="text-destructive mt-0.5">✗</span>
                       <span>
-                        <strong>International stocks</strong> - Non-US markets
+                        <strong className="text-foreground">
+                          International stocks
+                        </strong>{" "}
+                        - Non-US markets
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-0.5">✗</span>
+                      <span className="text-destructive mt-0.5">✗</span>
                       <span>
-                        <strong>Cryptocurrencies</strong> - Digital assets
+                        <strong className="text-foreground">
+                          Cryptocurrencies
+                        </strong>{" "}
+                        - Digital assets
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-0.5">✗</span>
+                      <span className="text-destructive mt-0.5">✗</span>
                       <span>
-                        <strong>Options & Futures</strong> - Derivatives
+                        <strong className="text-foreground">
+                          Options &amp; Futures
+                        </strong>{" "}
+                        - Derivatives
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-0.5">✗</span>
+                      <span className="text-destructive mt-0.5">✗</span>
                       <span>
-                        <strong>Bonds & ETFs</strong> - Other instruments
+                        <strong className="text-foreground">
+                          Bonds &amp; ETFs
+                        </strong>{" "}
+                        - Other instruments
                       </span>
                     </li>
                   </ul>
@@ -204,39 +213,39 @@ export default function AboutContent() {
             </section>
 
             {/* Results Explanation */}
-            <section className="mb-12 animate-slide-up delay-3">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <AlertTriangle className="h-4 w-4 text-white" />
-                </span>
-                Understanding Results
+            <section className="mb-14 border-t border-border/70 pt-12">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+                Results
+              </p>
+              <h2 className="font-editorial mt-3 mb-8 text-2xl md:text-3xl leading-tight text-foreground">
+                Understanding results
               </h2>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 risk-glow-high">
-                  <h3 className="font-medium text-red-600 dark:text-red-400 mb-1">
+                <div className="p-4 rounded-xl border border-red-500/25 bg-red-500/5">
+                  <h3 className="text-[15px] font-semibold text-red-600 dark:text-red-400 mb-1">
                     HIGH Risk
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     Multiple significant red flags detected. Extreme caution
                     warranted. Does not confirm a scam, but risk profile is
                     elevated.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 risk-glow-medium">
-                  <h3 className="font-medium text-yellow-600 dark:text-yellow-400 mb-1">
+                <div className="p-4 rounded-xl border border-yellow-500/25 bg-yellow-500/5">
+                  <h3 className="text-[15px] font-semibold text-yellow-600 dark:text-yellow-400 mb-1">
                     MEDIUM Risk
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     Some concerning signals detected. Additional research
                     recommended before any decisions.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 risk-glow-low">
-                  <h3 className="font-medium text-green-600 dark:text-green-400 mb-1">
+                <div className="p-4 rounded-xl border border-green-500/25 bg-green-500/5">
+                  <h3 className="text-[15px] font-semibold text-green-600 dark:text-green-400 mb-1">
                     LOW Risk
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     Few or no manipulation indicators. Does NOT mean the stock
                     is a good investment—only that obvious manipulation signals
                     were not detected.
@@ -246,124 +255,123 @@ export default function AboutContent() {
             </section>
 
             {/* Data Sources */}
-            <section className="mb-12 animate-fade-in delay-4">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <Database className="h-4 w-4 text-white" />
-                </span>
-                Our Data Sources
+            <section className="mb-14 border-t border-border/70 pt-12">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+                Data
+              </p>
+              <h2 className="font-editorial mt-3 mb-8 text-2xl md:text-3xl leading-tight text-foreground">
+                Our data sources
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated">
-                <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-3">
-                    <Clock className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>
-                      <strong>Market Data:</strong> Real-time and historical
-                      data from licensed financial data providers
-                    </span>
+              <div className="p-5 rounded-xl border border-border bg-card">
+                <ul className="space-y-3 text-[13px] leading-relaxed text-muted-foreground">
+                  <li>
+                    <strong className="text-foreground">Market Data:</strong>{" "}
+                    Real-time and historical data from licensed financial data
+                    providers
                   </li>
-                  <li className="flex items-start gap-3">
-                    <Clock className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>
-                      <strong>Company Info:</strong> Exchange listings, market
-                      cap, updated daily
-                    </span>
+                  <li>
+                    <strong className="text-foreground">Company Info:</strong>{" "}
+                    Exchange listings, market cap, updated daily
                   </li>
-                  <li className="flex items-start gap-3">
-                    <Clock className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>
-                      <strong>Regulatory Data:</strong> SEC EDGAR feeds for
-                      trading suspensions
-                    </span>
+                  <li>
+                    <strong className="text-foreground">
+                      Regulatory Data:
+                    </strong>{" "}
+                    SEC EDGAR feeds for trading suspensions
                   </li>
                 </ul>
               </div>
             </section>
 
             {/* Important Links */}
-            <section className="mb-8 animate-fade-in delay-5">
-              <h2 className="text-xl font-semibold mb-4 font-display italic">
-                Important Documents
+            <section className="mb-14 border-t border-border/70 pt-12">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+                Reference
+              </p>
+              <h2 className="font-editorial mt-3 mb-8 text-2xl md:text-3xl leading-tight text-foreground">
+                Important documents
               </h2>
               <div className="grid sm:grid-cols-2 gap-3">
                 <Link
                   href="/disclaimer"
-                  className="p-4 rounded-xl card-interactive group flex items-center justify-between"
+                  className="p-4 rounded-xl border border-border bg-card group flex items-center justify-between transition-colors hover:border-foreground/30"
                 >
                   <div>
-                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">
-                      Disclaimer & Limitations
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">
+                      Disclaimer &amp; Limitations
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       What our scans cannot detect
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </Link>
                 <Link
                   href="/how-it-works"
-                  className="p-4 rounded-xl card-interactive group flex items-center justify-between"
+                  className="p-4 rounded-xl border border-border bg-card group flex items-center justify-between transition-colors hover:border-foreground/30"
                 >
                   <div>
-                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">
                       How It Works
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       Detailed methodology
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </Link>
                 <Link
                   href="/privacy"
-                  className="p-4 rounded-xl card-interactive group flex items-center justify-between"
+                  className="p-4 rounded-xl border border-border bg-card group flex items-center justify-between transition-colors hover:border-foreground/30"
                 >
                   <div>
-                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">
                       Privacy Policy
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       How we protect your data
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </Link>
                 <Link
                   href="/terms"
-                  className="p-4 rounded-xl card-interactive group flex items-center justify-between"
+                  className="p-4 rounded-xl border border-border bg-card group flex items-center justify-between transition-colors hover:border-foreground/30"
                 >
                   <div>
-                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">
                       Terms of Service
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       Usage rules and conditions
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </Link>
               </div>
             </section>
 
             {/* Contact */}
-            <div className="text-center p-6 rounded-xl card-elevated animate-fade-in">
-              <h2 className="font-semibold mb-2 font-display italic">
+            <div className="border-t border-border/70 pt-12 pb-4 text-center">
+              <h2 className="font-editorial text-2xl md:text-3xl leading-tight text-foreground mb-2">
                 Questions?
               </h2>
-              <p className="text-sm text-muted-foreground mb-3">
+              <p className="text-sm text-muted-foreground mb-6">
                 We&apos;d love to hear from you.
               </p>
               <Link
                 href="/contact"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full gradient-brand text-white font-medium hover:opacity-90 transition-smooth text-sm shadow-glow-sm"
+                className="btn-pill btn-pill-primary gap-2 text-sm"
               >
-                <ArrowRight className="h-4 w-4" />
                 Contact Support
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
         </main>
+
+        <Footer />
       </div>
     </div>
   );

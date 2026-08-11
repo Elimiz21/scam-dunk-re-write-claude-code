@@ -487,7 +487,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               type="submit"
               size="icon"
               disabled={!ticker.trim() || isLoading || disabled}
-              className="h-10 w-10 rounded-xl shrink-0"
+              className="h-10 w-10 shrink-0"
               aria-label="Analyze ticker"
             >
               {isLoading ? (
@@ -523,8 +523,8 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
                   }
                 }}
                 className={cn(
-                  "gap-1.5 rounded-xl text-xs relative",
-                  "feature-highlight",
+                  "gap-1.5 rounded-full text-xs relative",
+                  "border border-primary/25 bg-primary/5 hover:bg-primary/10",
                   (showChatInput || chatAdded) &&
                     "text-primary bg-primary/15 border-primary/30",
                 )}
@@ -534,7 +534,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               >
                 <MessageSquare className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Add Chat</span>
-                <Sparkles className="h-3 w-3 text-blue-500 hidden sm:block" />
+                <Sparkles className="h-3 w-3 text-brand-blue hidden sm:block" />
                 {chatAdded && <Check className="h-3 w-3 text-green-500" />}
               </Button>
             </FeatureTooltip>
@@ -549,7 +549,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               size="sm"
               onClick={() => setShowContextFlags(!showContextFlags)}
               className={cn(
-                "gap-1.5 rounded-xl text-xs",
+                "gap-1.5 rounded-full text-xs",
                 activeContextCount > 0 && "text-primary",
               )}
               disabled={isLoading || disabled}

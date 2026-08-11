@@ -87,19 +87,6 @@ function getRiskTickerClass(level: RiskLevel) {
   }
 }
 
-function getRiskGlowClass(level: RiskLevel) {
-  switch (level) {
-    case "LOW":
-      return "risk-glow-low";
-    case "MEDIUM":
-      return "risk-glow-medium";
-    case "HIGH":
-      return "risk-glow-high";
-    default:
-      return "";
-  }
-}
-
 function getRiskHeroBg(level: RiskLevel) {
   switch (level) {
     case "LOW":
@@ -321,7 +308,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
 
   return (
     <Card
-      className={`w-full card-elevated overflow-hidden ${getRiskFullBorderClass(riskLevel)} ${getRiskGlowClass(riskLevel)}`}
+      className={`w-full rounded-2xl bg-card overflow-hidden shadow-none ${getRiskFullBorderClass(riskLevel)}`}
     >
       {/* Hero Header — prominent risk level, score, and stock name */}
       <CardHeader className="pb-3">

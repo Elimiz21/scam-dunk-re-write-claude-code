@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageLayout } from "@/components/PageLayout";
 import { ArrowLeft, Calendar } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { JsonLd } from "@/components/JsonLd";
 import { slugify } from "@/lib/utils";
 
@@ -125,20 +124,28 @@ export default async function AuthorPage({ params }: { params: PageParams }) {
     <div className="min-h-screen bg-background">
       <JsonLd data={personSchema} />
       <PageLayout>
-        <main className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full">
-          <div className="mb-6">
-            <Link href="/news">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to News
-              </Button>
+        <main className="flex-1 px-4 py-12 md:py-16 max-w-4xl mx-auto w-full">
+          <div className="mb-8">
+            <Link
+              href="/news"
+              className="inline-flex items-center gap-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to News
             </Link>
           </div>
 
-          <div className="card-elevated rounded-2xl p-10 mb-8">
-            <h1 className="text-4xl font-bold mb-4">{authorName}</h1>
-            <p className="text-lg text-muted-foreground mb-6">{authorBio}</p>
-            <p className="text-sm text-muted-foreground">
+          <div className="mb-12 border-b border-border/70 pb-10">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Author
+            </p>
+            <h1 className="font-editorial mt-4 text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
+              {authorName}
+            </h1>
+            <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+              {authorBio}
+            </p>
+            <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
               Investment fraud researcher and analyst at ScamDunk. Helping
               retail investors identify market manipulation and pump-and-dump
               schemes.
@@ -148,24 +155,27 @@ export default async function AuthorPage({ params }: { params: PageParams }) {
           {/* Author's Articles */}
           {authorPosts.length > 0 ? (
             <section>
-              <h2 className="text-2xl font-bold mb-6">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+                Articles
+              </p>
+              <h2 className="font-editorial mt-3 mb-6 text-2xl md:text-3xl leading-tight text-foreground">
                 Articles by {authorName}
               </h2>
               <div className="space-y-4">
                 {authorPosts.map((post) => (
                   <Link key={post.id} href={`/news/${post.slug}`}>
-                    <div className="card-elevated rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer">
-                      <h3 className="text-xl font-semibold mb-2 hover:text-primary">
+                    <div className="rounded-xl border border-border bg-card p-6 transition-colors hover:border-foreground/30 cursor-pointer">
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         {post.title}
                       </h3>
                       {post.excerpt && (
-                        <p className="text-muted-foreground mb-3">
+                        <p className="text-[13px] leading-relaxed text-muted-foreground mb-3">
                           {post.excerpt}
                         </p>
                       )}
                       {post.publishedAt && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
+                        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                          <Calendar className="h-3.5 w-3.5" />
                           {new Date(post.publishedAt).toLocaleDateString(
                             "en-US",
                             {
@@ -183,7 +193,7 @@ export default async function AuthorPage({ params }: { params: PageParams }) {
             </section>
           ) : (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 No articles found for this author yet.
               </p>
             </div>

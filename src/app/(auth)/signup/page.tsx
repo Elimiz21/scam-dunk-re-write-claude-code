@@ -15,7 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Loader2, Mail, Eye } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Turnstile } from "@/components/turnstile";
 import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/config";
 
@@ -94,15 +95,15 @@ export default function SignupPage() {
   // Success state - show verification email sent message
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
-        <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
+      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
+        <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full gradient-brand shadow-glow-sm">
-                <Mail className="h-8 w-8 text-white" />
+              <div className="p-3 rounded-full border border-border bg-secondary">
+                <Mail className="h-7 w-7 text-teal" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-display italic">
+            <CardTitle className="font-editorial text-2xl font-light">
               Check your email
             </CardTitle>
             <CardDescription className="text-base mt-2">
@@ -143,24 +144,13 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
-      <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
-          <Link
-            href="/"
-            className="flex items-center justify-center gap-2 mb-4"
-          >
-            <div className="relative inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-xl shadow-glow-sm">
-              <Shield className="h-5 w-5 text-white" />
-              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
-                <Eye className="h-2 w-2 text-white" />
-              </div>
-            </div>
-            <span className="text-2xl font-bold font-display italic">
-              ScamDunk
-            </span>
-          </Link>
-          <CardTitle className="font-display italic">
+          <div className="mb-4 flex justify-center">
+            <Logo size={56} href="/" />
+          </div>
+          <CardTitle className="font-editorial text-2xl font-light">
             Create your account
           </CardTitle>
           <CardDescription>

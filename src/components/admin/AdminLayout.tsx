@@ -16,7 +16,6 @@ import {
   ChevronRight,
   ChevronDown,
   Bell,
-  Eye,
   Radar,
   TrendingUp,
   AlertTriangle,
@@ -36,6 +35,7 @@ import {
   Monitor,
   LucideIcon,
 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 interface AdminSession {
   id: string;
@@ -329,18 +329,7 @@ export default function AdminLayout({
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-col flex-grow bg-card border-r border-border overflow-y-auto">
           <div className="flex items-center h-16 px-4 border-b border-border/50">
-            <div className="relative h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm">
-              <Shield className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
-              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
-                <Eye className="h-2 w-2 text-white" />
-              </div>
-            </div>
-            <span className="ml-2 font-display tracking-tight italic text-foreground">
-              Scam
-              <span className="gradient-brand-text not-italic font-sans font-bold">
-                Dunk
-              </span>
-            </span>
+            <Logo size={28} href="/admin/dashboard" />
             <span className="ml-2 text-xs text-muted-foreground uppercase font-semibold tracking-wider">
               Admin
             </span>
