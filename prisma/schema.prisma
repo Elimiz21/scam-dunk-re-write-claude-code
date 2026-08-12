@@ -475,9 +475,11 @@ model StockRiskAlert {
 
   createdAt DateTime @default(now())
 
+  // One alert per stock per day — duplicate re-ingests created ~87k dup rows
+  // (cleaned 2026-08-12); the constraint makes createMany skipDuplicates real.
+  @@unique([stockId, alertDate])
   @@index([alertDate])
   @@index([alertType])
-  @@index([stockId, alertDate])
 }
 
 model PromotedStock {
