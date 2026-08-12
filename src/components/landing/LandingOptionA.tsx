@@ -13,6 +13,7 @@ import {
 import { Footer } from "@/components/Footer";
 import { AssetType } from "@/lib/types";
 import { SITE_STATS } from "@/lib/site-stats";
+import { useLiveSiteStats } from "@/lib/use-site-stats";
 
 interface LandingOptionAProps {
   onSubmit: (data: {
@@ -59,6 +60,7 @@ export function LandingOptionA({
 }: LandingOptionAProps) {
   const [value, setValue] = useState("");
   const [inputError, setInputError] = useState<string | null>(null);
+  const { tiles } = useLiveSiteStats();
 
   const handleCheck = () => {
     const parsed = extractTicker(value);
@@ -188,13 +190,14 @@ export function LandingOptionA({
         </div>
       </section>
 
-      {/* ================= STATS STRIP ================= */}
+      {/* ================= STATS STRIP (live, refreshed daily) ================= */}
       <section className="bg-background py-12 md:py-16">
-        <div className="mx-auto grid max-w-4xl grid-cols-1 gap-10 px-4 text-center sm:grid-cols-3">
+        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-x-6 gap-y-10 px-4 text-center lg:grid-cols-4">
           {[
-            [SITE_STATS.scansPerformed, SITE_STATS.scansPerformedLabel],
-            [SITE_STATS.fraudLosses, SITE_STATS.fraudLossesLabel],
-            [SITE_STATS.scanTime, SITE_STATS.scanTimeLabel],
+            [tiles.stocksPerDay, "stocks scanned every trading day"],
+            [tiles.totalScans, "stock scans since January"],
+            [tiles.dumpsConfirmed6mo, "pump-and-dumps confirmed in 6 months"],
+            [tiles.newFlagsThisWeek, "new stocks flagged this week"],
           ].map(([num, label]) => (
             <div key={label}>
               <p className="font-editorial text-4xl text-foreground md:text-[2.75rem]">
@@ -206,6 +209,10 @@ export function LandingOptionA({
             </div>
           ))}
         </div>
+        <p className="mt-8 text-center text-xs text-muted-foreground">
+          Live from our scan database · updated after every daily scan ·{" "}
+          {SITE_STATS.fraudLosses} {SITE_STATS.fraudLossesLabel}
+        </p>
       </section>
 
       {/* ================= POSITIONING ================= */}
