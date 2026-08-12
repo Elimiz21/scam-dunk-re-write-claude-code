@@ -21,6 +21,7 @@ import {
 } from "@/lib/types";
 import { getRandomTagline, taglines, Tagline } from "@/lib/taglines";
 import { LandingOptionA } from "@/components/landing/LandingOptionA";
+import { useLiveSiteStats } from "@/lib/use-site-stats";
 import { useToast } from "@/components/ui/toast";
 import { normalizeRiskScore } from "@/lib/utils";
 import { Step } from "@/components/LoadingStepper";
@@ -28,6 +29,7 @@ import { Step } from "@/components/LoadingStepper";
 export default function HomeContent() {
   const { data: session, status } = useSession();
   const { addToast } = useToast();
+  const { tiles: statTiles } = useLiveSiteStats();
 
   // Sidebar defaults closed for non-logged-in users (landing page)
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -576,7 +578,7 @@ export default function HomeContent() {
                   )}
 
                   <div
-                    className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in"
+                    className="w-full max-w-3xl mx-auto mt-2 mb-10 animate-fade-in"
                     style={{ animationDelay: "0.05s" }}
                   >
                     <ScanInput
@@ -584,6 +586,33 @@ export default function HomeContent() {
                       isLoading={isLoading}
                       disabled={usage?.limitReached && !result}
                     />
+                  </div>
+
+                  {/* Live scan stats — refreshed after each daily scan */}
+                  <div
+                    className="w-full max-w-3xl mx-auto mb-12 animate-fade-in"
+                    style={{ animationDelay: "0.1s" }}
+                  >
+                    <div className="grid grid-cols-2 gap-4 rounded-2xl border border-border bg-card px-6 py-5 text-center sm:grid-cols-4">
+                      {[
+                        [statTiles.stocksPerDay, "stocks scanned daily"],
+                        [statTiles.totalScans, "scans since January"],
+                        [
+                          statTiles.dumpsConfirmed6mo,
+                          "pump-and-dumps confirmed (6 mo)",
+                        ],
+                        [statTiles.pumpingNow, "suspected pumps live now"],
+                      ].map(([num, label]) => (
+                        <div key={label}>
+                          <p className="font-editorial text-2xl text-foreground">
+                            {num}
+                          </p>
+                          <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                            {label}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : (
