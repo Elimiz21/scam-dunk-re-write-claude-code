@@ -36,6 +36,7 @@ model User {
   sessions   Session[]
   scanUsages ScanUsage[]
   whatsAppIdentityBindings WhatsAppIdentityBinding[]
+  watchlistItems           WatchlistItem[]
 }
 
 // TODO [H-11]: OAuth tokens (refresh_token, access_token, id_token) are stored in plain text.
@@ -112,6 +113,29 @@ model ScanUsage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, monthKey])
+}
+
+// A returning user's saved list of previously scanned stocks — one row per
+// (user, ticker), auto-upserted on every logged-in scan (see logScanHistory).
+// Users can hide items (kept, tucked behind a toggle) or remove them entirely;
+// a removed ticker reappears only if the user scans it again.
+model WatchlistItem {
+  id            String   @id @default(cuid())
+  userId        String
+  ticker        String
+  assetType     String   @default("stock")
+  lastRiskLevel String? // LOW, MEDIUM, HIGH, INSUFFICIENT — from the latest scan
+  lastScore     Int?
+  scanCount     Int      @default(1)
+  isHidden      Boolean  @default(false)
+  lastScannedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@index([userId, isHidden, lastScannedAt(sort: Desc)])
 }
 
 // WhatsApp sender identity is never stored in clear text. identityHash is an

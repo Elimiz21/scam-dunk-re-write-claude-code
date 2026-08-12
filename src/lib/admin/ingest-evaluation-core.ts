@@ -5,9 +5,17 @@
 
 import { prisma } from "@/lib/db";
 import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
+import { fetchDailyCloses } from "@/lib/promoted-stocks/tracker";
 
 // Batch size for createMany operations to avoid overwhelming the DB
 const BATCH_SIZE = 1000;
+
+// A promoted-stock flag is only real if the instrument actually traded
+// recently. Stale "expert market" quotes on dead tickers previously produced
+// flags dated AFTER the instrument's last trade (130 such rows found in the
+// Aug 2026 delisting audit). A last trade within this many days of the scan
+// date is required when the price feed covers the symbol at all.
+const PROMOTED_MAX_QUOTE_AGE_DAYS = 10;
 
 export interface IngestResult {
   success: boolean;
@@ -17,10 +25,33 @@ export interface IngestResult {
   snapshotsCreated: number;
   alertsCreated: number;
   promotedStocksCreated: number;
+  promotedStocksSkippedStale: number;
   totalProcessed: number;
   skipped: number;
   durationMs: number;
   error?: string;
+}
+
+/**
+ * True when the symbol should NOT be flagged because the price feed shows it
+ * stopped trading before the scan date. Fail-open: if FMP has no coverage at
+ * all (thin OTC tiers, warrants) or errors out, the flag is allowed and the
+ * outcome tracker sorts it out later.
+ */
+async function isStaleQuoteSymbol(
+  symbol: string,
+  scanDate: Date,
+): Promise<boolean> {
+  const from = new Date(scanDate.getTime() - 45 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const closes = await fetchDailyCloses(symbol, from);
+  if (closes.length === 0) return false; // no coverage ≠ dead — let it through
+  const lastTrade = new Date(closes[closes.length - 1].date + "T00:00:00Z");
+  return (
+    scanDate.getTime() - lastTrade.getTime() >
+    PROMOTED_MAX_QUOTE_AGE_DAYS * 86_400_000
+  );
 }
 
 interface EvaluationStock {
@@ -356,6 +387,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         snapshotsCreated: 0,
         alertsCreated: 0,
         promotedStocksCreated: 0,
+        promotedStocksSkippedStale: 0,
         totalProcessed: 0,
         skipped: 0,
         durationMs: Date.now() - startTime,
@@ -609,8 +641,33 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
     // Step 9: Ingest promoted stocks
     let promotedStocksCreated = 0;
+    let promotedStocksSkippedStale = 0;
     if (promotedData && promotedData.promotedStocks?.length > 0) {
+      // One staleness verdict per distinct symbol (a handful of FMP calls
+      // per day) — flags on instruments that stopped trading before the
+      // scan date are dropped instead of polluting the outcome ledger.
+      const staleBySymbol = new Map<string, boolean>();
       for (const promoted of promotedData.promotedStocks) {
+        if (!staleBySymbol.has(promoted.symbol)) {
+          try {
+            staleBySymbol.set(
+              promoted.symbol,
+              await isStaleQuoteSymbol(promoted.symbol, scanDate),
+            );
+          } catch {
+            staleBySymbol.set(promoted.symbol, false); // fail-open
+          }
+        }
+      }
+
+      for (const promoted of promotedData.promotedStocks) {
+        if (staleBySymbol.get(promoted.symbol)) {
+          promotedStocksSkippedStale++;
+          console.warn(
+            `[ingest-core] Skipping promoted stock ${promoted.symbol}: last trade predates scan date by >${PROMOTED_MAX_QUOTE_AGE_DAYS}d (stale/expert-market quote)`,
+          );
+          continue;
+        }
         let marketCapNum: number | null = null;
         if (promoted.marketCap) {
           const match = promoted.marketCap.match(/([\d.]+)([BMK])?/i);
@@ -677,6 +734,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       snapshotsCreated,
       alertsCreated,
       promotedStocksCreated,
+      promotedStocksSkippedStale,
       totalProcessed: validStocks.length,
       skipped: skippedCount,
       durationMs,
@@ -691,6 +749,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       snapshotsCreated: 0,
       alertsCreated: 0,
       promotedStocksCreated: 0,
+      promotedStocksSkippedStale: 0,
       totalProcessed: 0,
       skipped: 0,
       durationMs: Date.now() - startTime,

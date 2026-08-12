@@ -377,6 +377,46 @@ export default function HomeContent() {
     setCurrentTicker("");
   };
 
+  // Re-scan a ticker straight from the sidebar watchlist.
+  const handleScanTicker = (ticker: string, assetType: string) => {
+    handleSubmit({
+      ticker: ticker.toUpperCase(),
+      assetType: assetType === "crypto" ? "crypto" : "stock",
+    });
+  };
+
+  // Auto-run a scan when arriving with /?scan=TICKER — the sidebar watchlist
+  // uses this from pages that don't host the scan UI. Fires once after the
+  // session state is known, and cleans the URL first so a refresh or
+  // back-navigation doesn't silently burn another scan.
+  const autoScanFiredRef = useRef(false);
+  useEffect(() => {
+    if (status === "loading" || autoScanFiredRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const ticker = params.get("scan");
+    if (!ticker) return;
+    autoScanFiredRef.current = true;
+
+    if (!session) {
+      // Preserve the requested scan through the login round-trip.
+      window.location.href = `/login?callbackUrl=${encodeURIComponent(`/?scan=${ticker}`)}`;
+      return;
+    }
+
+    const assetType: AssetType =
+      params.get("type") === "crypto" ? "crypto" : "stock";
+    params.delete("scan");
+    params.delete("type");
+    const qs = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
+    );
+    handleSubmit({ ticker: ticker.toUpperCase(), assetType });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session]);
+
   const handleShare = async () => {
     if (result) {
       const normalizedScore = normalizeRiskScore(result.totalScore);
@@ -433,6 +473,7 @@ export default function HomeContent() {
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onNewScan={handleNewScan}
+        onScanTicker={handleScanTicker}
         refreshKey={scanRefreshKey}
       />
 

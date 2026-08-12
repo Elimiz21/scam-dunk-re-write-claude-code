@@ -768,44 +768,70 @@
   height: 0;
 }
 
+/* Article body typography — Paper & Ink editorial (matches the page
+   templates: font-editorial display headings, teal accents, generous
+   reading rhythm). Shared by the public blog pages and the admin editor. */
+
 .tiptap h1 {
-  @apply text-3xl font-bold mb-4 mt-6;
+  font-family:
+    var(--font-display), "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  @apply text-3xl md:text-4xl leading-tight mb-5 mt-10;
 }
 
 .tiptap h2 {
-  @apply text-2xl font-bold mb-3 mt-5;
+  font-family:
+    var(--font-display), "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 350;
+  letter-spacing: -0.025em;
+  @apply text-2xl md:text-[1.75rem] leading-snug mb-4 mt-10;
 }
 
 .tiptap h3 {
-  @apply text-xl font-semibold mb-2 mt-4;
+  @apply text-lg md:text-xl font-semibold leading-snug mb-3 mt-8;
+}
+
+.tiptap h2:first-child,
+.tiptap h3:first-child {
+  @apply mt-0;
 }
 
 .tiptap p {
-  @apply mb-3 leading-relaxed;
+  @apply mb-4 text-[15px] md:text-base leading-[1.75];
 }
 
 .tiptap ul {
-  @apply list-disc pl-6 mb-3;
+  @apply list-disc pl-6 mb-4 space-y-1.5;
 }
 
 .tiptap ol {
-  @apply list-decimal pl-6 mb-3;
+  @apply list-decimal pl-6 mb-4 space-y-1.5;
 }
 
 .tiptap li {
-  @apply mb-1;
+  @apply text-[15px] md:text-base leading-[1.7];
+}
+
+.tiptap li::marker {
+  color: hsl(var(--teal));
 }
 
 .tiptap blockquote {
-  @apply border-l-4 border-primary/30 pl-4 py-1 italic text-muted-foreground my-4;
+  border-left: 2px solid hsl(var(--teal));
+  @apply pl-5 py-1 my-6 text-muted-foreground;
+}
+
+.tiptap blockquote p {
+  @apply text-[15px] md:text-base italic;
 }
 
 .tiptap pre {
-  @apply bg-secondary rounded-xl p-4 my-4 font-mono text-sm overflow-x-auto;
+  @apply bg-secondary rounded-xl p-4 my-5 font-mono text-[13px] leading-snug overflow-x-auto;
 }
 
 .tiptap code {
-  @apply bg-secondary px-1.5 py-0.5 rounded text-sm font-mono;
+  @apply bg-secondary px-1.5 py-0.5 rounded text-[13px] font-mono;
 }
 
 .tiptap pre code {
@@ -813,33 +839,47 @@
 }
 
 .tiptap hr {
-  @apply my-6 border-border;
+  @apply my-10 border-border;
 }
 
 .tiptap a {
-  @apply text-primary underline cursor-pointer hover:text-primary/80;
+  color: hsl(var(--teal));
+  text-decoration-line: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: hsl(var(--teal) / 0.35);
+  @apply cursor-pointer transition-colors;
+}
+
+.tiptap a:hover {
+  text-decoration-color: hsl(var(--teal));
 }
 
 .tiptap img {
-  @apply rounded-xl max-w-full h-auto my-4 mx-auto block;
+  @apply rounded-2xl max-w-full h-auto my-6 mx-auto block;
 }
 
 .tiptap mark {
   @apply bg-yellow-200/60 rounded px-0.5;
 }
 
-/* Table styles */
+.tiptap strong {
+  @apply font-semibold text-foreground;
+}
+
+/* Table styles — match the site's report/data tables: hairline rules,
+   uppercase kicker header, no heavy grid. */
 .tiptap table {
-  @apply border-collapse w-full my-4 rounded-xl overflow-hidden;
+  @apply border-collapse w-full my-6;
 }
 
 .tiptap th {
-  @apply border border-border px-3 py-2 text-sm font-semibold text-left;
-  background: hsl(var(--secondary));
+  border-bottom: 1px solid hsl(var(--border));
+  @apply px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-widest text-muted-foreground;
 }
 
 .tiptap td {
-  @apply border border-border px-3 py-2 text-sm;
+  border-bottom: 1px solid hsl(var(--border) / 0.6);
+  @apply px-3 py-2.5 text-sm align-top;
 }
 
 .tiptap tr:hover td {

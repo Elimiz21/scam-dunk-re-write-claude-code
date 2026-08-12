@@ -7,8 +7,17 @@
  * gain %, and moves the outcome through a simple state machine:
  *
  *   MONITORING → PUMPING → PEAKED → DUMPED
- *              → STABLE  (never pumped after STABLE_DAYS)
- *              → NO_DATA (FMP has no prices after NO_DATA_RETIRE_DAYS)
+ *              → STABLE   (never pumped after STABLE_DAYS)
+ *              → DELISTED (instrument stopped trading — recorded as a total
+ *                          loss: price → 0, currentGainPct −100)
+ *              → NO_DATA  (no price coverage anywhere after NO_DATA_RETIRE_DAYS)
+ *
+ * Delisting is detected, not assumed: when a symbol's series is empty or
+ * stale, we first try to resolve a SUCCESSOR TICKER (renames, OTC demotions
+ * and bankruptcy re-tickers make price feeds 404 the old symbol while the
+ * instrument keeps trading — e.g. SGMO→SGMOQ, MAXN→MAXNQ, GMGI→MRDN). Only
+ * when no successor has fresh data and FMP's own profile says the symbol is
+ * no longer actively trading do rows get retired as DELISTED.
  *
  * Used by the daily cron (/api/cron/track-promoted-stocks) and by the
  * one-time backfill script (scripts/backfill-promoted-outcomes.ts). One FMP
@@ -29,7 +38,13 @@ export const PEAK_DROP_PCT = 20; // drop from peak that ends the pump
 export const DUMP_DROP_PCT = 50; // drop from peak (or below entry) = dumped
 export const STABLE_DAYS = 30; // no pump after this many days → STABLE
 export const RETIRE_DAYS = 90; // stop tracking after this many days
-export const NO_DATA_RETIRE_DAYS = 30; // no FMP data after this → NO_DATA
+export const NO_DATA_RETIRE_DAYS = 30; // no data coverage after this → NO_DATA
+// A series whose last close is older than this is treated as "stopped
+// trading" rather than merely between sessions (covers long weekends + halts).
+export const STALE_SERIES_DAYS = 14;
+// Series silence alone only confirms a delisting after this long — SEC
+// trading suspensions run up to ~10 trading days and must not read as death.
+export const DELIST_CONFIRM_DAYS = 21;
 
 const DailyCloseSchema = z.array(
   z.object({
@@ -79,6 +94,71 @@ export async function fetchDailyCloses(
   }
 }
 
+/** True when a series is empty or its newest close is older than `days`. */
+export function isSeriesStale(
+  closes: DailyClose[],
+  now: Date,
+  days: number = STALE_SERIES_DAYS,
+): boolean {
+  if (closes.length === 0) return true;
+  const last = new Date(closes[closes.length - 1].date + "T00:00:00Z");
+  return now.getTime() - last.getTime() > days * 86_400_000;
+}
+
+/**
+ * Resolve a renamed/re-tickered symbol to its successor via
+ * stockanalysis.com's redirect (their stock pages 301 old slugs to the
+ * current ticker). Best-effort: any failure returns null.
+ */
+export async function resolveSuccessorTicker(
+  symbol: string,
+): Promise<string | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(
+      `https://stockanalysis.com/stocks/${symbol.toLowerCase()}/`,
+      { signal: controller.signal, redirect: "follow" },
+    );
+    if (!response.ok) return null;
+    const match = response.url.match(/\/stocks\/([a-z0-9.-]+)\/?$/i);
+    if (!match) return null;
+    const resolved = match[1].toUpperCase();
+    return resolved !== symbol.toUpperCase() ? resolved : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * FMP company profile — used only for its isActivelyTrading flag, the
+ * signal that separates "delisted" from "FMP simply doesn't cover this".
+ * Returns null when the profile is unavailable.
+ */
+export async function fetchIsActivelyTrading(
+  symbol: string,
+): Promise<boolean | null> {
+  const url = `${FMP_BASE_URL}/profile?symbol=${encodeURIComponent(symbol)}&apikey=${config.fmpApiKey}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) return null;
+    const data = (await response.json()) as unknown;
+    const first = Array.isArray(data) ? data[0] : data;
+    if (first && typeof first === "object" && "isActivelyTrading" in first) {
+      return Boolean((first as { isActivelyTrading: unknown }).isActivelyTrading);
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export interface OutcomeInput {
   entryPrice: number;
   currentPrice: number;
@@ -119,6 +199,8 @@ export interface TrackResult {
   symbolsProcessed: number;
   rowsUpdated: number;
   rowsRetiredNoData: number;
+  rowsRetiredDelisted: number;
+  successorTickersResolved: number;
   entryPricesBackfilled: number;
   outcomes: Record<string, number>;
   errors: number;
@@ -176,6 +258,8 @@ export async function trackPromotedStocks(
     symbolsProcessed: 0,
     rowsUpdated: 0,
     rowsRetiredNoData: 0,
+    rowsRetiredDelisted: 0,
+    successorTickersResolved: 0,
     entryPricesBackfilled: 0,
     outcomes: {},
     errors: 0,
@@ -194,8 +278,40 @@ export async function trackPromotedStocks(
       symbolRows[0].addedDate,
     );
     const from = earliest.toISOString().slice(0, 10);
-    const closes = await fetchDailyCloses(symbol, from);
+    let closes = await fetchDailyCloses(symbol, from);
     result.symbolsProcessed++;
+
+    // Empty or stale series: the feed may have moved the history to a
+    // successor ticker (rename / OTC demotion / bankruptcy re-ticker).
+    // Prefer the successor's series when it is fresher than the original.
+    let delistingConfirmed = false;
+    if (isSeriesStale(closes, now)) {
+      const successor = await resolveSuccessorTicker(symbol);
+      if (successor) {
+        const successorCloses = await fetchDailyCloses(successor, from);
+        if (
+          successorCloses.length > 0 &&
+          (closes.length === 0 ||
+            successorCloses[successorCloses.length - 1].date >
+              closes[closes.length - 1].date)
+        ) {
+          console.log(
+            `[promo-tracker] ${symbol}: using successor ticker ${successor}`,
+          );
+          closes = successorCloses;
+          result.successorTickersResolved++;
+        }
+      }
+      // Still stale after successor resolution → ask FMP whether the
+      // instrument is actually done trading before declaring it dead.
+      // Series silence alone is only trusted after DELIST_CONFIRM_DAYS so a
+      // multi-week SEC suspension is never misread as a delisting.
+      if (isSeriesStale(closes, now)) {
+        delistingConfirmed =
+          (await fetchIsActivelyTrading(symbol)) === false ||
+          (closes.length > 0 && isSeriesStale(closes, now, DELIST_CONFIRM_DAYS));
+      }
+    }
 
     for (const row of symbolRows) {
       try {
@@ -205,8 +321,40 @@ export async function trackPromotedStocks(
           (now.getTime() - row.addedDate.getTime()) / 86_400_000,
         );
 
+        // Instrument stopped trading: record as a terminal loss. Peak/gain
+        // fields keep whatever the series shows (the pump before the death);
+        // the position itself is worth nothing.
+        if (delistingConfirmed) {
+          const entryPrice =
+            row.entryPrice > 0 ? row.entryPrice : (sinceAdded[0]?.close ?? 0);
+          const peak = sinceAdded.reduce(
+            (best, c) => (c.high > best ? c.high : best),
+            row.peakPrice ?? 0,
+          );
+          await prisma.promotedStock.update({
+            where: { id: row.id },
+            data: {
+              outcome: "DELISTED",
+              currentPrice: 0,
+              currentGainPct: -100,
+              ...(peak > 0 && entryPrice > 0
+                ? {
+                    peakPrice: peak,
+                    maxGainPct: ((peak - entryPrice) / entryPrice) * 100,
+                  }
+                : {}),
+              isActive: false,
+              lastUpdateDate: now,
+            },
+          });
+          result.rowsRetiredDelisted++;
+          result.outcomes.DELISTED = (result.outcomes.DELISTED ?? 0) + 1;
+          continue;
+        }
+
         if (sinceAdded.length === 0) {
-          // FMP doesn't cover this symbol (delisted, OTC tier, warrant…)
+          // No coverage anywhere (thin OTC tier, warrant…) — keep waiting,
+          // then retire as NO_DATA so the daily workload stays bounded.
           if (daysSinceAdded >= NO_DATA_RETIRE_DAYS) {
             await prisma.promotedStock.update({
               where: { id: row.id },
