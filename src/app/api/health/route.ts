@@ -43,6 +43,18 @@ export async function GET(request: Request) {
       NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
       RATE_LIMIT: "PostgreSQL (via Prisma)",
     };
+    // WhatsApp launch checklist — flips the feature from "coming soon" to
+    // live once every var is present (see isWhatsAppConfigured).
+    checks.whatsapp = {
+      WHATSAPP_ACCESS_TOKEN: !!process.env.WHATSAPP_ACCESS_TOKEN,
+      WHATSAPP_PHONE_NUMBER_ID: !!process.env.WHATSAPP_PHONE_NUMBER_ID,
+      WHATSAPP_VERIFICATION_TEMPLATE:
+        !!process.env.WHATSAPP_VERIFICATION_TEMPLATE,
+      WHATSAPP_ENCRYPTION_KEY: !!process.env.WHATSAPP_ENCRYPTION_KEY,
+      WHATSAPP_IDENTITY_HASH_KEY: !!process.env.WHATSAPP_IDENTITY_HASH_KEY,
+      WHATSAPP_APP_SECRET: !!process.env.WHATSAPP_APP_SECRET,
+      WHATSAPP_VERIFY_TOKEN: !!process.env.WHATSAPP_VERIFY_TOKEN,
+    };
   }
 
   try {

@@ -9,7 +9,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
 export const metadata: Metadata = {
   title: "Pricing — ScamDunk",
   description:
-    "Check stock tips for scam and fraud red flags. Free plan: 5 scans a month with full verdicts. Pro ($4.99/month): 200 scans a month plus WhatsApp scanning — text a ticker, get the verdict.",
+    "Check stock tips for scam and fraud red flags. Free plan: 5 scans a month with full verdicts. Pro ($4.99/month): 200 scans a month and full scan history. WhatsApp and Telegram bots are coming soon.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -18,7 +18,7 @@ const productSchema = {
   "@type": "Product",
   name: "ScamDunk Pro",
   description:
-    "200 stock scam checks per month plus WhatsApp scanning: send a ticker by chat message and receive a fraud risk verdict with the signals found.",
+    "200 stock scam checks per month with full scan history. WhatsApp and Telegram scanning bots — send a ticker by chat message, get a fraud risk verdict — are coming soon.",
   brand: { "@type": "Brand", name: "ScamDunk" },
   offers: [
     {
@@ -34,7 +34,7 @@ const productSchema = {
       price: "4.99",
       priceCurrency: "USD",
       description:
-        "200 scam checks per month, WhatsApp scanning, full scan history.",
+        "200 scam checks per month and full scan history; WhatsApp and Telegram bots coming soon.",
     },
   ],
 };
@@ -53,10 +53,10 @@ const faqSchema = {
     },
     {
       "@type": "Question",
-      name: "How does WhatsApp scanning work?",
+      name: "How will the WhatsApp and Telegram bots work?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Pro subscribers link their phone number in account settings, then message a ticker (for example, ACME) to the ScamDunk WhatsApp contact. The risk verdict comes back as a reply within seconds, with a link to the full result. WhatsApp scans draw from the same 200-scan monthly allowance.",
+        text: "Both bots are coming soon for Pro subscribers. You link your number (WhatsApp) or start a chat with the ScamDunk bot (Telegram), then message a ticker — for example, ACME — and the fraud risk verdict comes back as a reply within seconds, with a link to the full result. Bot scans will draw from the same 200-scan monthly allowance, and Pro subscribers get access the day they launch.",
       },
     },
     {
@@ -87,7 +87,7 @@ const FREE_FEATURES = [
 
 const PRO_FEATURES = [
   "200 scam checks per month",
-  "WhatsApp scanning — text a ticker, get the verdict",
+  "WhatsApp & Telegram bots — text a ticker, get the verdict (coming soon)",
   "Full scan history & re-checks",
   "Priority scan lane",
   "Everything in Free",
@@ -110,8 +110,9 @@ export default function PricingPage() {
           <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
             ScamDunk checks stock tips for scam and fraud red flags — pump
             patterns, promoter history, manipulation signals. Free users get 5
-            full checks a month on the site. Pro adds volume and puts the
-            checker inside WhatsApp, where the tips actually reach you.
+            full checks a month on the site. Pro adds volume today — and is
+            about to put the checker inside WhatsApp and Telegram, where the
+            tips actually reach you.
           </p>
         </section>
 
@@ -190,20 +191,53 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* WhatsApp explainer strip */}
+        {/* Messenger bots explainer strip — coming soon */}
         <section className="border-t border-border/70 bg-background py-14 md:py-16">
           <div className="mx-auto max-w-3xl px-4 text-center">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               The Pro difference
             </p>
             <h2 className="font-editorial mt-5 text-[clamp(1.6rem,3vw,2.25rem)] leading-[1.2] text-foreground">
-              Tips arrive in your chats. Now the check does too.
+              Tips arrive in your chats. Soon the check will too.
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">
-              Link your number once. Then, when a ticker lands in a group chat,
-              forward it to your ScamDunk contact on WhatsApp — the verdict
-              comes back before the conversation moves on. No app switch, no
-              search bar, no excuse to skip the check.
+              Scam tips don&apos;t reach you on a website — they reach you in
+              WhatsApp groups and Telegram channels. That&apos;s where the
+              checker is headed next.
+            </p>
+            <div className="mx-auto mt-8 grid max-w-2xl gap-5 text-left sm:grid-cols-2">
+              {[
+                {
+                  name: "WhatsApp bot",
+                  desc: "Link your number once. When a ticker lands in a group chat, forward it to your ScamDunk contact — the verdict comes back before the conversation moves on.",
+                },
+                {
+                  name: "Telegram bot",
+                  desc: "Message a ticker to the ScamDunk bot and get the verdict with the signals found — inside the platform where many pump groups actually operate.",
+                },
+              ].map((bot) => (
+                <div
+                  key={bot.name}
+                  className="rounded-2xl border border-border bg-card p-5"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4 shrink-0 text-teal" />
+                    <h3 className="text-[14px] font-semibold text-foreground">
+                      {bot.name}
+                    </h3>
+                    <span className="rounded-full border border-teal/40 bg-teal/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-teal">
+                      Coming soon
+                    </span>
+                  </div>
+                  <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">
+                    {bot.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="mx-auto mt-6 max-w-lg text-xs text-muted-foreground">
+              Pro subscribers get bot access the day each one launches, at no
+              extra cost.
             </p>
           </div>
         </section>

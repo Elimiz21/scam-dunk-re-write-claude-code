@@ -73,8 +73,8 @@ export function LimitReached({
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• 200 stock checks per month</li>
                 <li>
-                  • WhatsApp scanning — text a ticker, get the verdict in your
-                  chat
+                  • WhatsApp &amp; Telegram bots (coming soon) — text a ticker,
+                  get the verdict in your chat
                 </li>
                 <li>• Full risk analysis for each check</li>
                 <li>• Detailed red flag explanations</li>

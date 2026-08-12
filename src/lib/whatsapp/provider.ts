@@ -1,5 +1,22 @@
 type WhatsAppProviderResponse = { messages?: Array<{ id?: string }> };
 
+/**
+ * True only when every env var the WhatsApp pipeline needs is present —
+ * provider credentials, webhook secrets, and storage keys. Surfaces the
+ * feature as "coming soon" everywhere until the Meta setup is complete.
+ */
+export function isWhatsAppConfigured(): boolean {
+  return Boolean(
+    process.env.WHATSAPP_ACCESS_TOKEN &&
+      process.env.WHATSAPP_PHONE_NUMBER_ID &&
+      process.env.WHATSAPP_VERIFICATION_TEMPLATE &&
+      process.env.WHATSAPP_ENCRYPTION_KEY &&
+      process.env.WHATSAPP_IDENTITY_HASH_KEY &&
+      process.env.WHATSAPP_APP_SECRET &&
+      process.env.WHATSAPP_VERIFY_TOKEN,
+  );
+}
+
 function providerConfig() {
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;

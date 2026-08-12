@@ -9,6 +9,7 @@ import {
   isCurrentWhatsAppSubscriber,
   revokeWhatsAppBinding,
 } from "@/lib/whatsapp/binding";
+import { isWhatsAppConfigured } from "@/lib/whatsapp/provider";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,8 @@ export async function GET() {
   const userId = await sessionUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    return NextResponse.json(await getWhatsAppBindingStatus(userId));
+    const status = await getWhatsAppBindingStatus(userId);
+    return NextResponse.json({ ...status, available: isWhatsAppConfigured() });
   } catch {
     return NextResponse.json({ error: "Unable to load WhatsApp status" }, { status: 503 });
   }
@@ -65,6 +67,12 @@ export async function POST(request: NextRequest) {
   const begin = beginSchema.safeParse(body);
   const confirm = confirmSchema.safeParse(body);
   if (begin.success) {
+    if (!isWhatsAppConfigured()) {
+      return NextResponse.json(
+        { error: "WhatsApp scanning is coming soon — linking opens at launch." },
+        { status: 503 },
+      );
+    }
     try {
       if (!(await isCurrentWhatsAppSubscriber(userId))) {
         return NextResponse.json({ error: errorMessage("NOT_ENTITLED") }, { status: 403 });
