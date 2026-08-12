@@ -338,6 +338,97 @@ export function LandingOptionA({
         </div>
       </section>
 
+      {/* ================= PRICING ================= */}
+      <section className="border-t border-border/70 bg-background py-16 md:py-24">
+        <div className="mx-auto max-w-4xl px-4">
+          <div className="text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Pricing
+            </p>
+            <h2 className="font-editorial mt-6 text-[clamp(1.75rem,3.5vw,2.75rem)] leading-[1.2] text-foreground">
+              Checking one tip is <span className="text-brand-blue">free.</span>
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            {/* Free */}
+            <div className="flex flex-col rounded-2xl border border-border bg-card p-7">
+              <h3 className="text-[15px] font-semibold text-foreground">
+                Free
+              </h3>
+              <p className="font-editorial mt-2 text-3xl text-foreground">
+                $0
+                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  / forever
+                </span>
+              </p>
+              <ul className="mt-5 flex-1 space-y-2 text-[14px] text-foreground/90">
+                <li>5 scam checks per month</li>
+                <li>Full verdict with the exact signals found</li>
+                <li>Pump-and-dump pattern detection</li>
+              </ul>
+            </div>
+            {/* Pro */}
+            <div className="relative flex flex-col rounded-2xl border-2 border-foreground bg-card p-7">
+              <span className="absolute -top-3 left-7 rounded-full bg-foreground px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-background">
+                For habitual checkers
+              </span>
+              <h3 className="text-[15px] font-semibold text-foreground">Pro</h3>
+              <p className="font-editorial mt-2 text-3xl text-foreground">
+                $4.99
+                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  / month
+                </span>
+              </p>
+              <ul className="mt-5 flex-1 space-y-2 text-[14px] text-foreground/90">
+                <li>200 scam checks per month</li>
+                <li>Full scan history &amp; re-checks</li>
+                <li>WhatsApp &amp; Telegram bots (coming soon)</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Messenger bots — coming soon */}
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
+            {[
+              {
+                name: "WhatsApp bot",
+                desc: "Link your number once. When a ticker lands in a group chat, forward it to your ScamDunk contact — the fraud verdict comes back as a reply before the conversation moves on.",
+              },
+              {
+                name: "Telegram bot",
+                desc: "The same 15-second check inside Telegram, where many pump groups actually operate. Message a ticker to the ScamDunk bot and get the verdict with the signals found.",
+              },
+            ].map((bot) => (
+              <div
+                key={bot.name}
+                className="rounded-2xl border border-border bg-card p-6"
+              >
+                <div className="flex items-center gap-2.5">
+                  <MessageSquareText className="h-4.5 w-4.5 text-teal" />
+                  <h3 className="text-[15px] font-semibold text-foreground">
+                    {bot.name}
+                  </h3>
+                  <span className="rounded-full border border-teal/40 bg-teal/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-teal">
+                    Coming soon
+                  </span>
+                </div>
+                <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+                  {bot.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link href="/pricing" className="btn-pill btn-pill-ghost gap-1.5">
+              Full pricing details
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* GEO/AIO semantic block — a dense, machine-readable definition of the
           product (meeting decision, Aug 4): AI assistants discovering the site
           need one paragraph carrying the full semantic field. Visually quiet. */}

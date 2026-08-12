@@ -24,6 +24,7 @@ import { UsageInfo } from "@/lib/types";
 
 const NAV_LINKS = [
   { href: "/about", label: "About" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/news", label: "News" },
   { href: "/how-it-works", label: "How It Works" },
   { href: "/help", label: "Help & FAQ" },

@@ -350,6 +350,7 @@ export function Sidebar({
 
             {[
               { href: "/about", icon: Info, label: "About" },
+              { href: "/pricing", icon: Sparkles, label: "Pricing" },
               { href: "/news", icon: Newspaper, label: "News" },
               {
                 href: "/how-it-works",

@@ -42,6 +42,8 @@ interface SubscriptionInfo {
 interface WhatsAppBindingStatus {
   active: boolean;
   maskedPhone?: string;
+  /** False until the WhatsApp provider is configured — feature shows as coming soon. */
+  available?: boolean;
 }
 
 function AccountAlerts() {
@@ -906,6 +908,17 @@ function AccountContent() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading WhatsApp access…</div>
               ) : whatsAppError ? (
                 <Alert variant="destructive"><AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><span>{whatsAppError}</span><Button variant="outline" size="sm" onClick={() => { setWhatsAppError(""); fetchWhatsAppBinding(); }}>Retry</Button></AlertDescription></Alert>
+              ) : whatsAppBinding?.available === false ? (
+                <Alert>
+                  <AlertDescription>
+                    <span className="mr-2 rounded-full border border-teal/40 bg-teal/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-teal">
+                      Coming soon
+                    </span>
+                    WhatsApp scanning is launching shortly. As a subscriber
+                    you&apos;ll be able to link your number here the day it
+                    goes live — no extra cost.
+                  </AlertDescription>
+                </Alert>
               ) : whatsAppBinding?.active ? (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border p-3">
                   <div><p className="font-medium">Linked {whatsAppBinding.maskedPhone ? `to ${whatsAppBinding.maskedPhone}` : ""}</p><p className="text-sm text-muted-foreground">Scans still use your current monthly ScamDunk allowance.</p></div>
