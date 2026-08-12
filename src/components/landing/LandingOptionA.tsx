@@ -197,7 +197,7 @@ export function LandingOptionA({
             [tiles.stocksPerDay, "stocks scanned every trading day"],
             [tiles.totalScans, "stock scans since January"],
             [tiles.dumpsConfirmed6mo, "pump-and-dumps confirmed in 6 months"],
-            [tiles.newFlagsThisWeek, "new stocks flagged this week"],
+            [tiles.pumpingNow, "suspected pumps live right now"],
           ].map(([num, label]) => (
             <div key={label}>
               <p className="font-editorial text-4xl text-foreground md:text-[2.75rem]">

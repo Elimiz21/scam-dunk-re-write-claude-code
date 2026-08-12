@@ -54,7 +54,7 @@ export function useLiveSiteStats() {
         ? floorPlus(live.totalScans, 1000)
         : SITE_STATS.scansPerformed,
       dumpsConfirmed6mo: live ? String(live.dumpsConfirmed6mo) : "400+",
-      newFlagsThisWeek: live ? String(live.newFlagSymbols7d) : "30+",
+      pumpingNow: live ? String(live.pumpingNow) : "60+",
     },
   };
 }

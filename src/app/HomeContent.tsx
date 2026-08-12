@@ -601,7 +601,7 @@ export default function HomeContent() {
                           statTiles.dumpsConfirmed6mo,
                           "pump-and-dumps confirmed (6 mo)",
                         ],
-                        [statTiles.newFlagsThisWeek, "new flags this week"],
+                        [statTiles.pumpingNow, "suspected pumps live now"],
                       ].map(([num, label]) => (
                         <div key={label}>
                           <p className="font-editorial text-2xl text-foreground">
