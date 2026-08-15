@@ -313,15 +313,28 @@ async function fetchPromotedStocksFile(filename: string): Promise<{
  * but have NOT yet been ingested into DailyScanSummary, sorted oldest-first.
  */
 export async function getPendingDates(): Promise<string[]> {
-  // List all files in the evaluation bucket
-  const { data: files, error: storageError } = await supabase.storage
-    .from(EVALUATION_BUCKET)
-    .list("", { limit: 500, sortBy: { column: "name", order: "asc" } });
+  // Supabase Storage caps a list request at 500 objects. Walk every page so
+  // recent pipeline files remain discoverable after the bucket grows beyond
+  // that cap.
+  const files: { name: string }[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error: storageError } = await supabase.storage
+      .from(EVALUATION_BUCKET)
+      .list("", {
+        limit: pageSize,
+        offset,
+        sortBy: { column: "name", order: "asc" },
+      });
 
-  if (storageError || !files) {
-    throw new Error(
-      `Failed to list storage files: ${storageError?.message ?? "No data returned"}`,
-    );
+    if (storageError || !data) {
+      throw new Error(
+        `Failed to list storage files: ${storageError?.message ?? "No data returned"}`,
+      );
+    }
+
+    files.push(...data);
+    if (data.length < pageSize) break;
   }
 
   // Extract unique dates from evaluation files (enhanced and legacy formats)
