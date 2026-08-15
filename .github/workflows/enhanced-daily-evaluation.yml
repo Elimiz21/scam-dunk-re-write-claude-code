@@ -345,6 +345,26 @@ jobs:
             echo "::error::Pipeline validation FAILED: ${PRESENT}/${TOTAL} files present, missing:${MISSING_LIST}"
           fi
 
+          # File presence alone is not a promotion gate. The pipeline can
+          # intentionally retain candidates as suspicious when a bounded news
+          # analysis cannot classify them; expose that as degraded instead of
+          # reporting a healthy scan.
+          SCAN_STATUS_FILE="results/scan-status-${DATE}.json"
+          SCAN_PIPELINE_STATUS="unknown"
+          if [ -f "$SCAN_STATUS_FILE" ]; then
+            SCAN_PIPELINE_STATUS=$(jq -r '.pipelineStatus // "unknown"' "$SCAN_STATUS_FILE" 2>/dev/null || echo "unknown")
+            if [ "$SCAN_PIPELINE_STATUS" = "degraded" ] && [ "$STATUS" = "healthy" ]; then
+              STATUS="degraded"
+              echo "::warning::Pipeline output is intentionally DEGRADED; inspect scan-status details before promotion"
+            elif [ "$SCAN_PIPELINE_STATUS" = "failed" ]; then
+              STATUS="failing"
+              echo "::error::Pipeline reported FAILED in scan-status"
+            fi
+          else
+            echo "::warning::scan-status is missing; output cannot be promoted as healthy"
+            if [ "$STATUS" = "healthy" ]; then STATUS="degraded"; fi
+          fi
+
           # Check scheme database health
           SCHEME_STATUS="unknown"
           ACTIVE_SCHEMES=0
@@ -363,6 +383,7 @@ jobs:
             "date": "${DATE}",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "status": "${STATUS}",
+            "scanPipelineStatus": "${SCAN_PIPELINE_STATUS}",
             "filesExpected": ${TOTAL},
             "filesPresent": ${PRESENT},
             "filesMissing": $((TOTAL - PRESENT)),
