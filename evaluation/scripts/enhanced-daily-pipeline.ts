@@ -945,9 +945,9 @@ async function analyzeNewsLegitimacyBatch(
   prompt: string;
   rawResponse: string | null;
   responseId: string | null;
-  model: string;
-  promptTokens: number;
-  completionTokens: number;
+  model: string | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
   attemptedCall: boolean;
   failedCall: boolean;
   unavailable: boolean;
@@ -967,8 +967,8 @@ ${batch.map(formatNewsEvidence).join("\n\n---\n\n")}`;
     rawResponse: null,
     responseId: null,
     model: OPENAI_NEWS_MODEL,
-    promptTokens: 0,
-    completionTokens: 0,
+    promptTokens: null,
+    completionTokens: null,
     attemptedCall: false,
     failedCall: false,
     unavailable: true,
@@ -989,11 +989,11 @@ ${batch.map(formatNewsEvidence).join("\n\n---\n\n")}`;
     });
     return {
       prompt,
-      rawResponse: response.choices[0]?.message?.content || "",
-      responseId: response.id || "unknown-response-id",
-      model: response.model || OPENAI_NEWS_MODEL,
-      promptTokens: response.usage?.prompt_tokens || 0,
-      completionTokens: response.usage?.completion_tokens || 0,
+      rawResponse: response.choices[0]?.message?.content ?? null,
+      responseId: response.id ?? null,
+      model: response.model ?? null,
+      promptTokens: typeof response.usage?.prompt_tokens === "number" ? response.usage.prompt_tokens : null,
+      completionTokens: typeof response.usage?.completion_tokens === "number" ? response.usage.completion_tokens : null,
       attemptedCall: true,
       failedCall: false,
       unavailable: false,
@@ -1904,25 +1904,27 @@ async function runEnhancedPipeline(): Promise<void> {
     newsMetrics.modelCallsMade += Number(batchAnalysis.attemptedCall);
     newsMetrics.failedModelCalls += Number(batchAnalysis.failedCall);
     newsMetrics.unavailableModelBatches += Number(batchAnalysis.unavailable);
-    newsMetrics.promptTokens += batchAnalysis.promptTokens;
-    newsMetrics.completionTokens += batchAnalysis.completionTokens;
+    if (batchAnalysis.promptTokens !== null) newsMetrics.promptTokens += batchAnalysis.promptTokens;
+    if (batchAnalysis.completionTokens !== null) newsMetrics.completionTokens += batchAnalysis.completionTokens;
 
     let parsed = null as ReturnType<typeof parseNewsAnalysisResponse> | null;
-    if (batchAnalysis.rawResponse !== null || batchAnalysis.providerFailure) {
-      const estimatedCostUsd = (batchAnalysis.promptTokens / 1_000_000) * OPENAI_INPUT_COST_PER_MILLION + (batchAnalysis.completionTokens / 1_000_000) * OPENAI_OUTPUT_COST_PER_MILLION;
+    if (batchAnalysis.attemptedCall) {
+      const tokenUsage = batchAnalysis.promptTokens !== null && batchAnalysis.completionTokens !== null ? { promptTokens: batchAnalysis.promptTokens, completionTokens: batchAnalysis.completionTokens, totalTokens: batchAnalysis.promptTokens + batchAnalysis.completionTokens } : null;
+      const estimatedCostUsd = tokenUsage === null ? null : (tokenUsage.promptTokens / 1_000_000) * OPENAI_INPUT_COST_PER_MILLION + (tokenUsage.completionTokens / 1_000_000) * OPENAI_OUTPUT_COST_PER_MILLION;
       // This durable write is deliberately before JSON or semantic validation.
       runJournal = persistCaptureBeforeValidation(journalPath, runJournal, {
         batchId, prompt: batchAnalysis.prompt, rawResponse: batchAnalysis.rawResponse,
         responseId: batchAnalysis.responseId, model: batchAnalysis.model,
-        tokenUsage: { promptTokens: batchAnalysis.promptTokens, completionTokens: batchAnalysis.completionTokens, totalTokens: batchAnalysis.promptTokens + batchAnalysis.completionTokens },
+        tokenUsage,
         pricingSnapshot: { inputPerMillion: OPENAI_INPUT_COST_PER_MILLION, outputPerMillion: OPENAI_OUTPUT_COST_PER_MILLION }, estimatedCostUsd,
         ...(batchAnalysis.providerFailure ? { providerFailure: batchAnalysis.providerFailure } : {}),
       });
-      parsed = parseNewsAnalysisResponse(batchAnalysis.rawResponse || "", withEvidence.map(({ group }) => group.key));
-      runJournal = transitionSemanticValidation(runJournal, { batchId, validSymbols: parsed.valid.keys(), quarantined: parsed.quarantined, degraded: parsed.degraded, anomalyCodes: parsed.anomalies, malformedTopLevel: parsed.malformedTopLevel });
+      parsed = parseNewsAnalysisResponse(batchAnalysis.rawResponse, withEvidence.map(({ group }) => group.key));
+      const metadataAnomalies = [batchAnalysis.responseId === null ? "missing-response-id" : "", batchAnalysis.rawResponse === null ? "missing-response-content" : "", tokenUsage === null ? "unknown-provider-usage" : ""].filter(Boolean);
+      runJournal = transitionSemanticValidation(runJournal, { batchId, validSymbols: parsed.valid.keys(), quarantined: parsed.quarantined, degraded: parsed.degraded || metadataAnomalies.length > 0, anomalyCodes: [...parsed.anomalies, ...metadataAnomalies], malformedTopLevel: parsed.malformedTopLevel });
       writeRunJournalAtomic(journalPath, runJournal);
       newsMetrics.quarantinedRows += parsed.quarantined.length;
-      newsMetrics.responseAnomalies += parsed.anomalies.length;
+      newsMetrics.responseAnomalies += parsed.anomalies.length + metadataAnomalies.length;
     }
 
     for (const { group } of withEvidence) {
