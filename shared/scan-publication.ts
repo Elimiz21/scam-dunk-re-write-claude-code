@@ -65,8 +65,12 @@ export function evaluateScanPublication(status: unknown, expectedDate: string): 
     else if (isCounter(newsDetails[name]) && newsDetails[name] > 0) reasons.push("analysis-deferrals");
   }
   const recovery = status.recovery;
-  if (!isRecord(recovery) || !isCounter(recovery.unresolvedCount) || typeof recovery.generationId !== "string" || !recovery.generationId.trim() || typeof recovery.journalFile !== "string" || !recovery.journalFile.trim() || typeof recovery.degraded !== "boolean") reasons.push("malformed-recovery");
+  const unresolvedSymbols = isRecord(recovery) ? recovery.unresolvedSymbols : undefined;
+  const normalizedUnresolved = Array.isArray(unresolvedSymbols) && unresolvedSymbols.every((symbol) => typeof symbol === "string" && symbol.trim() === symbol.toUpperCase() && /^[A-Z0-9.-]+$/.test(symbol))
+    ? unresolvedSymbols : null;
+  if (!isRecord(recovery) || !isCounter(recovery.unresolvedCount) || typeof recovery.generationId !== "string" || !recovery.generationId.trim() || typeof recovery.journalFile !== "string" || !recovery.journalFile.trim() || typeof recovery.degraded !== "boolean" || !normalizedUnresolved || new Set(normalizedUnresolved).size !== normalizedUnresolved.length) reasons.push("malformed-recovery");
   if (isRecord(recovery) && isCounter(recovery.unresolvedCount) && recovery.unresolvedCount > 0) reasons.push("unresolved-recovery");
+  if (normalizedUnresolved && isRecord(recovery) && (normalizedUnresolved.length !== recovery.unresolvedCount || (metrics && isCounter(metrics.unresolvedTasks) && normalizedUnresolved.length !== metrics.unresolvedTasks))) reasons.push("inconsistent-unresolved-recovery");
   if (isRecord(recovery) && recovery.degraded === true) reasons.push("degraded-recovery");
   if (isRecord(recovery) && recovery.degraded !== undefined && typeof recovery.degraded !== "boolean") reasons.push("malformed-recovery");
   return { publishable: reasons.length === 0, reasons };

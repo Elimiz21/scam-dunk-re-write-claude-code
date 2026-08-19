@@ -15,7 +15,7 @@ function completeStatus(overrides: Record<string, unknown> = {}) {
       phase5_schemeTracking: phase,
     },
     summary: { newsAnalysisMetrics: { failedModelCalls: 0, candidatesDeferred: 0, unavailableModelBatches: 0, quarantinedRows: 0, responseAnomalies: 0, unresolvedTasks: 0, replayRequested: 0, replayMissing: 0, evidenceSourceFailures: 0 } },
-    recovery: { unresolvedCount: 0, generationId: "gen-1", journalFile: "journal.json", degraded: false },
+    recovery: { unresolvedCount: 0, unresolvedSymbols: [], generationId: "gen-1", journalFile: "journal.json", degraded: false },
     ...overrides,
   };
 }
@@ -67,5 +67,33 @@ describe("evaluateScanPublication", () => {
     const status = completeStatus();
     delete (status.summary.newsAnalysisMetrics as any).replayMissing;
     expect(evaluateScanPublication(status, "2026-08-19").publishable).toBe(false);
+  });
+
+  it("requires normalized unique unresolved symbols to match both recovery counters", () => {
+    const cases = [
+      { unresolvedSymbols: ["abc"], unresolvedCount: 1, unresolvedTasks: 1, reason: "malformed-recovery" },
+      { unresolvedSymbols: ["ABC", "ABC"], unresolvedCount: 2, unresolvedTasks: 2, reason: "malformed-recovery" },
+      { unresolvedSymbols: ["ABC"], unresolvedCount: 2, unresolvedTasks: 2, reason: "inconsistent-unresolved-recovery" },
+      { unresolvedSymbols: ["ABC"], unresolvedCount: 1, unresolvedTasks: 2, reason: "inconsistent-unresolved-recovery" },
+    ];
+    for (const { unresolvedSymbols, unresolvedCount, unresolvedTasks, reason } of cases) {
+      const status = completeStatus({
+        recovery: { ...completeStatus().recovery, unresolvedSymbols, unresolvedCount },
+        summary: { newsAnalysisMetrics: { ...completeStatus().summary.newsAnalysisMetrics, unresolvedTasks } },
+      });
+      const result = evaluateScanPublication(status, "2026-08-19");
+      expect(result.publishable).toBe(false);
+      expect(result.reasons).toContain(reason);
+    }
+  });
+
+  it("rejects unresolved symbols with whitespace or invalid punctuation", () => {
+    for (const symbol of [" ABC", "ABC ", "AB/C"]) {
+      const status = completeStatus({
+        recovery: { ...completeStatus().recovery, unresolvedSymbols: [symbol], unresolvedCount: 1 },
+        summary: { newsAnalysisMetrics: { ...completeStatus().summary.newsAnalysisMetrics, unresolvedTasks: 1 } },
+      });
+      expect(evaluateScanPublication(status, "2026-08-19").reasons).toContain("malformed-recovery");
+    }
   });
 });

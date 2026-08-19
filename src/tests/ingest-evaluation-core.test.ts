@@ -60,8 +60,9 @@ const completeStatus = (overrides: Record<string, unknown> = {}) => {
     },
     recovery: {
       unresolvedCount: 0,
+      unresolvedSymbols: [],
       generationId: "gen-1",
-      journalFile: "journal.json",
+      journalFile: "news-analysis-journal-2026-08-19-gen-1.json",
       degraded: false,
     },
     ...overrides,
@@ -167,6 +168,36 @@ describe("ingestDate publication gate", () => {
   const date = "2026-08-19";
   const enhanced = `enhanced-evaluation-${date}.json`;
   const status = `scan-status-${date}.json`;
+  const prefix = `quarantine/${date}/gen-1`;
+  const manifest = `${prefix}/publication-manifest-${date}.json`;
+  const exactEnhanced = `${prefix}/${enhanced}`;
+  const exactStatus = `${prefix}/${status}`;
+
+  function publicationFiles(): Record<string, unknown> {
+    return {
+      [status]: completeStatus(),
+      [`scan-current-generation-${date}.json`]: {
+        schemaVersion: 1,
+        date,
+        generationId: "gen-1",
+        manifestPath: manifest,
+        manifestFile: `publication-manifest-${date}.json`,
+      },
+      [manifest]: {
+        schemaVersion: 1,
+        kind: "scan-publication-manifest",
+        date,
+        generationId: "gen-1",
+        statusFile: status,
+        journalFile: "news-analysis-journal-2026-08-19-gen-1.json",
+        requiredFiles: [enhanced, status, "news-analysis-journal-2026-08-19-gen-1.json"],
+        commitMarker: `publication-manifest-${date}.json`,
+      },
+      [exactEnhanced]: [],
+      [exactStatus]: completeStatus(),
+      [`${prefix}/news-analysis-journal-2026-08-19-gen-1.json`]: {},
+    };
+  }
 
   beforeEach(() => {
     resetDatabaseMocks();
@@ -192,9 +223,11 @@ describe("ingestDate publication gate", () => {
     ],
     ["wrong date", { date: "2026-08-18" }, "date-mismatch"],
   ])("blocks enhanced ingestion for %s before Prisma access", async (_name, overrides, reason) => {
+    const files = publicationFiles();
+    files[exactStatus] = completeStatus(overrides);
     mockStorageFiles({
       [enhanced]: [],
-      [status]: completeStatus(overrides),
+      ...files,
     });
 
     const result = await ingestDate(date);
@@ -206,7 +239,9 @@ describe("ingestDate publication gate", () => {
   });
 
   it("blocks an enhanced evaluation when its scan status is missing", async () => {
-    mockStorageFiles({ [enhanced]: [] });
+    const files = publicationFiles();
+    delete files[exactStatus];
+    mockStorageFiles({ [enhanced]: [], ...files });
 
     const result = await ingestDate(date);
 
@@ -216,10 +251,25 @@ describe("ingestDate publication gate", () => {
     expectNoDatabaseAccess();
   });
 
+  it("blocks an enhanced evaluation when its matching root scan status is missing", async () => {
+    const files = publicationFiles();
+    delete files[status];
+    mockStorageFiles({ [enhanced]: [], ...files });
+
+    const result = await ingestDate(date);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("publication blocked");
+    expect(result.error).toContain("root scan status");
+    expectNoDatabaseAccess();
+  });
+
   it("blocks an enhanced evaluation when its scan status is malformed", async () => {
+    const files = publicationFiles();
+    files[exactStatus] = "not-json";
     mockStorageFiles({
       [enhanced]: [],
-      [status]: jsonResponse("not-json", 200),
+      ...files,
     });
 
     const result = await ingestDate(date);
@@ -230,10 +280,34 @@ describe("ingestDate publication gate", () => {
     expectNoDatabaseAccess();
   });
 
+  it("blocks enhanced ingestion when the final current-generation pointer is missing", async () => {
+    mockStorageFiles({ [enhanced]: [], [status]: completeStatus() });
+
+    const result = await ingestDate(date);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("publication blocked");
+    expect(result.error).toContain("generation");
+    expectNoDatabaseAccess();
+  });
+
+  it("blocks enhanced ingestion when the generation journal is missing", async () => {
+    const files = publicationFiles();
+    delete files[`${prefix}/news-analysis-journal-2026-08-19-gen-1.json`];
+    mockStorageFiles({ [enhanced]: [], ...files });
+
+    const result = await ingestDate(date);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("publication blocked");
+    expect(result.error).toContain("journal");
+    expectNoDatabaseAccess();
+  });
+
   it("allows a valid completed enhanced scan through the existing ingestion path", async () => {
     mockStorageFiles({
       [enhanced]: [],
-      [status]: completeStatus(),
+      ...publicationFiles(),
     });
 
     const result = await ingestDate(date);

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
 import { fetchDailyCloses } from "@/lib/promoted-stocks/tracker";
 import { evaluateScanPublication } from "../../../shared/scan-publication";
+import { validatePublicationManifest } from "../../../shared/scan-publication-workflow";
 
 // Batch size for createMany operations to avoid overwhelming the DB
 const BATCH_SIZE = 1000;
@@ -426,6 +427,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
   try {
     const enhancedEvalFilename = `enhanced-evaluation-${date}.json`;
+    const statusFilename = `scan-status-${date}.json`;
     const legacyEvalFilename = `fmp-evaluation-${date}.json`;
     const summaryFilename = `fmp-summary-${date}.json`;
     const promotedFilename = `promoted-stocks-${date}.json`;
@@ -461,8 +463,111 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     }
 
     if (!enhancedFileMissing && evaluationResult.data) {
+      const rootStatusResult = await fetchScanStatusFile(statusFilename);
+      if (!rootStatusResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: matching root scan status is missing or unreadable for ${date}: ${rootStatusResult.error ?? "missing status"}`,
+        };
+      }
+      const pointerResult = await fetchScanStatusFile(
+        `scan-current-generation-${date}.json`,
+      );
+      if (!pointerResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: current generation pointer is missing or unreadable for ${date}: ${pointerResult.error ?? "missing pointer"}`,
+        };
+      }
+      if (
+        typeof pointerResult.data !== "object" ||
+        pointerResult.data === null ||
+        Array.isArray(pointerResult.data)
+      ) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: current generation pointer is malformed for ${date}`,
+        };
+      }
+      const pointer = pointerResult.data as Record<string, unknown>;
+      const generation = pointer.generationId;
+      const expectedPrefix = `quarantine/${date}/${generation}`;
+      const expectedManifestPath = `${expectedPrefix}/publication-manifest-${date}.json`;
+      if (
+        pointer.date !== date ||
+        typeof generation !== "string" ||
+        !generation.trim() ||
+        !/^[A-Za-z0-9._-]+$/.test(generation) ||
+        pointer.manifestPath !== expectedManifestPath ||
+        pointer.manifestFile !== `publication-manifest-${date}.json`
+      ) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: current generation pointer is invalid for ${date}`,
+        };
+      }
+      const exactEvaluationResult = await fetchEvaluationFile(
+        `${expectedPrefix}/${enhancedEvalFilename}`,
+      );
+      if (!exactEvaluationResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: generation-scoped enhanced evaluation is missing or unreadable for ${date}: ${exactEvaluationResult.error ?? "missing file"}`,
+        };
+      }
+      evaluationResult = exactEvaluationResult;
       const statusResult = await fetchScanStatusFile(
-        `scan-status-${date}.json`,
+        `${expectedPrefix}/${statusFilename}`,
       );
       if (!statusResult.data) {
         return {
@@ -478,6 +583,85 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           skipped: 0,
           durationMs: Date.now() - startTime,
           error: `publication blocked: scan status is missing or unreadable for ${date}: ${statusResult.error ?? "missing status"}`,
+        };
+      }
+
+      const rootStatus = rootStatusResult.data as Record<string, any>;
+      const exactStatus = statusResult.data as Record<string, any>;
+      if (
+        rootStatus.date !== date ||
+        rootStatus.recovery?.generationId !== generation ||
+        rootStatus.recovery?.journalFile !== exactStatus.recovery?.journalFile
+      ) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: root scan status does not match current generation for ${date}`,
+        };
+      }
+
+      const journalFile =
+        typeof (statusResult.data as Record<string, any>)?.recovery?.journalFile === "string"
+          ? (statusResult.data as Record<string, any>).recovery.journalFile
+          : "";
+      const journalResult = journalFile
+        ? await fetchScanStatusFile(`${expectedPrefix}/${journalFile}`)
+        : { data: null, error: "missing journal path" };
+      if (!journalResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: generation-scoped journal is missing or unreadable for ${date}: ${journalResult.error ?? "missing journal"}`,
+        };
+      }
+
+      const manifestResult = await fetchScanStatusFile(expectedManifestPath);
+      const manifestReasons = validatePublicationManifest(
+        statusResult.data,
+        date,
+        manifestResult.data,
+        [
+          enhancedEvalFilename,
+          statusFilename,
+          typeof (statusResult.data as Record<string, unknown>)?.recovery === "object" &&
+          (statusResult.data as Record<string, any>).recovery &&
+          typeof (statusResult.data as Record<string, any>).recovery.journalFile === "string"
+            ? (statusResult.data as Record<string, any>).recovery.journalFile
+            : "",
+        ],
+      );
+      if (manifestReasons.length > 0) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked for ${date}: ${manifestReasons.join(", ")}`,
         };
       }
 
