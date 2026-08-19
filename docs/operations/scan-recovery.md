@@ -1,7 +1,7 @@
 # Scan recovery and replay
 
 When the enhanced daily scan is degraded, its results are deliberately retained
-in Supabase quarantine storage and the workflow artifact, but are not copied to
+at `evaluation-data/quarantine/<date>/<generation>/` in Supabase quarantine storage and the workflow artifact, but are not copied to
 the data repository. The status file is `evaluation/results/scan-status-<date>.json`
 and the per-generation journal is named
 `evaluation/results/news-analysis-journal-<date>-<generation>.json`.

@@ -40,8 +40,7 @@ export function evaluateScanPublication(status: unknown, expectedDate: string): 
   const counters = ["failedModelCalls", "candidatesDeferred", "unavailableModelBatches", "quarantinedRows", "responseAnomalies", "unresolvedTasks"];
   if (!metrics) reasons.push("analysis-status-missing");
   else {
-    for (const name of counters.slice(0, 3)) if (!isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
-    for (const name of counters.slice(3)) if (metrics[name] !== undefined && !isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
+    for (const name of counters) if (!isCounter(metrics[name]) && !reasons.includes("malformed-analysis-counter")) reasons.push("malformed-analysis-counter");
     if (isCounter(metrics.failedModelCalls) && metrics.failedModelCalls > 0) reasons.push("analysis-failures");
     if (isCounter(metrics.candidatesDeferred) && metrics.candidatesDeferred > 0) reasons.push("analysis-deferrals");
     if (isCounter(metrics.unavailableModelBatches) && metrics.unavailableModelBatches > 0) reasons.push("analysis-unavailable-batches");
@@ -64,8 +63,8 @@ export function evaluateScanPublication(status: unknown, expectedDate: string): 
     else if (isCounter(newsDetails[name]) && newsDetails[name] > 0) reasons.push("analysis-deferrals");
   }
   const recovery = status.recovery;
-  if (!isRecord(recovery) || !isCounter(recovery.unresolvedCount)) reasons.push("malformed-recovery");
-  else if (recovery.unresolvedCount > 0) reasons.push("unresolved-recovery");
+  if (!isRecord(recovery) || !isCounter(recovery.unresolvedCount) || typeof recovery.generationId !== "string" || !recovery.generationId.trim() || typeof recovery.journalFile !== "string" || !recovery.journalFile.trim() || typeof recovery.degraded !== "boolean") reasons.push("malformed-recovery");
+  if (isRecord(recovery) && isCounter(recovery.unresolvedCount) && recovery.unresolvedCount > 0) reasons.push("unresolved-recovery");
   if (isRecord(recovery) && recovery.degraded === true) reasons.push("degraded-recovery");
   if (isRecord(recovery) && recovery.degraded !== undefined && typeof recovery.degraded !== "boolean") reasons.push("malformed-recovery");
   return { publishable: reasons.length === 0, reasons };

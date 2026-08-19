@@ -998,6 +998,8 @@ ${batch.map(formatNewsEvidence).join("\n\n---\n\n")}`;
     console.error(`  ❌ Error analyzing news batch: ${message}`);
     return {
       ...skipped(),
+      rawResponse: JSON.stringify({ providerFailure: true, message }),
+      responseId: `provider-failure-${Date.now()}`,
       attemptedCall: true,
       failedCall: true,
       unavailable: false,
@@ -1268,7 +1270,7 @@ function sendDegradedNotification(scanStatus: ScanStatus, metrics: NewsAnalysisM
     workflowUrl: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : undefined,
   });
   try {
-    execSync(`curl -s -X POST "https://api.resend.com/emails" -H "Authorization: Bearer ${apiKey}" -H "Content-Type: application/json" -d '${JSON.stringify({ from: "ScamDunk Alerts <noreply@scamdunk.com>", to: ["elimizroch@gmail.com"], subject: `[DEGRADED] Daily Scan requires replay – ${scanStatus.date}`, html: `<h2>Daily scan retained for recovery</h2><pre>${JSON.stringify(payload, null, 2)}</pre>` }).replace(/'/g, "'\\''")}'`, { encoding: "utf-8", timeout: 15000 });
+    execSync(`curl -s --fail-with-body -X POST "https://api.resend.com/emails" -H "Authorization: Bearer ${apiKey}" -H "Content-Type: application/json" -d '${JSON.stringify({ from: "ScamDunk Alerts <noreply@scamdunk.com>", to: ["elimizroch@gmail.com"], subject: `[DEGRADED] Daily Scan requires replay – ${scanStatus.date}`, html: `<h2>Daily scan retained for recovery</h2><pre>${JSON.stringify(payload, null, 2)}</pre>` }).replace(/'/g, "'\\''")}'`, { encoding: "utf-8", timeout: 15000 });
   } catch (error: any) {
     console.error("Failed to send degraded alert; scan remains degraded:", error?.message || error);
   }
@@ -1775,9 +1777,6 @@ async function runEnhancedPipeline(): Promise<void> {
   const generationId = `${evaluationDate}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const journalPath = path.join(RESULTS_DIR, `news-analysis-journal-${evaluationDate}-${generationId}.json`);
   let runJournal = createRunJournal({ scanDate: evaluationDate, generationId, replayOfGeneration: NEWS_ANALYSIS_REPLAY_OF_GENERATION });
-  for (const [index, groups] of newsPlan.batches.entries()) {
-    runJournal = registerJournalTasks(runJournal, groups.map((group) => group.key), `batch-${index + 1}`);
-  }
   runJournal = registerJournalTasks(runJournal, newsPlan.deferred.map((group) => group.key), "deferred", "deferred");
   writeRunJournalAtomic(journalPath, runJournal);
 
@@ -1864,13 +1863,20 @@ async function runEnhancedPipeline(): Promise<void> {
       );
     }
 
+    const batchId = `batch-${batchIndex + 1}`;
+    const withoutEvidence = evidence.filter(({ item }) => item.news.length === 0 && item.secFilings.length === 0 && item.pressReleases.length === 0);
+    if (withoutEvidence.length > 0) {
+      runJournal = registerJournalTasks(runJournal, withoutEvidence.map(({ group }) => group.key), `no-evidence-${batchId}`, "resolved");
+      runJournal = recordSourceEvidence(runJournal, withoutEvidence.map(({ group }) => group.key), withoutEvidence.map(({ item }) => item), `no-evidence-${batchId}`);
+      writeRunJournalAtomic(journalPath, runJournal);
+    }
     if (withEvidence.length === 0) continue;
 
     console.log(
       `  Analyzing OpenAI batch: ${withEvidence.map(({ group }) => group.key).join(", ")}`,
     );
-    const batchId = `batch-${batchIndex + 1}`;
-    runJournal = recordSourceEvidence(runJournal, evidence.map(({ group }) => group.key), evidence.map(({ item }) => item), batchId);
+    runJournal = registerJournalTasks(runJournal, withEvidence.map(({ group }) => group.key), batchId);
+    runJournal = recordSourceEvidence(runJournal, withEvidence.map(({ group }) => group.key), withEvidence.map(({ item }) => item), batchId);
     writeRunJournalAtomic(journalPath, runJournal);
     const batchAnalysis = await analyzeNewsLegitimacyBatch(
       withEvidence.map(({ item }) => item),

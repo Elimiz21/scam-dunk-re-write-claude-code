@@ -192,6 +192,7 @@ jobs:
     timeout-minutes: 350 # ~5h50m — GitHub-hosted runners cap jobs at 6h
     outputs:
       validation_status: ${{ steps.validation.outputs.validation_status }}
+      publication_classification: ${{ steps.publication-gate.outputs.classification }}
 
     steps:
       - name: Checkout repository
@@ -419,7 +420,7 @@ jobs:
           echo "validation_status=${STATUS}" >> $GITHUB_OUTPUT
 
       - name: Upload to Supabase
-        continue-on-error: true
+        id: quarantine-upload
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -427,20 +428,23 @@ jobs:
           DATE="${{ steps.date.outputs.date }}"
 
           if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
-            echo "Warning: Supabase credentials not configured, skipping upload"
-            echo "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY secrets to enable"
-            exit 0
+            echo "::error::Supabase credentials are required to retain a recoverable generation before publication"
+            exit 1
           fi
 
           cd evaluation
           UPLOADED=0
+          UPLOAD_FAILED=0
+          GENERATION=$(jq -r '.recovery.generationId // empty' "results/scan-status-${DATE}.json" 2>/dev/null || true)
+          if [ -z "$GENERATION" ]; then GENERATION="run-${GITHUB_RUN_ID}"; fi
+          QUARANTINE_PREFIX="quarantine/${DATE}/${GENERATION}"
 
           # Upload all result files
           for file in results/*-${DATE}*.json results/*-${DATE}*.md; do
             if [ -f "$file" ]; then
               FILENAME=$(basename "$file")
               echo "Uploading $FILENAME to Supabase..."
-              RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
+              RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${QUARANTINE_PREFIX}/${FILENAME}" \
                 -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
                 -H "Content-Type: application/json" \
                 -H "x-upsert: true" \
@@ -452,6 +456,7 @@ jobs:
                 UPLOADED=$((UPLOADED + 1))
               else
                 echo "  Warning: Upload returned $HTTP_CODE - $BODY"
+                UPLOAD_FAILED=1
               fi
             fi
           done
@@ -459,39 +464,65 @@ jobs:
           # Upload scheme database
           if [ -f "scheme-database/scheme-database.json" ]; then
             echo "Uploading scheme database..."
-            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/scheme-database.json" \
+            curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${QUARANTINE_PREFIX}/scheme-database.json" \
               -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
               -H "Content-Type: application/json" \
               -H "x-upsert: true" \
-              --data-binary @"scheme-database/scheme-database.json" || true
+              --data-binary @"scheme-database/scheme-database.json" || UPLOAD_FAILED=1
             UPLOADED=$((UPLOADED + 1))
           fi
 
           # Upload promoter database
           if [ -f "scheme-database/promoter-database.json" ]; then
             echo "Uploading promoter database..."
-            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/promoter-database.json" \
+            curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${QUARANTINE_PREFIX}/promoter-database.json" \
               -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
               -H "Content-Type: application/json" \
               -H "x-upsert: true" \
-              --data-binary @"scheme-database/promoter-database.json" || true
+              --data-binary @"scheme-database/promoter-database.json" || UPLOAD_FAILED=1
             UPLOADED=$((UPLOADED + 1))
           fi
 
-          echo "Uploaded $UPLOADED files to Supabase"
+          echo "Uploaded $UPLOADED files to Supabase quarantine: $QUARANTINE_PREFIX"
+          if [ "$UPLOAD_FAILED" -ne 0 ]; then
+            echo "::error::Quarantine upload incomplete; root promotion and data-repo publication are blocked"
+            exit 1
+          fi
 
       - name: Enforce publication gate
         id: publication-gate
         run: |
           DATE="${{ steps.date.outputs.date }}"
           set +e
-          npx ts-node evaluation/scripts/scan-publication-check.ts "evaluation/results/scan-status-${DATE}.json" "$DATE"
+          RESULT=$(npx ts-node evaluation/scripts/scan-publication-check.ts "evaluation/results/scan-status-${DATE}.json" "$DATE" "run-${GITHUB_RUN_ID}")
           GATE_STATUS=$?
           set -e
+          echo "$RESULT"
+          CLASSIFICATION=$(echo "$RESULT" | jq -r '.classification // "degraded"')
+          echo "classification=$CLASSIFICATION" >> $GITHUB_OUTPUT
           if [ "$GATE_STATUS" -ne 0 ]; then
             echo "::error::Results were retained for recovery but are not publishable. Replay with replay_symbols and optional replay_of_generation."
             exit "$GATE_STATUS"
           fi
+
+      - name: Promote healthy results to Supabase
+        if: steps.publication-gate.outcome == 'success'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          DATE="${{ steps.date.outputs.date }}"
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then exit 0; fi
+          for file in evaluation/results/*-${DATE}*.json evaluation/results/*-${DATE}*.md; do
+            if [ -f "$file" ]; then
+              curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/$(basename "$file")" -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" -H "Content-Type: application/json" -H "x-upsert: true" --data-binary @"$file"
+            fi
+          done
+          for file in evaluation/scheme-database/scheme-database.json evaluation/scheme-database/promoter-database.json; do
+            if [ -f "$file" ]; then
+              curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/$(basename "$file")" -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" -H "Content-Type: application/json" -H "x-upsert: true" --data-binary @"$file"
+            fi
+          done
 
       - name: Checkout data repository
         continue-on-error: true
@@ -552,8 +583,12 @@ jobs:
       - name: Skip data repo notice
         if: steps.checkout-data.outcome != 'success' || steps.publication-gate.outcome != 'success'
         run: |
-          echo "::warning::Skipping data repository push - DATA_REPO_TOKEN may be expired or invalid"
-          echo "Results are still saved as artifacts. Please update the DATA_REPO_TOKEN secret."
+          if [ "${{ steps.publication-gate.outcome }}" != "success" ]; then
+            echo "::warning::Publication gate blocked promotion. Results remain in generation-scoped quarantine; replay unresolved symbols before remediation."
+          else
+            echo "::warning::Skipping data repository push - DATA_REPO_TOKEN may be expired or invalid"
+            echo "Results are still saved as artifacts. Please update the DATA_REPO_TOKEN secret."
+          fi
 
       - name: Commit results to data repository
         if: steps.checkout-data.outcome == 'success' && steps.publication-gate.outcome == 'success'
@@ -616,7 +651,7 @@ jobs:
   notify-on-failure:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: failure() && needs.enhanced-evaluation.outputs.validation_status != 'degraded'
+    if: failure() && needs.enhanced-evaluation.outputs.publication_classification != 'degraded'
     permissions:
       issues: write
     steps:
@@ -664,7 +699,7 @@ jobs:
   notify-on-degraded:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: failure() && needs.enhanced-evaluation.outputs.validation_status == 'degraded'
+    if: failure() && needs.enhanced-evaluation.outputs.publication_classification == 'degraded'
     permissions:
       issues: write
     steps:
