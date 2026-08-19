@@ -27,8 +27,8 @@ export function validateCapturedProviderMetadata(input: { responseId: unknown; m
 }
 
 export function applyProviderMetadataPolicy(parsed: NewsAnalysisParseResult, expectedSymbols: Iterable<string>, anomalies: string[]) {
-  if (anomalies.length === 0) return { validSymbols: parsed.valid.keys(), quarantined: parsed.quarantined, degraded: parsed.degraded };
-  return { validSymbols: [] as string[], quarantined: [...new Set([...expectedSymbols].map(normalizeAnalysisSymbol).filter(Boolean))].map((symbol) => ({ symbol, reason: "malformed-provider-metadata" })), degraded: true };
+  if (anomalies.length === 0) return { validSymbols: parsed.valid.keys(), validRows: parsed.valid, quarantined: parsed.quarantined, degraded: parsed.degraded };
+  return { validSymbols: [] as string[], validRows: new Map<string, NewsAnalysisRow>(), quarantined: [...new Set([...expectedSymbols].map(normalizeAnalysisSymbol).filter(Boolean))].map((symbol) => ({ symbol, reason: "malformed-provider-metadata" })), degraded: true };
 }
 
 export interface NewsAnalysisRow {
@@ -146,6 +146,7 @@ export interface JournalAttempt {
   anomalyCodes?: string[];
   malformedTopLevel?: boolean;
   providerFailure?: { type: string; message: string; metadata?: unknown };
+  rawProviderMetadata?: unknown;
 }
 
 export interface JournalTask {
@@ -256,6 +257,7 @@ export interface ProviderCapture {
   estimatedCostUsd: number | null;
   capturedAt?: string;
   providerFailure?: { type: string; message: string; metadata?: unknown };
+  rawProviderMetadata?: unknown;
 }
 
 function assertBatchProvenance(journal: RunJournal, batchId: string, requireProviderAttempt = false): RunJournal["batches"][string] {
@@ -280,7 +282,7 @@ export function recordProviderCapture(journal: RunJournal, input: ProviderCaptur
   if (typeof input.prompt !== "string") throw new Error("Provider capture requires a prompt");
   const capturedAt = input.capturedAt || nowIso();
   const attemptNumber = batch.attempts + 1;
-  const attempt: JournalAttempt = { attempt: attemptNumber, batchId: input.batchId, capturedAt, prompt: input.prompt, rawResponse: input.rawResponse, responseId: input.responseId, model: input.model, tokenUsage: input.tokenUsage, pricingSnapshot: input.pricingSnapshot, estimatedCostUsd: input.estimatedCostUsd, semanticValidation: "pending", ...(input.providerFailure ? { providerFailure: clone(input.providerFailure) } : {}) };
+  const attempt: JournalAttempt = { attempt: attemptNumber, batchId: input.batchId, capturedAt, prompt: input.prompt, rawResponse: input.rawResponse, responseId: input.responseId, model: input.model, tokenUsage: input.tokenUsage, pricingSnapshot: input.pricingSnapshot, estimatedCostUsd: input.estimatedCostUsd, semanticValidation: "pending", ...(input.providerFailure ? { providerFailure: clone(input.providerFailure) } : {}), ...(input.rawProviderMetadata !== undefined ? { rawProviderMetadata: clone(input.rawProviderMetadata) } : {}) };
   batch.attempts = attemptNumber;
   for (const taskId of batch.taskIds) next.tasks[taskId].attempts.push(clone(attempt));
   if (next.durableCaptureAttempts) delete next.durableCaptureAttempts[input.batchId];

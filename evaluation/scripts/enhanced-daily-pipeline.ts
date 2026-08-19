@@ -1915,14 +1915,16 @@ async function runEnhancedPipeline(): Promise<void> {
     newsMetrics.unavailableModelBatches += Number(batchAnalysis.unavailable);
 
     let parsed = null as ReturnType<typeof parseNewsAnalysisResponse> | null;
+    let disposition: ReturnType<typeof applyProviderMetadataPolicy> | null = null;
     if (batchAnalysis.attemptedCall) {
       const rawUsage = { promptTokens: batchAnalysis.promptTokens, completionTokens: batchAnalysis.completionTokens, totalTokens: batchAnalysis.totalTokens };
-      const rawEnvelope = JSON.stringify(encodeRawProviderMetadata({ responseId: batchAnalysis.responseId, model: batchAnalysis.model, rawResponse: batchAnalysis.rawResponse, usage: rawUsage }));
+      const rawEnvelope = encodeRawProviderMetadata({ responseId: batchAnalysis.responseId, model: batchAnalysis.model, rawResponse: batchAnalysis.rawResponse, usage: rawUsage });
       // This durable write is deliberately before JSON or semantic validation.
       runJournal = persistCaptureBeforeValidation(journalPath, runJournal, {
-        batchId, prompt: batchAnalysis.prompt, rawResponse: rawEnvelope,
+        batchId, prompt: batchAnalysis.prompt, rawResponse: batchAnalysis.rawResponse,
         responseId: batchAnalysis.responseId, model: batchAnalysis.model,
         tokenUsage: null,
+        rawProviderMetadata: rawEnvelope,
         pricingSnapshot: { inputPerMillion: OPENAI_INPUT_COST_PER_MILLION, outputPerMillion: OPENAI_OUTPUT_COST_PER_MILLION }, estimatedCostUsd: null,
         ...(batchAnalysis.providerFailure ? { providerFailure: batchAnalysis.providerFailure } : {}),
       });
@@ -1935,7 +1937,7 @@ async function runEnhancedPipeline(): Promise<void> {
       }
       parsed = parseNewsAnalysisResponse(batchAnalysis.rawResponse, withEvidence.map(({ group }) => group.key));
       const metadataAnomalies = metadata.anomalies;
-      const disposition = applyProviderMetadataPolicy(parsed, withEvidence.map(({ group }) => group.key), metadataAnomalies);
+      disposition = applyProviderMetadataPolicy(parsed, withEvidence.map(({ group }) => group.key), metadataAnomalies);
       runJournal = transitionSemanticValidation(runJournal, { batchId, validSymbols: disposition.validSymbols, quarantined: disposition.quarantined, degraded: disposition.degraded, anomalyCodes: [...parsed.anomalies, ...metadataAnomalies], malformedTopLevel: parsed.malformedTopLevel });
       writeRunJournalAtomic(journalPath, runJournal);
       newsMetrics.quarantinedRows += disposition.quarantined.length;
@@ -1943,7 +1945,7 @@ async function runEnhancedPipeline(): Promise<void> {
     }
 
     for (const { group } of withEvidence) {
-      const row = parsed?.valid.get(group.key);
+      const row = disposition?.validRows.get(group.key);
       const analysis: NewsLegitimacyResult = row ? {
         hasLegitimateNews: row.hasLegitimateNews,
         analysis: `${row.explanation}${row.specificEvent ? ` Event: ${row.specificEvent}` : ""}`,
