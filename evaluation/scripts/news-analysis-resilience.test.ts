@@ -85,6 +85,15 @@ describe("run journal", () => {
     journal = transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: [], quarantined: [{ symbol: "ABC", reason: "provider-failure" }], degraded: true });
     expect(journal.tasks["2026-08-19:ABC"].state).toBe("quarantined");
   });
+
+  it("persists nullable metadata and malformed usage before anomaly classification", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-raw-capture-"));
+    const journalPath = path.join(dir, "run.json");
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    journal = persistCaptureBeforeValidation(journalPath, journal, { batchId: "batch-1", prompt: "p", rawResponse: null, responseId: null, model: null, tokenUsage: { promptTokens: -1 }, pricingSnapshot: { inputPerMillion: 0, outputPerMillion: 0 }, estimatedCostUsd: null });
+    expect(readRunJournal(journalPath).tasks["2026-08-19:ABC"].attempts[0]).toMatchObject({ rawResponse: null, responseId: null, model: null, tokenUsage: { promptTokens: -1 }, estimatedCostUsd: null });
+  });
   it("persists evidence before provider capture and validation, atomically", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-journal-"));
     const journalPath = path.join(dir, "run.json");

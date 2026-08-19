@@ -110,7 +110,7 @@ export interface JournalAttempt {
   rawResponse?: string | null;
   responseId?: string | null;
   model?: string | null;
-  tokenUsage?: Record<string, number> | null;
+  tokenUsage?: unknown;
   pricingSnapshot?: Record<string, number>;
   estimatedCostUsd?: number | null;
   semanticValidation?: "pending" | "deferred" | "resolved" | "quarantined";
@@ -223,7 +223,7 @@ export interface ProviderCapture {
   rawResponse: string | null;
   responseId: string | null;
   model: string | null;
-  tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
+  tokenUsage: unknown;
   pricingSnapshot: { inputPerMillion: number; outputPerMillion: number };
   estimatedCostUsd: number | null;
   capturedAt?: string;
@@ -247,16 +247,9 @@ function assertBatchProvenance(journal: RunJournal, batchId: string, requireProv
 export function recordProviderCapture(journal: RunJournal, input: ProviderCapture): RunJournal {
   const next = clone(journal);
   const batch = assertBatchProvenance(next, input.batchId);
-  const failed = !!input.providerFailure;
-  if (typeof input.prompt !== "string" || (failed ? (input.rawResponse !== null && typeof input.rawResponse !== "string") || (input.responseId !== null && typeof input.responseId !== "string") || (input.model !== null && typeof input.model !== "string") || typeof input.providerFailure?.type !== "string" || !input.providerFailure.type || typeof input.providerFailure?.message !== "string" || !input.providerFailure.message : typeof input.rawResponse !== "string" || typeof input.responseId !== "string" || !input.responseId || typeof input.model !== "string" || !input.model)) throw new Error("Provider capture requires complete success provenance or typed failure provenance");
-  if (input.tokenUsage !== null) {
-    requireFiniteNonNegative(input.tokenUsage?.promptTokens, "prompt tokens");
-    requireFiniteNonNegative(input.tokenUsage?.completionTokens, "completion tokens");
-    requireFiniteNonNegative(input.tokenUsage?.totalTokens, "total tokens");
-  }
-  requireFiniteNonNegative(input.pricingSnapshot?.inputPerMillion, "input pricing");
-  requireFiniteNonNegative(input.pricingSnapshot?.outputPerMillion, "output pricing");
-  if (input.estimatedCostUsd !== null) requireFiniteNonNegative(input.estimatedCostUsd, "estimated cost");
+  // Capture is intentionally permissive: raw provider metadata must survive
+  // before later semantic/accounting validation classifies anomalies.
+  if (typeof input.prompt !== "string") throw new Error("Provider capture requires a prompt");
   const capturedAt = input.capturedAt || nowIso();
   const attemptNumber = batch.attempts + 1;
   const attempt: JournalAttempt = { attempt: attemptNumber, batchId: input.batchId, capturedAt, prompt: input.prompt, rawResponse: input.rawResponse, responseId: input.responseId, model: input.model, tokenUsage: input.tokenUsage, pricingSnapshot: input.pricingSnapshot, estimatedCostUsd: input.estimatedCostUsd, semanticValidation: "pending", ...(input.providerFailure ? { providerFailure: clone(input.providerFailure) } : {}) };
