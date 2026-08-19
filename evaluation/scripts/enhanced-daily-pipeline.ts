@@ -916,6 +916,17 @@ interface NewsLegitimacyResult {
   skipped?: boolean;
 }
 
+function validateProviderMetadata(input: { responseId: unknown; model: unknown; rawResponse: unknown; promptTokens: unknown; completionTokens: unknown; totalTokens?: unknown }) {
+  const anomalies: string[] = [];
+  if (typeof input.responseId !== "string" || !input.responseId.trim()) anomalies.push("malformed-response-id");
+  if (typeof input.model !== "string" || !input.model.trim()) anomalies.push("malformed-model");
+  if (typeof input.rawResponse !== "string") anomalies.push("malformed-response-content");
+  const tokens = [input.promptTokens, input.completionTokens, input.totalTokens];
+  if (!tokens.every((value) => typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value >= 0)) anomalies.push("malformed-provider-usage");
+  else if ((input.totalTokens as number) !== (input.promptTokens as number) + (input.completionTokens as number)) anomalies.push("inconsistent-provider-usage");
+  return { anomalies, accountingKnown: anomalies.every((code) => !code.includes("usage")), tokenUsage: anomalies.some((code) => code.includes("usage")) ? null : { promptTokens: input.promptTokens as number, completionTokens: input.completionTokens as number, totalTokens: input.totalTokens as number } };
+}
+
 function formatNewsEvidence(item: NewsEvidence): string {
   const newsText = item.news
     .slice(0, 5)
@@ -948,6 +959,7 @@ async function analyzeNewsLegitimacyBatch(
   model: string | null;
   promptTokens: number | null;
   completionTokens: number | null;
+  totalTokens: number | null;
   attemptedCall: boolean;
   failedCall: boolean;
   unavailable: boolean;
@@ -969,6 +981,7 @@ ${batch.map(formatNewsEvidence).join("\n\n---\n\n")}`;
     model: OPENAI_NEWS_MODEL,
     promptTokens: null,
     completionTokens: null,
+    totalTokens: null,
     attemptedCall: false,
     failedCall: false,
     unavailable: true,
@@ -994,6 +1007,7 @@ ${batch.map(formatNewsEvidence).join("\n\n---\n\n")}`;
       model: response.model ?? null,
       promptTokens: typeof response.usage?.prompt_tokens === "number" ? response.usage.prompt_tokens : null,
       completionTokens: typeof response.usage?.completion_tokens === "number" ? response.usage.completion_tokens : null,
+      totalTokens: typeof response.usage?.total_tokens === "number" ? response.usage.total_tokens : null,
       attemptedCall: true,
       failedCall: false,
       unavailable: false,
@@ -1910,7 +1924,8 @@ async function runEnhancedPipeline(): Promise<void> {
 
     let parsed = null as ReturnType<typeof parseNewsAnalysisResponse> | null;
     if (batchAnalysis.attemptedCall) {
-      const tokenUsage = batchAnalysis.promptTokens !== null && batchAnalysis.completionTokens !== null ? { promptTokens: batchAnalysis.promptTokens, completionTokens: batchAnalysis.completionTokens, totalTokens: batchAnalysis.promptTokens + batchAnalysis.completionTokens } : null;
+      const metadata = validateProviderMetadata({ responseId: batchAnalysis.responseId, model: batchAnalysis.model, rawResponse: batchAnalysis.rawResponse, promptTokens: batchAnalysis.promptTokens, completionTokens: batchAnalysis.completionTokens, totalTokens: batchAnalysis.totalTokens });
+      const tokenUsage = metadata.tokenUsage;
       const estimatedCostUsd = tokenUsage === null ? null : (tokenUsage.promptTokens / 1_000_000) * OPENAI_INPUT_COST_PER_MILLION + (tokenUsage.completionTokens / 1_000_000) * OPENAI_OUTPUT_COST_PER_MILLION;
       // This durable write is deliberately before JSON or semantic validation.
       runJournal = persistCaptureBeforeValidation(journalPath, runJournal, {
@@ -1921,7 +1936,7 @@ async function runEnhancedPipeline(): Promise<void> {
         ...(batchAnalysis.providerFailure ? { providerFailure: batchAnalysis.providerFailure } : {}),
       });
       parsed = parseNewsAnalysisResponse(batchAnalysis.rawResponse, withEvidence.map(({ group }) => group.key));
-      const metadataAnomalies = [batchAnalysis.responseId === null ? "missing-response-id" : "", batchAnalysis.rawResponse === null ? "missing-response-content" : "", tokenUsage === null ? "unknown-provider-usage" : ""].filter(Boolean);
+      const metadataAnomalies = metadata.anomalies;
       runJournal = transitionSemanticValidation(runJournal, { batchId, validSymbols: parsed.valid.keys(), quarantined: parsed.quarantined, degraded: parsed.degraded || metadataAnomalies.length > 0, anomalyCodes: [...parsed.anomalies, ...metadataAnomalies], malformedTopLevel: parsed.malformedTopLevel });
       writeRunJournalAtomic(journalPath, runJournal);
       newsMetrics.quarantinedRows += parsed.quarantined.length;
