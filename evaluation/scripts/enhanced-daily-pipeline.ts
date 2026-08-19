@@ -1090,7 +1090,7 @@ interface ScanStatus {
   durationMinutes: number | null;
   error: string | null;
   failedAtPhase: string | null;
-  recovery: { generationId?: string; replayOfGeneration?: string; journalFile?: string; unresolvedSymbols?: string[]; unresolvedCount: number; degraded: boolean };
+  recovery: { generationId?: string; replayOfGeneration?: string; journalFile?: string; unresolvedSymbols?: string[]; replayRequested?: string[]; replayMatched?: string[]; replayMissing?: string[]; unresolvedCount: number; degraded: boolean };
   aiBackend: {
     configured: boolean;
     available: boolean;
@@ -1269,7 +1269,7 @@ function sendDegradedNotification(scanStatus: ScanStatus, metrics: NewsAnalysisM
   const payload = buildDegradedScanAlertPayload({
     scanDate: scanStatus.date,
     generation: scanStatus.recovery.generationId || "unknown",
-    affectedSymbols: scanStatus.recovery.unresolvedSymbols || [],
+    affectedSymbols: [...(scanStatus.recovery.unresolvedSymbols || []), ...(scanStatus.recovery.replayMissing || [])],
     counts: { quarantined: metrics.quarantinedRows, anomalies: metrics.responseAnomalies, unresolved: metrics.unresolvedTasks, deferred: metrics.candidatesDeferred, replayMissing: metrics.replayMissing },
     costUsd: metrics.estimatedCostUsd,
     recoveryFile: scanStatus.recovery.journalFile || "unknown",
@@ -1784,6 +1784,7 @@ async function runEnhancedPipeline(): Promise<void> {
   const generationId = `${evaluationDate}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const journalPath = path.join(RESULTS_DIR, `news-analysis-journal-${evaluationDate}-${generationId}.json`);
   let runJournal = createRunJournal({ scanDate: evaluationDate, generationId, replayOfGeneration: NEWS_ANALYSIS_REPLAY_OF_GENERATION });
+  runJournal.replay = { requested: [...new Set(NEWS_ANALYSIS_REPLAY_SYMBOLS.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean))], matched: newsPlan.replayMatched, missing: newsPlan.replayMissing };
   runJournal = registerJournalTasks(runJournal, newsPlan.deferred.map((group) => group.key), "deferred", "deferred");
   writeRunJournalAtomic(journalPath, runJournal);
 
@@ -1970,6 +1971,9 @@ async function runEnhancedPipeline(): Promise<void> {
     ...(NEWS_ANALYSIS_REPLAY_OF_GENERATION ? { replayOfGeneration: NEWS_ANALYSIS_REPLAY_OF_GENERATION } : {}),
     journalFile: path.basename(journalPath),
     unresolvedSymbols: unresolvedTasks.map((task) => task.symbol),
+    replayRequested: runJournal.replay.requested,
+    replayMatched: runJournal.replay.matched,
+    replayMissing: runJournal.replay.missing,
     unresolvedCount: unresolvedTasks.length,
     degraded: unresolvedTasks.length > 0 || newsMetrics.replayMissing > 0 || newsMetrics.responseAnomalies > 0,
   };

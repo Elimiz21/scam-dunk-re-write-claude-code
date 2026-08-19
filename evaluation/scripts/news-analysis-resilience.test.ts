@@ -281,6 +281,14 @@ describe("run journal", () => {
     expect(journal.tasks["2026-08-19:DEF"].state).toBe("quarantined");
     expect(journal.tasks["2026-08-19:ABC"].attempts[0].anomalyCodes).toEqual(["unexpected-symbol:EXTRA"]);
   });
+
+  it("keeps append-only quarantine reasons in the journal transition history", () => {
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    journal = persistTestCapture(journal, { batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m", tokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }, pricingSnapshot: { inputPerMillion: 0, outputPerMillion: 0 }, estimatedCostUsd: 0 });
+    journal = transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: [], quarantined: [{ symbol: "ABC", reason: "missing-expected-symbol" }], degraded: true });
+    expect(journal.tasks["2026-08-19:ABC"].transitions.at(-1)).toMatchObject({ from: "pending", to: "quarantined", reason: "missing-expected-symbol", batchId: "batch-1", attempt: 1 });
+  });
 });
 
 describe("buildDegradedScanAlertPayload", () => {

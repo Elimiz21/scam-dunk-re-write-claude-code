@@ -129,6 +129,7 @@ export interface JournalTask {
   sourceEvidenceSnapshots: Array<{ snapshotId: string; batchId: string; nextAttempt: number; capturedAt: string; evidence: unknown }>;
   attempts: JournalAttempt[];
   retryCount: number;
+  transitions: Array<{ from: JournalTaskState; to: JournalTaskState; reason: string; batchId: string; attempt: number | null; timestamp: string }>;
 }
 
 export interface RunJournal {
@@ -137,6 +138,7 @@ export interface RunJournal {
   generationId: string;
   generatedAt: string;
   replayOfGeneration?: string;
+  replay?: { requested: string[]; matched: string[]; missing: string[] };
   tasks: Record<string, JournalTask>;
   batches: Record<string, { batchId: string; taskIds: string[]; attempts: number; degraded?: boolean; anomalyCodes?: string[]; malformedTopLevel?: boolean }>;
   durableCaptureAttempts?: Record<string, number>;
@@ -186,7 +188,7 @@ export function registerJournalTasks(journal: RunJournal, symbols: Iterable<stri
     const taskId = taskIdFor(next.scanDate, symbol);
     const existing = next.tasks[taskId];
     if (!existing) {
-      next.tasks[taskId] = { taskId, scanDate: next.scanDate, symbol, state, batchIds: [batchId], sourceEvidenceSnapshots: [], attempts: [], retryCount: 0 };
+      next.tasks[taskId] = { taskId, scanDate: next.scanDate, symbol, state, batchIds: [batchId], sourceEvidenceSnapshots: [], attempts: [], retryCount: 0, transitions: [{ from: "pending", to: state, reason: "registered", batchId, attempt: null, timestamp: nowIso() }] };
     } else if (!existing.batchIds.includes(batchId)) {
       existing.batchIds.push(batchId);
     }
@@ -275,9 +277,11 @@ export function transitionSemanticValidation(journal: RunJournal, input: { batch
   for (const taskId of batch.taskIds) {
     const task = next.tasks[taskId];
     if (task.state === "resolved") continue;
-    const status = valid.has(task.symbol) ? "resolved" : quarantined.has(task.symbol) ? "quarantined" : "deferred";
-    task.state = status;
     const attempt = [...task.attempts].reverse().find((candidate) => candidate.batchId === input.batchId);
+    const status = valid.has(task.symbol) ? "resolved" : quarantined.has(task.symbol) ? "quarantined" : "deferred";
+    const reason = quarantined.get(task.symbol) || (status === "resolved" ? "validated" : "unresolved-response");
+    task.transitions.push({ from: task.state, to: status, reason, batchId: input.batchId, attempt: attempt?.attempt ?? null, timestamp: nowIso() });
+    task.state = status;
     if (attempt) {
       attempt.semanticValidation = status;
       if (input.degraded) attempt.degraded = true;
@@ -296,6 +300,7 @@ export function retryJournalTasks(journal: RunJournal, symbols: Iterable<string>
   const replayable = knownTaskIds.filter((taskId) => !next.tasks[taskId].batchIds.includes(batchId));
   for (const taskId of replayable) {
     const task = next.tasks[taskId];
+    task.transitions.push({ from: task.state, to: "pending", reason: "retry-requested", batchId, attempt: null, timestamp: nowIso() });
     task.state = "pending";
     task.retryCount += 1;
     task.batchIds.push(batchId);
