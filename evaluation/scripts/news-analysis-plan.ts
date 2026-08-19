@@ -22,6 +22,8 @@ export interface NewsAnalysisPlan<T extends NewsAnalysisCandidate> {
   deferred: Array<NewsAnalysisCandidateGroup<T>>;
   batches: Array<Array<NewsAnalysisCandidateGroup<T>>>;
   modelCallUpperBound: number;
+  replayMatched: string[];
+  replayMissing: string[];
 }
 
 function canonicalInstrumentSymbol(symbol: string): string {
@@ -32,6 +34,7 @@ export function createNewsAnalysisPlan<T extends NewsAnalysisCandidate>(
   candidates: T[],
   maxCandidates: number,
   batchSize: number,
+  replaySymbols: Iterable<string> = [],
 ): NewsAnalysisPlan<T> {
   const groupsBySymbol = new Map<string, NewsAnalysisCandidateGroup<T>>();
 
@@ -57,8 +60,14 @@ export function createNewsAnalysisPlan<T extends NewsAnalysisCandidate>(
       right.representative.totalScore - left.representative.totalScore ||
       left.key.localeCompare(right.key),
   );
-  const selected = ranked.slice(0, maxCandidates);
-  const deferred = ranked.slice(maxCandidates);
+  const replayKeys = [...new Set([...replaySymbols].map(canonicalInstrumentSymbol).filter(Boolean))];
+  const replayMatched = replayKeys.filter((key) => groupsBySymbol.has(key));
+  const replayMissing = replayKeys.filter((key) => !groupsBySymbol.has(key));
+  const replayGroups = replayMatched.map((key) => groupsBySymbol.get(key)!);
+  const normalGroups = ranked.filter((group) => !replayMatched.includes(group.key));
+  const ordered = [...replayGroups, ...normalGroups];
+  const selected = ordered.slice(0, Math.max(0, maxCandidates));
+  const deferred = ordered.slice(Math.max(0, maxCandidates));
   const batches: Array<Array<NewsAnalysisCandidateGroup<T>>> = [];
 
   for (let start = 0; start < selected.length; start += batchSize) {
@@ -70,5 +79,7 @@ export function createNewsAnalysisPlan<T extends NewsAnalysisCandidate>(
     deferred,
     batches,
     modelCallUpperBound: batches.length,
+    replayMatched,
+    replayMissing,
   };
 }

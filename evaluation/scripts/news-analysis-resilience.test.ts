@@ -1,0 +1,149 @@
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import {
+  buildDegradedScanAlertPayload,
+  createRunJournal,
+  parseNewsAnalysisResponse,
+  readRunJournal,
+  recordProviderCapture,
+  recordSourceEvidence,
+  registerJournalTasks,
+  retryJournalTasks,
+  selectRetryTasks,
+  transitionSemanticValidation,
+  writeRunJournalAtomic,
+} from "./news-analysis-resilience";
+
+describe("parseNewsAnalysisResponse", () => {
+  it("salvages valid siblings and quarantines only malformed and duplicate expected symbols", () => {
+    const parsed = parseNewsAnalysisResponse(
+      JSON.stringify({
+        results: [
+          { symbol: "GOOD", hasLegitimateNews: true, explanation: "Earnings", specificEvent: null },
+          { symbol: "BAD", hasLegitimateNews: "yes", explanation: "No" },
+          { symbol: "DUP", hasLegitimateNews: false, explanation: "First" },
+          { symbol: "dup", hasLegitimateNews: false, explanation: "Second" },
+        ],
+      }),
+      ["GOOD", "BAD", "DUP", "MISSING"],
+    );
+
+    expect([...parsed.valid.keys()]).toEqual(["GOOD"]);
+    expect(parsed.quarantined.map((item) => item.symbol)).toEqual([
+      "BAD",
+      "DUP",
+      "MISSING",
+    ]);
+    expect(parsed.quarantined.find((item) => item.symbol === "BAD")?.reason).toMatch(/malformed/i);
+    expect(parsed.quarantined.find((item) => item.symbol === "DUP")?.reason).toMatch(/duplicate/i);
+    expect(parsed.quarantined.find((item) => item.symbol === "MISSING")?.reason).toMatch(/missing/i);
+  });
+
+  it("records unexpected rows as anomalies without discarding valid expected rows", () => {
+    const parsed = parseNewsAnalysisResponse(
+      { results: [
+        { symbol: "GOOD", hasLegitimateNews: false, explanation: "No dated event", specificEvent: null },
+        { symbol: "EXTRA", hasLegitimateNews: true, explanation: "Unexpected" },
+      ] },
+      ["GOOD"],
+    );
+
+    expect(parsed.valid.get("GOOD")?.hasLegitimateNews).toBe(false);
+    expect(parsed.anomalies).toContain("unexpected-symbol:EXTRA");
+    expect(parsed.degraded).toBe(true);
+  });
+
+  it("quarantines every expected symbol for malformed top-level JSON without throwing", () => {
+    const parsed = parseNewsAnalysisResponse("not-json", ["A", "B"]);
+    expect(parsed.malformedTopLevel).toBe(true);
+    expect(parsed.valid.size).toBe(0);
+    expect(parsed.quarantined.map((item) => item.symbol)).toEqual(["A", "B"]);
+    expect(selectRetryTasks(createRunJournal({ scanDate: "2026-08-19" }), ["A"]).length).toBe(0);
+  });
+});
+
+describe("run journal", () => {
+  it("persists evidence before provider capture and validation, atomically", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-journal-"));
+    const journalPath = path.join(dir, "run.json");
+    let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-1", generatedAt: "2026-08-19T00:00:00.000Z" });
+    journal = registerJournalTasks(journal, ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [{ title: "headline" }], secFilings: [] }, "batch-1");
+    writeRunJournalAtomic(journalPath, journal);
+    const before = readRunJournal(journalPath);
+    expect(before.tasks["2026-08-19:ABC"].sourceEvidenceSnapshots).toHaveLength(1);
+    expect(before.tasks["2026-08-19:ABC"].attempts).toHaveLength(0);
+
+    journal = recordProviderCapture(journal, {
+      batchId: "batch-1",
+      prompt: "exact prompt",
+      rawResponse: '{"results":[]}',
+      responseId: "resp-1",
+      model: "gpt-4o-mini",
+      tokenUsage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      pricingSnapshot: { inputPerMillion: 0.15, outputPerMillion: 0.6 },
+      estimatedCostUsd: 0.0000135,
+    });
+    writeRunJournalAtomic(journalPath, journal);
+    const captured = readRunJournal(journalPath);
+    expect(captured.tasks["2026-08-19:ABC"].attempts[0]).toMatchObject({
+      prompt: "exact prompt",
+      rawResponse: '{"results":[]}',
+      responseId: "resp-1",
+      estimatedCostUsd: 0.0000135,
+    });
+
+    const validated = transitionSemanticValidation(captured, {
+      validSymbols: [],
+      quarantined: [{ symbol: "ABC", reason: "missing" }],
+      batchId: "batch-1",
+    });
+    expect(validated.tasks["2026-08-19:ABC"].state).toBe("quarantined");
+    expect(validated.tasks["2026-08-19:ABC"].attempts[0].semanticValidation).toBe("quarantined");
+  });
+
+  it("keeps registration and retries idempotent and only selects known unresolved tasks", () => {
+    let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-1" });
+    journal = registerJournalTasks(journal, ["ABC", "DONE"], "batch-1");
+    journal = transitionSemanticValidation(journal, { validSymbols: ["DONE"], quarantined: [], batchId: "batch-1" });
+    journal = registerJournalTasks(journal, ["ABC", "DONE"], "batch-1");
+    expect(Object.keys(journal.tasks)).toHaveLength(2);
+    expect(journal.tasks["2026-08-19:DONE"].state).toBe("resolved");
+    expect(selectRetryTasks(journal, ["ABC", "DONE", "UNKNOWN"])).toEqual(["2026-08-19:ABC"]);
+  });
+
+  it("does not reopen resolved work unless an explicit retry transition is requested", () => {
+    let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-1" });
+    journal = registerJournalTasks(journal, ["ABC"], "batch-1");
+    journal = transitionSemanticValidation(journal, { validSymbols: ["ABC"], quarantined: [], batchId: "batch-1" });
+    journal = transitionSemanticValidation(journal, { validSymbols: [], quarantined: [{ symbol: "ABC", reason: "malformed" }], batchId: "batch-1" });
+    expect(journal.tasks["2026-08-19:ABC"].state).toBe("resolved");
+    journal = retryJournalTasks(journal, ["ABC"], "batch-2");
+    expect(journal.tasks["2026-08-19:ABC"].state).toBe("pending");
+    expect(journal.tasks["2026-08-19:ABC"].retryCount).toBe(1);
+    expect(journal.tasks["2026-08-19:ABC"].batchIds).toContain("batch-2");
+  });
+});
+
+describe("buildDegradedScanAlertPayload", () => {
+  it("includes actionable recovery data and does not copy secrets", () => {
+    const payload = buildDegradedScanAlertPayload({
+      scanDate: "2026-08-19",
+      generation: "gen-1",
+      affectedSymbols: ["ABC", "DEF"],
+      counts: { quarantined: 2, malformedResponses: 1, deferred: 3 },
+      costUsd: 1.25,
+      malformedResponseCostUsd: 0.5,
+      recoveryFile: "evaluation/results/recovery/gen-1.json",
+      replayInstructions: "replay --date 2026-08-19 --symbols ABC,DEF --api-key=secret",
+      workflowUrl: "https://github.com/example/repo/actions/runs/123",
+    });
+    expect(payload.affectedSymbolCount).toBe(2);
+    expect(payload.costUsd).toBe(1.75);
+    expect(payload.recoveryFile).toContain("gen-1.json");
+    expect(payload.replayInstructions).toContain("ABC,DEF");
+    expect(JSON.stringify(payload)).not.toMatch(/secret|api-key/i);
+    expect(payload.workflowUrl).toContain("actions/runs/123");
+  });
+});
