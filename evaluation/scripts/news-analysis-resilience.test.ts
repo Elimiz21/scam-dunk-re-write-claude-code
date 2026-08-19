@@ -16,6 +16,11 @@ import {
   writeRunJournalAtomic,
 } from "./news-analysis-resilience";
 
+function persistTestCapture(journal: any, input: any) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-test-capture-"));
+  return persistCaptureBeforeValidation(path.join(dir, "run.json"), journal, input);
+}
+
 describe("parseNewsAnalysisResponse", () => {
   it("salvages valid siblings and quarantines only malformed and duplicate expected symbols", () => {
     const parsed = parseNewsAnalysisResponse(
@@ -76,7 +81,7 @@ describe("run journal", () => {
     expect(before.tasks["2026-08-19:ABC"].sourceEvidenceSnapshots).toHaveLength(1);
     expect(before.tasks["2026-08-19:ABC"].attempts).toHaveLength(0);
 
-    journal = recordProviderCapture(journal, {
+    journal = persistCaptureBeforeValidation(journalPath, journal, {
       batchId: "batch-1",
       prompt: "exact prompt",
       rawResponse: '{"results":[]}',
@@ -86,7 +91,6 @@ describe("run journal", () => {
       pricingSnapshot: { inputPerMillion: 0.15, outputPerMillion: 0.6 },
       estimatedCostUsd: 0.0000135,
     });
-    writeRunJournalAtomic(journalPath, journal);
     const captured = readRunJournal(journalPath);
     expect(captured.tasks["2026-08-19:ABC"].attempts[0]).toMatchObject({
       prompt: "exact prompt",
@@ -108,7 +112,7 @@ describe("run journal", () => {
     let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-1" });
     journal = registerJournalTasks(journal, ["ABC", "DONE"], "batch-1");
     journal = recordSourceEvidence(journal, ["ABC", "DONE"], { news: [] }, "batch-1");
-    journal = recordProviderCapture(journal, {
+    journal = persistTestCapture(journal, {
       batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
       tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
     });
@@ -123,7 +127,7 @@ describe("run journal", () => {
     let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-1" });
     journal = registerJournalTasks(journal, ["ABC"], "batch-1");
     journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
-    journal = recordProviderCapture(journal, {
+    journal = persistTestCapture(journal, {
       batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
       tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
     });
@@ -140,7 +144,7 @@ describe("run journal", () => {
     let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-1" });
     journal = registerJournalTasks(journal, ["ABC"], "batch-1");
     journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
-    journal = recordProviderCapture(journal, {
+    journal = persistTestCapture(journal, {
       batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
       tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
     });
@@ -163,7 +167,7 @@ describe("run journal", () => {
     let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
     journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
     journal = registerJournalTasks(journal, ["ABC"], "batch-2");
-    journal = recordProviderCapture(journal, {
+    journal = persistTestCapture(journal, {
       batchId: "batch-2", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
       tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
     });
@@ -184,10 +188,26 @@ describe("run journal", () => {
     expect(persisted.tasks["2026-08-19:ABC"].attempts[0].semanticValidation).toBe("pending");
   });
 
+  it("rejects an in-memory capture and accepts only the successfully persisted capture", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-durable-capture-"));
+    const journalPath = path.join(dir, "run.json");
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    const capture = {
+      batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
+      tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
+    };
+    const inMemory = recordProviderCapture(journal, capture);
+    expect(() => transitionSemanticValidation(inMemory, { batchId: "batch-1", validSymbols: ["ABC"], quarantined: [] })).toThrow(/durable|persist/i);
+    const persisted = persistCaptureBeforeValidation(journalPath, journal, capture);
+    const resolved = transitionSemanticValidation(persisted, { batchId: "batch-1", validSymbols: ["ABC"], quarantined: [] });
+    expect(resolved.tasks["2026-08-19:ABC"].state).toBe("resolved");
+  });
+
   it("persists response anomalies on the batch attempt while retaining valid resolutions", () => {
     let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC", "DEF"], "batch-1");
     journal = recordSourceEvidence(journal, ["ABC", "DEF"], { news: [] }, "batch-1");
-    journal = recordProviderCapture(journal, {
+    journal = persistTestCapture(journal, {
       batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
       tokenUsage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
       pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0.000001,
