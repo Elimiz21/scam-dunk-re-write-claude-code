@@ -49,6 +49,7 @@ import {
   transitionSemanticValidation,
   writeRunJournalAtomic,
 } from "./news-analysis-resilience";
+import { classifyEvidenceOutcomes, EvidenceFetchOutcome } from "./evidence-outcomes";
 
 // Deployed app URL and API key for triggering the production social scan
 const SOCIAL_SCAN_APP_URL = process.env.SOCIAL_SCAN_APP_URL || "";
@@ -225,6 +226,7 @@ interface NewsAnalysisMetrics {
   unresolvedTasks: number;
   replayRequested: number;
   replayMissing: number;
+  evidenceSourceFailures: number;
 }
 
 function createNewsAnalysisMetrics(): NewsAnalysisMetrics {
@@ -249,6 +251,7 @@ function createNewsAnalysisMetrics(): NewsAnalysisMetrics {
     unresolvedTasks: 0,
     replayRequested: 0,
     replayMissing: 0,
+    evidenceSourceFailures: 0,
   };
 }
 
@@ -777,25 +780,25 @@ async function fetchStockData(symbol: string): Promise<MarketData | null> {
 }
 
 // Fetch stock news
-async function fetchStockNews(symbol: string): Promise<any[]> {
-  if (!FMP_API_KEY) return [];
+async function fetchStockNews(symbol: string): Promise<EvidenceFetchOutcome<any>> {
+  if (!FMP_API_KEY) return { success: false, data: [], error: { source: "news", message: "FMP_API_KEY not configured" } };
 
   try {
     // Using stable API (v3 deprecated Aug 31, 2025)
     const url = `${FMP_BASE_URL}/news/stock?symbols=${symbol}&limit=15&apikey=${FMP_API_KEY}`;
     const response = curlFetch(url);
-    if (!response) return [];
+    if (!response) return { success: false, data: [], error: { source: "news", message: "empty provider response" } };
     const news = JSON.parse(response);
     // FMP API can return error objects like {"Error Message": "..."} - ensure we always return an array
-    return Array.isArray(news) ? news : [];
-  } catch {
-    return [];
+    return Array.isArray(news) ? { success: true, data: news } : { success: false, data: [], error: { source: "news", message: "malformed provider response" } };
+  } catch (error: any) {
+    return { success: false, data: [], error: { source: "news", message: error?.message || String(error) } };
   }
 }
 
 // Fetch SEC filings
-async function fetchSECFilings(symbol: string): Promise<any[]> {
-  if (!FMP_API_KEY) return [];
+async function fetchSECFilings(symbol: string): Promise<EvidenceFetchOutcome<any>> {
+  if (!FMP_API_KEY) return { success: false, data: [], error: { source: "sec-filings", message: "FMP_API_KEY not configured" } };
 
   try {
     // Using stable API (v3 deprecated Aug 31, 2025)
@@ -806,12 +809,12 @@ async function fetchSECFilings(symbol: string): Promise<any[]> {
       .split("T")[0];
     const url = `${FMP_BASE_URL}/sec-filings-search/symbol?symbol=${symbol}&from=${fromDate}&to=${toDate}&limit=10&apikey=${FMP_API_KEY}`;
     const response = curlFetch(url);
-    if (!response) return [];
+    if (!response) return { success: false, data: [], error: { source: "sec-filings", message: "empty provider response" } };
     const filings = JSON.parse(response);
     // FMP API can return error objects - ensure we always return an array
-    return Array.isArray(filings) ? filings : [];
-  } catch {
-    return [];
+    return Array.isArray(filings) ? { success: true, data: filings } : { success: false, data: [], error: { source: "sec-filings", message: "malformed provider response" } };
+  } catch (error: any) {
+    return { success: false, data: [], error: { source: "sec-filings", message: error?.message || String(error) } };
   }
 }
 
@@ -855,19 +858,19 @@ function computePrePumpBasePrice(
 }
 
 // Fetch press releases
-async function fetchPressReleases(symbol: string): Promise<any[]> {
-  if (!FMP_API_KEY) return [];
+async function fetchPressReleases(symbol: string): Promise<EvidenceFetchOutcome<any>> {
+  if (!FMP_API_KEY) return { success: false, data: [], error: { source: "press-releases", message: "FMP_API_KEY not configured" } };
 
   try {
     // Using stable API (v3 deprecated Aug 31, 2025)
     const url = `${FMP_BASE_URL}/news/press-releases?symbols=${symbol}&limit=10&apikey=${FMP_API_KEY}`;
     const response = curlFetch(url);
-    if (!response) return [];
+    if (!response) return { success: false, data: [], error: { source: "press-releases", message: "empty provider response" } };
     const releases = JSON.parse(response);
     // FMP API can return error objects - ensure we always return an array
-    return Array.isArray(releases) ? releases : [];
-  } catch {
-    return [];
+    return Array.isArray(releases) ? { success: true, data: releases } : { success: false, data: [], error: { source: "press-releases", message: "malformed provider response" } };
+  } catch (error: any) {
+    return { success: false, data: [], error: { source: "press-releases", message: error?.message || String(error) } };
   }
 }
 
@@ -904,6 +907,7 @@ interface NewsEvidence {
   news: any[];
   secFilings: any[];
   pressReleases: any[];
+  sourceErrors: Array<{ source: string; message: string }>;
 }
 
 interface NewsLegitimacyResult {
@@ -947,6 +951,7 @@ async function analyzeNewsLegitimacyBatch(
   attemptedCall: boolean;
   failedCall: boolean;
   unavailable: boolean;
+  providerFailure?: { type: string; message: string; metadata?: unknown };
 }> {
   const prompt = `For each instrument below, decide whether verified news, SEC filings, or a press release provides a LEGITIMATE explanation for unusual trading activity.
 
@@ -998,8 +1003,10 @@ ${batch.map(formatNewsEvidence).join("\n\n---\n\n")}`;
     console.error(`  ❌ Error analyzing news batch: ${message}`);
     return {
       ...skipped(),
-      rawResponse: JSON.stringify({ providerFailure: true, message }),
-      responseId: `provider-failure-${Date.now()}`,
+      rawResponse: null,
+      responseId: null,
+      model: null,
+      providerFailure: { type: error?.name || "ProviderError", message },
       attemptedCall: true,
       failedCall: true,
       unavailable: false,
@@ -1832,12 +1839,14 @@ async function runEnhancedPipeline(): Promise<void> {
           fetchSECFilings(group.representative.symbol),
           fetchPressReleases(group.representative.symbol),
         ]);
+        const sourceStatus = classifyEvidenceOutcomes([newsRaw, secFilingsRaw, pressReleasesRaw]);
         const item: NewsEvidence = {
           key: group.key,
           result: group.representative,
-          news: Array.isArray(newsRaw) ? newsRaw : [],
-          secFilings: Array.isArray(secFilingsRaw) ? secFilingsRaw : [],
-          pressReleases: Array.isArray(pressReleasesRaw) ? pressReleasesRaw : [],
+          news: newsRaw.data,
+          secFilings: secFilingsRaw.data,
+          pressReleases: pressReleasesRaw.data,
+          sourceErrors: sourceStatus.failures,
         };
         applyNewsEvidence(group, item);
         return { group, item };
@@ -1845,13 +1854,13 @@ async function runEnhancedPipeline(): Promise<void> {
     );
     const withEvidence = evidence.filter(
       ({ item }) =>
-        item.news.length > 0 ||
+        item.sourceErrors.length === 0 && (item.news.length > 0 ||
         item.secFilings.length > 0 ||
-        item.pressReleases.length > 0,
+        item.pressReleases.length > 0),
     );
 
     for (const { group } of evidence.filter(
-      ({ item }) =>
+      ({ item }) => item.sourceErrors.length === 0 &&
         item.news.length === 0 &&
         item.secFilings.length === 0 &&
         item.pressReleases.length === 0,
@@ -1863,8 +1872,19 @@ async function runEnhancedPipeline(): Promise<void> {
       );
     }
 
+    for (const { group, item } of evidence.filter(({ item }) => item.sourceErrors.length > 0)) {
+      newsMetrics.evidenceSourceFailures += item.sourceErrors.length;
+      retainAsSuspicious(group, `EVIDENCE UNAVAILABLE: ${item.sourceErrors.map((error) => `${error.source}: ${error.message}`).join("; ")}`, true);
+    }
+
     const batchId = `batch-${batchIndex + 1}`;
-    const withoutEvidence = evidence.filter(({ item }) => item.news.length === 0 && item.secFilings.length === 0 && item.pressReleases.length === 0);
+    const withoutEvidence = evidence.filter(({ item }) => item.sourceErrors.length === 0 && item.news.length === 0 && item.secFilings.length === 0 && item.pressReleases.length === 0);
+    const unavailableEvidence = evidence.filter(({ item }) => item.sourceErrors.length > 0);
+    if (unavailableEvidence.length > 0) {
+      runJournal = registerJournalTasks(runJournal, unavailableEvidence.map(({ group }) => group.key), `evidence-failure-${batchId}`);
+      runJournal = recordSourceEvidence(runJournal, unavailableEvidence.map(({ group }) => group.key), unavailableEvidence.map(({ item }) => item), `evidence-failure-${batchId}`);
+      writeRunJournalAtomic(journalPath, runJournal);
+    }
     if (withoutEvidence.length > 0) {
       runJournal = registerJournalTasks(runJournal, withoutEvidence.map(({ group }) => group.key), `no-evidence-${batchId}`, "resolved");
       runJournal = recordSourceEvidence(runJournal, withoutEvidence.map(({ group }) => group.key), withoutEvidence.map(({ item }) => item), `no-evidence-${batchId}`);
@@ -1888,7 +1908,7 @@ async function runEnhancedPipeline(): Promise<void> {
     newsMetrics.completionTokens += batchAnalysis.completionTokens;
 
     let parsed = null as ReturnType<typeof parseNewsAnalysisResponse> | null;
-    if (batchAnalysis.rawResponse !== null && batchAnalysis.responseId !== null) {
+    if (batchAnalysis.rawResponse !== null || batchAnalysis.providerFailure) {
       const estimatedCostUsd = (batchAnalysis.promptTokens / 1_000_000) * OPENAI_INPUT_COST_PER_MILLION + (batchAnalysis.completionTokens / 1_000_000) * OPENAI_OUTPUT_COST_PER_MILLION;
       // This durable write is deliberately before JSON or semantic validation.
       runJournal = persistCaptureBeforeValidation(journalPath, runJournal, {
@@ -1896,8 +1916,9 @@ async function runEnhancedPipeline(): Promise<void> {
         responseId: batchAnalysis.responseId, model: batchAnalysis.model,
         tokenUsage: { promptTokens: batchAnalysis.promptTokens, completionTokens: batchAnalysis.completionTokens, totalTokens: batchAnalysis.promptTokens + batchAnalysis.completionTokens },
         pricingSnapshot: { inputPerMillion: OPENAI_INPUT_COST_PER_MILLION, outputPerMillion: OPENAI_OUTPUT_COST_PER_MILLION }, estimatedCostUsd,
+        ...(batchAnalysis.providerFailure ? { providerFailure: batchAnalysis.providerFailure } : {}),
       });
-      parsed = parseNewsAnalysisResponse(batchAnalysis.rawResponse, withEvidence.map(({ group }) => group.key));
+      parsed = parseNewsAnalysisResponse(batchAnalysis.rawResponse || "", withEvidence.map(({ group }) => group.key));
       runJournal = transitionSemanticValidation(runJournal, { batchId, validSymbols: parsed.valid.keys(), quarantined: parsed.quarantined, degraded: parsed.degraded, anomalyCodes: parsed.anomalies, malformedTopLevel: parsed.malformedTopLevel });
       writeRunJournalAtomic(journalPath, runJournal);
       newsMetrics.quarantinedRows += parsed.quarantined.length;

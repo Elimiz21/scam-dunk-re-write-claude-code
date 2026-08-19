@@ -107,7 +107,7 @@ export interface JournalAttempt {
   batchId: string;
   capturedAt: string;
   prompt?: string;
-  rawResponse?: string;
+  rawResponse?: string | null;
   responseId?: string | null;
   model?: string | null;
   tokenUsage?: Record<string, number>;
@@ -117,6 +117,7 @@ export interface JournalAttempt {
   degraded?: boolean;
   anomalyCodes?: string[];
   malformedTopLevel?: boolean;
+  providerFailure?: { type: string; message: string; metadata?: unknown };
 }
 
 export interface JournalTask {
@@ -215,13 +216,14 @@ function requireFiniteNonNegative(value: unknown, name: string): asserts value i
 export interface ProviderCapture {
   batchId: string;
   prompt: string;
-  rawResponse: string;
-  responseId: string;
-  model: string;
+  rawResponse: string | null;
+  responseId: string | null;
+  model: string | null;
   tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number };
   pricingSnapshot: { inputPerMillion: number; outputPerMillion: number };
   estimatedCostUsd: number;
   capturedAt?: string;
+  providerFailure?: { type: string; message: string; metadata?: unknown };
 }
 
 function assertBatchProvenance(journal: RunJournal, batchId: string, requireProviderAttempt = false): RunJournal["batches"][string] {
@@ -241,7 +243,8 @@ function assertBatchProvenance(journal: RunJournal, batchId: string, requireProv
 export function recordProviderCapture(journal: RunJournal, input: ProviderCapture): RunJournal {
   const next = clone(journal);
   const batch = assertBatchProvenance(next, input.batchId);
-  if (typeof input.prompt !== "string" || typeof input.rawResponse !== "string" || typeof input.responseId !== "string" || !input.responseId || typeof input.model !== "string" || !input.model) throw new Error("Provider capture requires prompt, raw response, response ID, and model");
+  const failed = !!input.providerFailure;
+  if (typeof input.prompt !== "string" || (failed ? (input.rawResponse !== null && typeof input.rawResponse !== "string") || (input.responseId !== null && typeof input.responseId !== "string") || (input.model !== null && typeof input.model !== "string") || typeof input.providerFailure?.type !== "string" || !input.providerFailure.type || typeof input.providerFailure?.message !== "string" || !input.providerFailure.message : typeof input.rawResponse !== "string" || typeof input.responseId !== "string" || !input.responseId || typeof input.model !== "string" || !input.model)) throw new Error("Provider capture requires complete success provenance or typed failure provenance");
   requireFiniteNonNegative(input.tokenUsage?.promptTokens, "prompt tokens");
   requireFiniteNonNegative(input.tokenUsage?.completionTokens, "completion tokens");
   requireFiniteNonNegative(input.tokenUsage?.totalTokens, "total tokens");
@@ -250,7 +253,7 @@ export function recordProviderCapture(journal: RunJournal, input: ProviderCaptur
   requireFiniteNonNegative(input.estimatedCostUsd, "estimated cost");
   const capturedAt = input.capturedAt || nowIso();
   const attemptNumber = batch.attempts + 1;
-  const attempt: JournalAttempt = { attempt: attemptNumber, batchId: input.batchId, capturedAt, prompt: input.prompt, rawResponse: input.rawResponse, responseId: input.responseId, model: input.model, tokenUsage: input.tokenUsage, pricingSnapshot: input.pricingSnapshot, estimatedCostUsd: input.estimatedCostUsd, semanticValidation: "pending" };
+  const attempt: JournalAttempt = { attempt: attemptNumber, batchId: input.batchId, capturedAt, prompt: input.prompt, rawResponse: input.rawResponse, responseId: input.responseId, model: input.model, tokenUsage: input.tokenUsage, pricingSnapshot: input.pricingSnapshot, estimatedCostUsd: input.estimatedCostUsd, semanticValidation: "pending", ...(input.providerFailure ? { providerFailure: clone(input.providerFailure) } : {}) };
   batch.attempts = attemptNumber;
   for (const taskId of batch.taskIds) next.tasks[taskId].attempts.push(clone(attempt));
   if (next.durableCaptureAttempts) delete next.durableCaptureAttempts[input.batchId];

@@ -14,7 +14,7 @@ function completeStatus(overrides: Record<string, unknown> = {}) {
       phase4_socialMedia: phase,
       phase5_schemeTracking: phase,
     },
-    summary: { newsAnalysisMetrics: { failedModelCalls: 0, candidatesDeferred: 0, unavailableModelBatches: 0, quarantinedRows: 0, responseAnomalies: 0, unresolvedTasks: 0 } },
+    summary: { newsAnalysisMetrics: { failedModelCalls: 0, candidatesDeferred: 0, unavailableModelBatches: 0, quarantinedRows: 0, responseAnomalies: 0, unresolvedTasks: 0, replayRequested: 0, replayMissing: 0, evidenceSourceFailures: 0 } },
     recovery: { unresolvedCount: 0, generationId: "gen-1", journalFile: "journal.json", degraded: false },
     ...overrides,
   };
@@ -55,10 +55,17 @@ describe("evaluateScanPublication", () => {
   it("fails closed when any resilience counter or recovery provenance is absent", () => {
     const status = completeStatus();
     delete (status.summary.newsAnalysisMetrics as any).quarantinedRows;
+    delete (status.summary.newsAnalysisMetrics as any).replayRequested;
     delete (status as any).recovery.generationId;
     const result = evaluateScanPublication(status, "2026-08-19");
     expect(result.publishable).toBe(false);
     expect(result.reasons).toContain("malformed-analysis-counter");
     expect(result.reasons).toContain("malformed-recovery");
+  });
+
+  it("fails closed when replay metrics are absent", () => {
+    const status = completeStatus();
+    delete (status.summary.newsAnalysisMetrics as any).replayMissing;
+    expect(evaluateScanPublication(status, "2026-08-19").publishable).toBe(false);
   });
 });

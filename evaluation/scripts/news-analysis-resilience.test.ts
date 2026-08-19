@@ -70,6 +70,21 @@ describe("parseNewsAnalysisResponse", () => {
 });
 
 describe("run journal", () => {
+  it("atomically records nullable provider failure provenance before quarantine", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-provider-failure-"));
+    const journalPath = path.join(dir, "run.json");
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    journal = persistCaptureBeforeValidation(journalPath, journal, {
+      batchId: "batch-1", prompt: "p", rawResponse: null, responseId: null, model: null,
+      tokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
+      providerFailure: { type: "TimeoutError", message: "provider timed out" },
+    });
+    const attempt = readRunJournal(journalPath).tasks["2026-08-19:ABC"].attempts[0];
+    expect(attempt).toMatchObject({ rawResponse: null, responseId: null, model: null, providerFailure: { type: "TimeoutError" }, semanticValidation: "pending" });
+    journal = transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: [], quarantined: [{ symbol: "ABC", reason: "provider-failure" }], degraded: true });
+    expect(journal.tasks["2026-08-19:ABC"].state).toBe("quarantined");
+  });
   it("persists evidence before provider capture and validation, atomically", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-journal-"));
     const journalPath = path.join(dir, "run.json");

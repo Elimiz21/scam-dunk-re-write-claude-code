@@ -37,7 +37,7 @@ export function evaluateScanPublication(status: unknown, expectedDate: string): 
     }
   }
   const metrics = isRecord(status.summary) && isRecord(status.summary.newsAnalysisMetrics) ? status.summary.newsAnalysisMetrics : null;
-  const counters = ["failedModelCalls", "candidatesDeferred", "unavailableModelBatches", "quarantinedRows", "responseAnomalies", "unresolvedTasks"];
+  const counters = ["failedModelCalls", "candidatesDeferred", "unavailableModelBatches", "quarantinedRows", "responseAnomalies", "unresolvedTasks", "replayRequested", "replayMissing", "evidenceSourceFailures"];
   if (!metrics) reasons.push("analysis-status-missing");
   else {
     for (const name of counters) if (!isCounter(metrics[name]) && !reasons.includes("malformed-analysis-counter")) reasons.push("malformed-analysis-counter");
@@ -47,6 +47,8 @@ export function evaluateScanPublication(status: unknown, expectedDate: string): 
     if (isCounter(metrics.quarantinedRows) && metrics.quarantinedRows > 0) reasons.push("analysis-quarantined");
     if (isCounter(metrics.responseAnomalies) && metrics.responseAnomalies > 0) reasons.push("analysis-response-anomalies");
     if (isCounter(metrics.unresolvedTasks) && metrics.unresolvedTasks > 0) reasons.push("unresolved-recovery");
+    if (isCounter(metrics.replayMissing) && metrics.replayMissing > 0) reasons.push("analysis-replay-missing");
+    if (isCounter(metrics.evidenceSourceFailures) && metrics.evidenceSourceFailures > 0) reasons.push("analysis-evidence-unavailable");
     for (const name of ["deferred", "deferredBatches"]) {
       if (metrics[name] !== undefined && !isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
       else if (isCounter(metrics[name]) && metrics[name] > 0) reasons.push("analysis-deferrals");
