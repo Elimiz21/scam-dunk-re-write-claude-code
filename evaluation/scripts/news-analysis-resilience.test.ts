@@ -4,6 +4,7 @@ import * as path from "path";
 import {
   buildDegradedScanAlertPayload,
   applyProviderMetadataPolicy,
+  attachProviderAccounting,
   encodeRawProviderMetadata,
   validateCapturedProviderMetadata,
   createRunJournal,
@@ -86,6 +87,91 @@ describe("provider metadata policy", () => {
     const policy = applyProviderMetadataPolicy(parsed, ["ABC", "DEF"], ["malformed-provider-usage"]);
     expect([...policy.validSymbols]).toEqual([]);
     expect(policy.quarantined).toEqual([{ symbol: "ABC", reason: "malformed-provider-metadata" }, { symbol: "DEF", reason: "malformed-provider-metadata" }]);
+  });
+
+  it("continues valid batches while preserving malformed metadata and quarantining only that batch", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-provider-metadata-continuation-"));
+    const journalPath = path.join(dir, "run.json");
+    const malformedSymbols = ["BAD1", "BAD2"];
+    const validSymbols = ["GOOD"];
+    const malformedRawResponse = JSON.stringify({ results: malformedSymbols.map((symbol) => ({ symbol, hasLegitimateNews: true, explanation: "event", specificEvent: null })) });
+    const validRawResponse = JSON.stringify({ results: [{ symbol: "GOOD", hasLegitimateNews: false, explanation: "No dated event", specificEvent: null }] });
+    const malformedUsage = { promptTokens: -1, completionTokens: Number.NaN, totalTokens: Number.POSITIVE_INFINITY };
+    const malformedRawProviderMetadata = encodeRawProviderMetadata({ responseId: null, model: "", usage: malformedUsage });
+    let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-provider-metadata" });
+    journal = registerJournalTasks(journal, malformedSymbols, "batch-1");
+    journal = registerJournalTasks(journal, validSymbols, "batch-2");
+    journal = recordSourceEvidence(journal, malformedSymbols, { news: [] }, "batch-1");
+    journal = recordSourceEvidence(journal, validSymbols, { news: [] }, "batch-2");
+
+    journal = persistCaptureBeforeValidation(journalPath, journal, {
+      batchId: "batch-1",
+      prompt: "malformed metadata prompt",
+      rawResponse: malformedRawResponse,
+      responseId: null,
+      model: null,
+      tokenUsage: null,
+      pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 },
+      estimatedCostUsd: null,
+      rawProviderMetadata: malformedRawProviderMetadata,
+    });
+    const malformedAttempt = readRunJournal(journalPath).tasks["2026-08-19:BAD1"].attempts[0];
+    expect(malformedAttempt.rawResponse).toBe(malformedRawResponse);
+    expect(malformedAttempt.rawProviderMetadata).toEqual({ responseId: null, model: "", usage: { promptTokens: -1, completionTokens: "[NaN]", totalTokens: "[Infinity]" } });
+    expect(malformedAttempt.tokenUsage).toBeNull();
+    expect(malformedAttempt.estimatedCostUsd).toBeNull();
+
+    const malformedValidation = validateCapturedProviderMetadata({ responseId: null, model: "", rawResponse: malformedRawResponse, usage: malformedUsage, pricing: { inputPerMillion: 0.1, outputPerMillion: 0.2 } });
+    expect(malformedValidation.normalizedUsage).toBeNull();
+    expect(malformedValidation.estimatedCostUsd).toBeNull();
+    const malformedParsed = parseNewsAnalysisResponse(malformedRawResponse, malformedSymbols);
+    const malformedPolicy = applyProviderMetadataPolicy(malformedParsed, malformedSymbols, malformedValidation.anomalies);
+    expect([...malformedPolicy.validRows.keys()]).toEqual([]);
+    expect(malformedPolicy.validSymbols).toEqual([]);
+    expect(malformedPolicy.quarantined).toEqual(malformedSymbols.map((symbol) => ({ symbol, reason: "malformed-provider-metadata" })));
+    journal = transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: malformedPolicy.validSymbols, quarantined: malformedPolicy.quarantined, degraded: malformedPolicy.degraded, anomalyCodes: malformedValidation.anomalies });
+
+    const validUsage = { promptTokens: 2, completionTokens: 3, totalTokens: 5 };
+    journal = persistCaptureBeforeValidation(journalPath, journal, {
+      batchId: "batch-2",
+      prompt: "valid metadata prompt",
+      rawResponse: validRawResponse,
+      responseId: "resp-good",
+      model: "model-good",
+      tokenUsage: validUsage,
+      pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 },
+      estimatedCostUsd: 0.0000008,
+      rawProviderMetadata: encodeRawProviderMetadata({ responseId: "resp-good", model: "model-good", usage: validUsage }),
+    });
+    const validValidation = validateCapturedProviderMetadata({ responseId: "resp-good", model: "model-good", rawResponse: validRawResponse, usage: validUsage, pricing: { inputPerMillion: 0.1, outputPerMillion: 0.2 } });
+    expect(validValidation.anomalies).toEqual([]);
+    expect(validValidation.normalizedUsage).toEqual(validUsage);
+    journal = attachProviderAccounting(journal, "batch-2", validValidation.normalizedUsage!, validValidation.estimatedCostUsd!);
+    const validParsed = parseNewsAnalysisResponse(validRawResponse, validSymbols);
+    const validPolicy = applyProviderMetadataPolicy(validParsed, validSymbols, validValidation.anomalies);
+    expect([...validPolicy.validRows.keys()]).toEqual(["GOOD"]);
+    journal = transitionSemanticValidation(journal, { batchId: "batch-2", validSymbols: validPolicy.validSymbols, quarantined: validPolicy.quarantined, degraded: validPolicy.degraded });
+
+    expect(journal.tasks["2026-08-19:BAD1"].state).toBe("quarantined");
+    expect(journal.tasks["2026-08-19:BAD2"].state).toBe("quarantined");
+    expect(journal.tasks["2026-08-19:GOOD"].state).toBe("resolved");
+    expect(journal.batches["batch-1"].degraded).toBe(true);
+    const badAttempt = journal.tasks["2026-08-19:BAD1"].attempts[0];
+    const goodAttempt = journal.tasks["2026-08-19:GOOD"].attempts[0];
+    expect(badAttempt.tokenUsage).toBeNull();
+    expect(badAttempt.estimatedCostUsd).toBeNull();
+    expect(goodAttempt.tokenUsage).toEqual(validUsage);
+    expect(goodAttempt.estimatedCostUsd).toBeCloseTo(0.0000008);
+    const allAttempts = Object.values(journal.tasks).flatMap((task) => task.attempts);
+    expect(allAttempts.filter((attempt) => attempt.tokenUsage !== null)).toEqual([goodAttempt]);
+    expect(allAttempts.filter((attempt) => attempt.estimatedCostUsd !== null)).toEqual([goodAttempt]);
+  });
+
+  it("rejects inconsistent totals and non-string provider content", () => {
+    const invalid = validateCapturedProviderMetadata({ responseId: "resp", model: "model", rawResponse: { results: [] }, usage: { promptTokens: 2, completionTokens: 3, totalTokens: 99 }, pricing: { inputPerMillion: 0.1, outputPerMillion: 0.2 } });
+    expect(invalid.anomalies).toEqual(expect.arrayContaining(["malformed-response-content", "malformed-provider-usage"]));
+    expect(invalid.normalizedUsage).toBeNull();
+    expect(invalid.estimatedCostUsd).toBeNull();
   });
 });
 
