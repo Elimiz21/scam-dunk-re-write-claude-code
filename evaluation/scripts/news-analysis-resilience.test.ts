@@ -204,6 +204,38 @@ describe("run journal", () => {
     expect(resolved.tasks["2026-08-19:ABC"].state).toBe("resolved");
   });
 
+  it("requires durability for the exact latest provider attempt in a batch", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-durable-attempt-"));
+    const journalPath = path.join(dir, "run.json");
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    const firstCapture = {
+      batchId: "batch-1", prompt: "attempt 1", rawResponse: '{"attempt":1}', responseId: "r-1", model: "m",
+      tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
+    };
+    const secondCapture = {
+      batchId: "batch-1", prompt: "attempt 2", rawResponse: '{"attempt":2}', responseId: "r-2", model: "m",
+      tokenUsage: { promptTokens: 2, completionTokens: 2, totalTokens: 4 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
+    };
+
+    const persistedFirst = persistCaptureBeforeValidation(journalPath, journal, firstCapture);
+    const unpersistedSecond = recordProviderCapture(persistedFirst, secondCapture);
+
+    expect(() => transitionSemanticValidation(unpersistedSecond, {
+      batchId: "batch-1", validSymbols: ["ABC"], quarantined: [],
+    })).toThrow(/durable|persist/i);
+
+    const persistedSecond = persistCaptureBeforeValidation(journalPath, persistedFirst, secondCapture);
+    const resolved = transitionSemanticValidation(persistedSecond, {
+      batchId: "batch-1", validSymbols: ["ABC"], quarantined: [],
+    });
+    const attempts = resolved.tasks["2026-08-19:ABC"].attempts;
+    expect(attempts).toHaveLength(2);
+    expect(attempts[0]).toMatchObject({ attempt: 1, responseId: "r-1", semanticValidation: "pending" });
+    expect(attempts[1]).toMatchObject({ attempt: 2, responseId: "r-2", semanticValidation: "resolved" });
+    expect(resolved.tasks["2026-08-19:ABC"].state).toBe("resolved");
+  });
+
   it("persists response anomalies on the batch attempt while retaining valid resolutions", () => {
     let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC", "DEF"], "batch-1");
     journal = recordSourceEvidence(journal, ["ABC", "DEF"], { news: [] }, "batch-1");

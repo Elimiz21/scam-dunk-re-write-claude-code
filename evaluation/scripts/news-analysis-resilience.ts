@@ -138,7 +138,7 @@ export interface RunJournal {
   replayOfGeneration?: string;
   tasks: Record<string, JournalTask>;
   batches: Record<string, { batchId: string; taskIds: string[]; attempts: number; degraded?: boolean; anomalyCodes?: string[]; malformedTopLevel?: boolean }>;
-  durableCaptureBatches?: string[];
+  durableCaptureAttempts?: Record<string, number>;
 }
 
 function taskIdFor(scanDate: string, symbol: string): string {
@@ -227,12 +227,14 @@ export interface ProviderCapture {
 function assertBatchProvenance(journal: RunJournal, batchId: string, requireProviderAttempt = false): RunJournal["batches"][string] {
   const batch = journal.batches[batchId];
   if (!batch) throw new Error(`Unknown batch: ${batchId}`);
+  const durableAttempt = journal.durableCaptureAttempts?.[batchId];
+  if (requireProviderAttempt && durableAttempt !== batch.attempts) throw new Error(`Durable provider capture required for latest attempt in ${batchId}`);
   for (const taskId of batch.taskIds) {
     const task = journal.tasks[taskId];
     if (!task || task.sourceEvidenceSnapshots.length === 0) throw new Error(`Source evidence required before capture for ${taskId}`);
-    if (requireProviderAttempt && !task.attempts.some((attempt) => attempt.batchId === batchId)) throw new Error(`Provider capture attempt required before validation for ${taskId}`);
+    const latestAttempt = [...(task?.attempts || [])].reverse().find((attempt) => attempt.batchId === batchId);
+    if (requireProviderAttempt && (!latestAttempt || latestAttempt.attempt !== durableAttempt)) throw new Error(`Durable provider capture required for latest attempt in ${taskId}`);
   }
-  if (requireProviderAttempt && !journal.durableCaptureBatches?.includes(batchId)) throw new Error(`Durable provider capture required before validation for ${batchId}`);
   return batch;
 }
 
@@ -251,6 +253,7 @@ export function recordProviderCapture(journal: RunJournal, input: ProviderCaptur
   const attempt: JournalAttempt = { attempt: attemptNumber, batchId: input.batchId, capturedAt, prompt: input.prompt, rawResponse: input.rawResponse, responseId: input.responseId, model: input.model, tokenUsage: input.tokenUsage, pricingSnapshot: input.pricingSnapshot, estimatedCostUsd: input.estimatedCostUsd, semanticValidation: "pending" };
   batch.attempts = attemptNumber;
   for (const taskId of batch.taskIds) next.tasks[taskId].attempts.push(clone(attempt));
+  if (next.durableCaptureAttempts) delete next.durableCaptureAttempts[input.batchId];
   return next;
 }
 
@@ -316,11 +319,12 @@ export function persistCaptureBeforeValidation(filePath: string, journal: RunJou
   writeRunJournalAtomic(filePath, captured);
   const verified = readRunJournal(filePath);
   const batch = verified.batches[input.batchId];
-  if (!batch || batch.attempts < captured.batches[input.batchId].attempts || batch.taskIds.some((taskId) => !verified.tasks[taskId].attempts.some((attempt) => attempt.batchId === input.batchId))) {
+  const capturedAttempt = captured.batches[input.batchId].attempts;
+  if (!batch || batch.attempts !== capturedAttempt || batch.taskIds.some((taskId) => [...verified.tasks[taskId].attempts].reverse().find((attempt) => attempt.batchId === input.batchId)?.attempt !== capturedAttempt)) {
     throw new Error(`Provider capture could not be verified on disk for ${input.batchId}`);
   }
   const durable = clone(verified);
-  durable.durableCaptureBatches = [...new Set([...(durable.durableCaptureBatches || []), input.batchId])];
+  durable.durableCaptureAttempts = { ...(durable.durableCaptureAttempts || {}), [input.batchId]: capturedAttempt };
   writeRunJournalAtomic(filePath, durable);
   return durable;
 }
