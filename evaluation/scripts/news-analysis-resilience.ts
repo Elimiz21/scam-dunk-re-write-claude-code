@@ -126,7 +126,7 @@ export interface JournalTask {
   symbol: string;
   state: JournalTaskState;
   batchIds: string[];
-  sourceEvidenceSnapshots: Array<{ capturedAt: string; evidence: unknown }>;
+  sourceEvidenceSnapshots: Array<{ snapshotId: string; batchId: string; nextAttempt: number; capturedAt: string; evidence: unknown }>;
   attempts: JournalAttempt[];
   retryCount: number;
 }
@@ -198,13 +198,15 @@ export function registerJournalTasks(journal: RunJournal, symbols: Iterable<stri
 
 export function recordSourceEvidence(journal: RunJournal, symbolsOrTaskIds: Iterable<string>, evidence: unknown, batchId = "batch-1", capturedAt = nowIso()): RunJournal {
   const next = clone(journal);
+  const nextAttempt = (next.batches[batchId]?.attempts || 0) + 1;
+  const snapshotId = `${batchId}:attempt-${nextAttempt}:${capturedAt}`;
   for (const value of symbolsOrTaskIds) {
     const normalized = normalizeAnalysisSymbol(value).replace(`${next.scanDate}:`, "");
     const taskId = next.tasks[value] ? value : taskIdFor(next.scanDate, normalized);
     const task = next.tasks[taskId];
     if (!task) continue;
     if (!task.batchIds.includes(batchId)) task.batchIds.push(batchId);
-    task.sourceEvidenceSnapshots.push({ capturedAt, evidence: redact(clone(evidence)) });
+    task.sourceEvidenceSnapshots.push({ snapshotId, batchId, nextAttempt, capturedAt, evidence: redact(clone(evidence)) });
   }
   return next;
 }
@@ -233,7 +235,7 @@ function assertBatchProvenance(journal: RunJournal, batchId: string, requireProv
   if (requireProviderAttempt && durableAttempt !== batch.attempts) throw new Error(`Durable provider capture required for latest attempt in ${batchId}`);
   for (const taskId of batch.taskIds) {
     const task = journal.tasks[taskId];
-    if (!task || task.sourceEvidenceSnapshots.length === 0) throw new Error(`Source evidence required before capture for ${taskId}`);
+    if (!task || (requireProviderAttempt ? !task.sourceEvidenceSnapshots.some((snapshot) => snapshot.batchId === batchId && snapshot.nextAttempt === durableAttempt) : !task.sourceEvidenceSnapshots.some((snapshot) => snapshot.batchId === batchId && snapshot.nextAttempt === batch.attempts + 1))) throw new Error(`Fresh source evidence required before capture for ${taskId}`);
     const latestAttempt = [...(task?.attempts || [])].reverse().find((attempt) => attempt.batchId === batchId);
     if (requireProviderAttempt && (!latestAttempt || latestAttempt.attempt !== durableAttempt)) throw new Error(`Durable provider capture required for latest attempt in ${taskId}`);
   }

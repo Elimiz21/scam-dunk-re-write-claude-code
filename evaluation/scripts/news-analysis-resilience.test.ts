@@ -178,10 +178,21 @@ describe("run journal", () => {
     expect(() => transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: ["ABC"], quarantined: [] })).toThrow(/provider capture|attempt/i);
   });
 
+  it("rejects a provider capture when evidence belongs to a different batch", () => {
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    journal = registerJournalTasks(journal, ["ABC"], "batch-2");
+    expect(() => recordProviderCapture(journal, {
+      batchId: "batch-2", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
+      tokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }, pricingSnapshot: { inputPerMillion: 0, outputPerMillion: 0 }, estimatedCostUsd: 0,
+    })).toThrow(/fresh source evidence/i);
+  });
+
   it("rejects validation when the only provider attempt belongs to another batch", () => {
     let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
     journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
     journal = registerJournalTasks(journal, ["ABC"], "batch-2");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-2");
     journal = persistTestCapture(journal, {
       batchId: "batch-2", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
       tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
@@ -234,13 +245,15 @@ describe("run journal", () => {
     };
 
     const persistedFirst = persistCaptureBeforeValidation(journalPath, journal, firstCapture);
-    const unpersistedSecond = recordProviderCapture(persistedFirst, secondCapture);
+    expect(() => recordProviderCapture(persistedFirst, secondCapture)).toThrow(/fresh source evidence/i);
+    const refreshed = recordSourceEvidence(persistedFirst, ["ABC"], { news: [{ title: "refreshed" }] }, "batch-1");
+    const unpersistedSecond = recordProviderCapture(refreshed, secondCapture);
 
     expect(() => transitionSemanticValidation(unpersistedSecond, {
       batchId: "batch-1", validSymbols: ["ABC"], quarantined: [],
     })).toThrow(/durable|persist/i);
 
-    const persistedSecond = persistCaptureBeforeValidation(journalPath, persistedFirst, secondCapture);
+    const persistedSecond = persistCaptureBeforeValidation(journalPath, refreshed, secondCapture);
     const resolved = transitionSemanticValidation(persistedSecond, {
       batchId: "batch-1", validSymbols: ["ABC"], quarantined: [],
     });
