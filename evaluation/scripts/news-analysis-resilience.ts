@@ -223,12 +223,13 @@ export interface ProviderCapture {
   capturedAt?: string;
 }
 
-function assertBatchProvenance(journal: RunJournal, batchId: string): RunJournal["batches"][string] {
+function assertBatchProvenance(journal: RunJournal, batchId: string, requireProviderAttempt = false): RunJournal["batches"][string] {
   const batch = journal.batches[batchId];
   if (!batch) throw new Error(`Unknown batch: ${batchId}`);
   for (const taskId of batch.taskIds) {
     const task = journal.tasks[taskId];
     if (!task || task.sourceEvidenceSnapshots.length === 0) throw new Error(`Source evidence required before capture for ${taskId}`);
+    if (requireProviderAttempt && !task.attempts.some((attempt) => attempt.batchId === batchId)) throw new Error(`Provider capture attempt required before validation for ${taskId}`);
   }
   return batch;
 }
@@ -255,7 +256,7 @@ export function transitionSemanticValidation(journal: RunJournal, input: { batch
   const next = clone(journal);
   const valid = new Set([...input.validSymbols].map(normalizeAnalysisSymbol));
   const quarantined = new Map(input.quarantined.map((item) => [normalizeAnalysisSymbol(item.symbol), item.reason]));
-  const batch = assertBatchProvenance(next, input.batchId);
+  const batch = assertBatchProvenance(next, input.batchId, true);
   if (input.degraded) batch.degraded = true;
   if (input.anomalyCodes?.length) batch.anomalyCodes = [...new Set([...(batch.anomalyCodes || []), ...input.anomalyCodes])];
   if (input.malformedTopLevel) batch.malformedTopLevel = true;
@@ -264,7 +265,7 @@ export function transitionSemanticValidation(journal: RunJournal, input: { batch
     if (task.state === "resolved") continue;
     const status = valid.has(task.symbol) ? "resolved" : quarantined.has(task.symbol) ? "quarantined" : "deferred";
     task.state = status;
-    const attempt = task.attempts[task.attempts.length - 1];
+    const attempt = [...task.attempts].reverse().find((candidate) => candidate.batchId === input.batchId);
     if (attempt) {
       attempt.semanticValidation = status;
       if (input.degraded) attempt.degraded = true;
@@ -277,7 +278,7 @@ export function transitionSemanticValidation(journal: RunJournal, input: { batch
 
 export function retryJournalTasks(journal: RunJournal, symbols: Iterable<string>, batchId: string): RunJournal {
   const requested = [...symbols];
-  const knownTaskIds = requested.map((symbol) => taskIdFor(journal.scanDate, symbol)).filter((taskId) => !!journal.tasks[taskId]);
+  const knownTaskIds = [...new Set(requested.map((symbol) => taskIdFor(journal.scanDate, symbol)).filter((taskId) => !!journal.tasks[taskId]))];
   const next = clone(journal);
   const batch = next.batches[batchId] || { batchId, taskIds: [], attempts: 0 };
   const replayable = knownTaskIds.filter((taskId) => !next.tasks[taskId].batchIds.includes(batchId));
@@ -286,7 +287,7 @@ export function retryJournalTasks(journal: RunJournal, symbols: Iterable<string>
     task.state = "pending";
     task.retryCount += 1;
     task.batchIds.push(batchId);
-    batch.taskIds.push(taskId);
+    if (!batch.taskIds.includes(taskId)) batch.taskIds.push(taskId);
   }
   next.batches[batchId] = batch;
   return next;

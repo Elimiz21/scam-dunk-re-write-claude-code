@@ -145,17 +145,29 @@ describe("run journal", () => {
       tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
     });
     journal = transitionSemanticValidation(journal, { validSymbols: [], quarantined: [{ symbol: "ABC", reason: "missing" }], batchId: "batch-1" });
-    journal = retryJournalTasks(journal, ["ABC", "UNKNOWN"], "batch-2");
-    journal = retryJournalTasks(journal, ["ABC", "UNKNOWN"], "batch-2");
+    journal = retryJournalTasks(journal, ["ABC", "abc", "UNKNOWN"], "batch-2");
+    journal = retryJournalTasks(journal, ["ABC", "abc", "UNKNOWN"], "batch-2");
     expect(Object.keys(journal.tasks)).toEqual(["2026-08-19:ABC"]);
     expect(journal.tasks["2026-08-19:ABC"].retryCount).toBe(1);
     expect(journal.batches["batch-2"].taskIds).toEqual(["2026-08-19:ABC"]);
   });
 
   it("rejects provider capture and semantic validation when provenance ordering is incomplete", () => {
-    const journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
     expect(() => recordProviderCapture(journal, { batchId: "unknown", prompt: "p", rawResponse: "{}" } as any)).toThrow(/unknown batch/i);
-    expect(() => transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: ["ABC"], quarantined: [] })).toThrow(/evidence|capture/i);
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    expect(() => transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: ["ABC"], quarantined: [] })).toThrow(/provider capture|attempt/i);
+  });
+
+  it("rejects validation when the only provider attempt belongs to another batch", () => {
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    journal = registerJournalTasks(journal, ["ABC"], "batch-2");
+    journal = recordProviderCapture(journal, {
+      batchId: "batch-2", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
+      tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
+    });
+    expect(() => transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: ["ABC"], quarantined: [] })).toThrow(/provider capture|attempt/i);
   });
 
   it("atomically persists a provider capture before semantic validation", () => {
