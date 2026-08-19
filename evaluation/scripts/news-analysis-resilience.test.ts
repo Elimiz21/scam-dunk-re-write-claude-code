@@ -141,22 +141,31 @@ describe("provider metadata policy", () => {
       rawUsage: validUsage,
       pricing: { inputPerMillion: 0.1, outputPerMillion: 0.2 },
     });
+    const finalOnDisk = readRunJournal(journalPath);
     journal = validResult.journal;
     expect(validResult.normalizedUsage).toEqual(validUsage);
     expect(validResult.normalizedCostUsd).toBeCloseTo(0.0000008);
     expect([...validResult.validRows.keys()]).toEqual(["GOOD"]);
 
-    expect(journal.tasks["2026-08-19:BAD1"].state).toBe("quarantined");
-    expect(journal.tasks["2026-08-19:BAD2"].state).toBe("quarantined");
-    expect(journal.tasks["2026-08-19:GOOD"].state).toBe("resolved");
-    expect(journal.batches["batch-1"].degraded).toBe(true);
-    const badAttempt = journal.tasks["2026-08-19:BAD1"].attempts[0];
-    const goodAttempt = journal.tasks["2026-08-19:GOOD"].attempts[0];
-    expect(badAttempt.tokenUsage).toBeNull();
-    expect(badAttempt.estimatedCostUsd).toBeNull();
+    expect(finalOnDisk.tasks["2026-08-19:BAD1"].state).toBe("quarantined");
+    expect(finalOnDisk.tasks["2026-08-19:BAD2"].state).toBe("quarantined");
+    expect(finalOnDisk.tasks["2026-08-19:GOOD"].state).toBe("resolved");
+    expect(finalOnDisk.batches["batch-1"].degraded).toBe(true);
+    expect(finalOnDisk.batches["batch-1"].anomalyCodes).toEqual(expect.arrayContaining(["malformed-response-id", "malformed-model", "malformed-provider-usage"]));
+    const badAttempts = malformedSymbols.map((symbol) => finalOnDisk.tasks[`2026-08-19:${symbol}`].attempts[0]);
+    for (const badAttempt of badAttempts) {
+      expect(badAttempt.rawProviderMetadata).toEqual({ responseId: null, model: null, rawResponse: malformedRawResponse, usage: { promptTokens: -1, completionTokens: "[NaN]", totalTokens: "[Infinity]" } });
+      expect(badAttempt.tokenUsage).toBeNull();
+      expect(badAttempt.estimatedCostUsd).toBeNull();
+      expect(badAttempt.semanticValidation).toBe("quarantined");
+      expect(badAttempt.degraded).toBe(true);
+      expect(badAttempt.anomalyCodes).toEqual(expect.arrayContaining(["malformed-response-id", "malformed-model", "malformed-provider-usage"]));
+    }
+    const goodAttempt = finalOnDisk.tasks["2026-08-19:GOOD"].attempts[0];
     expect(goodAttempt.tokenUsage).toEqual(validUsage);
     expect(goodAttempt.estimatedCostUsd).toBeCloseTo(0.0000008);
-    const allAttempts = Object.values(journal.tasks).flatMap((task) => task.attempts);
+    expect(finalOnDisk.batches["batch-2"].degraded).not.toBe(true);
+    const allAttempts = Object.values(finalOnDisk.tasks).flatMap((task) => task.attempts);
     expect(allAttempts.filter((attempt) => attempt.tokenUsage !== null)).toEqual([goodAttempt]);
     expect(allAttempts.filter((attempt) => attempt.estimatedCostUsd !== null)).toEqual([goodAttempt]);
     const metricDeltas = [malformedResult.metricDeltas, validResult.metricDeltas].reduce((total, delta) => ({
@@ -166,13 +175,14 @@ describe("provider metadata policy", () => {
       responseAnomalies: total.responseAnomalies + delta.responseAnomalies,
     }), { promptTokens: 0, completionTokens: 0, quarantinedRows: 0, responseAnomalies: 0 });
     expect(metricDeltas).toEqual({ promptTokens: 2, completionTokens: 3, quarantinedRows: 2, responseAnomalies: 3 });
+    const unresolvedSymbols = Object.values(finalOnDisk.tasks).filter((task) => task.state !== "resolved").map((task) => task.symbol);
     const status = {
       date: "2026-08-19",
       pipelineStatus: "completed",
       completedAt: "2026-08-19T01:00:00.000Z",
       phases: Object.fromEntries(["phase0_socialEarlyWarning", "phase1_riskScoring", "phase2_sizeFiltering", "phase3_newsAnalysis", "phase4_socialMedia", "phase5_schemeTracking"].map((name) => [name, { status: "completed", details: {} }])),
       summary: { newsAnalysisMetrics: { failedModelCalls: 0, candidatesDeferred: 0, unavailableModelBatches: 0, quarantinedRows: 2, responseAnomalies: 3, unresolvedTasks: 2, replayRequested: 0, replayMissing: 0, evidenceSourceFailures: 0 } },
-      recovery: { generationId: "gen-provider-metadata", journalFile: "journal.json", unresolvedSymbols: malformedSymbols, unresolvedCount: 2, degraded: true },
+      recovery: { generationId: "gen-provider-metadata", journalFile: "journal.json", unresolvedSymbols, unresolvedCount: unresolvedSymbols.length, degraded: true },
     };
     expect(evaluateScanPublication(status, "2026-08-19").publishable).toBe(false);
   });
