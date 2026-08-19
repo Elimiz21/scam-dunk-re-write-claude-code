@@ -9,6 +9,7 @@ const requiredFiles = [
   `enhanced-evaluation-${date}.json`,
   `scan-status-${date}.json`,
   "news-analysis-journal-2026-08-19-gen-1.json",
+  `pipeline-validation-${date}.json`,
 ];
 
 function publicationArtifacts(overrides: Record<string, unknown> = {}) {
@@ -113,6 +114,7 @@ it.each([
 it("uses the pinned tsx runtime and non-cancelling concurrency", () => {
   const workflow = fs.readFileSync(path.join(path.resolve(__dirname, ".."), ".github/workflows/enhanced-daily-evaluation.yml"), "utf8");
   expect(workflow).toContain("cancel-in-progress: false");
+  expect(workflow).toMatch(/concurrency:\n  group: enhanced-daily-evaluation\n/);
   expect(workflow).toContain("node_modules/.bin/tsx");
   expect(workflow).not.toContain("npx ts-node");
 });

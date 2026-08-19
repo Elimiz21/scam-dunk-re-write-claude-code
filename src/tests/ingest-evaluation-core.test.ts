@@ -172,6 +172,8 @@ describe("ingestDate publication gate", () => {
   const manifest = `${prefix}/publication-manifest-${date}.json`;
   const exactEnhanced = `${prefix}/${enhanced}`;
   const exactStatus = `${prefix}/${status}`;
+  const validation = `${prefix}/pipeline-validation-${date}.json`;
+  const receipt = `${prefix}/quarantine-upload-receipt-${date}.json`;
 
   function publicationFiles(): Record<string, unknown> {
     return {
@@ -182,6 +184,7 @@ describe("ingestDate publication gate", () => {
         generationId: "gen-1",
         manifestPath: manifest,
         manifestFile: `publication-manifest-${date}.json`,
+        manifestDigest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       },
       [manifest]: {
         schemaVersion: 1,
@@ -190,12 +193,21 @@ describe("ingestDate publication gate", () => {
         generationId: "gen-1",
         statusFile: status,
         journalFile: "news-analysis-journal-2026-08-19-gen-1.json",
-        requiredFiles: [enhanced, status, "news-analysis-journal-2026-08-19-gen-1.json"],
+        requiredFiles: [enhanced, status, "news-analysis-journal-2026-08-19-gen-1.json", `pipeline-validation-${date}.json`],
         commitMarker: `publication-manifest-${date}.json`,
       },
       [exactEnhanced]: [],
       [exactStatus]: completeStatus(),
       [`${prefix}/news-analysis-journal-2026-08-19-gen-1.json`]: {},
+      [validation]: { date, status: "healthy", missingFiles: [] },
+      [receipt]: {
+        schemaVersion: 1,
+        date,
+        generationId: "gen-1",
+        quarantinePrefix: prefix,
+        success: true,
+        uploadedFiles: [enhanced, status, "news-analysis-journal-2026-08-19-gen-1.json", `pipeline-validation-${date}.json`, `publication-manifest-${date}.json`],
+      },
     };
   }
 
@@ -291,6 +303,64 @@ describe("ingestDate publication gate", () => {
     expectNoDatabaseAccess();
   });
 
+  it("uses the pointer generation when the mutable root enhanced alias is missing", async () => {
+    const files = publicationFiles();
+    mockStorageFiles(files);
+
+    const result = await ingestDate(date);
+
+    expect(result.success).toBe(true);
+    expect(prisma.dailyScanSummary.upsert).toHaveBeenCalledTimes(1);
+    expect(getPublicUrl).toHaveBeenCalledWith(exactEnhanced);
+  });
+
+  it.each([
+    ["missing", (files: Record<string, unknown>) => { delete files[receipt]; }],
+    ["malformed", (files: Record<string, unknown>) => { files[receipt] = "not-json"; }],
+    ["mismatched", (files: Record<string, unknown>) => { files[receipt] = { ...(files[receipt] as Record<string, unknown>), generationId: "gen-2" }; }],
+  ])("blocks %s quarantine receipt before Prisma access", async (_name, mutate) => {
+    const files = publicationFiles();
+    mutate(files);
+    mockStorageFiles(files);
+
+    const result = await ingestDate(date);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("publication blocked");
+    expect(result.error).toContain("receipt");
+    expectNoDatabaseAccess();
+  });
+
+  it("blocks when the current-generation pointer switches before Prisma", async () => {
+    const files = publicationFiles();
+    let pointerReads = 0;
+    (global.fetch as jest.Mock).mockImplementation(async (url: string) => {
+      if (url === `scan-current-generation-${date}.json`) {
+        pointerReads += 1;
+        if (pointerReads > 1) {
+          return jsonResponse({
+            schemaVersion: 1,
+            date,
+            generationId: "gen-2",
+            manifestPath: `quarantine/${date}/gen-2/publication-manifest-${date}.json`,
+            manifestFile: `publication-manifest-${date}.json`,
+            manifestDigest: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          });
+        }
+      }
+      const response = files[url];
+      if (response === undefined) return jsonResponse(null, 404);
+      return jsonResponse(response);
+    });
+
+    const result = await ingestDate(date);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("publication blocked");
+    expect(result.error).toContain("pointer");
+    expectNoDatabaseAccess();
+  });
+
   it("blocks enhanced ingestion when the generation journal is missing", async () => {
     const files = publicationFiles();
     delete files[`${prefix}/news-analysis-journal-2026-08-19-gen-1.json`];
@@ -327,5 +397,18 @@ describe("ingestDate publication gate", () => {
     expect(prisma.dailyScanSummary.upsert).toHaveBeenCalledTimes(1);
     expect(getPublicUrl).toHaveBeenCalledWith(`fmp-evaluation-${date}.json`);
     expect(getPublicUrl).not.toHaveBeenCalledWith(status);
+  });
+
+  it("uses legacy only when both pointer and root enhanced files are 404", async () => {
+    mockStorageFiles({
+      [`fmp-evaluation-${date}.json`]: [],
+    });
+
+    const result = await ingestDate(date);
+
+    expect(result.success).toBe(true);
+    expect(getPublicUrl).toHaveBeenCalledWith(`scan-current-generation-${date}.json`);
+    expect(getPublicUrl).toHaveBeenCalledWith(enhanced);
+    expect(prisma.dailyScanSummary.upsert).toHaveBeenCalledTimes(1);
   });
 });

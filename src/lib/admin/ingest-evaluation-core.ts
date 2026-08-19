@@ -6,8 +6,7 @@
 import { prisma } from "@/lib/db";
 import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
 import { fetchDailyCloses } from "@/lib/promoted-stocks/tracker";
-import { evaluateScanPublication } from "../../../shared/scan-publication";
-import { validatePublicationManifest } from "../../../shared/scan-publication-workflow";
+import { evaluatePublicationArtifacts } from "../../../shared/scan-publication-workflow";
 
 // Batch size for createMany operations to avoid overwhelming the DB
 const BATCH_SIZE = 1000;
@@ -432,10 +431,20 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const summaryFilename = `fmp-summary-${date}.json`;
     const promotedFilename = `promoted-stocks-${date}.json`;
 
-    // Try enhanced format first. A true 404 means no enhanced file exists and
-    // preserves the legacy backfill path; every other enhanced outcome is
-    // treated as present and must not silently fall back to legacy data.
-    let evaluationResult = await fetchEvaluationFile(enhancedEvalFilename);
+    // Resolve the final-generation pointer before consulting mutable root
+    // aliases. A pointer present in any non-404 state is authoritative.
+    const initialPointerResult = await fetchScanStatusFile(
+      `scan-current-generation-${date}.json`,
+    );
+    const pointerMissing = initialPointerResult.errorType === "MISSING_FILE";
+    let evaluationResult = pointerMissing
+      ? await fetchEvaluationFile(enhancedEvalFilename)
+      : {
+          data: [] as EvaluationStock[],
+          error: undefined as string | undefined,
+          errorType: undefined as IngestionErrorType | undefined,
+        };
+    let validatedPointerIdentity: Record<string, string> | null = null;
     const enhancedFileMissing = evaluationResult.errorType === "MISSING_FILE";
 
     if (!evaluationResult.data && !enhancedFileMissing) {
@@ -520,16 +529,34 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         };
       }
       const pointer = pointerResult.data as Record<string, unknown>;
+      const initialPointer = initialPointerResult.data;
+      const initialPointerIsRecord =
+        typeof initialPointer === "object" &&
+        initialPointer !== null &&
+        !Array.isArray(initialPointer);
       const generation = pointer.generationId;
       const expectedPrefix = `quarantine/${date}/${generation}`;
       const expectedManifestPath = `${expectedPrefix}/publication-manifest-${date}.json`;
+      const manifestDigest = pointer.manifestDigest;
+      const initialPointerRecord = initialPointer as Record<string, unknown>;
+      const pointerIdentityMatches =
+        initialPointerIsRecord &&
+        initialPointerRecord.date === pointer.date &&
+        initialPointerRecord.generationId === pointer.generationId &&
+        initialPointerRecord.manifestPath === pointer.manifestPath &&
+        initialPointerRecord.manifestFile === pointer.manifestFile &&
+        initialPointerRecord.manifestDigest === pointer.manifestDigest;
       if (
+        !initialPointerIsRecord ||
+        !pointerIdentityMatches ||
         pointer.date !== date ||
         typeof generation !== "string" ||
         !generation.trim() ||
         !/^[A-Za-z0-9._-]+$/.test(generation) ||
         pointer.manifestPath !== expectedManifestPath ||
-        pointer.manifestFile !== `publication-manifest-${date}.json`
+        pointer.manifestFile !== `publication-manifest-${date}.json` ||
+        typeof manifestDigest !== "string" ||
+        !/^[a-f0-9]{64}$/.test(manifestDigest)
       ) {
         return {
           success: false,
@@ -546,6 +573,13 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           error: `publication blocked: current generation pointer is invalid for ${date}`,
         };
       }
+      validatedPointerIdentity = {
+        date,
+        generationId: generation,
+        manifestPath: expectedManifestPath,
+        manifestFile: `publication-manifest-${date}.json`,
+        manifestDigest,
+      };
       const exactEvaluationResult = await fetchEvaluationFile(
         `${expectedPrefix}/${enhancedEvalFilename}`,
       );
@@ -634,38 +668,31 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       }
 
       const manifestResult = await fetchScanStatusFile(expectedManifestPath);
-      const manifestReasons = validatePublicationManifest(
+      const validationResult = await fetchScanStatusFile(
+        `${expectedPrefix}/pipeline-validation-${date}.json`,
+      );
+      const receiptResult = await fetchScanStatusFile(
+        `${expectedPrefix}/quarantine-upload-receipt-${date}.json`,
+      );
+      const publication = evaluatePublicationArtifacts(
         statusResult.data,
         date,
-        manifestResult.data,
-        [
-          enhancedEvalFilename,
-          statusFilename,
-          typeof (statusResult.data as Record<string, unknown>)?.recovery === "object" &&
-          (statusResult.data as Record<string, any>).recovery &&
-          typeof (statusResult.data as Record<string, any>).recovery.journalFile === "string"
-            ? (statusResult.data as Record<string, any>).recovery.journalFile
-            : "",
-        ],
+        {
+          manifest: manifestResult.data,
+          validation: validationResult.data,
+          quarantineReceipt: receiptResult.data,
+          availableFiles: [
+            enhancedEvalFilename,
+            statusFilename,
+            typeof (statusResult.data as Record<string, unknown>)?.recovery === "object" &&
+            (statusResult.data as Record<string, any>).recovery &&
+            typeof (statusResult.data as Record<string, any>).recovery.journalFile === "string"
+              ? (statusResult.data as Record<string, any>).recovery.journalFile
+              : "",
+            `pipeline-validation-${date}.json`,
+          ],
+        },
       );
-      if (manifestReasons.length > 0) {
-        return {
-          success: false,
-          date,
-          stocksCreated: 0,
-          stocksUpdated: 0,
-          snapshotsCreated: 0,
-          alertsCreated: 0,
-          promotedStocksCreated: 0,
-          promotedStocksSkippedStale: 0,
-          totalProcessed: 0,
-          skipped: 0,
-          durationMs: Date.now() - startTime,
-          error: `publication blocked for ${date}: ${manifestReasons.join(", ")}`,
-        };
-      }
-
-      const publication = evaluateScanPublication(statusResult.data, date);
       if (!publication.publishable) {
         return {
           success: false,
@@ -723,6 +750,44 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     console.log(
       `[ingest-core] ${validStocks.length} valid stocks (${skippedCount} skipped) for ${date}`,
     );
+
+    // Re-read the final marker immediately before any database access. This
+    // prevents a pointer switch between artifact validation and ingestion.
+    if (validatedPointerIdentity) {
+      const reread = await fetchScanStatusFile(
+        `scan-current-generation-${date}.json`,
+      );
+      const rereadPointer = reread.data;
+      const rereadRecord =
+        typeof rereadPointer === "object" &&
+        rereadPointer !== null &&
+        !Array.isArray(rereadPointer)
+          ? (rereadPointer as Record<string, unknown>)
+          : null;
+      const unchanged =
+        rereadRecord !== null &&
+        validatedPointerIdentity.date === rereadRecord.date &&
+        validatedPointerIdentity.generationId === rereadRecord.generationId &&
+        validatedPointerIdentity.manifestPath === rereadRecord.manifestPath &&
+        validatedPointerIdentity.manifestFile === rereadRecord.manifestFile &&
+        validatedPointerIdentity.manifestDigest === rereadRecord.manifestDigest;
+      if (!unchanged) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: current generation pointer changed before database access for ${date}`,
+        };
+      }
+    }
 
     // Step 1: Get all existing stocks in batches
     const symbols = validStocks.map((s) => s.symbol);

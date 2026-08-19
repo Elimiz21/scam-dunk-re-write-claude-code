@@ -1,7 +1,7 @@
 name: Enhanced Daily Stock Evaluation
 
 concurrency:
-  group: enhanced-daily-evaluation-${{ github.event.inputs.date_override || github.ref_name }}
+  group: enhanced-daily-evaluation
   cancel-in-progress: false
 
 on:
@@ -430,7 +430,8 @@ jobs:
             --arg enhanced "enhanced-evaluation-${DATE}.json" \
             --arg status "scan-status-${DATE}.json" \
             --arg journal "$JOURNAL_FILE" \
-            '[$enhanced, $status, $journal]')
+            --arg validation "pipeline-validation-${DATE}.json" \
+            '[$enhanced, $status, $journal, $validation]')
           jq -n \
             --arg date "$DATE" \
             --arg generation "$GENERATION" \
@@ -468,6 +469,7 @@ jobs:
             "enhanced-evaluation-${DATE}.json"
             "scan-status-${DATE}.json"
             "$JOURNAL_FILE"
+            "pipeline-validation-${DATE}.json"
             "publication-manifest-${DATE}.json"
           )
           for required in "${REQUIRED_FILES[@]}"; do
@@ -586,12 +588,14 @@ jobs:
           done
           GENERATION=$(jq -r '.recovery.generationId' "evaluation/results/scan-status-${DATE}.json")
           POINTER_FILE="evaluation/results/scan-current-generation-${DATE}.json"
+          MANIFEST_DIGEST=$(sha256sum "evaluation/results/publication-manifest-${DATE}.json" | awk '{print $1}')
           jq -n \
             --arg date "$DATE" \
             --arg generation "$GENERATION" \
             --arg manifest "quarantine/${DATE}/${GENERATION}/publication-manifest-${DATE}.json" \
             --arg marker "publication-manifest-${DATE}.json" \
-            '{schemaVersion:1, date:$date, generationId:$generation, manifestPath:$manifest, manifestFile:$marker}' \
+            --arg digest "$MANIFEST_DIGEST" \
+            '{schemaVersion:1, date:$date, generationId:$generation, manifestPath:$manifest, manifestFile:$marker, manifestDigest:$digest}' \
             > "$POINTER_FILE"
           curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/$(basename "$POINTER_FILE")" \
             -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \

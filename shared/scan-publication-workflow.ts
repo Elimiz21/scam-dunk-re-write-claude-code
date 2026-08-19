@@ -18,6 +18,11 @@ export interface PublicationArtifacts {
   availableFiles?: string[];
 }
 
+export interface PublicationGateResult {
+  publishable: boolean;
+  reasons: string[];
+}
+
 function isRecord(value: unknown): value is Record<string, any> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -49,6 +54,7 @@ export function validatePublicationManifest(
   const journalFile = status.recovery.journalFile;
   const enhancedFile = `enhanced-evaluation-${expectedDate}.json`;
   const statusFile = `scan-status-${expectedDate}.json`;
+  const validationFile = `pipeline-validation-${expectedDate}.json`;
   const required = manifest.requiredFiles;
   if (manifest.schemaVersion !== 1 || manifest.kind !== "scan-publication-manifest") addUnique(reasons, "manifest-schema-invalid");
   if (manifest.date !== expectedDate) addUnique(reasons, "manifest-date-mismatch");
@@ -59,7 +65,7 @@ export function validatePublicationManifest(
   if (!Array.isArray(required) || required.some((file) => !fileName(file)) || new Set(required).size !== required.length) {
     addUnique(reasons, "manifest-required-files-invalid");
   } else {
-    for (const file of [enhancedFile, statusFile, journalFile]) {
+    for (const file of [enhancedFile, statusFile, journalFile, validationFile]) {
       if (!required.includes(file)) addUnique(reasons, `manifest-required-file-missing:${file}`);
     }
     if (availableFiles) for (const file of required) if (!availableFiles.includes(file)) addUnique(reasons, `local-file-missing:${file}`);
@@ -74,7 +80,7 @@ function validatePublicationArtifacts(status: unknown, date: string, artifacts: 
   const generation = isRecord(status) && isRecord(status.recovery) ? status.recovery.generationId : undefined;
   const expectedPrefix = `quarantine/${date}/${safeSegment(generation, "invalid-generation")}`;
   const validation = artifacts.validation;
-  if (!isRecord(validation) || validation.date !== date || validation.status !== "healthy" || (Array.isArray(validation.missingFiles) && validation.missingFiles.length > 0)) reasons.push("validation-not-healthy");
+  if (!isRecord(validation) || validation.date !== date || validation.status !== "healthy" || (Array.isArray(validation.missingFiles) && validation.missingFiles.length > 0) || (typeof validation.missingFiles === "string" && validation.missingFiles.trim())) reasons.push("validation-not-healthy");
   const receipt = artifacts.quarantineReceipt;
   if (!isRecord(receipt)) {
     reasons.push("quarantine-receipt-missing");
@@ -90,11 +96,25 @@ function validatePublicationArtifacts(status: unknown, date: string, artifacts: 
   return Array.from(new Set(reasons));
 }
 
+/** Evaluate scan status and every immutable publication artifact as one gate. */
+export function evaluatePublicationArtifacts(
+  status: unknown,
+  date: string,
+  artifacts: PublicationArtifacts,
+): PublicationGateResult {
+  const evaluation = evaluateScanPublication(status, date);
+  const reasons = Array.from(new Set([
+    ...evaluation.reasons,
+    ...validatePublicationArtifacts(status, date, artifacts),
+  ]));
+  return { publishable: reasons.length === 0, reasons };
+}
+
 /** One policy result for quarantine upload, promotion, and alert routing. */
 export function buildPublicationWorkflowPlan(status: unknown, date: string, fallbackGeneration: string, artifacts: PublicationArtifacts = {}) {
-  const evaluation = evaluateScanPublication(status, date);
+  const evaluation = evaluatePublicationArtifacts(status, date, artifacts);
   const generation = safeSegment((status as any)?.recovery?.generationId, safeSegment(fallbackGeneration, "invalid-generation"));
-  const reasons = [...evaluation.reasons, ...validatePublicationArtifacts(status, date, artifacts)];
+  const reasons = evaluation.reasons;
   const publishable = reasons.length === 0;
   return {
     publishable,
