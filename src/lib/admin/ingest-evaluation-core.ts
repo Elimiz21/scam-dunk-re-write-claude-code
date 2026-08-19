@@ -6,6 +6,7 @@
 import { prisma } from "@/lib/db";
 import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
 import { fetchDailyCloses } from "@/lib/promoted-stocks/tracker";
+import { evaluateScanPublication } from "../../../shared/scan-publication";
 
 // Batch size for createMany operations to avoid overwhelming the DB
 const BATCH_SIZE = 1000;
@@ -228,6 +229,53 @@ async function fetchEvaluationFile(filename: string): Promise<{
   }
 }
 
+async function fetchScanStatusFile(filename: string): Promise<{
+  data: unknown | null;
+  error?: string;
+  errorType?: IngestionErrorType;
+}> {
+  let urlData: { publicUrl: string };
+  try {
+    ({ data: urlData } = supabase.storage
+      .from(EVALUATION_BUCKET)
+      .getPublicUrl(filename));
+  } catch (error) {
+    return {
+      data: null,
+      errorType: "INVALID_SUPABASE_CONFIG",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  try {
+    const response = await fetch(urlData.publicUrl);
+    if (!response.ok) {
+      return {
+        data: null,
+        errorType: response.status === 404 ? "MISSING_FILE" : "FETCH_ERROR",
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
+
+    const text = await response.text();
+    try {
+      return { data: JSON.parse(text) };
+    } catch (error) {
+      return {
+        data: null,
+        errorType: "BAD_JSON",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  } catch (error) {
+    return {
+      data: null,
+      errorType: "FETCH_ERROR",
+      error: `Fetch error: ${String(error)}`,
+    };
+  }
+}
+
 async function fetchSummaryFile(filename: string): Promise<{
   data: EvaluationSummary | null;
   error?: string;
@@ -382,13 +430,74 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const summaryFilename = `fmp-summary-${date}.json`;
     const promotedFilename = `promoted-stocks-${date}.json`;
 
-    // Try enhanced format first, fall back to legacy
+    // Try enhanced format first. A true 404 means no enhanced file exists and
+    // preserves the legacy backfill path; every other enhanced outcome is
+    // treated as present and must not silently fall back to legacy data.
     let evaluationResult = await fetchEvaluationFile(enhancedEvalFilename);
-    if (!evaluationResult.data) {
+    const enhancedFileMissing = evaluationResult.errorType === "MISSING_FILE";
+
+    if (!evaluationResult.data && !enhancedFileMissing) {
+      return {
+        success: false,
+        date,
+        stocksCreated: 0,
+        stocksUpdated: 0,
+        snapshotsCreated: 0,
+        alertsCreated: 0,
+        promotedStocksCreated: 0,
+        promotedStocksSkippedStale: 0,
+        totalProcessed: 0,
+        skipped: 0,
+        durationMs: Date.now() - startTime,
+        error: `publication blocked: enhanced evaluation is unreadable or unavailable for ${date}: ${evaluationResult.error ?? "unknown error"}`,
+      };
+    }
+
+    if (enhancedFileMissing) {
       console.log(
         `[ingest-core] Enhanced file not found for ${date}, trying legacy format...`,
       );
       evaluationResult = await fetchEvaluationFile(legacyEvalFilename);
+    }
+
+    if (!enhancedFileMissing && evaluationResult.data) {
+      const statusResult = await fetchScanStatusFile(
+        `scan-status-${date}.json`,
+      );
+      if (!statusResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: scan status is missing or unreadable for ${date}: ${statusResult.error ?? "missing status"}`,
+        };
+      }
+
+      const publication = evaluateScanPublication(statusResult.data, date);
+      if (!publication.publishable) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked for ${date}: ${publication.reasons.join(", ")}`,
+        };
+      }
     }
 
     if (!evaluationResult.data) {
