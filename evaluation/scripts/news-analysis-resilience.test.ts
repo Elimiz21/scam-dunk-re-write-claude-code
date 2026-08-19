@@ -3,6 +3,9 @@ import * as os from "os";
 import * as path from "path";
 import {
   buildDegradedScanAlertPayload,
+  applyProviderMetadataPolicy,
+  encodeRawProviderMetadata,
+  validateCapturedProviderMetadata,
   createRunJournal,
   parseNewsAnalysisResponse,
   readRunJournal,
@@ -66,6 +69,23 @@ describe("parseNewsAnalysisResponse", () => {
     expect(parsed.valid.size).toBe(0);
     expect(parsed.quarantined.map((item) => item.symbol)).toEqual(["A", "B"]);
     expect(selectRetryTasks(createRunJournal({ scanDate: "2026-08-19" }), ["A"]).length).toBe(0);
+  });
+});
+
+describe("provider metadata policy", () => {
+  it("preserves non-finite raw values while rejecting malformed metadata and usage", () => {
+    expect(encodeRawProviderMetadata({ nan: Number.NaN, pos: Infinity, neg: -Infinity })).toEqual({ nan: "[NaN]", pos: "[Infinity]", neg: "[-Infinity]" });
+    const invalid = validateCapturedProviderMetadata({ responseId: "", model: null, rawResponse: null, usage: { promptTokens: -1, completionTokens: 1, totalTokens: 0 }, pricing: { inputPerMillion: 1, outputPerMillion: 2 } });
+    expect(invalid.anomalies).toEqual(expect.arrayContaining(["malformed-response-id", "malformed-model", "malformed-response-content", "malformed-provider-usage"]));
+    expect(invalid.estimatedCostUsd).toBeNull();
+    expect(validateCapturedProviderMetadata({ responseId: "r", model: "m", rawResponse: "{}", usage: { promptTokens: 2, completionTokens: 3, totalTokens: 5 }, pricing: { inputPerMillion: 1, outputPerMillion: 2 } }).estimatedCostUsd).toBeCloseTo(0.000008);
+  });
+
+  it("quarantines every symbol when metadata is anomalous", () => {
+    const parsed = parseNewsAnalysisResponse({ results: [{ symbol: "ABC", hasLegitimateNews: true, explanation: "event" }] }, ["ABC", "DEF"]);
+    const policy = applyProviderMetadataPolicy(parsed, ["ABC", "DEF"], ["malformed-provider-usage"]);
+    expect([...policy.validSymbols]).toEqual([]);
+    expect(policy.quarantined).toEqual([{ symbol: "ABC", reason: "malformed-provider-metadata" }, { symbol: "DEF", reason: "malformed-provider-metadata" }]);
   });
 });
 

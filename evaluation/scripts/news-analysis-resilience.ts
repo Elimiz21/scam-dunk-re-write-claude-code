@@ -3,6 +3,34 @@ import * as path from "path";
 
 export const RUN_JOURNAL_SCHEMA_VERSION = 1;
 
+export function encodeRawProviderMetadata(value: unknown): unknown {
+  if (typeof value === "number" && !Number.isFinite(value)) return Number.isNaN(value) ? "[NaN]" : value === Infinity ? "[Infinity]" : "[-Infinity]";
+  if (Array.isArray(value)) return value.map(encodeRawProviderMetadata);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, encodeRawProviderMetadata(item)]));
+  return value;
+}
+
+export interface ProviderUsage { promptTokens: number; completionTokens: number; totalTokens: number }
+function isProviderUsage(value: unknown): value is ProviderUsage {
+  if (!isRecord(value)) return false;
+  const values = [value.promptTokens, value.completionTokens, value.totalTokens];
+  return values.every((item) => typeof item === "number" && Number.isFinite(item) && Number.isInteger(item) && item >= 0) && value.totalTokens === value.promptTokens + value.completionTokens;
+}
+export function validateCapturedProviderMetadata(input: { responseId: unknown; model: unknown; rawResponse: unknown; usage: unknown; pricing: { inputPerMillion: number; outputPerMillion: number } }) {
+  const anomalies: string[] = [];
+  if (typeof input.responseId !== "string" || !input.responseId.trim()) anomalies.push("malformed-response-id");
+  if (typeof input.model !== "string" || !input.model.trim()) anomalies.push("malformed-model");
+  if (typeof input.rawResponse !== "string") anomalies.push("malformed-response-content");
+  if (!isProviderUsage(input.usage)) anomalies.push("malformed-provider-usage");
+  const normalizedUsage = isProviderUsage(input.usage) ? input.usage : null;
+  return { anomalies, normalizedUsage, estimatedCostUsd: normalizedUsage ? (normalizedUsage.promptTokens / 1_000_000) * input.pricing.inputPerMillion + (normalizedUsage.completionTokens / 1_000_000) * input.pricing.outputPerMillion : null };
+}
+
+export function applyProviderMetadataPolicy(parsed: NewsAnalysisParseResult, expectedSymbols: Iterable<string>, anomalies: string[]) {
+  if (anomalies.length === 0) return { validSymbols: parsed.valid.keys(), quarantined: parsed.quarantined, degraded: parsed.degraded };
+  return { validSymbols: [] as string[], quarantined: [...new Set([...expectedSymbols].map(normalizeAnalysisSymbol).filter(Boolean))].map((symbol) => ({ symbol, reason: "malformed-provider-metadata" })), degraded: true };
+}
+
 export interface NewsAnalysisRow {
   symbol: string;
   hasLegitimateNews: boolean;
