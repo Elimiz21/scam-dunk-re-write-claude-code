@@ -35,6 +35,16 @@ on:
         required: false
         default: "false"
         type: boolean
+      replay_symbols:
+        description: "Comma-separated unresolved symbols to replay (creates a new generation)"
+        required: false
+        default: ""
+        type: string
+      replay_of_generation:
+        description: "Prior generation ID for provenance only; replay is not bit-for-bit reconstruction"
+        required: false
+        default: ""
+        type: string
 
 # Grant write permissions for issue creation on failure
 permissions:
@@ -180,6 +190,8 @@ jobs:
     if: ${{ needs.check-trading-day.outputs.is_trading_day == 'true' || github.event.inputs.force_run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 350 # ~5h50m — GitHub-hosted runners cap jobs at 6h
+    outputs:
+      validation_status: ${{ steps.validation.outputs.validation_status }}
 
     steps:
       - name: Checkout repository
@@ -253,6 +265,8 @@ jobs:
           SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
+          NEWS_ANALYSIS_REPLAY_SYMBOLS: ${{ github.event.inputs.replay_symbols }}
+          NEWS_ANALYSIS_REPLAY_OF_GENERATION: ${{ github.event.inputs.replay_of_generation }}
         run: |
           cd evaluation
           echo "Starting Enhanced Daily Pipeline for $EVALUATION_DATE..."
@@ -285,6 +299,7 @@ jobs:
           echo "Scheme report generated"
 
       - name: Validate pipeline output
+        id: validation
         if: ${{ github.event.inputs.upload_only != 'true' }}
         run: |
           DATE="${{ steps.date.outputs.date }}"
@@ -401,6 +416,7 @@ jobs:
 
           echo ""
           echo "Validation report written to results/pipeline-validation-${DATE}.json"
+          echo "validation_status=${STATUS}" >> $GITHUB_OUTPUT
 
       - name: Upload to Supabase
         continue-on-error: true
@@ -464,6 +480,19 @@ jobs:
 
           echo "Uploaded $UPLOADED files to Supabase"
 
+      - name: Enforce publication gate
+        id: publication-gate
+        run: |
+          DATE="${{ steps.date.outputs.date }}"
+          set +e
+          npx ts-node evaluation/scripts/scan-publication-check.ts "evaluation/results/scan-status-${DATE}.json" "$DATE"
+          GATE_STATUS=$?
+          set -e
+          if [ "$GATE_STATUS" -ne 0 ]; then
+            echo "::error::Results were retained for recovery but are not publishable. Replay with replay_symbols and optional replay_of_generation."
+            exit "$GATE_STATUS"
+          fi
+
       - name: Checkout data repository
         continue-on-error: true
         id: checkout-data
@@ -474,7 +503,7 @@ jobs:
           path: data-repo
 
       - name: Copy results to data repository
-        if: steps.checkout-data.outcome == 'success'
+        if: steps.checkout-data.outcome == 'success' && steps.publication-gate.outcome == 'success'
         run: |
           DATE="${{ steps.date.outputs.date }}"
 
@@ -521,13 +550,13 @@ jobs:
           find data-repo -name "*${DATE}*" -type f 2>/dev/null | sort
 
       - name: Skip data repo notice
-        if: steps.checkout-data.outcome != 'success'
+        if: steps.checkout-data.outcome != 'success' || steps.publication-gate.outcome != 'success'
         run: |
           echo "::warning::Skipping data repository push - DATA_REPO_TOKEN may be expired or invalid"
           echo "Results are still saved as artifacts. Please update the DATA_REPO_TOKEN secret."
 
       - name: Commit results to data repository
-        if: steps.checkout-data.outcome == 'success'
+        if: steps.checkout-data.outcome == 'success' && steps.publication-gate.outcome == 'success'
         run: |
           cd data-repo
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -558,6 +587,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Summary
+        if: always()
         run: |
           DATE="${{ steps.date.outputs.date }}"
           echo "## Enhanced Daily Evaluation Summary" >> $GITHUB_STEP_SUMMARY
@@ -586,7 +616,7 @@ jobs:
   notify-on-failure:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: failure()
+    if: failure() && needs.enhanced-evaluation.outputs.validation_status != 'degraded'
     permissions:
       issues: write
     steps:
@@ -630,6 +660,27 @@ jobs:
               console.log(`Could not create issue: ${error.message}`);
               console.log('Ensure workflow has write permissions: Settings > Actions > General > Workflow permissions');
             }
+
+  notify-on-degraded:
+    needs: enhanced-evaluation
+    runs-on: ubuntu-latest
+    if: failure() && needs.enhanced-evaluation.outputs.validation_status == 'degraded'
+    permissions:
+      issues: write
+    steps:
+      - name: Create degraded recovery issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Enhanced Daily Evaluation Degraded - ${date}`,
+              body: `Results were uploaded to recovery storage but publication was blocked. Inspect the scan status and journal artifact, then re-run workflow_dispatch with replay_symbols and optional replay_of_generation. A replay creates a new generation; it is not a bit-for-bit reconstruction.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['bug', 'automation']
+            });
 
   notify-on-success:
     needs: enhanced-evaluation

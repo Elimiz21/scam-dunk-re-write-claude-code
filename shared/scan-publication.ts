@@ -20,6 +20,7 @@ function isCounter(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
+/** Shared fail-closed policy for workflow and ingestion publication. */
 export function evaluateScanPublication(status: unknown, expectedDate: string): PublicationEvaluation {
   const reasons: string[] = [];
   if (!isRecord(status)) return { publishable: false, reasons: ["missing-status"] };
@@ -27,27 +28,26 @@ export function evaluateScanPublication(status: unknown, expectedDate: string): 
   if (status.pipelineStatus !== "completed") reasons.push("pipeline-not-completed");
   if (typeof status.completedAt !== "string" || !status.completedAt.trim()) reasons.push("missing-completion-time");
   else if (Number.isNaN(Date.parse(status.completedAt))) reasons.push("malformed-completion-time");
-  if (!isRecord(status.phases)) {
-    reasons.push("phase-status-missing");
-  } else {
-    for (const name of phaseNames) {
-      const phase = status.phases[name];
-      if (!isRecord(phase) || phase.status !== "completed") {
-        if (!reasons.includes("phase-not-completed")) reasons.push("phase-not-completed");
-        reasons.push(`phase-not-completed:${name}`);
-      }
+  if (!isRecord(status.phases)) reasons.push("phase-status-missing");
+  else for (const name of phaseNames) {
+    const phase = status.phases[name];
+    if (!isRecord(phase) || phase.status !== "completed") {
+      if (!reasons.includes("phase-not-completed")) reasons.push("phase-not-completed");
+      reasons.push(`phase-not-completed:${name}`);
     }
   }
   const metrics = isRecord(status.summary) && isRecord(status.summary.newsAnalysisMetrics) ? status.summary.newsAnalysisMetrics : null;
-  const requiredMetricNames = ["failedModelCalls", "candidatesDeferred", "unavailableModelBatches"];
+  const counters = ["failedModelCalls", "candidatesDeferred", "unavailableModelBatches", "quarantinedRows", "responseAnomalies", "unresolvedTasks"];
   if (!metrics) reasons.push("analysis-status-missing");
   else {
-    for (const name of requiredMetricNames) {
-      if (!isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
-    }
+    for (const name of counters.slice(0, 3)) if (!isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
+    for (const name of counters.slice(3)) if (metrics[name] !== undefined && !isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
     if (isCounter(metrics.failedModelCalls) && metrics.failedModelCalls > 0) reasons.push("analysis-failures");
     if (isCounter(metrics.candidatesDeferred) && metrics.candidatesDeferred > 0) reasons.push("analysis-deferrals");
     if (isCounter(metrics.unavailableModelBatches) && metrics.unavailableModelBatches > 0) reasons.push("analysis-unavailable-batches");
+    if (isCounter(metrics.quarantinedRows) && metrics.quarantinedRows > 0) reasons.push("analysis-quarantined");
+    if (isCounter(metrics.responseAnomalies) && metrics.responseAnomalies > 0) reasons.push("analysis-response-anomalies");
+    if (isCounter(metrics.unresolvedTasks) && metrics.unresolvedTasks > 0) reasons.push("unresolved-recovery");
     for (const name of ["deferred", "deferredBatches"]) {
       if (metrics[name] !== undefined && !isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
       else if (isCounter(metrics[name]) && metrics[name] > 0) reasons.push("analysis-deferrals");
@@ -58,13 +58,10 @@ export function evaluateScanPublication(status: unknown, expectedDate: string): 
     }
   }
   const newsDetails = isRecord(status.phases) && isRecord(status.phases.phase3_newsAnalysis) && isRecord(status.phases.phase3_newsAnalysis.details)
-    ? status.phases.phase3_newsAnalysis.details
-    : null;
-  if (newsDetails) {
-    for (const name of ["newsFilterSkipped", "deferred", "deferredBatches"]) {
-      if (newsDetails[name] !== undefined && !isCounter(newsDetails[name])) reasons.push("malformed-analysis-counter");
-      else if (isCounter(newsDetails[name]) && newsDetails[name] > 0) reasons.push("analysis-deferrals");
-    }
+    ? status.phases.phase3_newsAnalysis.details : null;
+  if (newsDetails) for (const name of ["newsFilterSkipped", "deferred", "deferredBatches"]) {
+    if (newsDetails[name] !== undefined && !isCounter(newsDetails[name])) reasons.push("malformed-analysis-counter");
+    else if (isCounter(newsDetails[name]) && newsDetails[name] > 0) reasons.push("analysis-deferrals");
   }
   const recovery = status.recovery;
   if (!isRecord(recovery) || !isCounter(recovery.unresolvedCount)) reasons.push("malformed-recovery");

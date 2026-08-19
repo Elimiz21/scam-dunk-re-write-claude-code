@@ -1,4 +1,4 @@
-import { evaluateScanPublication } from "../lib/scan-publication";
+import { evaluateScanPublication } from "../../shared/scan-publication";
 
 function completeStatus(overrides: Record<string, unknown> = {}) {
   const phase = { status: "completed", completedAt: "2026-08-19T01:00:00.000Z", details: {} };
