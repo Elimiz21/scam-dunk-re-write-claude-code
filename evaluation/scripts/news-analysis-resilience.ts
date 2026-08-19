@@ -114,6 +114,9 @@ export interface JournalAttempt {
   pricingSnapshot?: Record<string, number>;
   estimatedCostUsd?: number;
   semanticValidation?: "pending" | "deferred" | "resolved" | "quarantined";
+  degraded?: boolean;
+  anomalyCodes?: string[];
+  malformedTopLevel?: boolean;
 }
 
 export interface JournalTask {
@@ -134,7 +137,7 @@ export interface RunJournal {
   generatedAt: string;
   replayOfGeneration?: string;
   tasks: Record<string, JournalTask>;
-  batches: Record<string, { batchId: string; taskIds: string[]; attempts: number }>;
+  batches: Record<string, { batchId: string; taskIds: string[]; attempts: number; degraded?: boolean; anomalyCodes?: string[]; malformedTopLevel?: boolean }>;
 }
 
 function taskIdFor(scanDate: string, symbol: string): string {
@@ -204,10 +207,42 @@ export function recordSourceEvidence(journal: RunJournal, symbolsOrTaskIds: Iter
   return next;
 }
 
-export function recordProviderCapture(journal: RunJournal, input: { batchId: string; prompt: string; rawResponse: string; responseId?: string | null; model?: string | null; tokenUsage?: Record<string, number>; pricingSnapshot?: Record<string, number>; estimatedCostUsd?: number; capturedAt?: string }): RunJournal {
+function requireFiniteNonNegative(value: unknown, name: string): asserts value is number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) throw new Error(`Invalid ${name}`);
+}
+
+export interface ProviderCapture {
+  batchId: string;
+  prompt: string;
+  rawResponse: string;
+  responseId: string;
+  model: string;
+  tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  pricingSnapshot: { inputPerMillion: number; outputPerMillion: number };
+  estimatedCostUsd: number;
+  capturedAt?: string;
+}
+
+function assertBatchProvenance(journal: RunJournal, batchId: string): RunJournal["batches"][string] {
+  const batch = journal.batches[batchId];
+  if (!batch) throw new Error(`Unknown batch: ${batchId}`);
+  for (const taskId of batch.taskIds) {
+    const task = journal.tasks[taskId];
+    if (!task || task.sourceEvidenceSnapshots.length === 0) throw new Error(`Source evidence required before capture for ${taskId}`);
+  }
+  return batch;
+}
+
+export function recordProviderCapture(journal: RunJournal, input: ProviderCapture): RunJournal {
   const next = clone(journal);
-  const batch = next.batches[input.batchId];
-  if (!batch) return next;
+  const batch = assertBatchProvenance(next, input.batchId);
+  if (typeof input.prompt !== "string" || typeof input.rawResponse !== "string" || typeof input.responseId !== "string" || !input.responseId || typeof input.model !== "string" || !input.model) throw new Error("Provider capture requires prompt, raw response, response ID, and model");
+  requireFiniteNonNegative(input.tokenUsage?.promptTokens, "prompt tokens");
+  requireFiniteNonNegative(input.tokenUsage?.completionTokens, "completion tokens");
+  requireFiniteNonNegative(input.tokenUsage?.totalTokens, "total tokens");
+  requireFiniteNonNegative(input.pricingSnapshot?.inputPerMillion, "input pricing");
+  requireFiniteNonNegative(input.pricingSnapshot?.outputPerMillion, "output pricing");
+  requireFiniteNonNegative(input.estimatedCostUsd, "estimated cost");
   const capturedAt = input.capturedAt || nowIso();
   const attemptNumber = batch.attempts + 1;
   const attempt: JournalAttempt = { attempt: attemptNumber, batchId: input.batchId, capturedAt, prompt: input.prompt, rawResponse: input.rawResponse, responseId: input.responseId, model: input.model, tokenUsage: input.tokenUsage, pricingSnapshot: input.pricingSnapshot, estimatedCostUsd: input.estimatedCostUsd, semanticValidation: "pending" };
@@ -216,33 +251,44 @@ export function recordProviderCapture(journal: RunJournal, input: { batchId: str
   return next;
 }
 
-export function transitionSemanticValidation(journal: RunJournal, input: { batchId: string; validSymbols: Iterable<string>; quarantined: QuarantinedNewsSymbol[] }): RunJournal {
+export function transitionSemanticValidation(journal: RunJournal, input: { batchId: string; validSymbols: Iterable<string>; quarantined: QuarantinedNewsSymbol[]; degraded?: boolean; anomalyCodes?: string[]; malformedTopLevel?: boolean }): RunJournal {
   const next = clone(journal);
   const valid = new Set([...input.validSymbols].map(normalizeAnalysisSymbol));
   const quarantined = new Map(input.quarantined.map((item) => [normalizeAnalysisSymbol(item.symbol), item.reason]));
-  const batch = next.batches[input.batchId];
-  if (!batch) return next;
+  const batch = assertBatchProvenance(next, input.batchId);
+  if (input.degraded) batch.degraded = true;
+  if (input.anomalyCodes?.length) batch.anomalyCodes = [...new Set([...(batch.anomalyCodes || []), ...input.anomalyCodes])];
+  if (input.malformedTopLevel) batch.malformedTopLevel = true;
   for (const taskId of batch.taskIds) {
     const task = next.tasks[taskId];
     if (task.state === "resolved") continue;
     const status = valid.has(task.symbol) ? "resolved" : quarantined.has(task.symbol) ? "quarantined" : "deferred";
     task.state = status;
     const attempt = task.attempts[task.attempts.length - 1];
-    if (attempt) attempt.semanticValidation = status;
+    if (attempt) {
+      attempt.semanticValidation = status;
+      if (input.degraded) attempt.degraded = true;
+      if (input.anomalyCodes?.length) attempt.anomalyCodes = [...new Set([...(attempt.anomalyCodes || []), ...input.anomalyCodes])];
+      if (input.malformedTopLevel) attempt.malformedTopLevel = true;
+    }
   }
   return next;
 }
 
 export function retryJournalTasks(journal: RunJournal, symbols: Iterable<string>, batchId: string): RunJournal {
   const requested = [...symbols];
-  const next = registerJournalTasks(journal, requested, batchId, "pending");
-  const replayable = requested.map((symbol) => taskIdFor(next.scanDate, symbol)).filter((taskId) => !!next.tasks[taskId]);
+  const knownTaskIds = requested.map((symbol) => taskIdFor(journal.scanDate, symbol)).filter((taskId) => !!journal.tasks[taskId]);
+  const next = clone(journal);
+  const batch = next.batches[batchId] || { batchId, taskIds: [], attempts: 0 };
+  const replayable = knownTaskIds.filter((taskId) => !next.tasks[taskId].batchIds.includes(batchId));
   for (const taskId of replayable) {
     const task = next.tasks[taskId];
     task.state = "pending";
     task.retryCount += 1;
-    if (!next.batches[batchId].taskIds.includes(taskId)) next.batches[batchId].taskIds.push(taskId);
+    task.batchIds.push(batchId);
+    batch.taskIds.push(taskId);
   }
+  next.batches[batchId] = batch;
   return next;
 }
 
@@ -260,6 +306,12 @@ export function writeRunJournalAtomic(filePath: string, journal: RunJournal): vo
 
 export function readRunJournal(filePath: string): RunJournal {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as RunJournal;
+}
+
+export function persistCaptureBeforeValidation(filePath: string, journal: RunJournal, input: ProviderCapture): RunJournal {
+  const captured = recordProviderCapture(journal, input);
+  writeRunJournalAtomic(filePath, captured);
+  return captured;
 }
 
 export interface DegradedAlertInput {

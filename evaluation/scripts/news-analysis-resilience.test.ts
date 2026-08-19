@@ -7,6 +7,7 @@ import {
   parseNewsAnalysisResponse,
   readRunJournal,
   recordProviderCapture,
+  persistCaptureBeforeValidation,
   recordSourceEvidence,
   registerJournalTasks,
   retryJournalTasks,
@@ -106,6 +107,11 @@ describe("run journal", () => {
   it("keeps registration and retries idempotent and only selects known unresolved tasks", () => {
     let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-1" });
     journal = registerJournalTasks(journal, ["ABC", "DONE"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC", "DONE"], { news: [] }, "batch-1");
+    journal = recordProviderCapture(journal, {
+      batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
+      tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
+    });
     journal = transitionSemanticValidation(journal, { validSymbols: ["DONE"], quarantined: [], batchId: "batch-1" });
     journal = registerJournalTasks(journal, ["ABC", "DONE"], "batch-1");
     expect(Object.keys(journal.tasks)).toHaveLength(2);
@@ -116,6 +122,11 @@ describe("run journal", () => {
   it("does not reopen resolved work unless an explicit retry transition is requested", () => {
     let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-1" });
     journal = registerJournalTasks(journal, ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    journal = recordProviderCapture(journal, {
+      batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
+      tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
+    });
     journal = transitionSemanticValidation(journal, { validSymbols: ["ABC"], quarantined: [], batchId: "batch-1" });
     journal = transitionSemanticValidation(journal, { validSymbols: [], quarantined: [{ symbol: "ABC", reason: "malformed" }], batchId: "batch-1" });
     expect(journal.tasks["2026-08-19:ABC"].state).toBe("resolved");
@@ -123,6 +134,60 @@ describe("run journal", () => {
     expect(journal.tasks["2026-08-19:ABC"].state).toBe("pending");
     expect(journal.tasks["2026-08-19:ABC"].retryCount).toBe(1);
     expect(journal.tasks["2026-08-19:ABC"].batchIds).toContain("batch-2");
+  });
+
+  it("ignores unknown retry symbols and does not duplicate the same retry batch", () => {
+    let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-1" });
+    journal = registerJournalTasks(journal, ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    journal = recordProviderCapture(journal, {
+      batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
+      tokenUsage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 }, pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0,
+    });
+    journal = transitionSemanticValidation(journal, { validSymbols: [], quarantined: [{ symbol: "ABC", reason: "missing" }], batchId: "batch-1" });
+    journal = retryJournalTasks(journal, ["ABC", "UNKNOWN"], "batch-2");
+    journal = retryJournalTasks(journal, ["ABC", "UNKNOWN"], "batch-2");
+    expect(Object.keys(journal.tasks)).toEqual(["2026-08-19:ABC"]);
+    expect(journal.tasks["2026-08-19:ABC"].retryCount).toBe(1);
+    expect(journal.batches["batch-2"].taskIds).toEqual(["2026-08-19:ABC"]);
+  });
+
+  it("rejects provider capture and semantic validation when provenance ordering is incomplete", () => {
+    const journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    expect(() => recordProviderCapture(journal, { batchId: "unknown", prompt: "p", rawResponse: "{}" } as any)).toThrow(/unknown batch/i);
+    expect(() => transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: ["ABC"], quarantined: [] })).toThrow(/evidence|capture/i);
+  });
+
+  it("atomically persists a provider capture before semantic validation", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-capture-"));
+    const journalPath = path.join(dir, "run.json");
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC"], { news: [] }, "batch-1");
+    const persisted = persistCaptureBeforeValidation(journalPath, journal, {
+      batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
+      tokenUsage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0.000001,
+    });
+    expect(readRunJournal(journalPath).tasks["2026-08-19:ABC"].attempts).toHaveLength(1);
+    expect(persisted.tasks["2026-08-19:ABC"].attempts[0].semanticValidation).toBe("pending");
+  });
+
+  it("persists response anomalies on the batch attempt while retaining valid resolutions", () => {
+    let journal = registerJournalTasks(createRunJournal({ scanDate: "2026-08-19" }), ["ABC", "DEF"], "batch-1");
+    journal = recordSourceEvidence(journal, ["ABC", "DEF"], { news: [] }, "batch-1");
+    journal = recordProviderCapture(journal, {
+      batchId: "batch-1", prompt: "p", rawResponse: "{}", responseId: "r", model: "m",
+      tokenUsage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 }, estimatedCostUsd: 0.000001,
+    });
+    journal = transitionSemanticValidation(journal, {
+      batchId: "batch-1", validSymbols: ["ABC"], quarantined: [{ symbol: "DEF", reason: "missing" }],
+      degraded: true, anomalyCodes: ["unexpected-symbol:EXTRA"], malformedTopLevel: false,
+    });
+    expect(journal.batches["batch-1"].degraded).toBe(true);
+    expect(journal.tasks["2026-08-19:ABC"].state).toBe("resolved");
+    expect(journal.tasks["2026-08-19:DEF"].state).toBe("quarantined");
+    expect(journal.tasks["2026-08-19:ABC"].attempts[0].anomalyCodes).toEqual(["unexpected-symbol:EXTRA"]);
   });
 });
 

@@ -16,6 +16,10 @@ function isRecord(value: unknown): value is Record<string, any> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+function isCounter(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
 export function evaluateScanPublication(status: unknown, expectedDate: string): PublicationEvaluation {
   const reasons: string[] = [];
   if (!isRecord(status)) return { publishable: false, reasons: ["missing-status"] };
@@ -35,19 +39,37 @@ export function evaluateScanPublication(status: unknown, expectedDate: string): 
     }
   }
   const metrics = isRecord(status.summary) && isRecord(status.summary.newsAnalysisMetrics) ? status.summary.newsAnalysisMetrics : null;
+  const requiredMetricNames = ["failedModelCalls", "candidatesDeferred", "unavailableModelBatches"];
   if (!metrics) reasons.push("analysis-status-missing");
   else {
-    if (Number(metrics.failedModelCalls || 0) > 0) reasons.push("analysis-failures");
-    if (Number(metrics.candidatesDeferred || 0) > 0) reasons.push("analysis-deferrals");
-    if (Number(metrics.unavailableModelBatches || 0) > 0) reasons.push("analysis-unavailable-batches");
-    if (Number(metrics.deferred || metrics.deferredBatches || 0) > 0) reasons.push("analysis-deferrals");
-    if (Number(metrics.unavailable || metrics.unavailableBatches || 0) > 0) reasons.push("analysis-unavailable-batches");
+    for (const name of requiredMetricNames) {
+      if (!isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
+    }
+    if (isCounter(metrics.failedModelCalls) && metrics.failedModelCalls > 0) reasons.push("analysis-failures");
+    if (isCounter(metrics.candidatesDeferred) && metrics.candidatesDeferred > 0) reasons.push("analysis-deferrals");
+    if (isCounter(metrics.unavailableModelBatches) && metrics.unavailableModelBatches > 0) reasons.push("analysis-unavailable-batches");
+    for (const name of ["deferred", "deferredBatches"]) {
+      if (metrics[name] !== undefined && !isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
+      else if (isCounter(metrics[name]) && metrics[name] > 0) reasons.push("analysis-deferrals");
+    }
+    for (const name of ["unavailable", "unavailableBatches"]) {
+      if (metrics[name] !== undefined && !isCounter(metrics[name])) reasons.push("malformed-analysis-counter");
+      else if (isCounter(metrics[name]) && metrics[name] > 0) reasons.push("analysis-unavailable-batches");
+    }
   }
   const newsDetails = isRecord(status.phases) && isRecord(status.phases.phase3_newsAnalysis) && isRecord(status.phases.phase3_newsAnalysis.details)
     ? status.phases.phase3_newsAnalysis.details
     : null;
-  if (newsDetails && Number(newsDetails.newsFilterSkipped || newsDetails.deferred || newsDetails.deferredBatches || 0) > 0) reasons.push("analysis-deferrals");
-  const recovery = isRecord(status.recovery) ? status.recovery : {};
-  if (Number(recovery.unresolvedCount || 0) > 0) reasons.push("unresolved-recovery");
+  if (newsDetails) {
+    for (const name of ["newsFilterSkipped", "deferred", "deferredBatches"]) {
+      if (newsDetails[name] !== undefined && !isCounter(newsDetails[name])) reasons.push("malformed-analysis-counter");
+      else if (isCounter(newsDetails[name]) && newsDetails[name] > 0) reasons.push("analysis-deferrals");
+    }
+  }
+  const recovery = status.recovery;
+  if (!isRecord(recovery) || !isCounter(recovery.unresolvedCount)) reasons.push("malformed-recovery");
+  else if (recovery.unresolvedCount > 0) reasons.push("unresolved-recovery");
+  if (isRecord(recovery) && recovery.degraded === true) reasons.push("degraded-recovery");
+  if (isRecord(recovery) && recovery.degraded !== undefined && typeof recovery.degraded !== "boolean") reasons.push("malformed-recovery");
   return { publishable: reasons.length === 0, reasons };
 }
