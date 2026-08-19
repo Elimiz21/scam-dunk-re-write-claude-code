@@ -26,7 +26,9 @@ it("executes the workflow CLI boundary with quarantine, gate, and promotion deci
   const degradedFile = path.join(dir, "degraded.json");
   fs.writeFileSync(healthyFile, JSON.stringify(healthy));
   fs.writeFileSync(degradedFile, JSON.stringify({ ...healthy, pipelineStatus: "degraded", recovery: { ...healthy.recovery, degraded: true } }));
-  const run = (file: string) => spawnSync("npx", ["ts-node", "evaluation/scripts/scan-publication-check.ts", file, "2026-08-19", "fallback"], { cwd: path.resolve(__dirname, ".."), encoding: "utf8" });
+  const repositoryRoot = path.resolve(__dirname, "..");
+  const tsRunner = path.join(repositoryRoot, "node_modules", ".bin", process.platform === "win32" ? "tsx.cmd" : "tsx");
+  const run = (file: string) => spawnSync(tsRunner, ["evaluation/scripts/scan-publication-check.ts", file, "2026-08-19", "fallback"], { cwd: repositoryRoot, encoding: "utf8" });
   const bad = run(degradedFile);
   const good = run(healthyFile);
   expect(bad.status).toBe(2);
