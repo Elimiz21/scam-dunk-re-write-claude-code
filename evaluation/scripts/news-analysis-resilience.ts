@@ -364,6 +364,90 @@ export function persistCaptureBeforeValidation(filePath: string, journal: RunJou
   return durable;
 }
 
+export interface ProviderBatchAttemptInput {
+  journalPath: string;
+  journal: RunJournal;
+  batchId: string;
+  expectedSymbols: Iterable<string>;
+  prompt: string;
+  rawResponse: string | null;
+  responseId: string | null;
+  model: string | null;
+  rawUsage: unknown;
+  pricing: { inputPerMillion: number; outputPerMillion: number };
+  providerFailure?: { type: string; message: string; metadata?: unknown };
+}
+
+export interface ProviderBatchMetricDeltas {
+  promptTokens: number;
+  completionTokens: number;
+  quarantinedRows: number;
+  responseAnomalies: number;
+}
+
+export function processProviderBatchAttempt(input: ProviderBatchAttemptInput) {
+  const rawProviderMetadata = encodeRawProviderMetadata({
+    responseId: input.responseId,
+    model: input.model,
+    rawResponse: input.rawResponse,
+    usage: input.rawUsage,
+  });
+  let journal = persistCaptureBeforeValidation(input.journalPath, input.journal, {
+    batchId: input.batchId,
+    prompt: input.prompt,
+    rawResponse: input.rawResponse,
+    responseId: input.responseId,
+    model: input.model,
+    tokenUsage: null,
+    pricingSnapshot: input.pricing,
+    estimatedCostUsd: null,
+    rawProviderMetadata,
+    ...(input.providerFailure ? { providerFailure: input.providerFailure } : {}),
+  });
+
+  const metadata = validateCapturedProviderMetadata({
+    responseId: input.responseId,
+    model: input.model,
+    rawResponse: input.rawResponse,
+    usage: input.rawUsage,
+    pricing: input.pricing,
+  });
+  const metricDeltas: ProviderBatchMetricDeltas = {
+    promptTokens: 0,
+    completionTokens: 0,
+    quarantinedRows: 0,
+    responseAnomalies: 0,
+  };
+  if (metadata.normalizedUsage && metadata.estimatedCostUsd !== null) {
+    journal = attachProviderAccounting(journal, input.batchId, metadata.normalizedUsage, metadata.estimatedCostUsd);
+    writeRunJournalAtomic(input.journalPath, journal);
+    metricDeltas.promptTokens = metadata.normalizedUsage.promptTokens;
+    metricDeltas.completionTokens = metadata.normalizedUsage.completionTokens;
+  }
+
+  const parsed = parseNewsAnalysisResponse(input.rawResponse, input.expectedSymbols);
+  const disposition = applyProviderMetadataPolicy(parsed, input.expectedSymbols, metadata.anomalies);
+  journal = transitionSemanticValidation(journal, {
+    batchId: input.batchId,
+    validSymbols: disposition.validSymbols,
+    quarantined: disposition.quarantined,
+    degraded: disposition.degraded,
+    anomalyCodes: [...parsed.anomalies, ...metadata.anomalies],
+    malformedTopLevel: parsed.malformedTopLevel,
+  });
+  writeRunJournalAtomic(input.journalPath, journal);
+  metricDeltas.quarantinedRows = disposition.quarantined.length;
+  metricDeltas.responseAnomalies = parsed.anomalies.length + metadata.anomalies.length;
+  return {
+    journal,
+    validRows: disposition.validRows,
+    disposition,
+    normalizedUsage: metadata.normalizedUsage,
+    normalizedCostUsd: metadata.estimatedCostUsd,
+    metricDeltas,
+  };
+}
+
 export function attachProviderAccounting(journal: RunJournal, batchId: string, tokenUsage: ProviderUsage, estimatedCostUsd: number): RunJournal {
   const next = clone(journal);
   const batch = assertBatchProvenance(next, batchId, true);

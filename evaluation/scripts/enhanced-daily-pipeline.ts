@@ -42,16 +42,10 @@ import {
 import {
   buildDegradedScanAlertPayload,
   createRunJournal,
-  parseNewsAnalysisResponse,
-  persistCaptureBeforeValidation,
+  processProviderBatchAttempt,
   recordSourceEvidence,
   registerJournalTasks,
-  transitionSemanticValidation,
   writeRunJournalAtomic,
-  attachProviderAccounting,
-  applyProviderMetadataPolicy,
-  encodeRawProviderMetadata,
-  validateCapturedProviderMetadata,
 } from "./news-analysis-resilience";
 import { classifyEvidenceOutcomes, EvidenceFetchOutcome } from "./evidence-outcomes";
 
@@ -1914,38 +1908,32 @@ async function runEnhancedPipeline(): Promise<void> {
     newsMetrics.failedModelCalls += Number(batchAnalysis.failedCall);
     newsMetrics.unavailableModelBatches += Number(batchAnalysis.unavailable);
 
-    let parsed = null as ReturnType<typeof parseNewsAnalysisResponse> | null;
-    let disposition: ReturnType<typeof applyProviderMetadataPolicy> | null = null;
+    let validRows = new Map<string, { hasLegitimateNews: boolean; explanation: string; specificEvent?: string | null }>();
     if (batchAnalysis.attemptedCall) {
       const rawUsage = { promptTokens: batchAnalysis.promptTokens, completionTokens: batchAnalysis.completionTokens, totalTokens: batchAnalysis.totalTokens };
-      const rawEnvelope = encodeRawProviderMetadata({ responseId: batchAnalysis.responseId, model: batchAnalysis.model, rawResponse: batchAnalysis.rawResponse, usage: rawUsage });
-      // This durable write is deliberately before JSON or semantic validation.
-      runJournal = persistCaptureBeforeValidation(journalPath, runJournal, {
-        batchId, prompt: batchAnalysis.prompt, rawResponse: batchAnalysis.rawResponse,
-        responseId: batchAnalysis.responseId, model: batchAnalysis.model,
-        tokenUsage: null,
-        rawProviderMetadata: rawEnvelope,
-        pricingSnapshot: { inputPerMillion: OPENAI_INPUT_COST_PER_MILLION, outputPerMillion: OPENAI_OUTPUT_COST_PER_MILLION }, estimatedCostUsd: null,
+      const batchResult = processProviderBatchAttempt({
+        journalPath,
+        journal: runJournal,
+        batchId,
+        expectedSymbols: withEvidence.map(({ group }) => group.key),
+        prompt: batchAnalysis.prompt,
+        rawResponse: batchAnalysis.rawResponse,
+        responseId: batchAnalysis.responseId,
+        model: batchAnalysis.model,
+        rawUsage: rawUsage,
+        pricing: { inputPerMillion: OPENAI_INPUT_COST_PER_MILLION, outputPerMillion: OPENAI_OUTPUT_COST_PER_MILLION },
         ...(batchAnalysis.providerFailure ? { providerFailure: batchAnalysis.providerFailure } : {}),
       });
-      const metadata = validateCapturedProviderMetadata({ responseId: batchAnalysis.responseId, model: batchAnalysis.model, rawResponse: batchAnalysis.rawResponse, usage: rawUsage, pricing: { inputPerMillion: OPENAI_INPUT_COST_PER_MILLION, outputPerMillion: OPENAI_OUTPUT_COST_PER_MILLION } });
-      if (metadata.normalizedUsage && metadata.estimatedCostUsd !== null) {
-        runJournal = attachProviderAccounting(runJournal, batchId, metadata.normalizedUsage, metadata.estimatedCostUsd);
-        writeRunJournalAtomic(journalPath, runJournal);
-        newsMetrics.promptTokens += metadata.normalizedUsage.promptTokens;
-        newsMetrics.completionTokens += metadata.normalizedUsage.completionTokens;
-      }
-      parsed = parseNewsAnalysisResponse(batchAnalysis.rawResponse, withEvidence.map(({ group }) => group.key));
-      const metadataAnomalies = metadata.anomalies;
-      disposition = applyProviderMetadataPolicy(parsed, withEvidence.map(({ group }) => group.key), metadataAnomalies);
-      runJournal = transitionSemanticValidation(runJournal, { batchId, validSymbols: disposition.validSymbols, quarantined: disposition.quarantined, degraded: disposition.degraded, anomalyCodes: [...parsed.anomalies, ...metadataAnomalies], malformedTopLevel: parsed.malformedTopLevel });
-      writeRunJournalAtomic(journalPath, runJournal);
-      newsMetrics.quarantinedRows += disposition.quarantined.length;
-      newsMetrics.responseAnomalies += parsed.anomalies.length + metadataAnomalies.length;
+      runJournal = batchResult.journal;
+      validRows = batchResult.validRows;
+      newsMetrics.promptTokens += batchResult.metricDeltas.promptTokens;
+      newsMetrics.completionTokens += batchResult.metricDeltas.completionTokens;
+      newsMetrics.quarantinedRows += batchResult.metricDeltas.quarantinedRows;
+      newsMetrics.responseAnomalies += batchResult.metricDeltas.responseAnomalies;
     }
 
     for (const { group } of withEvidence) {
-      const row = disposition?.validRows.get(group.key);
+      const row = validRows.get(group.key);
       const analysis: NewsLegitimacyResult = row ? {
         hasLegitimateNews: row.hasLegitimateNews,
         analysis: `${row.explanation}${row.specificEvent ? ` Event: ${row.specificEvent}` : ""}`,

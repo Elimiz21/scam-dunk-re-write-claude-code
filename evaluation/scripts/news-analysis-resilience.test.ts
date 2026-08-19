@@ -4,7 +4,6 @@ import * as path from "path";
 import {
   buildDegradedScanAlertPayload,
   applyProviderMetadataPolicy,
-  attachProviderAccounting,
   encodeRawProviderMetadata,
   validateCapturedProviderMetadata,
   createRunJournal,
@@ -12,6 +11,7 @@ import {
   readRunJournal,
   recordProviderCapture,
   persistCaptureBeforeValidation,
+  processProviderBatchAttempt,
   recordSourceEvidence,
   registerJournalTasks,
   retryJournalTasks,
@@ -19,6 +19,7 @@ import {
   transitionSemanticValidation,
   writeRunJournalAtomic,
 } from "./news-analysis-resilience";
+import { evaluateScanPublication } from "../../shared/scan-publication";
 
 function persistTestCapture(journal: any, input: any) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "scamdunk-test-capture-"));
@@ -97,60 +98,53 @@ describe("provider metadata policy", () => {
     const malformedRawResponse = JSON.stringify({ results: malformedSymbols.map((symbol) => ({ symbol, hasLegitimateNews: true, explanation: "event", specificEvent: null })) });
     const validRawResponse = JSON.stringify({ results: [{ symbol: "GOOD", hasLegitimateNews: false, explanation: "No dated event", specificEvent: null }] });
     const malformedUsage = { promptTokens: -1, completionTokens: Number.NaN, totalTokens: Number.POSITIVE_INFINITY };
-    const malformedRawProviderMetadata = encodeRawProviderMetadata({ responseId: null, model: "", usage: malformedUsage });
     let journal = createRunJournal({ scanDate: "2026-08-19", generationId: "gen-provider-metadata" });
     journal = registerJournalTasks(journal, malformedSymbols, "batch-1");
     journal = registerJournalTasks(journal, validSymbols, "batch-2");
     journal = recordSourceEvidence(journal, malformedSymbols, { news: [] }, "batch-1");
     journal = recordSourceEvidence(journal, validSymbols, { news: [] }, "batch-2");
 
-    journal = persistCaptureBeforeValidation(journalPath, journal, {
+    const malformedResult = processProviderBatchAttempt({
+      journalPath,
+      journal,
       batchId: "batch-1",
+      expectedSymbols: malformedSymbols,
       prompt: "malformed metadata prompt",
       rawResponse: malformedRawResponse,
       responseId: null,
       model: null,
-      tokenUsage: null,
-      pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 },
-      estimatedCostUsd: null,
-      rawProviderMetadata: malformedRawProviderMetadata,
+      rawUsage: malformedUsage,
+      pricing: { inputPerMillion: 0.1, outputPerMillion: 0.2 },
     });
+    journal = malformedResult.journal;
     const malformedAttempt = readRunJournal(journalPath).tasks["2026-08-19:BAD1"].attempts[0];
     expect(malformedAttempt.rawResponse).toBe(malformedRawResponse);
-    expect(malformedAttempt.rawProviderMetadata).toEqual({ responseId: null, model: "", usage: { promptTokens: -1, completionTokens: "[NaN]", totalTokens: "[Infinity]" } });
+    expect(malformedAttempt.rawProviderMetadata).toEqual({ responseId: null, model: null, rawResponse: malformedRawResponse, usage: { promptTokens: -1, completionTokens: "[NaN]", totalTokens: "[Infinity]" } });
     expect(malformedAttempt.tokenUsage).toBeNull();
     expect(malformedAttempt.estimatedCostUsd).toBeNull();
-
-    const malformedValidation = validateCapturedProviderMetadata({ responseId: null, model: "", rawResponse: malformedRawResponse, usage: malformedUsage, pricing: { inputPerMillion: 0.1, outputPerMillion: 0.2 } });
-    expect(malformedValidation.normalizedUsage).toBeNull();
-    expect(malformedValidation.estimatedCostUsd).toBeNull();
-    const malformedParsed = parseNewsAnalysisResponse(malformedRawResponse, malformedSymbols);
-    const malformedPolicy = applyProviderMetadataPolicy(malformedParsed, malformedSymbols, malformedValidation.anomalies);
-    expect([...malformedPolicy.validRows.keys()]).toEqual([]);
-    expect(malformedPolicy.validSymbols).toEqual([]);
-    expect(malformedPolicy.quarantined).toEqual(malformedSymbols.map((symbol) => ({ symbol, reason: "malformed-provider-metadata" })));
-    journal = transitionSemanticValidation(journal, { batchId: "batch-1", validSymbols: malformedPolicy.validSymbols, quarantined: malformedPolicy.quarantined, degraded: malformedPolicy.degraded, anomalyCodes: malformedValidation.anomalies });
+    expect(malformedResult.normalizedUsage).toBeNull();
+    expect(malformedResult.normalizedCostUsd).toBeNull();
+    expect([...malformedResult.validRows.keys()]).toEqual([]);
+    expect(malformedResult.disposition.quarantined).toEqual(malformedSymbols.map((symbol) => ({ symbol, reason: "malformed-provider-metadata" })));
+    expect(malformedResult.disposition.degraded).toBe(true);
 
     const validUsage = { promptTokens: 2, completionTokens: 3, totalTokens: 5 };
-    journal = persistCaptureBeforeValidation(journalPath, journal, {
+    const validResult = processProviderBatchAttempt({
+      journalPath,
+      journal,
       batchId: "batch-2",
+      expectedSymbols: validSymbols,
       prompt: "valid metadata prompt",
       rawResponse: validRawResponse,
       responseId: "resp-good",
       model: "model-good",
-      tokenUsage: validUsage,
-      pricingSnapshot: { inputPerMillion: 0.1, outputPerMillion: 0.2 },
-      estimatedCostUsd: 0.0000008,
-      rawProviderMetadata: encodeRawProviderMetadata({ responseId: "resp-good", model: "model-good", usage: validUsage }),
+      rawUsage: validUsage,
+      pricing: { inputPerMillion: 0.1, outputPerMillion: 0.2 },
     });
-    const validValidation = validateCapturedProviderMetadata({ responseId: "resp-good", model: "model-good", rawResponse: validRawResponse, usage: validUsage, pricing: { inputPerMillion: 0.1, outputPerMillion: 0.2 } });
-    expect(validValidation.anomalies).toEqual([]);
-    expect(validValidation.normalizedUsage).toEqual(validUsage);
-    journal = attachProviderAccounting(journal, "batch-2", validValidation.normalizedUsage!, validValidation.estimatedCostUsd!);
-    const validParsed = parseNewsAnalysisResponse(validRawResponse, validSymbols);
-    const validPolicy = applyProviderMetadataPolicy(validParsed, validSymbols, validValidation.anomalies);
-    expect([...validPolicy.validRows.keys()]).toEqual(["GOOD"]);
-    journal = transitionSemanticValidation(journal, { batchId: "batch-2", validSymbols: validPolicy.validSymbols, quarantined: validPolicy.quarantined, degraded: validPolicy.degraded });
+    journal = validResult.journal;
+    expect(validResult.normalizedUsage).toEqual(validUsage);
+    expect(validResult.normalizedCostUsd).toBeCloseTo(0.0000008);
+    expect([...validResult.validRows.keys()]).toEqual(["GOOD"]);
 
     expect(journal.tasks["2026-08-19:BAD1"].state).toBe("quarantined");
     expect(journal.tasks["2026-08-19:BAD2"].state).toBe("quarantined");
@@ -165,6 +159,22 @@ describe("provider metadata policy", () => {
     const allAttempts = Object.values(journal.tasks).flatMap((task) => task.attempts);
     expect(allAttempts.filter((attempt) => attempt.tokenUsage !== null)).toEqual([goodAttempt]);
     expect(allAttempts.filter((attempt) => attempt.estimatedCostUsd !== null)).toEqual([goodAttempt]);
+    const metricDeltas = [malformedResult.metricDeltas, validResult.metricDeltas].reduce((total, delta) => ({
+      promptTokens: total.promptTokens + delta.promptTokens,
+      completionTokens: total.completionTokens + delta.completionTokens,
+      quarantinedRows: total.quarantinedRows + delta.quarantinedRows,
+      responseAnomalies: total.responseAnomalies + delta.responseAnomalies,
+    }), { promptTokens: 0, completionTokens: 0, quarantinedRows: 0, responseAnomalies: 0 });
+    expect(metricDeltas).toEqual({ promptTokens: 2, completionTokens: 3, quarantinedRows: 2, responseAnomalies: 3 });
+    const status = {
+      date: "2026-08-19",
+      pipelineStatus: "completed",
+      completedAt: "2026-08-19T01:00:00.000Z",
+      phases: Object.fromEntries(["phase0_socialEarlyWarning", "phase1_riskScoring", "phase2_sizeFiltering", "phase3_newsAnalysis", "phase4_socialMedia", "phase5_schemeTracking"].map((name) => [name, { status: "completed", details: {} }])),
+      summary: { newsAnalysisMetrics: { failedModelCalls: 0, candidatesDeferred: 0, unavailableModelBatches: 0, quarantinedRows: 2, responseAnomalies: 3, unresolvedTasks: 2, replayRequested: 0, replayMissing: 0, evidenceSourceFailures: 0 } },
+      recovery: { generationId: "gen-provider-metadata", journalFile: "journal.json", unresolvedSymbols: malformedSymbols, unresolvedCount: 2, degraded: true },
+    };
+    expect(evaluateScanPublication(status, "2026-08-19").publishable).toBe(false);
   });
 
   it("rejects inconsistent totals and non-string provider content", () => {
