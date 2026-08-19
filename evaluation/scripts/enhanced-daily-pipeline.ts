@@ -48,6 +48,10 @@ import {
   registerJournalTasks,
   transitionSemanticValidation,
   writeRunJournalAtomic,
+  attachProviderAccounting,
+  applyProviderMetadataPolicy,
+  encodeRawProviderMetadata,
+  validateCapturedProviderMetadata,
 } from "./news-analysis-resilience";
 import { classifyEvidenceOutcomes, EvidenceFetchOutcome } from "./evidence-outcomes";
 
@@ -916,16 +920,6 @@ interface NewsLegitimacyResult {
   skipped?: boolean;
 }
 
-function validateProviderMetadata(input: { responseId: unknown; model: unknown; rawResponse: unknown; promptTokens: unknown; completionTokens: unknown; totalTokens?: unknown }) {
-  const anomalies: string[] = [];
-  if (typeof input.responseId !== "string" || !input.responseId.trim()) anomalies.push("malformed-response-id");
-  if (typeof input.model !== "string" || !input.model.trim()) anomalies.push("malformed-model");
-  if (typeof input.rawResponse !== "string") anomalies.push("malformed-response-content");
-  const tokens = [input.promptTokens, input.completionTokens, input.totalTokens];
-  if (!tokens.every((value) => typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value >= 0)) anomalies.push("malformed-provider-usage");
-  else if ((input.totalTokens as number) !== (input.promptTokens as number) + (input.completionTokens as number)) anomalies.push("inconsistent-provider-usage");
-  return { anomalies, accountingKnown: anomalies.every((code) => !code.includes("usage")), tokenUsage: anomalies.some((code) => code.includes("usage")) ? null : { promptTokens: input.promptTokens as number, completionTokens: input.completionTokens as number, totalTokens: input.totalTokens as number } };
-}
 
 function formatNewsEvidence(item: NewsEvidence): string {
   const newsText = item.news
@@ -1919,27 +1913,32 @@ async function runEnhancedPipeline(): Promise<void> {
     newsMetrics.modelCallsMade += Number(batchAnalysis.attemptedCall);
     newsMetrics.failedModelCalls += Number(batchAnalysis.failedCall);
     newsMetrics.unavailableModelBatches += Number(batchAnalysis.unavailable);
-    if (batchAnalysis.promptTokens !== null) newsMetrics.promptTokens += batchAnalysis.promptTokens;
-    if (batchAnalysis.completionTokens !== null) newsMetrics.completionTokens += batchAnalysis.completionTokens;
 
     let parsed = null as ReturnType<typeof parseNewsAnalysisResponse> | null;
     if (batchAnalysis.attemptedCall) {
-      const metadata = validateProviderMetadata({ responseId: batchAnalysis.responseId, model: batchAnalysis.model, rawResponse: batchAnalysis.rawResponse, promptTokens: batchAnalysis.promptTokens, completionTokens: batchAnalysis.completionTokens, totalTokens: batchAnalysis.totalTokens });
-      const tokenUsage = metadata.tokenUsage;
-      const estimatedCostUsd = tokenUsage === null ? null : (tokenUsage.promptTokens / 1_000_000) * OPENAI_INPUT_COST_PER_MILLION + (tokenUsage.completionTokens / 1_000_000) * OPENAI_OUTPUT_COST_PER_MILLION;
+      const rawUsage = { promptTokens: batchAnalysis.promptTokens, completionTokens: batchAnalysis.completionTokens, totalTokens: batchAnalysis.totalTokens };
+      const rawEnvelope = JSON.stringify(encodeRawProviderMetadata({ responseId: batchAnalysis.responseId, model: batchAnalysis.model, rawResponse: batchAnalysis.rawResponse, usage: rawUsage }));
       // This durable write is deliberately before JSON or semantic validation.
       runJournal = persistCaptureBeforeValidation(journalPath, runJournal, {
-        batchId, prompt: batchAnalysis.prompt, rawResponse: batchAnalysis.rawResponse,
+        batchId, prompt: batchAnalysis.prompt, rawResponse: rawEnvelope,
         responseId: batchAnalysis.responseId, model: batchAnalysis.model,
-        tokenUsage,
-        pricingSnapshot: { inputPerMillion: OPENAI_INPUT_COST_PER_MILLION, outputPerMillion: OPENAI_OUTPUT_COST_PER_MILLION }, estimatedCostUsd,
+        tokenUsage: null,
+        pricingSnapshot: { inputPerMillion: OPENAI_INPUT_COST_PER_MILLION, outputPerMillion: OPENAI_OUTPUT_COST_PER_MILLION }, estimatedCostUsd: null,
         ...(batchAnalysis.providerFailure ? { providerFailure: batchAnalysis.providerFailure } : {}),
       });
+      const metadata = validateCapturedProviderMetadata({ responseId: batchAnalysis.responseId, model: batchAnalysis.model, rawResponse: batchAnalysis.rawResponse, usage: rawUsage, pricing: { inputPerMillion: OPENAI_INPUT_COST_PER_MILLION, outputPerMillion: OPENAI_OUTPUT_COST_PER_MILLION } });
+      if (metadata.normalizedUsage && metadata.estimatedCostUsd !== null) {
+        runJournal = attachProviderAccounting(runJournal, batchId, metadata.normalizedUsage, metadata.estimatedCostUsd);
+        writeRunJournalAtomic(journalPath, runJournal);
+        newsMetrics.promptTokens += metadata.normalizedUsage.promptTokens;
+        newsMetrics.completionTokens += metadata.normalizedUsage.completionTokens;
+      }
       parsed = parseNewsAnalysisResponse(batchAnalysis.rawResponse, withEvidence.map(({ group }) => group.key));
       const metadataAnomalies = metadata.anomalies;
-      runJournal = transitionSemanticValidation(runJournal, { batchId, validSymbols: parsed.valid.keys(), quarantined: parsed.quarantined, degraded: parsed.degraded || metadataAnomalies.length > 0, anomalyCodes: [...parsed.anomalies, ...metadataAnomalies], malformedTopLevel: parsed.malformedTopLevel });
+      const disposition = applyProviderMetadataPolicy(parsed, withEvidence.map(({ group }) => group.key), metadataAnomalies);
+      runJournal = transitionSemanticValidation(runJournal, { batchId, validSymbols: disposition.validSymbols, quarantined: disposition.quarantined, degraded: disposition.degraded, anomalyCodes: [...parsed.anomalies, ...metadataAnomalies], malformedTopLevel: parsed.malformedTopLevel });
       writeRunJournalAtomic(journalPath, runJournal);
-      newsMetrics.quarantinedRows += parsed.quarantined.length;
+      newsMetrics.quarantinedRows += disposition.quarantined.length;
       newsMetrics.responseAnomalies += parsed.anomalies.length + metadataAnomalies.length;
     }
 

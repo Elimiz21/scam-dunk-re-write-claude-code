@@ -362,6 +362,19 @@ export function persistCaptureBeforeValidation(filePath: string, journal: RunJou
   return durable;
 }
 
+export function attachProviderAccounting(journal: RunJournal, batchId: string, tokenUsage: ProviderUsage, estimatedCostUsd: number): RunJournal {
+  const next = clone(journal);
+  const batch = assertBatchProvenance(next, batchId, true);
+  requireFiniteNonNegative(estimatedCostUsd, "estimated cost");
+  for (const taskId of batch.taskIds) {
+    const attempt = [...next.tasks[taskId].attempts].reverse().find((item) => item.batchId === batchId && item.attempt === next.durableCaptureAttempts?.[batchId]);
+    if (!attempt) throw new Error(`Durable capture required before accounting for ${taskId}`);
+    attempt.tokenUsage = clone(tokenUsage);
+    attempt.estimatedCostUsd = estimatedCostUsd;
+  }
+  return next;
+}
+
 export interface DegradedAlertInput {
   scanDate: string;
   generation: string;
