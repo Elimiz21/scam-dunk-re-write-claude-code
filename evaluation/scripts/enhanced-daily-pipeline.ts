@@ -39,6 +39,8 @@ import {
   createNewsAnalysisPlan,
   NewsAnalysisCandidateGroup,
 } from "./news-analysis-plan";
+import { parseNewsAnalysisResponse } from "./news-analysis-response";
+import { chunkSocialTargets, summarizeSocialBatches } from "./social-scan-plan";
 
 // Deployed app URL and API key for triggering the production social scan
 const SOCIAL_SCAN_APP_URL = process.env.SOCIAL_SCAN_APP_URL || "";
@@ -81,6 +83,14 @@ const NEWS_ANALYSIS_MAX_CANDIDATES = positiveIntegerFromEnv(
 );
 const NEWS_ANALYSIS_BATCH_SIZE = positiveIntegerFromEnv(
   "NEWS_ANALYSIS_BATCH_SIZE",
+  10,
+);
+const SOCIAL_SCAN_MAX_TICKERS = positiveIntegerFromEnv(
+  "SOCIAL_SCAN_MAX_TICKERS",
+  50,
+);
+const SOCIAL_SCAN_BATCH_SIZE = positiveIntegerFromEnv(
+  "SOCIAL_SCAN_BATCH_SIZE",
   10,
 );
 const OPENAI_NEWS_MODEL = "gpt-4o-mini";
@@ -887,6 +897,15 @@ interface NewsLegitimacyResult {
   skipped?: boolean;
 }
 
+interface NewsBatchAnalysisResult {
+  results: Map<string, NewsLegitimacyResult>;
+  promptTokens: number;
+  completionTokens: number;
+  modelCallsMade: number;
+  failedModelCalls: number;
+  unavailableModelBatches: number;
+}
+
 function formatNewsEvidence(item: NewsEvidence): string {
   const newsText = item.news
     .slice(0, 5)
@@ -912,15 +931,15 @@ function formatNewsEvidence(item: NewsEvidence): string {
 
 async function analyzeNewsLegitimacyBatch(
   batch: NewsEvidence[],
-): Promise<{
-  results: Map<string, NewsLegitimacyResult>;
-  promptTokens: number;
-  completionTokens: number;
-  attemptedCall: boolean;
-  failedCall: boolean;
-  unavailable: boolean;
-}> {
-  const skipped = (reason: string) => ({
+  recoverIncompleteBatch = true,
+): Promise<NewsBatchAnalysisResult> {
+  const skipped = (
+    reason: string,
+    metrics: Pick<
+      NewsBatchAnalysisResult,
+      "modelCallsMade" | "failedModelCalls" | "unavailableModelBatches"
+    >,
+  ): NewsBatchAnalysisResult => ({
     results: new Map(
       batch.map((item) => [
         item.key,
@@ -929,13 +948,18 @@ async function analyzeNewsLegitimacyBatch(
     ),
     promptTokens: 0,
     completionTokens: 0,
-    attemptedCall: false,
-    failedCall: false,
-    unavailable: true,
+    ...metrics,
   });
 
   if (!OPENAI_API_KEY) {
-    return skipped("SKIPPED: OpenAI API key not configured — retained as suspicious");
+    return skipped(
+      "SKIPPED: OpenAI API key not configured — retained as suspicious",
+      {
+        modelCallsMade: 0,
+        failedModelCalls: 0,
+        unavailableModelBatches: 1,
+      },
+    );
   }
 
   const prompt = `For each instrument below, decide whether verified news, SEC filings, or a press release provides a LEGITIMATE explanation for unusual trading activity.
@@ -958,42 +982,78 @@ ${batch.map(formatNewsEvidence).join("\n\n---\n\n")}`;
       max_tokens: Math.min(2500, 180 * batch.length + 100),
     });
     const payload = JSON.parse(response.choices[0]?.message?.content || "{}");
-    const rows = Array.isArray(payload.results) ? payload.results : [];
-    const expectedSymbols = new Set(batch.map((item) => item.key));
-    const parsed = new Map<string, NewsLegitimacyResult>();
-
-    for (const row of rows) {
-      const symbol = String(row?.symbol || "").trim().toUpperCase().replace(/\s+/g, "");
-      if (!expectedSymbols.has(symbol) || parsed.has(symbol)) {
-        throw new Error(`OpenAI returned an unexpected or duplicate symbol: ${symbol || "empty"}`);
-      }
-      parsed.set(symbol, {
-        hasLegitimateNews: row?.hasLegitimateNews === true,
-        analysis: `${row?.explanation || "Unable to analyze"}${row?.specificEvent ? ` Event: ${row.specificEvent}` : ""}`,
-      });
-    }
-
-    if (parsed.size !== expectedSymbols.size) {
-      throw new Error("OpenAI batch response omitted one or more instruments");
-    }
-
-    return {
-      results: parsed,
+    const parsed = parseNewsAnalysisResponse(
+      batch.map((item) => item.key),
+      payload,
+    );
+    const aggregate: NewsBatchAnalysisResult = {
+      results: parsed.results,
       promptTokens: response.usage?.prompt_tokens || 0,
       completionTokens: response.usage?.completion_tokens || 0,
-      attemptedCall: true,
-      failedCall: false,
-      unavailable: false,
+      modelCallsMade: 1,
+      failedModelCalls: parsed.missingSymbols.length > 0 ? 1 : 0,
+      unavailableModelBatches: 0,
     };
+
+    if (parsed.missingSymbols.length > 0 && recoverIncompleteBatch) {
+      console.warn(
+        `  ⚠ OpenAI omitted ${parsed.missingSymbols.join(", ")}; retrying only the missing instrument(s) individually`,
+      );
+      const missingSet = new Set(parsed.missingSymbols);
+      for (const item of batch.filter((entry) => missingSet.has(entry.key))) {
+        const retry = await analyzeNewsLegitimacyBatch([item], false);
+        aggregate.promptTokens += retry.promptTokens;
+        aggregate.completionTokens += retry.completionTokens;
+        aggregate.modelCallsMade += retry.modelCallsMade;
+        aggregate.failedModelCalls += retry.failedModelCalls;
+        aggregate.unavailableModelBatches += retry.unavailableModelBatches;
+        const result = retry.results.get(item.key);
+        if (result) aggregate.results.set(item.key, result);
+      }
+    } else if (parsed.missingSymbols.length > 0) {
+      for (const symbol of parsed.missingSymbols) {
+        aggregate.results.set(symbol, {
+          hasLegitimateNews: false,
+          analysis:
+            "ERROR: OpenAI response omitted this instrument after retry; retained as suspicious",
+          skipped: true,
+        });
+      }
+    }
+
+    return aggregate;
   } catch (error: any) {
     const message = error?.message || String(error);
     console.error(`  ❌ Error analyzing news batch: ${message}`);
-    return {
-      ...skipped(`ERROR: ${message}; retained as suspicious`),
-      attemptedCall: true,
-      failedCall: true,
-      unavailable: false,
-    };
+    if (batch.length > 1 && recoverIncompleteBatch) {
+      console.warn(
+        `  ⚠ Retrying failed ${batch.length}-instrument batch as individual requests`,
+      );
+      const aggregate: NewsBatchAnalysisResult = {
+        results: new Map(),
+        promptTokens: 0,
+        completionTokens: 0,
+        modelCallsMade: 1,
+        failedModelCalls: 1,
+        unavailableModelBatches: 0,
+      };
+      for (const item of batch) {
+        const retry = await analyzeNewsLegitimacyBatch([item], false);
+        aggregate.promptTokens += retry.promptTokens;
+        aggregate.completionTokens += retry.completionTokens;
+        aggregate.modelCallsMade += retry.modelCallsMade;
+        aggregate.failedModelCalls += retry.failedModelCalls;
+        aggregate.unavailableModelBatches += retry.unavailableModelBatches;
+        const result = retry.results.get(item.key);
+        if (result) aggregate.results.set(item.key, result);
+      }
+      return aggregate;
+    }
+    return skipped(`ERROR: ${message}; retained as suspicious`, {
+      modelCallsMade: 1,
+      failedModelCalls: 1,
+      unavailableModelBatches: 0,
+    });
   }
 }
 
@@ -1052,12 +1112,7 @@ function tickerResultToComprehensiveScan(
 interface PhaseStatus {
   name: string;
   status:
-    | "pending"
-    | "running"
-    | "completed"
-    | "degraded"
-    | "failed"
-    | "skipped";
+    "pending" | "running" | "completed" | "degraded" | "failed" | "skipped";
   startedAt: string | null;
   completedAt: string | null;
   durationMs: number | null;
@@ -1107,6 +1162,7 @@ interface ScanStatus {
     totalActiveSchemes: number;
   };
   socialMediaDetails: {
+    status: string;
     platformsUsed: string[];
     platformResults: Array<{
       platform: string;
@@ -1117,8 +1173,12 @@ interface ScanStatus {
       error: string | null;
     }>;
     totalMentions: number;
+    tickersSubmitted: number;
     tickersScanned: number;
     tickersWithMentions: number;
+    errors: string[];
+    batches: number;
+    scanRunIds: string[];
   };
 }
 
@@ -1167,11 +1227,16 @@ function createInitialScanStatus(date: string): ScanStatus {
       totalActiveSchemes: 0,
     },
     socialMediaDetails: {
+      status: "NOT_RUN",
       platformsUsed: [],
       platformResults: [],
       totalMentions: 0,
+      tickersSubmitted: 0,
       tickersScanned: 0,
       tickersWithMentions: 0,
+      errors: [],
+      batches: 0,
+      scanRunIds: [],
     },
   };
 }
@@ -1517,11 +1582,7 @@ async function runEnhancedPipeline(): Promise<void> {
           const typedSignals = pyResult.signals.map((s) => ({
             code: s.code,
             category: s.category as
-              | "STRUCTURAL"
-              | "PATTERN"
-              | "ALERT"
-              | "BEHAVIORAL"
-              | "SOCIAL",
+              "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL" | "SOCIAL",
             weight: s.weight,
             description: s.description,
           }));
@@ -1548,10 +1609,7 @@ async function runEnhancedPipeline(): Promise<void> {
           };
           const tsRiskRank = riskOrder[scoringResult.riskLevel] ?? 0;
           const pyRiskLevel = (pyResult.riskLevel || "LOW") as
-            | "LOW"
-            | "MEDIUM"
-            | "HIGH"
-            | "INSUFFICIENT";
+            "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT";
           const pyRiskRank = riskOrder[pyRiskLevel] ?? 0;
 
           if (pyRiskRank >= tsRiskRank) {
@@ -1751,11 +1809,13 @@ async function runEnhancedPipeline(): Promise<void> {
         source: news?.site || "",
         url: news?.url || "",
       }));
-      result.secFilings = evidence.secFilings.slice(0, 5).map((filing: any) => ({
-        type: filing?.type || "",
-        date: filing?.fillingDate || filing?.date || "",
-        url: filing?.finalLink || filing?.link || "",
-      }));
+      result.secFilings = evidence.secFilings
+        .slice(0, 5)
+        .map((filing: any) => ({
+          type: filing?.type || "",
+          date: filing?.fillingDate || filing?.date || "",
+          url: filing?.finalLink || filing?.link || "",
+        }));
     }
   };
 
@@ -1797,7 +1857,9 @@ async function runEnhancedPipeline(): Promise<void> {
           result: group.representative,
           news: Array.isArray(newsRaw) ? newsRaw : [],
           secFilings: Array.isArray(secFilingsRaw) ? secFilingsRaw : [],
-          pressReleases: Array.isArray(pressReleasesRaw) ? pressReleasesRaw : [],
+          pressReleases: Array.isArray(pressReleasesRaw)
+            ? pressReleasesRaw
+            : [],
         };
         applyNewsEvidence(group, item);
         return { group, item };
@@ -1831,16 +1893,18 @@ async function runEnhancedPipeline(): Promise<void> {
     const batchAnalysis = await analyzeNewsLegitimacyBatch(
       withEvidence.map(({ item }) => item),
     );
-    newsMetrics.modelCallsMade += Number(batchAnalysis.attemptedCall);
-    newsMetrics.failedModelCalls += Number(batchAnalysis.failedCall);
-    newsMetrics.unavailableModelBatches += Number(batchAnalysis.unavailable);
+    newsMetrics.modelCallsMade += batchAnalysis.modelCallsMade;
+    newsMetrics.failedModelCalls += batchAnalysis.failedModelCalls;
+    newsMetrics.unavailableModelBatches +=
+      batchAnalysis.unavailableModelBatches;
     newsMetrics.promptTokens += batchAnalysis.promptTokens;
     newsMetrics.completionTokens += batchAnalysis.completionTokens;
 
     for (const { group } of withEvidence) {
       const analysis = batchAnalysis.results.get(group.key) || {
         hasLegitimateNews: false,
-        analysis: "ERROR: OpenAI batch response omitted this instrument; retained as suspicious",
+        analysis:
+          "ERROR: OpenAI batch response omitted this instrument; retained as suspicious",
         skipped: true,
       };
       if (analysis.skipped) {
@@ -1856,7 +1920,9 @@ async function runEnhancedPipeline(): Promise<void> {
         console.log(`  ✓ ${group.key}: Legitimate news found`);
       } else {
         retainAsSuspicious(group, analysis.analysis);
-        console.log(`  ⚠ ${group.key}: No legitimate news - remains suspicious`);
+        console.log(
+          `  ⚠ ${group.key}: No legitimate news - remains suspicious`,
+        );
       }
     }
 
@@ -1865,9 +1931,11 @@ async function runEnhancedPipeline(): Promise<void> {
   }
 
   newsMetrics.estimatedCostUsd = Number(
-    ((newsMetrics.promptTokens / 1_000_000) * OPENAI_INPUT_COST_PER_MILLION +
+    (
+      (newsMetrics.promptTokens / 1_000_000) * OPENAI_INPUT_COST_PER_MILLION +
       (newsMetrics.completionTokens / 1_000_000) *
-        OPENAI_OUTPUT_COST_PER_MILLION).toFixed(6),
+        OPENAI_OUTPUT_COST_PER_MILLION
+    ).toFixed(6),
   );
 
   if (newsFilterSkipped > 0) {
@@ -1877,8 +1945,7 @@ async function runEnhancedPipeline(): Promise<void> {
     console.error(
       `  ⚠ filteredByNews does not include unclassified stocks; they were not cleared as legitimate`,
     );
-    scanStatus.phases.phase3_newsAnalysis.error =
-      `${newsFilterSkipped} records were retained as suspicious without a completed news classification`;
+    scanStatus.phases.phase3_newsAnalysis.error = `${newsFilterSkipped} records were retained as suspicious without a completed news classification`;
   }
   console.log(`\n  Filtered by legitimate news: ${filteredByNews}`);
   console.log(`  Remaining suspicious stocks: ${afterNewsFilter.length}`);
@@ -1917,10 +1984,13 @@ async function runEnhancedPipeline(): Promise<void> {
       signals: r.signals.map((s) => s.code),
     }));
 
-    // Take top 50 by risk score for social scanning
-    const top50Targets = scanTargets
+    const selectedSocialTargets = scanTargets
       .sort((a, b) => b.riskScore - a.riskScore)
-      .slice(0, 50);
+      .slice(0, SOCIAL_SCAN_MAX_TICKERS);
+    const selectedSocialSymbols = new Set(
+      selectedSocialTargets.map((target) => target.ticker.toUpperCase()),
+    );
+    const completedSocialSymbols = new Set<string>();
 
     // Prefer deployed API (stores to Supabase, includes AI screening)
     // Falls back to local scan if APP_URL or API_KEY not configured
@@ -1929,123 +1999,164 @@ async function runEnhancedPipeline(): Promise<void> {
 
     if (SOCIAL_SCAN_APP_URL && SOCIAL_SCAN_API_KEY) {
       console.log(`  Using deployed API at ${SOCIAL_SCAN_APP_URL}`);
-      console.log(`  Sending ${top50Targets.length} tickers for scanning...`);
+      const batches = chunkSocialTargets(
+        selectedSocialTargets,
+        SOCIAL_SCAN_BATCH_SIZE,
+      );
+      console.log(
+        `  Sending ${selectedSocialTargets.length} tickers in ${batches.length} batch(es)...`,
+      );
 
-      try {
-        const apiResponse = await fetch(
-          `${SOCIAL_SCAN_APP_URL}/api/admin/social-scan`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${SOCIAL_SCAN_API_KEY}`,
-            },
-            body: JSON.stringify({
-              tickers: top50Targets.map((t) => ({
-                ticker: t.ticker,
-                name: t.name,
-                riskScore: t.riskScore,
-                riskLevel: t.riskLevel,
-                signals: t.signals,
-              })),
-              date: evaluationDate,
-            }),
-            signal: AbortSignal.timeout(5 * 60 * 1000), // 5 minute timeout
-          },
-        );
+      const batchResults: any[] = [];
+      const mentionsByTicker = new Map<string, any[]>();
+      const platformNames = new Set<string>();
+      const scanRunIds: string[] = [];
 
-        if (!apiResponse.ok) {
-          const errorBody = await apiResponse.text();
-          throw new Error(`API returned ${apiResponse.status}: ${errorBody}`);
+      for (const [batchIndex, batch] of batches.entries()) {
+        let apiResult: any = null;
+        let finalError = "";
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            console.log(
+              `  Social batch ${batchIndex + 1}/${batches.length}, attempt ${attempt}/2 (${batch.length} tickers)`,
+            );
+            const apiResponse = await fetch(
+              `${SOCIAL_SCAN_APP_URL}/api/admin/social-scan`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${SOCIAL_SCAN_API_KEY}`,
+                },
+                body: JSON.stringify({ tickers: batch, date: evaluationDate }),
+                // Stay below the deployed function's 300-second ceiling.
+                signal: AbortSignal.timeout(270_000),
+              },
+            );
+            if (!apiResponse.ok) {
+              const errorBody = await apiResponse.text();
+              throw new Error(
+                `API returned ${apiResponse.status}: ${errorBody}`,
+              );
+            }
+            apiResult = await apiResponse.json();
+            break;
+          } catch (apiError: any) {
+            finalError = apiError?.message || String(apiError);
+            console.log(`  Social batch attempt failed: ${finalError}`);
+            if (attempt < 2) await sleep(2_000);
+          }
         }
 
-        const apiResult = await apiResponse.json();
+        if (!apiResult) {
+          batchResults.push({
+            status: "FAILED",
+            requestedTickers: batch.length,
+            tickersScanned: 0,
+            tickersWithMentions: 0,
+            totalMentions: 0,
+            errors: [`Batch ${batchIndex + 1}: ${finalError}`],
+          });
+          continue;
+        }
+
         usedDeployedAPI = true;
+        const apiErrors = Array.isArray(apiResult.errors)
+          ? apiResult.errors.map(String)
+          : [];
+        const batchCompleted =
+          apiResult.status === "COMPLETED" &&
+          Number(apiResult.tickersScanned || 0) === batch.length &&
+          apiErrors.length === 0;
+        if (batchCompleted) {
+          for (const target of batch) {
+            completedSocialSymbols.add(target.ticker.toUpperCase());
+          }
+        }
 
-        console.log(`\n  API scan status: ${apiResult.status}`);
-        console.log(`  Total mentions found: ${apiResult.totalMentions}`);
-        console.log(
-          `  Tickers with mentions: ${apiResult.tickersWithMentions}/${apiResult.tickersScanned}`,
-        );
-        console.log(
-          `  Duration: ${apiResult.duration ? Math.round(apiResult.duration / 1000) + "s" : "unknown"}`,
-        );
-        console.log("  ✅ Results stored to Supabase and visible on dashboard");
-
-        // Build a compatible scanRunResult for downstream code
         const platforms = Array.isArray(apiResult.platformsUsed)
           ? typeof apiResult.platformsUsed[0] === "string"
             ? apiResult.platformsUsed
             : (apiResult.platformsUsed as any).scanners || []
           : [];
-        scanRunResult = {
-          status: apiResult.status || "COMPLETED",
-          platformsUsed: platforms,
-          totalMentions: apiResult.totalMentions || 0,
-          tickersScanned: apiResult.tickersScanned || 0,
-          tickersWithMentions: apiResult.tickersWithMentions || 0,
-          errors: apiResult.errors || [],
-          results: [], // Will be populated from DB fetch below
+        for (const platform of platforms) platformNames.add(String(platform));
+        if (apiResult.scanRunId) scanRunIds.push(apiResult.scanRunId);
+
+        const batchResult = {
+          status: batchCompleted ? "COMPLETED" : apiResult.status || "PARTIAL",
+          requestedTickers: batch.length,
+          tickersScanned: Number(apiResult.tickersScanned || 0),
+          tickersWithMentions: Number(apiResult.tickersWithMentions || 0),
+          totalMentions: Number(apiResult.totalMentions || 0),
+          errors: apiErrors,
         };
 
-        // Fetch per-ticker mention data back from the DB via the GET API
-        // so we can build ComprehensiveScanResult for scheme tracking
-        if (apiResult.scanRunId && apiResult.totalMentions > 0) {
+        if (apiResult.scanRunId && batchResult.totalMentions > 0) {
           try {
-            console.log(
-              "  Fetching per-ticker mention data from DB for scheme tracking...",
-            );
             const mentionsRes = await fetch(
               `${SOCIAL_SCAN_APP_URL}/api/admin/social-scan?scanRunId=${apiResult.scanRunId}&limit=500`,
               {
-                headers: {
-                  Authorization: `Bearer ${SOCIAL_SCAN_API_KEY}`,
-                },
+                headers: { Authorization: `Bearer ${SOCIAL_SCAN_API_KEY}` },
                 signal: AbortSignal.timeout(30_000),
               },
             );
-            if (mentionsRes.ok) {
-              const mentionsData = await mentionsRes.json();
-              const mentions = mentionsData.mentions || [];
-
-              // Group mentions by ticker
-              const byTicker = new Map<string, any[]>();
-              for (const m of mentions) {
-                const t = (m.ticker || "").toUpperCase();
-                if (!byTicker.has(t)) byTicker.set(t, []);
-                byTicker.get(t)!.push(m);
-              }
-
-              // Store in a map the pipeline can use to build ComprehensiveScanResult
-              (scanRunResult as any)._mentionsByTicker = byTicker;
-              console.log(
-                `  Retrieved ${mentions.length} mentions across ${byTicker.size} ticker(s)`,
-              );
-            } else {
-              console.log(
-                `  ⚠️  Could not fetch mentions from GET API: ${mentionsRes.status}`,
-              );
+            if (!mentionsRes.ok) {
+              throw new Error(`GET API returned ${mentionsRes.status}`);
             }
-          } catch (fetchErr: any) {
-            console.log(
-              `  ⚠️  Mention fetch failed (non-blocking): ${fetchErr.message}`,
+            const mentionsData = await mentionsRes.json();
+            for (const mention of mentionsData.mentions || []) {
+              const ticker = String(mention.ticker || "").toUpperCase();
+              if (!mentionsByTicker.has(ticker))
+                mentionsByTicker.set(ticker, []);
+              mentionsByTicker.get(ticker)!.push(mention);
+            }
+          } catch (fetchError: any) {
+            batchResult.status = "PARTIAL";
+            batchResult.errors.push(
+              `Batch ${batchIndex + 1} mention fetch: ${fetchError?.message || String(fetchError)}`,
             );
+            for (const target of batch) {
+              completedSocialSymbols.delete(target.ticker.toUpperCase());
+            }
           }
         }
-      } catch (apiError: any) {
-        console.log(`  ⚠️  Deployed API failed: ${apiError.message}`);
-        console.log("  Falling back to local social scan...");
+        batchResults.push(batchResult);
       }
+
+      const socialSummary = summarizeSocialBatches(
+        afterNewsFilter.length,
+        selectedSocialTargets.length,
+        batchResults,
+      );
+      scanRunResult = {
+        status: socialSummary.status === "completed" ? "COMPLETED" : "PARTIAL",
+        platformsUsed: Array.from(platformNames),
+        totalMentions: socialSummary.totalMentions,
+        tickersSubmitted: socialSummary.tickersSubmitted,
+        tickersScanned: socialSummary.tickersCompleted,
+        tickersWithMentions: socialSummary.tickersWithMentions,
+        errors: socialSummary.errors,
+        results: [],
+        _mentionsByTicker: mentionsByTicker,
+        _summary: socialSummary,
+        _scanRunIds: scanRunIds,
+      };
     }
 
     // Fallback: run local social scan if API not configured or failed
     if (!usedDeployedAPI) {
       console.log("  Using local social scan (results saved to JSON only)");
       scanRunResult = await runSocialScan({
-        tickers: top50Targets,
+        tickers: selectedSocialTargets,
         date: evaluationDate,
         scanId: `pipeline-${evaluationDate}-${Date.now()}`,
       });
+      scanRunResult.tickersSubmitted = selectedSocialTargets.length;
+      scanRunResult.tickersScanned = scanRunResult.results.filter(
+        (entry: any) =>
+          selectedSocialSymbols.has(String(entry.ticker || "").toUpperCase()),
+      ).length;
 
       console.log(`\n  Orchestrator status: ${scanRunResult.status}`);
       console.log(
@@ -2059,15 +2170,27 @@ async function runEnhancedPipeline(): Promise<void> {
 
     // Map results back to each stock in afterNewsFilter
     for (const result of afterNewsFilter) {
+      const normalizedSymbol = result.symbol.toUpperCase();
+      if (!selectedSocialSymbols.has(normalizedSymbol)) {
+        result.socialMediaScanned = false;
+        result.socialMediaFindings = null;
+        suspiciousStocks.push(result);
+        continue;
+      }
+
       // When using deployed API, build ComprehensiveScanResult from DB mentions
       if (usedDeployedAPI) {
-        result.socialMediaScanned = true;
+        result.socialMediaScanned =
+          completedSocialSymbols.has(normalizedSymbol);
         const mentionsByTicker = (scanRunResult as any)._mentionsByTicker as
-          | Map<string, any[]>
-          | undefined;
-        const tickerMentions = mentionsByTicker?.get(
-          result.symbol.toUpperCase(),
-        );
+          Map<string, any[]> | undefined;
+        const tickerMentions = mentionsByTicker?.get(normalizedSymbol);
+
+        if (!result.socialMediaScanned) {
+          result.socialMediaFindings = null;
+          suspiciousStocks.push(result);
+          continue;
+        }
 
         if (tickerMentions && tickerMentions.length > 0) {
           // Build a ComprehensiveScanResult-compatible structure from DB mentions
@@ -2219,7 +2342,7 @@ async function runEnhancedPipeline(): Promise<void> {
           );
         }
       } else {
-        result.socialMediaScanned = true;
+        result.socialMediaScanned = false;
         result.socialMediaFindings = null;
         console.log(`  ⚪ ${result.symbol}: No scan results returned`);
       }
@@ -2228,6 +2351,7 @@ async function runEnhancedPipeline(): Promise<void> {
     }
     // Capture social media platform-level details for scan status
     scanStatus.socialMediaDetails = {
+      status: scanRunResult.status,
       platformsUsed: scanRunResult.platformsUsed,
       platformResults:
         !usedDeployedAPI && scanRunResult.results.length > 0
@@ -2241,23 +2365,48 @@ async function runEnhancedPipeline(): Promise<void> {
             }))
           : [],
       totalMentions: scanRunResult.totalMentions,
+      tickersSubmitted:
+        scanRunResult.tickersSubmitted || scanRunResult.tickersScanned,
       tickersScanned: scanRunResult.tickersScanned,
       tickersWithMentions: scanRunResult.tickersWithMentions,
+      errors: scanRunResult.errors || [],
+      batches: (scanRunResult as any)._summary?.batches || 1,
+      scanRunIds: (scanRunResult as any)._scanRunIds || [],
     };
   } else {
     console.log("  No suspicious stocks to scan.");
   }
 
-  scanStatus.phases.phase4_socialMedia.status = "completed";
+  const socialScanErrors = scanStatus.socialMediaDetails.errors;
+  const socialScanDegraded =
+    afterNewsFilter.length > 0 &&
+    (scanStatus.socialMediaDetails.status !== "COMPLETED" ||
+      scanStatus.socialMediaDetails.tickersScanned <
+        Math.min(afterNewsFilter.length, SOCIAL_SCAN_MAX_TICKERS) ||
+      socialScanErrors.length > 0);
+  scanStatus.phases.phase4_socialMedia.status = socialScanDegraded
+    ? "degraded"
+    : "completed";
   scanStatus.phases.phase4_socialMedia.completedAt = new Date().toISOString();
   scanStatus.phases.phase4_socialMedia.durationMs =
     Date.now() -
     new Date(scanStatus.phases.phase4_socialMedia.startedAt!).getTime();
   scanStatus.phases.phase4_socialMedia.details = {
-    tickersScanned: afterNewsFilter.length,
+    eligibleTickers: afterNewsFilter.length,
+    selectedTickers: Math.min(afterNewsFilter.length, SOCIAL_SCAN_MAX_TICKERS),
+    status: scanStatus.socialMediaDetails.status,
+    tickersSubmitted: scanStatus.socialMediaDetails.tickersSubmitted,
+    tickersScanned: scanStatus.socialMediaDetails.tickersScanned,
+    tickersWithMentions: scanStatus.socialMediaDetails.tickersWithMentions,
     platformsUsed: scanStatus.socialMediaDetails.platformsUsed,
     totalMentions: scanStatus.socialMediaDetails.totalMentions,
+    errors: socialScanErrors,
+    batches: scanStatus.socialMediaDetails.batches,
+    scanRunIds: scanStatus.socialMediaDetails.scanRunIds,
   };
+  if (socialScanDegraded) {
+    scanStatus.phases.phase4_socialMedia.error = `${scanStatus.socialMediaDetails.tickersScanned}/${Math.min(afterNewsFilter.length, SOCIAL_SCAN_MAX_TICKERS)} selected tickers completed social scanning`;
+  }
 
   // Phase 5: Scheme Tracking
   console.log("\n" + "=".repeat(80));
@@ -2744,11 +2893,18 @@ async function runEnhancedPipeline(): Promise<void> {
       overallAssessment: s.socialMediaFindings!.summary,
       scanDate: evaluationDate,
     }));
+  const socialMediaScannedCount = suspiciousStocks.filter(
+    (stock) => stock.socialMediaScanned,
+  ).length;
 
   const socialScanData = {
     scanDate: evaluationDate,
-    totalScanned: suspiciousStocks.length,
-    socialMediaScannedCount: socialMediaResults.length,
+    eligibleTickers: suspiciousStocks.length,
+    selectedTickers: Math.min(suspiciousStocks.length, SOCIAL_SCAN_MAX_TICKERS),
+    tickersSubmitted: scanStatus.socialMediaDetails.tickersSubmitted,
+    totalScanned: scanStatus.socialMediaDetails.tickersScanned,
+    socialMediaScannedCount,
+    tickersWithFindings: socialMediaResults.length,
     highPromotionCount: socialMediaResults.filter(
       (r) => r.overallPromotionScore >= 60,
     ).length,
@@ -2856,9 +3012,15 @@ async function runEnhancedPipeline(): Promise<void> {
   console.log(`  └─ Filtered by volume: ${filteredByVolume}`);
   console.log(`  └─ Filtered by legitimate news: ${filteredByNews}`);
   console.log(`  └─ Remaining suspicious: ${suspiciousStocks.length}`);
-  console.log(`  └─ OpenAI calls: ${newsMetrics.modelCallsMade}/${newsMetrics.plannedModelCallUpperBound} planned upper bound`);
-  console.log(`  └─ OpenAI tokens: ${newsMetrics.promptTokens} input, ${newsMetrics.completionTokens} output`);
-  console.log(`  └─ Estimated OpenAI cost: $${newsMetrics.estimatedCostUsd.toFixed(6)}`);
+  console.log(
+    `  └─ OpenAI calls: ${newsMetrics.modelCallsMade}/${newsMetrics.plannedModelCallUpperBound} planned upper bound`,
+  );
+  console.log(
+    `  └─ OpenAI tokens: ${newsMetrics.promptTokens} input, ${newsMetrics.completionTokens} output`,
+  );
+  console.log(
+    `  └─ Estimated OpenAI cost: $${newsMetrics.estimatedCostUsd.toFixed(6)}`,
+  );
   console.log(`\nScheme Tracking:`);
   console.log(`  New schemes detected: ${newSchemes}`);
   console.log(`  Ongoing schemes: ${ongoingSchemes}`);
@@ -2909,7 +3071,9 @@ async function runEnhancedPipeline(): Promise<void> {
 // Run pipeline
 runEnhancedPipeline()
   .then(() => {
-    console.log("\nEnhanced daily pipeline finished; inspect scan-status.json before promotion.");
+    console.log(
+      "\nEnhanced daily pipeline finished; inspect scan-status.json before promotion.",
+    );
     process.exit(0);
   })
   .catch((error) => {

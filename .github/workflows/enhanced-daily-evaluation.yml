@@ -253,6 +253,11 @@ jobs:
           SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
+          # Historical recovery runs must classify every eligible instrument.
+          NEWS_ANALYSIS_MAX_CANDIDATES: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.date_override != '' && '10000' || '200' }}
+          NEWS_ANALYSIS_BATCH_SIZE: "10"
+          SOCIAL_SCAN_MAX_TICKERS: "50"
+          SOCIAL_SCAN_BATCH_SIZE: "10"
         run: |
           cd evaluation
           echo "Starting Enhanced Daily Pipeline for $EVALUATION_DATE..."
@@ -285,6 +290,7 @@ jobs:
           echo "Scheme report generated"
 
       - name: Validate pipeline output
+        id: validate
         if: ${{ github.event.inputs.upload_only != 'true' }}
         run: |
           DATE="${{ steps.date.outputs.date }}"
@@ -353,12 +359,12 @@ jobs:
           SCAN_PIPELINE_STATUS="unknown"
           if [ -f "$SCAN_STATUS_FILE" ]; then
             SCAN_PIPELINE_STATUS=$(jq -r '.pipelineStatus // "unknown"' "$SCAN_STATUS_FILE" 2>/dev/null || echo "unknown")
-            if [ "$SCAN_PIPELINE_STATUS" = "degraded" ] && [ "$STATUS" = "healthy" ]; then
-              STATUS="degraded"
-              echo "::warning::Pipeline output is intentionally DEGRADED; inspect scan-status details before promotion"
-            elif [ "$SCAN_PIPELINE_STATUS" = "failed" ]; then
+            if [ "$SCAN_PIPELINE_STATUS" = "failed" ]; then
               STATUS="failing"
               echo "::error::Pipeline reported FAILED in scan-status"
+            elif [ "$SCAN_PIPELINE_STATUS" != "completed" ]; then
+              if [ "$STATUS" = "healthy" ]; then STATUS="degraded"; fi
+              echo "::warning::Pipeline status is ${SCAN_PIPELINE_STATUS}; only completed output is eligible for promotion"
             fi
           else
             echo "::warning::scan-status is missing; output cannot be promoted as healthy"
@@ -401,6 +407,7 @@ jobs:
 
           echo ""
           echo "Validation report written to results/pipeline-validation-${DATE}.json"
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
 
       - name: Upload to Supabase
         continue-on-error: true
@@ -558,6 +565,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Summary
+        if: always()
         run: |
           DATE="${{ steps.date.outputs.date }}"
           echo "## Enhanced Daily Evaluation Summary" >> $GITHUB_STEP_SUMMARY
@@ -582,6 +590,17 @@ jobs:
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "See artifacts for full results." >> $GITHUB_STEP_SUMMARY
+
+      - name: Enforce pipeline health
+        if: ${{ always() && github.event.inputs.upload_only != 'true' }}
+        env:
+          VALIDATION_STATUS: ${{ steps.validate.outputs.status }}
+        run: |
+          if [ "$VALIDATION_STATUS" != "healthy" ]; then
+            echo "::error::Pipeline output is ${VALIDATION_STATUS:-unknown}; retained artifacts must not be promoted"
+            exit 1
+          fi
+          echo "Pipeline output is healthy and eligible for promotion"
 
   notify-on-failure:
     needs: enhanced-evaluation
