@@ -27,6 +27,8 @@ import {
   Mail,
   Sparkles,
   Eye,
+  LayoutDashboard,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatRelativeDate } from "@/lib/utils";
@@ -232,6 +234,25 @@ export function Sidebar({
 
           {/* Recent Scans */}
           <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 pb-3">
+            {session && (
+              <div className="mb-2">
+                <p className="text-[11px] font-bold text-muted-foreground/70 px-2 py-2.5 uppercase tracking-widest">
+                  Workspace
+                </p>
+                {[
+                  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+                  { href: "/watchlist", icon: ListChecks, label: "Watchlist" },
+                  { href: "/recent-scans", icon: History, label: "Recent scans" },
+                ].map(({ href, icon: Icon, label }) => (
+                  <Link key={href} href={href} onClick={onToggle}>
+                    <span className="flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                      {label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
             <p className="text-[11px] font-bold text-muted-foreground/70 px-2 py-2.5 uppercase tracking-widest">
               Recent Scans
             </p>
@@ -257,12 +278,11 @@ export function Sidebar({
             ) : (
               <div className="space-y-0.5">
                 {recentScans.map((scan) => (
-                  <button
+                  <Link
                     key={scan.id}
+                    href="/recent-scans"
                     className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl hover:bg-secondary transition-all duration-150 text-left group"
-                    onClick={() => {
-                      onToggle();
-                    }}
+                    onClick={onToggle}
                   >
                     <div
                       className={cn(
@@ -290,7 +310,7 @@ export function Sidebar({
                         {formatRelativeDate(scan.createdAt)}
                       </p>
                     </div>
-                  </button>
+                  </Link>
                 ))}
               </div>
             )}

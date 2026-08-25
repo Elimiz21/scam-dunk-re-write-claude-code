@@ -23,6 +23,12 @@ import { getRandomTagline, taglines, Tagline } from "@/lib/taglines";
 import { LandingOptionA } from "@/components/landing/LandingOptionA";
 import { useToast } from "@/components/ui/toast";
 import { Step } from "@/components/LoadingStepper";
+import { PublicPumpRadar } from "@/components/dashboard/PumpRadar";
+import type {
+  HistoryPayload,
+  ScanDetailDto,
+  ScanSocialDto,
+} from "@/components/dashboard/types";
 
 /** Normalize raw risk score to 0-100 (matches mobile app) */
 function normalizeRiskScore(rawScore: number): number {
@@ -59,6 +65,8 @@ export default function HomeContent() {
   const [currentTicker, setCurrentTicker] = useState("");
   const [hasChatData, setHasChatData] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
+  const [scanSocial, setScanSocial] = useState<ScanSocialDto | null>(null);
+  const [scanSocialLoading, setScanSocialLoading] = useState(false);
 
   const [steps, setSteps] = useState<Step[]>([
     { label: "Validating ticker symbol", status: "pending" },
@@ -143,6 +151,8 @@ export default function HomeContent() {
     setError("");
     setResult(null);
     setLimitReached(null);
+    setScanSocial(null);
+    setScanSocialLoading(false);
     setIsLoading(true);
     setCurrentTicker(data.ticker);
     setHasChatData(!!data.pitchText?.trim());
@@ -352,6 +362,7 @@ export default function HomeContent() {
         setUsage(responseData.usage);
         setScanRefreshKey((k) => k + 1);
         setSidebarOpen(false);
+        void fetchLatestScanSocial(data.ticker);
       }
     } catch (err) {
       clearInterval(tipInterval);
@@ -362,11 +373,41 @@ export default function HomeContent() {
     }
   };
 
+  const fetchLatestScanSocial = async (ticker: string) => {
+    setScanSocialLoading(true);
+    setScanSocial(null);
+    try {
+      const historyResponse = await fetch(
+        "/api/scans/history?order=MOST_RECENT&page=1&limit=10",
+        { cache: "no-store" },
+      );
+      if (!historyResponse.ok) return;
+      const history = (await historyResponse.json()) as HistoryPayload;
+      const latest = history.items.find(
+        (item) => item.ticker.toUpperCase() === ticker.trim().toUpperCase(),
+      );
+      if (!latest) return;
+      const detailResponse = await fetch(
+        `/api/scans/${encodeURIComponent(latest.id)}`,
+        { cache: "no-store" },
+      );
+      if (!detailResponse.ok) return;
+      const detail = (await detailResponse.json()) as ScanDetailDto;
+      setScanSocial(detail.social);
+    } catch (err) {
+      console.error("Failed to load social scan evidence:", err);
+    } finally {
+      setScanSocialLoading(false);
+    }
+  };
+
   const handleNewScan = () => {
     setResult(null);
     setLimitReached(null);
     setError("");
     setCurrentTicker("");
+    setScanSocial(null);
+    setScanSocialLoading(false);
   };
 
   const handleShare = async () => {
@@ -498,6 +539,8 @@ export default function HomeContent() {
               result={result}
               hasChatData={hasChatData}
               onNewScan={handleNewScan}
+              social={scanSocial}
+              socialLoading={scanSocialLoading}
             />
           )}
 
@@ -546,16 +589,26 @@ export default function HomeContent() {
                       disabled={usage?.limitReached && !result}
                     />
                   </div>
+                  <div className="mb-12 w-full max-w-[1200px]">
+                    <PublicPumpRadar showDashboardLink />
+                  </div>
                 </div>
               ) : (
-                <LandingOptionA
-                  onSubmit={handleSubmit}
-                  isLoading={isLoading}
-                  disabled={usage?.limitReached && !result}
-                  error={error}
-                  headline={heroContent.headline}
-                  subheadline={heroContent.subheadline}
-                />
+                <>
+                  <LandingOptionA
+                    onSubmit={handleSubmit}
+                    isLoading={isLoading}
+                    disabled={usage?.limitReached && !result}
+                    error={error}
+                    headline={heroContent.headline}
+                    subheadline={heroContent.subheadline}
+                  />
+                  <section className="bg-background px-4 py-10 sm:px-6 sm:py-14" aria-label="Pump Radar market-wide findings">
+                    <div className="mx-auto w-full max-w-[1200px]">
+                      <PublicPumpRadar />
+                    </div>
+                  </section>
+                </>
               )}
             </>
           )}

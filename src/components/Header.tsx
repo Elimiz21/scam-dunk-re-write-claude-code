@@ -17,6 +17,9 @@ import {
   FileText,
   Zap,
   Eye,
+  History,
+  LayoutDashboard,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarToggle } from "./Sidebar";
@@ -128,6 +131,9 @@ export function Header({
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-secondary transition-smooth"
+                aria-label="Open account menu"
+                aria-expanded={showUserMenu}
+                aria-haspopup="menu"
               >
                 <div className="h-8 w-8 rounded-xl gradient-brand-subtle flex items-center justify-center border border-primary/10">
                   <User className="h-4 w-4 text-primary" />
@@ -155,6 +161,36 @@ export function Header({
                         {session.user?.email}
                       </p>
                     </div>
+
+                    <Link href="/dashboard">
+                      <button
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
+                      >
+                        <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                        Dashboard
+                      </button>
+                    </Link>
+
+                    <Link href="/watchlist">
+                      <button
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
+                      >
+                        <ListChecks className="h-4 w-4 text-muted-foreground" />
+                        Watchlist
+                      </button>
+                    </Link>
+
+                    <Link href="/recent-scans">
+                      <button
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
+                      >
+                        <History className="h-4 w-4 text-muted-foreground" />
+                        Recent scans
+                      </button>
+                    </Link>
 
                     <Link href="/account">
                       <button

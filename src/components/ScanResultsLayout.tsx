@@ -14,11 +14,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ScanSocialEvidence } from "@/components/dashboard/ScanSocialEvidence";
+import type { ScanSocialDto } from "@/components/dashboard/types";
 
 interface ScanResultsLayoutProps {
   result: RiskResponse;
   hasChatData: boolean;
   onNewScan?: () => void;
+  social?: ScanSocialDto | null;
+  socialLoading?: boolean;
 }
 
 /* ─── Right-side info panel content ─── */
@@ -124,6 +128,8 @@ export function ScanResultsLayout({
   result,
   hasChatData,
   onNewScan,
+  social,
+  socialLoading = false,
 }: ScanResultsLayoutProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -133,6 +139,20 @@ export function ScanResultsLayout({
         <div className="lg:w-3/4 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
             <RiskCard result={result} hasChatData={hasChatData} />
+            {socialLoading && (
+              <div
+                className="mt-4 rounded-2xl border border-border bg-card px-5 py-6 text-sm text-muted-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                Loading social media evidence
+              </div>
+            )}
+            {!socialLoading && social && (
+              <div className="mt-4">
+                <ScanSocialEvidence social={social} />
+              </div>
+            )}
             {onNewScan && (
               <div className="flex justify-center py-4">
                 <Button variant="outline" onClick={onNewScan} className="gap-2">
