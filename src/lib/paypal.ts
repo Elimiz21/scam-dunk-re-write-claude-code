@@ -12,8 +12,12 @@
  */
 
 import { prisma } from "./db";
-import { config } from "./config";
 import { logApiUsage } from "@/lib/admin/metrics";
+import {
+  BillingPlan,
+  getBillingPlanCatalog,
+  resolveBillingEntitlements,
+} from "@/lib/billing/provider";
 
 const PAYPAL_API_BASE =
   process.env.PAYPAL_MODE === "live"
@@ -62,22 +66,34 @@ async function getAccessToken(): Promise<string> {
 /**
  * Check if PayPal is configured
  */
-export function isPayPalConfigured(): boolean {
+export function isPayPalConfigured(plan: BillingPlan = "PAID"): boolean {
+  const billingPlan = getBillingPlanCatalog()[plan];
+
   return Boolean(
     process.env.PAYPAL_CLIENT_ID &&
     process.env.PAYPAL_CLIENT_SECRET &&
-    process.env.PAYPAL_PLAN_ID,
+    billingPlan.paypalPlanId,
   );
 }
 
 /**
  * Get PayPal configuration for frontend
  */
-export function getPayPalConfig() {
+export function getPayPalConfig(plan: BillingPlan = "PAID") {
+  const billingPlan = getBillingPlanCatalog()[plan];
+  const trial = resolveBillingEntitlements({
+    plan: "FREE",
+    billingCustomerId: null,
+  }).trial;
+
   return {
     clientId: process.env.PAYPAL_CLIENT_ID || "",
-    planId: process.env.PAYPAL_PLAN_ID || "",
+    planId: billingPlan.paypalPlanId || "",
     mode: process.env.PAYPAL_MODE || "sandbox",
+    monthlyPriceCents: billingPlan.monthlyPriceCents,
+    currency: billingPlan.currency,
+    trialDays: trial.days,
+    requiresPaymentMethod: trial.requiresPaymentMethod,
   };
 }
 

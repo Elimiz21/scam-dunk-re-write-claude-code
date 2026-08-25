@@ -36,8 +36,8 @@ export function LimitReached({
 
         <p className="text-sm text-muted-foreground">
           Your monthly check limit resets at the beginning of each month.
-          Upgrade to Pro to get 200 checks per month and continue analyzing
-          stocks.
+          Upgrade from your account to increase monthly credits and add
+          scheduled monitoring slots.
         </p>
 
         <div className="mt-4">
@@ -45,11 +45,12 @@ export function LimitReached({
         </div>
 
         <div className="pt-4 border-t">
-          <h4 className="font-medium mb-2">Pro Plan Benefits:</h4>
+          <h4 className="font-medium mb-2">Paid-plan benefits:</h4>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• 200 stock checks per month</li>
+            <li>• More monthly analysis credits</li>
+            <li>• Full and price-monitoring slots</li>
+            <li>• Price monitoring is checked after market close — not live</li>
             <li>• Full risk analysis for each check</li>
-            <li>• Detailed red flag explanations</li>
             <li>• Priority support</li>
           </ul>
         </div>

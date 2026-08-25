@@ -11,17 +11,25 @@ declare global {
 }
 
 interface PayPalButtonProps {
+  plan?: "PAID" | "PRO_MAX";
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
 
-export function PayPalButton({ onSuccess, onError }: PayPalButtonProps) {
+export function PayPalButton({
+  plan = "PAID",
+  onSuccess,
+  onError,
+}: PayPalButtonProps) {
   const buttonContainerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<{
     clientId: string;
     planId: string;
+    monthlyPriceCents: number | null;
+    trialDays: number;
+    requiresPaymentMethod: boolean;
   } | null>(null);
   const router = useRouter();
 
@@ -29,7 +37,7 @@ export function PayPalButton({ onSuccess, onError }: PayPalButtonProps) {
   useEffect(() => {
     async function fetchConfig() {
       try {
-        const response = await fetch("/api/billing/paypal/config");
+        const response = await fetch(`/api/billing/paypal/config?plan=${plan}`);
         if (!response.ok) {
           throw new Error("PayPal not configured");
         }
@@ -44,7 +52,7 @@ export function PayPalButton({ onSuccess, onError }: PayPalButtonProps) {
       }
     }
     fetchConfig();
-  }, [onError]);
+  }, [onError, plan]);
 
   // Load PayPal SDK and render button
   useEffect(() => {

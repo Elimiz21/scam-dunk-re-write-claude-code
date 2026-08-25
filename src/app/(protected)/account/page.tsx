@@ -36,6 +36,46 @@ interface SubscriptionInfo {
   status?: string;
   nextBillingDate?: string;
   startDate?: string;
+  billing?: BillingEntitlements;
+  plans?: BillingPlanSummary[];
+  stripe?: {
+    available: boolean;
+    checkout: boolean;
+    webhooks: boolean;
+    reason: string;
+  };
+}
+
+interface BillingPlanSummary {
+  plan: "FREE" | "PAID" | "PRO_MAX";
+  displayName: "Free" | "Pro" | "Pro Max";
+  monthlyPriceCents: number | null;
+  currency: "USD";
+  paypalPlanId: string | null;
+  manualScanCredits: number;
+  fullMonitorSlots: number;
+  priceMonitorSlots: number;
+}
+
+interface BillingEntitlements extends BillingPlanSummary {
+  provider: "NONE" | "PAYPAL" | "MANUAL";
+  subscriptionId: string | null;
+  trial: {
+    days: number;
+    requiresPaymentMethod: boolean;
+    startsAt: string | null;
+    endsAt: string | null;
+  };
+}
+
+function formatMonthlyPrice(priceCents: number | null): string {
+  if (priceCents === null) return "Price set at checkout";
+  if (priceCents === 0) return "Free";
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(priceCents / 100);
 }
 
 function AccountAlerts() {
@@ -52,7 +92,7 @@ function AccountAlerts() {
             Welcome to ScamDunk Pro!
           </AlertTitle>
           <AlertDescription className="text-green-700 dark:text-green-300">
-            Your account has been upgraded. You now have 200 checks per month.
+            Your account has been upgraded. Your Pro credits are now active.
           </AlertDescription>
         </Alert>
       )}
@@ -104,6 +144,11 @@ function AccountContent() {
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const billing = subscriptionInfo?.billing;
+  const currentPlan = billing?.plan ?? usage?.plan ?? "FREE";
+  const currentPlanName = billing?.displayName ?? (currentPlan === "PAID" ? "Pro" : "Free");
+  const monthlyCredits =
+    billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 5;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -187,8 +232,7 @@ function AccountContent() {
     addToast({
       type: "success",
       title: "Subscription activated!",
-      description:
-        "Welcome to ScamDunk Pro. You now have 200 checks per month.",
+      description: "Welcome to ScamDunk Pro. Your new plan is now active.",
     });
     // Refresh the page to update UI
     router.refresh();
@@ -619,13 +663,14 @@ function AccountContent() {
                   <p className="text-sm text-muted-foreground">Current Plan</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge
-                      variant={usage?.plan === "PAID" ? "default" : "secondary"}
+                      variant={currentPlan === "FREE" ? "secondary" : "default"}
                     >
-                      {usage?.plan === "PAID" ? "Pro" : "Free"}
+                      {currentPlanName}
                     </Badge>
-                    {usage?.plan === "PAID" && (
+                    {billing && (
                       <span className="text-sm text-muted-foreground">
-                        $4.99/month
+                        {formatMonthlyPrice(billing.monthlyPriceCents)}
+                        {billing.monthlyPriceCents && "/month"}
                       </span>
                     )}
                   </div>
@@ -640,14 +685,14 @@ function AccountContent() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium">
                       {usage?.scansUsedThisMonth ?? 0} /{" "}
-                      {usage?.scansLimitThisMonth ?? 5}
+                      {monthlyCredits}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      {usage?.scansLimitThisMonth &&
+                      {monthlyCredits &&
                         usage.scansUsedThisMonth !== undefined &&
                         Math.round(
                           (usage.scansUsedThisMonth /
-                            usage.scansLimitThisMonth) *
+                            monthlyCredits) *
                             100,
                         )}
                       % used
@@ -658,10 +703,10 @@ function AccountContent() {
                       className="h-full bg-primary rounded-full transition-all"
                       style={{
                         width: `${
-                          usage?.scansLimitThisMonth
+                          monthlyCredits
                             ? Math.min(
                                 ((usage.scansUsedThisMonth ?? 0) /
-                                  usage.scansLimitThisMonth) *
+                                  monthlyCredits) *
                                   100,
                                 100,
                               )
@@ -676,13 +721,38 @@ function AccountContent() {
                 </p>
               </div>
 
+              {billing && (
+                <div className="grid gap-3 sm:grid-cols-2 pt-4 border-t">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Full monitors
+                    </p>
+                    <p className="font-medium">{billing.fullMonitorSlots} slots</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Price monitors
+                    </p>
+                    <p className="font-medium">{billing.priceMonitorSlots} slots</p>
+                  </div>
+                  <p className="sm:col-span-2 text-xs text-muted-foreground">
+                    Price monitoring is checked after the trading day closes — not live.
+                  </p>
+                </div>
+              )}
+
               {/* Subscription details for PAID users */}
-              {usage?.plan === "PAID" && (
+              {currentPlan !== "FREE" && (
                 <div className="pt-4 border-t space-y-4">
                   <div>
                     <p className="text-sm font-medium mb-2">
                       Subscription Details
                     </p>
+                    {billing && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Billing provider: {billing.provider === "PAYPAL" ? "PayPal" : "Manual account access"}
+                      </p>
+                    )}
                     {isLoadingSubscription ? (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -708,7 +778,7 @@ function AccountContent() {
                   </div>
 
                   {/* Cancel subscription */}
-                  {!showCancelConfirm ? (
+                  {billing?.provider === "PAYPAL" && !showCancelConfirm ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -718,18 +788,18 @@ function AccountContent() {
                       <XCircle className="h-4 w-4 mr-2" />
                       Cancel Subscription
                     </Button>
-                  ) : (
+                  ) : billing?.provider === "PAYPAL" ? (
                     <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
                       <div className="flex items-start gap-2">
                         <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                         <div>
                           <p className="text-sm font-medium">
-                            Cancel your Pro subscription?
+                            Cancel your {currentPlanName} subscription?
                           </p>
                           <p className="text-sm text-muted-foreground mt-1">
                             Your plan will be downgraded to Free immediately.
-                            You will lose access to 200 monthly checks and be
-                            limited to 5 checks per month. You can re-subscribe
+                            Your monthly credits and active-monitor slots will
+                            return to the Free-plan limits. You can re-subscribe
                             at any time.
                           </p>
                         </div>
@@ -760,53 +830,78 @@ function AccountContent() {
                         </Button>
                       </div>
                     </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      This plan is not managed through PayPal, so changes must be handled by support.
+                    </p>
                   )}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Upgrade CTA for free users */}
-          {usage?.plan === "FREE" && (
+          {/* Upgrade options for Free users */}
+          {currentPlan === "FREE" && (
             <Card className="border-primary gradient-brand-subtle">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display italic">
                   <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
                     <Zap className="h-4 w-4 text-white" />
                   </span>
-                  Upgrade to Pro
+                  Choose your plan
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Get 200 stock checks per month and never worry about limits.
+                  Saving a ticker to your watchlist is free. Active monitoring
+                  uses plan slots and scheduled credits.
                 </p>
-                <ul className="text-sm space-y-2 mb-6">
-                  <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    200 stock checks per month
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    Full risk analysis
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    Detailed red flag explanations
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    Priority support
-                  </li>
-                </ul>
-                <div className="flex flex-col gap-3">
-                  <p className="text-2xl font-bold">
-                    $4.99<span className="text-base font-normal">/month</span>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {subscriptionInfo?.plans?.map((plan) => (
+                    <div
+                      key={plan.plan}
+                      className="rounded-xl border border-border bg-card p-4 space-y-3"
+                    >
+                      <div>
+                        <p className="font-semibold">{plan.displayName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatMonthlyPrice(plan.monthlyPriceCents)}
+                          {plan.monthlyPriceCents ? "/month" : ""}
+                        </p>
+                      </div>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>{plan.manualScanCredits} monthly scan credits</li>
+                        <li>{plan.fullMonitorSlots} full-monitor slots</li>
+                        <li>{plan.priceMonitorSlots} price-monitor slots</li>
+                      </ul>
+                      {plan.plan === "FREE" ? (
+                        <p className="text-sm font-medium">Current plan</p>
+                      ) : plan.plan === "PAID" && plan.paypalPlanId ? (
+                        <PayPalButton
+                          plan={plan.plan}
+                          onSuccess={handlePayPalSuccess}
+                          onError={handlePayPalError}
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          This option is not configured for checkout yet.
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-lg border border-border bg-background/60 p-4 text-sm text-muted-foreground space-y-1">
+                  <p>
+                    Price monitoring is checked after the trading day closes — not live.
                   </p>
-                  <PayPalButton
-                    onSuccess={handlePayPalSuccess}
-                    onError={handlePayPalError}
-                  />
+                  <p>
+                    {billing?.trial.days
+                      ? `A payment method is required to start the ${billing.trial.days}-day free trial. You are not charged until it ends.`
+                      : "A payment method is required before a provider can start any configured trial."}
+                  </p>
+                  {!subscriptionInfo?.stripe?.available && (
+                    <p>Stripe checkout is unavailable until secure replay protection is configured.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
