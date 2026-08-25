@@ -1,8 +1,12 @@
 // API Request/Response Types for ScamDunk
 
+// Existing persistence uses FREE/PAID. PRO_MAX is accepted by the new
+// entitlement resolver without changing current auth and billing contracts.
 export type Plan = "FREE" | "PAID";
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT";
+
+export type CustomerRiskLabel = "High risk" | "Caution" | "Low risk";
 
 export type SignalCategory = "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL";
 

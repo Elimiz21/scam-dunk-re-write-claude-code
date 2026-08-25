@@ -3,6 +3,8 @@
 // time). This ensures runtime env vars injected by Vercel are always picked up,
 // even if they were absent during `next build`.
 
+import { getPlanEntitlements } from "./entitlements";
+
 function env(key: string, fallback = ""): string {
   return process.env[key] || fallback;
 }
@@ -215,10 +217,14 @@ export function validateRequiredEnvVars(): void {
 }
 
 // Get scan limit based on plan
-export function getScanLimit(plan: "FREE" | "PAID"): number {
-  return plan === "PAID"
-    ? config.paidChecksPerMonth
-    : config.freeChecksPerMonth;
+export function getScanLimit(plan: string): number {
+  const entitlements = getPlanEntitlements(plan);
+
+  // Preserve the existing environment overrides for the legacy Free/Pro
+  // plans while making all plan limits come from the central configuration.
+  if (entitlements.plan === "FREE") return config.freeChecksPerMonth;
+  if (entitlements.plan === "PAID") return config.paidChecksPerMonth;
+  return entitlements.manualScanCredits;
 }
 
 // Get current month key in YYYY-MM format
