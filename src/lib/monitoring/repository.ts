@@ -44,6 +44,23 @@ export class MonitorStatusTransitionError extends Error {
   }
 }
 
+export type MonitorExecutionOperation =
+  | "RESERVE_CREDIT"
+  | "CHARGE_CREDIT"
+  | "COMPLETE"
+  | "SKIP"
+  | "FAIL";
+
+export class MonitorExecutionTransitionError extends Error {
+  readonly operation: MonitorExecutionOperation;
+
+  constructor(operation: MonitorExecutionOperation, message: string) {
+    super(message);
+    this.name = "MonitorExecutionTransitionError";
+    this.operation = operation;
+  }
+}
+
 export class UnsupportedWatchlistTickerError extends Error {
   readonly reason: "UNSUPPORTED_ASSET" | "INVALID_TICKER";
 
@@ -69,6 +86,15 @@ function isUniqueConstraintError(error: unknown): boolean {
     error !== null &&
     "code" in error &&
     (error as { code?: unknown }).code === "P2002"
+  );
+}
+
+function isRecordNotFoundError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2025"
   );
 }
 
@@ -259,36 +285,104 @@ export function createMonitoringRepository(
     );
   }
 
+  async function transitionExecution(
+    executionId: string,
+    operation: MonitorExecutionOperation,
+    isAlreadyApplied: (execution: MonitorExecutionRecord) => boolean,
+    canApply: (execution: MonitorExecutionRecord) => boolean,
+    where: Record<string, string | boolean>,
+    data: Record<string, string | boolean | null>,
+  ): Promise<MonitorExecutionRecord> {
+    return client.$transaction(async (transaction) => {
+      const current = await transaction.monitorExecution.findUnique({
+        where: { id: executionId },
+      });
+
+      if (!current) {
+        throw new MonitorExecutionTransitionError(
+          operation,
+          "The monitor execution does not exist.",
+        );
+      }
+
+      if (isAlreadyApplied(current)) {
+        return current;
+      }
+
+      if (!canApply(current)) {
+        throw new MonitorExecutionTransitionError(
+          operation,
+          "The monitor execution is not eligible for this transition.",
+        );
+      }
+
+      try {
+        return await transaction.monitorExecution.update({
+          where: { id: executionId, ...where },
+          data,
+        });
+      } catch (error) {
+        if (!isRecordNotFoundError(error)) {
+          throw error;
+        }
+
+        const latest = await transaction.monitorExecution.findUnique({
+          where: { id: executionId },
+        });
+        if (latest && isAlreadyApplied(latest)) {
+          return latest;
+        }
+
+        throw new MonitorExecutionTransitionError(
+          operation,
+          "The monitor execution changed before this transition could be applied.",
+        );
+      }
+    });
+  }
+
   async function reserveExecutionCredit(
     executionId: string,
   ): Promise<MonitorExecutionRecord> {
-    return client.$transaction((transaction) =>
-      transaction.monitorExecution.update({
-        where: { id: executionId },
-        data: { creditReserved: true },
-      }),
+    return transitionExecution(
+      executionId,
+      "RESERVE_CREDIT",
+      (execution) => execution.creditReserved,
+      (execution) =>
+        execution.status === "PENDING" &&
+        !execution.creditReserved &&
+        !execution.creditCharged,
+      { status: "PENDING", creditReserved: false, creditCharged: false },
+      { creditReserved: true },
     );
   }
 
   async function chargeExecutionCredit(
     executionId: string,
   ): Promise<MonitorExecutionRecord> {
-    return client.$transaction((transaction) =>
-      transaction.monitorExecution.update({
-        where: { id: executionId },
-        data: { creditCharged: true },
-      }),
+    return transitionExecution(
+      executionId,
+      "CHARGE_CREDIT",
+      (execution) => execution.creditCharged,
+      (execution) =>
+        execution.status === "PENDING" &&
+        execution.creditReserved &&
+        !execution.creditCharged,
+      { status: "PENDING", creditReserved: true, creditCharged: false },
+      { creditCharged: true },
     );
   }
 
   async function completeExecution(
     executionId: string,
   ): Promise<MonitorExecutionRecord> {
-    return client.$transaction((transaction) =>
-      transaction.monitorExecution.update({
-        where: { id: executionId },
-        data: { status: "COMPLETED", skipReason: null, errorReason: null },
-      }),
+    return transitionExecution(
+      executionId,
+      "COMPLETE",
+      (execution) => execution.status === "COMPLETED",
+      (execution) => execution.status === "PENDING",
+      { status: "PENDING" },
+      { status: "COMPLETED", skipReason: null, errorReason: null },
     );
   }
 
@@ -296,11 +390,13 @@ export function createMonitoringRepository(
     executionId: string,
     skipReason: string,
   ): Promise<MonitorExecutionRecord> {
-    return client.$transaction((transaction) =>
-      transaction.monitorExecution.update({
-        where: { id: executionId },
-        data: { status: "SKIPPED", skipReason, errorReason: null },
-      }),
+    return transitionExecution(
+      executionId,
+      "SKIP",
+      (execution) => execution.status === "SKIPPED",
+      (execution) => execution.status === "PENDING",
+      { status: "PENDING" },
+      { status: "SKIPPED", skipReason, errorReason: null },
     );
   }
 
@@ -308,11 +404,13 @@ export function createMonitoringRepository(
     executionId: string,
     errorReason: string,
   ): Promise<MonitorExecutionRecord> {
-    return client.$transaction((transaction) =>
-      transaction.monitorExecution.update({
-        where: { id: executionId },
-        data: { status: "FAILED", errorReason },
-      }),
+    return transitionExecution(
+      executionId,
+      "FAIL",
+      (execution) => execution.status === "FAILED",
+      (execution) => execution.status === "PENDING",
+      { status: "PENDING" },
+      { status: "FAILED", errorReason },
     );
   }
 

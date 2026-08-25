@@ -1,5 +1,6 @@
 import {
   MonitorExpiryError,
+  MonitorExecutionTransitionError,
   MonitorSlotConflictError,
   UnsupportedWatchlistTickerError,
   createMonitoringRepository,
@@ -23,6 +24,7 @@ function createPrismaMock() {
   };
   const monitorExecution = {
     upsert: jest.fn(),
+    findUnique: jest.fn(),
     update: jest.fn(),
   };
   const notificationDelivery = {
@@ -215,6 +217,37 @@ describe("monitoring repository contracts", () => {
 
   test("records a full execution lifecycle without duplicating the execution", async () => {
     const mock = createPrismaMock();
+    mock.monitorExecution.findUnique
+      .mockResolvedValueOnce({
+        id: "execution-1",
+        status: "PENDING",
+        creditReserved: false,
+        creditCharged: false,
+      })
+      .mockResolvedValueOnce({
+        id: "execution-1",
+        status: "PENDING",
+        creditReserved: true,
+        creditCharged: false,
+      })
+      .mockResolvedValueOnce({
+        id: "execution-1",
+        status: "PENDING",
+        creditReserved: true,
+        creditCharged: true,
+      })
+      .mockResolvedValueOnce({
+        id: "execution-2",
+        status: "PENDING",
+        creditReserved: false,
+        creditCharged: false,
+      })
+      .mockResolvedValueOnce({
+        id: "execution-3",
+        status: "PENDING",
+        creditReserved: true,
+        creditCharged: false,
+      });
     mock.monitorExecution.update
       .mockResolvedValueOnce({
         id: "execution-1",
@@ -270,24 +303,154 @@ describe("monitoring repository contracts", () => {
     await repository.failExecution("execution-3", "PROVIDER_TIMEOUT");
 
     expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(1, {
-      where: { id: "execution-1" },
+      where: {
+        id: "execution-1",
+        status: "PENDING",
+        creditReserved: false,
+        creditCharged: false,
+      },
       data: { creditReserved: true },
     });
     expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(2, {
-      where: { id: "execution-1" },
+      where: {
+        id: "execution-1",
+        status: "PENDING",
+        creditReserved: true,
+        creditCharged: false,
+      },
       data: { creditCharged: true },
     });
     expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(3, {
-      where: { id: "execution-1" },
+      where: { id: "execution-1", status: "PENDING" },
       data: { status: "COMPLETED", skipReason: null, errorReason: null },
     });
     expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(4, {
-      where: { id: "execution-2" },
+      where: { id: "execution-2", status: "PENDING" },
       data: { status: "SKIPPED", skipReason: "NO_MARKET_DATA", errorReason: null },
     });
     expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(5, {
-      where: { id: "execution-3" },
+      where: { id: "execution-3", status: "PENDING" },
       data: { status: "FAILED", errorReason: "PROVIDER_TIMEOUT" },
+    });
+  });
+
+  test("cannot charge an execution until credit has been reserved", async () => {
+    const mock = createPrismaMock();
+    mock.monitorExecution.findUnique.mockResolvedValue({
+      id: "execution-1",
+      status: "PENDING",
+      creditReserved: false,
+      creditCharged: false,
+    });
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.chargeExecutionCredit("execution-1"),
+    ).rejects.toBeInstanceOf(MonitorExecutionTransitionError);
+    expect(mock.monitorExecution.update).not.toHaveBeenCalled();
+  });
+
+  test("retries of the same lifecycle operation are safe no-ops while cross-terminal transitions fail", async () => {
+    const mock = createPrismaMock();
+    const completed = {
+      id: "execution-1",
+      status: "COMPLETED",
+      creditReserved: true,
+      creditCharged: true,
+    };
+    mock.monitorExecution.findUnique
+      .mockResolvedValueOnce(completed)
+      .mockResolvedValueOnce(completed)
+      .mockResolvedValueOnce(completed)
+      .mockResolvedValueOnce(completed);
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.chargeExecutionCredit("execution-1"),
+    ).resolves.toEqual(completed);
+    await expect(repository.completeExecution("execution-1")).resolves.toEqual(
+      completed,
+    );
+    await expect(
+      repository.skipExecution("execution-1", "NO_MARKET_DATA"),
+    ).rejects.toBeInstanceOf(MonitorExecutionTransitionError);
+    await expect(
+      repository.failExecution("execution-1", "PROVIDER_TIMEOUT"),
+    ).rejects.toBeInstanceOf(MonitorExecutionTransitionError);
+    expect(mock.monitorExecution.update).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["SKIPPED", "skip", "complete"],
+    ["COMPLETED", "complete", "skip"],
+    ["FAILED", "fail", "complete"],
+  ] as const)(
+    "keeps %s executions terminal and idempotent",
+    async (status, retryOperation, crossTerminalOperation) => {
+      const mock = createPrismaMock();
+      const terminal = {
+        id: "execution-1",
+        status,
+        creditReserved: status !== "SKIPPED",
+        creditCharged: status === "COMPLETED",
+      };
+      mock.monitorExecution.findUnique.mockResolvedValue(terminal);
+      const repository = createMonitoringRepository(mock.prisma);
+
+      const retry = {
+        skip: () => repository.skipExecution("execution-1", "NO_MARKET_DATA"),
+        complete: () => repository.completeExecution("execution-1"),
+        fail: () => repository.failExecution("execution-1", "PROVIDER_TIMEOUT"),
+      }[retryOperation]();
+      await expect(retry).resolves.toEqual(terminal);
+
+      const crossTerminal = {
+        skip: () => repository.skipExecution("execution-1", "NO_MARKET_DATA"),
+        complete: () => repository.completeExecution("execution-1"),
+        fail: () => repository.failExecution("execution-1", "PROVIDER_TIMEOUT"),
+      }[crossTerminalOperation]();
+      await expect(crossTerminal).rejects.toBeInstanceOf(
+        MonitorExecutionTransitionError,
+      );
+
+      const charge = repository.chargeExecutionCredit("execution-1");
+      if (status === "COMPLETED") {
+        await expect(charge).resolves.toEqual(terminal);
+      } else {
+        await expect(charge).rejects.toBeInstanceOf(
+          MonitorExecutionTransitionError,
+        );
+      }
+      expect(mock.monitorExecution.update).not.toHaveBeenCalled();
+    },
+  );
+
+  test("uses status and credit predicates so concurrent lifecycle updates cannot overwrite state", async () => {
+    const mock = createPrismaMock();
+    mock.monitorExecution.findUnique.mockResolvedValue({
+      id: "execution-1",
+      status: "PENDING",
+      creditReserved: false,
+      creditCharged: false,
+    });
+    mock.monitorExecution.update.mockResolvedValue({
+      id: "execution-1",
+      status: "PENDING",
+      creditReserved: true,
+      creditCharged: false,
+    });
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await repository.reserveExecutionCredit("execution-1");
+
+    expect(mock.monitorExecution.update).toHaveBeenCalledWith({
+      where: {
+        id: "execution-1",
+        status: "PENDING",
+        creditReserved: false,
+        creditCharged: false,
+      },
+      data: { creditReserved: true },
     });
   });
 

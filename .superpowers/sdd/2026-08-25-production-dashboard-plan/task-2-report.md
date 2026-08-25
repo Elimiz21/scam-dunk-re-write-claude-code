@@ -52,3 +52,29 @@ Implemented and committed as `28a993c16e297b0d6fec11b4f0cbf18f74635f9e`.
 - No database migration was applied and no authenticated browser flow was exercised in this repository-only persistence task.
 - The listing helper remains deliberately non-authoritative; a later market-data boundary must verify that otherwise syntactically valid symbols are currently supported listings.
 - Per task instruction, no subagent was dispatched; the code was self-reviewed instead.
+
+## Fix round 2 — 2026-08-25
+
+### Delivered fixes
+
+- Added the typed `MonitorExecutionTransitionError` and centralized lifecycle mutation handling in a transaction-backed transition helper.
+- Credit reservation now applies only to a pending, unreserved, uncharged execution.
+- Credit charging now requires a pending execution with `creditReserved = true` and `creditCharged = false`; it cannot charge an unreserved or terminal execution.
+- Completion, skipping, and failure now require `PENDING` status. Repeating the same already-applied operation returns the current row without writing; cross-terminal transitions reject with the typed transition error.
+- All lifecycle writes use conditional status/credit predicates in the Prisma `where` clause. A concurrent conditional-update miss re-reads the row and safely returns an already-applied result, otherwise raising the typed transition error.
+- Added coverage for reserve-before-charge, idempotent retries, all `SKIPPED`/`COMPLETED`/`FAILED` terminal states, and concurrency-safe update predicates. Existing ticker syntax validation and notification delivery methods remain unchanged.
+
+### Verification evidence
+
+- Red: the new tests initially failed because charging ignored reservation, terminal operations wrote unconditionally, and lifecycle updates used only `id` predicates.
+- Green: `npm test -- --runInBand src/tests/monitoring-repository.test.ts` passed: 1 suite, 15 tests, 0 failures.
+- `npx prisma generate` completed successfully.
+- `DATABASE_URL=... DIRECT_URL=... npx prisma validate` completed successfully with the schema valid.
+- `git diff --check` completed successfully.
+- `npx tsc --noEmit` remains blocked by the same 10 pre-existing optional scan-context typing errors in `src/tests/e2e.test.ts`; no monitoring file appears in the error output.
+
+### Known limits / concerns
+
+- No database migration was applied in this repository-only fix round.
+- The repository still does not claim to prove active listings; the later API runner must perform market-data existence/freshness checks before persistence calls.
+- No authenticated browser flow applies to this persistence-only task, and no subagent was dispatched per instruction.

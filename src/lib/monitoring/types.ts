@@ -128,6 +128,7 @@ export type MonitoringTransactionClient = {
   };
   monitorExecution: {
     upsert: (args: unknown) => Promise<MonitorExecutionRecord>;
+    findUnique: (args: unknown) => Promise<MonitorExecutionRecord | null>;
     update: (args: unknown) => Promise<MonitorExecutionRecord>;
   };
   notificationDelivery: {
