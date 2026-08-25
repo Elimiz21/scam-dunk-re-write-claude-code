@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import MonitoringHealthPanel from "@/components/admin/MonitoringHealthPanel";
 import StatCard from "@/components/admin/StatCard";
 import ChartCard from "@/components/admin/ChartCard";
 import AlertBanner from "@/components/admin/AlertBanner";
@@ -455,6 +456,8 @@ export default function DashboardPage() {
             )}
           </div>
         )}
+
+        <MonitoringHealthPanel compact />
       </div>
     </AdminLayout>
   );

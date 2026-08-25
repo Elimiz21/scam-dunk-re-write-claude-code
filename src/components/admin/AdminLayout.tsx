@@ -112,6 +112,7 @@ const navigationCategories: NavCategory[] = [
     icon: Cog,
     items: [
       { name: "Data Ingestion", href: "/admin/data-ingestion", icon: Database },
+      { name: "Monitoring", href: "/admin/monitoring", icon: Activity },
       { name: "API Usage", href: "/admin/api-usage", icon: Activity },
       { name: "Integrations", href: "/admin/integrations", icon: Settings },
       { name: "Model Efficacy", href: "/admin/model-efficacy", icon: Shield },
