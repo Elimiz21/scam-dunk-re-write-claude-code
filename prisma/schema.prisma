@@ -28,6 +28,8 @@ model User {
   accounts   Account[]
   sessions   Session[]
   scanUsages ScanUsage[]
+  watchlistEntries       WatchlistEntry[]
+  notificationDeliveries NotificationDelivery[]
 }
 
 // TODO [H-11]: OAuth tokens (refresh_token, access_token, id_token) are stored in plain text.
@@ -102,6 +104,87 @@ model ScanUsage {
 
   @@unique([userId, monthKey])
   @@index([userId, monthKey])
+}
+
+// ==========================================
+// USER WATCHLIST & SCHEDULED MONITORING
+// ==========================================
+
+model WatchlistEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  ticker     String
+  lastDataAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monitors ActiveMonitor[]
+
+  @@unique([userId, ticker])
+  @@index([userId, createdAt])
+  @@index([ticker])
+}
+
+model ActiveMonitor {
+  id               String   @id @default(cuid())
+  watchlistEntryId String
+  kind             String
+  frequency        String
+  startsAt         DateTime
+  expiresAt        DateTime
+  status           String   @default("ACTIVE")
+  lastEvaluatedAt  DateTime?
+  nextEvaluationAt DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  watchlistEntry WatchlistEntry     @relation(fields: [watchlistEntryId], references: [id], onDelete: Cascade)
+  executions     MonitorExecution[]
+
+  @@unique([watchlistEntryId, kind])
+  @@index([status, nextEvaluationAt])
+  @@index([expiresAt])
+}
+
+model MonitorExecution {
+  id                         String   @id @default(cuid())
+  monitorId                  String
+  publicationKey             String
+  status                     String   @default("PENDING")
+  creditReserved             Boolean  @default(false)
+  creditCharged              Boolean  @default(false)
+  skipReason                 String?  @db.Text
+  errorReason                String?  @db.Text
+  notificationIdempotencyKey String   @unique
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  monitor        ActiveMonitor         @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  notifications  NotificationDelivery[]
+
+  @@unique([monitorId, publicationKey])
+  @@index([status, createdAt])
+}
+
+model NotificationDelivery {
+  id               String   @id @default(cuid())
+  userId           String
+  executionId      String
+  channel          String
+  status           String   @default("PENDING")
+  providerMessageId String?
+  errorReason      String?  @db.Text
+  attemptedAt      DateTime?
+  deliveredAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  execution MonitorExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, executionId, channel])
+  @@index([status, createdAt])
 }
 
 // ==========================================
