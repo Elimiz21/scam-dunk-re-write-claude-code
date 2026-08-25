@@ -6,6 +6,19 @@ export type PumpRadarViewer = "PUBLIC" | "AUTHENTICATED";
 export type PumpRadarFreshness = "FRESH" | "STALE";
 
 const MAX_PUBLICATION_AGE_MS = 4 * 24 * 60 * 60 * 1000;
+const US_COMMON_STOCK_EXCHANGES = new Set(["NASDAQ", "NYSE", "AMEX"]);
+const NON_COMMON_SECURITY_NAME =
+  /\b(?:ETF|FUND|DEPOSITARY|ADR|WARRANT|UNIT|PREFERRED|BOND|NOTE|RIGHTS?)\b/i;
+const PUBLIC_SOCIAL_PLATFORM_LABELS: Record<string, string> = {
+  REDDIT: "Reddit",
+  YOUTUBE: "YouTube",
+  DISCORD: "Discord",
+  STOCKTWITS: "StockTwits",
+  TWITTER: "Twitter",
+  X: "X",
+  TIKTOK: "TikTok",
+  WEB: "Web",
+};
 
 type PumpRadarClient = {
   dailyScanSummary: {
@@ -50,7 +63,7 @@ export type PumpRadarPayload =
         riskLabel: "High risk" | "Caution" | "Low risk";
         score: number;
         signalCount: number;
-        signalSummary: string | null;
+        signalSummary?: string | null;
         lastPrice: number | null;
         priceChangePct: number | null;
         volumeRatio: number | null;
@@ -84,6 +97,13 @@ function utcDayRange(date: Date): { gte: Date; lt: Date } {
   return { gte, lt };
 }
 
+function publicSocialPlatformLabel(value: unknown): string | null {
+  const normalized = String(value || "")
+    .trim()
+    .toUpperCase();
+  return PUBLIC_SOCIAL_PLATFORM_LABELS[normalized] ?? null;
+}
+
 function buildSocialSummary(mentions: any[]) {
   const summaries = new Map<
     string,
@@ -110,7 +130,8 @@ function buildSocialSummary(mentions: any[]) {
       current.maxPromotionScore,
       Number(mention.promotionScore) || 0,
     );
-    if (mention.platform) current.platforms.add(String(mention.platform));
+    const platform = publicSocialPlatformLabel(mention.platform);
+    if (platform) current.platforms.add(platform);
     summaries.set(ticker, current);
   }
 
@@ -125,6 +146,15 @@ function buildSocialSummary(mentions: any[]) {
       },
     ]),
   );
+}
+
+function isUsCommonStockSnapshot(snapshot: any): boolean {
+  const stock = snapshot?.stock;
+  if (!stock || stock.isOTC) return false;
+  if (!US_COMMON_STOCK_EXCHANGES.has(String(stock.exchange).toUpperCase())) {
+    return false;
+  }
+  return !NON_COMMON_SECURITY_NAME.test(String(stock.name || ""));
 }
 
 export function createPumpRadarService(
@@ -165,10 +195,16 @@ export function createPumpRadarService(
       };
     }
 
-    const snapshots = await client.stockDailySnapshot.findMany({
-      where: { scanDate: summary.scanDate },
+    const publicationCandidates = await client.stockDailySnapshot.findMany({
+      where: {
+        scanDate: summary.scanDate,
+        stock: {
+          exchange: { in: Array.from(US_COMMON_STOCK_EXCHANGES) },
+          isOTC: false,
+        },
+      },
       orderBy: [{ totalScore: "desc" }, { signalCount: "desc" }],
-      take: safeLimit,
+      take: Math.min(safeLimit * 4, 200),
       select: {
         riskLevel: true,
         totalScore: true,
@@ -177,9 +213,19 @@ export function createPumpRadarService(
         lastPrice: true,
         priceChangePct: true,
         volumeRatio: true,
-        stock: { select: { symbol: true, name: true } },
+        stock: {
+          select: {
+            symbol: true,
+            name: true,
+            exchange: true,
+            isOTC: true,
+          },
+        },
       },
     });
+    const snapshots = publicationCandidates
+      .filter(isUsCommonStockSnapshot)
+      .slice(0, safeLimit);
 
     const dayRange = utcDayRange(summary.scanDate);
     const socialRun = await client.socialScanRun.findFirst({
@@ -210,7 +256,6 @@ export function createPumpRadarService(
         riskLabel: getRiskLabel(snapshot.riskLevel as RiskLevel),
         score: snapshot.totalScore,
         signalCount: snapshot.signalCount,
-        signalSummary: snapshot.signalSummary ?? null,
         lastPrice: snapshot.lastPrice ?? null,
         priceChangePct: snapshot.priceChangePct ?? null,
         volumeRatio: snapshot.volumeRatio ?? null,
@@ -222,6 +267,7 @@ export function createPumpRadarService(
         ...base,
         ticker,
         companyName: snapshot.stock.name,
+        signalSummary: snapshot.signalSummary ?? null,
       };
     });
 

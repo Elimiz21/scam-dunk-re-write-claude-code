@@ -48,6 +48,10 @@ function sourceType(assetType: string) {
   return "MANUAL" as const;
 }
 
+function isAutomaticScan(assetType: string): boolean {
+  return assetType === "monitor-full" || assetType === "monitor-price";
+}
+
 function startOfUtcDay(date: Date): Date {
   const result = new Date(date);
   result.setUTCHours(0, 0, 0, 0);
@@ -58,6 +62,20 @@ function endOfUtcDayExclusive(date: Date): Date {
   const result = startOfUtcDay(date);
   result.setUTCDate(result.getUTCDate() + 1);
   return result;
+}
+
+function pinnedPublicationDate(scan: { assetType: string; createdAt: Date }) {
+  const scanDate = startOfUtcDay(scan.createdAt);
+  if (!isAutomaticScan(scan.assetType)) return scanDate;
+
+  // Automatic scans written by the runner use midnight createdAt as their
+  // existing-field publication pointer. Older automatic records have no
+  // trustworthy publication identity, so do not attach later market data.
+  return scan.createdAt.getTime() === scanDate.getTime() ? scanDate : null;
+}
+
+function publicationEvidenceKey(date: Date, ticker: string): string {
+  return `${date.toISOString().slice(0, 10)}:${ticker.toUpperCase()}`;
 }
 
 function parseJsonArray(value: unknown): unknown[] {
@@ -142,18 +160,53 @@ export function createDashboardDataService(
 
     const offset = (page - 1) * limit;
     const pagedScans = sorted.slice(offset, offset + limit);
+    const scansWithPublication = pagedScans.flatMap((scan) => {
+      const publicationDate = pinnedPublicationDate(scan);
+      return publicationDate ? [{ scan, publicationDate }] : [];
+    });
     const tickers = Array.from(
-      new Set(pagedScans.map((scan) => String(scan.ticker).toUpperCase())),
+      new Set(
+        scansWithPublication.map(({ scan }) => String(scan.ticker).toUpperCase()),
+      ),
     );
-    const mentions = tickers.length
+    const publicationRanges = Array.from(
+      new Map(
+        scansWithPublication.map(({ publicationDate }) => [
+          publicationDate.toISOString(),
+          publicationDate,
+        ]),
+      ).values(),
+    ).map((publicationDate) => ({
+      scanDate: {
+        gte: publicationDate,
+        lt: endOfUtcDayExclusive(publicationDate),
+      },
+    }));
+    const mentions = tickers.length && publicationRanges.length
       ? await client.socialMention.findMany({
-          where: { ticker: { in: tickers } },
-          select: { ticker: true },
-          distinct: ["ticker"],
+          where: {
+            ticker: { in: tickers },
+            scanRun: {
+              status: "COMPLETED",
+              OR: publicationRanges,
+            },
+          },
+          select: {
+            ticker: true,
+            scanRun: { select: { scanDate: true } },
+          },
         })
       : [];
-    const socialTickers = new Set(
-      mentions.map((mention) => String(mention.ticker).toUpperCase()),
+    const socialEvidence = new Set(
+      mentions.flatMap((mention) => {
+        if (!mention.scanRun?.scanDate) return [];
+        return [
+          publicationEvidenceKey(
+            startOfUtcDay(new Date(mention.scanRun.scanDate)),
+            String(mention.ticker),
+          ),
+        ];
+      }),
     );
 
     const items = pagedScans.map((scan) => ({
@@ -169,9 +222,15 @@ export function createDashboardDataService(
             watchlistDates.get(String(scan.ticker).toUpperCase())!,
           ).toISOString()
         : null,
-      socialEvidenceAvailable: socialTickers.has(
-        String(scan.ticker).toUpperCase(),
-      ),
+      socialEvidenceAvailable: (() => {
+        const publicationDate = pinnedPublicationDate(scan);
+        return (
+          publicationDate !== null &&
+          socialEvidence.has(
+            publicationEvidenceKey(publicationDate, String(scan.ticker)),
+          )
+        );
+      })(),
     }));
 
     const total = scans.length;
@@ -215,12 +274,15 @@ export function createDashboardDataService(
           select: { id: true, symbol: true, name: true, exchange: true },
         })
       : null;
+    const publicationDate = pinnedPublicationDate(scan);
     const marketSnapshot =
-      trackedStock && client.stockDailySnapshot?.findFirst
+      trackedStock && publicationDate && client.stockDailySnapshot?.findFirst
         ? await client.stockDailySnapshot.findFirst({
             where: {
               stockId: trackedStock.id,
-              scanDate: { lte: startOfUtcDay(scan.createdAt) },
+              scanDate: isAutomaticScan(scan.assetType)
+                ? publicationDate
+                : { lte: publicationDate },
             },
             orderBy: { scanDate: "desc" },
             select: {
@@ -239,13 +301,13 @@ export function createDashboardDataService(
           })
         : null;
 
-    const socialRun = client.socialScanRun
+    const socialRun = client.socialScanRun && publicationDate
       ? await client.socialScanRun.findFirst({
           where: {
             status: "COMPLETED",
             scanDate: {
-              gte: startOfUtcDay(scan.createdAt),
-              lt: endOfUtcDayExclusive(scan.createdAt),
+              gte: publicationDate,
+              lt: endOfUtcDayExclusive(publicationDate),
             },
           },
           orderBy: { createdAt: "desc" },

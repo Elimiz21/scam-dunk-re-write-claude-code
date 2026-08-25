@@ -39,7 +39,7 @@ function dueMonitor(overrides: Record<string, unknown> = {}) {
     expiresAt: new Date("2027-08-01T00:00:00.000Z"),
     status: "ACTIVE",
     lastEvaluatedAt: null,
-    nextEvaluationAt: new Date("2026-08-25T22:30:00.000Z"),
+    nextEvaluationAt: new Date("2026-08-01T00:00:00.000Z"),
     watchlistEntry: {
       ticker: "AAPL",
       userId: "user-1",
@@ -56,6 +56,22 @@ function freshPublication() {
     evaluated: 4920,
     skippedNoData: 80,
   };
+}
+
+function monitorEligibleForRunnerQuery(monitor: ReturnType<typeof dueMonitor>, where: any) {
+  const startsAtUpperBound = where.startsAt?.lte;
+  const nextEvaluationUpperBound = where.OR?.find(
+    (condition: any) => condition.nextEvaluationAt?.lte,
+  )?.nextEvaluationAt?.lte;
+
+  return (
+    startsAtUpperBound instanceof Date &&
+    new Date(monitor.startsAt).getTime() <= startsAtUpperBound.getTime() &&
+    (monitor.nextEvaluationAt === null ||
+      (nextEvaluationUpperBound instanceof Date &&
+        new Date(monitor.nextEvaluationAt).getTime() <=
+          nextEvaluationUpperBound.getTime()))
+  );
 }
 
 describe("monitoring publication runner", () => {
@@ -140,6 +156,12 @@ describe("monitoring publication runner", () => {
     expect(retry).toMatchObject({ charged: 0, duplicates: 1 });
     expect(client.scanUsage.upsert).toHaveBeenCalledTimes(1);
     expect(client.scanHistory.create).toHaveBeenCalledTimes(1);
+    expect(client.scanHistory.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        assetType: "monitor-full",
+        createdAt: new Date("2026-08-25T00:00:00.000Z"),
+      }),
+    });
     expect(client.watchlistEntry.update).toHaveBeenCalledTimes(1);
     expect(client.watchlistEntry.update).toHaveBeenCalledWith({
       where: { id: "watch-1" },
@@ -199,6 +221,44 @@ describe("monitoring publication runner", () => {
       data: { status: "EXPIRED", nextEvaluationAt: null },
     });
     expect(client.monitorExecution.upsert).not.toHaveBeenCalled();
+  });
+
+  test("does not charge a later-created monitor for an earlier publication", async () => {
+    const client = createRunnerClient();
+    const monitor = dueMonitor({
+      startsAt: new Date("2026-08-25T12:00:00.000Z"),
+      nextEvaluationAt: new Date("2026-08-25T12:00:00.000Z"),
+    });
+    client.dailyScanSummary.findUnique.mockResolvedValue(freshPublication());
+    client.activeMonitor.findMany.mockImplementation(async ({ where }) =>
+      monitorEligibleForRunnerQuery(monitor, where) ? [monitor] : [],
+    );
+    const runner = createMonitoringRunner(client as never, { now: () => NOW });
+
+    const result = await runner.runEligibleMonitorPublication("eod:2026-08-25");
+
+    expect(result).toMatchObject({ eligible: 0, charged: 0, completed: 0 });
+    expect(client.scanUsage.upsert).not.toHaveBeenCalled();
+    expect(client.scanHistory.create).not.toHaveBeenCalled();
+  });
+
+  test("does not charge a monitor before its next scheduled publication", async () => {
+    const client = createRunnerClient();
+    const monitor = dueMonitor({
+      startsAt: new Date("2026-08-20T00:00:00.000Z"),
+      nextEvaluationAt: new Date("2026-08-25T12:00:00.000Z"),
+    });
+    client.dailyScanSummary.findUnique.mockResolvedValue(freshPublication());
+    client.activeMonitor.findMany.mockImplementation(async ({ where }) =>
+      monitorEligibleForRunnerQuery(monitor, where) ? [monitor] : [],
+    );
+    const runner = createMonitoringRunner(client as never, { now: () => NOW });
+
+    const result = await runner.runEligibleMonitorPublication("eod:2026-08-25");
+
+    expect(result).toMatchObject({ eligible: 0, charged: 0, completed: 0 });
+    expect(client.scanUsage.upsert).not.toHaveBeenCalled();
+    expect(client.scanHistory.create).not.toHaveBeenCalled();
   });
 
   test("advances daily and weekly schedules from the publication date", () => {

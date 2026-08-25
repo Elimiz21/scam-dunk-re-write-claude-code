@@ -92,7 +92,7 @@ describe("dashboard API authentication", () => {
 });
 
 describe("public Pump Radar privacy", () => {
-  test("returns only published market data and never exposes ticker or private social content publicly", async () => {
+  test("returns only US common stocks and never exposes identifying narrative or private social content publicly", async () => {
     const client = {
       dailyScanSummary: {
         findFirst: jest.fn().mockResolvedValue({
@@ -107,23 +107,48 @@ describe("public Pump Radar privacy", () => {
         findMany: jest.fn().mockResolvedValue([
           {
             riskLevel: "HIGH",
-            totalScore: 92,
+            totalScore: 99,
             signalCount: 4,
-            signalSummary: "Unusual price and volume activity",
+            signalSummary: "Acme Mining Ltd. (ACME.AX) had unusual activity",
             lastPrice: 12.5,
             priceChangePct: 18.2,
             volumeRatio: 6.1,
-            stock: { symbol: "AAPL", name: "Apple Inc." },
+            stock: {
+              symbol: "ACME.AX",
+              name: "Acme Mining Ltd.",
+              exchange: "ASX",
+              isOTC: false,
+            },
           },
           {
             riskLevel: "MEDIUM",
             totalScore: 51,
             signalCount: 2,
-            signalSummary: null,
+            signalSummary: "Apple Inc. (AAPL) price and volume activity",
             lastPrice: 40,
             priceChangePct: -1,
             volumeRatio: 1.2,
-            stock: { symbol: "MSFT", name: "Microsoft Corporation" },
+            stock: {
+              symbol: "AAPL",
+              name: "Apple Inc.",
+              exchange: "NASDAQ",
+              isOTC: false,
+            },
+          },
+          {
+            riskLevel: "HIGH",
+            totalScore: 90,
+            signalCount: 3,
+            signalSummary: "Spdr ETF (SPY) activity",
+            lastPrice: 600,
+            priceChangePct: 1,
+            volumeRatio: 1.2,
+            stock: {
+              symbol: "SPY",
+              name: "SPDR S&P 500 ETF Trust",
+              exchange: "NYSE",
+              isOTC: false,
+            },
           },
         ]),
       },
@@ -141,6 +166,12 @@ describe("public Pump Radar privacy", () => {
             author: "private-user",
             source: "private-room",
             url: "https://private.example/message",
+          },
+          {
+            ticker: "AAPL",
+            platform: "Apple Inc. AAPL private room",
+            isPromotional: false,
+            promotionScore: 0,
           },
         ]),
       },
@@ -164,22 +195,22 @@ describe("public Pump Radar privacy", () => {
     expect(payload.rows).toEqual([
       expect.objectContaining({
         displayTicker: "A•••",
-        riskLabel: "High risk",
+        riskLabel: "Caution",
         socialSummary: {
-          mentionCount: 1,
+          mentionCount: 2,
           promotionalMentions: 1,
           maxPromotionScore: 88,
           platforms: ["Discord"],
         },
       }),
-      expect.objectContaining({
-        displayTicker: "M•••",
-        riskLabel: "Caution",
-        socialSummary: null,
-      }),
     ]);
     expect(serialized).not.toContain("AAPL");
-    expect(serialized).not.toContain("MSFT");
+    expect(serialized).not.toContain("ACME.AX");
+    expect(serialized).not.toContain("Apple Inc.");
+    expect(serialized).not.toContain("Acme Mining Ltd.");
+    expect(serialized).not.toContain("SPDR S&P 500 ETF Trust");
+    expect(serialized).not.toContain("price and volume activity");
+    expect(serialized).not.toContain("Apple Inc. AAPL private room");
     expect(serialized).not.toContain("private copied message");
     expect(serialized).not.toContain("private-user");
     expect(serialized).not.toContain("private-room");

@@ -119,6 +119,25 @@ function executionIsTerminal(execution: any): boolean {
   );
 }
 
+function isMonitorEligibleForPublication(
+  monitor: {
+    startsAt: Date;
+    nextEvaluationAt: Date | null;
+    expiresAt: Date;
+  },
+  publicationDate: Date,
+): boolean {
+  const publicationTime = publicationDate.getTime();
+  if (new Date(monitor.startsAt).getTime() > publicationTime) return false;
+  if (
+    monitor.nextEvaluationAt &&
+    new Date(monitor.nextEvaluationAt).getTime() > publicationTime
+  ) {
+    return false;
+  }
+  return new Date(monitor.expiresAt).getTime() > publicationTime;
+}
+
 export function createMonitoringRunner(
   client: RunnerClient = prisma as unknown as RunnerClient,
   options: { now?: () => Date } = {},
@@ -320,7 +339,9 @@ export function createMonitoringRunner(
             totalScore: snapshot.totalScore,
             signalsCount: snapshot.signalCount,
             isLegitimate: snapshot.isLegitimate ?? null,
-            createdAt: now,
+            // ScanHistory has no publication-key column. For automatic scans,
+            // a midnight createdAt is the immutable EOD publication linkage.
+            createdAt: publicationDate,
           },
         });
         await transaction.watchlistEntry.update({
@@ -452,17 +473,24 @@ export function createMonitoringRunner(
     const monitors = await client.activeMonitor.findMany({
       where: {
         status: "ACTIVE",
-        startsAt: { lte: now },
-        OR: [{ nextEvaluationAt: null }, { nextEvaluationAt: { lte: now } }],
+        startsAt: { lte: publicationDate },
+        expiresAt: { gt: publicationDate },
+        OR: [
+          { nextEvaluationAt: null },
+          { nextEvaluationAt: { lte: publicationDate } },
+        ],
       },
       include: {
         watchlistEntry: { select: { userId: true, ticker: true } },
       },
       orderBy: { createdAt: "asc" },
     });
-    result.eligible = monitors.length;
+    const eligibleMonitors = monitors.filter((monitor) =>
+      isMonitorEligibleForPublication(monitor, publicationDate),
+    );
+    result.eligible = eligibleMonitors.length;
 
-    for (const monitor of monitors) {
+    for (const monitor of eligibleMonitors) {
       if (new Date(monitor.expiresAt).getTime() <= now.getTime()) {
         await client.activeMonitor.update({
           where: { id: monitor.id },

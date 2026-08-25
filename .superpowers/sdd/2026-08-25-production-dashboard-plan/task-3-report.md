@@ -119,3 +119,49 @@ The development server also emitted existing Sentry/OpenTelemetry dynamic-depend
 - Existing dirty edits in `src/app/(auth)/login/page.tsx` and `src/app/(auth)/signup/page.tsx` remain present and were not edited by Task 3.
 - The untracked `docs/superpowers/` plan/spec directory remains present and was not altered by Task 3.
 - Task 3 did not edit UI, billing, Prisma schema/migrations, auth configuration, login, or signup files.
+
+## Commit status
+
+- Implementation commit: `bf2c4045a13dc984a15deceae0b2cd39938e1f86`
+- Message: `feat: add production dashboard data APIs and monitoring runner`
+- Commit contents: 14 files, consisting only of the Task 3 server data/runner files, API routes, focused tests, and this report.
+- Staged path audit: passed before commit; no auth, billing, Prisma, components/UI, or design-system paths were staged.
+- Post-commit working tree: the pre-existing `src/app/(auth)/login/page.tsx` and `src/app/(auth)/signup/page.tsx` edits remain modified; the untracked `docs/superpowers/` plan/spec directory remains untouched.
+
+## Fix round 1 — API/data integrity
+
+### Scope
+
+This round changes only the Task 3 API/data layer and its focused tests. It does not modify UI, billing, auth, Prisma schema/migrations, login/signup, or Task 2 files.
+
+### Reviewer findings resolved
+
+1. Public Pump Radar now queries NASDAQ/NYSE/AMEX non-OTC candidates, rejects known non-common security names before presentation, masks the ticker exactly as before, and omits `signalSummary`, company names, ticker text, and arbitrary platform labels from public rows. Aggregate social counts remain available; platform labels are allowlisted to canonical public names.
+2. Monitoring eligibility is evaluated against the requested EOD publication date, both in the database filter and an in-process defensive check. A monitor cannot be charged for a publication that predates its start, next evaluation, or active expiry window.
+3. New automatic history records store the charged midnight EOD publication in their existing `createdAt`. Automatic detail lookup requires that exact `StockDailySnapshot` and same-day completed social run. Existing automatic records with a non-midnight timestamp have no trustworthy publication key, so the detail/history layer withholds market and social evidence rather than attaching a later snapshot.
+4. History social-evidence availability now requires a matching ticker on a `COMPLETED` `SocialScanRun` for the exact scan/publication day.
+
+### Schema decision
+
+No migration is required for new automatic scans: `assetType` identifies the automatic source and the runner’s midnight `createdAt` is the deterministic publication pointer. A backfill of legacy automatic history is not safe from the current schema because `ScanHistory` has no execution/publication relation. If that historical enrichment becomes necessary, the minimal future migration is a nullable `publicationKey` on `ScanHistory`, written from `MonitorExecution.publicationKey`; this round deliberately does not add it.
+
+### Test-first evidence
+
+The four regressions were added before production changes and initially failed for the intended reasons: foreign/ETF rows and identifying Pump Radar summaries were public, runner eligibility used runtime rather than publication date, automatic history used runtime `createdAt`, detail used a latest-prior snapshot, and history considered unrelated social mentions. A final red test also demonstrated that arbitrary social-platform text could disclose an identity.
+
+### Verification
+
+```text
+npm test -- --runInBand src/tests/dashboard-api.test.ts src/tests/monitoring-runner.test.ts src/tests/history-api.test.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       22 passed, 22 total
+```
+
+`git diff --check` passed.
+
+`npx tsc --noEmit` was run after the fix and remains non-zero for two untracked dashboard/UI paths: `src/components/dashboard/MonitorEditor.tsx:61` (`MonitorDraftValidation.message`) and `src/tests/dashboard-components.test.ts:13` (missing dashboard view-model module). Both are outside the Task 3 API/data scope and untouched by this round; no Task 3 file was reported by TypeScript.
+
+### Review and remaining concerns
+
+The explicit instruction for this round prohibited subagents, so the required review was performed as a scoped local review of the changed paths and regression coverage rather than dispatching a reviewer. A production/staging database and authenticated browser session were not used in this API-only round. The repository-wide typecheck remains blocked by the unrelated untracked dashboard component described above.

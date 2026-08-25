@@ -140,6 +140,107 @@ describe("scan history API", () => {
     }
   });
 
+  test("marks social evidence only when a completed social run covers the scan publication", async () => {
+    const client = {
+      scanHistory: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: "scan-covered",
+            ticker: "AAPL",
+            assetType: "monitor-full",
+            riskLevel: "HIGH",
+            totalScore: 90,
+            signalsCount: 4,
+            createdAt: new Date("2026-08-25T00:00:00.000Z"),
+          },
+          {
+            id: "scan-wrong-day",
+            ticker: "MSFT",
+            assetType: "monitor-price",
+            riskLevel: "LOW",
+            totalScore: 8,
+            signalsCount: 0,
+            createdAt: new Date("2026-08-25T00:00:00.000Z"),
+          },
+        ]),
+      },
+      socialMention: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            ticker: "AAPL",
+            scanRun: { scanDate: new Date("2026-08-25T04:00:00.000Z") },
+          },
+          {
+            ticker: "MSFT",
+            scanRun: { scanDate: new Date("2026-08-26T04:00:00.000Z") },
+          },
+        ]),
+      },
+    };
+    const service = createDashboardDataService(client as never);
+
+    const payload = await service.getScanHistory("user-1", {
+      order: "MOST_RECENT",
+      page: 1,
+      limit: 20,
+    });
+
+    expect(payload.items.map((scan) => [scan.id, scan.socialEvidenceAvailable])).toEqual([
+      ["scan-covered", true],
+      ["scan-wrong-day", false],
+    ]);
+    expect(client.socialMention.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          scanRun: expect.objectContaining({ status: "COMPLETED" }),
+        }),
+      }),
+    );
+  });
+
+  test("pins automatic scan detail to its charged publication rather than a later snapshot", async () => {
+    const client = {
+      scanHistory: {
+        findMany: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue({
+          id: "scan-auto-1",
+          ticker: "AAPL",
+          assetType: "monitor-full",
+          riskLevel: "HIGH",
+          totalScore: 90,
+          signalsCount: 4,
+          isLegitimate: false,
+          pitchProvided: false,
+          contextProvided: false,
+          createdAt: new Date("2026-08-25T00:00:00.000Z"),
+        }),
+      },
+      trackedStock: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: "stock-aapl",
+          symbol: "AAPL",
+          name: "Apple Inc.",
+          exchange: "NASDAQ",
+        }),
+      },
+      stockDailySnapshot: { findFirst: jest.fn().mockResolvedValue(null) },
+      socialScanRun: { findFirst: jest.fn().mockResolvedValue(null) },
+      socialMention: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const service = createDashboardDataService(client as never);
+
+    await service.getScanDetail("user-1", "scan-auto-1");
+
+    expect(client.stockDailySnapshot.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          stockId: "stock-aapl",
+          scanDate: new Date("2026-08-25T00:00:00.000Z"),
+        }),
+      }),
+    );
+  });
+
   test("does not expose another user's scan detail", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrisma.scanHistory.findFirst.mockResolvedValue(null);
