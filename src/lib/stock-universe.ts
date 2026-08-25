@@ -74,7 +74,7 @@ export function normalizeSupportedTicker(input: string): SupportedTickerResult {
   const withoutCashMarker = raw.startsWith("$") ? raw.slice(1).trim() : raw;
   const ticker = withoutCashMarker.toUpperCase();
 
-  const [baseSymbol, suffix] = ticker.split(".");
+  const [, suffix] = ticker.split(".");
   const cryptoBaseSymbol = ticker.split(/[-/]/)[0];
   const isCryptoPair =
     CRYPTO_SYMBOLS.has(cryptoBaseSymbol) &&

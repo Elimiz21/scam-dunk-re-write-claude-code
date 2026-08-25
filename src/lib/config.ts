@@ -9,19 +9,7 @@ function env(key: string, fallback = ""): string {
   return process.env[key] || fallback;
 }
 
-function envInt(key: string, fallback: number): number {
-  return parseInt(process.env[key] || String(fallback), 10);
-}
-
 export const config = {
-  // Plan limits
-  get freeChecksPerMonth() {
-    return envInt("FREE_CHECKS_PER_MONTH", 5);
-  },
-  get paidChecksPerMonth() {
-    return envInt("PAID_CHECKS_PER_MONTH", 200);
-  },
-
   // PayPal
   get paypalClientId() {
     return env("PAYPAL_CLIENT_ID");
@@ -218,13 +206,7 @@ export function validateRequiredEnvVars(): void {
 
 // Get scan limit based on plan
 export function getScanLimit(plan: string): number {
-  const entitlements = getPlanEntitlements(plan);
-
-  // Preserve the existing environment overrides for the legacy Free/Pro
-  // plans while making all plan limits come from the central configuration.
-  if (entitlements.plan === "FREE") return config.freeChecksPerMonth;
-  if (entitlements.plan === "PAID") return config.paidChecksPerMonth;
-  return entitlements.manualScanCredits;
+  return getPlanEntitlements(plan).manualScanCredits;
 }
 
 // Get current month key in YYYY-MM format

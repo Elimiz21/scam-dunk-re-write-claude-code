@@ -3,6 +3,7 @@ import {
   getPlanEntitlements,
   getRiskLabel,
 } from "../lib/entitlements";
+import { getScanLimit } from "../lib/config";
 
 describe("plan entitlements", () => {
   test.each([
@@ -32,6 +33,21 @@ describe("plan entitlements", () => {
   test("maps monitor kinds to their entitlement fields", () => {
     expect(getMonitorSlotKey("FULL")).toBe("fullMonitorSlots");
     expect(getMonitorSlotKey("PRICE")).toBe("priceMonitorSlots");
+  });
+
+  test("uses the approved 50-credit Pro entitlement even when a legacy environment override remains set", () => {
+    const originalValue = process.env.PAID_CHECKS_PER_MONTH;
+    process.env.PAID_CHECKS_PER_MONTH = "200";
+
+    try {
+      expect(getScanLimit("PAID")).toBe(50);
+    } finally {
+      if (originalValue === undefined) {
+        delete process.env.PAID_CHECKS_PER_MONTH;
+      } else {
+        process.env.PAID_CHECKS_PER_MONTH = originalValue;
+      }
+    }
   });
 });
 

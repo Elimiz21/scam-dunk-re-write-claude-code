@@ -10,6 +10,7 @@ import {
 import { computeRiskScore } from "@/lib/scoring";
 import { generateNarrative } from "@/lib/narrative";
 import { reserveScanSlot } from "@/lib/usage";
+import { normalizeSupportedTicker } from "@/lib/stock-universe";
 import { logScanHistory } from "@/lib/admin/metrics";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { sendAPIFailureAlert } from "@/lib/email";
@@ -277,6 +278,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Parse and reject inputs that V1 cannot scan before reserving a credit.
+    currentStep = "PARSE_REQUEST";
+    const body = await request.json();
+    const validation = checkRequestSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.errors[0].message },
+        { status: 400 },
+      );
+    }
+
+    const checkRequest = validation.data;
+    if (checkRequest.assetType !== "stock") {
+      return NextResponse.json(
+        { error: "Only US-listed common stocks are supported." },
+        { status: 400 },
+      );
+    }
+
+    const supportedTicker = normalizeSupportedTicker(checkRequest.ticker);
+    if (!supportedTicker.ok) {
+      return NextResponse.json(
+        { error: "Only US-listed common stock tickers are supported." },
+        { status: 400 },
+      );
+    }
+
+    const ticker = supportedTicker.ticker;
+
     // Atomically check scan limit and reserve a slot (prevents TOCTOU race)
     currentStep = "USAGE_CHECK";
     const { reserved, usage } = await reserveScanSlot(userId);
@@ -292,21 +323,6 @@ export async function POST(request: NextRequest) {
       };
       return NextResponse.json(limitResponse, { status: 429 });
     }
-
-    // Parse and validate request body
-    currentStep = "PARSE_REQUEST";
-    const body = await request.json();
-    const validation = checkRequestSchema.safeParse(body);
-
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error.errors[0].message },
-        { status: 400 },
-      );
-    }
-
-    const checkRequest = validation.data;
-    const ticker = checkRequest.ticker.toUpperCase();
 
     // Build context with defaults
     const context = {
