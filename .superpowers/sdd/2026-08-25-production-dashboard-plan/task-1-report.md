@@ -34,3 +34,20 @@ Implemented the safe load-bearing fixes only: all runtime plan lookups now use t
 - Full `npx tsc --noEmit` remains blocked outside this task by the parallel billing test's missing `billingCustomerId` fixture and existing `e2e.test.ts` context typing errors.
 - `npm run lint` cannot run because Next.js opens its initial ESLint-configuration prompt; no configuration file was created in this scoped fix.
 - The attempted full Jest run is blocked by missing `DATABASE_URL` and pre-existing `e2e.test.ts` timeouts/narrative assertions; the process was stopped after those reproducible failures so it would not remain running.
+
+## Task 1 fix round 2
+
+### Status
+
+Closed the remaining ticker-validation finding. Dotted suffixes now use an explicit allowlist: only the existing `BRK.B`-style `B` suffix is accepted; `ABC.V` and every other unapproved dotted suffix are rejected before scan reservation.
+
+### Verification
+
+- TDD red run reproduced both failures: `ABC.V` normalized successfully and the route reached `USAGE_CHECK` instead of returning a no-charge `400`.
+- Focused Jest green run: **37 passed** across `entitlements.test.ts`, `stock-universe.test.ts`, and `check-route.test.ts`.
+- `git diff --check` passed.
+
+### Concerns
+
+- The allowlist preserves the existing tested `BRK.B` behavior; no arbitrary OTC/series suffix behavior was found in the current production data path.
+- Current-listing validation remains intentionally deferred to the authoritative market-data/API boundary.

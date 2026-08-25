@@ -55,6 +55,7 @@ describe("POST /api/check request eligibility", () => {
     [{ ticker: "SPY", assetType: "stock" }],
     [{ ticker: "AAPL 20270115C00150000", assetType: "stock" }],
     [{ ticker: "VOD.L", assetType: "stock" }],
+    [{ ticker: "ABC.V", assetType: "stock" }],
     [{ ticker: "AAPL!", assetType: "stock" }],
     [{ ticker: "", assetType: "stock" }],
   ])("rejects unsupported input before reserving a scan credit: %o", async (body) => {

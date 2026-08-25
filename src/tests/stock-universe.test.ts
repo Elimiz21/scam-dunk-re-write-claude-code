@@ -19,6 +19,7 @@ describe("normalizeSupportedTicker", () => {
     "AAPL 2027 CALL 150",
     "7203.T",
     "VOD.L",
+    "ABC.V",
     "NYSE:AAPL",
   ])("rejects unsupported asset input %s", (input) => {
     expect(normalizeSupportedTicker(input)).toEqual({

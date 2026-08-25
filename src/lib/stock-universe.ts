@@ -41,22 +41,10 @@ const ETF_SYMBOLS = new Set([
   "XLK",
 ]);
 
-const NON_US_SUFFIXES = new Set([
-  ".A",
-  ".AX",
-  ".AS",
-  ".DE",
-  ".F",
-  ".HK",
-  ".L",
-  ".MI",
-  ".PA",
-  ".SA",
-  ".SS",
-  ".SW",
-  ".T",
-  ".TO",
-]);
+// The current US symbol policy permits the class-B form used by BRK.B.
+// Every other dotted suffix is rejected until an explicit production need
+// and corresponding market-data support are established.
+const SUPPORTED_US_SUFFIXES = new Set(["B"]);
 
 const OPTION_CONTRACT_PATTERN =
   /\b\d{6,8}[CP]\d{6,8}\b|\b(?:CALL|PUT)\b|\b\d{6,8}[ -][CP][ -]?\d+/i;
@@ -79,13 +67,14 @@ export function normalizeSupportedTicker(input: string): SupportedTickerResult {
   const isCryptoPair =
     CRYPTO_SYMBOLS.has(cryptoBaseSymbol) &&
     (ticker.includes("-") || ticker.includes("/"));
-  const hasForeignExchangeSuffix = Boolean(suffix && NON_US_SUFFIXES.has(`.${suffix}`));
+  const hasUnsupportedSuffix =
+    suffix !== undefined && !SUPPORTED_US_SUFFIXES.has(suffix);
 
   if (
     CRYPTO_SYMBOLS.has(ticker) ||
     isCryptoPair ||
     OPTION_CONTRACT_PATTERN.test(ticker) ||
-    hasForeignExchangeSuffix ||
+    hasUnsupportedSuffix ||
     /^\w+:\w+$/.test(ticker)
   ) {
     return { ok: false, reason: "UNSUPPORTED_ASSET" };
