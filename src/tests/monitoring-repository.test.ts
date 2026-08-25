@@ -1,6 +1,7 @@
 import {
   MonitorExpiryError,
   MonitorSlotConflictError,
+  UnsupportedWatchlistTickerError,
   createMonitoringRepository,
 } from "@/lib/monitoring/repository";
 import type { MonitoringPrismaClient } from "@/lib/monitoring/types";
@@ -22,6 +23,10 @@ function createPrismaMock() {
   };
   const monitorExecution = {
     upsert: jest.fn(),
+    update: jest.fn(),
+  };
+  const notificationDelivery = {
+    upsert: jest.fn(),
   };
 
   const transaction = jest.fn(
@@ -30,6 +35,7 @@ function createPrismaMock() {
         watchlistEntry,
         activeMonitor,
         monitorExecution,
+        notificationDelivery,
       }),
   );
 
@@ -38,11 +44,13 @@ function createPrismaMock() {
       watchlistEntry,
       activeMonitor,
       monitorExecution,
+      notificationDelivery,
       $transaction: transaction,
     } as unknown as MonitoringPrismaClient,
     watchlistEntry,
     activeMonitor,
     monitorExecution,
+    notificationDelivery,
     transaction,
   };
 }
@@ -69,6 +77,28 @@ describe("monitoring repository contracts", () => {
       create: { userId: "user-1", ticker: "AAPL" },
       update: {},
     });
+  });
+
+  test("rejects clearly unsupported tickers before a watchlist write", async () => {
+    const mock = createPrismaMock();
+    const repository = createMonitoringRepository(mock.prisma);
+
+    const saveUnsupportedTicker = repository.upsertWatchlistTicker(
+      "user-1",
+      "BTC-USD",
+    );
+
+    await expect(saveUnsupportedTicker).rejects.toBeInstanceOf(
+      UnsupportedWatchlistTickerError,
+    );
+    await expect(saveUnsupportedTicker).rejects.toEqual(
+      expect.objectContaining({
+        name: "UnsupportedWatchlistTickerError",
+        reason: "UNSUPPORTED_ASSET",
+      }),
+    );
+    expect(mock.watchlistEntry.upsert).not.toHaveBeenCalled();
+    expect(mock.transaction).not.toHaveBeenCalled();
   });
 
   test("removing an absent ticker is idempotent", async () => {
@@ -102,6 +132,23 @@ describe("monitoring repository contracts", () => {
       }),
     ).rejects.toBeInstanceOf(MonitorSlotConflictError);
     expect(mock.activeMonitor.create).not.toHaveBeenCalled();
+  });
+
+  test("a database unique monitor-slot conflict is reported as a typed conflict", async () => {
+    const mock = createPrismaMock();
+    mock.activeMonitor.findUnique.mockResolvedValue(null);
+    mock.activeMonitor.create.mockRejectedValue({ code: "P2002" });
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.createMonitor({
+        watchlistEntryId: "watchlist-1",
+        kind: "FULL",
+        frequency: "DAILY",
+        startsAt: STARTS_AT,
+        expiresAt: new Date("2026-09-25T00:00:00.000Z"),
+      }),
+    ).rejects.toBeInstanceOf(MonitorSlotConflictError);
   });
 
   test("a monitor cannot expire later than 24 calendar months after it starts", async () => {
@@ -163,6 +210,176 @@ describe("monitoring repository contracts", () => {
         notificationIdempotencyKey: "notify:execution-1",
       },
       update: {},
+    });
+  });
+
+  test("records a full execution lifecycle without duplicating the execution", async () => {
+    const mock = createPrismaMock();
+    mock.monitorExecution.update
+      .mockResolvedValueOnce({
+        id: "execution-1",
+        monitorId: "monitor-1",
+        publicationKey: "eod:2026-08-25",
+        status: "PENDING",
+        creditReserved: true,
+        creditCharged: false,
+        notificationIdempotencyKey: "notify:execution-1",
+      })
+      .mockResolvedValueOnce({
+        id: "execution-1",
+        monitorId: "monitor-1",
+        publicationKey: "eod:2026-08-25",
+        status: "PENDING",
+        creditReserved: true,
+        creditCharged: true,
+        notificationIdempotencyKey: "notify:execution-1",
+      })
+      .mockResolvedValueOnce({
+        id: "execution-1",
+        monitorId: "monitor-1",
+        publicationKey: "eod:2026-08-25",
+        status: "COMPLETED",
+        creditReserved: true,
+        creditCharged: true,
+        notificationIdempotencyKey: "notify:execution-1",
+      })
+      .mockResolvedValueOnce({
+        id: "execution-2",
+        monitorId: "monitor-1",
+        publicationKey: "eod:2026-08-26",
+        status: "SKIPPED",
+        creditReserved: false,
+        creditCharged: false,
+        notificationIdempotencyKey: "notify:execution-2",
+      })
+      .mockResolvedValueOnce({
+        id: "execution-3",
+        monitorId: "monitor-1",
+        publicationKey: "eod:2026-08-27",
+        status: "FAILED",
+        creditReserved: true,
+        creditCharged: false,
+        notificationIdempotencyKey: "notify:execution-3",
+      });
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await repository.reserveExecutionCredit("execution-1");
+    await repository.chargeExecutionCredit("execution-1");
+    await repository.completeExecution("execution-1");
+    await repository.skipExecution("execution-2", "NO_MARKET_DATA");
+    await repository.failExecution("execution-3", "PROVIDER_TIMEOUT");
+
+    expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(1, {
+      where: { id: "execution-1" },
+      data: { creditReserved: true },
+    });
+    expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(2, {
+      where: { id: "execution-1" },
+      data: { creditCharged: true },
+    });
+    expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(3, {
+      where: { id: "execution-1" },
+      data: { status: "COMPLETED", skipReason: null, errorReason: null },
+    });
+    expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(4, {
+      where: { id: "execution-2" },
+      data: { status: "SKIPPED", skipReason: "NO_MARKET_DATA", errorReason: null },
+    });
+    expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(5, {
+      where: { id: "execution-3" },
+      data: { status: "FAILED", errorReason: "PROVIDER_TIMEOUT" },
+    });
+  });
+
+  test("upserts each in-app and email delivery with its delivery outcome", async () => {
+    const mock = createPrismaMock();
+    mock.notificationDelivery.upsert
+      .mockResolvedValueOnce({
+        id: "delivery-1",
+        userId: "user-1",
+        executionId: "execution-1",
+        channel: "IN_APP",
+        status: "DELIVERED",
+      })
+      .mockResolvedValueOnce({
+        id: "delivery-2",
+        userId: "user-1",
+        executionId: "execution-1",
+        channel: "EMAIL",
+        status: "FAILED",
+      });
+    const repository = createMonitoringRepository(mock.prisma);
+    const attemptedAt = new Date("2026-08-25T17:00:00.000Z");
+
+    await repository.upsertNotificationDelivery({
+      userId: "user-1",
+      executionId: "execution-1",
+      channel: "IN_APP",
+      status: "DELIVERED",
+      attemptedAt,
+      deliveredAt: attemptedAt,
+      providerMessageId: "in-app-1",
+    });
+    await repository.upsertNotificationDelivery({
+      userId: "user-1",
+      executionId: "execution-1",
+      channel: "EMAIL",
+      status: "FAILED",
+      attemptedAt,
+      errorReason: "EMAIL_PROVIDER_TIMEOUT",
+    });
+
+    expect(mock.notificationDelivery.upsert).toHaveBeenNthCalledWith(1, {
+      where: {
+        userId_executionId_channel: {
+          userId: "user-1",
+          executionId: "execution-1",
+          channel: "IN_APP",
+        },
+      },
+      create: {
+        userId: "user-1",
+        executionId: "execution-1",
+        channel: "IN_APP",
+        status: "DELIVERED",
+        attemptedAt,
+        deliveredAt: attemptedAt,
+        providerMessageId: "in-app-1",
+        errorReason: null,
+      },
+      update: {
+        status: "DELIVERED",
+        attemptedAt,
+        deliveredAt: attemptedAt,
+        providerMessageId: "in-app-1",
+        errorReason: null,
+      },
+    });
+    expect(mock.notificationDelivery.upsert).toHaveBeenNthCalledWith(2, {
+      where: {
+        userId_executionId_channel: {
+          userId: "user-1",
+          executionId: "execution-1",
+          channel: "EMAIL",
+        },
+      },
+      create: {
+        userId: "user-1",
+        executionId: "execution-1",
+        channel: "EMAIL",
+        status: "FAILED",
+        attemptedAt,
+        deliveredAt: null,
+        providerMessageId: null,
+        errorReason: "EMAIL_PROVIDER_TIMEOUT",
+      },
+      update: {
+        status: "FAILED",
+        attemptedAt,
+        deliveredAt: null,
+        providerMessageId: null,
+        errorReason: "EMAIL_PROVIDER_TIMEOUT",
+      },
     });
   });
 });

@@ -24,6 +24,14 @@ export type MonitorExecutionStatus =
 export const NOTIFICATION_CHANNELS = ["IN_APP", "EMAIL"] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
+export const NOTIFICATION_DELIVERY_STATUSES = [
+  "PENDING",
+  "DELIVERED",
+  "FAILED",
+] as const;
+export type NotificationDeliveryStatus =
+  (typeof NOTIFICATION_DELIVERY_STATUSES)[number];
+
 export type CreateMonitorInput = {
   watchlistEntryId: string;
   kind: MonitorKind;
@@ -78,6 +86,31 @@ export type MonitorExecutionRecord = {
   creditReserved: boolean;
   creditCharged: boolean;
   notificationIdempotencyKey: string;
+  skipReason?: string | null;
+  errorReason?: string | null;
+};
+
+export type NotificationDeliveryRecord = {
+  id: string;
+  userId: string;
+  executionId: string;
+  channel: NotificationChannel;
+  status: NotificationDeliveryStatus;
+  providerMessageId?: string | null;
+  errorReason?: string | null;
+  attemptedAt?: Date | null;
+  deliveredAt?: Date | null;
+};
+
+export type UpsertNotificationDeliveryInput = {
+  userId: string;
+  executionId: string;
+  channel: NotificationChannel;
+  status: NotificationDeliveryStatus;
+  attemptedAt: Date;
+  deliveredAt?: Date | null;
+  providerMessageId?: string | null;
+  errorReason?: string | null;
 };
 
 export type MonitoringTransactionClient = {
@@ -95,6 +128,10 @@ export type MonitoringTransactionClient = {
   };
   monitorExecution: {
     upsert: (args: unknown) => Promise<MonitorExecutionRecord>;
+    update: (args: unknown) => Promise<MonitorExecutionRecord>;
+  };
+  notificationDelivery: {
+    upsert: (args: unknown) => Promise<NotificationDeliveryRecord>;
   };
 };
 

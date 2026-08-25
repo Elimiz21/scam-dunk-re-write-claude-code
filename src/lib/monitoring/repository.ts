@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { normalizeSupportedTicker } from "@/lib/stock-universe";
 
 import type {
   ActiveMonitorRecord,
@@ -6,8 +7,10 @@ import type {
   MonitorExecutionRecord,
   MonitoringPrismaClient,
   MonitoringTransactionClient,
+  NotificationDeliveryRecord,
   RecordExecutionOnceInput,
   UpdateMonitorInput,
+  UpsertNotificationDeliveryInput,
   WatchlistEntryRecord,
 } from "./types";
 
@@ -41,8 +44,32 @@ export class MonitorStatusTransitionError extends Error {
   }
 }
 
-function normalizeTicker(ticker: string): string {
-  return ticker.trim().toUpperCase();
+export class UnsupportedWatchlistTickerError extends Error {
+  readonly reason: "UNSUPPORTED_ASSET" | "INVALID_TICKER";
+
+  constructor(reason: "UNSUPPORTED_ASSET" | "INVALID_TICKER") {
+    super("Only supported US-stock ticker formats can be added to a watchlist.");
+    this.name = "UnsupportedWatchlistTickerError";
+    this.reason = reason;
+  }
+}
+
+function normalizeWatchlistTicker(ticker: string): string {
+  const normalized = normalizeSupportedTicker(ticker);
+  if (normalized.ok === false) {
+    throw new UnsupportedWatchlistTickerError(normalized.reason);
+  }
+
+  return normalized.ticker;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2002"
+  );
 }
 
 function addCalendarMonths(date: Date, months: number): Date {
@@ -96,7 +123,7 @@ export function createMonitoringRepository(
     userId: string,
     ticker: string,
   ): Promise<WatchlistEntryRecord> {
-    const normalizedTicker = normalizeTicker(ticker);
+    const normalizedTicker = normalizeWatchlistTicker(ticker);
 
     return client.$transaction((transaction) =>
       transaction.watchlistEntry.upsert({
@@ -111,7 +138,7 @@ export function createMonitoringRepository(
     userId: string,
     ticker: string,
   ): Promise<{ removed: boolean }> {
-    const normalizedTicker = normalizeTicker(ticker);
+    const normalizedTicker = normalizeWatchlistTicker(ticker);
 
     return client.$transaction(async (transaction) => {
       const result = await transaction.watchlistEntry.deleteMany({
@@ -133,40 +160,47 @@ export function createMonitoringRepository(
   ): Promise<ActiveMonitorRecord> {
     assertMonitorExpiry(input.startsAt, input.expiresAt);
 
-    return client.$transaction(async (transaction) => {
-      const existing = await transaction.activeMonitor.findUnique({
-        where: {
-          watchlistEntryId_kind: {
-            watchlistEntryId: input.watchlistEntryId,
-            kind: input.kind,
+    try {
+      return await client.$transaction(async (transaction) => {
+        const existing = await transaction.activeMonitor.findUnique({
+          where: {
+            watchlistEntryId_kind: {
+              watchlistEntryId: input.watchlistEntryId,
+              kind: input.kind,
+            },
           },
-        },
-      });
+        });
 
-      if (existing?.status === "ACTIVE") {
+        if (existing?.status === "ACTIVE") {
+          throw new MonitorSlotConflictError();
+        }
+
+        const data = {
+          frequency: input.frequency,
+          startsAt: input.startsAt,
+          expiresAt: input.expiresAt,
+          status: "ACTIVE" as const,
+          lastEvaluatedAt: null,
+          nextEvaluationAt: input.startsAt,
+        };
+
+        if (existing) {
+          return transaction.activeMonitor.update({
+            where: { id: existing.id },
+            data,
+          });
+        }
+
+        return transaction.activeMonitor.create({
+          data: { watchlistEntryId: input.watchlistEntryId, kind: input.kind, ...data },
+        });
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
         throw new MonitorSlotConflictError();
       }
-
-      const data = {
-        frequency: input.frequency,
-        startsAt: input.startsAt,
-        expiresAt: input.expiresAt,
-        status: "ACTIVE" as const,
-        lastEvaluatedAt: null,
-        nextEvaluationAt: input.startsAt,
-      };
-
-      if (existing) {
-        return transaction.activeMonitor.update({
-          where: { id: existing.id },
-          data,
-        });
-      }
-
-      return transaction.activeMonitor.create({
-        data: { watchlistEntryId: input.watchlistEntryId, kind: input.kind, ...data },
-      });
-    });
+      throw error;
+    }
   }
 
   async function updateMonitor(
@@ -225,6 +259,94 @@ export function createMonitoringRepository(
     );
   }
 
+  async function reserveExecutionCredit(
+    executionId: string,
+  ): Promise<MonitorExecutionRecord> {
+    return client.$transaction((transaction) =>
+      transaction.monitorExecution.update({
+        where: { id: executionId },
+        data: { creditReserved: true },
+      }),
+    );
+  }
+
+  async function chargeExecutionCredit(
+    executionId: string,
+  ): Promise<MonitorExecutionRecord> {
+    return client.$transaction((transaction) =>
+      transaction.monitorExecution.update({
+        where: { id: executionId },
+        data: { creditCharged: true },
+      }),
+    );
+  }
+
+  async function completeExecution(
+    executionId: string,
+  ): Promise<MonitorExecutionRecord> {
+    return client.$transaction((transaction) =>
+      transaction.monitorExecution.update({
+        where: { id: executionId },
+        data: { status: "COMPLETED", skipReason: null, errorReason: null },
+      }),
+    );
+  }
+
+  async function skipExecution(
+    executionId: string,
+    skipReason: string,
+  ): Promise<MonitorExecutionRecord> {
+    return client.$transaction((transaction) =>
+      transaction.monitorExecution.update({
+        where: { id: executionId },
+        data: { status: "SKIPPED", skipReason, errorReason: null },
+      }),
+    );
+  }
+
+  async function failExecution(
+    executionId: string,
+    errorReason: string,
+  ): Promise<MonitorExecutionRecord> {
+    return client.$transaction((transaction) =>
+      transaction.monitorExecution.update({
+        where: { id: executionId },
+        data: { status: "FAILED", errorReason },
+      }),
+    );
+  }
+
+  async function upsertNotificationDelivery(
+    input: UpsertNotificationDeliveryInput,
+  ): Promise<NotificationDeliveryRecord> {
+    const deliveryData = {
+      status: input.status,
+      attemptedAt: input.attemptedAt,
+      deliveredAt: input.deliveredAt ?? null,
+      providerMessageId: input.providerMessageId ?? null,
+      errorReason: input.errorReason ?? null,
+    };
+
+    return client.$transaction((transaction) =>
+      transaction.notificationDelivery.upsert({
+        where: {
+          userId_executionId_channel: {
+            userId: input.userId,
+            executionId: input.executionId,
+            channel: input.channel,
+          },
+        },
+        create: {
+          userId: input.userId,
+          executionId: input.executionId,
+          channel: input.channel,
+          ...deliveryData,
+        },
+        update: deliveryData,
+      }),
+    );
+  }
+
   return {
     listWatchlist,
     upsertWatchlistTicker,
@@ -234,6 +356,12 @@ export function createMonitoringRepository(
     updateMonitor,
     deleteMonitor,
     recordExecutionOnce,
+    reserveExecutionCredit,
+    chargeExecutionCredit,
+    completeExecution,
+    skipExecution,
+    failExecution,
+    upsertNotificationDelivery,
   };
 }
 
@@ -247,5 +375,12 @@ export const createMonitor = defaultRepository.createMonitor;
 export const updateMonitor = defaultRepository.updateMonitor;
 export const deleteMonitor = defaultRepository.deleteMonitor;
 export const recordExecutionOnce = defaultRepository.recordExecutionOnce;
+export const reserveExecutionCredit = defaultRepository.reserveExecutionCredit;
+export const chargeExecutionCredit = defaultRepository.chargeExecutionCredit;
+export const completeExecution = defaultRepository.completeExecution;
+export const skipExecution = defaultRepository.skipExecution;
+export const failExecution = defaultRepository.failExecution;
+export const upsertNotificationDelivery =
+  defaultRepository.upsertNotificationDelivery;
 
 export type { MonitoringTransactionClient } from "./types";
