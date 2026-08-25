@@ -132,11 +132,11 @@ export function DashboardHome() {
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Saved stocks</p>
               <CardTitle className="mt-1 font-display text-xl italic">Watchlist</CardTitle>
             </div>
-            <Link href="/watchlist">
-              <Button variant="ghost" size="sm" className="min-h-10 gap-1.5">
+            <Button asChild variant="ghost" size="sm" className="min-h-10 gap-1.5">
+              <Link href="/watchlist">
                 Manage <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {data.watchlist.length === 0 ? (
@@ -171,11 +171,11 @@ export function DashboardHome() {
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Completed checks</p>
               <CardTitle className="mt-1 font-display text-xl italic">Recent scans</CardTitle>
             </div>
-            <Link href="/recent-scans">
-              <Button variant="ghost" size="sm" className="min-h-10 gap-1.5">
+            <Button asChild variant="ghost" size="sm" className="min-h-10 gap-1.5">
+              <Link href="/recent-scans">
                 View all <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {data.recentScans.length === 0 ? (
@@ -218,9 +218,9 @@ export function DashboardHome() {
               <p className="mt-1 text-sm text-muted-foreground">Manual scans use one credit and are separate from your saved watchlist.</p>
             </div>
           </div>
-          <Link href="/" className="shrink-0">
-            <Button variant="brand" className="min-h-11 w-full sm:w-auto">Run a scan</Button>
-          </Link>
+          <Button asChild variant="brand" className="min-h-11 w-full sm:w-auto">
+            <Link href="/">Run a scan</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

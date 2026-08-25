@@ -1,6 +1,9 @@
 import {
   MonitorExpiryError,
   MonitorExecutionTransitionError,
+  MonitoringNotFoundError,
+  MonitorStatusTransitionError,
+  NotificationDeliveryTransitionError,
   MonitorSlotConflictError,
   UnsupportedWatchlistTickerError,
   createMonitoringRepository,
@@ -12,11 +15,13 @@ const STARTS_AT = new Date("2026-08-25T00:00:00.000Z");
 function createPrismaMock() {
   const watchlistEntry = {
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     upsert: jest.fn(),
     deleteMany: jest.fn(),
   };
   const activeMonitor = {
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     findUnique: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
@@ -24,12 +29,15 @@ function createPrismaMock() {
   };
   const monitorExecution = {
     upsert: jest.fn(),
+    findFirst: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
   };
   const notificationDelivery = {
+    findUnique: jest.fn(),
     upsert: jest.fn(),
   };
+  notificationDelivery.findUnique.mockResolvedValue(null);
 
   const transaction = jest.fn(
     async (callback: (transactionClient: unknown) => unknown) =>
@@ -118,6 +126,10 @@ describe("monitoring repository contracts", () => {
 
   test("a second active monitor cannot occupy the same ticker and kind slot", async () => {
     const mock = createPrismaMock();
+    mock.watchlistEntry.findFirst.mockResolvedValue({
+      id: "watchlist-1",
+      userId: "user-1",
+    });
     mock.activeMonitor.findUnique.mockResolvedValue({
       id: "monitor-1",
       status: "ACTIVE",
@@ -126,6 +138,7 @@ describe("monitoring repository contracts", () => {
 
     await expect(
       repository.createMonitor({
+        userId: "user-1",
         watchlistEntryId: "watchlist-1",
         kind: "FULL",
         frequency: "DAILY",
@@ -138,12 +151,17 @@ describe("monitoring repository contracts", () => {
 
   test("a database unique monitor-slot conflict is reported as a typed conflict", async () => {
     const mock = createPrismaMock();
+    mock.watchlistEntry.findFirst.mockResolvedValue({
+      id: "watchlist-1",
+      userId: "user-1",
+    });
     mock.activeMonitor.findUnique.mockResolvedValue(null);
     mock.activeMonitor.create.mockRejectedValue({ code: "P2002" });
     const repository = createMonitoringRepository(mock.prisma);
 
     await expect(
       repository.createMonitor({
+        userId: "user-1",
         watchlistEntryId: "watchlist-1",
         kind: "FULL",
         frequency: "DAILY",
@@ -155,10 +173,15 @@ describe("monitoring repository contracts", () => {
 
   test("a monitor cannot expire later than 24 calendar months after it starts", async () => {
     const mock = createPrismaMock();
+    mock.watchlistEntry.findFirst.mockResolvedValue({
+      id: "watchlist-1",
+      userId: "user-1",
+    });
     const repository = createMonitoringRepository(mock.prisma);
 
     await expect(
       repository.createMonitor({
+        userId: "user-1",
         watchlistEntryId: "watchlist-1",
         kind: "PRICE",
         frequency: "WEEKLY",
@@ -167,6 +190,87 @@ describe("monitoring repository contracts", () => {
       }),
     ).rejects.toBeInstanceOf(MonitorExpiryError);
     expect(mock.activeMonitor.findUnique).not.toHaveBeenCalled();
+  });
+
+  test("clamps leap-day expiry to the last day of the target month", async () => {
+    const mock = createPrismaMock();
+    mock.watchlistEntry.findFirst.mockResolvedValue({
+      id: "watchlist-1",
+      userId: "user-1",
+    });
+    mock.activeMonitor.findUnique.mockResolvedValue(null);
+    mock.activeMonitor.create.mockResolvedValue({ id: "monitor-1" });
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.createMonitor({
+        userId: "user-1",
+        watchlistEntryId: "watchlist-1",
+        kind: "PRICE",
+        frequency: "WEEKLY",
+        startsAt: new Date("2028-02-29T00:00:00.000Z"),
+        expiresAt: new Date("2030-02-28T00:00:00.000Z"),
+      }),
+    ).resolves.toEqual({ id: "monitor-1" });
+
+    await expect(
+      repository.createMonitor({
+        userId: "user-1",
+        watchlistEntryId: "watchlist-1",
+        kind: "PRICE",
+        frequency: "WEEKLY",
+        startsAt: new Date("2028-02-29T00:00:00.000Z"),
+        expiresAt: new Date("2030-03-01T00:00:00.000Z"),
+      }),
+    ).rejects.toBeInstanceOf(MonitorExpiryError);
+  });
+
+  test("rejects a monitor mutation when the resource is owned by another user", async () => {
+    const mock = createPrismaMock();
+    mock.watchlistEntry.findFirst.mockResolvedValue(null);
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.createMonitor({
+        userId: "user-2",
+        watchlistEntryId: "watchlist-1",
+        kind: "FULL",
+        frequency: "DAILY",
+        startsAt: STARTS_AT,
+        expiresAt: new Date("2026-09-25T00:00:00.000Z"),
+      }),
+    ).rejects.toMatchObject({
+      name: "MonitoringNotFoundError",
+      resource: "WATCHLIST_ENTRY",
+    });
+    expect(mock.activeMonitor.findUnique).not.toHaveBeenCalled();
+  });
+
+  test("soft-cancels a monitor without deleting its execution history", async () => {
+    const mock = createPrismaMock();
+    const current = {
+      id: "monitor-1",
+      watchlistEntryId: "watchlist-1",
+      status: "ACTIVE",
+      startsAt: STARTS_AT,
+      expiresAt: new Date("2026-09-25T00:00:00.000Z"),
+    };
+    mock.activeMonitor.findFirst.mockResolvedValue(current);
+    mock.activeMonitor.update.mockResolvedValue({
+      ...current,
+      status: "CANCELLED",
+      nextEvaluationAt: null,
+    });
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.deleteMonitor("user-1", "monitor-1"),
+    ).resolves.toMatchObject({ status: "CANCELLED" });
+    expect(mock.activeMonitor.delete).not.toHaveBeenCalled();
+    expect(mock.activeMonitor.update).toHaveBeenCalledWith({
+      where: { id: "monitor-1", status: "ACTIVE" },
+      data: { status: "CANCELLED", nextEvaluationAt: null },
+    });
   });
 
   test("retries for a publication key return the original execution without a second charge", async () => {
@@ -179,15 +283,21 @@ describe("monitoring repository contracts", () => {
       creditReserved: true,
       creditCharged: false,
     };
+    mock.activeMonitor.findFirst.mockResolvedValue({
+      id: "execution-1",
+      monitorId: "monitor-1",
+    });
     mock.monitorExecution.upsert.mockResolvedValue(execution);
     const repository = createMonitoringRepository(mock.prisma);
 
     const first = await repository.recordExecutionOnce({
+      userId: "user-1",
       monitorId: "monitor-1",
       publicationKey: "eod:2026-08-25",
       notificationIdempotencyKey: "notify:execution-1",
     });
     const retry = await repository.recordExecutionOnce({
+      userId: "user-1",
       monitorId: "monitor-1",
       publicationKey: "eod:2026-08-25",
       notificationIdempotencyKey: "notify:execution-1",
@@ -217,7 +327,7 @@ describe("monitoring repository contracts", () => {
 
   test("records a full execution lifecycle without duplicating the execution", async () => {
     const mock = createPrismaMock();
-    mock.monitorExecution.findUnique
+    mock.monitorExecution.findFirst
       .mockResolvedValueOnce({
         id: "execution-1",
         status: "PENDING",
@@ -296,11 +406,11 @@ describe("monitoring repository contracts", () => {
       });
     const repository = createMonitoringRepository(mock.prisma);
 
-    await repository.reserveExecutionCredit("execution-1");
-    await repository.chargeExecutionCredit("execution-1");
-    await repository.completeExecution("execution-1");
-    await repository.skipExecution("execution-2", "NO_MARKET_DATA");
-    await repository.failExecution("execution-3", "PROVIDER_TIMEOUT");
+    await repository.reserveExecutionCredit("user-1", "execution-1");
+    await repository.chargeExecutionCredit("user-1", "execution-1");
+    await repository.completeExecution("user-1", "execution-1");
+    await repository.skipExecution("user-1", "execution-2", "NO_MARKET_DATA");
+    await repository.failExecution("user-1", "execution-3", "PROVIDER_TIMEOUT");
 
     expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(1, {
       where: {
@@ -321,22 +431,34 @@ describe("monitoring repository contracts", () => {
       data: { creditCharged: true },
     });
     expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(3, {
-      where: { id: "execution-1", status: "PENDING" },
+      where: { id: "execution-1", status: "PENDING", creditCharged: true },
       data: { status: "COMPLETED", skipReason: null, errorReason: null },
     });
     expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(4, {
       where: { id: "execution-2", status: "PENDING" },
-      data: { status: "SKIPPED", skipReason: "NO_MARKET_DATA", errorReason: null },
+      data: {
+        status: "SKIPPED",
+        creditReserved: false,
+        creditCharged: false,
+        skipReason: "NO_MARKET_DATA",
+        errorReason: null,
+      },
     });
     expect(mock.monitorExecution.update).toHaveBeenNthCalledWith(5, {
       where: { id: "execution-3", status: "PENDING" },
-      data: { status: "FAILED", errorReason: "PROVIDER_TIMEOUT" },
+      data: {
+        status: "FAILED",
+        creditReserved: false,
+        creditCharged: false,
+        skipReason: null,
+        errorReason: "PROVIDER_TIMEOUT",
+      },
     });
   });
 
   test("cannot charge an execution until credit has been reserved", async () => {
     const mock = createPrismaMock();
-    mock.monitorExecution.findUnique.mockResolvedValue({
+    mock.monitorExecution.findFirst.mockResolvedValue({
       id: "execution-1",
       status: "PENDING",
       creditReserved: false,
@@ -345,20 +467,24 @@ describe("monitoring repository contracts", () => {
     const repository = createMonitoringRepository(mock.prisma);
 
     await expect(
-      repository.chargeExecutionCredit("execution-1"),
+      repository.chargeExecutionCredit("user-1", "execution-1"),
     ).rejects.toBeInstanceOf(MonitorExecutionTransitionError);
     expect(mock.monitorExecution.update).not.toHaveBeenCalled();
   });
 
   test("retries of the same lifecycle operation are safe no-ops while cross-terminal transitions fail", async () => {
     const mock = createPrismaMock();
+    mock.monitorExecution.findFirst.mockResolvedValue({
+      id: "execution-1",
+      monitorId: "monitor-1",
+    });
     const completed = {
       id: "execution-1",
       status: "COMPLETED",
       creditReserved: true,
       creditCharged: true,
     };
-    mock.monitorExecution.findUnique
+    mock.monitorExecution.findFirst
       .mockResolvedValueOnce(completed)
       .mockResolvedValueOnce(completed)
       .mockResolvedValueOnce(completed)
@@ -366,16 +492,16 @@ describe("monitoring repository contracts", () => {
     const repository = createMonitoringRepository(mock.prisma);
 
     await expect(
-      repository.chargeExecutionCredit("execution-1"),
+      repository.chargeExecutionCredit("user-1", "execution-1"),
     ).resolves.toEqual(completed);
-    await expect(repository.completeExecution("execution-1")).resolves.toEqual(
+    await expect(repository.completeExecution("user-1", "execution-1")).resolves.toEqual(
       completed,
     );
     await expect(
-      repository.skipExecution("execution-1", "NO_MARKET_DATA"),
+      repository.skipExecution("user-1", "execution-1", "NO_MARKET_DATA"),
     ).rejects.toBeInstanceOf(MonitorExecutionTransitionError);
     await expect(
-      repository.failExecution("execution-1", "PROVIDER_TIMEOUT"),
+      repository.failExecution("user-1", "execution-1", "PROVIDER_TIMEOUT"),
     ).rejects.toBeInstanceOf(MonitorExecutionTransitionError);
     expect(mock.monitorExecution.update).not.toHaveBeenCalled();
   });
@@ -394,26 +520,26 @@ describe("monitoring repository contracts", () => {
         creditReserved: status !== "SKIPPED",
         creditCharged: status === "COMPLETED",
       };
-      mock.monitorExecution.findUnique.mockResolvedValue(terminal);
+      mock.monitorExecution.findFirst.mockResolvedValue(terminal);
       const repository = createMonitoringRepository(mock.prisma);
 
       const retry = {
-        skip: () => repository.skipExecution("execution-1", "NO_MARKET_DATA"),
-        complete: () => repository.completeExecution("execution-1"),
-        fail: () => repository.failExecution("execution-1", "PROVIDER_TIMEOUT"),
+        skip: () => repository.skipExecution("user-1", "execution-1", "NO_MARKET_DATA"),
+        complete: () => repository.completeExecution("user-1", "execution-1"),
+        fail: () => repository.failExecution("user-1", "execution-1", "PROVIDER_TIMEOUT"),
       }[retryOperation]();
       await expect(retry).resolves.toEqual(terminal);
 
       const crossTerminal = {
-        skip: () => repository.skipExecution("execution-1", "NO_MARKET_DATA"),
-        complete: () => repository.completeExecution("execution-1"),
-        fail: () => repository.failExecution("execution-1", "PROVIDER_TIMEOUT"),
+        skip: () => repository.skipExecution("user-1", "execution-1", "NO_MARKET_DATA"),
+        complete: () => repository.completeExecution("user-1", "execution-1"),
+        fail: () => repository.failExecution("user-1", "execution-1", "PROVIDER_TIMEOUT"),
       }[crossTerminalOperation]();
       await expect(crossTerminal).rejects.toBeInstanceOf(
         MonitorExecutionTransitionError,
       );
 
-      const charge = repository.chargeExecutionCredit("execution-1");
+      const charge = repository.chargeExecutionCredit("user-1", "execution-1");
       if (status === "COMPLETED") {
         await expect(charge).resolves.toEqual(terminal);
       } else {
@@ -427,7 +553,7 @@ describe("monitoring repository contracts", () => {
 
   test("uses status and credit predicates so concurrent lifecycle updates cannot overwrite state", async () => {
     const mock = createPrismaMock();
-    mock.monitorExecution.findUnique.mockResolvedValue({
+    mock.monitorExecution.findFirst.mockResolvedValue({
       id: "execution-1",
       status: "PENDING",
       creditReserved: false,
@@ -441,7 +567,7 @@ describe("monitoring repository contracts", () => {
     });
     const repository = createMonitoringRepository(mock.prisma);
 
-    await repository.reserveExecutionCredit("execution-1");
+    await repository.reserveExecutionCredit("user-1", "execution-1");
 
     expect(mock.monitorExecution.update).toHaveBeenCalledWith({
       where: {
@@ -456,6 +582,11 @@ describe("monitoring repository contracts", () => {
 
   test("upserts each in-app and email delivery with its delivery outcome", async () => {
     const mock = createPrismaMock();
+    mock.monitorExecution.findFirst.mockResolvedValue({
+      id: "execution-1",
+      monitorId: "monitor-1",
+    });
+    mock.notificationDelivery.findUnique.mockResolvedValue(null);
     mock.notificationDelivery.upsert
       .mockResolvedValueOnce({
         id: "delivery-1",
@@ -544,5 +675,82 @@ describe("monitoring repository contracts", () => {
         errorReason: "EMAIL_PROVIDER_TIMEOUT",
       },
     });
+  });
+
+  test("rejects notification writes when the execution belongs to another user", async () => {
+    const mock = createPrismaMock();
+    mock.monitorExecution.findFirst.mockResolvedValue(null);
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.upsertNotificationDelivery({
+        userId: "user-2",
+        executionId: "execution-1",
+        channel: "EMAIL",
+        status: "PENDING",
+        attemptedAt: null,
+      }),
+    ).rejects.toMatchObject({
+      name: "MonitoringNotFoundError",
+      resource: "MONITOR_EXECUTION",
+    });
+    expect(mock.notificationDelivery.upsert).not.toHaveBeenCalled();
+  });
+
+  test("does not regress a delivered notification to a non-terminal state", async () => {
+    const mock = createPrismaMock();
+    mock.monitorExecution.findFirst.mockResolvedValue({
+      id: "execution-1",
+      monitorId: "monitor-1",
+    });
+    mock.notificationDelivery.findUnique.mockResolvedValue({
+      id: "delivery-1",
+      userId: "user-1",
+      executionId: "execution-1",
+      channel: "EMAIL",
+      status: "DELIVERED",
+    });
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.upsertNotificationDelivery({
+        userId: "user-1",
+        executionId: "execution-1",
+        channel: "EMAIL",
+        status: "PENDING",
+        attemptedAt: null,
+      }),
+    ).rejects.toBeInstanceOf(NotificationDeliveryTransitionError);
+    expect(mock.notificationDelivery.upsert).not.toHaveBeenCalled();
+  });
+
+  test("returns a typed error for a missing execution lifecycle target", async () => {
+    const mock = createPrismaMock();
+    mock.monitorExecution.findFirst.mockResolvedValue(null);
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.completeExecution("user-1", "missing-execution"),
+    ).rejects.toMatchObject({
+      name: "MonitoringNotFoundError",
+      resource: "MONITOR_EXECUTION",
+    });
+  });
+
+  test("rejects updates to terminal monitor state", async () => {
+    const mock = createPrismaMock();
+    mock.activeMonitor.findFirst.mockResolvedValue({
+      id: "monitor-1",
+      status: "CANCELLED",
+      startsAt: STARTS_AT,
+      expiresAt: new Date("2026-09-25T00:00:00.000Z"),
+    });
+    const repository = createMonitoringRepository(mock.prisma);
+
+    await expect(
+      repository.updateMonitor("user-1", "monitor-1", {
+        frequency: "WEEKLY",
+      }),
+    ).rejects.toBeInstanceOf(MonitorStatusTransitionError);
   });
 });

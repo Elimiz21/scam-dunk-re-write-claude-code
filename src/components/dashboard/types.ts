@@ -90,9 +90,15 @@ export interface MonitorSlots {
   price: SlotUsage;
 }
 
+export interface MonitorCreditEstimate {
+  dailyPerMonth: number;
+  weeklyPerMonth: number;
+}
+
 export interface MonitorListPayload {
   monitors: Array<MonitorDto & { watchlistEntry?: { ticker: string } }>;
   slots: MonitorSlots;
+  creditEstimate: MonitorCreditEstimate;
   notice: string;
 }
 

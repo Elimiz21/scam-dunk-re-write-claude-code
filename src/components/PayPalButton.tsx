@@ -118,6 +118,7 @@ export function PayPalButton({
                   },
                   body: JSON.stringify({
                     subscriptionId: data.subscriptionID,
+                    plan,
                   }),
                 });
 
@@ -168,7 +169,7 @@ export function PayPalButton({
     };
 
     loadPayPalScript();
-  }, [config, router, onSuccess, onError]);
+  }, [config, plan, router, onSuccess, onError]);
 
   if (error) {
     return (

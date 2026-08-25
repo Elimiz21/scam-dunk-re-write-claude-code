@@ -74,7 +74,7 @@ export default function SocialMediaScamsPage() {
                 <p className="text-lg text-muted-foreground mb-6">
                   Telegram is a favorite platform for pump-and-dump coordinators
                   because of its encrypted messaging, large group sizes, and
-                  ease of anonymity. Scammers create "signal groups" to
+                  ease of anonymity. Scammers create &quot;signal groups&quot; to
                   coordinate buys and dumps.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
@@ -104,9 +104,9 @@ export default function SocialMediaScamsPage() {
                   Discord Servers and Investment Communities
                 </h2>
                 <p className="text-lg text-muted-foreground mb-6">
-                  Discord's server structure enables scammers to create large,
-                  organized communities around fraudulent "investment
-                  opportunities." These servers mimic legitimate trading
+                  Discord&apos;s server structure enables scammers to create large,
+                  organized communities around fraudulent &quot;investment
+                  opportunities.&quot; These servers mimic legitimate trading
                   communities.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
@@ -138,7 +138,7 @@ export default function SocialMediaScamsPage() {
                 <p className="text-lg text-muted-foreground mb-6">
                   Subreddits like r/wallstreetbets have made Reddit a target for
                   pump-and-dump coordination. Scammers create fake accounts and
-                  post coordinated "due diligence" to drive attention to penny
+                  post coordinated &quot;due diligence&quot; to drive attention to penny
                   stocks.
                 </p>
                 <div className="bg-warning/10 border border-warning/20 rounded-xl p-6 mb-6">
@@ -216,12 +216,12 @@ export default function SocialMediaScamsPage() {
                   characteristics, unusual trading patterns, and manipulation
                   signals—regardless of where you heard about it.
                 </p>
-                <Link href="/">
-                  <Button size="lg" className="gap-2">
+                <Button asChild size="lg" className="gap-2">
+                  <Link href="/">
                     <Shield className="h-5 w-5" />
                     Analyze a Stock
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </section>
             </article>
 
@@ -263,12 +263,12 @@ export default function SocialMediaScamsPage() {
                 through ScamDunk to check for pump-and-dump signals and market
                 manipulation.
               </p>
-              <Link href="/">
-                <Button size="lg" className="gap-2">
+              <Button asChild size="lg" className="gap-2">
+                <Link href="/">
                   <Shield className="h-5 w-5" />
                   Start Your Free Scan
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </section>
           </div>
         </main>

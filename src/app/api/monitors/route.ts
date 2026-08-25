@@ -3,7 +3,11 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getMonitorSlotKey, getPlanEntitlements } from "@/lib/entitlements";
+import {
+  getMonitorCreditEstimate,
+  getMonitorSlotKey,
+  getPlanEntitlements,
+} from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +66,13 @@ function invalidRequest(message = "Monitor settings are invalid.") {
 
 function addCalendarMonths(date: Date, months: number): Date {
   const result = new Date(date);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
   result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(
+    Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
   return result;
 }
 
@@ -156,6 +166,7 @@ export async function GET(_request: NextRequest) {
           full: { used: activeFull, limit: entitlements.fullMonitorSlots },
           price: { used: activePrice, limit: entitlements.priceMonitorSlots },
         },
+        creditEstimate: getMonitorCreditEstimate(),
         notice: "Checked after the trading day closes — not live.",
       },
       { headers: { "Cache-Control": "private, no-store" } },

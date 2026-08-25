@@ -50,7 +50,7 @@ const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000";
 // Request validation schema
 const aiAnalyzeSchema = z.object({
   ticker: z.string().min(1, "Ticker is required").max(10),
-  assetType: z.enum(["stock", "crypto"]).optional().default("stock"),
+  assetType: z.literal("stock").optional().default("stock"),
   useLiveData: z.boolean().optional().default(true),
   context: z
     .object({

@@ -29,16 +29,20 @@ function formatDate(value: string | null): string {
 }
 
 function MonitorBadges({ entry }: { entry: WatchlistEntryDto }) {
-  const active = entry.monitors.filter((monitor) => monitor.status === "ACTIVE");
-  if (active.length === 0) {
+  if (entry.monitors.length === 0) {
     return <span className="text-xs text-muted-foreground">No active monitoring</span>;
   }
   return (
     <div className="flex flex-wrap gap-1.5">
-      {active.map((monitor) => (
-        <Badge key={monitor.id} variant="secondary" className="normal-case tracking-normal">
-          {monitor.kind === "FULL" ? "Full" : "Price"} · {monitor.frequency === "DAILY" ? "Daily" : "Weekly"}
-        </Badge>
+      {entry.monitors.map((monitor) => (
+        <div key={monitor.id} className="rounded-lg border border-border/70 px-2.5 py-1.5">
+          <Badge variant={monitor.status === "ACTIVE" ? "secondary" : "outline"} className="normal-case tracking-normal">
+            {monitor.kind === "FULL" ? "Full" : "Price"} · {monitor.frequency === "DAILY" ? "Daily" : "Weekly"} · {monitor.status.toLowerCase()}
+          </Badge>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Next: {formatDate(monitor.nextEvaluationAt)} · Ends: {formatDate(monitor.expiresAt)}
+          </p>
+        </div>
       ))}
     </div>
   );

@@ -31,7 +31,7 @@ import { useToast } from "@/components/ui/toast";
 import { PayPalButton } from "@/components/PayPalButton";
 
 interface SubscriptionInfo {
-  plan: "FREE" | "PAID";
+  plan: "FREE" | "PAID" | "PRO_MAX";
   subscriptionId?: string;
   status?: string;
   nextBillingDate?: string;
@@ -42,7 +42,7 @@ interface SubscriptionInfo {
     available: boolean;
     checkout: boolean;
     webhooks: boolean;
-    reason: string;
+    reason: string | null;
   };
 }
 
@@ -52,13 +52,14 @@ interface BillingPlanSummary {
   monthlyPriceCents: number | null;
   currency: "USD";
   paypalPlanId: string | null;
+  stripePriceId: string | null;
   manualScanCredits: number;
   fullMonitorSlots: number;
   priceMonitorSlots: number;
 }
 
 interface BillingEntitlements extends BillingPlanSummary {
-  provider: "NONE" | "PAYPAL" | "MANUAL";
+  provider: "NONE" | "PAYPAL" | "STRIPE" | "APPLE" | "MANUAL";
   subscriptionId: string | null;
   trial: {
     days: number;
@@ -82,6 +83,7 @@ function AccountAlerts() {
   const searchParams = useSearchParams();
   const upgraded = searchParams.get("upgraded");
   const canceled = searchParams.get("canceled");
+  const billing = searchParams.get("billing");
 
   return (
     <>
@@ -103,6 +105,21 @@ function AccountAlerts() {
           <AlertDescription>
             No changes were made to your account.
           </AlertDescription>
+        </Alert>
+      )}
+      {billing === "success" && (
+        <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+          <Check className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800 dark:text-green-200">Checkout complete</AlertTitle>
+          <AlertDescription className="text-green-700 dark:text-green-300">
+            Your payment is being confirmed. Your plan will update as soon as the billing provider webhook is received.
+          </AlertDescription>
+        </Alert>
+      )}
+      {billing === "cancelled" && (
+        <Alert>
+          <AlertTitle>Checkout canceled</AlertTitle>
+          <AlertDescription>No changes were made to your account.</AlertDescription>
         </Alert>
       )}
     </>
@@ -240,6 +257,40 @@ function AccountContent() {
 
   const handlePayPalError = (error: string) => {
     setError(`Payment failed: ${error}`);
+  };
+
+  const handleStripeCheckout = async (plan: "PAID" | "PRO_MAX") => {
+    setError("");
+    try {
+      const response = await fetch("/api/billing/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        setError(data.error || "Stripe checkout is unavailable.");
+        return;
+      }
+      window.location.assign(data.url);
+    } catch {
+      setError("Stripe checkout is temporarily unavailable. Please try again.");
+    }
+  };
+
+  const handleStripePortal = async () => {
+    setError("");
+    try {
+      const response = await fetch("/api/billing/stripe/portal", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        setError(data.error || "Stripe account management is unavailable.");
+        return;
+      }
+      window.location.assign(data.url);
+    } catch {
+      setError("Stripe account management is temporarily unavailable. Please try again.");
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -389,12 +440,12 @@ function AccountContent() {
             </span>
           </Link>
           <nav className="flex items-center gap-2 sm:gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/">
                 <span className="hidden sm:inline">New Scan</span>
                 <span className="sm:hidden">Scan</span>
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Log out</span>
@@ -750,7 +801,7 @@ function AccountContent() {
                     </p>
                     {billing && (
                       <p className="text-sm text-muted-foreground mb-2">
-                        Billing provider: {billing.provider === "PAYPAL" ? "PayPal" : "Manual account access"}
+                        Billing provider: {billing.provider === "PAYPAL" ? "PayPal" : billing.provider === "STRIPE" ? "Stripe" : billing.provider === "APPLE" ? "Apple" : "Manual account access"}
                       </p>
                     )}
                     {isLoadingSubscription ? (
@@ -772,7 +823,7 @@ function AccountContent() {
                       </div>
                     ) : subscriptionInfo?.subscriptionId ? (
                       <p className="text-sm text-muted-foreground">
-                        Subscription active via PayPal
+                        Subscription active via {billing?.provider === "STRIPE" ? "Stripe" : billing?.provider === "APPLE" ? "Apple" : "PayPal"}
                       </p>
                     ) : null}
                   </div>
@@ -830,6 +881,10 @@ function AccountContent() {
                         </Button>
                       </div>
                     </div>
+                  ) : billing?.provider === "STRIPE" ? (
+                    <Button variant="outline" size="sm" onClick={handleStripePortal}>
+                      Manage billing in Stripe
+                    </Button>
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       This plan is not managed through PayPal, so changes must be handled by support.
@@ -876,12 +931,16 @@ function AccountContent() {
                       </ul>
                       {plan.plan === "FREE" ? (
                         <p className="text-sm font-medium">Current plan</p>
-                      ) : plan.plan === "PAID" && plan.paypalPlanId ? (
+                      ) : plan.paypalPlanId ? (
                         <PayPalButton
                           plan={plan.plan}
                           onSuccess={handlePayPalSuccess}
                           onError={handlePayPalError}
                         />
+                      ) : plan.stripePriceId && subscriptionInfo?.stripe?.checkout ? (
+                        <Button className="w-full" onClick={() => handleStripeCheckout(plan.plan as "PAID" | "PRO_MAX")}>
+                          Start with card
+                        </Button>
                       ) : (
                         <p className="text-sm text-muted-foreground">
                           This option is not configured for checkout yet.
@@ -899,8 +958,8 @@ function AccountContent() {
                       ? `A payment method is required to start the ${billing.trial.days}-day free trial. You are not charged until it ends.`
                       : "A payment method is required before a provider can start any configured trial."}
                   </p>
-                  {!subscriptionInfo?.stripe?.available && (
-                    <p>Stripe checkout is unavailable until secure replay protection is configured.</p>
+                  {!subscriptionInfo?.stripe?.available && subscriptionInfo?.stripe?.reason && (
+                    <p>Card checkout unavailable: {subscriptionInfo.stripe.reason}.</p>
                   )}
                 </div>
               </CardContent>

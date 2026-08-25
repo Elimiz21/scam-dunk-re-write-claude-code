@@ -42,7 +42,7 @@ interface LandingOptionAProps {
 const DEFAULT_HEADLINE =
   "Don\u2019t invest blind. Detect scams before they cost you.";
 const DEFAULT_SUBHEADLINE =
-  "Enter any stock or crypto ticker and get an instant risk analysis. We scan for pump-and-dump patterns, manipulation signals, and regulatory red flags in seconds.";
+  "Enter a US-listed common stock ticker and review published market data for pump-and-dump patterns, manipulation signals, and regulatory red flags.";
 
 export function LandingOptionA({
   onSubmit,
@@ -67,8 +67,8 @@ export function LandingOptionA({
   return (
     <div className="flex-1 flex flex-col overflow-y-auto">
       {/* Hero Section — Full viewport, centered */}
-      <section className="min-h-[85vh] flex flex-col items-center justify-center px-4 gradient-mesh relative">
-        <div className="max-w-3xl mx-auto text-center">
+      <section className="relative flex min-h-[85vh] flex-col items-center justify-center overflow-x-clip px-4 gradient-mesh">
+        <div className="mx-auto w-full min-w-0 max-w-3xl text-center">
           {/* Trust Badge — Updated */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 animate-fade-in">
             <BarChart3 className="h-4 w-4 text-primary" />
@@ -78,7 +78,7 @@ export function LandingOptionA({
           </div>
 
           {/* Main Headline — dynamic from admin */}
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-6 animate-fade-in italic leading-tight">
+          <h1 className="mb-6 break-words font-display text-4xl font-bold italic leading-tight animate-fade-in sm:text-5xl md:text-6xl">
             {headline ? (
               heroHeadline
             ) : (
@@ -118,7 +118,7 @@ export function LandingOptionA({
             <div className="relative p-5 rounded-2xl bg-card border-2 border-primary/30 shadow-xl shadow-primary/10">
               <p className="text-sm font-semibold text-foreground mb-3 flex items-center justify-center gap-2">
                 <Search className="h-4 w-4 text-primary" />
-                Enter a stock or crypto ticker to scan
+                Enter a US-listed common stock ticker to scan
               </p>
               <ScanInput
                 onSubmit={onSubmit}
@@ -139,7 +139,7 @@ export function LandingOptionA({
             </div>
             <div className="flex items-center gap-1.5">
               <Lock className="h-3.5 w-3.5 text-emerald-500" />
-              <span>No credit card needed</span>
+              <span>No subscription required to start</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Zap className="h-3.5 w-3.5 text-emerald-500" />
@@ -160,7 +160,7 @@ export function LandingOptionA({
             },
             {
               value: "300%",
-              label: "Rise in crypto scams since 2020",
+              label: "US stock risk signals reviewed",
               icon: TrendingUp,
             },
             { value: "30K+", label: "Scans performed", icon: BarChart3 },
@@ -230,7 +230,7 @@ export function LandingOptionA({
                 icon: BarChart3,
                 title: "Enter a Ticker",
                 description:
-                  "Type any stock symbol or crypto ticker. You can also paste a suspicious chat message or upload screenshots.",
+                  "Type a supported US-listed common stock symbol. You can also paste a suspicious chat message or upload screenshots.",
                 color: "text-blue-500",
                 bg: "bg-blue-500/10",
               },
@@ -239,7 +239,7 @@ export function LandingOptionA({
                 icon: Brain,
                 title: "AI Analyzes Risk",
                 description:
-                  "Our engine checks price patterns, volume anomalies, regulatory alerts, and promotional red flags in real time.",
+                  "Our engine checks published price patterns, volume anomalies, regulatory alerts, and promotional red flags.",
                 color: "text-primary",
                 bg: "bg-primary/10",
               },
@@ -248,7 +248,7 @@ export function LandingOptionA({
                 icon: Shield,
                 title: "Get Your Report",
                 description:
-                  "Receive a clear risk score with detailed breakdown: HIGH, MEDIUM, or LOW risk with specific signals explained.",
+                  "Receive a clear risk score with detailed breakdown: High risk, Caution, or Low risk with specific signals explained.",
                 color: "text-emerald-500",
                 bg: "bg-emerald-500/10",
               },
@@ -296,7 +296,7 @@ export function LandingOptionA({
               {
                 icon: Database,
                 title: "Market Data Check",
-                desc: "Real-time price, volume, market cap, and exchange verification.",
+                desc: "Published price, volume, market cap, and exchange verification.",
                 color: "text-blue-500",
                 borderColor: "border-blue-500/20",
               },
@@ -331,7 +331,7 @@ export function LandingOptionA({
               {
                 icon: Brain,
                 title: "Risk Scoring",
-                desc: "All signals combined into a clear HIGH, MEDIUM, or LOW rating.",
+                desc: "All signals combined into a clear High risk, Caution, or Low risk rating.",
                 color: "text-primary",
                 borderColor: "border-primary/20",
               },

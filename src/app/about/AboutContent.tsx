@@ -85,8 +85,8 @@ export default function AboutContent() {
                 <div className="p-5 rounded-xl card-interactive">
                   <h3 className="font-medium mb-2">1. Market Data Analysis</h3>
                   <p className="text-sm text-muted-foreground">
-                    We fetch real-time price, volume, and company data from
-                    regulated financial data providers.
+                    We use published price, volume, and company data from
+                    regulated financial data providers. Scans are not live.
                   </p>
                 </div>
                 <div className="p-5 rounded-xl card-interactive">
@@ -148,8 +148,8 @@ export default function AboutContent() {
                     <li className="flex items-start gap-2">
                       <span className="text-green-500 mt-0.5">✓</span>
                       <span>
-                        <strong>Real-time data</strong> - Current prices and
-                        volumes
+                        <strong>Published market data</strong> - Price and
+                        volume data checked after the trading day closes
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -259,8 +259,8 @@ export default function AboutContent() {
                   <li className="flex items-start gap-3">
                     <Clock className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                     <span>
-                      <strong>Market Data:</strong> Real-time and historical
-                      data from licensed financial data providers
+                      <strong>Market Data:</strong> Published and historical
+                      data from licensed financial data providers; not live
                     </span>
                   </li>
                   <li className="flex items-start gap-3">

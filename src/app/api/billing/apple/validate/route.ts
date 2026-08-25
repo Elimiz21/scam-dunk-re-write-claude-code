@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
+import type { BillingPlan } from "@/lib/billing/provider";
 
 // Apple's receipt validation endpoints
 const APPLE_PRODUCTION_URL = "https://buy.itunes.apple.com/verifyReceipt";
@@ -78,6 +79,12 @@ function isSubscriptionActive(expiresDateMs: string | undefined): boolean {
   return expiresDate > Date.now();
 }
 
+function applePlanForProduct(productId: string): BillingPlan | null {
+  if (productId === process.env.APPLE_PRO_MAX_PRODUCT_ID) return "PRO_MAX";
+  if (productId === process.env.APPLE_PRO_PRODUCT_ID) return "PAID";
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Authenticate mobile request
@@ -98,6 +105,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { receiptData, productId } = validation.data;
+    if (productId && !applePlanForProduct(productId)) {
+      return NextResponse.json(
+        { valid: false, error: "Unsupported Apple subscription product" },
+        { status: 400 },
+      );
+    }
 
     // Check if Apple shared secret is configured
     if (!APPLE_SHARED_SECRET) {
@@ -135,12 +148,25 @@ export async function POST(request: NextRequest) {
 
     // Find active subscription
     const allPurchases = [...latestReceipts, ...inAppPurchases];
-    const activeSubscription = allPurchases.find((purchase) =>
-      isSubscriptionActive(purchase.expires_date_ms),
-    );
+    const activeSubscription = allPurchases
+      .filter(
+        (purchase) =>
+          applePlanForProduct(purchase.product_id) &&
+          (!productId || purchase.product_id === productId),
+      )
+      .find((purchase) => isSubscriptionActive(purchase.expires_date_ms));
 
     if (!activeSubscription) {
       // No active subscription found
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          plan: "FREE",
+          billingProvider: "NONE",
+          billingCustomerId: null,
+          subscriptionExpiresAt: null,
+        },
+      });
       return NextResponse.json({
         valid: true,
         active: false,
@@ -153,14 +179,20 @@ export async function POST(request: NextRequest) {
     const expiresAt = activeSubscription.expires_date_ms
       ? new Date(parseInt(activeSubscription.expires_date_ms, 10))
       : null;
+    const plan = applePlanForProduct(activeSubscription.product_id);
+    if (!plan) {
+      return NextResponse.json({ valid: false, error: "Unsupported Apple subscription product" }, { status: 400 });
+    }
 
     // Update user plan to PAID
     await prisma.user.update({
       where: { id: userId },
       data: {
-        plan: "PAID",
+        plan,
+        billingProvider: "APPLE",
         // Store Apple transaction ID for reference
         billingCustomerId: activeSubscription.original_transaction_id,
+        subscriptionExpiresAt: expiresAt,
       },
     });
 
@@ -172,7 +204,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       valid: true,
       active: true,
-      plan: "PAID",
+      plan,
       productId: activeSubscription.product_id,
       transactionId: activeSubscription.transaction_id,
       expiresAt: expiresAt?.toISOString(),

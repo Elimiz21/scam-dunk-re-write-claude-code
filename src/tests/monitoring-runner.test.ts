@@ -9,10 +9,16 @@ const SCAN_DATE = new Date("2026-08-25T00:00:00.000Z");
 function createRunnerClient() {
   const client = {
     dailyScanSummary: { findUnique: jest.fn(), findFirst: jest.fn() },
-    activeMonitor: { findMany: jest.fn(), update: jest.fn() },
+    activeMonitor: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+    },
     stockDailySnapshot: { findFirst: jest.fn() },
     monitorExecution: {
       upsert: jest.fn(),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
       updateMany: jest.fn(),
       update: jest.fn(),
     },
@@ -20,12 +26,24 @@ function createRunnerClient() {
     scanUsage: { findUnique: jest.fn(), upsert: jest.fn() },
     scanHistory: { create: jest.fn() },
     watchlistEntry: { update: jest.fn() },
-    notificationDelivery: { upsert: jest.fn() },
+    notificationDelivery: { findUnique: jest.fn(), upsert: jest.fn() },
     $transaction: jest.fn(),
   };
   client.$transaction.mockImplementation(
     async (callback: (transaction: typeof client) => unknown) => callback(client),
   );
+  client.activeMonitor.findFirst.mockResolvedValue({
+    id: "monitor-1",
+    watchlistEntryId: "watch-1",
+  });
+  client.monitorExecution.findFirst.mockResolvedValue({
+    id: "execution-1",
+    monitorId: "monitor-1",
+    status: "PENDING",
+    creditReserved: false,
+    creditCharged: false,
+  });
+  client.notificationDelivery.findUnique.mockResolvedValue(null);
   return client;
 }
 
@@ -104,7 +122,7 @@ describe("monitoring publication runner", () => {
     expect(client.scanUsage.upsert).not.toHaveBeenCalled();
     expect(client.scanHistory.create).not.toHaveBeenCalled();
     expect(client.monitorExecution.update).toHaveBeenCalledWith({
-      where: { id: "execution-stale" },
+      where: expect.objectContaining({ id: "execution-stale" }),
       data: expect.objectContaining({
         status: "SKIPPED",
         creditReserved: false,
@@ -138,6 +156,28 @@ describe("monitoring publication runner", () => {
         creditReserved: true,
         creditCharged: true,
       });
+    client.monitorExecution.findFirst
+      .mockResolvedValueOnce({
+        id: "execution-1",
+        monitorId: "monitor-1",
+        status: "PENDING",
+        creditReserved: false,
+        creditCharged: false,
+      })
+      .mockResolvedValueOnce({
+        id: "execution-1",
+        monitorId: "monitor-1",
+        status: "PENDING",
+        creditReserved: true,
+        creditCharged: false,
+      })
+      .mockResolvedValueOnce({
+        id: "execution-1",
+        monitorId: "monitor-1",
+        status: "PENDING",
+        creditReserved: true,
+        creditCharged: true,
+      });
     client.monitorExecution.updateMany.mockResolvedValue({ count: 1 });
     client.user.findUnique.mockResolvedValue({ plan: "PAID" });
     client.scanUsage.findUnique.mockResolvedValue({ scanCount: 7 });
@@ -168,13 +208,28 @@ describe("monitoring publication runner", () => {
       data: { lastDataAt: new Date("2026-08-25T00:00:00.000Z") },
     });
     expect(client.notificationDelivery.upsert).toHaveBeenCalledTimes(2);
-    expect(client.monitorExecution.update).toHaveBeenCalledWith({
-      where: { id: "execution-1" },
-      data: expect.objectContaining({
-        status: "COMPLETED",
+    expect(client.monitorExecution.updateMany).not.toHaveBeenCalled();
+    expect(client.monitorExecution.update).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: "execution-1",
+        status: "PENDING",
+        creditReserved: false,
+        creditCharged: false,
+      },
+      data: { creditReserved: true },
+    });
+    expect(client.monitorExecution.update).toHaveBeenNthCalledWith(2, {
+      where: {
+        id: "execution-1",
+        status: "PENDING",
         creditReserved: true,
-        creditCharged: true,
-      }),
+        creditCharged: false,
+      },
+      data: { creditCharged: true },
+    });
+    expect(client.monitorExecution.update).toHaveBeenNthCalledWith(3, {
+      where: { id: "execution-1", status: "PENDING", creditCharged: true },
+      data: { status: "COMPLETED", skipReason: null, errorReason: null },
     });
   });
 
@@ -199,7 +254,7 @@ describe("monitoring publication runner", () => {
     expect(result).toMatchObject({ charged: 0, skipped: 1 });
     expect(client.scanUsage.upsert).not.toHaveBeenCalled();
     expect(client.monitorExecution.update).toHaveBeenCalledWith({
-      where: { id: "execution-missing" },
+      where: expect.objectContaining({ id: "execution-missing" }),
       data: expect.objectContaining({ skipReason: "UNSUPPORTED_TICKER" }),
     });
   });

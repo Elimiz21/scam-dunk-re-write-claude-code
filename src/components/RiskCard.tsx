@@ -336,6 +336,12 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
   const riskFactorSummary = buildRiskFactorSummary(signals, riskLevel);
   const displayScore = normalizeRiskScore(totalScore);
+  const customerRiskLabel =
+    riskLevel === "HIGH"
+      ? "High risk"
+      : riskLevel === "LOW"
+        ? "Low risk"
+        : "Caution";
 
   return (
     <Card
@@ -358,7 +364,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
                     variant={getRiskBadgeVariant(riskLevel)}
                     className="text-sm px-3 py-1 font-bold"
                   >
-                    {riskLevel} RISK
+                    {customerRiskLabel}
                   </Badge>
                 </div>
               </div>

@@ -136,18 +136,22 @@ export default function TermsContent() {
                   </p>
                 </div>
                 <div className="p-4 rounded-xl card-elevated">
-                  <h3 className="font-medium mb-2">Paid Plan</h3>
+                  <h3 className="font-medium mb-2">Pro and Pro Max Plans</h3>
                   <p className="text-sm text-muted-foreground">
-                    200 scans per month, billed monthly via Stripe. Prices
-                    subject to change with 30 days notice.
+                    Pro includes 50 manual scan credits, 2 full monitors, and 5
+                    price monitors. Pro Max includes 200 manual scan credits,
+                    10 full monitors, and 20 price monitors. Plans may be billed
+                    through PayPal or Stripe where available; prices are shown
+                    at checkout and are subject to change with 30 days notice.
                   </p>
                 </div>
                 <div className="p-4 rounded-xl card-elevated">
                   <h3 className="font-medium mb-2">Billing & Refunds</h3>
                   <p className="text-sm text-muted-foreground">
-                    Subscriptions auto-renew. Cancel anytime; access continues
-                    until end of billing period. No refunds for partial months
-                    or unused scans.
+                    Subscriptions auto-renew. Cancel anytime; cancellation is
+                    processed with the billing provider and access may end when
+                    cancellation takes effect. No refunds for partial months or
+                    unused scans.
                   </p>
                 </div>
               </div>

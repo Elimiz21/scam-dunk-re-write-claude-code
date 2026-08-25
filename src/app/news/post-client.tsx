@@ -93,12 +93,12 @@ export default function BlogPostClient({
         />
         <main className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full">
           <div className="mb-6">
-            <Link href="/news">
-              <Button variant="outline" size="sm">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/news">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to News
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
 
           <article className="card-elevated rounded-2xl p-6 md:p-10">

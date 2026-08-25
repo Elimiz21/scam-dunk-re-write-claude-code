@@ -119,10 +119,10 @@ export interface ScoringInput {
   marketData: MarketData;
   pitchText: string;
   context: {
-    unsolicited: boolean;
-    promisesHighReturns: boolean;
-    urgencyPressure: boolean;
-    secrecyInsideInfo: boolean;
+    unsolicited?: boolean;
+    promisesHighReturns?: boolean;
+    urgencyPressure?: boolean;
+    secrecyInsideInfo?: boolean;
   };
 }
 

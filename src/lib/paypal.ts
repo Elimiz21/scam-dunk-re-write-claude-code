@@ -97,6 +97,12 @@ export function getPayPalConfig(plan: BillingPlan = "PAID") {
   };
 }
 
+function planForPayPalPlanId(planId: unknown): BillingPlan {
+  const catalog = getBillingPlanCatalog();
+  if (planId && planId === catalog.PRO_MAX.paypalPlanId) return "PRO_MAX";
+  return "PAID";
+}
+
 /**
  * Verify PayPal webhook signature
  */
@@ -221,22 +227,38 @@ export async function handleWebhook(
       return { success: false, error: "Invalid webhook signature" };
     }
 
+    const eventId = typeof body.id === "string" ? body.id : "";
     const eventType = body.event_type;
     const resource = body.resource;
+    if (!eventId || typeof eventType !== "string" || !resource) {
+      return { success: false, error: "Invalid webhook payload" };
+    }
 
     console.log(`Processing PayPal webhook: ${eventType}`);
 
-    switch (eventType) {
+    await prisma.$transaction(async (transaction) => {
+      try {
+        await transaction.billingEvent.create({
+          data: { provider: "PAYPAL", eventId, eventType },
+        });
+      } catch (error) {
+        if ((error as { code?: string })?.code === "P2002") return;
+        throw error;
+      }
+
+      switch (eventType) {
       case "BILLING.SUBSCRIPTION.ACTIVATED": {
         // Subscription was activated (after payment)
         const subscriptionId = resource.id;
         const customId = resource.custom_id; // We'll store userId here
+        const plan = planForPayPalPlanId(resource.plan_id);
 
         if (customId) {
-          await prisma.user.update({
+          await transaction.user.update({
             where: { id: customId },
             data: {
-              plan: "PAID",
+              plan,
+              billingProvider: "PAYPAL",
               billingCustomerId: subscriptionId,
             },
           });
@@ -251,14 +273,14 @@ export async function handleWebhook(
         // Subscription was cancelled, suspended, or expired
         const subscriptionId = resource.id;
 
-        const user = await prisma.user.findFirst({
+        const user = await transaction.user.findFirst({
           where: { billingCustomerId: subscriptionId },
         });
 
         if (user) {
-          await prisma.user.update({
+          await transaction.user.update({
             where: { id: user.id },
-            data: { plan: "FREE", formerPro: true },
+            data: { plan: "FREE", billingProvider: "NONE", billingCustomerId: null, formerPro: true },
           });
           console.log(
             `User ${user.id} downgraded to FREE plan (PayPal subscription ${eventType})`,
@@ -272,17 +294,18 @@ export async function handleWebhook(
         const subscriptionId = resource.id;
         const status = resource.status;
 
-        const user = await prisma.user.findFirst({
+        const user = await transaction.user.findFirst({
           where: { billingCustomerId: subscriptionId },
         });
 
         if (user) {
-          const newPlan = status === "ACTIVE" ? "PAID" : "FREE";
-          await prisma.user.update({
+          const newPlan = status === "ACTIVE" ? planForPayPalPlanId(resource.plan_id) : "FREE";
+          await transaction.user.update({
             where: { id: user.id },
             data: {
               plan: newPlan,
-              ...(newPlan === "FREE" ? { formerPro: true } : {}),
+              billingProvider: newPlan === "PAID" ? "PAYPAL" : "NONE",
+              ...(newPlan === "FREE" ? { formerPro: true, billingCustomerId: null } : {}),
             },
           });
           console.log(`User ${user.id} subscription updated: ${status}`);
@@ -294,14 +317,14 @@ export async function handleWebhook(
         // Recurring payment was successful
         const subscriptionId = resource.billing_agreement_id;
 
-        const user = await prisma.user.findFirst({
+        const user = await transaction.user.findFirst({
           where: { billingCustomerId: subscriptionId },
         });
 
-        if (user && user.plan !== "PAID") {
-          await prisma.user.update({
+        if (user && user.plan === "FREE") {
+          await transaction.user.update({
             where: { id: user.id },
-            data: { plan: "PAID" },
+            data: { plan: planForPayPalPlanId(resource.plan_id), billingProvider: "PAYPAL" },
           });
           console.log(`User ${user.id} payment completed, ensured PAID plan`);
         }
@@ -318,7 +341,7 @@ export async function handleWebhook(
         // BILLING.SUBSCRIPTION.SUSPENDED, which is handled above and revokes PRO.
         const subscriptionId = resource.billing_agreement_id || resource.id;
 
-        const user = await prisma.user.findFirst({
+        const user = await transaction.user.findFirst({
           where: { billingCustomerId: subscriptionId },
         });
 
@@ -331,7 +354,8 @@ export async function handleWebhook(
 
       default:
         console.log(`Unhandled PayPal webhook event: ${eventType}`);
-    }
+      }
+    });
 
     return { success: true };
   } catch (error) {
@@ -351,6 +375,7 @@ export async function handleWebhook(
 export async function activateSubscription(
   userId: string,
   subscriptionId: string,
+  requestedPlan: BillingPlan = "PAID",
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Get subscription details to verify it's active and belongs to user
@@ -364,6 +389,11 @@ export async function activateSubscription(
         success: false,
         error: "Subscription is not active",
       };
+    }
+
+    const expectedPlanId = getBillingPlanCatalog()[requestedPlan].paypalPlanId;
+    if (!expectedPlanId || subscription.plan_id !== expectedPlanId) {
+      return { success: false, error: "Subscription plan does not match the selected plan" };
     }
 
     // Verify subscription ownership
@@ -381,11 +411,12 @@ export async function activateSubscription(
       };
     }
 
-    // Update user to PAID plan
+    // Update user to the verified PayPal plan.
     await prisma.user.update({
       where: { id: userId },
       data: {
-        plan: "PAID",
+        plan: requestedPlan,
+        billingProvider: "PAYPAL",
         billingCustomerId: subscriptionId,
       },
     });
@@ -410,14 +441,14 @@ export async function activateSubscription(
  * Get user's subscription status
  */
 export async function getSubscriptionStatus(userId: string): Promise<{
-  plan: "FREE" | "PAID";
+  plan: "FREE" | "PAID" | "PRO_MAX";
   isActive: boolean;
   canManage: boolean;
   subscriptionId?: string;
 }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, billingCustomerId: true },
+    select: { plan: true, billingCustomerId: true, billingProvider: true },
   });
 
   if (!user) {
@@ -425,9 +456,12 @@ export async function getSubscriptionStatus(userId: string): Promise<{
   }
 
   return {
-    plan: user.plan as "FREE" | "PAID",
-    isActive: user.plan === "PAID",
-    canManage: Boolean(user.billingCustomerId) && isPayPalConfigured(),
+    plan: user.plan as "FREE" | "PAID" | "PRO_MAX",
+    isActive: user.plan === "PAID" || user.plan === "PRO_MAX",
+    canManage:
+      Boolean(user.billingCustomerId) &&
+      (user.billingProvider === "PAYPAL" || !user.billingProvider) &&
+      isPayPalConfigured(),
     subscriptionId: user.billingCustomerId || undefined,
   };
 }
@@ -441,15 +475,19 @@ export async function cancelSubscription(
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { plan: true, billingCustomerId: true },
+      select: { plan: true, billingCustomerId: true, billingProvider: true },
     });
 
     if (!user) {
       return { success: false, error: "User not found" };
     }
 
-    if (user.plan !== "PAID") {
-      return { success: false, error: "No active subscription found" };
+    if (user.plan !== "PAID" && user.plan !== "PRO_MAX") {
+      return { success: true };
+    }
+
+    if (user.billingProvider && user.billingProvider !== "PAYPAL") {
+      return { success: false, error: "Manage this subscription with its original billing provider." };
     }
 
     // If there's a PayPal subscription, cancel it via the API
@@ -501,7 +539,7 @@ export async function cancelSubscription(
     // Update user to FREE plan and mark as former Pro
     await prisma.user.update({
       where: { id: userId },
-      data: { plan: "FREE", formerPro: true },
+      data: { plan: "FREE", billingProvider: "NONE", formerPro: true },
     });
 
     return { success: true };
@@ -521,7 +559,7 @@ export async function cancelSubscription(
  * Get user's subscription info including next billing date
  */
 export async function getUserSubscriptionInfo(userId: string): Promise<{
-  plan: "FREE" | "PAID";
+  plan: "FREE" | "PAID" | "PRO_MAX";
   subscriptionId?: string;
   status?: string;
   nextBillingDate?: string;
@@ -529,7 +567,7 @@ export async function getUserSubscriptionInfo(userId: string): Promise<{
 }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, billingCustomerId: true },
+    select: { plan: true, billingCustomerId: true, billingProvider: true },
   });
 
   if (!user) {
@@ -537,18 +575,23 @@ export async function getUserSubscriptionInfo(userId: string): Promise<{
   }
 
   const result: {
-    plan: "FREE" | "PAID";
+    plan: "FREE" | "PAID" | "PRO_MAX";
     subscriptionId?: string;
     status?: string;
     nextBillingDate?: string;
     startDate?: string;
   } = {
-    plan: user.plan as "FREE" | "PAID",
+    plan: user.plan as "FREE" | "PAID" | "PRO_MAX",
   };
 
   // Only fetch PayPal details for active PAID subscribers to avoid
   // unnecessary API calls for ex-subscribers who still have billingCustomerId
-  if (user.plan === "PAID" && user.billingCustomerId && isPayPalConfigured()) {
+  if (
+    (user.plan === "PAID" || user.plan === "PRO_MAX") &&
+    user.billingProvider === "PAYPAL" &&
+    user.billingCustomerId &&
+    isPayPalConfigured(user.plan as BillingPlan)
+  ) {
     try {
       const details = await getSubscriptionDetails(user.billingCustomerId);
       result.subscriptionId = user.billingCustomerId;

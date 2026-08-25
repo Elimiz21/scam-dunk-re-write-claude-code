@@ -11,6 +11,7 @@ import {
 } from "@/components/dashboard/monitor-form";
 import type {
   ApiErrorShape,
+  MonitorCreditEstimate,
   MonitorSlots,
   WatchlistEntryDto,
 } from "@/components/dashboard/types";
@@ -37,6 +38,7 @@ export type MonitorSaveRequest = MonitorCreateRequest | MonitorUpdateRequest;
 interface MonitorEditorProps {
   entry: WatchlistEntryDto;
   slots: MonitorSlots;
+  creditEstimate: MonitorCreditEstimate;
   error?: ApiErrorShape | null;
   isSaving: boolean;
   onSubmit: (request: MonitorSaveRequest) => void | Promise<void>;
@@ -46,6 +48,7 @@ interface MonitorEditorProps {
 export function MonitorEditor({
   entry,
   slots,
+  creditEstimate,
   error,
   isSaving,
   onSubmit,
@@ -57,8 +60,8 @@ export function MonitorEditor({
   const [validationError, setValidationError] = useState<string | null>(null);
   const selectedLabel = kind === "FULL" ? "full" : "price";
   const view = useMemo(
-    () => buildMonitorView({ kind, frequency, durationMonths, slots, error }),
-    [durationMonths, error, frequency, kind, slots],
+    () => buildMonitorView({ kind, frequency, durationMonths, slots, creditEstimate, error }),
+    [creditEstimate, durationMonths, error, frequency, kind, slots],
   );
   const existingMonitor = entry.monitors.find(
     (monitor) =>

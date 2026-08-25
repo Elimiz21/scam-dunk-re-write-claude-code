@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { subscriptionId } = body;
+    const { subscriptionId, plan } = body;
 
     if (!subscriptionId) {
       return NextResponse.json(
@@ -33,7 +33,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await activateSubscription(session.user.id, subscriptionId);
+    const result = await activateSubscription(
+      session.user.id,
+      subscriptionId,
+      plan === "PRO_MAX" ? "PRO_MAX" : "PAID",
+    );
 
     if (!result.success) {
       return NextResponse.json(

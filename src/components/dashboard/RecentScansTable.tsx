@@ -120,7 +120,7 @@ export function RecentScansTable({
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{scan.signalCount} signals · Score {scan.score}</span>
-                      <span>{scan.socialEvidenceAvailable ? "Social evidence" : "Social not analyzed"}</span>
+                      <span>{scan.socialEvidenceAvailable ? "Social evidence" : "No social evidence shown"}</span>
                     </div>
                     <Button variant="outline" className="min-h-11 w-full" onClick={() => onOpenDetail(scan)}>
                       View scan details

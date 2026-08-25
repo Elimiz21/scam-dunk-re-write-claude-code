@@ -3,6 +3,14 @@ import { getPlanEntitlements } from "@/lib/entitlements";
 import { isFreshMarketPublication } from "@/lib/pump-radar";
 import { normalizeSupportedTicker } from "@/lib/stock-universe";
 
+import {
+  createMonitoringRepository,
+} from "./repository";
+import type {
+  MonitoringPrismaClient,
+  MonitoringTransactionClient,
+} from "./types";
+
 type RunnerClient = {
   dailyScanSummary: {
     findUnique: (args: unknown) => Promise<any>;
@@ -10,11 +18,14 @@ type RunnerClient = {
   };
   activeMonitor: {
     findMany: (args: unknown) => Promise<any[]>;
+    findFirst: (args: unknown) => Promise<any>;
     update: (args: unknown) => Promise<any>;
   };
   stockDailySnapshot: { findFirst: (args: unknown) => Promise<any> };
   monitorExecution: {
     upsert: (args: unknown) => Promise<any>;
+    findFirst: (args: unknown) => Promise<any>;
+    findUnique: (args: unknown) => Promise<any>;
     updateMany: (args: unknown) => Promise<{ count: number }>;
     update: (args: unknown) => Promise<any>;
   };
@@ -25,7 +36,10 @@ type RunnerClient = {
   };
   scanHistory: { create: (args: unknown) => Promise<any> };
   watchlistEntry: { update: (args: unknown) => Promise<any> };
-  notificationDelivery: { upsert: (args: unknown) => Promise<any> };
+  notificationDelivery: {
+    findUnique: (args: unknown) => Promise<any>;
+    upsert: (args: unknown) => Promise<any>;
+  };
   $transaction: <T>(
     callback: (transaction: RunnerClient) => Promise<T>,
     options?: unknown,
@@ -86,27 +100,18 @@ function notificationIdempotencyKey(
 }
 
 async function queueNotifications(
-  transaction: RunnerClient,
+  repository: ReturnType<typeof createMonitoringRepository>,
   userId: string,
   executionId: string,
 ) {
   await Promise.all(
     (["IN_APP", "EMAIL"] as const).map((channel) =>
-      transaction.notificationDelivery.upsert({
-        where: {
-          userId_executionId_channel: { userId, executionId, channel },
-        },
-        create: {
-          userId,
-          executionId,
-          channel,
-          status: "PENDING",
-          attemptedAt: null,
-          deliveredAt: null,
-          providerMessageId: null,
-          errorReason: null,
-        },
-        update: {},
+      repository.upsertNotificationDelivery({
+        userId,
+        executionId,
+        channel,
+        status: "PENDING",
+        attemptedAt: null,
       }),
     ),
   );
@@ -144,6 +149,15 @@ export function createMonitoringRunner(
 ) {
   const currentTime = options.now ?? (() => new Date());
 
+  function repositoryForTransaction(transaction: RunnerClient) {
+    return createMonitoringRepository(
+      client as unknown as MonitoringPrismaClient,
+      {
+        transactionClient: transaction as unknown as MonitoringTransactionClient,
+      },
+    );
+  }
+
   async function getLatestPublishedPublicationKey(): Promise<string | null> {
     const summary = await client.dailyScanSummary.findFirst({
       orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
@@ -168,40 +182,25 @@ export function createMonitoringRunner(
     now: Date;
   }): Promise<"SKIPPED" | "DUPLICATE"> {
     return client.$transaction(async (transaction) => {
-      const execution = await transaction.monitorExecution.upsert({
-        where: {
-          monitorId_publicationKey: {
-            monitorId: monitor.id,
-            publicationKey,
-          },
-        },
-        create: {
-          monitorId: monitor.id,
+      const repository = repositoryForTransaction(transaction);
+      const execution = await repository.recordExecutionOnce({
+        userId: monitor.watchlistEntry.userId,
+        monitorId: monitor.id,
+        publicationKey,
+        notificationIdempotencyKey: notificationIdempotencyKey(
+          monitor.id,
           publicationKey,
-          status: "PENDING",
-          creditReserved: false,
-          creditCharged: false,
-          notificationIdempotencyKey: notificationIdempotencyKey(
-            monitor.id,
-            publicationKey,
-          ),
-        },
-        update: {},
+        ),
       });
       if (executionIsTerminal(execution)) return "DUPLICATE";
 
-      await transaction.monitorExecution.update({
-        where: { id: execution.id },
-        data: {
-          status: "SKIPPED",
-          creditReserved: false,
-          creditCharged: false,
-          skipReason: reason,
-          errorReason: null,
-        },
-      });
+      await repository.skipExecution(
+        monitor.watchlistEntry.userId,
+        execution.id,
+        reason,
+      );
       await queueNotifications(
-        transaction,
+        repository,
         monitor.watchlistEntry.userId,
         execution.id,
       );
@@ -234,40 +233,22 @@ export function createMonitoringRunner(
   }): Promise<"COMPLETED" | "SKIPPED" | "DUPLICATE"> {
     return client.$transaction(
       async (transaction) => {
-        const execution = await transaction.monitorExecution.upsert({
-          where: {
-            monitorId_publicationKey: {
-              monitorId: monitor.id,
-              publicationKey,
-            },
-          },
-          create: {
-            monitorId: monitor.id,
+        const repository = repositoryForTransaction(transaction);
+        const execution = await repository.recordExecutionOnce({
+          userId: monitor.watchlistEntry.userId,
+          monitorId: monitor.id,
+          publicationKey,
+          notificationIdempotencyKey: notificationIdempotencyKey(
+            monitor.id,
             publicationKey,
-            status: "PENDING",
-            creditReserved: false,
-            creditCharged: false,
-            notificationIdempotencyKey: notificationIdempotencyKey(
-              monitor.id,
-              publicationKey,
-            ),
-          },
-          update: {},
+          ),
         });
         if (executionIsTerminal(execution)) return "DUPLICATE";
 
-        // This conditional update is the atomic ownership fence. On concurrent
-        // retries, only one transaction can reserve this execution for charge.
-        const claim = await transaction.monitorExecution.updateMany({
-          where: {
-            id: execution.id,
-            status: "PENDING",
-            creditReserved: false,
-            creditCharged: false,
-          },
-          data: { creditReserved: true },
-        });
-        if (claim.count !== 1) return "DUPLICATE";
+        await repository.reserveExecutionCredit(
+          monitor.watchlistEntry.userId,
+          execution.id,
+        );
 
         const user = await transaction.user.findUnique({
           where: { id: monitor.watchlistEntry.userId },
@@ -287,18 +268,13 @@ export function createMonitoringRunner(
           select: { scanCount: true },
         });
         if ((usage?.scanCount ?? 0) >= entitlements.manualScanCredits) {
-          await transaction.monitorExecution.update({
-            where: { id: execution.id },
-            data: {
-              status: "SKIPPED",
-              creditReserved: false,
-              creditCharged: false,
-              skipReason: "NO_CREDITS",
-              errorReason: null,
-            },
-          });
+          await repository.skipExecution(
+            monitor.watchlistEntry.userId,
+            execution.id,
+            "NO_CREDITS",
+          );
           await queueNotifications(
-            transaction,
+            repository,
             monitor.watchlistEntry.userId,
             execution.id,
           );
@@ -348,18 +324,16 @@ export function createMonitoringRunner(
           where: { id: monitor.watchlistEntryId },
           data: { lastDataAt: publicationDate },
         });
-        await transaction.monitorExecution.update({
-          where: { id: execution.id },
-          data: {
-            status: "COMPLETED",
-            creditReserved: true,
-            creditCharged: true,
-            skipReason: null,
-            errorReason: null,
-          },
-        });
+        await repository.chargeExecutionCredit(
+          monitor.watchlistEntry.userId,
+          execution.id,
+        );
+        await repository.completeExecution(
+          monitor.watchlistEntry.userId,
+          execution.id,
+        );
         await queueNotifications(
-          transaction,
+          repository,
           monitor.watchlistEntry.userId,
           execution.id,
         );
@@ -388,6 +362,7 @@ export function createMonitoringRunner(
   ) {
     try {
       await client.$transaction(async (transaction) => {
+        const repository = repositoryForTransaction(transaction);
         const execution = await transaction.monitorExecution.upsert({
           where: {
             monitorId_publicationKey: {
@@ -420,7 +395,7 @@ export function createMonitoringRunner(
           },
         });
         await queueNotifications(
-          transaction,
+          repository,
           monitor.watchlistEntry.userId,
           execution.id,
         );

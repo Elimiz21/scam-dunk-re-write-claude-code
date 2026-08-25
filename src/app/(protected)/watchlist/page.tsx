@@ -9,6 +9,7 @@ import {
 } from "@/components/dashboard/MonitorEditor";
 import type {
   ApiErrorShape,
+  MonitorCreditEstimate,
   MonitorListPayload,
   MonitorSlots,
   WatchlistEntryDto,
@@ -27,9 +28,15 @@ const emptySlots: MonitorSlots = {
   price: { used: 0, limit: 0 },
 };
 
+const emptyCreditEstimate: MonitorCreditEstimate = {
+  dailyPerMonth: 0,
+  weeklyPerMonth: 0,
+};
+
 export default function WatchlistPage() {
   const [entries, setEntries] = useState<WatchlistEntryDto[]>([]);
   const [slots, setSlots] = useState<MonitorSlots>(emptySlots);
+  const [creditEstimate, setCreditEstimate] = useState<MonitorCreditEstimate>(emptyCreditEstimate);
   const [ticker, setTicker] = useState("");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pageError, setPageError] = useState<string | null>(null);
@@ -64,6 +71,7 @@ export default function WatchlistPage() {
       }
       setEntries((watchlistBody as WatchlistPayload).entries);
       setSlots((monitorsBody as MonitorListPayload).slots);
+      setCreditEstimate((monitorsBody as MonitorListPayload).creditEstimate);
       setStatus("ready");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
@@ -191,7 +199,7 @@ export default function WatchlistPage() {
             <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Saved stocks</p>
             <h1 className="mt-2 font-display text-3xl italic sm:text-4xl">Watchlist</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Save as many supported US-listed common stocks as you need. Adding or removing a stock never uses a scan credit.
+              Save as many supported US-listed common stocks as you need. Adding or removing a stock never uses a scan credit. Monitoring is checked after the trading day closes — not live.
             </p>
           </header>
 
@@ -257,6 +265,7 @@ export default function WatchlistPage() {
             <MonitorEditor
               entry={selectedEntry}
               slots={slots}
+              creditEstimate={creditEstimate}
               error={monitorError}
               isSaving={isSavingMonitor}
               onSubmit={saveMonitor}

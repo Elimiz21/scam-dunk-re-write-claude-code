@@ -90,7 +90,7 @@ export default function RecentScansPage() {
             <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Your checks</p>
             <h1 className="mt-2 font-display text-3xl italic sm:text-4xl">Recent scans</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Review manual scans and completed scheduled checks. Automatic results are based on the published end-of-day market scan, not live prices.
+              Review manual scans and completed scheduled checks. Automatic monitoring is checked after the trading day closes — not live.
             </p>
           </header>
 

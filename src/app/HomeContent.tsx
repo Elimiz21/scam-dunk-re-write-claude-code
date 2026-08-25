@@ -413,7 +413,13 @@ export default function HomeContent() {
   const handleShare = async () => {
     if (result) {
       const normalizedScore = normalizeRiskScore(result.totalScore);
-      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${result.riskLevel} RISK (Score: ${normalizedScore}/100)\n\nCheck your stocks for scam red flags at ScamDunk.`;
+      const customerRiskLabel =
+        result.riskLevel === "HIGH"
+          ? "High risk"
+          : result.riskLevel === "LOW"
+            ? "Low risk"
+            : "Caution";
+      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${customerRiskLabel} (Score: ${normalizedScore}/100)\n\nCheck your stocks for scam red flags at ScamDunk.`;
       const shareUrl =
         typeof window !== "undefined" ? window.location.href : "";
 

@@ -73,8 +73,8 @@ export default function InvestmentScamsPage() {
                 </h2>
                 <p className="text-lg text-muted-foreground mb-6">
                   A pump-and-dump scheme is a coordinated manipulation tactic
-                  where promoters artificially inflate a stock's price (the
-                  "pump"), then sell their shares (the "dump"), leaving retail
+                  where promoters artificially inflate a stock&apos;s price (the
+                  &quot;pump&quot;), then sell their shares (the &quot;dump&quot;), leaving retail
                   investors with losses.
                 </p>
                 <div className="card-elevated rounded-xl p-6 mb-6">
@@ -166,12 +166,12 @@ export default function InvestmentScamsPage() {
                   showing pump-and-dump characteristics, unusual volume
                   patterns, and market manipulation signals.
                 </p>
-                <Link href="/">
-                  <Button size="lg" className="gap-2">
+                <Button asChild size="lg" className="gap-2">
+                  <Link href="/">
                     <Shield className="h-5 w-5" />
                     Scan a Stock Now
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </section>
             </article>
 
@@ -214,12 +214,12 @@ export default function InvestmentScamsPage() {
                 assessment for pump-and-dump schemes, market manipulation, and
                 other fraud patterns.
               </p>
-              <Link href="/">
-                <Button size="lg" className="gap-2">
+              <Button asChild size="lg" className="gap-2">
+                <Link href="/">
                   <Shield className="h-5 w-5" />
                   Start Your Free Scan
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </section>
           </div>
         </main>

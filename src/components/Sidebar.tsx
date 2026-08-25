@@ -337,11 +337,9 @@ export function Sidebar({
               },
               { href: "/contact", icon: Mail, label: "Contact" },
             ].map(({ href, icon: Icon, label }) => (
-              <Link key={href} href={href}>
-                <button className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
+              <Link key={href} href={href} className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
                   <Icon className="h-4 w-4" />
                   {label}
-                </button>
               </Link>
             ))}
 
@@ -354,11 +352,9 @@ export function Sidebar({
                 { href: "/privacy", icon: Shield, label: "Privacy" },
                 { href: "/terms", icon: Scale, label: "Terms" },
               ].map(({ href, icon: Icon, label }) => (
-                <Link key={href} href={href}>
-                  <button className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
+                <Link key={href} href={href} className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
                     <Icon className="h-4 w-4" />
                     {label}
-                  </button>
                 </Link>
               ))}
             </div>
@@ -380,11 +376,9 @@ export function Sidebar({
                 </div>
 
                 <div className="flex gap-1 mt-1">
-                  <Link href="/account" className="flex-1">
-                    <button className="flex items-center justify-center gap-1.5 w-full px-2.5 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
+                  <Link href="/account" className="flex flex-1 items-center justify-center gap-1.5 w-full px-2.5 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-150">
                       <Settings className="h-3.5 w-3.5" />
                       Settings
-                    </button>
                   </Link>
                   <button
                     className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-destructive hover:bg-destructive/10 transition-all duration-150"

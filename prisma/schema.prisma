@@ -20,7 +20,11 @@ model User {
   image             String?
   plan              String    @default("FREE") // FREE or PAID
   formerPro         Boolean   @default(false) // true if user ever cancelled a Pro subscription
+  billingProvider   String    @default("NONE") // NONE, PAYPAL, STRIPE, APPLE, MANUAL
   billingCustomerId String?
+  subscriptionExpiresAt DateTime?
+  trialStartedAt    DateTime?
+  trialEndsAt       DateTime?
   deletedAt         DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -30,6 +34,7 @@ model User {
   scanUsages ScanUsage[]
   watchlistEntries       WatchlistEntry[]
   notificationDeliveries NotificationDelivery[]
+  billingEvents BillingEvent[]
 }
 
 // TODO [H-11]: OAuth tokens (refresh_token, access_token, id_token) are stored in plain text.
@@ -185,6 +190,21 @@ model NotificationDelivery {
 
   @@unique([userId, executionId, channel])
   @@index([status, createdAt])
+}
+
+model BillingEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  eventId     String
+  eventType   String
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId String?
+
+  @@unique([provider, eventId])
+  @@index([userId, createdAt])
 }
 
 // ==========================================

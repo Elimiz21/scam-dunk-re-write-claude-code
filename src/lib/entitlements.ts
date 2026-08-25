@@ -10,6 +10,20 @@ export interface PlanEntitlements {
   savedWatchlistLimit: null;
 }
 
+export interface MonitorCreditEstimate {
+  dailyPerMonth: number;
+  weeklyPerMonth: number;
+}
+
+export const MONITOR_CREDIT_ESTIMATE: MonitorCreditEstimate = {
+  dailyPerMonth: 22,
+  weeklyPerMonth: 4,
+};
+
+export function getMonitorCreditEstimate(): MonitorCreditEstimate {
+  return { ...MONITOR_CREDIT_ESTIMATE };
+}
+
 const PLAN_ENTITLEMENTS: Record<Plan | "PRO_MAX", PlanEntitlements> = {
   FREE: {
     plan: "FREE",

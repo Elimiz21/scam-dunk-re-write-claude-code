@@ -139,17 +139,17 @@ export function PumpRadar({
                 </h2>
                 <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   Stocks with the strongest risk signals in the latest completed
-                  US market scan.
+                  US market scan. Checked after the trading day closes — not live.
                 </p>
               </div>
             </div>
             {showDashboardLink && (
-              <Link href="/dashboard" className="shrink-0 self-start">
-                <Button variant="outline" size="sm" className="min-h-10 gap-2">
+              <Button asChild variant="outline" size="sm" className="min-h-10 gap-2 shrink-0 self-start">
+                <Link href="/dashboard">
                   Open dashboard
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </div>
           <FreshnessNote

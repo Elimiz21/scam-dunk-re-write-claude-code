@@ -4,11 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import {
   Send,
   TrendingUp,
-  Bitcoin,
   MessageSquare,
   Upload,
   CheckSquare,
-  ChevronDown,
   X,
   Loader2,
   AlertCircle,
@@ -23,7 +21,7 @@ import { FeatureTooltip } from "@/components/ui/feature-tooltip";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 
-type AssetType = "stock" | "crypto";
+type AssetType = "stock";
 
 interface UploadedFile {
   file: File;
@@ -50,7 +48,6 @@ interface ScanInputProps {
 
 // Valid ticker patterns
 const STOCK_TICKER_PATTERN = /^[A-Z]{1,5}$/;
-const CRYPTO_TICKER_PATTERN = /^[A-Z]{2,10}$/;
 
 // Accepted file types
 const ACCEPTED_IMAGE_TYPES = [
@@ -65,8 +62,7 @@ const MAX_FILES = 5;
 
 export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
   const [ticker, setTicker] = useState("");
-  const [assetType, setAssetType] = useState<AssetType>("stock");
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const assetType: AssetType = "stock";
   const [showChatInput, setShowChatInput] = useState(false);
   const [showContextFlags, setShowContextFlags] = useState(false);
   const [chatText, setChatText] = useState("");
@@ -106,14 +102,9 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
       return "Please enter a ticker symbol";
     }
 
-    const pattern =
-      assetType === "stock" ? STOCK_TICKER_PATTERN : CRYPTO_TICKER_PATTERN;
+    const pattern = STOCK_TICKER_PATTERN;
     if (!pattern.test(value.trim().toUpperCase())) {
-      if (assetType === "stock") {
-        return "Invalid ticker format. Stock tickers are 1-5 letters (e.g., AAPL, TSLA)";
-      } else {
-        return "Invalid symbol format. Crypto symbols are 2-10 letters (e.g., BTC, ETH)";
-      }
+      return "Invalid ticker format. Stock tickers are 1-5 letters (e.g., AAPL, TSLA)";
     }
 
     return null;
@@ -674,82 +665,22 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
       <form onSubmit={handleSubmit}>
         <div className="input-bar p-2">
           <div className="flex items-center gap-2">
-            {/* Asset Type Toggle */}
-            <div className="relative">
+            {/* Supported asset type */}
+            <div>
               <button
                 type="button"
-                onClick={() => setShowTypeDropdown(!showTypeDropdown)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-smooth",
                   "bg-secondary hover:bg-secondary/80",
                 )}
                 disabled={isLoading || disabled}
-                aria-haspopup="listbox"
-                aria-expanded={showTypeDropdown}
-                aria-label={`Asset type: ${assetType === "stock" ? "Stock" : "Crypto"}`}
+                aria-label="Asset type: Stock"
               >
-                {assetType === "stock" ? (
-                  <TrendingUp className="h-4 w-4" />
-                ) : (
-                  <Bitcoin className="h-4 w-4" />
-                )}
+                <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">
-                  {assetType === "stock" ? "Stock" : "Crypto"}
+                  Stock
                 </span>
-                <ChevronDown className="h-3 w-3" />
               </button>
-
-              {showTypeDropdown && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowTypeDropdown(false)}
-                  />
-                  <div
-                    className="absolute top-full left-0 mt-1 p-1 rounded-xl bg-card border border-border shadow-lg z-20 animate-fade-in"
-                    role="listbox"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAssetType("stock");
-                        setShowTypeDropdown(false);
-                        setValidationError("");
-                      }}
-                      className={cn(
-                        "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-smooth",
-                        assetType === "stock"
-                          ? "bg-secondary"
-                          : "hover:bg-secondary",
-                      )}
-                      role="option"
-                      aria-selected={assetType === "stock"}
-                    >
-                      <TrendingUp className="h-4 w-4" />
-                      Stock
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAssetType("crypto");
-                        setShowTypeDropdown(false);
-                        setValidationError("");
-                      }}
-                      className={cn(
-                        "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-smooth",
-                        assetType === "crypto"
-                          ? "bg-secondary"
-                          : "hover:bg-secondary",
-                      )}
-                      role="option"
-                      aria-selected={assetType === "crypto"}
-                    >
-                      <Bitcoin className="h-4 w-4" />
-                      Crypto
-                    </button>
-                  </div>
-                </>
-              )}
             </div>
 
             {/* Ticker Input */}
@@ -759,11 +690,7 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
               value={ticker}
               onChange={(e) => handleTickerChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={
-                assetType === "stock"
-                  ? "Enter stock ticker (e.g., AAPL, TSLA)"
-                  : "Enter crypto symbol (e.g., BTC, ETH)"
-              }
+              placeholder="Enter stock ticker (e.g., AAPL, TSLA)"
               className={cn(
                 "flex-1 bg-transparent border-none outline-none text-sm px-2 py-2 placeholder:text-muted-foreground",
                 validationError && "text-destructive",

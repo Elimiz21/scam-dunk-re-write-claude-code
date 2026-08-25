@@ -33,6 +33,7 @@ export type NotificationDeliveryStatus =
   (typeof NOTIFICATION_DELIVERY_STATUSES)[number];
 
 export type CreateMonitorInput = {
+  userId: string;
   watchlistEntryId: string;
   kind: MonitorKind;
   frequency: MonitorFrequency;
@@ -52,6 +53,7 @@ export type UpdateMonitorInput = Partial<
 };
 
 export type RecordExecutionOnceInput = {
+  userId: string;
   monitorId: string;
   publicationKey: string;
   notificationIdempotencyKey: string;
@@ -107,7 +109,7 @@ export type UpsertNotificationDeliveryInput = {
   executionId: string;
   channel: NotificationChannel;
   status: NotificationDeliveryStatus;
-  attemptedAt: Date;
+  attemptedAt: Date | null;
   deliveredAt?: Date | null;
   providerMessageId?: string | null;
   errorReason?: string | null;
@@ -116,11 +118,13 @@ export type UpsertNotificationDeliveryInput = {
 export type MonitoringTransactionClient = {
   watchlistEntry: {
     findMany: (args: unknown) => Promise<WatchlistEntryRecord[]>;
+    findFirst: (args: unknown) => Promise<WatchlistEntryRecord | null>;
     upsert: (args: unknown) => Promise<WatchlistEntryRecord>;
     deleteMany: (args: unknown) => Promise<{ count: number }>;
   };
   activeMonitor: {
     findMany: (args: unknown) => Promise<ActiveMonitorRecord[]>;
+    findFirst: (args: unknown) => Promise<ActiveMonitorRecord | null>;
     findUnique: (args: unknown) => Promise<ActiveMonitorRecord | null>;
     create: (args: unknown) => Promise<ActiveMonitorRecord>;
     update: (args: unknown) => Promise<ActiveMonitorRecord>;
@@ -128,10 +132,12 @@ export type MonitoringTransactionClient = {
   };
   monitorExecution: {
     upsert: (args: unknown) => Promise<MonitorExecutionRecord>;
+    findFirst: (args: unknown) => Promise<MonitorExecutionRecord | null>;
     findUnique: (args: unknown) => Promise<MonitorExecutionRecord | null>;
     update: (args: unknown) => Promise<MonitorExecutionRecord>;
   };
   notificationDelivery: {
+    findUnique: (args: unknown) => Promise<NotificationDeliveryRecord | null>;
     upsert: (args: unknown) => Promise<NotificationDeliveryRecord>;
   };
 };

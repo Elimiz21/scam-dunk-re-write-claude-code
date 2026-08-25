@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { getPlanEntitlements } from "@/lib/entitlements";
 
 export type BillingPlan = "FREE" | "PAID" | "PRO_MAX";
-export type BillingProvider = "NONE" | "PAYPAL" | "MANUAL";
+export type BillingProvider = "NONE" | "PAYPAL" | "STRIPE" | "APPLE" | "MANUAL";
 
 export interface BillingPlanConfig {
   plan: BillingPlan;
@@ -23,14 +23,17 @@ export interface BillingEntitlements extends BillingPlanConfig {
   trial: {
     days: number;
     requiresPaymentMethod: true;
-    startsAt: null;
-    endsAt: null;
+    startsAt: Date | null;
+    endsAt: Date | null;
   };
 }
 
 interface BillingUserRecord {
   plan: string;
   billingCustomerId?: string | null;
+  billingProvider?: string | null;
+  trialStartedAt?: Date | null;
+  trialEndsAt?: Date | null;
 }
 
 function nonNegativeInteger(value: string | undefined, fallback: number): number {
@@ -85,7 +88,7 @@ function billingPlan(plan: string): BillingPlan {
   return plan === "PRO_MAX" ? "PRO_MAX" : plan === "PAID" ? "PAID" : "FREE";
 }
 
-function trialTerms() {
+function trialTerms(): BillingEntitlements["trial"] {
   return {
     days: nonNegativeInteger(process.env.BILLING_FREE_TRIAL_DAYS, 0),
     requiresPaymentMethod: true as const,
@@ -104,13 +107,24 @@ export function resolveBillingEntitlements(
   const plan = billingPlan(user.plan);
   const planConfig = getBillingPlanCatalog()[plan];
   const subscriptionId = user.billingCustomerId || null;
+  const provider = user.billingProvider === "STRIPE"
+    ? "STRIPE"
+    : user.billingProvider === "APPLE"
+      ? "APPLE"
+      : user.billingProvider === "PAYPAL" || (plan !== "FREE" && subscriptionId)
+        ? "PAYPAL"
+        : plan === "FREE"
+          ? "NONE"
+          : "MANUAL";
+  const trial = trialTerms();
+  trial.startsAt = user.trialStartedAt ?? null;
+  trial.endsAt = user.trialEndsAt ?? null;
 
   return {
     ...planConfig,
-    provider:
-      plan === "FREE" ? "NONE" : subscriptionId ? "PAYPAL" : "MANUAL",
+    provider,
     subscriptionId,
-    trial: trialTerms(),
+    trial,
   };
 }
 
@@ -124,7 +138,13 @@ export async function getBillingEntitlements(
 ): Promise<BillingEntitlements> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, billingCustomerId: true },
+    select: {
+      plan: true,
+      billingCustomerId: true,
+      billingProvider: true,
+      trialStartedAt: true,
+      trialEndsAt: true,
+    },
   });
 
   return resolveBillingEntitlements(
@@ -133,14 +153,26 @@ export async function getBillingEntitlements(
 }
 
 /**
- * Stripe is intentionally disabled until a persistent event-id store exists.
- * In-memory deduplication is not safe in a serverless deployment.
+ * Stripe checkout is enabled only when prices, credentials, and signed
+ * webhook processing are all configured. This keeps a paid checkout from
+ * succeeding without a durable entitlement update path.
  */
 export function getStripeIntegrationStatus() {
+  const secretConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+  const webhookConfigured = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+  const paidPriceConfigured = Boolean(process.env.STRIPE_PRICE_PAID_PLAN_ID);
+  const proMaxPriceConfigured = Boolean(process.env.STRIPE_PRO_MAX_PRICE_ID);
   return {
-    available: false,
-    checkout: false,
-    webhooks: false,
-    reason: "Persistent Stripe webhook replay protection is not configured",
+    available: secretConfigured && webhookConfigured && (paidPriceConfigured || proMaxPriceConfigured),
+    checkout: secretConfigured && webhookConfigured && (paidPriceConfigured || proMaxPriceConfigured),
+    webhooks: secretConfigured && webhookConfigured,
+    reason: !secretConfigured
+      ? "Stripe is not configured"
+      : !webhookConfigured
+        ? "Stripe webhook verification is not configured"
+        : !paidPriceConfigured && !proMaxPriceConfigured
+          ? "No Stripe subscription prices are configured"
+          : null,
+    prices: { paid: paidPriceConfigured, proMax: proMaxPriceConfigured },
   } as const;
 }

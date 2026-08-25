@@ -67,7 +67,7 @@ const RISK_PRIORITY: Record<string, number> = {
 const checkRequestSchema = z.object({
   ticker: z.string().min(1, "Ticker is required").max(10),
   companyName: z.string().optional(),
-  assetType: z.enum(["stock", "crypto"]).optional().default("stock"),
+  assetType: z.literal("stock").optional().default("stock"),
   pitchText: z.string().max(10000).optional(),
   context: z
     .object({

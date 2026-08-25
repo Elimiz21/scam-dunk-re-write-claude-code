@@ -44,6 +44,22 @@ export class MonitorStatusTransitionError extends Error {
   }
 }
 
+export type MonitoringResource = "WATCHLIST_ENTRY" | "MONITOR" | "MONITOR_EXECUTION";
+
+export class MonitoringNotFoundError extends Error {
+  constructor(readonly resource: MonitoringResource) {
+    super(`The requested ${resource.toLowerCase().replace("_", " ")} was not found.`);
+    this.name = "MonitoringNotFoundError";
+  }
+}
+
+export class NotificationDeliveryTransitionError extends Error {
+  constructor() {
+    super("A delivered notification cannot move back to a non-terminal state.");
+    this.name = "NotificationDeliveryTransitionError";
+  }
+}
+
 export type MonitorExecutionOperation =
   | "RESERVE_CREDIT"
   | "CHARGE_CREDIT"
@@ -100,7 +116,13 @@ function isRecordNotFoundError(error: unknown): boolean {
 
 function addCalendarMonths(date: Date, months: number): Date {
   const result = new Date(date);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
   result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(
+    Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
   return result;
 }
 
@@ -117,12 +139,14 @@ function assertStatusTransition(
   currentStatus: ActiveMonitorRecord["status"],
   requestedStatus: UpdateMonitorInput["status"],
 ): void {
+  const allowedTransitions = MONITOR_STATUS_TRANSITIONS[currentStatus];
+  if (!allowedTransitions) {
+    throw new MonitorStatusTransitionError();
+  }
   if (
     !requestedStatus ||
     requestedStatus === currentStatus ||
-    MONITOR_STATUS_TRANSITIONS[currentStatus].includes(
-      requestedStatus as never,
-    )
+    allowedTransitions.includes(requestedStatus as never)
   ) {
     return;
   }
@@ -130,11 +154,51 @@ function assertStatusTransition(
   throw new MonitorStatusTransitionError();
 }
 
+type MonitoringRepositoryOptions = {
+  transactionClient?: MonitoringTransactionClient;
+};
+
 export function createMonitoringRepository(
   client: MonitoringPrismaClient = prisma as unknown as MonitoringPrismaClient,
+  options: MonitoringRepositoryOptions = {},
 ) {
+  const readClient = options.transactionClient ?? client;
+
+  function runTransaction<T>(
+    callback: (transaction: MonitoringTransactionClient) => Promise<T>,
+  ): Promise<T> {
+    if (options.transactionClient) return callback(options.transactionClient);
+    return client.$transaction(callback);
+  }
+
+  async function findOwnedMonitor(
+    transaction: MonitoringTransactionClient,
+    userId: string,
+    monitorId: string,
+  ): Promise<ActiveMonitorRecord> {
+    const monitor = await transaction.activeMonitor.findFirst({
+      where: { id: monitorId, watchlistEntry: { userId } },
+    });
+    if (!monitor) throw new MonitoringNotFoundError("MONITOR");
+    return monitor;
+  }
+
+  async function findOwnedExecution(
+    transaction: MonitoringTransactionClient,
+    userId: string,
+    executionId: string,
+  ): Promise<MonitorExecutionRecord> {
+    const execution = await transaction.monitorExecution.findFirst({
+      where: {
+        id: executionId,
+        monitor: { watchlistEntry: { userId } },
+      },
+    });
+    if (!execution) throw new MonitoringNotFoundError("MONITOR_EXECUTION");
+    return execution;
+  }
   async function listWatchlist(userId: string): Promise<WatchlistEntryRecord[]> {
-    return client.watchlistEntry.findMany({
+    return readClient.watchlistEntry.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       include: {
@@ -151,7 +215,7 @@ export function createMonitoringRepository(
   ): Promise<WatchlistEntryRecord> {
     const normalizedTicker = normalizeWatchlistTicker(ticker);
 
-    return client.$transaction((transaction) =>
+    return runTransaction((transaction) =>
       transaction.watchlistEntry.upsert({
         where: { userId_ticker: { userId, ticker: normalizedTicker } },
         create: { userId, ticker: normalizedTicker },
@@ -166,7 +230,7 @@ export function createMonitoringRepository(
   ): Promise<{ removed: boolean }> {
     const normalizedTicker = normalizeWatchlistTicker(ticker);
 
-    return client.$transaction(async (transaction) => {
+    return runTransaction(async (transaction) => {
       const result = await transaction.watchlistEntry.deleteMany({
         where: { userId, ticker: normalizedTicker },
       });
@@ -175,7 +239,7 @@ export function createMonitoringRepository(
   }
 
   async function listMonitors(userId: string): Promise<ActiveMonitorRecord[]> {
-    return client.activeMonitor.findMany({
+    return readClient.activeMonitor.findMany({
       where: { watchlistEntry: { userId } },
       orderBy: [{ status: "asc" }, { nextEvaluationAt: "asc" }],
     });
@@ -187,7 +251,13 @@ export function createMonitoringRepository(
     assertMonitorExpiry(input.startsAt, input.expiresAt);
 
     try {
-      return await client.$transaction(async (transaction) => {
+      return await runTransaction(async (transaction) => {
+        const watchlistEntry = await transaction.watchlistEntry.findFirst({
+          where: { id: input.watchlistEntryId, userId: input.userId },
+        });
+        if (!watchlistEntry) {
+          throw new MonitoringNotFoundError("WATCHLIST_ENTRY");
+        }
         const existing = await transaction.activeMonitor.findUnique({
           where: {
             watchlistEntryId_kind: {
@@ -230,24 +300,23 @@ export function createMonitoringRepository(
   }
 
   async function updateMonitor(
+    userId: string,
     monitorId: string,
     input: UpdateMonitorInput,
   ): Promise<ActiveMonitorRecord> {
-    return client.$transaction(async (transaction) => {
-      const current = await transaction.activeMonitor.findUnique({
-        where: { id: monitorId },
-      });
-
-      if (!current) {
-        throw new Error("Monitor not found.");
+    return runTransaction(async (transaction) => {
+      const current = await findOwnedMonitor(transaction, userId, monitorId);
+      if (current.status === "CANCELLED" || current.status === "EXPIRED") {
+        if (Object.keys(input).some((key) => key !== "status")) {
+          throw new MonitorStatusTransitionError();
+        }
+        return current;
       }
-
       assertStatusTransition(current.status, input.status);
       assertMonitorExpiry(
         input.startsAt ?? current.startsAt,
         input.expiresAt ?? current.expiresAt,
       );
-
       return transaction.activeMonitor.update({
         where: { id: monitorId },
         data: input,
@@ -255,17 +324,31 @@ export function createMonitoringRepository(
     });
   }
 
-  async function deleteMonitor(monitorId: string): Promise<ActiveMonitorRecord> {
-    return client.$transaction((transaction) =>
-      transaction.activeMonitor.delete({ where: { id: monitorId } }),
-    );
+  async function deleteMonitor(
+    userId: string,
+    monitorId: string,
+  ): Promise<ActiveMonitorRecord> {
+    return runTransaction(async (transaction) => {
+      const current = await findOwnedMonitor(transaction, userId, monitorId);
+      if (current.status === "CANCELLED" || current.status === "EXPIRED") {
+        return current;
+      }
+      return transaction.activeMonitor.update({
+        where: { id: monitorId, status: current.status },
+        data: { status: "CANCELLED", nextEvaluationAt: null },
+      });
+    });
   }
 
   async function recordExecutionOnce(
     input: RecordExecutionOnceInput,
   ): Promise<MonitorExecutionRecord> {
-    return client.$transaction((transaction) =>
-      transaction.monitorExecution.upsert({
+    return runTransaction(async (transaction) => {
+      const monitor = await transaction.activeMonitor.findFirst({
+        where: { id: input.monitorId, watchlistEntry: { userId: input.userId } },
+      });
+      if (!monitor) throw new MonitoringNotFoundError("MONITOR");
+      return transaction.monitorExecution.upsert({
         where: {
           monitorId_publicationKey: {
             monitorId: input.monitorId,
@@ -281,11 +364,12 @@ export function createMonitoringRepository(
           notificationIdempotencyKey: input.notificationIdempotencyKey,
         },
         update: {},
-      }),
-    );
+      });
+    });
   }
 
   async function transitionExecution(
+    userId: string,
     executionId: string,
     operation: MonitorExecutionOperation,
     isAlreadyApplied: (execution: MonitorExecutionRecord) => boolean,
@@ -293,17 +377,8 @@ export function createMonitoringRepository(
     where: Record<string, string | boolean>,
     data: Record<string, string | boolean | null>,
   ): Promise<MonitorExecutionRecord> {
-    return client.$transaction(async (transaction) => {
-      const current = await transaction.monitorExecution.findUnique({
-        where: { id: executionId },
-      });
-
-      if (!current) {
-        throw new MonitorExecutionTransitionError(
-          operation,
-          "The monitor execution does not exist.",
-        );
-      }
+    return runTransaction(async (transaction) => {
+      const current = await findOwnedExecution(transaction, userId, executionId);
 
       if (isAlreadyApplied(current)) {
         return current;
@@ -326,12 +401,8 @@ export function createMonitoringRepository(
           throw error;
         }
 
-        const latest = await transaction.monitorExecution.findUnique({
-          where: { id: executionId },
-        });
-        if (latest && isAlreadyApplied(latest)) {
-          return latest;
-        }
+        const latest = await findOwnedExecution(transaction, userId, executionId);
+        if (isAlreadyApplied(latest)) return latest;
 
         throw new MonitorExecutionTransitionError(
           operation,
@@ -342,9 +413,11 @@ export function createMonitoringRepository(
   }
 
   async function reserveExecutionCredit(
+    userId: string,
     executionId: string,
   ): Promise<MonitorExecutionRecord> {
     return transitionExecution(
+      userId,
       executionId,
       "RESERVE_CREDIT",
       (execution) => execution.creditReserved,
@@ -358,9 +431,11 @@ export function createMonitoringRepository(
   }
 
   async function chargeExecutionCredit(
+    userId: string,
     executionId: string,
   ): Promise<MonitorExecutionRecord> {
     return transitionExecution(
+      userId,
       executionId,
       "CHARGE_CREDIT",
       (execution) => execution.creditCharged,
@@ -374,43 +449,61 @@ export function createMonitoringRepository(
   }
 
   async function completeExecution(
+    userId: string,
     executionId: string,
   ): Promise<MonitorExecutionRecord> {
     return transitionExecution(
+      userId,
       executionId,
       "COMPLETE",
       (execution) => execution.status === "COMPLETED",
-      (execution) => execution.status === "PENDING",
-      { status: "PENDING" },
+      (execution) => execution.status === "PENDING" && execution.creditCharged,
+      { status: "PENDING", creditCharged: true },
       { status: "COMPLETED", skipReason: null, errorReason: null },
     );
   }
 
   async function skipExecution(
+    userId: string,
     executionId: string,
     skipReason: string,
   ): Promise<MonitorExecutionRecord> {
     return transitionExecution(
+      userId,
       executionId,
       "SKIP",
       (execution) => execution.status === "SKIPPED",
       (execution) => execution.status === "PENDING",
       { status: "PENDING" },
-      { status: "SKIPPED", skipReason, errorReason: null },
+      {
+        status: "SKIPPED",
+        creditReserved: false,
+        creditCharged: false,
+        skipReason,
+        errorReason: null,
+      },
     );
   }
 
   async function failExecution(
+    userId: string,
     executionId: string,
     errorReason: string,
   ): Promise<MonitorExecutionRecord> {
     return transitionExecution(
+      userId,
       executionId,
       "FAIL",
       (execution) => execution.status === "FAILED",
       (execution) => execution.status === "PENDING",
       { status: "PENDING" },
-      { status: "FAILED", errorReason },
+      {
+        status: "FAILED",
+        creditReserved: false,
+        creditCharged: false,
+        skipReason: null,
+        errorReason,
+      },
     );
   }
 
@@ -425,8 +518,24 @@ export function createMonitoringRepository(
       errorReason: input.errorReason ?? null,
     };
 
-    return client.$transaction((transaction) =>
-      transaction.notificationDelivery.upsert({
+    return runTransaction(async (transaction) => {
+      await findOwnedExecution(transaction, input.userId, input.executionId);
+      const existing = await transaction.notificationDelivery.findUnique({
+        where: {
+          userId_executionId_channel: {
+            userId: input.userId,
+            executionId: input.executionId,
+            channel: input.channel,
+          },
+        },
+      });
+      if (existing?.status === "DELIVERED") {
+        if (input.status !== "DELIVERED") {
+          throw new NotificationDeliveryTransitionError();
+        }
+        return existing;
+      }
+      return transaction.notificationDelivery.upsert({
         where: {
           userId_executionId_channel: {
             userId: input.userId,
@@ -441,8 +550,8 @@ export function createMonitoringRepository(
           ...deliveryData,
         },
         update: deliveryData,
-      }),
-    );
+      });
+    });
   }
 
   return {

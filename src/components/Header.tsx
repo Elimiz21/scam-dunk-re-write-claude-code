@@ -49,9 +49,9 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-40 glass-strong border-b border-border/50">
-      <div className="flex items-center justify-between px-4 h-16">
+      <div className="flex h-16 items-center justify-between px-2 sm:px-4">
         {/* Left side - Brand */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <SidebarToggle onClick={onSidebarToggle} />
           <Link href="/" className="flex items-center gap-2.5 ml-1 group">
             <div className="relative h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm shadow-primary/20 group-hover:shadow-md group-hover:shadow-primary/30 transition-all duration-200">
@@ -98,19 +98,19 @@ export function Header({
         {/* Right side */}
         <div className="flex items-center gap-1.5">
           {/* About */}
-          <Link href="/about">
-            <Button
+          <Button asChild
+            className="hidden sm:inline-flex h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
               aria-label="About"
-            >
-              <Info className="h-4.5 w-4.5" />
-            </Button>
-          </Link>
+          >
+            <Link href="/about"><Info className="h-4.5 w-4.5" /></Link>
+          </Button>
 
           {/* Theme toggle */}
-          <ThemeToggle />
+          <div className="hidden sm:block">
+            <ThemeToggle />
+          </div>
 
           {/* Share button */}
           {showShare && onShare && (
@@ -162,85 +162,61 @@ export function Header({
                       </p>
                     </div>
 
-                    <Link href="/dashboard">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/dashboard">
                         <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
                         Dashboard
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/watchlist">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/watchlist">
                         <ListChecks className="h-4 w-4 text-muted-foreground" />
                         Watchlist
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/recent-scans">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/recent-scans">
                         <History className="h-4 w-4 text-muted-foreground" />
                         Recent scans
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/account">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/account">
                         <Settings className="h-4 w-4 text-muted-foreground" />
                         Settings
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/account">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/account">
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
                         Subscription
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/about">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/about">
                         <Info className="h-4 w-4 text-muted-foreground" />
                         About
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/disclaimer">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/disclaimer">
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         Legal & Disclaimer
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/help">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/help">
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
                         Help
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
                     <div className="border-t border-border mt-1.5 pt-1.5">
                       <button
@@ -260,20 +236,12 @@ export function Header({
             </div>
           ) : (
             <div className="flex items-center gap-2 ml-1">
-              <Link href="/login">
-                <Button
+              <Button asChild
                   variant="ghost"
                   size="sm"
-                  className="rounded-xl font-semibold"
-                >
-                  Log in
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button variant="brand" size="sm" className="rounded-xl">
-                  Sign up
-                </Button>
-              </Link>
+                  className="rounded-xl px-2 font-semibold sm:px-3.5"
+                ><Link href="/login">Log in</Link></Button>
+              <Button asChild variant="brand" size="sm" className="rounded-xl px-2 sm:px-3.5"><Link href="/signup">Sign up</Link></Button>
             </div>
           )}
         </div>

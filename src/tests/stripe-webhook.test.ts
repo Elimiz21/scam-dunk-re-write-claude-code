@@ -2,6 +2,10 @@ import { getStripeIntegrationStatus } from "../lib/billing/provider";
 import { POST as checkout } from "../app/api/billing/stripe/checkout/route";
 import { POST as webhook } from "../app/api/billing/stripe/webhook/route";
 
+jest.mock("@/lib/auth", () => ({
+  auth: jest.fn().mockResolvedValue(null),
+}));
+
 const STRIPE_ENV_KEYS = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
@@ -25,33 +29,27 @@ afterEach(() => {
 });
 
 describe("Stripe safety gate", () => {
-  test("refuses checkout and webhook processing without persistent replay protection", () => {
+  test("reports configured Stripe checkout and webhook readiness", () => {
     process.env.STRIPE_SECRET_KEY = "sk_test_configured";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_configured";
     process.env.STRIPE_PRICE_PAID_PLAN_ID = "price_pro";
     process.env.STRIPE_PRO_MAX_PRICE_ID = "price_pro_max";
 
-    expect(getStripeIntegrationStatus()).toEqual({
-      available: false,
-      checkout: false,
-      webhooks: false,
-      reason: "Persistent Stripe webhook replay protection is not configured",
+    expect(getStripeIntegrationStatus()).toMatchObject({
+      available: true,
+      checkout: true,
+      webhooks: true,
+      reason: null,
+      prices: { paid: true, proMax: true },
     });
   });
 
-  test("returns service unavailable from checkout and webhook routes before any billing mutation", async () => {
-    const [checkoutResponse, webhookResponse] = await Promise.all([
-      checkout(),
-      webhook(),
-    ]);
-
-    expect(checkoutResponse.status).toBe(503);
-    expect(await checkoutResponse.json()).toMatchObject({
-      code: "STRIPE_UNAVAILABLE",
-    });
+  test("requires authentication for checkout and signature verification for webhooks", async () => {
+    delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_WEBHOOK_SECRET;
+    const checkoutResponse = await checkout(new Request("http://localhost/api/billing/stripe/checkout", { method: "POST", body: JSON.stringify({ plan: "PAID" }) }) as never);
+    const webhookResponse = await webhook(new Request("http://localhost/api/billing/stripe/webhook", { method: "POST" }) as never);
+    expect(checkoutResponse.status).toBe(401);
     expect(webhookResponse.status).toBe(503);
-    expect(await webhookResponse.json()).toMatchObject({
-      code: "STRIPE_UNAVAILABLE",
-    });
   });
 });

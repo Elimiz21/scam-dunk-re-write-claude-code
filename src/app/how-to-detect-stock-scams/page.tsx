@@ -214,12 +214,12 @@ export default function HowToDetectStockScamsPage() {
                   Advanced tools can automatically detect pump-and-dump signals,
                   analyze behavioral patterns, and calculate risk scores.
                 </p>
-                <Link href="/">
-                  <Button size="lg" className="gap-2 mb-6">
+                <Button asChild size="lg" className="gap-2 mb-6">
+                  <Link href="/">
                     <Shield className="h-5 w-5" />
-                    Try ScamDunk's Analysis
-                  </Button>
-                </Link>
+                    Try ScamDunk&apos;s Analysis
+                  </Link>
+                </Button>
               </section>
 
               <section className="mb-12">
@@ -320,12 +320,12 @@ export default function HowToDetectStockScamsPage() {
                 behavioral red flags, and market manipulation patterns
                 instantly. Analyze any stock free.
               </p>
-              <Link href="/">
-                <Button size="lg" className="gap-2">
+              <Button asChild size="lg" className="gap-2">
+                <Link href="/">
                   <Search className="h-5 w-5" />
                   Scan a Stock Now
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </section>
           </div>
         </main>

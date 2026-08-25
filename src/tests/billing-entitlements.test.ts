@@ -116,14 +116,15 @@ describe("billing plan catalog", () => {
     });
   });
 
-  test("does not expose Pro Max checkout before its persisted plan state exists", async () => {
+  test("exposes the configured Pro Max PayPal plan", async () => {
     const response = await paypalConfig(
       new NextRequest("http://localhost/api/billing/paypal/config?plan=PRO_MAX"),
     );
 
-    expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({
-      error: "Pro Max checkout is not available yet",
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      planId: "P-PRO-MAX",
+      monthlyPriceCents: 1499,
     });
   });
 });

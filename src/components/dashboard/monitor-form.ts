@@ -7,6 +7,11 @@ export interface MonitorDraft {
   durationMonths: number;
 }
 
+export interface MonitorCreditEstimate {
+  dailyPerMonth: number;
+  weeklyPerMonth: number;
+}
+
 export type MonitorDraftValidation =
   | { ok: true; value: MonitorDraft }
   | { ok: false; message: string };
@@ -32,7 +37,10 @@ export function validateMonitorDraft(
 export function estimateScheduledCredits(
   frequency: MonitorFrequency,
   durationMonths: number,
+  creditEstimate: MonitorCreditEstimate,
 ): number {
-  const checksPerMonth = frequency === "DAILY" ? 22 : 4;
+  const checksPerMonth = frequency === "DAILY"
+    ? creditEstimate.dailyPerMonth
+    : creditEstimate.weeklyPerMonth;
   return checksPerMonth * Math.max(1, Math.min(24, durationMonths));
 }

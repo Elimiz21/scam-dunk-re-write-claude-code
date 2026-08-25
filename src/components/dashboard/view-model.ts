@@ -9,6 +9,7 @@ import type {
   RecentScanDto,
   ScanSocialDto,
   SocialSummary,
+  MonitorCreditEstimate,
   WatchlistEntryDto,
 } from "@/components/dashboard/types";
 
@@ -152,6 +153,7 @@ export function buildMonitorView(input: {
   frequency: "DAILY" | "WEEKLY";
   durationMonths: number;
   slots: MonitorSlots;
+  creditEstimate: MonitorCreditEstimate;
   error?: ApiErrorShape | null;
 }) {
   const selected = input.kind === "FULL" ? input.slots.full : input.slots.price;
@@ -162,6 +164,7 @@ export function buildMonitorView(input: {
     estimatedCredits: estimateScheduledCredits(
       input.frequency,
       input.durationMonths,
+      input.creditEstimate,
     ),
     error: input.error?.message ?? null,
     notice: "Checked after the trading day closes — not live.",

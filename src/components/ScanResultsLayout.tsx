@@ -35,7 +35,7 @@ const INFO_PANELS = [
     iconColor: "text-primary",
     title: "How the Test Works",
     content:
-      "ScamDunk analyzes your ticker using multiple layers of detection. We fetch real-time market data including price history, volume patterns, and company information. Our algorithms then scan for statistical anomalies, pump-and-dump patterns, and structural risk factors. If you provide chat messages or screenshots, our AI analyzes the language for manipulation tactics commonly used in investment scams. The final risk score combines all detected signals, weighted by severity.",
+      "ScamDunk analyzes your ticker using multiple layers of detection. We use published market data including price history, volume patterns, and company information. Our algorithms then scan for statistical anomalies, pump-and-dump patterns, and structural risk factors. If you provide chat messages or screenshots, our AI analyzes the language for manipulation tactics commonly used in investment scams. The final risk score combines all detected signals, weighted by severity.",
   },
   {
     id: "what-we-check",
@@ -53,7 +53,7 @@ const INFO_PANELS = [
     iconColor: "text-amber-500",
     title: "What to Do After the Test",
     content:
-      "Low Risk — Few red flags found, but always do your own research before investing. Medium Risk — Exercise caution; verify claims independently and consider consulting a financial advisor. High Risk — Multiple warning signs detected; do not invest based on unsolicited tips. Always cross-reference with SEC filings (sec.gov), verify the source of any tip, and never invest more than you can afford to lose.",
+      "Low risk — Few red flags found, but always do your own research before investing. Caution — Exercise care; verify claims independently and consider consulting a financial advisor. High risk — Multiple warning signs detected; do not invest based on unsolicited tips. Always cross-reference with SEC filings (sec.gov), verify the source of any tip, and never invest more than you can afford to lose.",
   },
   {
     id: "disclaimer-terms",
@@ -74,9 +74,18 @@ function InfoPanel({ panel }: { panel: (typeof INFO_PANELS)[number] }) {
 
   return (
     <div
-      className="info-panel-card cursor-default"
+      className="info-panel-card cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      tabIndex={0}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setIsHovered((value) => !value);
+        }
+      }}
     >
       <div className="flex items-center gap-3">
         <div

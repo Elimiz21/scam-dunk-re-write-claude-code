@@ -252,6 +252,7 @@ describe("watchlist and monitoring render state", () => {
           full: { used: 2, limit: 2 },
           price: { used: 1, limit: 5 },
         },
+        creditEstimate: { dailyPerMonth: 22, weeklyPerMonth: 4 },
         error: {
           code: "PLAN_LIMIT",
           message: "Your Pro plan includes 2 active full monitors.",
@@ -284,8 +285,9 @@ describe("watchlist and monitoring render state", () => {
       ok: true,
       value: { kind: "PRICE", frequency: "WEEKLY", durationMonths: 24 },
     });
-    expect(estimateScheduledCredits("DAILY", 1)).toBe(22);
-    expect(estimateScheduledCredits("WEEKLY", 1)).toBe(4);
+    const creditEstimate = { dailyPerMonth: 22, weeklyPerMonth: 4 };
+    expect(estimateScheduledCredits("DAILY", 1, creditEstimate)).toBe(22);
+    expect(estimateScheduledCredits("WEEKLY", 1, creditEstimate)).toBe(4);
   });
 });
 
