@@ -34,4 +34,23 @@ describe("createNewsAnalysisPlan", () => {
     ]);
     expect(plan.modelCallUpperBound).toBe(2);
   });
+
+  it("selects explicit replay symbols first while preserving punctuation and the cap", () => {
+    const plan = createNewsAnalysisPlan(
+      [
+        { symbol: "LOW", totalScore: 2 },
+        { symbol: "BRK.A", totalScore: 1 },
+        { symbol: "BRK.B", totalScore: 99 },
+        { symbol: "REPLAY", totalScore: 0 },
+      ],
+      2,
+      10,
+      [" replay ", "MISSING", "brk.a"],
+    );
+
+    expect(plan.selected.map((group) => group.key)).toEqual(["REPLAY", "BRK.A"]);
+    expect(plan.replayMatched).toEqual(["REPLAY", "BRK.A"]);
+    expect(plan.replayMissing).toEqual(["MISSING"]);
+    expect(plan.deferred.map((group) => group.key)).toEqual(["BRK.B", "LOW"]);
+  });
 });

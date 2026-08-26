@@ -7,15 +7,15 @@
     "strict": false,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "..",
     "resolveJsonModule": true,
     "declaration": false,
     "baseUrl": "..",
-    "types": ["node"],
+    "types": ["node", "jest"],
     "paths": {
       "@/*": ["src/*"]
     }
   },
-  "include": ["scripts/**/*.ts"],
+  "include": ["scripts/**/*.ts", "../shared/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

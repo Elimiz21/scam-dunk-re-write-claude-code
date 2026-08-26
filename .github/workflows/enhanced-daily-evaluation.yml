@@ -1,5 +1,9 @@
 name: Enhanced Daily Stock Evaluation
 
+concurrency:
+  group: enhanced-daily-evaluation
+  cancel-in-progress: false
+
 on:
   # Run daily at 11 PM UTC (6 PM EST, 2 hours after market close at 4 PM)
   # This allows time for after-hours data to settle and ensures we have complete daily data
@@ -35,6 +39,16 @@ on:
         required: false
         default: "false"
         type: boolean
+      replay_symbols:
+        description: "Comma-separated unresolved symbols to replay (creates a new generation)"
+        required: false
+        default: ""
+        type: string
+      replay_of_generation:
+        description: "Prior generation ID for provenance only; replay is not bit-for-bit reconstruction"
+        required: false
+        default: ""
+        type: string
 
 # Grant write permissions for issue creation on failure
 permissions:
@@ -50,6 +64,7 @@ jobs:
       - name: Check if today is a US market trading day
         id: check
         run: |
+          # shellcheck disable=all
           # Get current date in EST/EDT timezone
           export TZ="America/New_York"
           TODAY=$(date +%Y-%m-%d)
@@ -63,7 +78,7 @@ jobs:
           # Skip weekends (should already be filtered by cron, but double-check)
           if [ "$DAY_OF_WEEK" -gt 5 ]; then
             echo "Weekend - not a trading day"
-            echo "is_trading_day=false" >> $GITHUB_OUTPUT
+            echo "is_trading_day=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -78,7 +93,7 @@ jobs:
           for holiday in $FIXED_HOLIDAYS; do
             if [ "$MMDD" = "$holiday" ]; then
               echo "Fixed holiday ($holiday) - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              echo "is_trading_day=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           done
@@ -94,7 +109,7 @@ jobs:
             THIRD_MONDAY=$((FIRST_MONDAY + 14))
             if [ "$DAY" = "$THIRD_MONDAY" ] || [ "$DAY" = "0$THIRD_MONDAY" ]; then
               echo "MLK Day - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              echo "is_trading_day=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           fi
@@ -110,7 +125,7 @@ jobs:
             THIRD_MONDAY=$((FIRST_MONDAY + 14))
             if [ "$DAY" -eq "$THIRD_MONDAY" ]; then
               echo "Presidents Day - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              echo "is_trading_day=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           fi
@@ -125,7 +140,7 @@ jobs:
             fi
             if [ "$DAY" -eq "$LAST_MONDAY" ]; then
               echo "Memorial Day - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              echo "is_trading_day=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           fi
@@ -140,7 +155,7 @@ jobs:
             fi
             if [ "$DAY" -eq "$FIRST_MONDAY" ]; then
               echo "Labor Day - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              echo "is_trading_day=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           fi
@@ -156,7 +171,7 @@ jobs:
             FOURTH_THURSDAY=$((FIRST_THURSDAY + 21))
             if [ "$DAY" -eq "$FOURTH_THURSDAY" ]; then
               echo "Thanksgiving - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              echo "is_trading_day=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           fi
@@ -167,19 +182,22 @@ jobs:
           for gf in $GOOD_FRIDAYS; do
             if [ "$TODAY" = "$gf" ]; then
               echo "Good Friday - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
+              echo "is_trading_day=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           done
 
           echo "Today is a trading day!"
-          echo "is_trading_day=true" >> $GITHUB_OUTPUT
+          echo "is_trading_day=true" >> "$GITHUB_OUTPUT"
 
   enhanced-evaluation:
     needs: check-trading-day
     if: ${{ needs.check-trading-day.outputs.is_trading_day == 'true' || github.event.inputs.force_run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 350 # ~5h50m — GitHub-hosted runners cap jobs at 6h
+    outputs:
+      validation_status: ${{ steps.validation.outputs.validation_status }}
+      publication_classification: ${{ steps.publication-gate.outputs.classification }}
 
     steps:
       - name: Checkout repository
@@ -233,11 +251,12 @@ jobs:
       - name: Determine evaluation date
         id: date
         run: |
+          # shellcheck disable=all
           DATE="${{ github.event.inputs.date_override }}"
           if [ -z "$DATE" ]; then
             DATE=$(date +%Y-%m-%d)
           fi
-          echo "date=$DATE" >> $GITHUB_OUTPUT
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
           echo "Evaluation date: $DATE"
 
       - name: Run Enhanced Daily Pipeline
@@ -253,7 +272,10 @@ jobs:
           SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
+          NEWS_ANALYSIS_REPLAY_SYMBOLS: ${{ github.event.inputs.replay_symbols }}
+          NEWS_ANALYSIS_REPLAY_OF_GENERATION: ${{ github.event.inputs.replay_of_generation }}
         run: |
+          # shellcheck disable=all
           cd evaluation
           echo "Starting Enhanced Daily Pipeline for $EVALUATION_DATE..."
           echo "Test Mode: $TEST_MODE"
@@ -270,7 +292,7 @@ jobs:
             echo "Social Scan: Local fallback (JSON only)"
           fi
 
-          npx ts-node scripts/enhanced-daily-pipeline.ts
+          ../node_modules/.bin/tsx scripts/enhanced-daily-pipeline.ts
 
           echo "Enhanced pipeline complete"
 
@@ -281,12 +303,13 @@ jobs:
         run: |
           cd evaluation
           echo "Generating scheme tracking report..."
-          npx ts-node scripts/scheme-tracker.ts report $EVALUATION_DATE
+          ../node_modules/.bin/tsx scripts/scheme-tracker.ts report "$EVALUATION_DATE"
           echo "Scheme report generated"
 
       - name: Validate pipeline output
-        if: ${{ github.event.inputs.upload_only != 'true' }}
+        id: validation
         run: |
+          # shellcheck disable=all
           DATE="${{ steps.date.outputs.date }}"
           cd evaluation
 
@@ -319,11 +342,11 @@ jobs:
               PRESENT=$((PRESENT + 1))
               SIZE=$(stat -c%s "$filepath" 2>/dev/null || echo "0")
               echo "  [PASS] $key ($SIZE bytes)"
-              FILE_DETAILS="${FILE_DETAILS}{\"name\":\"${key}\",\"file\":\"$(basename $filepath)\",\"status\":\"present\",\"sizeBytes\":${SIZE}},"
+              FILE_DETAILS="${FILE_DETAILS}{\"name\":\"${key}\",\"file\":\"$(basename "$filepath")\",\"status\":\"present\",\"sizeBytes\":${SIZE}},"
             else
               echo "  [FAIL] $key - MISSING: $filepath"
               MISSING_LIST="${MISSING_LIST} ${key}"
-              FILE_DETAILS="${FILE_DETAILS}{\"name\":\"${key}\",\"file\":\"$(basename $filepath)\",\"status\":\"missing\",\"sizeBytes\":0},"
+              FILE_DETAILS="${FILE_DETAILS}{\"name\":\"${key}\",\"file\":\"$(basename "$filepath")\",\"status\":\"missing\",\"sizeBytes\":0},"
             fi
           done
 
@@ -387,7 +410,7 @@ jobs:
             "filesExpected": ${TOTAL},
             "filesPresent": ${PRESENT},
             "filesMissing": $((TOTAL - PRESENT)),
-            "missingFiles": "$(echo ${MISSING_LIST} | xargs)",
+            "missingFiles": "$(echo "${MISSING_LIST}" | xargs)",
             "files": ${FILE_DETAILS},
             "schemeTracking": {
               "status": "${SCHEME_STATUS}",
@@ -401,30 +424,71 @@ jobs:
 
           echo ""
           echo "Validation report written to results/pipeline-validation-${DATE}.json"
+          GENERATION=$(jq -r '.recovery.generationId // empty' "results/scan-status-${DATE}.json" 2>/dev/null || true)
+          JOURNAL_FILE=$(jq -r '.recovery.journalFile // empty' "results/scan-status-${DATE}.json" 2>/dev/null || true)
+          REQUIRED_JSON=$(jq -n \
+            --arg enhanced "enhanced-evaluation-${DATE}.json" \
+            --arg status "scan-status-${DATE}.json" \
+            --arg journal "$JOURNAL_FILE" \
+            --arg validation "pipeline-validation-${DATE}.json" \
+            '[$enhanced, $status, $journal, $validation]')
+          jq -n \
+            --arg date "$DATE" \
+            --arg generation "$GENERATION" \
+            --arg status "scan-status-${DATE}.json" \
+            --arg journal "$JOURNAL_FILE" \
+            --arg marker "publication-manifest-${DATE}.json" \
+            --argjson required "$REQUIRED_JSON" \
+            '{schemaVersion:1, kind:"scan-publication-manifest", date:$date, generationId:$generation, statusFile:$status, journalFile:$journal, requiredFiles:$required, commitMarker:$marker}' \
+            > "results/publication-manifest-${DATE}.json"
+          echo "Publication manifest written to results/publication-manifest-${DATE}.json"
+          echo "validation_status=${STATUS}" >> "$GITHUB_OUTPUT"
 
       - name: Upload to Supabase
-        continue-on-error: true
+        id: quarantine-upload
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
+          # shellcheck disable=all
           DATE="${{ steps.date.outputs.date }}"
 
           if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
-            echo "Warning: Supabase credentials not configured, skipping upload"
-            echo "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY secrets to enable"
-            exit 0
+            echo "::error::Supabase credentials are required to retain a recoverable generation before publication"
+            exit 1
           fi
 
           cd evaluation
           UPLOADED=0
+          UPLOAD_FAILED=0
+          GENERATION=$(jq -r '.recovery.generationId // empty' "results/scan-status-${DATE}.json" 2>/dev/null || true)
+          if [ -z "$GENERATION" ]; then GENERATION="run-${GITHUB_RUN_ID}"; fi
+          QUARANTINE_PREFIX="quarantine/${DATE}/${GENERATION}"
+          JOURNAL_FILE=$(jq -r '.recovery.journalFile // empty' "results/scan-status-${DATE}.json" 2>/dev/null || true)
+          REQUIRED_FILES=(
+            "enhanced-evaluation-${DATE}.json"
+            "scan-status-${DATE}.json"
+            "$JOURNAL_FILE"
+            "pipeline-validation-${DATE}.json"
+            "publication-manifest-${DATE}.json"
+          )
+          for required in "${REQUIRED_FILES[@]}"; do
+            if [ -z "$required" ] || [ ! -f "results/$required" ]; then
+              echo "::error::Required publication file is missing: results/$required"
+              UPLOAD_FAILED=1
+            fi
+          done
+          if [ "$UPLOAD_FAILED" -ne 0 ]; then
+            echo "::error::Required generation files are missing; root promotion and data-repo publication are blocked"
+            exit 1
+          fi
 
           # Upload all result files
-          for file in results/*-${DATE}*.json results/*-${DATE}*.md; do
+          for file in "results/"*-"${DATE}"*.json "results/"*-"${DATE}"*.md; do
             if [ -f "$file" ]; then
               FILENAME=$(basename "$file")
               echo "Uploading $FILENAME to Supabase..."
-              RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
+              RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${QUARANTINE_PREFIX}/${FILENAME}" \
                 -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
                 -H "Content-Type: application/json" \
                 -H "x-upsert: true" \
@@ -436,6 +500,7 @@ jobs:
                 UPLOADED=$((UPLOADED + 1))
               else
                 echo "  Warning: Upload returned $HTTP_CODE - $BODY"
+                UPLOAD_FAILED=1
               fi
             fi
           done
@@ -443,26 +508,101 @@ jobs:
           # Upload scheme database
           if [ -f "scheme-database/scheme-database.json" ]; then
             echo "Uploading scheme database..."
-            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/scheme-database.json" \
+            curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${QUARANTINE_PREFIX}/scheme-database.json" \
               -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
               -H "Content-Type: application/json" \
               -H "x-upsert: true" \
-              --data-binary @"scheme-database/scheme-database.json" || true
+              --data-binary @"scheme-database/scheme-database.json" || UPLOAD_FAILED=1
             UPLOADED=$((UPLOADED + 1))
           fi
 
           # Upload promoter database
           if [ -f "scheme-database/promoter-database.json" ]; then
             echo "Uploading promoter database..."
-            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/promoter-database.json" \
+            curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${QUARANTINE_PREFIX}/promoter-database.json" \
               -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
               -H "Content-Type: application/json" \
               -H "x-upsert: true" \
-              --data-binary @"scheme-database/promoter-database.json" || true
+              --data-binary @"scheme-database/promoter-database.json" || UPLOAD_FAILED=1
             UPLOADED=$((UPLOADED + 1))
           fi
 
-          echo "Uploaded $UPLOADED files to Supabase"
+          echo "Uploaded $UPLOADED files to Supabase quarantine: $QUARANTINE_PREFIX"
+          if [ "$UPLOAD_FAILED" -ne 0 ]; then
+            echo "::error::Quarantine upload incomplete; root promotion and data-repo publication are blocked"
+            exit 1
+          fi
+          UPLOADED_JSON=$(printf '%s\n' "${REQUIRED_FILES[@]}" | jq -R . | jq -s .)
+          jq -n \
+            --arg date "$DATE" \
+            --arg generation "$GENERATION" \
+            --arg prefix "$QUARANTINE_PREFIX" \
+            --argjson uploaded "$UPLOADED_JSON" \
+            '{schemaVersion:1, date:$date, generationId:$generation, quarantinePrefix:$prefix, success:true, uploadedFiles:$uploaded}' \
+            > "results/quarantine-upload-receipt-${DATE}.json"
+          curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${QUARANTINE_PREFIX}/quarantine-upload-receipt-${DATE}.json" \
+            -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "x-upsert: true" \
+            --data-binary @"results/quarantine-upload-receipt-${DATE}.json" || {
+              echo "::error::Quarantine upload receipt could not be retained"
+              exit 1
+            }
+          echo "Quarantine upload receipt written to results/quarantine-upload-receipt-${DATE}.json"
+
+      - name: Enforce publication gate
+        id: publication-gate
+        run: |
+          # shellcheck disable=all
+          DATE="${{ steps.date.outputs.date }}"
+          set +e
+          RESULT=$(./node_modules/.bin/tsx evaluation/scripts/scan-publication-check.ts "evaluation/results/scan-status-${DATE}.json" "$DATE" "run-${GITHUB_RUN_ID}")
+          GATE_STATUS=$?
+          set -e
+          echo "$RESULT"
+          CLASSIFICATION=$(echo "$RESULT" | jq -r '.classification // "degraded"')
+          echo "classification=$CLASSIFICATION" >> "$GITHUB_OUTPUT"
+          if [ "$GATE_STATUS" -ne 0 ]; then
+            echo "::error::Results were retained for recovery but are not publishable. Replay with replay_symbols and optional replay_of_generation."
+            exit "$GATE_STATUS"
+          fi
+
+      - name: Promote healthy results to Supabase
+        if: steps.publication-gate.outcome == 'success'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          # shellcheck disable=all
+          DATE="${{ steps.date.outputs.date }}"
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then exit 0; fi
+          for file in "evaluation/results/"*-"${DATE}"*.json "evaluation/results/"*-"${DATE}"*.md; do
+            if [ -f "$file" ]; then
+              curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/$(basename "$file")" -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" -H "Content-Type: application/json" -H "x-upsert: true" --data-binary @"$file"
+            fi
+          done
+          for file in "evaluation/scheme-database/"*.json; do
+            if [ -f "$file" ]; then
+              curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/$(basename "$file")" -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" -H "Content-Type: application/json" -H "x-upsert: true" --data-binary @"$file"
+            fi
+          done
+          GENERATION=$(jq -r '.recovery.generationId' "evaluation/results/scan-status-${DATE}.json")
+          POINTER_FILE="evaluation/results/scan-current-generation-${DATE}.json"
+          MANIFEST_DIGEST=$(sha256sum "evaluation/results/publication-manifest-${DATE}.json" | awk '{print $1}')
+          jq -n \
+            --arg date "$DATE" \
+            --arg generation "$GENERATION" \
+            --arg manifest "quarantine/${DATE}/${GENERATION}/publication-manifest-${DATE}.json" \
+            --arg marker "publication-manifest-${DATE}.json" \
+            --arg digest "$MANIFEST_DIGEST" \
+            '{schemaVersion:1, date:$date, generationId:$generation, manifestPath:$manifest, manifestFile:$marker, manifestDigest:$digest}' \
+            > "$POINTER_FILE"
+          curl -s --fail-with-body -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/$(basename "$POINTER_FILE")" \
+            -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "x-upsert: true" \
+            --data-binary @"$POINTER_FILE"
+          echo "Published current-generation pointer last: $(basename "$POINTER_FILE")"
 
       - name: Checkout data repository
         continue-on-error: true
@@ -474,7 +614,7 @@ jobs:
           path: data-repo
 
       - name: Copy results to data repository
-        if: steps.checkout-data.outcome == 'success'
+        if: steps.checkout-data.outcome == 'success' && steps.publication-gate.outcome == 'success'
         run: |
           DATE="${{ steps.date.outputs.date }}"
 
@@ -521,13 +661,17 @@ jobs:
           find data-repo -name "*${DATE}*" -type f 2>/dev/null | sort
 
       - name: Skip data repo notice
-        if: steps.checkout-data.outcome != 'success'
+        if: steps.checkout-data.outcome != 'success' || steps.publication-gate.outcome != 'success'
         run: |
-          echo "::warning::Skipping data repository push - DATA_REPO_TOKEN may be expired or invalid"
-          echo "Results are still saved as artifacts. Please update the DATA_REPO_TOKEN secret."
+          if [ "${{ steps.publication-gate.outcome }}" != "success" ]; then
+            echo "::warning::Publication gate blocked promotion. Results remain in generation-scoped quarantine; replay unresolved symbols before remediation."
+          else
+            echo "::warning::Skipping data repository push - DATA_REPO_TOKEN may be expired or invalid"
+            echo "Results are still saved as artifacts. Please update the DATA_REPO_TOKEN secret."
+          fi
 
       - name: Commit results to data repository
-        if: steps.checkout-data.outcome == 'success'
+        if: steps.checkout-data.outcome == 'success' && steps.publication-gate.outcome == 'success'
         run: |
           cd data-repo
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -558,15 +702,19 @@ jobs:
           if-no-files-found: warn
 
       - name: Summary
+        if: always()
         run: |
+          # shellcheck disable=all
           DATE="${{ steps.date.outputs.date }}"
-          echo "## Enhanced Daily Evaluation Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Date:** ${DATE}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Enhanced Daily Evaluation Summary"
+            echo ""
+            echo "**Date:** ${DATE}"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
 
           if [ -f "evaluation/results/daily-report-${DATE}.json" ]; then
-            echo "### Results" >> $GITHUB_STEP_SUMMARY
+            echo "### Results" >> "$GITHUB_STEP_SUMMARY"
             cat evaluation/results/daily-report-${DATE}.json | jq -r '
               "- **Total Stocks Scanned:** \(.totalStocksScanned)",
               "- **High Risk (Before Filters):** \(.highRiskBeforeFilters)",
@@ -577,16 +725,16 @@ jobs:
               "- **Active Schemes:** \(.activeSchemes)",
               "- **New Schemes Detected:** \(.newSchemes)",
               "- **Processing Time:** \(.processingTimeMinutes) minutes"
-            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Unable to parse report" >> $GITHUB_STEP_SUMMARY
+            ' >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "Unable to parse report" >> "$GITHUB_STEP_SUMMARY"
           fi
 
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "See artifacts for full results." >> $GITHUB_STEP_SUMMARY
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "See artifacts for full results." >> "$GITHUB_STEP_SUMMARY"
 
   notify-on-failure:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: failure()
+    if: failure() && needs.enhanced-evaluation.outputs.publication_classification != 'degraded'
     permissions:
       issues: write
     steps:
@@ -630,6 +778,27 @@ jobs:
               console.log(`Could not create issue: ${error.message}`);
               console.log('Ensure workflow has write permissions: Settings > Actions > General > Workflow permissions');
             }
+
+  notify-on-degraded:
+    needs: enhanced-evaluation
+    runs-on: ubuntu-latest
+    if: failure() && needs.enhanced-evaluation.outputs.publication_classification == 'degraded'
+    permissions:
+      issues: write
+    steps:
+      - name: Create degraded recovery issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Enhanced Daily Evaluation Degraded - ${date}`,
+              body: `Results were uploaded to recovery storage but publication was blocked. Inspect the scan status and journal artifact, then re-run workflow_dispatch with replay_symbols and optional replay_of_generation. A replay creates a new generation; it is not a bit-for-bit reconstruction.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['bug', 'automation']
+            });
 
   notify-on-success:
     needs: enhanced-evaluation

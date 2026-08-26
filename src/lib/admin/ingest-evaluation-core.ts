@@ -6,6 +6,7 @@
 import { prisma } from "@/lib/db";
 import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
 import { fetchDailyCloses } from "@/lib/promoted-stocks/tracker";
+import { evaluatePublicationArtifacts } from "../../../shared/scan-publication-workflow";
 
 // Batch size for createMany operations to avoid overwhelming the DB
 const BATCH_SIZE = 1000;
@@ -228,6 +229,53 @@ async function fetchEvaluationFile(filename: string): Promise<{
   }
 }
 
+async function fetchScanStatusFile(filename: string): Promise<{
+  data: unknown | null;
+  error?: string;
+  errorType?: IngestionErrorType;
+}> {
+  let urlData: { publicUrl: string };
+  try {
+    ({ data: urlData } = supabase.storage
+      .from(EVALUATION_BUCKET)
+      .getPublicUrl(filename));
+  } catch (error) {
+    return {
+      data: null,
+      errorType: "INVALID_SUPABASE_CONFIG",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  try {
+    const response = await fetch(urlData.publicUrl);
+    if (!response.ok) {
+      return {
+        data: null,
+        errorType: response.status === 404 ? "MISSING_FILE" : "FETCH_ERROR",
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
+
+    const text = await response.text();
+    try {
+      return { data: JSON.parse(text) };
+    } catch (error) {
+      return {
+        data: null,
+        errorType: "BAD_JSON",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  } catch (error) {
+    return {
+      data: null,
+      errorType: "FETCH_ERROR",
+      error: `Fetch error: ${String(error)}`,
+    };
+  }
+}
+
 async function fetchSummaryFile(filename: string): Promise<{
   data: EvaluationSummary | null;
   error?: string;
@@ -378,17 +426,289 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
   try {
     const enhancedEvalFilename = `enhanced-evaluation-${date}.json`;
+    const statusFilename = `scan-status-${date}.json`;
     const legacyEvalFilename = `fmp-evaluation-${date}.json`;
     const summaryFilename = `fmp-summary-${date}.json`;
     const promotedFilename = `promoted-stocks-${date}.json`;
 
-    // Try enhanced format first, fall back to legacy
-    let evaluationResult = await fetchEvaluationFile(enhancedEvalFilename);
-    if (!evaluationResult.data) {
+    // Resolve the final-generation pointer before consulting mutable root
+    // aliases. A pointer present in any non-404 state is authoritative.
+    const initialPointerResult = await fetchScanStatusFile(
+      `scan-current-generation-${date}.json`,
+    );
+    const pointerMissing = initialPointerResult.errorType === "MISSING_FILE";
+    let evaluationResult = pointerMissing
+      ? await fetchEvaluationFile(enhancedEvalFilename)
+      : {
+          data: [] as EvaluationStock[],
+          error: undefined as string | undefined,
+          errorType: undefined as IngestionErrorType | undefined,
+        };
+    let validatedPointerIdentity: Record<string, string> | null = null;
+    const enhancedFileMissing = evaluationResult.errorType === "MISSING_FILE";
+
+    if (!evaluationResult.data && !enhancedFileMissing) {
+      return {
+        success: false,
+        date,
+        stocksCreated: 0,
+        stocksUpdated: 0,
+        snapshotsCreated: 0,
+        alertsCreated: 0,
+        promotedStocksCreated: 0,
+        promotedStocksSkippedStale: 0,
+        totalProcessed: 0,
+        skipped: 0,
+        durationMs: Date.now() - startTime,
+        error: `publication blocked: enhanced evaluation is unreadable or unavailable for ${date}: ${evaluationResult.error ?? "unknown error"}`,
+      };
+    }
+
+    if (enhancedFileMissing) {
       console.log(
         `[ingest-core] Enhanced file not found for ${date}, trying legacy format...`,
       );
       evaluationResult = await fetchEvaluationFile(legacyEvalFilename);
+    }
+
+    if (!enhancedFileMissing && evaluationResult.data) {
+      const rootStatusResult = await fetchScanStatusFile(statusFilename);
+      if (!rootStatusResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: matching root scan status is missing or unreadable for ${date}: ${rootStatusResult.error ?? "missing status"}`,
+        };
+      }
+      const pointerResult = await fetchScanStatusFile(
+        `scan-current-generation-${date}.json`,
+      );
+      if (!pointerResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: current generation pointer is missing or unreadable for ${date}: ${pointerResult.error ?? "missing pointer"}`,
+        };
+      }
+      if (
+        typeof pointerResult.data !== "object" ||
+        pointerResult.data === null ||
+        Array.isArray(pointerResult.data)
+      ) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: current generation pointer is malformed for ${date}`,
+        };
+      }
+      const pointer = pointerResult.data as Record<string, unknown>;
+      const initialPointer = initialPointerResult.data;
+      const initialPointerIsRecord =
+        typeof initialPointer === "object" &&
+        initialPointer !== null &&
+        !Array.isArray(initialPointer);
+      const generation = pointer.generationId;
+      const expectedPrefix = `quarantine/${date}/${generation}`;
+      const expectedManifestPath = `${expectedPrefix}/publication-manifest-${date}.json`;
+      const manifestDigest = pointer.manifestDigest;
+      const initialPointerRecord = initialPointer as Record<string, unknown>;
+      const pointerIdentityMatches =
+        initialPointerIsRecord &&
+        initialPointerRecord.date === pointer.date &&
+        initialPointerRecord.generationId === pointer.generationId &&
+        initialPointerRecord.manifestPath === pointer.manifestPath &&
+        initialPointerRecord.manifestFile === pointer.manifestFile &&
+        initialPointerRecord.manifestDigest === pointer.manifestDigest;
+      if (
+        !initialPointerIsRecord ||
+        !pointerIdentityMatches ||
+        pointer.date !== date ||
+        typeof generation !== "string" ||
+        !generation.trim() ||
+        !/^[A-Za-z0-9._-]+$/.test(generation) ||
+        pointer.manifestPath !== expectedManifestPath ||
+        pointer.manifestFile !== `publication-manifest-${date}.json` ||
+        typeof manifestDigest !== "string" ||
+        !/^[a-f0-9]{64}$/.test(manifestDigest)
+      ) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: current generation pointer is invalid for ${date}`,
+        };
+      }
+      validatedPointerIdentity = {
+        date,
+        generationId: generation,
+        manifestPath: expectedManifestPath,
+        manifestFile: `publication-manifest-${date}.json`,
+        manifestDigest,
+      };
+      const exactEvaluationResult = await fetchEvaluationFile(
+        `${expectedPrefix}/${enhancedEvalFilename}`,
+      );
+      if (!exactEvaluationResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: generation-scoped enhanced evaluation is missing or unreadable for ${date}: ${exactEvaluationResult.error ?? "missing file"}`,
+        };
+      }
+      evaluationResult = exactEvaluationResult;
+      const statusResult = await fetchScanStatusFile(
+        `${expectedPrefix}/${statusFilename}`,
+      );
+      if (!statusResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: scan status is missing or unreadable for ${date}: ${statusResult.error ?? "missing status"}`,
+        };
+      }
+
+      const rootStatus = rootStatusResult.data as Record<string, any>;
+      const exactStatus = statusResult.data as Record<string, any>;
+      if (
+        rootStatus.date !== date ||
+        rootStatus.recovery?.generationId !== generation ||
+        rootStatus.recovery?.journalFile !== exactStatus.recovery?.journalFile
+      ) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: root scan status does not match current generation for ${date}`,
+        };
+      }
+
+      const journalFile =
+        typeof (statusResult.data as Record<string, any>)?.recovery?.journalFile === "string"
+          ? (statusResult.data as Record<string, any>).recovery.journalFile
+          : "";
+      const journalResult = journalFile
+        ? await fetchScanStatusFile(`${expectedPrefix}/${journalFile}`)
+        : { data: null, error: "missing journal path" };
+      if (!journalResult.data) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: generation-scoped journal is missing or unreadable for ${date}: ${journalResult.error ?? "missing journal"}`,
+        };
+      }
+
+      const manifestResult = await fetchScanStatusFile(expectedManifestPath);
+      const validationResult = await fetchScanStatusFile(
+        `${expectedPrefix}/pipeline-validation-${date}.json`,
+      );
+      const receiptResult = await fetchScanStatusFile(
+        `${expectedPrefix}/quarantine-upload-receipt-${date}.json`,
+      );
+      const publication = evaluatePublicationArtifacts(
+        statusResult.data,
+        date,
+        {
+          manifest: manifestResult.data,
+          validation: validationResult.data,
+          quarantineReceipt: receiptResult.data,
+          availableFiles: [
+            enhancedEvalFilename,
+            statusFilename,
+            typeof (statusResult.data as Record<string, unknown>)?.recovery === "object" &&
+            (statusResult.data as Record<string, any>).recovery &&
+            typeof (statusResult.data as Record<string, any>).recovery.journalFile === "string"
+              ? (statusResult.data as Record<string, any>).recovery.journalFile
+              : "",
+            `pipeline-validation-${date}.json`,
+          ],
+        },
+      );
+      if (!publication.publishable) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked for ${date}: ${publication.reasons.join(", ")}`,
+        };
+      }
     }
 
     if (!evaluationResult.data) {
@@ -430,6 +750,44 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     console.log(
       `[ingest-core] ${validStocks.length} valid stocks (${skippedCount} skipped) for ${date}`,
     );
+
+    // Re-read the final marker immediately before any database access. This
+    // prevents a pointer switch between artifact validation and ingestion.
+    if (validatedPointerIdentity) {
+      const reread = await fetchScanStatusFile(
+        `scan-current-generation-${date}.json`,
+      );
+      const rereadPointer = reread.data;
+      const rereadRecord =
+        typeof rereadPointer === "object" &&
+        rereadPointer !== null &&
+        !Array.isArray(rereadPointer)
+          ? (rereadPointer as Record<string, unknown>)
+          : null;
+      const unchanged =
+        rereadRecord !== null &&
+        validatedPointerIdentity.date === rereadRecord.date &&
+        validatedPointerIdentity.generationId === rereadRecord.generationId &&
+        validatedPointerIdentity.manifestPath === rereadRecord.manifestPath &&
+        validatedPointerIdentity.manifestFile === rereadRecord.manifestFile &&
+        validatedPointerIdentity.manifestDigest === rereadRecord.manifestDigest;
+      if (!unchanged) {
+        return {
+          success: false,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+          error: `publication blocked: current generation pointer changed before database access for ${date}`,
+        };
+      }
+    }
 
     // Step 1: Get all existing stocks in batches
     const symbols = validStocks.map((s) => s.symbol);
