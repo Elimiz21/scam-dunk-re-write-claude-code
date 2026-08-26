@@ -60,15 +60,27 @@ export async function POST(request: NextRequest) {
         const currentUser = userId
           ? await transaction.user.findUnique({
               where: { id: userId },
-              select: { billingSubscriptionId: true },
+              select: {
+                plan: true,
+                billingProvider: true,
+                billingSubscriptionId: true,
+                billingSubscriptionEventAt: true,
+              },
             })
           : null;
+        const eventCreatedAt = new Date(event.created * 1000);
         if (
           userId &&
           currentUser &&
           subscription &&
           typeof subscription !== "string" &&
-          shouldApplyStripeSubscriptionEvent(currentUser.billingSubscriptionId, subscription.id) &&
+          shouldApplyStripeSubscriptionEvent(
+            currentUser.billingSubscriptionId,
+            subscription.id,
+            currentUser.billingSubscriptionEventAt,
+            eventCreatedAt,
+            currentUser.plan === "FREE" || currentUser.billingProvider !== "STRIPE",
+          ) &&
           session.mode === "subscription" &&
           actualPlan &&
           actualPlan === requestedPlan &&
@@ -87,6 +99,7 @@ export async function POST(request: NextRequest) {
               subscriptionStore: "stripe",
               subscriptionExpiresAt: subscriptionPeriodEnd(subscription),
               billingSubscriptionId: subscription.id,
+              billingSubscriptionEventAt: eventCreatedAt,
             },
           });
         }
@@ -97,10 +110,20 @@ export async function POST(request: NextRequest) {
         const priceId = subscription.items.data[0]?.price?.id;
         const plan = getPlanForStripePrice(priceId);
         const userId = subscription.metadata?.userId;
+        const eventCreatedAt = new Date(event.created * 1000);
         const user = userId
-          ? await transaction.user.findUnique({ where: { id: userId }, select: { id: true, billingSubscriptionId: true } })
-          : await transaction.user.findFirst({ where: { billingProvider: "STRIPE", billingCustomerId: String(subscription.customer) }, select: { id: true, billingSubscriptionId: true } });
-        if (user && shouldApplyStripeSubscriptionEvent(user.billingSubscriptionId, subscription.id)) {
+          ? await transaction.user.findUnique({ where: { id: userId }, select: { id: true, plan: true, billingProvider: true, billingSubscriptionId: true, billingSubscriptionEventAt: true } })
+          : await transaction.user.findFirst({ where: { billingProvider: "STRIPE", billingCustomerId: String(subscription.customer) }, select: { id: true, plan: true, billingProvider: true, billingSubscriptionId: true, billingSubscriptionEventAt: true } });
+        if (
+          user &&
+          shouldApplyStripeSubscriptionEvent(
+            user.billingSubscriptionId,
+            subscription.id,
+            user.billingSubscriptionEventAt,
+            eventCreatedAt,
+            user.plan === "FREE" || user.billingProvider !== "STRIPE",
+          )
+        ) {
           const active = event.type !== "customer.subscription.deleted" && ["active", "trialing", "past_due"].includes(subscription.status);
           await transaction.user.update({
             where: { id: user.id },
@@ -110,7 +133,8 @@ export async function POST(request: NextRequest) {
               billingCustomerId: String(subscription.customer),
               subscriptionStore: active && plan ? "stripe" : null,
               subscriptionExpiresAt: active ? subscriptionPeriodEnd(subscription) : null,
-              billingSubscriptionId: active && plan ? subscription.id : null,
+              billingSubscriptionId: subscription.id,
+              billingSubscriptionEventAt: eventCreatedAt,
               formerPro: !active,
               trialStartedAt: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
               trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,

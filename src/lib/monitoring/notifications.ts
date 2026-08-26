@@ -15,7 +15,11 @@ export async function deliverPendingMonitorNotifications(
     where: {
       OR: [
         { status: "PENDING" },
-        { status: "PROCESSING", attemptedAt: { lt: retryBefore } },
+        {
+          status: "PROCESSING",
+          attemptedAt: { lt: retryBefore },
+          attemptCount: { lt: MAX_DELIVERY_ATTEMPTS },
+        },
         { status: "FAILED", attemptCount: { lt: MAX_DELIVERY_ATTEMPTS } },
       ],
     },

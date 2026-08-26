@@ -11,7 +11,9 @@ SET "billingProvider" = CASE
   WHEN LOWER(COALESCE("subscriptionStore", '')) = 'paypal' THEN 'PAYPAL'
   ELSE "billingProvider"
 END
-WHERE "billingProvider" = 'NONE';
+WHERE "billingProvider" = 'NONE'
+  AND "plan" <> 'FREE'
+  AND ("subscriptionExpiresAt" IS NULL OR "subscriptionExpiresAt" > CURRENT_TIMESTAMP);
 
 CREATE TABLE "BillingEvent" (
     "id" TEXT NOT NULL,

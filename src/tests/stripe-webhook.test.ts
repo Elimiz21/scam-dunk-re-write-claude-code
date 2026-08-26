@@ -55,8 +55,40 @@ describe("Stripe safety gate", () => {
   });
 
   test("ignores delayed events from a superseded Stripe subscription", () => {
-    expect(shouldApplyStripeSubscriptionEvent("sub-current", "sub-old")).toBe(false);
-    expect(shouldApplyStripeSubscriptionEvent("sub-current", "sub-current")).toBe(true);
-    expect(shouldApplyStripeSubscriptionEvent(null, "sub-first")).toBe(true);
+    const currentEventAt = new Date("2026-08-26T12:00:00.000Z");
+    expect(
+      shouldApplyStripeSubscriptionEvent(
+        "sub-current",
+        "sub-old",
+        currentEventAt,
+        new Date("2026-08-26T11:00:00.000Z"),
+      ),
+    ).toBe(false);
+    expect(
+      shouldApplyStripeSubscriptionEvent(
+        "sub-current",
+        "sub-current",
+        currentEventAt,
+        new Date("2026-08-26T11:00:00.000Z"),
+      ),
+    ).toBe(false);
+    expect(
+      shouldApplyStripeSubscriptionEvent(
+        "sub-current",
+        "sub-current",
+        currentEventAt,
+        new Date("2026-08-26T13:00:00.000Z"),
+      ),
+    ).toBe(true);
+    expect(shouldApplyStripeSubscriptionEvent(null, "sub-first", null, currentEventAt)).toBe(true);
+    expect(
+      shouldApplyStripeSubscriptionEvent(
+        "sub-old",
+        "sub-new",
+        currentEventAt,
+        new Date("2026-08-26T11:00:00.000Z"),
+        true,
+      ),
+    ).toBe(true);
   });
 });

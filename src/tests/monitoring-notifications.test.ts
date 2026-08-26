@@ -70,4 +70,25 @@ describe("monitor notification delivery", () => {
       ]),
     );
   });
+
+  test("does not reclaim a stale delivery after the retry cap", async () => {
+    mockFindMany.mockResolvedValue([]);
+
+    await expect(
+      deliverPendingMonitorNotifications(undefined, new Date("2026-08-26T12:00:00.000Z")),
+    ).resolves.toEqual({ processed: 0, delivered: 0, failed: 0 });
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            expect.objectContaining({
+              status: "PROCESSING",
+              attemptCount: { lt: 3 },
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
 });

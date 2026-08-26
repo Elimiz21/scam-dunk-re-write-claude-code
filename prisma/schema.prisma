@@ -23,6 +23,7 @@ model User {
   billingProvider            String    @default("NONE") // NONE, PAYPAL, STRIPE, APPLE, MANUAL
   billingCustomerId          String?
   billingSubscriptionId      String?   // current Stripe subscription identity, when applicable
+  billingSubscriptionEventAt DateTime? // newest Stripe event timestamp applied to the subscription
   trialStartedAt             DateTime?
   trialEndsAt                DateTime?
   // Subscription entitlement (server-authoritative). store: "paypal" | "apple" | "stripe".

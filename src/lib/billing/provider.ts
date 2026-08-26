@@ -130,8 +130,8 @@ export function resolveBillingEntitlements(
 
 /**
  * Reads only the persisted account state needed to build billing display data.
- * The current schema has no Stripe provider or trial fields, so only existing
- * PayPal subscription IDs are represented as provider-managed subscriptions.
+ * Provider and trial fields are server-authoritative; legacy paid accounts with
+ * no explicit provider remain compatible through the PayPal fallback below.
  */
 export async function getBillingEntitlements(
   userId: string,

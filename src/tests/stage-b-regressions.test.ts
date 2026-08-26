@@ -34,6 +34,7 @@ describe("Stage B production regressions", () => {
     expect(migration).not.toMatch(/ADD COLUMN\s+"subscriptionExpiresAt"/i);
     expect(migration).toContain("LOWER(COALESCE(\"subscriptionStore\", '')) = 'stripe'");
     expect(migration).not.toMatch(/billingCustomerId.*THEN 'PAYPAL'/i);
+    expect(migration).toContain('AND "plan" <> \'FREE\'');
   });
 
   test("registers the monitoring runner as an EOD Vercel cron", () => {

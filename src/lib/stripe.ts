@@ -27,6 +27,12 @@ export function getPlanForStripePrice(priceId: string | null | undefined): Billi
 export function shouldApplyStripeSubscriptionEvent(
   currentSubscriptionId: string | null,
   incomingSubscriptionId: string,
+  currentEventAt: Date | null,
+  incomingEventAt: Date,
+  allowReplacement = false,
 ): boolean {
-  return !currentSubscriptionId || currentSubscriptionId === incomingSubscriptionId;
+  if (currentSubscriptionId !== incomingSubscriptionId) {
+    return !currentSubscriptionId || allowReplacement;
+  }
+  return !currentEventAt || incomingEventAt >= currentEventAt;
 }
