@@ -1,4 +1,5 @@
 import { getStripeIntegrationStatus } from "../lib/billing/provider";
+import { shouldApplyStripeSubscriptionEvent } from "../lib/stripe";
 import { POST as checkout } from "../app/api/billing/stripe/checkout/route";
 import { POST as webhook } from "../app/api/billing/stripe/webhook/route";
 
@@ -51,5 +52,11 @@ describe("Stripe safety gate", () => {
     const webhookResponse = await webhook(new Request("http://localhost/api/billing/stripe/webhook", { method: "POST" }) as never);
     expect(checkoutResponse.status).toBe(401);
     expect(webhookResponse.status).toBe(503);
+  });
+
+  test("ignores delayed events from a superseded Stripe subscription", () => {
+    expect(shouldApplyStripeSubscriptionEvent("sub-current", "sub-old")).toBe(false);
+    expect(shouldApplyStripeSubscriptionEvent("sub-current", "sub-current")).toBe(true);
+    expect(shouldApplyStripeSubscriptionEvent(null, "sub-first")).toBe(true);
   });
 });

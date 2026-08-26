@@ -9,14 +9,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
-import type { BillingPlan } from "@/lib/billing/provider";
+import {
+  applePlanForProduct,
+  getAppleBillingConfig,
+  isAppleBillingConfigured,
+} from "@/lib/apple-billing";
 
 // Apple's receipt validation endpoints
 const APPLE_PRODUCTION_URL = "https://buy.itunes.apple.com/verifyReceipt";
 const APPLE_SANDBOX_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
-
-// Environment variables
-const APPLE_SHARED_SECRET = process.env.APPLE_SHARED_SECRET || "";
 
 const validateSchema = z.object({
   receiptData: z.string().min(1, "Receipt data is required"),
@@ -54,6 +55,7 @@ interface AppleReceiptResponse {
 async function validateWithApple(
   receiptData: string,
   useSandbox: boolean = false,
+  sharedSecret: string = getAppleBillingConfig().sharedSecret,
 ): Promise<AppleReceiptResponse> {
   const url = useSandbox ? APPLE_SANDBOX_URL : APPLE_PRODUCTION_URL;
 
@@ -62,7 +64,7 @@ async function validateWithApple(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       "receipt-data": receiptData,
-      password: APPLE_SHARED_SECRET,
+      password: sharedSecret,
       "exclude-old-transactions": true,
     }),
   });
@@ -79,14 +81,9 @@ function isSubscriptionActive(expiresDateMs: string | undefined): boolean {
   return expiresDate > Date.now();
 }
 
-function applePlanForProduct(productId: string): BillingPlan | null {
-  if (productId === process.env.APPLE_PRO_MAX_PRODUCT_ID) return "PRO_MAX";
-  if (productId === process.env.APPLE_PRO_PRODUCT_ID) return "PAID";
-  return null;
-}
-
 export async function POST(request: NextRequest) {
   try {
+    const appleConfig = getAppleBillingConfig();
     // Authenticate mobile request
     const userId = await authenticateMobileRequest(request);
 
@@ -113,20 +110,34 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if Apple shared secret is configured
-    if (!APPLE_SHARED_SECRET) {
-      console.error("APPLE_SHARED_SECRET not configured");
+    if (!isAppleBillingConfigured(appleConfig)) {
+      console.error("Apple IAP configuration is incomplete");
       return NextResponse.json(
-        { error: "Apple IAP not configured" },
+        { error: "Apple IAP is not fully configured" },
         { status: 500 },
       );
     }
 
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        plan: true,
+        billingProvider: true,
+        billingCustomerId: true,
+        appleOriginalTransactionId: true,
+        subscriptionStore: true,
+      },
+    });
+    if (!existingUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     // Validate with Apple (try production first)
-    let appleResponse = await validateWithApple(receiptData, false);
+    let appleResponse = await validateWithApple(receiptData, false, appleConfig.sharedSecret);
 
     // If status 21007, receipt is from sandbox - retry with sandbox
     if (appleResponse.status === 21007) {
-      appleResponse = await validateWithApple(receiptData, true);
+      appleResponse = await validateWithApple(receiptData, true, appleConfig.sharedSecret);
     }
 
     // Check validation status
@@ -138,6 +149,12 @@ export async function POST(request: NextRequest) {
           valid: false,
           error: `Receipt validation failed (status: ${appleResponse.status})`,
         },
+        { status: 400 },
+      );
+    }
+    if (appleResponse.receipt?.bundle_id !== appleConfig.bundleId) {
+      return NextResponse.json(
+        { valid: false, error: "Receipt bundle does not match this app." },
         { status: 400 },
       );
     }
@@ -158,15 +175,22 @@ export async function POST(request: NextRequest) {
 
     if (!activeSubscription) {
       // No active subscription found
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          plan: "FREE",
-          billingProvider: "NONE",
-          billingCustomerId: null,
-          subscriptionExpiresAt: null,
-        },
-      });
+      if (
+        existingUser.billingProvider === "APPLE" ||
+        existingUser.subscriptionStore === "apple"
+      ) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            plan: "FREE",
+            billingProvider: "NONE",
+            billingCustomerId: null,
+            subscriptionStore: null,
+            appleOriginalTransactionId: null,
+            subscriptionExpiresAt: null,
+          },
+        });
+      }
       return NextResponse.json({
         valid: true,
         active: false,
@@ -184,14 +208,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ valid: false, error: "Unsupported Apple subscription product" }, { status: 400 });
     }
 
+    const originalTransactionId = activeSubscription.original_transaction_id;
+    const existingReceiptOwner = await prisma.user.findFirst({
+      where: {
+        appleOriginalTransactionId: originalTransactionId,
+        NOT: { id: userId },
+      },
+      select: { id: true },
+    });
+    if (existingReceiptOwner) {
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "This Apple subscription is already associated with another account.",
+        },
+        { status: 409 },
+      );
+    }
+    const alreadyHasDifferentAppleSubscription =
+      (existingUser.billingProvider === "APPLE" ||
+        existingUser.subscriptionStore === "apple") &&
+      existingUser.appleOriginalTransactionId &&
+      existingUser.appleOriginalTransactionId !== originalTransactionId;
+    const hasAnotherPaidProvider =
+      existingUser.plan !== "FREE" &&
+      existingUser.billingProvider !== "APPLE" &&
+      existingUser.subscriptionStore !== "apple";
+    if (alreadyHasDifferentAppleSubscription || hasAnotherPaidProvider) {
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "This Apple subscription is not associated with the current account.",
+        },
+        { status: 409 },
+      );
+    }
+
     // Update user plan to PAID
     await prisma.user.update({
       where: { id: userId },
       data: {
         plan,
         billingProvider: "APPLE",
-        // Store Apple transaction ID for reference
-        billingCustomerId: activeSubscription.original_transaction_id,
+        billingCustomerId: originalTransactionId,
+        appleOriginalTransactionId: originalTransactionId,
+        subscriptionStore: "apple",
         subscriptionExpiresAt: expiresAt,
       },
     });
@@ -210,6 +271,15 @@ export async function POST(request: NextRequest) {
       expiresAt: expiresAt?.toISOString(),
     });
   } catch (error) {
+    if ((error as { code?: string })?.code === "P2002") {
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "This Apple subscription is already associated with another account.",
+        },
+        { status: 409 },
+      );
+    }
     console.error("Apple IAP validation error:", error);
     return NextResponse.json(
       { error: "Receipt validation failed" },

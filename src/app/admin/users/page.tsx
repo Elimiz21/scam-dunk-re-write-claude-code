@@ -226,10 +226,10 @@ export default function UsersPage() {
   }
 
   function getPlanBadge(plan: string, formerPro?: boolean) {
-    return plan === "PAID" ? (
+    return plan === "PAID" || plan === "PRO_MAX" ? (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
         <CreditCard className="h-3 w-3 mr-1" />
-        PAID
+        {plan === "PRO_MAX" ? "PRO MAX" : "PRO"}
       </span>
     ) : (
       <div className="flex items-center gap-1.5">

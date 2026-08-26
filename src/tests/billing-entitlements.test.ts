@@ -2,7 +2,7 @@ import {
   getBillingPlanCatalog,
   resolveBillingEntitlements,
 } from "../lib/billing/provider";
-import { getPayPalConfig } from "../lib/paypal";
+import { getPayPalConfig, planForPayPalPlanId } from "../lib/paypal";
 import { GET as paypalConfig } from "../app/api/billing/paypal/config/route";
 import { NextRequest } from "next/server";
 
@@ -126,5 +126,10 @@ describe("billing plan catalog", () => {
       planId: "P-PRO-MAX",
       monthlyPriceCents: 1499,
     });
+  });
+
+  test("does not grant a plan for an unknown PayPal plan id", () => {
+    expect(planForPayPalPlanId("P-UNKNOWN")).toBeNull();
+    expect(planForPayPalPlanId(undefined)).toBeNull();
   });
 });

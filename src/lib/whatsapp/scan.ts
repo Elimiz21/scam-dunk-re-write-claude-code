@@ -1,3 +1,3 @@
-import { runAuthorizedStockScan } from "@/app/api/check/route";
+import { runAuthorizedStockScan } from "@/lib/check-scan";
 
 export { runAuthorizedStockScan };

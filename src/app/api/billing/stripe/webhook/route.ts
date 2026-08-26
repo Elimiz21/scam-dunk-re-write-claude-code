@@ -2,9 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
 import { prisma } from "@/lib/db";
-import { getPlanForStripePrice, getStripeClient } from "@/lib/stripe";
+import {
+  getPlanForStripePrice,
+  getStripeClient,
+  shouldApplyStripeSubscriptionEvent,
+} from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
+
+function subscriptionPeriodEnd(subscription: Stripe.Subscription): Date | null {
+  const periodEnd = (subscription as Stripe.Subscription & {
+    current_period_end?: number;
+  }).current_period_end;
+  return periodEnd ? new Date(periodEnd * 1000) : null;
+}
 
 /**
  * Do not accept or process Stripe events until the webhook signature and event
@@ -46,7 +57,23 @@ export async function POST(request: NextRequest) {
         const requestedPlan = session.metadata?.plan;
         const subscriptionActive = subscription && typeof subscription !== "string"
           && ["active", "trialing", "past_due"].includes(subscription.status);
-        if (userId && session.mode === "subscription" && actualPlan && actualPlan === requestedPlan && subscriptionActive) {
+        const currentUser = userId
+          ? await transaction.user.findUnique({
+              where: { id: userId },
+              select: { billingSubscriptionId: true },
+            })
+          : null;
+        if (
+          userId &&
+          currentUser &&
+          subscription &&
+          typeof subscription !== "string" &&
+          shouldApplyStripeSubscriptionEvent(currentUser.billingSubscriptionId, subscription.id) &&
+          session.mode === "subscription" &&
+          actualPlan &&
+          actualPlan === requestedPlan &&
+          subscriptionActive
+        ) {
           const trialStart = subscription.trial_start;
           const trialEnd = subscription.trial_end;
           await transaction.user.update({
@@ -57,6 +84,9 @@ export async function POST(request: NextRequest) {
               billingCustomerId: typeof session.customer === "string" ? session.customer : null,
               trialStartedAt: trialStart ? new Date(trialStart * 1000) : null,
               trialEndsAt: trialEnd ? new Date(trialEnd * 1000) : null,
+              subscriptionStore: "stripe",
+              subscriptionExpiresAt: subscriptionPeriodEnd(subscription),
+              billingSubscriptionId: subscription.id,
             },
           });
         }
@@ -68,9 +98,9 @@ export async function POST(request: NextRequest) {
         const plan = getPlanForStripePrice(priceId);
         const userId = subscription.metadata?.userId;
         const user = userId
-          ? await transaction.user.findUnique({ where: { id: userId }, select: { id: true } })
-          : await transaction.user.findFirst({ where: { billingProvider: "STRIPE", billingCustomerId: String(subscription.customer) }, select: { id: true } });
-        if (user) {
+          ? await transaction.user.findUnique({ where: { id: userId }, select: { id: true, billingSubscriptionId: true } })
+          : await transaction.user.findFirst({ where: { billingProvider: "STRIPE", billingCustomerId: String(subscription.customer) }, select: { id: true, billingSubscriptionId: true } });
+        if (user && shouldApplyStripeSubscriptionEvent(user.billingSubscriptionId, subscription.id)) {
           const active = event.type !== "customer.subscription.deleted" && ["active", "trialing", "past_due"].includes(subscription.status);
           await transaction.user.update({
             where: { id: user.id },
@@ -78,6 +108,9 @@ export async function POST(request: NextRequest) {
               plan: active && plan ? plan : "FREE",
               billingProvider: active && plan ? "STRIPE" : "NONE",
               billingCustomerId: String(subscription.customer),
+              subscriptionStore: active && plan ? "stripe" : null,
+              subscriptionExpiresAt: active ? subscriptionPeriodEnd(subscription) : null,
+              billingSubscriptionId: active && plan ? subscription.id : null,
               formerPro: !active,
               trialStartedAt: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
               trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,

@@ -130,7 +130,9 @@ export async function GET(request: NextRequest) {
       stats: {
         totalUsers,
         freeUsers: stats.find((s) => s.plan === "FREE")?._count || 0,
-        paidUsers: stats.find((s) => s.plan === "PAID")?._count || 0,
+        paidUsers:
+          (stats.find((s) => s.plan === "PAID")?._count || 0) +
+          (stats.find((s) => s.plan === "PRO_MAX")?._count || 0),
         formerProUsers,
         newUsersLast30Days,
       },

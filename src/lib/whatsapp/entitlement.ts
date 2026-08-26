@@ -6,6 +6,7 @@ export type WhatsAppEntitlementDecision =
 
 type EntitlementUser = {
   plan: string;
+  billingProvider: string | null;
   deletedAt: Date | null;
   subscriptionExpiresAt: Date | null;
 };
@@ -25,9 +26,10 @@ export function decideWhatsAppScanEntitlement(
     !user ||
     !binding ||
     user.deletedAt ||
-    user.plan !== "PAID" ||
-    !user.subscriptionExpiresAt ||
-    user.subscriptionExpiresAt <= now ||
+    user.plan === "FREE" ||
+    (user.subscriptionExpiresAt
+      ? user.subscriptionExpiresAt <= now
+      : !["PAYPAL", "STRIPE", "MANUAL"].includes(user.billingProvider || "")) ||
     !binding.active ||
     binding.revokedAt
   ) {
@@ -53,6 +55,7 @@ export async function resolveWhatsAppScanEntitlement(
         user: {
           select: {
             plan: true,
+            billingProvider: true,
             deletedAt: true,
             subscriptionExpiresAt: true,
           },

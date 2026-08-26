@@ -233,11 +233,11 @@ export async function POST(request: NextRequest) {
           where: {
             watchlistEntryId: watchlistEntry.id,
             kind: parsed.data.kind,
-            status: { in: ["ACTIVE", "PAUSED"] },
+            status: { in: ["ACTIVE", "PAUSED", "EXPIRED"] },
           },
-          select: { id: true },
+          select: { id: true, status: true },
         });
-        if (existing) {
+        if (existing?.status === "ACTIVE" || existing?.status === "PAUSED") {
           throw new MonitorApiError(
             "MONITOR_EXISTS",
             "This ticker already has a monitor of that type.",
@@ -245,18 +245,26 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        return transaction.activeMonitor.create({
-          data: {
-            watchlistEntryId: watchlistEntry.id,
-            kind: parsed.data.kind,
-            frequency: parsed.data.frequency,
-            startsAt: now,
-            expiresAt,
-            status: "ACTIVE",
-            lastEvaluatedAt: null,
-            nextEvaluationAt: now,
-          },
-        });
+        const data = {
+          frequency: parsed.data.frequency,
+          startsAt: now,
+          expiresAt,
+          status: "ACTIVE",
+          lastEvaluatedAt: null,
+          nextEvaluationAt: now,
+        } as const;
+        return existing
+          ? transaction.activeMonitor.update({
+              where: { id: existing.id },
+              data,
+            })
+          : transaction.activeMonitor.create({
+              data: {
+                watchlistEntryId: watchlistEntry.id,
+                kind: parsed.data.kind,
+                ...data,
+              },
+            });
       },
       { isolationLevel: "Serializable" },
     );

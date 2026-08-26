@@ -29,7 +29,12 @@ function maskPhoneNumber(phoneNumber: string): string {
 async function activePaidUser(userId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, deletedAt: true, subscriptionExpiresAt: true },
+    select: {
+      plan: true,
+      billingProvider: true,
+      deletedAt: true,
+      subscriptionExpiresAt: true,
+    },
   });
   return decideWhatsAppScanEntitlement(user, { active: true, revokedAt: null }).allowed;
 }

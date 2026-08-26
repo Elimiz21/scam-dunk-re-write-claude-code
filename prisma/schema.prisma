@@ -22,10 +22,11 @@ model User {
   formerPro                  Boolean   @default(false) // true if user ever cancelled a Pro subscription
   billingProvider            String    @default("NONE") // NONE, PAYPAL, STRIPE, APPLE, MANUAL
   billingCustomerId          String?
+  billingSubscriptionId      String?   // current Stripe subscription identity, when applicable
   trialStartedAt             DateTime?
   trialEndsAt                DateTime?
-  // Subscription entitlement (server-authoritative). store: "paypal" | "apple".
-  subscriptionStore          String? // which billing system granted the current plan
+  // Subscription entitlement (server-authoritative). store: "paypal" | "apple" | "stripe".
+  subscriptionStore          String? // which billing system granted the current plan (paypal, apple, stripe)
   subscriptionExpiresAt      DateTime? // when PAID entitlement lapses; null = no active paid entitlement
   // Apple original_transaction_id, globally unique so one purchase cannot upgrade many accounts.
   appleOriginalTransactionId String?   @unique
@@ -185,6 +186,7 @@ model NotificationDelivery {
   executionId       String
   channel           String
   status            String   @default("PENDING")
+  attemptCount      Int      @default(0)
   providerMessageId String?
   errorReason       String?  @db.Text
   attemptedAt       DateTime?

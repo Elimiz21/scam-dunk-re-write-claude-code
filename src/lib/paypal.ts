@@ -97,10 +97,11 @@ export function getPayPalConfig(plan: BillingPlan = "PAID") {
   };
 }
 
-function planForPayPalPlanId(planId: unknown): BillingPlan {
+export function planForPayPalPlanId(planId: unknown): Exclude<BillingPlan, "FREE"> | null {
   const catalog = getBillingPlanCatalog();
   if (planId && planId === catalog.PRO_MAX.paypalPlanId) return "PRO_MAX";
-  return "PAID";
+  if (planId && planId === catalog.PAID.paypalPlanId) return "PAID";
+  return null;
 }
 
 /**
@@ -252,6 +253,7 @@ export async function handleWebhook(
         const subscriptionId = resource.id;
         const customId = resource.custom_id; // We'll store userId here
         const plan = planForPayPalPlanId(resource.plan_id);
+        if (!plan) throw new Error("Unsupported PayPal plan id");
 
         if (customId) {
           await transaction.user.update({
@@ -260,6 +262,10 @@ export async function handleWebhook(
               plan,
               billingProvider: "PAYPAL",
               billingCustomerId: subscriptionId,
+              subscriptionStore: "paypal",
+              subscriptionExpiresAt: resource.billing_info?.next_billing_time
+                ? new Date(resource.billing_info.next_billing_time)
+                : null,
             },
           });
           console.log(`User ${customId} upgraded to PAID plan via PayPal`);
@@ -280,7 +286,14 @@ export async function handleWebhook(
         if (user) {
           await transaction.user.update({
             where: { id: user.id },
-            data: { plan: "FREE", billingProvider: "NONE", billingCustomerId: null, formerPro: true },
+            data: {
+              plan: "FREE",
+              billingProvider: "NONE",
+              billingCustomerId: null,
+              subscriptionStore: null,
+              subscriptionExpiresAt: null,
+              formerPro: true,
+            },
           });
           console.log(
             `User ${user.id} downgraded to FREE plan (PayPal subscription ${eventType})`,
@@ -299,12 +312,24 @@ export async function handleWebhook(
         });
 
         if (user) {
-          const newPlan = status === "ACTIVE" ? planForPayPalPlanId(resource.plan_id) : "FREE";
+          const resolvedPlan = status === "ACTIVE"
+            ? planForPayPalPlanId(resource.plan_id)
+            : null;
+          if (status === "ACTIVE" && !resolvedPlan) {
+            throw new Error("Unsupported PayPal plan id");
+          }
+          const newPlan = resolvedPlan || "FREE";
           await transaction.user.update({
             where: { id: user.id },
             data: {
               plan: newPlan,
-              billingProvider: newPlan === "PAID" ? "PAYPAL" : "NONE",
+              billingProvider: newPlan === "FREE" ? "NONE" : "PAYPAL",
+              subscriptionStore: newPlan === "FREE" ? null : "paypal",
+              subscriptionExpiresAt: newPlan === "FREE"
+                ? null
+                : resource.billing_info?.next_billing_time
+                  ? new Date(resource.billing_info.next_billing_time)
+                  : null,
               ...(newPlan === "FREE" ? { formerPro: true, billingCustomerId: null } : {}),
             },
           });
@@ -322,9 +347,18 @@ export async function handleWebhook(
         });
 
         if (user && user.plan === "FREE") {
+          const plan = planForPayPalPlanId(resource.plan_id);
+          if (!plan) throw new Error("Unsupported PayPal plan id");
           await transaction.user.update({
             where: { id: user.id },
-            data: { plan: planForPayPalPlanId(resource.plan_id), billingProvider: "PAYPAL" },
+            data: {
+              plan,
+              billingProvider: "PAYPAL",
+              subscriptionStore: "paypal",
+              subscriptionExpiresAt: resource.billing_info?.next_billing_time
+                ? new Date(resource.billing_info.next_billing_time)
+                : null,
+            },
           });
           console.log(`User ${user.id} payment completed, ensured PAID plan`);
         }
@@ -418,6 +452,10 @@ export async function activateSubscription(
         plan: requestedPlan,
         billingProvider: "PAYPAL",
         billingCustomerId: subscriptionId,
+        subscriptionStore: "paypal",
+        subscriptionExpiresAt: subscription.billing_info?.next_billing_time
+          ? new Date(subscription.billing_info.next_billing_time)
+          : null,
       },
     });
 

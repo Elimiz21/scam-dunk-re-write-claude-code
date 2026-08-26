@@ -1242,3 +1242,36 @@ export async function sendAPIFailureAlert(
     return false;
   }
 }
+
+export async function sendMonitorResultEmail(
+  email: string,
+  notification: {
+    ticker: string;
+    kind: string;
+    status: string;
+    skipReason?: string | null;
+    publicationKey: string;
+  },
+): Promise<boolean> {
+  const safeTicker = escapeHtml(notification.ticker);
+  const safeKind = escapeHtml(notification.kind === "FULL" ? "full" : "price");
+  const safeStatus = escapeHtml(notification.status.toLowerCase());
+  const safeReason = notification.skipReason
+    ? escapeHtml(notification.skipReason.replaceAll("_", " ").toLowerCase())
+    : "";
+  const result = await sendResendEmail(
+    {
+      from: FROM_EMAIL,
+      to: email,
+      subject: sanitizeSubject(`[ScamDunk] ${notification.ticker} monitoring update`),
+      html: `
+        <p>Your ${safeKind} monitor for <strong>${safeTicker}</strong> has been processed.</p>
+        <p>Status: <strong>${safeStatus}</strong>${safeReason ? ` (${safeReason})` : ""}.</p>
+        <p>This result is based on the completed end-of-day publication ${escapeHtml(notification.publicationKey)}. ScamDunk does not provide live monitoring.</p>
+        <p><a href="${APP_URL}/dashboard">Open your ScamDunk dashboard</a></p>
+      `,
+    },
+    "MONITOR_RESULT",
+  );
+  return !result.error;
+}

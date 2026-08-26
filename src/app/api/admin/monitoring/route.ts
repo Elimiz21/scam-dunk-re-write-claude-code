@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
+import { getStripeIntegrationStatus } from "@/lib/billing/provider";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -238,7 +239,7 @@ async function readBillingStatus() {
     const paypalWebhookConfigured = Boolean(process.env.PAYPAL_WEBHOOK_ID);
     const paypalConfigured =
       paypalCredentialsConfigured && paypalPlanConfigured;
-    const stripeConfigured = false;
+    const stripe = getStripeIntegrationStatus();
 
     return {
       status: (paypalConfigured && paypalWebhookConfigured
@@ -258,11 +259,11 @@ async function readBillingStatus() {
         },
         {
           name: "Stripe",
-          configured: stripeConfigured,
-          credentialsConfigured: false,
-          planConfigured: false,
-          webhookConfigured: false,
-          mode: "disabled",
+          configured: stripe.available,
+          credentialsConfigured: stripe.checkout,
+          planConfigured: stripe.prices.paid || stripe.prices.proMax,
+          webhookConfigured: stripe.webhooks,
+          mode: "live",
           databaseStatus: integrationByName.get("STRIPE")?.status || "UNKNOWN",
           enabled: integrationByName.get("STRIPE")?.isEnabled ?? false,
         },
@@ -270,11 +271,11 @@ async function readBillingStatus() {
       plans: {
         pro: {
           paypalPlanConfigured: Boolean(process.env.PAYPAL_PLAN_ID),
-          stripePriceConfigured: Boolean(process.env.STRIPE_PRICE_PAID_PLAN_ID),
+          stripePriceConfigured: stripe.prices.paid,
         },
         proMax: {
           paypalPlanConfigured: Boolean(process.env.PAYPAL_PRO_MAX_PLAN_ID),
-          stripePriceConfigured: Boolean(process.env.STRIPE_PRO_MAX_PRICE_ID),
+          stripePriceConfigured: stripe.prices.proMax,
         },
       },
     };

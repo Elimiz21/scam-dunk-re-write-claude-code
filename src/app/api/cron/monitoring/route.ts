@@ -5,6 +5,7 @@ import {
   getLatestPublishedPublicationKey,
   runEligibleMonitorPublication,
 } from "@/lib/monitoring/runner";
+import { deliverPendingMonitorNotifications } from "@/lib/monitoring/notifications";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -43,6 +44,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const deliverNotifications = async () => {
+      try {
+        return await deliverPendingMonitorNotifications();
+      } catch (error) {
+        console.error("Monitor notification delivery unavailable:", error);
+        return { processed: 0, delivered: 0, failed: 1 };
+      }
+    };
+    const beforeRunNotifications = await deliverNotifications();
     const publicationKey =
       request.nextUrl.searchParams.get("publicationKey") ??
       (await getLatestPublishedPublicationKey());
@@ -53,14 +63,26 @@ export async function GET(request: NextRequest) {
             code: "STALE_DATA",
             message: "No published end-of-day market scan is available.",
           },
+          notifications: beforeRunNotifications,
         },
         { status: 503 },
       );
     }
     const result = await runEligibleMonitorPublication(publicationKey);
-    return NextResponse.json(result, {
-      headers: { "Cache-Control": "no-store" },
-    });
+    const afterRunNotifications = await deliverNotifications();
+    return NextResponse.json(
+      {
+        ...result,
+        // Include delivery counters so the admin cron log can distinguish a
+        // completed scan from a completed scan whose notifications failed.
+        notifications: {
+          processed: beforeRunNotifications.processed + afterRunNotifications.processed,
+          delivered: beforeRunNotifications.delivered + afterRunNotifications.delivered,
+          failed: beforeRunNotifications.failed + afterRunNotifications.failed,
+        },
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_PUBLICATION_KEY") {
       return NextResponse.json(
