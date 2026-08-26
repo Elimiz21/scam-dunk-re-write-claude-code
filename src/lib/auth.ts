@@ -17,6 +17,7 @@ import { prisma } from "./db";
 import { authConfig } from "./auth.config";
 import { logAuthError } from "./auth-error-tracking";
 import { rateLimit } from "./rate-limit";
+import { findCredentialsUser } from "./auth-user";
 
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
@@ -155,9 +156,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         let user;
         try {
-          user = await prisma.user.findUnique({
-            where: { email },
-          });
+          user = await findCredentialsUser(prisma, email);
         } catch (dbError) {
           const errorMsg =
             dbError instanceof Error ? dbError.message : String(dbError);
