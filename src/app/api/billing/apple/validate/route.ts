@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
+import type { BillingPlan } from "@/lib/billing/provider";
 
 // Apple's receipt validation endpoints
 const APPLE_PRODUCTION_URL = "https://buy.itunes.apple.com/verifyReceipt";
@@ -78,6 +79,12 @@ function isSubscriptionActive(expiresDateMs: string | undefined): boolean {
   return expiresDate > Date.now();
 }
 
+function applePlanForProduct(productId: string): BillingPlan | null {
+  if (productId === process.env.APPLE_PRO_MAX_PRODUCT_ID) return "PRO_MAX";
+  if (productId === process.env.APPLE_PRO_PRODUCT_ID) return "PAID";
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Authenticate mobile request
@@ -98,6 +105,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { receiptData, productId } = validation.data;
+    if (productId && !applePlanForProduct(productId)) {
+      return NextResponse.json(
+        { valid: false, error: "Unsupported Apple subscription product" },
+        { status: 400 },
+      );
+    }
 
     // Check if Apple shared secret is configured
     if (!APPLE_SHARED_SECRET) {
@@ -135,31 +148,25 @@ export async function POST(request: NextRequest) {
 
     // Find active subscription
     const allPurchases = [...latestReceipts, ...inAppPurchases];
-    const activeSubscription = allPurchases.find((purchase) =>
-      isSubscriptionActive(purchase.expires_date_ms),
-    );
+    const activeSubscription = allPurchases
+      .filter(
+        (purchase) =>
+          applePlanForProduct(purchase.product_id) &&
+          (!productId || purchase.product_id === productId),
+      )
+      .find((purchase) => isSubscriptionActive(purchase.expires_date_ms));
 
     if (!activeSubscription) {
-      // No active subscription in this receipt. If the receipt carries an
-      // original_transaction_id that THIS user previously had bound, the
-      // subscription has lapsed — downgrade them to FREE (audit SEC-H2).
-      const expiredOriginalTxnId =
-        allPurchases[0]?.original_transaction_id || undefined;
-
-      if (expiredOriginalTxnId) {
-        await prisma.user.updateMany({
-          where: {
-            id: userId,
-            appleOriginalTransactionId: expiredOriginalTxnId,
-          },
-          data: {
-            plan: "FREE",
-            formerPro: true,
-            subscriptionExpiresAt: null,
-          },
-        });
-      }
-
+      // No active subscription found
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          plan: "FREE",
+          billingProvider: "NONE",
+          billingCustomerId: null,
+          subscriptionExpiresAt: null,
+        },
+      });
       return NextResponse.json({
         valid: true,
         active: false,
@@ -168,46 +175,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const originalTransactionId = activeSubscription.original_transaction_id;
-
-    // Enforce that an Apple original_transaction_id grants PAID to exactly one
-    // account. A single purchased receipt blob shared across accounts must NOT
-    // upgrade them all (audit SEC-H2). If this transaction is already bound to a
-    // DIFFERENT user, reject without upgrading.
-    const existingOwner = await prisma.user.findUnique({
-      where: { appleOriginalTransactionId: originalTransactionId },
-      select: { id: true },
-    });
-
-    if (existingOwner && existingOwner.id !== userId) {
-      console.warn(
-        `Apple receipt replay blocked: original_transaction_id ${originalTransactionId} ` +
-          `already bound to user ${existingOwner.id}, attempted by user ${userId}`,
-      );
-      return NextResponse.json(
-        {
-          valid: false,
-          error: "This subscription is already linked to another account.",
-        },
-        { status: 409 },
-      );
-    }
-
     // Get subscription expiration
     const expiresAt = activeSubscription.expires_date_ms
       ? new Date(parseInt(activeSubscription.expires_date_ms, 10))
       : null;
+    const plan = applePlanForProduct(activeSubscription.product_id);
+    if (!plan) {
+      return NextResponse.json({ valid: false, error: "Unsupported Apple subscription product" }, { status: 400 });
+    }
 
-    // Bind the receipt to this user and persist entitlement. plan=PAID only
-    // while the receipt is unexpired (guaranteed here by isSubscriptionActive).
-    // subscriptionStore/subscriptionExpiresAt make plan state server-authoritative.
+    // Update user plan to PAID
     await prisma.user.update({
       where: { id: userId },
       data: {
-        plan: "PAID",
-        billingCustomerId: originalTransactionId,
-        appleOriginalTransactionId: originalTransactionId,
-        subscriptionStore: "apple",
+        plan,
+        billingProvider: "APPLE",
+        // Store Apple transaction ID for reference
+        billingCustomerId: activeSubscription.original_transaction_id,
         subscriptionExpiresAt: expiresAt,
       },
     });
@@ -220,7 +204,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       valid: true,
       active: true,
-      plan: "PAID",
+      plan,
       productId: activeSubscription.product_id,
       transactionId: activeSubscription.transaction_id,
       expiresAt: expiresAt?.toISOString(),

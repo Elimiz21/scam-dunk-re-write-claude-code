@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/Sidebar";
@@ -12,7 +12,7 @@ import {
   ScanResultsLayout,
   LearnMoreCompact,
 } from "@/components/ScanResultsLayout";
-import { AlertTriangle } from "lucide-react";
+import { Shield, AlertTriangle, Eye } from "lucide-react";
 import {
   RiskResponse,
   LimitReachedResponse,
@@ -21,15 +21,26 @@ import {
 } from "@/lib/types";
 import { getRandomTagline, taglines, Tagline } from "@/lib/taglines";
 import { LandingOptionA } from "@/components/landing/LandingOptionA";
-import { useLiveSiteStats } from "@/lib/use-site-stats";
 import { useToast } from "@/components/ui/toast";
-import { normalizeRiskScore } from "@/lib/utils";
 import { Step } from "@/components/LoadingStepper";
+import { PublicPumpRadar } from "@/components/dashboard/PumpRadar";
+import type {
+  HistoryPayload,
+  ScanDetailDto,
+  ScanSocialDto,
+} from "@/components/dashboard/types";
+
+/** Normalize raw risk score to 0-100 (matches mobile app) */
+function normalizeRiskScore(rawScore: number): number {
+  if (rawScore <= 0) return 0;
+  if (rawScore < 2) return Math.round((rawScore / 2) * 30);
+  if (rawScore < 5) return Math.round(30 + ((rawScore - 2) / 3) * 30);
+  return Math.min(Math.round(60 + ((rawScore - 5) / 15) * 40), 100);
+}
 
 export default function HomeContent() {
   const { data: session, status } = useSession();
   const { addToast } = useToast();
-  const { tiles: statTiles } = useLiveSiteStats();
 
   // Sidebar defaults closed for non-logged-in users (landing page)
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -54,10 +65,8 @@ export default function HomeContent() {
   const [currentTicker, setCurrentTicker] = useState("");
   const [hasChatData, setHasChatData] = useState(false);
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
-
-  // Flag used to cancel the in-flight progress simulation (e.g. on API error)
-  // so the stepper stops advancing instead of animating behind the error screen.
-  const scanCancelledRef = useRef(false);
+  const [scanSocial, setScanSocial] = useState<ScanSocialDto | null>(null);
+  const [scanSocialLoading, setScanSocialLoading] = useState(false);
 
   const [steps, setSteps] = useState<Step[]>([
     { label: "Validating ticker symbol", status: "pending" },
@@ -103,14 +112,12 @@ export default function HomeContent() {
   // Get random tagline on mount (changes on refresh)
   const [tagline] = useState(() => getRandomTagline());
 
-  // Fetch initial usage — keyed on the user id so we don't refetch on every
-  // NextAuth session-object change (token refresh, window refocus, etc.).
+  // Fetch initial usage
   useEffect(() => {
-    if (session?.user?.id) {
+    if (session?.user) {
       fetchUsage();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
+  }, [session]);
 
   const fetchUsage = async () => {
     try {
@@ -144,10 +151,11 @@ export default function HomeContent() {
     setError("");
     setResult(null);
     setLimitReached(null);
+    setScanSocial(null);
+    setScanSocialLoading(false);
     setIsLoading(true);
     setCurrentTicker(data.ticker);
     setHasChatData(!!data.pitchText?.trim());
-    scanCancelledRef.current = false;
 
     // Reset steps with enhanced granular progress
     const initialSteps: Step[] = [
@@ -181,24 +189,13 @@ export default function HomeContent() {
       });
     }, 3000);
 
-    // Cancellable sleep: resolves false if the scan was cancelled (e.g. on
-    // API error) so the progress simulation can bail out instead of animating
-    // behind the error screen.
-    const sleep = (ms: number) =>
-      new Promise<boolean>((resolve) =>
-        setTimeout(() => resolve(!scanCancelledRef.current), ms),
-      );
-
     try {
-      // Animated step progress. Steps 1-3 ("Validating", "Fetching",
-      // "Running risk analysis") are presentational stages we can honestly
-      // claim are underway. The final two steps (regulatory alerts + report)
-      // are NOT pre-stamped here — they're resolved from the real API outcome
-      // below so we never assert a check that didn't happen. The artificial
-      // floor is capped at ~2s total and aborts early when cancelled.
+      // Simulate step progress — decoupled from actual scan.
+      // Each step stays grey for at least 1 second after the previous
+      // step turns green, making the scan feel thorough.
       const simulateSteps = async () => {
         // Step 1: Validating ticker
-        if (!(await sleep(350))) return;
+        await new Promise((r) => setTimeout(r, 1200));
         setSteps((s) => [
           {
             ...s[0],
@@ -211,8 +208,8 @@ export default function HomeContent() {
           s[4],
         ]);
 
-        // Step 2: Fetching market data
-        if (!(await sleep(350))) return;
+        // Step 2: Fetching market data (grey 1s → loading → complete)
+        await new Promise((r) => setTimeout(r, 1400));
         setSteps((s) => [
           s[0],
           {
@@ -237,7 +234,7 @@ export default function HomeContent() {
         ]);
 
         // Step 3a: Price patterns
-        if (!(await sleep(300))) return;
+        await new Promise((r) => setTimeout(r, 1200));
         setSteps((s) => [
           s[0],
           s[1],
@@ -258,7 +255,7 @@ export default function HomeContent() {
         ]);
 
         // Step 3b: Volume anomalies
-        if (!(await sleep(250))) return;
+        await new Promise((r) => setTimeout(r, 1100));
         setSteps((s) => [
           s[0],
           s[1],
@@ -278,9 +275,8 @@ export default function HomeContent() {
           s[4],
         ]);
 
-        // Step 3c: Pump-and-dump signals → leave regulatory step "loading"
-        // until the real response resolves it.
-        if (!(await sleep(250))) return;
+        // Step 3c: Pump-and-dump signals
+        await new Promise((r) => setTimeout(r, 1100));
         setSteps((s) => [
           s[0],
           s[1],
@@ -300,9 +296,25 @@ export default function HomeContent() {
           { ...s[3], status: "loading" },
           s[4],
         ]);
+
+        // Step 4: Regulatory alerts
+        await new Promise((r) => setTimeout(r, 1200));
+        setSteps((s) => [
+          s[0],
+          s[1],
+          s[2],
+          {
+            ...s[3],
+            status: "complete",
+            detail: "SEC and alert databases checked",
+          },
+          { ...s[4], status: "loading" },
+        ]);
       };
 
       // Run the actual API call and the visual simulation in parallel.
+      // The simulation is deliberately slower — if the API finishes
+      // first, the user still sees the steps finish at their own pace.
       const apiCall = fetch("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -316,12 +328,24 @@ export default function HomeContent() {
 
       const [response] = await Promise.all([apiCall, simulateSteps()]);
 
+      // Complete final step
+      setSteps((s) => [
+        s[0],
+        s[1],
+        s[2],
+        s[3],
+        { ...s[4], status: "complete", detail: "Analysis complete" },
+      ]);
+
+      // Brief pause so the user sees all green before results appear
+      await new Promise((r) => setTimeout(r, 600));
+
+      // Stop tip rotation
+      clearInterval(tipInterval);
+
       const responseData = await response.json();
 
       if (response.status === 429) {
-        // Cancel the simulation; we're switching to the limit screen.
-        scanCancelledRef.current = true;
-        clearInterval(tipInterval);
         setLimitReached(responseData as LimitReachedResponse);
         setUsage({
           plan: responseData.usage.plan,
@@ -330,40 +354,17 @@ export default function HomeContent() {
           limitReached: true,
         });
       } else if (!response.ok) {
-        // Cancel the simulation so the stepper stops animating behind the
-        // error screen.
-        scanCancelledRef.current = true;
-        clearInterval(tipInterval);
         setError(
           responseData.message || responseData.error || "An error occurred",
         );
       } else {
-        // Success — now we can truthfully complete the regulatory + report
-        // steps based on the actual analysis.
-        setSteps((s) => [
-          s[0],
-          s[1],
-          s[2],
-          {
-            ...s[3],
-            status: "complete",
-            detail: "Regulatory and alert checks complete",
-          },
-          { ...s[4], status: "complete", detail: "Analysis complete" },
-        ]);
-
-        // Brief pause so the user sees all green before results appear.
-        await new Promise((r) => setTimeout(r, 400));
-
-        clearInterval(tipInterval);
         setResult(responseData as RiskResponse);
         setUsage(responseData.usage);
         setScanRefreshKey((k) => k + 1);
         setSidebarOpen(false);
+        void fetchLatestScanSocial(data.ticker);
       }
     } catch (err) {
-      // Stop the simulation and tip rotation; surface the error.
-      scanCancelledRef.current = true;
       clearInterval(tipInterval);
       setError("An error occurred. Please try again.");
     } finally {
@@ -372,57 +373,53 @@ export default function HomeContent() {
     }
   };
 
+  const fetchLatestScanSocial = async (ticker: string) => {
+    setScanSocialLoading(true);
+    setScanSocial(null);
+    try {
+      const historyResponse = await fetch(
+        "/api/scans/history?order=MOST_RECENT&page=1&limit=10",
+        { cache: "no-store" },
+      );
+      if (!historyResponse.ok) return;
+      const history = (await historyResponse.json()) as HistoryPayload;
+      const latest = history.items.find(
+        (item) => item.ticker.toUpperCase() === ticker.trim().toUpperCase(),
+      );
+      if (!latest) return;
+      const detailResponse = await fetch(
+        `/api/scans/${encodeURIComponent(latest.id)}`,
+        { cache: "no-store" },
+      );
+      if (!detailResponse.ok) return;
+      const detail = (await detailResponse.json()) as ScanDetailDto;
+      setScanSocial(detail.social);
+    } catch (err) {
+      console.error("Failed to load social scan evidence:", err);
+    } finally {
+      setScanSocialLoading(false);
+    }
+  };
+
   const handleNewScan = () => {
     setResult(null);
     setLimitReached(null);
     setError("");
     setCurrentTicker("");
+    setScanSocial(null);
+    setScanSocialLoading(false);
   };
-
-  // Re-scan a ticker straight from the sidebar watchlist.
-  const handleScanTicker = (ticker: string, assetType: string) => {
-    handleSubmit({
-      ticker: ticker.toUpperCase(),
-      assetType: assetType === "crypto" ? "crypto" : "stock",
-    });
-  };
-
-  // Auto-run a scan when arriving with /?scan=TICKER — the sidebar watchlist
-  // uses this from pages that don't host the scan UI. Fires once after the
-  // session state is known, and cleans the URL first so a refresh or
-  // back-navigation doesn't silently burn another scan.
-  const autoScanFiredRef = useRef(false);
-  useEffect(() => {
-    if (status === "loading" || autoScanFiredRef.current) return;
-    const params = new URLSearchParams(window.location.search);
-    const ticker = params.get("scan");
-    if (!ticker) return;
-    autoScanFiredRef.current = true;
-
-    if (!session) {
-      // Preserve the requested scan through the login round-trip.
-      window.location.href = `/login?callbackUrl=${encodeURIComponent(`/?scan=${ticker}`)}`;
-      return;
-    }
-
-    const assetType: AssetType =
-      params.get("type") === "crypto" ? "crypto" : "stock";
-    params.delete("scan");
-    params.delete("type");
-    const qs = params.toString();
-    window.history.replaceState(
-      {},
-      "",
-      qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
-    );
-    handleSubmit({ ticker: ticker.toUpperCase(), assetType });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, session]);
 
   const handleShare = async () => {
     if (result) {
       const normalizedScore = normalizeRiskScore(result.totalScore);
-      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${result.riskLevel} RISK (Score: ${normalizedScore}/100)\n\nCheck your stocks for scam red flags at ScamDunk.`;
+      const customerRiskLabel =
+        result.riskLevel === "HIGH"
+          ? "High risk"
+          : result.riskLevel === "LOW"
+            ? "Low risk"
+            : "Caution";
+      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${customerRiskLabel} (Score: ${normalizedScore}/100)\n\nCheck your stocks for scam red flags at ScamDunk.`;
       const shareUrl =
         typeof window !== "undefined" ? window.location.href : "";
 
@@ -475,7 +472,6 @@ export default function HomeContent() {
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onNewScan={handleNewScan}
-        onScanTicker={handleScanTicker}
         refreshKey={scanRefreshKey}
       />
 
@@ -516,15 +512,15 @@ export default function HomeContent() {
               <div className="lg:w-3/4 flex items-center justify-center">
                 <div className="max-w-lg w-full animate-fade-in">
                   <div className="text-center mb-8">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border mb-4">
-                      <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                      <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                      <div className="h-2 w-2 rounded-full gradient-brand animate-pulse" />
+                      <span className="text-sm font-semibold text-primary">
                         Scanning
                       </span>
                     </div>
-                    <h2 className="font-editorial text-3xl md:text-4xl leading-tight text-foreground mb-1">
+                    <h2 className="font-display text-title mb-1 italic">
                       Analyzing{" "}
-                      <span className="text-brand-blue">
+                      <span className="gradient-brand-text not-italic font-sans font-bold">
                         {currentTicker.toUpperCase()}
                       </span>
                     </h2>
@@ -549,6 +545,8 @@ export default function HomeContent() {
               result={result}
               hasChatData={hasChatData}
               onNewScan={handleNewScan}
+              social={scanSocial}
+              socialLoading={scanSocialLoading}
             />
           )}
 
@@ -557,15 +555,25 @@ export default function HomeContent() {
             <>
               {/* Logged-in users: simple welcome with ScanInput */}
               {session ? (
-                <div className="flex-1 flex flex-col items-center p-4 pb-8 bg-background overflow-y-auto">
+                <div className="flex-1 flex flex-col items-center p-4 pb-8 gradient-mesh overflow-y-auto">
                   <div className="text-center mb-8 mt-8 sm:mt-16 animate-fade-in">
-                    <p className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                      Free stock scam &amp; fraud checker
-                    </p>
-                    <h1 className="font-editorial text-[clamp(2rem,4.5vw,3.25rem)] leading-[1.12] text-foreground mb-4 max-w-xl mx-auto">
+                    <div className="flex justify-center mb-6">
+                      <div className="relative">
+                        <div className="h-16 w-16 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/25 animate-gentle-float">
+                          <Shield
+                            className="h-8 w-8 text-white"
+                            strokeWidth={2}
+                          />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
+                          <Eye className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      </div>
+                    </div>
+                    <h1 className="font-display text-hero-sm sm:text-hero mb-4 max-w-xl mx-auto italic">
                       {tagline.headline}
                     </h1>
-                    <p className="text-[15px] leading-relaxed text-muted-foreground max-w-md mx-auto">
+                    <p className="text-subtitle text-muted-foreground max-w-md mx-auto">
                       {tagline.subtext}
                     </p>
                   </div>
@@ -578,7 +586,7 @@ export default function HomeContent() {
                   )}
 
                   <div
-                    className="w-full max-w-3xl mx-auto mt-2 mb-10 animate-fade-in"
+                    className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in"
                     style={{ animationDelay: "0.05s" }}
                   >
                     <ScanInput
@@ -587,43 +595,26 @@ export default function HomeContent() {
                       disabled={usage?.limitReached && !result}
                     />
                   </div>
-
-                  {/* Live scan stats — refreshed after each daily scan */}
-                  <div
-                    className="w-full max-w-3xl mx-auto mb-12 animate-fade-in"
-                    style={{ animationDelay: "0.1s" }}
-                  >
-                    <div className="grid grid-cols-2 gap-4 rounded-2xl border border-border bg-card px-6 py-5 text-center sm:grid-cols-4">
-                      {[
-                        [statTiles.stocksPerDay, "stocks scanned daily"],
-                        [statTiles.totalScans, "scans since January"],
-                        [
-                          statTiles.dumpsConfirmed6mo,
-                          "pump-and-dumps confirmed (6 mo)",
-                        ],
-                        [statTiles.pumpingNow, "suspected pumps live now"],
-                      ].map(([num, label]) => (
-                        <div key={label}>
-                          <p className="font-editorial text-2xl text-foreground">
-                            {num}
-                          </p>
-                          <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                            {label}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mb-12 w-full max-w-[1200px]">
+                    <PublicPumpRadar showDashboardLink />
                   </div>
                 </div>
               ) : (
-                <LandingOptionA
-                  onSubmit={handleSubmit}
-                  isLoading={isLoading}
-                  disabled={usage?.limitReached && !result}
-                  error={error}
-                  headline={heroContent.headline}
-                  subheadline={heroContent.subheadline}
-                />
+                <>
+                  <LandingOptionA
+                    onSubmit={handleSubmit}
+                    isLoading={isLoading}
+                    disabled={usage?.limitReached && !result}
+                    error={error}
+                    headline={heroContent.headline}
+                    subheadline={heroContent.subheadline}
+                  />
+                  <section className="bg-background px-4 py-10 sm:px-6 sm:py-14" aria-label="Pump Radar market-wide findings">
+                    <div className="mx-auto w-full max-w-[1200px]">
+                      <PublicPumpRadar />
+                    </div>
+                  </section>
+                </>
               )}
             </>
           )}

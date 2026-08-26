@@ -15,6 +15,7 @@ import { logScanHistory } from "@/lib/admin/metrics";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { sendAPIFailureAlert } from "@/lib/email";
 import { parseAIBackendResponse } from "@/lib/ai-backend-schema";
+import { normalizeSupportedTicker } from "@/lib/stock-universe";
 import {
   LimitReachedResponse,
   RiskResponse,
@@ -319,6 +320,24 @@ async function processCheckRequest(
     const checkRequest = validation.data;
     const ticker = checkRequest.ticker.toUpperCase();
     const assetType = checkRequest.assetType || "stock";
+
+    // V1 is limited to US-listed common stocks. Reject unsupported inputs
+    // before regulatory lookups or quota reservation so they never consume a
+    // scan credit.
+    if (assetType !== "stock") {
+      return NextResponse.json(
+        { error: "Only US-listed common stocks are supported in ScamDunk V1.", code: "UNSUPPORTED_ASSET" },
+        { status: 400 },
+      );
+    }
+    const normalizedTicker = normalizeSupportedTicker(ticker);
+    if ("reason" in normalizedTicker) {
+      const code = normalizedTicker.reason;
+      return NextResponse.json(
+        { error: "Enter a supported US-listed common-stock ticker.", code },
+        { status: 400 },
+      );
+    }
 
     const context = {
       unsolicited: checkRequest.context?.unsolicited ?? false,

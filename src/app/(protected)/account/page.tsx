@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
+  Shield,
   User,
   CreditCard,
   LogOut,
@@ -24,32 +25,65 @@ import {
   AlertTriangle,
   Calendar,
   XCircle,
-  MessageCircle,
 } from "lucide-react";
 import { UsageInfo } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { PayPalButton } from "@/components/PayPalButton";
-import { Logo } from "@/components/Logo";
 
 interface SubscriptionInfo {
-  plan: "FREE" | "PAID";
+  plan: "FREE" | "PAID" | "PRO_MAX";
   subscriptionId?: string;
   status?: string;
   nextBillingDate?: string;
   startDate?: string;
+  billing?: BillingEntitlements;
+  plans?: BillingPlanSummary[];
+  stripe?: {
+    available: boolean;
+    checkout: boolean;
+    webhooks: boolean;
+    reason: string | null;
+  };
 }
 
-interface WhatsAppBindingStatus {
-  active: boolean;
-  maskedPhone?: string;
-  /** False until the WhatsApp provider is configured — feature shows as coming soon. */
-  available?: boolean;
+interface BillingPlanSummary {
+  plan: "FREE" | "PAID" | "PRO_MAX";
+  displayName: "Free" | "Pro" | "Pro Max";
+  monthlyPriceCents: number | null;
+  currency: "USD";
+  paypalPlanId: string | null;
+  stripePriceId: string | null;
+  manualScanCredits: number;
+  fullMonitorSlots: number;
+  priceMonitorSlots: number;
+}
+
+interface BillingEntitlements extends BillingPlanSummary {
+  provider: "NONE" | "PAYPAL" | "STRIPE" | "APPLE" | "MANUAL";
+  subscriptionId: string | null;
+  trial: {
+    days: number;
+    requiresPaymentMethod: boolean;
+    startsAt: string | null;
+    endsAt: string | null;
+  };
+}
+
+function formatMonthlyPrice(priceCents: number | null): string {
+  if (priceCents === null) return "Price set at checkout";
+  if (priceCents === 0) return "Free";
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(priceCents / 100);
 }
 
 function AccountAlerts() {
   const searchParams = useSearchParams();
   const upgraded = searchParams.get("upgraded");
   const canceled = searchParams.get("canceled");
+  const billing = searchParams.get("billing");
 
   return (
     <>
@@ -60,7 +94,7 @@ function AccountAlerts() {
             Welcome to ScamDunk Pro!
           </AlertTitle>
           <AlertDescription className="text-green-700 dark:text-green-300">
-            Your account has been upgraded. You now have 200 checks per month.
+            Your account has been upgraded. Your Pro credits are now active.
           </AlertDescription>
         </Alert>
       )}
@@ -73,6 +107,21 @@ function AccountAlerts() {
           </AlertDescription>
         </Alert>
       )}
+      {billing === "success" && (
+        <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+          <Check className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800 dark:text-green-200">Checkout complete</AlertTitle>
+          <AlertDescription className="text-green-700 dark:text-green-300">
+            Your payment is being confirmed. Your plan will update as soon as the billing provider webhook is received.
+          </AlertDescription>
+        </Alert>
+      )}
+      {billing === "cancelled" && (
+        <Alert>
+          <AlertTitle>Checkout canceled</AlertTitle>
+          <AlertDescription>No changes were made to your account.</AlertDescription>
+        </Alert>
+      )}
     </>
   );
 }
@@ -83,8 +132,6 @@ function AccountContent() {
   const { addToast } = useToast();
 
   const [usage, setUsage] = useState<UsageInfo | null>(null);
-  const [isLoadingUsage, setIsLoadingUsage] = useState(true);
-  const [usageError, setUsageError] = useState(false);
   const [error, setError] = useState("");
 
   // Profile editing
@@ -109,23 +156,16 @@ function AccountContent() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  // WhatsApp account linking (the code is entered here, never in chat).
-  const [whatsAppBinding, setWhatsAppBinding] =
-    useState<WhatsAppBindingStatus | null>(null);
-  const [isLoadingWhatsApp, setIsLoadingWhatsApp] = useState(true);
-  const [whatsAppPhone, setWhatsAppPhone] = useState("");
-  const [whatsAppCode, setWhatsAppCode] = useState("");
-  const [isSendingWhatsAppCode, setIsSendingWhatsAppCode] = useState(false);
-  const [isConfirmingWhatsApp, setIsConfirmingWhatsApp] = useState(false);
-  const [isRevokingWhatsApp, setIsRevokingWhatsApp] = useState(false);
-  const [whatsAppError, setWhatsAppError] = useState("");
-  const [whatsAppCodeSent, setWhatsAppCodeSent] = useState(false);
-
   // Account deletion
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const billing = subscriptionInfo?.billing;
+  const currentPlan = billing?.plan ?? usage?.plan ?? "FREE";
+  const currentPlanName = billing?.displayName ?? (currentPlan === "PAID" ? "Pro" : "Free");
+  const monthlyCredits =
+    billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 5;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -133,34 +173,23 @@ function AccountContent() {
     }
   }, [status, router]);
 
-  // Key on the user id so we don't refetch on every NextAuth session-object
-  // change (token refresh, window refocus, etc.).
   useEffect(() => {
-    if (session?.user?.id) {
+    if (session?.user) {
       fetchUsage();
       fetchSubscriptionInfo();
-      fetchWhatsAppBinding();
       setEditName(session.user.name || "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
+  }, [session]);
 
   const fetchUsage = async () => {
-    setIsLoadingUsage(true);
-    setUsageError(false);
     try {
       const response = await fetch("/api/user/usage");
       if (response.ok) {
         const data = await response.json();
         setUsage(data);
-      } else {
-        setUsageError(true);
       }
     } catch (err) {
       console.error("Failed to fetch usage:", err);
-      setUsageError(true);
-    } finally {
-      setIsLoadingUsage(false);
     }
   };
 
@@ -176,81 +205,6 @@ function AccountContent() {
       console.error("Failed to fetch subscription info:", err);
     } finally {
       setIsLoadingSubscription(false);
-    }
-  };
-
-  const fetchWhatsAppBinding = async () => {
-    setIsLoadingWhatsApp(true);
-    try {
-      const response = await fetch("/api/user/whatsapp");
-      if (!response.ok) throw new Error("Unable to load WhatsApp status");
-      setWhatsAppBinding(await response.json());
-    } catch {
-      setWhatsAppError("Couldn’t load WhatsApp access. Try again.");
-    } finally {
-      setIsLoadingWhatsApp(false);
-    }
-  };
-
-  const handleSendWhatsAppCode = async () => {
-    setIsSendingWhatsAppCode(true);
-    setWhatsAppError("");
-    try {
-      const response = await fetch("/api/user/whatsapp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "begin", phoneNumber: whatsAppPhone }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setWhatsAppCodeSent(true);
-      addToast({
-        type: "success",
-        title: "Verification code sent",
-        description: `Enter the code sent to ${data.maskedPhone} here to finish linking.`,
-      });
-    } catch (error) {
-      setWhatsAppError(error instanceof Error ? error.message : "Couldn’t send a code. Try again.");
-    } finally {
-      setIsSendingWhatsAppCode(false);
-    }
-  };
-
-  const handleConfirmWhatsAppCode = async () => {
-    setIsConfirmingWhatsApp(true);
-    setWhatsAppError("");
-    try {
-      const response = await fetch("/api/user/whatsapp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "confirm", code: whatsAppCode }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setWhatsAppBinding({ active: true, maskedPhone: data.maskedPhone });
-      setWhatsAppCode("");
-      setWhatsAppPhone("");
-      setWhatsAppCodeSent(false);
-      addToast({ type: "success", title: "WhatsApp linked", description: "Send AAPL or scan AAPL to ScamDunk to run a stock scan." });
-    } catch (error) {
-      setWhatsAppError(error instanceof Error ? error.message : "Couldn’t verify the code. Try again.");
-    } finally {
-      setIsConfirmingWhatsApp(false);
-    }
-  };
-
-  const handleRevokeWhatsApp = async () => {
-    setIsRevokingWhatsApp(true);
-    setWhatsAppError("");
-    try {
-      const response = await fetch("/api/user/whatsapp", { method: "DELETE" });
-      if (!response.ok) throw new Error("Couldn’t unlink WhatsApp. Try again.");
-      setWhatsAppBinding({ active: false });
-      addToast({ type: "success", title: "WhatsApp unlinked", description: "This number can no longer request ScamDunk scans." });
-    } catch (error) {
-      setWhatsAppError(error instanceof Error ? error.message : "Couldn’t unlink WhatsApp. Try again.");
-    } finally {
-      setIsRevokingWhatsApp(false);
     }
   };
 
@@ -287,9 +241,7 @@ function AccountContent() {
     }
   };
 
-  // Memoized so PayPalButton receives stable callback identities and does not
-  // tear down / re-render the PayPal button on every parent re-render.
-  const handlePayPalSuccess = useCallback(() => {
+  const handlePayPalSuccess = () => {
     // Refresh usage and subscription data
     fetchUsage();
     fetchSubscriptionInfo();
@@ -297,17 +249,49 @@ function AccountContent() {
     addToast({
       type: "success",
       title: "Subscription activated!",
-      description:
-        "Welcome to ScamDunk Pro. You now have 200 checks per month.",
+      description: "Welcome to ScamDunk Pro. Your new plan is now active.",
     });
     // Refresh the page to update UI
     router.refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addToast, router]);
+  };
 
-  const handlePayPalError = useCallback((err: string) => {
-    setError(`Payment failed: ${err}`);
-  }, []);
+  const handlePayPalError = (error: string) => {
+    setError(`Payment failed: ${error}`);
+  };
+
+  const handleStripeCheckout = async (plan: "PAID" | "PRO_MAX") => {
+    setError("");
+    try {
+      const response = await fetch("/api/billing/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        setError(data.error || "Stripe checkout is unavailable.");
+        return;
+      }
+      window.location.assign(data.url);
+    } catch {
+      setError("Stripe checkout is temporarily unavailable. Please try again.");
+    }
+  };
+
+  const handleStripePortal = async () => {
+    setError("");
+    try {
+      const response = await fetch("/api/billing/stripe/portal", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        setError(data.error || "Stripe account management is unavailable.");
+        return;
+      }
+      window.location.assign(data.url);
+    } catch {
+      setError("Stripe account management is temporarily unavailable. Please try again.");
+    }
+  };
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
@@ -447,16 +431,21 @@ function AccountContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/60 bg-background/85 backdrop-blur sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Logo size={40} href="/" />
+      <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+            <span className="text-xl sm:text-2xl font-bold font-display italic">
+              ScamDunk
+            </span>
+          </Link>
           <nav className="flex items-center gap-2 sm:gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/">
                 <span className="hidden sm:inline">New Scan</span>
                 <span className="sm:hidden">Scan</span>
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Log out</span>
@@ -467,14 +456,9 @@ function AccountContent() {
 
       <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Account
-            </p>
-            <h1 className="font-editorial mt-2 text-3xl sm:text-4xl leading-tight text-foreground">
-              Account settings
-            </h1>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display italic">
+            Account Settings
+          </h1>
 
           {/* Success/Canceled alerts */}
           <Suspense fallback={null}>
@@ -730,13 +714,14 @@ function AccountContent() {
                   <p className="text-sm text-muted-foreground">Current Plan</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge
-                      variant={usage?.plan === "PAID" ? "default" : "secondary"}
+                      variant={currentPlan === "FREE" ? "secondary" : "default"}
                     >
-                      {usage?.plan === "PAID" ? "Pro" : "Free"}
+                      {currentPlanName}
                     </Badge>
-                    {usage?.plan === "PAID" && (
+                    {billing && (
                       <span className="text-sm text-muted-foreground">
-                        $4.99/month
+                        {formatMonthlyPrice(billing.monthlyPriceCents)}
+                        {billing.monthlyPriceCents && "/month"}
                       </span>
                     )}
                   </div>
@@ -747,68 +732,78 @@ function AccountContent() {
                 <p className="text-sm text-muted-foreground">
                   Checks Used This Month
                 </p>
-                {usageError ? (
-                  <div className="mt-2">
-                    <p className="text-sm text-destructive">
-                      Couldn&apos;t load your usage right now.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={fetchUsage}
-                    >
-                      Retry
-                    </Button>
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium">
+                      {usage?.scansUsedThisMonth ?? 0} /{" "}
+                      {monthlyCredits}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {monthlyCredits &&
+                        usage.scansUsedThisMonth !== undefined &&
+                        Math.round(
+                          (usage.scansUsedThisMonth /
+                            monthlyCredits) *
+                            100,
+                        )}
+                      % used
+                    </span>
                   </div>
-                ) : isLoadingUsage || !usage ? (
-                  <div className="mt-2 animate-pulse">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="h-4 w-16 bg-secondary rounded" />
-                      <div className="h-4 w-14 bg-secondary rounded" />
-                    </div>
-                    <div className="h-2 bg-secondary rounded-full" />
+                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{
+                        width: `${
+                          monthlyCredits
+                            ? Math.min(
+                                ((usage.scansUsedThisMonth ?? 0) /
+                                  monthlyCredits) *
+                                  100,
+                                100,
+                              )
+                            : 0
+                        }%`,
+                      }}
+                    />
                   </div>
-                ) : (
-                  (() => {
-                    const used = usage.scansUsedThisMonth;
-                    const limit = usage.scansLimitThisMonth;
-                    const percentUsed =
-                      limit > 0
-                        ? Math.min(Math.round((used / limit) * 100), 100)
-                        : 0;
-                    return (
-                      <div className="mt-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium">
-                            {used} / {limit}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {percentUsed}% used
-                          </span>
-                        </div>
-                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: `${percentUsed}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })()
-                )}
+                </div>
                 <p className="text-xs text-muted-foreground mt-2">
                   Resets at the beginning of each month
                 </p>
               </div>
 
+              {billing && (
+                <div className="grid gap-3 sm:grid-cols-2 pt-4 border-t">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Full monitors
+                    </p>
+                    <p className="font-medium">{billing.fullMonitorSlots} slots</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Price monitors
+                    </p>
+                    <p className="font-medium">{billing.priceMonitorSlots} slots</p>
+                  </div>
+                  <p className="sm:col-span-2 text-xs text-muted-foreground">
+                    Price monitoring is checked after the trading day closes — not live.
+                  </p>
+                </div>
+              )}
+
               {/* Subscription details for PAID users */}
-              {usage?.plan === "PAID" && (
+              {currentPlan !== "FREE" && (
                 <div className="pt-4 border-t space-y-4">
                   <div>
                     <p className="text-sm font-medium mb-2">
                       Subscription Details
                     </p>
+                    {billing && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Billing provider: {billing.provider === "PAYPAL" ? "PayPal" : billing.provider === "STRIPE" ? "Stripe" : billing.provider === "APPLE" ? "Apple" : "Manual account access"}
+                      </p>
+                    )}
                     {isLoadingSubscription ? (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -828,13 +823,13 @@ function AccountContent() {
                       </div>
                     ) : subscriptionInfo?.subscriptionId ? (
                       <p className="text-sm text-muted-foreground">
-                        Subscription active via PayPal
+                        Subscription active via {billing?.provider === "STRIPE" ? "Stripe" : billing?.provider === "APPLE" ? "Apple" : "PayPal"}
                       </p>
                     ) : null}
                   </div>
 
                   {/* Cancel subscription */}
-                  {!showCancelConfirm ? (
+                  {billing?.provider === "PAYPAL" && !showCancelConfirm ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -844,18 +839,18 @@ function AccountContent() {
                       <XCircle className="h-4 w-4 mr-2" />
                       Cancel Subscription
                     </Button>
-                  ) : (
+                  ) : billing?.provider === "PAYPAL" ? (
                     <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
                       <div className="flex items-start gap-2">
                         <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                         <div>
                           <p className="text-sm font-medium">
-                            Cancel your Pro subscription?
+                            Cancel your {currentPlanName} subscription?
                           </p>
                           <p className="text-sm text-muted-foreground mt-1">
                             Your plan will be downgraded to Free immediately.
-                            You will lose access to 200 monthly checks and be
-                            limited to 5 checks per month. You can re-subscribe
+                            Your monthly credits and active-monitor slots will
+                            return to the Free-plan limits. You can re-subscribe
                             at any time.
                           </p>
                         </div>
@@ -886,96 +881,86 @@ function AccountContent() {
                         </Button>
                       </div>
                     </div>
+                  ) : billing?.provider === "STRIPE" ? (
+                    <Button variant="outline" size="sm" onClick={handleStripePortal}>
+                      Manage billing in Stripe
+                    </Button>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      This plan is not managed through PayPal, so changes must be handled by support.
+                    </p>
                   )}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* WhatsApp scan access */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" />
-                WhatsApp scans
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Link one WhatsApp number to send a stock ticker for a ScamDunk scan. Only <span className="font-medium text-foreground">AAPL</span> or <span className="font-medium text-foreground">scan AAPL</span> are supported.
-              </p>
-              {isLoadingWhatsApp ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading WhatsApp access…</div>
-              ) : whatsAppError ? (
-                <Alert variant="destructive"><AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><span>{whatsAppError}</span><Button variant="outline" size="sm" onClick={() => { setWhatsAppError(""); fetchWhatsAppBinding(); }}>Retry</Button></AlertDescription></Alert>
-              ) : whatsAppBinding?.available === false ? (
-                <Alert>
-                  <AlertDescription>
-                    <span className="mr-2 rounded-full border border-teal/40 bg-teal/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-teal">
-                      Coming soon
-                    </span>
-                    WhatsApp scanning is launching shortly. As a subscriber
-                    you&apos;ll be able to link your number here the day it
-                    goes live — no extra cost.
-                  </AlertDescription>
-                </Alert>
-              ) : whatsAppBinding?.active ? (
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border p-3">
-                  <div><p className="font-medium">Linked {whatsAppBinding.maskedPhone ? `to ${whatsAppBinding.maskedPhone}` : ""}</p><p className="text-sm text-muted-foreground">Scans still use your current monthly ScamDunk allowance.</p></div>
-                  <Button variant="outline" onClick={handleRevokeWhatsApp} disabled={isRevokingWhatsApp}>{isRevokingWhatsApp ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Unlinking…</> : "Unlink WhatsApp"}</Button>
-                </div>
-              ) : usage?.plan !== "PAID" ? (
-                <Alert><AlertDescription>An active ScamDunk subscription is required before you can link WhatsApp.</AlertDescription></Alert>
-              ) : whatsAppCodeSent ? (
-                <div className="space-y-3">
-                  <div className="space-y-2"><Label htmlFor="whatsapp-code">Six-digit verification code</Label><Input id="whatsapp-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={whatsAppCode} onChange={(event) => setWhatsAppCode(event.target.value.replace(/\D/g, ""))} placeholder="123456" disabled={isConfirmingWhatsApp} /></div>
-                  <div className="flex flex-col gap-2 sm:flex-row"><Button onClick={handleConfirmWhatsAppCode} disabled={isConfirmingWhatsApp || whatsAppCode.length !== 6}>{isConfirmingWhatsApp ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying…</> : "Verify and link"}</Button><Button variant="outline" onClick={() => { setWhatsAppCodeSent(false); setWhatsAppCode(""); }}>Use another number</Button></div>
-                </div>
-              ) : (
-                <div className="space-y-3"><div className="space-y-2"><Label htmlFor="whatsapp-phone">WhatsApp phone number</Label><Input id="whatsapp-phone" type="tel" inputMode="tel" autoComplete="tel" value={whatsAppPhone} onChange={(event) => setWhatsAppPhone(event.target.value)} placeholder="+12125550199" disabled={isSendingWhatsAppCode} /><p className="text-xs text-muted-foreground">Use international format. We’ll send a one-time code to this WhatsApp chat; enter it on this page.</p></div><Button onClick={handleSendWhatsAppCode} disabled={isSendingWhatsAppCode || !whatsAppPhone}>{isSendingWhatsAppCode ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending code…</> : "Send verification code"}</Button></div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Upgrade CTA for free users */}
-          {usage?.plan === "FREE" && (
-            <Card className="rounded-2xl border-primary/40 bg-card shadow-none">
+          {/* Upgrade options for Free users */}
+          {currentPlan === "FREE" && (
+            <Card className="border-primary gradient-brand-subtle">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-teal" />
-                  Upgrade to Pro
+                <CardTitle className="flex items-center gap-2 font-display italic">
+                  <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
+                    <Zap className="h-4 w-4 text-white" />
+                  </span>
+                  Choose your plan
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Get 200 stock checks per month and never worry about limits.
+                  Saving a ticker to your watchlist is free. Active monitoring
+                  uses plan slots and scheduled credits.
                 </p>
-                <ul className="text-sm space-y-2 mb-6">
-                  <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    200 stock checks per month
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    Full risk analysis
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    Detailed red flag explanations
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    Priority support
-                  </li>
-                </ul>
-                <div className="flex flex-col gap-3">
-                  <p className="text-2xl font-bold">
-                    $4.99<span className="text-base font-normal">/month</span>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {subscriptionInfo?.plans?.map((plan) => (
+                    <div
+                      key={plan.plan}
+                      className="rounded-xl border border-border bg-card p-4 space-y-3"
+                    >
+                      <div>
+                        <p className="font-semibold">{plan.displayName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatMonthlyPrice(plan.monthlyPriceCents)}
+                          {plan.monthlyPriceCents ? "/month" : ""}
+                        </p>
+                      </div>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>{plan.manualScanCredits} monthly scan credits</li>
+                        <li>{plan.fullMonitorSlots} full-monitor slots</li>
+                        <li>{plan.priceMonitorSlots} price-monitor slots</li>
+                      </ul>
+                      {plan.plan === "FREE" ? (
+                        <p className="text-sm font-medium">Current plan</p>
+                      ) : plan.paypalPlanId ? (
+                        <PayPalButton
+                          plan={plan.plan}
+                          onSuccess={handlePayPalSuccess}
+                          onError={handlePayPalError}
+                        />
+                      ) : plan.stripePriceId && subscriptionInfo?.stripe?.checkout ? (
+                        <Button className="w-full" onClick={() => handleStripeCheckout(plan.plan as "PAID" | "PRO_MAX")}>
+                          Start with card
+                        </Button>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          This option is not configured for checkout yet.
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-lg border border-border bg-background/60 p-4 text-sm text-muted-foreground space-y-1">
+                  <p>
+                    Price monitoring is checked after the trading day closes — not live.
                   </p>
-                  <PayPalButton
-                    onSuccess={handlePayPalSuccess}
-                    onError={handlePayPalError}
-                  />
+                  <p>
+                    {billing?.trial.days
+                      ? `A payment method is required to start the ${billing.trial.days}-day free trial. You are not charged until it ends.`
+                      : "A payment method is required before a provider can start any configured trial."}
+                  </p>
+                  {!subscriptionInfo?.stripe?.available && subscriptionInfo?.stripe?.reason && (
+                    <p>Card checkout unavailable: {subscriptionInfo.stripe.reason}.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

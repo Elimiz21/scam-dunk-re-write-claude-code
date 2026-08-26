@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import {
+  Shield,
   User,
   Settings,
   LogOut,
@@ -11,25 +12,20 @@ import {
   Share2,
   ChevronDown,
   CreditCard,
+  Loader2,
   Info,
   FileText,
   Zap,
+  Eye,
+  History,
+  LayoutDashboard,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarToggle } from "./Sidebar";
 import { ThemeToggle } from "./ThemeToggle";
-import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
 import { UsageInfo } from "@/lib/types";
-
-const NAV_LINKS = [
-  { href: "/about", label: "About" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/news", label: "News" },
-  { href: "/how-it-works", label: "How It Works" },
-  { href: "/help", label: "Help & FAQ" },
-  { href: "/contact", label: "Contact" },
-];
 
 interface HeaderProps {
   onSidebarToggle: () => void;
@@ -52,28 +48,26 @@ export function Header({
     : 0;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
-      <div className="flex items-center justify-between px-4 h-16 max-w-6xl mx-auto">
+    <header className="sticky top-0 z-40 glass-strong border-b border-border/50">
+      <div className="flex h-16 items-center justify-between px-2 sm:px-4">
         {/* Left side - Brand */}
-        <div className="flex items-center gap-3">
-          {session && <SidebarToggle onClick={onSidebarToggle} />}
-          <Logo size={40} className="ml-1" priority />
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <SidebarToggle onClick={onSidebarToggle} />
+          <Link href="/" className="flex items-center gap-2.5 ml-1 group">
+            <div className="relative h-8 w-8 rounded-xl gradient-brand flex items-center justify-center shadow-sm shadow-primary/20 group-hover:shadow-md group-hover:shadow-primary/30 transition-all duration-200">
+              <Shield className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
+              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
+                <Eye className="h-2 w-2 text-white" />
+              </div>
+            </div>
+            <span className="font-display text-lg hidden sm:inline tracking-tight italic">
+              Scam
+              <span className="gradient-brand-text not-italic font-sans font-bold">
+                Dunk
+              </span>
+            </span>
+          </Link>
         </div>
-
-        {/* Center - Marketing nav (logged-out only) */}
-        {!session && (
-          <nav className="hidden items-center gap-8 lg:flex">
-            {NAV_LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground"
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-        )}
 
         {/* Center - Usage indicator */}
         {usage && (
@@ -103,8 +97,20 @@ export function Header({
 
         {/* Right side */}
         <div className="flex items-center gap-1.5">
+          {/* About */}
+          <Button asChild
+            className="hidden sm:inline-flex h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
+              variant="ghost"
+              size="icon"
+              aria-label="About"
+          >
+            <Link href="/about"><Info className="h-4.5 w-4.5" /></Link>
+          </Button>
+
           {/* Theme toggle */}
-          <ThemeToggle />
+          <div className="hidden sm:block">
+            <ThemeToggle />
+          </div>
 
           {/* Share button */}
           {showShare && onShare && (
@@ -125,6 +131,9 @@ export function Header({
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-secondary transition-smooth"
+                aria-label="Open account menu"
+                aria-expanded={showUserMenu}
+                aria-haspopup="menu"
               >
                 <div className="h-8 w-8 rounded-xl gradient-brand-subtle flex items-center justify-center border border-primary/10">
                   <User className="h-4 w-4 text-primary" />
@@ -153,55 +162,61 @@ export function Header({
                       </p>
                     </div>
 
-                    <Link href="/account">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/dashboard">
+                        <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                        Dashboard
+                      </Link>
+                    </Button>
+
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/watchlist">
+                        <ListChecks className="h-4 w-4 text-muted-foreground" />
+                        Watchlist
+                      </Link>
+                    </Button>
+
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/recent-scans">
+                        <History className="h-4 w-4 text-muted-foreground" />
+                        Recent scans
+                      </Link>
+                    </Button>
+
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/account">
                         <Settings className="h-4 w-4 text-muted-foreground" />
                         Settings
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/account">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/account">
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
                         Subscription
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/about">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/about">
                         <Info className="h-4 w-4 text-muted-foreground" />
                         About
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/disclaimer">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/disclaimer">
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         Legal & Disclaimer
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
-                    <Link href="/help">
-                      <button
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
-                      >
+                    <Button asChild variant="ghost" className="flex items-center gap-3 w-full justify-start px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth" onClick={() => setShowUserMenu(false)}>
+                      <Link href="/help">
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
                         Help
-                      </button>
-                    </Link>
+                      </Link>
+                    </Button>
 
                     <div className="border-t border-border mt-1.5 pt-1.5">
                       <button
@@ -220,19 +235,13 @@ export function Header({
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-3 ml-1">
-              <Link
-                href="/login"
-                className="hidden text-[13px] font-medium text-foreground/70 hover:text-foreground md:inline-block"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/signup"
-                className="btn-pill btn-pill-primary px-5 py-2 text-[13px]"
-              >
-                Sign up
-              </Link>
+            <div className="flex items-center gap-2 ml-1">
+              <Button asChild
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-xl px-2 font-semibold sm:px-3.5"
+                ><Link href="/login">Log in</Link></Button>
+              <Button asChild variant="brand" size="sm" className="rounded-xl px-2 sm:px-3.5"><Link href="/signup">Sign up</Link></Button>
             </div>
           )}
         </div>

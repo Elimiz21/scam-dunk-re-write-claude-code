@@ -3,23 +3,13 @@
 // time). This ensures runtime env vars injected by Vercel are always picked up,
 // even if they were absent during `next build`.
 
+import { getPlanEntitlements } from "./entitlements";
+
 function env(key: string, fallback = ""): string {
   return process.env[key] || fallback;
 }
 
-function envInt(key: string, fallback: number): number {
-  return parseInt(process.env[key] || String(fallback), 10);
-}
-
 export const config = {
-  // Plan limits
-  get freeChecksPerMonth() {
-    return envInt("FREE_CHECKS_PER_MONTH", 5);
-  },
-  get paidChecksPerMonth() {
-    return envInt("PAID_CHECKS_PER_MONTH", 200);
-  },
-
   // PayPal
   get paypalClientId() {
     return env("PAYPAL_CLIENT_ID");
@@ -215,10 +205,8 @@ export function validateRequiredEnvVars(): void {
 }
 
 // Get scan limit based on plan
-export function getScanLimit(plan: "FREE" | "PAID"): number {
-  return plan === "PAID"
-    ? config.paidChecksPerMonth
-    : config.freeChecksPerMonth;
+export function getScanLimit(plan: string): number {
+  return getPlanEntitlements(plan).manualScanCredits;
 }
 
 /**

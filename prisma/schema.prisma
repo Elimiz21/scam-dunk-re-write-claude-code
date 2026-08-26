@@ -20,7 +20,10 @@ model User {
   image                      String?
   plan                       String    @default("FREE") // FREE or PAID
   formerPro                  Boolean   @default(false) // true if user ever cancelled a Pro subscription
+  billingProvider            String    @default("NONE") // NONE, PAYPAL, STRIPE, APPLE, MANUAL
   billingCustomerId          String?
+  trialStartedAt             DateTime?
+  trialEndsAt                DateTime?
   // Subscription entitlement (server-authoritative). store: "paypal" | "apple".
   subscriptionStore          String? // which billing system granted the current plan
   subscriptionExpiresAt      DateTime? // when PAID entitlement lapses; null = no active paid entitlement
@@ -37,6 +40,9 @@ model User {
   scanUsages ScanUsage[]
   whatsAppIdentityBindings WhatsAppIdentityBinding[]
   watchlistItems           WatchlistItem[]
+  watchlistEntries         WatchlistEntry[]
+  notificationDeliveries  NotificationDelivery[]
+  billingEvents            BillingEvent[]
 }
 
 // TODO [H-11]: OAuth tokens (refresh_token, access_token, id_token) are stored in plain text.
@@ -113,6 +119,99 @@ model ScanUsage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, monthKey])
+}
+
+// User-owned saved tickers and scheduled end-of-day monitoring.
+model WatchlistEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  ticker     String
+  lastDataAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monitors ActiveMonitor[]
+
+  @@unique([userId, ticker])
+  @@index([userId, createdAt])
+  @@index([ticker])
+}
+
+model ActiveMonitor {
+  id               String   @id @default(cuid())
+  watchlistEntryId String
+  kind             String
+  frequency        String
+  startsAt         DateTime
+  expiresAt        DateTime
+  status           String   @default("ACTIVE")
+  lastEvaluatedAt  DateTime?
+  nextEvaluationAt DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  watchlistEntry WatchlistEntry     @relation(fields: [watchlistEntryId], references: [id], onDelete: Cascade)
+  executions     MonitorExecution[]
+
+  @@unique([watchlistEntryId, kind])
+  @@index([status, nextEvaluationAt])
+  @@index([expiresAt])
+}
+
+model MonitorExecution {
+  id                         String   @id @default(cuid())
+  monitorId                  String
+  publicationKey             String
+  status                     String   @default("PENDING")
+  creditReserved             Boolean  @default(false)
+  creditCharged              Boolean  @default(false)
+  skipReason                 String?  @db.Text
+  errorReason                String?  @db.Text
+  notificationIdempotencyKey String   @unique
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  monitor       ActiveMonitor         @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  notifications NotificationDelivery[]
+
+  @@unique([monitorId, publicationKey])
+  @@index([status, createdAt])
+}
+
+model NotificationDelivery {
+  id                String   @id @default(cuid())
+  userId            String
+  executionId       String
+  channel           String
+  status            String   @default("PENDING")
+  providerMessageId String?
+  errorReason       String?  @db.Text
+  attemptedAt       DateTime?
+  deliveredAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  execution MonitorExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, executionId, channel])
+  @@index([status, createdAt])
+}
+
+model BillingEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  eventId     String
+  eventType   String
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  userId      String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, eventId])
+  @@index([userId, createdAt])
 }
 
 // A returning user's saved list of previously scanned stocks — one row per

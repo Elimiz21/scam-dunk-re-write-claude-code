@@ -90,9 +90,9 @@ const faqs: FAQItem[] = [
   },
   {
     category: "Coverage & Limitations",
-    question: "Is the market data real-time?",
+    question: "Is the market data live?",
     answer:
-      "Market data may be delayed by up to 15 minutes. We use licensed financial data providers, but real-time data is not guaranteed.",
+      "No. ScamDunk checks published market data after the trading day closes; it does not provide live price monitoring.",
   },
 
   // Account & Billing

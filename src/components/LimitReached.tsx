@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
@@ -18,79 +16,44 @@ export function LimitReached({
   scansUsed,
   scansLimit,
 }: LimitReachedProps) {
-  const isPaid = plan === "PAID";
-
   return (
-    <Card className="w-full rounded-2xl border-yellow-500/30 bg-yellow-500/5 shadow-none">
+    <Card className="w-full border-yellow-200 bg-yellow-50">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+        <CardTitle className="flex items-center gap-2 text-yellow-800">
           <AlertTriangle className="h-5 w-5" />
           Monthly Limit Reached
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert variant="warning">
-          {isPaid ? (
-            <>
-              <AlertTitle>
-                You&apos;ve used all {scansLimit} Pro checks this month
-              </AlertTitle>
-              <AlertDescription>
-                Plan: Pro ({scansUsed}/{scansLimit} checks used)
-              </AlertDescription>
-            </>
-          ) : (
-            <>
-              <AlertTitle>
-                You&apos;ve used all your free checks this month
-              </AlertTitle>
-              <AlertDescription>
-                Plan: Free ({scansUsed}/{scansLimit} checks used)
-              </AlertDescription>
-            </>
-          )}
+          <AlertTitle>
+            You&apos;ve used all your free checks this month
+          </AlertTitle>
+          <AlertDescription>
+            Plan: {plan} ({scansUsed}/{scansLimit} checks used)
+          </AlertDescription>
         </Alert>
 
-        {isPaid ? (
-          <p className="text-sm text-muted-foreground">
-            Your Pro check limit resets on the 1st of next month. If you need a
-            higher limit, please contact support.
-          </p>
-        ) : (
-          <>
-            <p className="text-sm text-muted-foreground">
-              Your monthly check limit resets at the beginning of each month.
-              Upgrade to Pro to get 200 checks per month and continue analyzing
-              stocks.
-            </p>
+        <p className="text-sm text-muted-foreground">
+          Your monthly check limit resets at the beginning of each month.
+          Upgrade from your account to increase monthly credits and add
+          scheduled monitoring slots.
+        </p>
 
-            <div className="mt-4">
-              <PayPalButton />
-            </div>
+        <div className="mt-4">
+          <PayPalButton />
+        </div>
 
-            <div className="pt-4 border-t border-yellow-500/25">
-              <h4 className="font-medium mb-2">Pro Plan Benefits:</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 200 stock checks per month</li>
-                <li>
-                  • WhatsApp &amp; Telegram bots (coming soon) — text a ticker,
-                  get the verdict in your chat
-                </li>
-                <li>• Full risk analysis for each check</li>
-                <li>• Detailed red flag explanations</li>
-                <li>• Priority support</li>
-              </ul>
-              <p className="mt-3 text-sm">
-                <Link
-                  href="/pricing"
-                  className="text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-                >
-                  Compare plans →
-                </Link>
-              </p>
-            </div>
-          </>
-        )}
+        <div className="pt-4 border-t">
+          <h4 className="font-medium mb-2">Paid-plan benefits:</h4>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• More monthly analysis credits</li>
+            <li>• Full and price-monitoring slots</li>
+            <li>• Price monitoring is checked after market close — not live</li>
+            <li>• Full risk analysis for each check</li>
+            <li>• Priority support</li>
+          </ul>
+        </div>
       </CardContent>
     </Card>
   );

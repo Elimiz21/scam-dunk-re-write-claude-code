@@ -1249,4 +1249,3 @@ ALTER TABLE "PromoterIdentity" ADD CONSTRAINT "PromoterIdentity_promoterId_fkey"
 
 -- AddForeignKey
 ALTER TABLE "PromoterStockLink" ADD CONSTRAINT "PromoterStockLink_promoterId_fkey" FOREIGN KEY ("promoterId") REFERENCES "Promoter"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

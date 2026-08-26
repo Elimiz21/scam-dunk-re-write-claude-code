@@ -28,7 +28,7 @@ export const taglines: Tagline[] = [
   },
   {
     headline: "Hot tip? Let's cool it down with some facts.",
-    subtext: "Enter a stock or crypto symbol",
+    subtext: "Enter a US-listed stock symbol",
   },
   {
     headline: "Not all that glitters is gold. Some of it is scams.",

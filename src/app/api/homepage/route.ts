@@ -19,7 +19,7 @@ export async function GET() {
       return NextResponse.json({
         headline: "Don't invest blind. Detect scams before they cost you.",
         subheadline:
-          "Enter any stock or crypto ticker and get an instant risk analysis. We scan for pump-and-dump patterns, manipulation signals, and regulatory red flags in seconds.",
+          "Enter a US-listed common stock ticker and get a risk analysis from published market data. We scan for pump-and-dump patterns, manipulation signals, and regulatory red flags.",
         isDefault: true,
       });
     }
@@ -35,7 +35,7 @@ export async function GET() {
     return NextResponse.json({
       headline: "Don't invest blind. Detect scams before they cost you.",
       subheadline:
-        "Enter any stock or crypto ticker and get an instant risk analysis. We scan for pump-and-dump patterns, manipulation signals, and regulatory red flags in seconds.",
+        "Enter a US-listed common stock ticker and get a risk analysis from published market data. We scan for pump-and-dump patterns, manipulation signals, and regulatory red flags.",
       isDefault: true,
     });
   }

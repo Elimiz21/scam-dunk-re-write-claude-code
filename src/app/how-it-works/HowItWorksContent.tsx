@@ -63,7 +63,7 @@ export default function HowItWorksContent() {
                     step: 1,
                     title: "Market Data Collection",
                     description:
-                      "We fetch real-time and historical market data including price, volume, market cap, and trading history for the stock you're analyzing.",
+                      "We use published and historical market data including price, volume, market cap, and trading history for the stock you're analyzing. Scans are not live.",
                     icon: Database,
                   },
                   {

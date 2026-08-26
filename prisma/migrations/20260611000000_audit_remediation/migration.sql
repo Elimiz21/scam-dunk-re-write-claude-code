@@ -42,4 +42,3 @@ CREATE INDEX "SocialMention_ticker_contentHash_idx" ON "SocialMention"("ticker",
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SocialMention_scanRunId_ticker_contentHash_key" ON "SocialMention"("scanRunId", "ticker", "contentHash");
-

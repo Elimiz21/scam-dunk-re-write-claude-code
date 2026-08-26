@@ -4,6 +4,8 @@ export type Plan = "FREE" | "PAID";
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT";
 
+export type CustomerRiskLabel = "High risk" | "Caution" | "Low risk";
+
 export type SignalCategory =
   | "STRUCTURAL"
   | "PATTERN"
@@ -164,7 +166,7 @@ export interface MarketData {
 export interface ScoringInput {
   marketData: MarketData;
   pitchText: string;
-  context: BehavioralContext;
+  context: Partial<BehavioralContext>;
   /**
    * Pre-computed regulatory/alert-list hit from the route layer. When true the
    * engine emits ALERT_LIST_HIT and forces HIGH even with no quote (e.g. a

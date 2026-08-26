@@ -72,7 +72,10 @@ export default async function middleware(request: NextRequest) {
 
   // Allow PayPal webhooks through without authentication
   // (webhook signature is verified in the route handler itself)
-  if (request.nextUrl.pathname === "/api/billing/paypal/webhook") {
+  if (
+    request.nextUrl.pathname === "/api/billing/paypal/webhook" ||
+    request.nextUrl.pathname === "/api/billing/stripe/webhook"
+  ) {
     return NextResponse.next();
   }
 

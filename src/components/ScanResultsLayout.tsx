@@ -14,11 +14,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ScanSocialEvidence } from "@/components/dashboard/ScanSocialEvidence";
+import type { ScanSocialDto } from "@/components/dashboard/types";
 
 interface ScanResultsLayoutProps {
   result: RiskResponse;
   hasChatData: boolean;
   onNewScan?: () => void;
+  social?: ScanSocialDto | null;
+  socialLoading?: boolean;
 }
 
 /* ─── Right-side info panel content ─── */
@@ -31,7 +35,7 @@ const INFO_PANELS = [
     iconColor: "text-primary",
     title: "How the Test Works",
     content:
-      "ScamDunk analyzes your ticker using multiple layers of detection. We fetch real-time market data including price history, volume patterns, and company information. Our algorithms then scan for statistical anomalies, pump-and-dump patterns, and structural risk factors. If you provide chat messages or screenshots, our AI analyzes the language for manipulation tactics commonly used in investment scams. The final risk score combines all detected signals, weighted by severity.",
+      "ScamDunk analyzes your ticker using multiple layers of detection. We use published market data including price history, volume patterns, and company information. Our algorithms then scan for statistical anomalies, pump-and-dump patterns, and structural risk factors. If you provide chat messages or screenshots, our AI analyzes the language for manipulation tactics commonly used in investment scams. The final risk score combines all detected signals, weighted by severity.",
   },
   {
     id: "what-we-check",
@@ -49,7 +53,7 @@ const INFO_PANELS = [
     iconColor: "text-amber-500",
     title: "What to Do After the Test",
     content:
-      "Low Risk — Few red flags found, but always do your own research before investing. Medium Risk — Exercise caution; verify claims independently and consider consulting a financial advisor. High Risk — Multiple warning signs detected; do not invest based on unsolicited tips. Always cross-reference with SEC filings (sec.gov), verify the source of any tip, and never invest more than you can afford to lose.",
+      "Low risk — Few red flags found, but always do your own research before investing. Caution — Exercise care; verify claims independently and consider consulting a financial advisor. High risk — Multiple warning signs detected; do not invest based on unsolicited tips. Always cross-reference with SEC filings (sec.gov), verify the source of any tip, and never invest more than you can afford to lose.",
   },
   {
     id: "disclaimer-terms",
@@ -70,9 +74,18 @@ function InfoPanel({ panel }: { panel: (typeof INFO_PANELS)[number] }) {
 
   return (
     <div
-      className="info-panel-card cursor-default"
+      className="info-panel-card cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      tabIndex={0}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setIsHovered((value) => !value);
+        }
+      }}
     >
       <div className="flex items-center gap-3">
         <div
@@ -124,6 +137,8 @@ export function ScanResultsLayout({
   result,
   hasChatData,
   onNewScan,
+  social,
+  socialLoading = false,
 }: ScanResultsLayoutProps) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -133,6 +148,20 @@ export function ScanResultsLayout({
         <div className="lg:w-3/4 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
             <RiskCard result={result} hasChatData={hasChatData} />
+            {socialLoading && (
+              <div
+                className="mt-4 rounded-2xl border border-border bg-card px-5 py-6 text-sm text-muted-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                Loading social media evidence
+              </div>
+            )}
+            {!socialLoading && social && (
+              <div className="mt-4">
+                <ScanSocialEvidence social={social} />
+              </div>
+            )}
             {onNewScan && (
               <div className="flex justify-center py-4">
                 <Button variant="outline" onClick={onNewScan} className="gap-2">

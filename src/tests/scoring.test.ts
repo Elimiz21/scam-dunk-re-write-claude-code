@@ -14,6 +14,14 @@ import {
   StockQuote,
 } from "../lib/types";
 
+jest.mock("../lib/marketData", () => {
+  const actual = jest.requireActual("../lib/marketData");
+  return {
+    ...actual,
+    checkAlertList: jest.fn().mockResolvedValue(false),
+  };
+});
+
 // Helper to create mock market data
 function createMockMarketData(
   overrides: Partial<{
@@ -82,6 +90,18 @@ function createScoringInput(
     },
   };
 }
+
+test("accepts request-style partial behavioral context", async () => {
+  const input: ScoringInput = {
+    marketData: createMockMarketData(),
+    pitchText: "A stock tip",
+    context: { unsolicited: true },
+  };
+
+  await expect(computeRiskScore(input)).resolves.toEqual(
+    expect.objectContaining({ riskLevel: expect.any(String) }),
+  );
+});
 
 describe("Risk Scoring Module", () => {
   describe("Structural Signals", () => {
