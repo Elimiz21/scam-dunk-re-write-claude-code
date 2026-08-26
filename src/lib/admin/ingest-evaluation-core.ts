@@ -32,6 +32,12 @@ export interface IngestResult {
   error?: string;
 }
 
+export interface DatePromotionGate {
+  promotable: boolean;
+  validationStatus: string;
+  reason: string;
+}
+
 /**
  * True when the symbol should NOT be flagged because the price feed shows it
  * stopped trading before the scan date. Fail-open: if FMP has no coverage at
@@ -84,10 +90,7 @@ interface EvaluationStock {
 }
 
 type IngestionErrorType =
-  | "MISSING_FILE"
-  | "BAD_JSON"
-  | "INVALID_SUPABASE_CONFIG"
-  | "FETCH_ERROR";
+  "MISSING_FILE" | "BAD_JSON" | "INVALID_SUPABASE_CONFIG" | "FETCH_ERROR";
 
 interface EvaluationSummary {
   totalStocks: number;
@@ -228,6 +231,66 @@ async function fetchEvaluationFile(filename: string): Promise<{
   }
 }
 
+export async function getDatePromotionGate(
+  date: string,
+  validationKnownExists?: boolean,
+): Promise<DatePromotionGate> {
+  const filename = `pipeline-validation-${date}.json`;
+  let validationExists = validationKnownExists;
+
+  if (validationExists === undefined) {
+    const { data, error } = await supabase.storage
+      .from(EVALUATION_BUCKET)
+      .list("", { limit: 100, search: filename });
+    if (error || !data) {
+      return {
+        promotable: false,
+        validationStatus: "unavailable",
+        reason: `Could not verify pipeline validation: ${error?.message || "storage listing returned no data"}`,
+      };
+    }
+    validationExists = data.some((file) => file.name === filename);
+  }
+
+  if (!validationExists) {
+    return {
+      promotable: true,
+      validationStatus: "legacy-no-validation",
+      reason: "Historical output predates pipeline validation artifacts",
+    };
+  }
+
+  try {
+    const { data } = supabase.storage
+      .from(EVALUATION_BUCKET)
+      .getPublicUrl(filename);
+    const response = await fetch(data.publicUrl, { cache: "no-store" });
+    if (!response.ok) {
+      return {
+        promotable: false,
+        validationStatus: "unavailable",
+        reason: `Validation fetch returned HTTP ${response.status}`,
+      };
+    }
+    const payload = JSON.parse(await response.text());
+    const validationStatus = String(payload?.status || "unknown");
+    return {
+      promotable: validationStatus === "healthy",
+      validationStatus,
+      reason:
+        validationStatus === "healthy"
+          ? "Pipeline validation is healthy"
+          : `Pipeline validation is ${validationStatus}`,
+    };
+  } catch (error) {
+    return {
+      promotable: false,
+      validationStatus: "invalid",
+      reason: `Could not parse pipeline validation: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 async function fetchSummaryFile(filename: string): Promise<{
   data: EvaluationSummary | null;
   error?: string;
@@ -360,10 +423,39 @@ export async function getPendingDates(): Promise<string[]> {
     ingested.map((row) => row.scanDate.toISOString().split("T")[0]),
   );
 
-  // Return pending dates sorted oldest-first
-  return Array.from(dateSet)
+  const validationDates = new Set(
+    files
+      .map(
+        (file) =>
+          file.name.match(
+            /^pipeline-validation-(\d{4}-\d{2}-\d{2})\.json$/,
+          )?.[1],
+      )
+      .filter((date): date is string => Boolean(date)),
+  );
+  const pendingDates = Array.from(dateSet)
     .filter((date) => !ingestedDates.has(date))
     .sort();
+
+  // Historical runs predate pipeline validation files. Keep those discoverable,
+  // but fail closed whenever a validation artifact exists and is not healthy.
+  const validationResults = await Promise.all(
+    pendingDates.map(async (date) => {
+      if (!validationDates.has(date)) return { date, promotable: true };
+
+      const gate = await getDatePromotionGate(date, true);
+      if (!gate.promotable) {
+        console.error(
+          `[ingest-core] ${date} is not eligible for ingestion: ${gate.reason}`,
+        );
+      }
+      return { date, promotable: gate.promotable };
+    }),
+  );
+
+  return validationResults
+    .filter((result) => result.promotable)
+    .map((result) => result.date);
 }
 
 /**
@@ -377,6 +469,24 @@ export async function ingestDate(date: string): Promise<IngestResult> {
   const startTime = Date.now();
 
   try {
+    const promotionGate = await getDatePromotionGate(date);
+    if (!promotionGate.promotable) {
+      return {
+        success: false,
+        date,
+        stocksCreated: 0,
+        stocksUpdated: 0,
+        snapshotsCreated: 0,
+        alertsCreated: 0,
+        promotedStocksCreated: 0,
+        promotedStocksSkippedStale: 0,
+        totalProcessed: 0,
+        skipped: 0,
+        durationMs: Date.now() - startTime,
+        error: `Date is not eligible for ingestion: ${promotionGate.reason}`,
+      };
+    }
+
     const enhancedEvalFilename = `enhanced-evaluation-${date}.json`;
     const legacyEvalFilename = `fmp-evaluation-${date}.json`;
     const summaryFilename = `fmp-summary-${date}.json`;
@@ -507,7 +617,9 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         const stockId = existingStockMap.get(stock.symbol)!;
         let evaluatedAt: Date;
         try {
-          evaluatedAt = stock.evaluatedAt ? new Date(stock.evaluatedAt) : scanDate;
+          evaluatedAt = stock.evaluatedAt
+            ? new Date(stock.evaluatedAt)
+            : scanDate;
           if (isNaN(evaluatedAt.getTime())) evaluatedAt = scanDate;
         } catch {
           evaluatedAt = scanDate;
@@ -643,9 +755,13 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           evaluated: validStocks.length,
           skippedNoData: skippedCount,
           lowRiskCount: validStocks.filter((s) => s.riskLevel === "LOW").length,
-          mediumRiskCount: validStocks.filter((s) => s.riskLevel === "MEDIUM").length,
-          highRiskCount: validStocks.filter((s) => s.riskLevel === "HIGH").length,
-          insufficientCount: validStocks.filter((s) => s.riskLevel === "INSUFFICIENT").length,
+          mediumRiskCount: validStocks.filter((s) => s.riskLevel === "MEDIUM")
+            .length,
+          highRiskCount: validStocks.filter((s) => s.riskLevel === "HIGH")
+            .length,
+          insufficientCount: validStocks.filter(
+            (s) => s.riskLevel === "INSUFFICIENT",
+          ).length,
           byExchange: JSON.stringify({}),
         },
         update: {},

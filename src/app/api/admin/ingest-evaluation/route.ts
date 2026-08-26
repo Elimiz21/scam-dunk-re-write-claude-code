@@ -10,7 +10,10 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
-import { ingestDate } from "@/lib/admin/ingest-evaluation-core";
+import {
+  getPendingDates,
+  ingestDate,
+} from "@/lib/admin/ingest-evaluation-core";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 600; // 10 minutes for large imports (enhanced pipeline produces ~6,500 stocks)
@@ -249,6 +252,7 @@ export async function GET() {
     const ingestedDates = ingestedSummaries.map(
       (s) => s.scanDate.toISOString().split("T")[0],
     );
+    const promotablePendingDates = await getPendingDates();
 
     const lastIngestion = await prisma.adminAuditLog.findFirst({
       where: { action: "INGEST_EVALUATION" },
@@ -259,9 +263,7 @@ export async function GET() {
     return NextResponse.json({
       availableDates: availableDates.map((d) => d.date),
       ingestedDates,
-      pendingDates: availableDates
-        .filter((d) => !ingestedDates.includes(d.date))
-        .map((d) => d.date),
+      pendingDates: promotablePendingDates,
       fileStatus: availableDates,
       lastIngestion: lastIngestion
         ? {
