@@ -11,6 +11,15 @@
  *  OPEN -> HALF_OPEN: after `recoveryTimeMs` elapses
  *  HALF_OPEN -> CLOSED: if probe request succeeds
  *  HALF_OPEN -> OPEN: if probe request fails
+ *
+ * LIMITATION (ARCH-M1): state lives in module memory, so it is PER SERVERLESS
+ * INSTANCE. Each cold lambda starts CLOSED and will independently re-hammer a
+ * failing upstream before its own breaker trips; the breaker is not shared
+ * across the fleet. Because of that the failure threshold is intentionally low
+ * (2) so a single cold instance trips quickly. For fleet-wide protection the
+ * state would need to be backed by a shared store (e.g. Upstash KV in
+ * src/lib/kv.ts); that is left as a follow-up to avoid adding a network round
+ * trip to every external call on the hot path.
  */
 
 export enum CircuitState {
@@ -33,7 +42,10 @@ export class CircuitBreaker {
 
   constructor(
     private readonly serviceName: string,
-    private readonly failureThreshold = 5,
+    // Low by design: state is per-instance (see class doc), so a cold lambda
+    // should trip after only a couple of failures rather than hammering a
+    // known-down upstream many times before opening.
+    private readonly failureThreshold = 2,
     private readonly recoveryTimeMs = 30_000,
   ) {}
 
@@ -85,9 +97,11 @@ export class CircuitBreaker {
   }
 }
 
-// Shared circuit breaker instances for external APIs
+// Shared circuit breaker instances for external APIs.
+// Threshold 2 (per-instance state — see CircuitBreaker docs): trip fast on a
+// cold instance instead of repeatedly re-hammering a failing upstream.
 export const circuitBreakers = {
-  fmp: new CircuitBreaker("FMP", 5, 30_000),
-  alphaVantage: new CircuitBreaker("AlphaVantage", 5, 30_000),
-  coinGecko: new CircuitBreaker("CoinGecko", 5, 30_000),
+  fmp: new CircuitBreaker("FMP", 2, 30_000),
+  alphaVantage: new CircuitBreaker("AlphaVantage", 2, 30_000),
+  coinGecko: new CircuitBreaker("CoinGecko", 2, 30_000),
 } as const;

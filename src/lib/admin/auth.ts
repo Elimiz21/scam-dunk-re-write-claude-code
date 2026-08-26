@@ -110,23 +110,16 @@ export async function adminLogin(
       },
     });
 
-    // Set cookie scoped to admin and admin API paths
+    // Set cookie at root path so it's sent for both /admin/* and /api/admin/*.
+    // Next.js cookies().set() keys by name only, so two calls with different
+    // paths would overwrite each other — only one Set-Cookie header is sent.
     const cookieStore = await cookies();
-    const cookieOptions = {
+    cookieStore.set(ADMIN_SESSION_COOKIE, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict" as const,
       expires: expiresAt,
-    };
-    // Set cookie for admin pages
-    cookieStore.set(ADMIN_SESSION_COOKIE, token, {
-      ...cookieOptions,
-      path: "/admin",
-    });
-    // Set same cookie for admin API routes (browser sends based on path match)
-    cookieStore.set(ADMIN_SESSION_COOKIE, token, {
-      ...cookieOptions,
-      path: "/api/admin",
+      path: "/",
     });
 
     return {
@@ -172,7 +165,7 @@ export async function adminLogout(): Promise<void> {
       }
     }
 
-    cookieStore.delete(ADMIN_SESSION_COOKIE);
+    cookieStore.delete({ name: ADMIN_SESSION_COOKIE, path: "/" });
   } catch (error) {
     console.error("Admin logout error:", error);
   }

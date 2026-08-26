@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
+import AlertBanner from "@/components/admin/AlertBanner";
 import {
   Plus,
   Edit,
@@ -26,9 +26,11 @@ interface BlogPost {
 }
 
 export default function AdminBlogListPage() {
-  const router = useRouter();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "published" | "drafts"
@@ -39,20 +41,29 @@ export default function AdminBlogListPage() {
   }, []);
 
   async function fetchPosts() {
+    setError("");
     try {
       const res = await fetch("/api/admin/news/blog");
-      if (res.ok) {
-        const data = await res.json();
-        setPosts(data.posts || []);
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
       }
-    } catch (error) {
-      console.error("Failed to fetch posts:", error);
+      if (!res.ok) throw new Error("Failed to load blog posts");
+      const data = await res.json();
+      setPosts(data.posts || []);
+    } catch (err) {
+      // Surface load failures instead of rendering an empty "No posts found".
+      setError(err instanceof Error ? err.message : "Failed to load blog posts");
     } finally {
       setLoading(false);
     }
   }
 
   async function togglePublish(id: string, currentStatus: boolean) {
+    if (busyId) return;
+    setBusyId(id);
+    setError("");
+    setSuccess("");
     try {
       const res = await fetch(`/api/admin/news/blog/${id}`, {
         method: "PUT",
@@ -62,25 +73,43 @@ export default function AdminBlogListPage() {
           publishedAt: !currentStatus ? new Date().toISOString() : null,
         }),
       });
-      if (res.ok) {
-        fetchPosts();
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
       }
-    } catch (error) {
-      console.error("Failed to toggle publish status:", error);
+      if (!res.ok) throw new Error("Failed to update publish status");
+      setSuccess(!currentStatus ? "Post published" : "Post unpublished");
+      await fetchPosts();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update publish status",
+      );
+    } finally {
+      setBusyId(null);
     }
   }
 
   async function deletePost(id: string) {
+    if (busyId) return;
     if (!confirm("Are you sure you want to delete this post?")) return;
+    setBusyId(id);
+    setError("");
+    setSuccess("");
     try {
       const res = await fetch(`/api/admin/news/blog/${id}`, {
         method: "DELETE",
       });
-      if (res.ok) {
-        fetchPosts();
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
       }
-    } catch (error) {
-      console.error("Failed to delete post:", error);
+      if (!res.ok) throw new Error("Failed to delete post");
+      setSuccess("Post deleted");
+      await fetchPosts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete post");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -130,6 +159,23 @@ export default function AdminBlogListPage() {
             New Post
           </Link>
         </div>
+
+        {error ? (
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
+        ) : null}
+        {success ? (
+          <AlertBanner
+            type="success"
+            title="Success"
+            message={success}
+            onDismiss={() => setSuccess("")}
+          />
+        ) : null}
 
         {/* Filters */}
         <div className="bg-card rounded-2xl shadow p-4">
@@ -243,7 +289,8 @@ export default function AdminBlogListPage() {
                     <td className="px-6 py-4 text-right space-x-2">
                       <button
                         onClick={() => togglePublish(post.id, post.isPublished)}
-                        className="inline-flex items-center p-1.5 text-muted-foreground hover:text-primary rounded-2xl hover:bg-primary/5"
+                        disabled={busyId === post.id}
+                        className="inline-flex items-center p-1.5 text-muted-foreground hover:text-primary rounded-2xl hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed"
                         title={post.isPublished ? "Unpublish" : "Publish"}
                       >
                         {post.isPublished ? (
@@ -261,7 +308,8 @@ export default function AdminBlogListPage() {
                       </Link>
                       <button
                         onClick={() => deletePost(post.id)}
-                        className="inline-flex items-center p-1.5 text-muted-foreground hover:text-red-600 rounded-2xl hover:bg-red-50"
+                        disabled={busyId === post.id}
+                        className="inline-flex items-center p-1.5 text-muted-foreground hover:text-red-600 rounded-2xl hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />

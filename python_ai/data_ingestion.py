@@ -7,12 +7,25 @@ This module handles:
 - Data preprocessing and cleaning
 """
 
+import os
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Union
 import warnings
 import logging
+import zlib
+
+
+def _deterministic_seed(text: str) -> int:
+    """Stable per-ticker seed.
+
+    Uses zlib.crc32 instead of the builtin hash(), which is salted per process
+    (PYTHONHASHSEED) and therefore produces a DIFFERENT seed on every restart —
+    so the old "reproducible per ticker" claim was false. crc32 is deterministic
+    across processes and restarts.
+    """
+    return zlib.crc32(text.encode('utf-8')) & 0xFFFFFFFF
 
 
 class DataAPIError(Exception):
@@ -48,11 +61,43 @@ from config import (
     SEC_FLAGGED_TICKERS,
     SEC_LIST_LAST_UPDATE,
     OTC_EXCHANGES,
-    MARKET_THRESHOLDS
+    MARKET_THRESHOLDS,
+    is_otc_exchange,
 )
 
 warnings.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Short-TTL cache for live yfinance fetches (PY-C5).
+# A single /analyze can touch history + fundamentals (+ news verification for
+# HIGH results), and repeat scans of the same ticker arrive in bursts. Caching
+# for a short window avoids hammering the most rate-limited yfinance calls and
+# keeps a request inside the TS time budget. TTL is deliberately short so data
+# stays fresh.
+# ---------------------------------------------------------------------------
+import time as _time
+
+_LIVE_CACHE: Dict[str, Tuple[float, object]] = {}
+try:
+    LIVE_CACHE_TTL = float(os.environ.get('LIVE_CACHE_TTL', '120'))
+except (TypeError, ValueError):
+    LIVE_CACHE_TTL = 120.0
+
+
+def _cache_get(key: str):
+    entry = _LIVE_CACHE.get(key)
+    if entry is None:
+        return None
+    ts, value = entry
+    if (_time.time() - ts) > LIVE_CACHE_TTL:
+        _LIVE_CACHE.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(key: str, value) -> None:
+    _LIVE_CACHE[key] = (_time.time(), value)
 
 
 class DataIngestionError(Exception):
@@ -119,7 +164,7 @@ def generate_synthetic_stock_data(
     Returns:
         DataFrame with columns: Date, Open, High, Low, Close, Volume, Ticker
     """
-    np.random.seed(hash(ticker) % 2**32)  # Reproducible per ticker
+    np.random.seed(_deterministic_seed(ticker))  # Reproducible per ticker
 
     dates = pd.date_range(
         end=datetime.now().date(),
@@ -200,7 +245,7 @@ def generate_synthetic_crypto_data(
     Returns:
         DataFrame with minute-level OHLCV data
     """
-    np.random.seed(hash(symbol) % 2**32)
+    np.random.seed(_deterministic_seed(symbol))
 
     dates = pd.date_range(
         end=datetime.now(),
@@ -259,6 +304,13 @@ def load_stock_data(
         params = synthetic_params or {}
         return generate_synthetic_stock_data(ticker, days=days, **params)
 
+    # Serve from short-TTL cache when available (PY-C5).
+    cache_key = f"history:{ticker.upper()}:{days}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        logger.info(f"Using cached market data for {ticker}")
+        return cached.copy()
+
     # Use yfinance for real market data
     if not YFINANCE_AVAILABLE:
         error_msg = "yfinance library not available"
@@ -278,9 +330,27 @@ def load_stock_data(
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days + 10)  # Extra days for buffer
 
-        hist = stock.history(start=start_date, end=end_date)
+        # Basic retry/backoff. Yahoo intermittently returns empty frames or
+        # transient errors (throttling, cookie/crumb hiccups). Retry a couple
+        # of times with backoff before giving up cleanly via DataAPIError.
+        import time as _time
+        hist = None
+        last_err = None
+        for attempt in range(3):
+            try:
+                hist = stock.history(start=start_date, end=end_date, timeout=15)
+                if hist is not None and not hist.empty:
+                    break
+            except Exception as fetch_err:  # transient network/parse error
+                last_err = fetch_err
+                logger.warning(f"yfinance history attempt {attempt + 1} failed for {ticker}: {fetch_err}")
+            if attempt < 2:
+                _time.sleep(1.5 * (attempt + 1))  # 1.5s, 3.0s backoff
 
-        if hist.empty:
+        if hist is None and last_err is not None:
+            raise last_err
+
+        if hist is None or hist.empty:
             error_msg = f"No data returned for ticker {ticker}"
             logger.error(f"Stock data API FAILED: {error_msg}")
             raise DataAPIError(
@@ -306,6 +376,7 @@ def load_stock_data(
             df = df.tail(days).reset_index(drop=True)
 
         logger.info(f"Fetched {len(df)} days of real data for {ticker}")
+        _cache_set(cache_key, df.copy())
         return df
 
     except DataAPIError:
@@ -373,7 +444,7 @@ def get_stock_fundamentals(
         Dictionary with fundamental data
     """
     if use_synthetic:
-        np.random.seed(hash(ticker) % 2**32)
+        np.random.seed(_deterministic_seed(ticker))
 
         if is_scam_scenario:
             # Low market cap, low float, OTC characteristics
@@ -400,30 +471,68 @@ def get_stock_fundamentals(
             'is_otc': exchange in OTC_EXCHANGES,
         }
 
-    # Use yfinance for real fundamentals
+    # Serve fundamentals from short-TTL cache when available (PY-C5).
+    fund_cache_key = f"fundamentals:{ticker.upper()}"
+    cached_fund = _cache_get(fund_cache_key)
+    if cached_fund is not None:
+        logger.info(f"Using cached fundamentals for {ticker}")
+        return dict(cached_fund)
+
+    # Use yfinance for real fundamentals.
+    # IMPORTANT (PY-C3): in live mode we NEVER substitute random synthetic
+    # fundamentals on failure. Fabricating a healthy large-cap on a major
+    # exchange would zero out is_otc / is_micro_cap / liquidity signals for a
+    # real OTC penny scam. Instead we return market_cap=None / exchange=None and
+    # let the caller suppress structural signals and set data_available=False.
+    def _unavailable_fundamentals(reason: str) -> Dict:
+        logger.warning(f"Fundamentals unavailable for {ticker}: {reason}")
+        return {
+            'ticker': ticker,
+            'market_cap': None,
+            'float_shares': None,
+            'shares_outstanding': None,
+            'avg_daily_volume': None,
+            'exchange': None,
+            'sector': None,
+            'industry': None,
+            'is_otc': False,
+            'fundamentals_available': False,
+            'fundamentals_error': reason,
+        }
+
     if not YFINANCE_AVAILABLE:
-        logger.warning("yfinance not available, using synthetic fundamentals")
-        return get_stock_fundamentals(ticker, use_synthetic=True, is_scam_scenario=False)
+        return _unavailable_fundamentals("yfinance library not available")
 
     try:
         logger.info(f"Fetching real fundamentals for {ticker}")
         stock = yf.Ticker(ticker)
-        info = stock.info
+        info = stock.info or {}
 
-        # Get market cap (critical for scam detection)
-        market_cap = info.get('marketCap', 0) or 0
+        # If yfinance returns an empty/blank info dict, treat as unavailable
+        # rather than fabricating a profile.
+        if not info or not any(
+            info.get(k) for k in ('marketCap', 'regularMarketPrice', 'currentPrice', 'exchange')
+        ):
+            return _unavailable_fundamentals("yfinance .info returned no usable fields")
 
-        # Get exchange info
-        exchange = info.get('exchange', 'UNKNOWN')
+        # Get market cap (critical for scam detection). None when absent so the
+        # caller can distinguish "unknown" from "zero".
+        market_cap = info.get('marketCap')
 
-        # Determine if OTC/penny stock
-        is_otc = any(x in exchange.upper() for x in ['OTC', 'PINK', 'GREY']) or \
-                 exchange.upper() in OTC_EXCHANGES
+        # Get exchange info from any of the available identifiers.
+        exchange = info.get('exchange') or info.get('fullExchangeName') or 'UNKNOWN'
+        full_exchange = info.get('fullExchangeName', '')
+        quote_type = info.get('quoteType', '')
+        market = info.get('market', '')
 
-        # Get float and volume
-        float_shares = info.get('floatShares', 0) or 0
-        shares_outstanding = info.get('sharesOutstanding', 0) or float_shares
-        avg_volume = info.get('averageVolume', 0) or 0
+        # Determine if OTC/penny stock using the shared detector that knows the
+        # Yahoo short codes (PNK/OQX/OQB) and 'Other OTC' descriptors.
+        is_otc = is_otc_exchange(exchange, full_exchange, quote_type, market)
+
+        # Get float and volume (None when absent).
+        float_shares = info.get('floatShares')
+        shares_outstanding = info.get('sharesOutstanding') or float_shares
+        avg_volume = info.get('averageVolume')
 
         # Get sector/industry
         sector = info.get('sector', 'Unknown')
@@ -436,9 +545,12 @@ def get_stock_fundamentals(
             'shares_outstanding': shares_outstanding,
             'avg_daily_volume': avg_volume,
             'exchange': exchange,
+            'full_exchange_name': full_exchange,
+            'quote_type': quote_type,
             'sector': sector,
             'industry': industry,
             'is_otc': is_otc,
+            'fundamentals_available': True,
             # Additional fields for better analysis
             'short_name': info.get('shortName', ticker),
             'long_name': info.get('longName', ''),
@@ -447,22 +559,23 @@ def get_stock_fundamentals(
             'fifty_two_week_low': info.get('fiftyTwoWeekLow', 0),
         }
 
-        # Determine micro-cap status
-        if market_cap > 0:
+        # Determine micro-cap status only when market cap is actually known.
+        if market_cap and market_cap > 0:
             fundamentals['is_micro_cap'] = market_cap < 300_000_000  # Under $300M
             fundamentals['is_small_cap'] = 300_000_000 <= market_cap < 2_000_000_000
         else:
-            # If no market cap data, check price to estimate
-            price = fundamentals.get('current_price', 0)
-            fundamentals['is_micro_cap'] = price < 5 if price > 0 else True
+            # Unknown market cap: leave structural flags unset (do NOT assume).
+            fundamentals['is_micro_cap'] = False
             fundamentals['is_small_cap'] = False
 
-        logger.info(f"Fetched fundamentals for {ticker}: market_cap=${market_cap:,.0f}, exchange={exchange}, is_otc={is_otc}")
+        cap_str = f"${market_cap:,.0f}" if market_cap else "unknown"
+        logger.info(f"Fetched fundamentals for {ticker}: market_cap={cap_str}, exchange={exchange}, is_otc={is_otc}")
+        _cache_set(fund_cache_key, dict(fundamentals))
         return fundamentals
 
     except Exception as e:
-        logger.warning(f"Error fetching fundamentals for {ticker}: {e}, using synthetic")
-        return get_stock_fundamentals(ticker, use_synthetic=True, is_scam_scenario=False)
+        # Never fabricate in live mode — return an explicit "unavailable" profile.
+        return _unavailable_fundamentals(f"{type(e).__name__}: {e}")
 
 
 def get_crypto_metrics(
@@ -485,7 +598,7 @@ def get_crypto_metrics(
         Dictionary with crypto metrics (placeholders for real on-chain data)
     """
     if use_synthetic:
-        np.random.seed(hash(symbol) % 2**32)
+        np.random.seed(_deterministic_seed(symbol))
 
         return {
             'symbol': symbol,

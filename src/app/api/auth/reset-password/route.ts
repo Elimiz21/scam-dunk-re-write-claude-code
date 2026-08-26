@@ -5,15 +5,16 @@ import { prisma } from "@/lib/db";
 import { consumePasswordResetToken } from "@/lib/tokens";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { logAuthError } from "@/lib/auth-error-tracking";
+import { validatePasswordStrength } from "@/lib/config";
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Token is required"),
-  password: z
-    .string()
-    .min(10, "Password must be at least 10 characters")
-    .regex(/[a-z]/, "Password must contain a lowercase letter")
-    .regex(/[A-Z]/, "Password must contain an uppercase letter")
-    .regex(/[0-9]/, "Password must contain a number"),
+  // Reuse the shared policy so reset cannot set a weaker password than signup
+  // (previously this allowed 8 vs signup's 10) — FE-M8 / SEC-L6.
+  password: z.string().superRefine((pw, ctx) => {
+    const error = validatePasswordStrength(pw);
+    if (error) ctx.addIssue({ code: z.ZodIssueCode.custom, message: error });
+  }),
 });
 
 export async function POST(request: NextRequest) {
@@ -69,10 +70,15 @@ export async function POST(request: NextRequest) {
     // Hash the new password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Update user's password
+    // Update the password AND bump sessionVersion so every outstanding session
+    // and mobile refresh token (which embed the old version) is invalidated —
+    // a reset must log out attackers who already hold a session (SEC-M10).
     await prisma.user.update({
       where: { email: normalizedEmail },
-      data: { hashedPassword },
+      data: {
+        hashedPassword,
+        sessionVersion: { increment: 1 },
+      },
     });
 
     console.log("[RESET-PASSWORD] Password updated for:", normalizedEmail);

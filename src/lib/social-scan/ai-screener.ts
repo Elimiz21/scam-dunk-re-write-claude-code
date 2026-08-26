@@ -27,11 +27,15 @@ function getOpenAI(): OpenAI {
 /** Minimum pattern score to warrant AI screening (saves API calls) */
 const SCREENING_THRESHOLD = 40;
 
-/** Batch size for GPT-4o-mini requests */
-const BATCH_SIZE = 25;
+/** Batch size for GPT-4o-mini requests — small enough that a 10-item response
+ * fits comfortably under max_tokens so the JSON is never truncated (SOC-M2). */
+const BATCH_SIZE = 10;
 
 /** Max concurrent GPT-4o-mini requests to avoid rate limiting */
 const MAX_CONCURRENCY = 5;
+
+/** Per-request client timeout for the OpenAI call (SOC-M2). */
+const REQUEST_TIMEOUT_MS = 20_000;
 
 interface ScreeningResult {
   /** Index in the batch */
@@ -92,11 +96,29 @@ export async function screenMentionsWithAI(
   let legitimateCount = 0;
   let errorsCount = 0;
 
+  // Classify a batch, retrying ONCE on failure/empty before giving up — a
+  // truncated or rate-limited response used to silently drop the whole batch
+  // (up to 25 classifications). Smaller batches + a retry recover them (SOC-M2).
+  async function classifyWithRetry(
+    mentionsToClassify: SocialMention[],
+  ): Promise<ScreeningResult[]> {
+    try {
+      const first = await classifyBatch(mentionsToClassify);
+      if (first.length > 0) return first;
+    } catch (err: any) {
+      console.warn(
+        `[AI Screener] Batch failed (${err?.message || err}) — retrying once`,
+      );
+    }
+    // Retry once (covers transient timeouts/rate limits and empty parses)
+    return classifyBatch(mentionsToClassify);
+  }
+
   // Process batches in parallel (MAX_CONCURRENCY at a time)
   for (let i = 0; i < batches.length; i += MAX_CONCURRENCY) {
     const chunk = batches.slice(i, i + MAX_CONCURRENCY);
     const settled = await Promise.allSettled(
-      chunk.map((batch) => classifyBatch(batch.map((b) => b.mention))),
+      chunk.map((batch) => classifyWithRetry(batch.map((b) => b.mention))),
     );
 
     for (let j = 0; j < settled.length; j++) {
@@ -180,14 +202,17 @@ async function classifyBatch(
     patternFlags: m.redFlags.slice(0, 5).join("; "),
   }));
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    temperature: 0.1,
-    max_tokens: 1500,
-    messages: [
-      {
-        role: "system",
-        content: `You are a financial fraud classifier. For each social media mention about a stock, classify it as:
+  const response = await openai.chat.completions.create(
+    {
+      model: "gpt-4o-mini",
+      temperature: 0.1,
+      max_tokens: 1500,
+      // Force valid JSON so a stray prose preamble can't break parsing (SOC-M2).
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You are a financial fraud classifier. For each social media mention about a stock, classify it as:
 - "scam": Clearly designed to manipulate — paid alerts, pump-and-dump coordination, fake DD, bot spam, guaranteed returns, urgency pressure
 - "suspicious": Could be manipulation but unclear — new accounts hyping, aggressive price targets, promo-adjacent language
 - "legitimate": Normal stock discussion — trader sharing a thesis, technical analysis, earnings discussion, news commentary, even if enthusiastic
@@ -195,53 +220,69 @@ async function classifyBatch(
 IMPORTANT: Legitimate traders can be bullish and use casual language ("loading the boat", "this is going to run"). That's NOT a scam.
 A scam involves DECEPTION or MANIPULATION — fake credentials, coordinated pumping, selling alert services, promising guaranteed returns.
 
-Respond with ONLY a JSON array: [{"index":0,"classification":"scam|suspicious|legitimate","reason":"brief reason"}]`,
-      },
-      {
-        role: "user",
-        content: `Classify these ${mentions.length} social media stock mentions:\n\n${JSON.stringify(mentionSummaries)}`,
-      },
-    ],
-  });
+Respond with ONLY a JSON object of the form: {"classifications":[{"index":0,"classification":"scam|suspicious|legitimate","reason":"brief reason"}]}`,
+        },
+        {
+          role: "user",
+          content: `Classify these ${mentions.length} social media stock mentions and return a JSON object with a "classifications" array:\n\n${JSON.stringify(mentionSummaries)}`,
+        },
+      ],
+    },
+    { timeout: REQUEST_TIMEOUT_MS },
+  );
 
   const content = response.choices?.[0]?.message?.content || "";
-
-  // Parse the JSON response
-  const jsonMatch = content.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) {
-    console.warn(
-      `[AI Screener] No JSON array in response: ${content.substring(0, 100)}`,
-    );
+  if (!content.trim()) {
+    console.warn("[AI Screener] Empty response content");
     return [];
   }
 
+  // With response_format the model returns an object; accept either the wrapped
+  // {classifications:[...]} shape or a bare array as a fallback.
+  let parsed: any;
   try {
-    const parsed = JSON.parse(
-      jsonMatch[0]
-        .replace(/,\s*]/g, "]")
-        .replace(/,\s*}/g, "}")
-        .replace(/[\u201c\u201d]/g, '"'),
-    );
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed
-      .filter(
-        (item: any) =>
-          typeof item.index === "number" &&
-          ["scam", "suspicious", "legitimate"].includes(item.classification),
-      )
-      .map((item: any) => ({
-        index: item.index,
-        classification: item.classification as
-          | "scam"
-          | "suspicious"
-          | "legitimate",
-        reason: String(item.reason || "").substring(0, 200),
-      }));
+    parsed = JSON.parse(content);
   } catch {
-    console.warn(
-      `[AI Screener] JSON parse failed: ${content.substring(0, 100)}`,
-    );
-    return [];
+    const match = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (!match) {
+      console.warn(
+        `[AI Screener] No JSON in response: ${content.substring(0, 100)}`,
+      );
+      return [];
+    }
+    try {
+      parsed = JSON.parse(
+        match[0]
+          .replace(/,\s*]/g, "]")
+          .replace(/,\s*}/g, "}")
+          .replace(/[\u201c\u201d]/g, '"'),
+      );
+    } catch {
+      console.warn(
+        `[AI Screener] JSON parse failed: ${content.substring(0, 100)}`,
+      );
+      return [];
+    }
   }
+
+  const arr: any[] = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray(parsed?.classifications)
+      ? parsed.classifications
+      : [];
+
+  return arr
+    .filter(
+      (item: any) =>
+        typeof item.index === "number" &&
+        ["scam", "suspicious", "legitimate"].includes(item.classification),
+    )
+    .map((item: any) => ({
+      index: item.index,
+      classification: item.classification as
+        | "scam"
+        | "suspicious"
+        | "legitimate",
+      reason: String(item.reason || "").substring(0, 200),
+    }));
 }

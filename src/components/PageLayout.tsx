@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { Footer } from "./Footer";
 import { useRouter } from "next/navigation";
 
 export function PageLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,7 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col min-h-screen">
         <Header onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
         {children}
+        <Footer />
       </div>
     </>
   );

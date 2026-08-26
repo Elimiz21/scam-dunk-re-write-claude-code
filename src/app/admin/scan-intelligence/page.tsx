@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AlertBanner from "@/components/admin/AlertBanner";
@@ -262,20 +262,41 @@ export default function ScanIntelligencePage() {
   const [stockListMinScore, setStockListMinScore] = useState(12);
   const [stockListPumpOnly, setStockListPumpOnly] = useState(false);
   const [stockListUnfilteredOnly, setStockListUnfilteredOnly] = useState(true);
+  // Debounced copy of the stock-explorer search so typing doesn't fire a fetch
+  // per keystroke.
+  const [debouncedStockSearch, setDebouncedStockSearch] = useState("");
+
+  // Aborts the in-flight dashboard fetch so rapid date clicks (and the
+  // mount-time date-param fetch) can't let a stale response win.
+  const dashAbortRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(async (date?: string) => {
+    dashAbortRef.current?.abort();
+    const controller = new AbortController();
+    dashAbortRef.current = controller;
     try {
       setLoading(true);
       setError("");
       const qs = date ? `?date=${date}` : "";
       const [dashRes, histRes, promRes] = await Promise.all([
-        fetch(`/api/admin/scan-intelligence${qs}`),
-        fetch("/api/admin/scan-intelligence/history"),
-        fetch("/api/admin/scan-intelligence/promoters"),
+        fetch(`/api/admin/scan-intelligence${qs}`, {
+          signal: controller.signal,
+        }),
+        fetch("/api/admin/scan-intelligence/history", {
+          signal: controller.signal,
+        }),
+        fetch("/api/admin/scan-intelligence/promoters", {
+          signal: controller.signal,
+        }),
       ]);
 
+      if (dashRes.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!dashRes.ok) throw new Error("Failed to fetch scan data");
       const dashData = await dashRes.json();
+      if (controller.signal.aborted) return;
       setData(dashData);
       setSelectedDate(dashData.date);
 
@@ -289,31 +310,40 @@ export default function ScanIntelligencePage() {
         setPromoters(promData.promoters || []);
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
-      setLoading(false);
+      if (dashAbortRef.current === controller) setLoading(false);
     }
   }, []);
 
+  // Single mount effect: read the ?date= param up front and fetch ONCE with the
+  // correct date so the no-date response can't race and overwrite it.
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const dateParam = params.get("date");
-    const schemeFilter = params.get("schemeFilter") || "";
-    if (dateParam) {
-      fetchData(dateParam);
+    let dateParam: string | null = null;
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      dateParam = params.get("date");
+      const schemeFilter = params.get("schemeFilter") || "";
+      if (schemeFilter === "new") setStockListSort("evaluatedAt");
+      if (schemeFilter === "active" || schemeFilter === "ongoing")
+        setStockListUnfilteredOnly(false);
     }
-    if (schemeFilter === "new") setStockListSort("evaluatedAt");
-    if (schemeFilter === "active" || schemeFilter === "ongoing")
-      setStockListUnfilteredOnly(false);
+    fetchData(dateParam || undefined);
   }, [fetchData]);
+
+  // Debounce the stock-explorer search term.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedStockSearch(stockListSearch);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [stockListSearch]);
 
   useEffect(() => {
     if (!selectedDate) return;
-    let cancelled = false;
+    const controller = new AbortController();
 
     async function fetchStockList() {
       try {
@@ -326,41 +356,45 @@ export default function ScanIntelligencePage() {
           minScore: String(stockListMinScore),
           unfilteredOnly: String(stockListUnfilteredOnly),
         });
-        if (stockListSearch.trim())
-          params.set("search", stockListSearch.trim());
+        if (debouncedStockSearch.trim())
+          params.set("search", debouncedStockSearch.trim());
         if (stockListRisk) params.set("riskLevel", stockListRisk);
         if (stockListPumpOnly) params.set("hasPumpPattern", "true");
 
         const res = await fetch(
           `/api/admin/scan-intelligence/stocks?${params.toString()}`,
+          { signal: controller.signal },
         );
+        if (res.status === 401) {
+          window.location.href = "/admin/login";
+          return;
+        }
         if (!res.ok) throw new Error("Failed to fetch stock explorer list");
         const result = await res.json();
-        if (!cancelled) setStockList(result);
+        if (controller.signal.aborted) return;
+        setStockList(result);
       } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Failed to fetch stock explorer list",
-          );
-        }
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (controller.signal.aborted) return;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to fetch stock explorer list",
+        );
       } finally {
-        if (!cancelled) setStockListLoading(false);
+        if (!controller.signal.aborted) setStockListLoading(false);
       }
     }
 
     fetchStockList();
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [
     selectedDate,
     stockListMinScore,
     stockListPage,
     stockListPumpOnly,
     stockListRisk,
-    stockListSearch,
+    debouncedStockSearch,
     stockListSort,
     stockListUnfilteredOnly,
   ]);
@@ -374,7 +408,7 @@ export default function ScanIntelligencePage() {
   useEffect(() => {
     setStockListPage(1);
   }, [
-    stockListSearch,
+    debouncedStockSearch,
     stockListRisk,
     stockListSort,
     stockListMinScore,
@@ -1009,6 +1043,7 @@ export default function ScanIntelligencePage() {
               <option value="signals">Sort: Signal count</option>
               <option value="marketCap">Sort: Market cap</option>
               <option value="symbol">Sort: Symbol</option>
+              <option value="evaluatedAt">Sort: Most recent</option>
             </select>
             <label className="flex items-center gap-2 px-3 py-2 text-xs rounded-lg border border-border bg-secondary">
               <span className="text-muted-foreground">Min score</span>

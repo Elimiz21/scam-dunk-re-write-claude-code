@@ -1,14 +1,8 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
+// /check is a legacy entry point — the scan UI now lives at "/".
+// Redirect on the server so crawlers and direct hits resolve immediately
+// instead of flashing a blank client-side stub.
 export default function CheckPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/");
-  }, [router]);
-
-  return null;
+  redirect("/");
 }

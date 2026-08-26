@@ -4,6 +4,7 @@
  * Handles per-user monthly scan limits and usage tracking.
  */
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { getCurrentMonthKey, getScanLimit } from "./config";
 import { UsageInfo, Plan } from "./types";
@@ -149,8 +150,18 @@ export async function incrementScanCount(userId: string): Promise<UsageInfo> {
 }
 
 /**
- * Atomically check the scan limit and increment in a single transaction.
- * Eliminates the TOCTOU race between canUserScan() and incrementScanCount().
+ * Atomically check the scan limit and reserve (increment) a slot.
+ *
+ * Concurrency-safe: the increment is performed as a single conditional UPDATE
+ * (`scanCount = scanCount + 1 WHERE scanCount < limit`), so the database — not
+ * the application — enforces the ceiling. N concurrent requests at limit-1 can
+ * no longer all pass: at most one wins the row, the rest match zero rows and
+ * are rejected. This replaces the previous findUnique→compare→upsert sequence,
+ * which raced under READ COMMITTED with no row lock (audit ARCH-C4).
+ *
+ * The first scan of the month has no row yet; a create-on-miss handles that,
+ * and a unique-violation retry covers two concurrent first-scans.
+ *
  * Returns { reserved: false } if the limit is already reached.
  */
 export async function reserveScanSlot(userId: string): Promise<{
@@ -159,53 +170,134 @@ export async function reserveScanSlot(userId: string): Promise<{
 }> {
   const monthKey = getCurrentMonthKey();
 
-  return await prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-      select: { plan: true },
-    });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { plan: true },
+  });
 
-    if (!user) {
-      throw new Error("User not found");
-    }
+  if (!user) {
+    throw new Error("User not found");
+  }
 
-    const plan = user.plan as Plan;
-    const limit = getScanLimit(plan);
+  const plan = user.plan as Plan;
+  const limit = getScanLimit(plan);
 
-    const existing = await tx.scanUsage.findUnique({
+  // Conditional atomic increment: only succeeds while still under the limit.
+  // Returns the number of rows affected (1 = reserved, 0 = at limit or no row).
+  const incremented = await prisma.$executeRaw`
+    UPDATE "ScanUsage"
+    SET "scanCount" = "scanCount" + 1, "updatedAt" = NOW()
+    WHERE "userId" = ${userId}
+      AND "monthKey" = ${monthKey}
+      AND "scanCount" < ${limit}
+  `;
+
+  if (incremented === 1) {
+    const updated = await prisma.scanUsage.findUnique({
       where: { userId_monthKey: { userId, monthKey } },
+      select: { scanCount: true },
     });
-
-    const currentCount = existing?.scanCount ?? 0;
-
-    if (currentCount >= limit) {
-      return {
-        reserved: false,
-        usage: {
-          plan,
-          scansUsedThisMonth: currentCount,
-          scansLimitThisMonth: limit,
-          limitReached: true,
-        },
-      };
-    }
-
-    const updated = await tx.scanUsage.upsert({
-      where: { userId_monthKey: { userId, monthKey } },
-      update: { scanCount: { increment: 1 } },
-      create: { userId, monthKey, scanCount: 1 },
-    });
-
+    const scanCount = updated?.scanCount ?? 1;
     return {
       reserved: true,
       usage: {
         plan,
-        scansUsedThisMonth: updated.scanCount,
+        scansUsedThisMonth: scanCount,
         scansLimitThisMonth: limit,
-        limitReached: updated.scanCount >= limit,
+        limitReached: scanCount >= limit,
       },
     };
+  }
+
+  // No row was updated. Either (a) the limit is reached, or (b) this is the
+  // first scan of the month and no row exists yet. Distinguish by reading.
+  const existing = await prisma.scanUsage.findUnique({
+    where: { userId_monthKey: { userId, monthKey } },
+    select: { scanCount: true },
   });
+
+  if (existing) {
+    // Row exists but the conditional update matched nothing → at the limit.
+    return {
+      reserved: false,
+      usage: {
+        plan,
+        scansUsedThisMonth: existing.scanCount,
+        scansLimitThisMonth: limit,
+        limitReached: true,
+      },
+    };
+  }
+
+  // First scan of the month: create the row with count 1. If a concurrent
+  // request created it first, the unique constraint trips — fall back to the
+  // conditional increment path so the race is still serialized correctly.
+  try {
+    const created = await prisma.scanUsage.create({
+      data: { userId, monthKey, scanCount: 1 },
+      select: { scanCount: true },
+    });
+    return {
+      reserved: true,
+      usage: {
+        plan,
+        scansUsedThisMonth: created.scanCount,
+        scansLimitThisMonth: limit,
+        limitReached: created.scanCount >= limit,
+      },
+    };
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      // Lost the create race; retry the atomic conditional increment.
+      const retry = await prisma.$executeRaw`
+        UPDATE "ScanUsage"
+        SET "scanCount" = "scanCount" + 1, "updatedAt" = NOW()
+        WHERE "userId" = ${userId}
+          AND "monthKey" = ${monthKey}
+          AND "scanCount" < ${limit}
+      `;
+      const after = await prisma.scanUsage.findUnique({
+        where: { userId_monthKey: { userId, monthKey } },
+        select: { scanCount: true },
+      });
+      const scanCount = after?.scanCount ?? limit;
+      const reserved = retry === 1;
+      return {
+        reserved,
+        usage: {
+          plan,
+          scansUsedThisMonth: scanCount,
+          scansLimitThisMonth: limit,
+          limitReached: !reserved || scanCount >= limit,
+        },
+      };
+    }
+    throw error;
+  }
+}
+
+/**
+ * Refund a previously reserved scan slot for the current month, flooring at 0.
+ *
+ * Used when a scan reserves a slot but then fails before producing a result
+ * (5xx/internal error), so users aren't charged for failed scans (audit
+ * ARCH-C4). The decrement is a single conditional UPDATE guarded by
+ * `scanCount > 0` so it can never drive the counter negative, and it is a
+ * no-op when no row exists. Safe to call fire-and-forget.
+ */
+export async function refundScanSlot(userId: string): Promise<void> {
+  const monthKey = getCurrentMonthKey();
+
+  await prisma.$executeRaw`
+    UPDATE "ScanUsage"
+    SET "scanCount" = "scanCount" - 1, "updatedAt" = NOW()
+    WHERE "userId" = ${userId}
+      AND "monthKey" = ${monthKey}
+      AND "scanCount" > 0
+  `;
 }
 
 /**

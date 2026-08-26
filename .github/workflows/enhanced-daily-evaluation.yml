@@ -179,7 +179,7 @@ jobs:
     needs: check-trading-day
     if: ${{ needs.check-trading-day.outputs.is_trading_day == 'true' || github.event.inputs.force_run == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 480 # 8 hours max for comprehensive evaluation
+    timeout-minutes: 350 # ~5h50m — GitHub-hosted runners cap jobs at 6h
 
     steps:
       - name: Checkout repository
@@ -216,7 +216,7 @@ jobs:
             exit 1
           fi
           if [ -z "$OPENAI_API_KEY" ]; then
-            echo "::warning::OPENAI_API_KEY not set - social media analysis will use pattern matching only"
+            echo "::error::OPENAI_API_KEY not set - Phase 3 news filtering will be SKIPPED, inflating HIGH-risk counts"
           else
             echo "OPENAI_API_KEY configured for AI-powered analysis"
           fi
@@ -345,6 +345,26 @@ jobs:
             echo "::error::Pipeline validation FAILED: ${PRESENT}/${TOTAL} files present, missing:${MISSING_LIST}"
           fi
 
+          # File presence alone is not a promotion gate. The pipeline can
+          # intentionally retain candidates as suspicious when a bounded news
+          # analysis cannot classify them; expose that as degraded instead of
+          # reporting a healthy scan.
+          SCAN_STATUS_FILE="results/scan-status-${DATE}.json"
+          SCAN_PIPELINE_STATUS="unknown"
+          if [ -f "$SCAN_STATUS_FILE" ]; then
+            SCAN_PIPELINE_STATUS=$(jq -r '.pipelineStatus // "unknown"' "$SCAN_STATUS_FILE" 2>/dev/null || echo "unknown")
+            if [ "$SCAN_PIPELINE_STATUS" = "degraded" ] && [ "$STATUS" = "healthy" ]; then
+              STATUS="degraded"
+              echo "::warning::Pipeline output is intentionally DEGRADED; inspect scan-status details before promotion"
+            elif [ "$SCAN_PIPELINE_STATUS" = "failed" ]; then
+              STATUS="failing"
+              echo "::error::Pipeline reported FAILED in scan-status"
+            fi
+          else
+            echo "::warning::scan-status is missing; output cannot be promoted as healthy"
+            if [ "$STATUS" = "healthy" ]; then STATUS="degraded"; fi
+          fi
+
           # Check scheme database health
           SCHEME_STATUS="unknown"
           ACTIVE_SCHEMES=0
@@ -363,6 +383,7 @@ jobs:
             "date": "${DATE}",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "status": "${STATUS}",
+            "scanPipelineStatus": "${SCAN_PIPELINE_STATUS}",
             "filesExpected": ${TOTAL},
             "filesPresent": ${PRESENT},
             "filesMissing": $((TOTAL - PRESENT)),

@@ -1,0 +1,83 @@
+name: CI
+
+# Gates every push and PR: type-check (app + evaluation), lint, tests, and a
+# production build with NO database access. Previously nothing ran here, so
+# schema/type regressions were first detected by the Vercel build — which also
+# mutated the production DB. This stops that.
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Dummy values so config/env validation and Prisma client generation pass.
+      # No real database is contacted (we never run migrate/db push here).
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
+      DIRECT_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
+      NEXTAUTH_SECRET: "ci-placeholder-secret-not-used-in-prod"
+      NEXTAUTH_URL: "http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Type-check (app)
+        run: npx tsc --noEmit
+
+      - name: Type-check (evaluation pipeline)
+        run: npx tsc --noEmit -p evaluation/tsconfig.json
+        continue-on-error: true # evaluation tree is being hardened; don't block yet
+
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true # codebase was never linted; surface findings without blocking yet
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+      - name: Production build (no DB)
+        run: npm run build
+
+  python-ai:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: python_ai
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run tests
+        run: pytest -q
+        continue-on-error: true # surfaced but not yet blocking

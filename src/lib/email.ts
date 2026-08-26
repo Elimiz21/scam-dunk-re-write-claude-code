@@ -9,6 +9,33 @@
 import { Resend } from "resend";
 import { logApiUsage } from "@/lib/admin/metrics";
 
+/**
+ * Escape user-supplied text before interpolating it into email HTML.
+ *
+ * Transactional emails are assembled as raw HTML template strings, so any
+ * untrusted value (support ticket name/email/subject/message, etc.) must be
+ * escaped or an attacker can inject markup — turning our trusted sender domain
+ * into a phishing primitive (SEC-H3). Mirrors the standard 5-character escape
+ * set. Non-string inputs are coerced to a string first.
+ */
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Strip characters that are unsafe inside an email Subject header.
+ * Subject lines are not HTML, but newlines enable header injection and raw
+ * user markup there is pointless noise, so collapse CR/LF to spaces.
+ */
+function sanitizeSubject(value: string): string {
+  return value.replace(/[\r\n]+/g, " ").trim();
+}
+
 // Lazy initialization to avoid build-time errors when API key is not set
 let resendInstance: Resend | null = null;
 let configWarningsLogged = false;
@@ -756,6 +783,15 @@ export async function sendSupportTicketNotification(
   const adminDashboardUrl = `${APP_URL}/admin/support`;
   const timestamp = new Date().toISOString();
 
+  // Escape every user-supplied value before it enters the HTML template.
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeSubject = escapeHtml(subject);
+  const safeMessage = escapeHtml(message);
+  const safeTicketId = escapeHtml(ticketId);
+  // Subject line must not echo raw user markup or allow header injection.
+  const headerSubject = `[Support Ticket] ${sanitizeSubject(subject)}`;
+
   try {
     // Get all active recipients for this category
     const recipients = await getSupportEmailRecipients(category);
@@ -765,7 +801,7 @@ export async function sendSupportTicketNotification(
         from: FROM_EMAIL,
         to: recipients,
         replyTo: email,
-        subject: `[Support Ticket] ${subject}`,
+        subject: headerSubject,
         html: `
         <!DOCTYPE html>
         <html>
@@ -780,20 +816,20 @@ export async function sendSupportTicketNotification(
             </div>
 
             <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
-              <h2 style="margin-top: 0; color: #1f2937;">${subject}</h2>
+              <h2 style="margin-top: 0; color: #1f2937;">${safeSubject}</h2>
 
               <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold; width: 120px;">Ticket ID:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 13px;">${ticketId}</code></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 13px;">${safeTicketId}</code></td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">From:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${name} &lt;${email}&gt;</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${safeName} &lt;${safeEmail}&gt;</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Category:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${categoryLabels[category] || category}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${escapeHtml(categoryLabels[category] || category)}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Submitted:</td>
@@ -802,7 +838,7 @@ export async function sendSupportTicketNotification(
               </table>
 
               <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-top: 16px;">
-                <p style="margin: 0; color: #374151; white-space: pre-wrap;">${message}</p>
+                <p style="margin: 0; color: #374151; white-space: pre-wrap;">${safeMessage}</p>
               </div>
             </div>
 
@@ -832,7 +868,7 @@ export async function sendSupportTicketNotification(
       for (const recipient of recipients) {
         await logEmailSend({
           recipientEmail: recipient,
-          subject: `[Support Ticket] ${subject}`,
+          subject: headerSubject,
           emailType: "TICKET_NOTIFICATION",
           status: "FAILED",
           errorMessage: result.error.message,
@@ -851,7 +887,7 @@ export async function sendSupportTicketNotification(
     for (const recipient of recipients) {
       await logEmailSend({
         recipientEmail: recipient,
-        subject: `[Support Ticket] ${subject}`,
+        subject: headerSubject,
         emailType: "TICKET_NOTIFICATION",
         status: "SENT",
         resendId: result.data?.id,
@@ -891,13 +927,21 @@ export async function sendSupportTicketConfirmation(
     OTHER: "Other",
   };
 
+  // Escape user-supplied values; this email is sent to an attacker-controlled
+  // address, so unescaped markup would let them craft phishing HTML from our
+  // branded sender (SEC-H3).
+  const safeName = escapeHtml(name);
+  const safeSubject = escapeHtml(subject);
+  const safeTicketId = escapeHtml(ticketId);
+  const headerSubject = sanitizeSubject(`We've received your message: ${subject}`);
+
   try {
     const result = await sendResendEmail(
       {
         from: FROM_EMAIL,
         to: email,
         replyTo: SUPPORT_EMAIL,
-        subject: `We've received your message: ${subject}`,
+        subject: headerSubject,
         html: `
         <!DOCTYPE html>
         <html>
@@ -912,14 +956,14 @@ export async function sendSupportTicketConfirmation(
             </div>
 
             <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
-              <h2 style="margin-top: 0;">Hi ${name},</h2>
-              <p>Thank you for reaching out! We've received your ${categoryLabels[category]?.toLowerCase() || "message"} and our team will review it shortly.</p>
+              <h2 style="margin-top: 0;">Hi ${safeName},</h2>
+              <p>Thank you for reaching out! We've received your ${escapeHtml(categoryLabels[category]?.toLowerCase() || "message")} and our team will review it shortly.</p>
 
               <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 20px 0;">
                 <p style="margin: 0 0 8px; font-weight: bold; color: #374151;">Your Ticket Details:</p>
-                <p style="margin: 4px 0; color: #666;"><strong>Ticket ID:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 13px;">${ticketId}</code></p>
-                <p style="margin: 4px 0; color: #666;"><strong>Subject:</strong> ${subject}</p>
-                <p style="margin: 4px 0; color: #666;"><strong>Category:</strong> ${categoryLabels[category] || category}</p>
+                <p style="margin: 4px 0; color: #666;"><strong>Ticket ID:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 13px;">${safeTicketId}</code></p>
+                <p style="margin: 4px 0; color: #666;"><strong>Subject:</strong> ${safeSubject}</p>
+                <p style="margin: 4px 0; color: #666;"><strong>Category:</strong> ${escapeHtml(categoryLabels[category] || category)}</p>
               </div>
 
               <p style="color: #666;">We typically respond within 1-2 business days. If your matter is urgent, please mention it in your original message and we'll prioritize accordingly.</p>
@@ -946,7 +990,7 @@ export async function sendSupportTicketConfirmation(
       console.error("Resend API error (support confirmation):", result.error);
       await logEmailSend({
         recipientEmail: email,
-        subject: `We've received your message: ${subject}`,
+        subject: headerSubject,
         emailType: "TICKET_CONFIRMATION",
         status: "FAILED",
         errorMessage: result.error.message,
@@ -963,7 +1007,7 @@ export async function sendSupportTicketConfirmation(
     );
     await logEmailSend({
       recipientEmail: email,
-      subject: `We've received your message: ${subject}`,
+      subject: headerSubject,
       emailType: "TICKET_CONFIRMATION",
       status: "SENT",
       resendId: result.data?.id,
@@ -994,13 +1038,22 @@ export async function sendSupportTicketResponse(
     );
   }
 
+  // Escape interpolated values (userName + originalSubject are user-supplied;
+  // responseMessage/responderName come from staff but are still rendered as
+  // HTML, so escape them too) — SEC-H3.
+  const safeUserName = escapeHtml(userName);
+  const safeTicketId = escapeHtml(ticketId);
+  const safeResponseMessage = escapeHtml(responseMessage);
+  const safeResponderName = escapeHtml(responderName);
+  const headerSubject = sanitizeSubject(`Re: ${originalSubject}`);
+
   try {
     const result = await sendResendEmail(
       {
         from: FROM_EMAIL,
         to: userEmail,
         replyTo: SUPPORT_EMAIL,
-        subject: `Re: ${originalSubject}`,
+        subject: headerSubject,
         html: `
         <!DOCTYPE html>
         <html>
@@ -1015,18 +1068,18 @@ export async function sendSupportTicketResponse(
             </div>
 
             <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
-              <h2 style="margin-top: 0;">Hi ${userName},</h2>
+              <h2 style="margin-top: 0;">Hi ${safeUserName},</h2>
               <p>We have an update regarding your support request.</p>
 
               <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 20px 0;">
                 <p style="margin: 0 0 12px; font-size: 13px; color: #666;">
-                  <strong>Ticket ID:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${ticketId}</code>
+                  <strong>Ticket ID:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${safeTicketId}</code>
                 </p>
-                <p style="margin: 0; color: #374151; white-space: pre-wrap;">${responseMessage}</p>
+                <p style="margin: 0; color: #374151; white-space: pre-wrap;">${safeResponseMessage}</p>
               </div>
 
               <p style="color: #666; font-size: 14px; margin-bottom: 0;">
-                <em>— ${responderName}, ScamDunk Support Team</em>
+                <em>— ${safeResponderName}, ScamDunk Support Team</em>
               </p>
             </div>
 
@@ -1051,7 +1104,7 @@ export async function sendSupportTicketResponse(
       console.error("Resend API error (support response):", result.error);
       await logEmailSend({
         recipientEmail: userEmail,
-        subject: `Re: ${originalSubject}`,
+        subject: headerSubject,
         emailType: "TICKET_RESPONSE",
         status: "FAILED",
         errorMessage: result.error.message,
@@ -1068,7 +1121,7 @@ export async function sendSupportTicketResponse(
     );
     await logEmailSend({
       recipientEmail: userEmail,
-      subject: `Re: ${originalSubject}`,
+      subject: headerSubject,
       emailType: "TICKET_RESPONSE",
       status: "SENT",
       resendId: result.data?.id,
@@ -1101,12 +1154,19 @@ export async function sendAPIFailureAlert(
 
   const timestamp = new Date().toISOString();
 
+  // ticker/assetType originate from user scan requests; escape all interpolated
+  // values so an attacker-chosen ticker can't inject markup into the admin alert.
+  const safeApiName = escapeHtml(apiName);
+  const safeTicker = escapeHtml(ticker);
+  const safeAssetType = escapeHtml(assetType);
+  const safeErrorMessage = escapeHtml(errorMessage);
+
   try {
     const result = await sendResendEmail(
       {
         from: FROM_EMAIL,
         to: adminEmail,
-        subject: `[ALERT] ScamDunk API Failure: ${apiName}`,
+        subject: sanitizeSubject(`[ALERT] ScamDunk API Failure: ${apiName}`),
         html: `
         <!DOCTYPE html>
         <html>
@@ -1126,15 +1186,15 @@ export async function sendAPIFailureAlert(
               <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #fecaca; font-weight: bold; width: 120px;">API Service:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #fecaca;">${apiName}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #fecaca;">${safeApiName}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #fecaca; font-weight: bold;">Ticker:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #fecaca;">${ticker}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #fecaca;">${safeTicker}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #fecaca; font-weight: bold;">Asset Type:</td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #fecaca;">${assetType}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #fecaca;">${safeAssetType}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #fecaca; font-weight: bold;">Timestamp:</td>
@@ -1143,13 +1203,13 @@ export async function sendAPIFailureAlert(
                 <tr>
                   <td style="padding: 8px 0; font-weight: bold; vertical-align: top;">Error:</td>
                   <td style="padding: 8px 0;">
-                    <code style="background: #fee2e2; padding: 4px 8px; border-radius: 4px; font-size: 13px; word-break: break-all;">${errorMessage}</code>
+                    <code style="background: #fee2e2; padding: 4px 8px; border-radius: 4px; font-size: 13px; word-break: break-all;">${safeErrorMessage}</code>
                   </td>
                 </tr>
               </table>
 
               <p style="margin-bottom: 0; color: #991b1b;">
-                <strong>Action Required:</strong> Please investigate this API failure. Users are currently unable to scan ${assetType} assets until the service is restored.
+                <strong>Action Required:</strong> Please investigate this API failure. Users are currently unable to scan ${safeAssetType} assets until the service is restored.
               </p>
             </div>
 

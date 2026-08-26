@@ -120,21 +120,26 @@ function LoginForm() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // Now login with the new credentials
-        const loginRes = await fetch("/api/admin/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: "", password }), // Email from invite
-        });
-
-        if (loginRes.ok) {
-          router.push("/admin/dashboard");
-        } else {
-          // Invite accepted, redirect to login
-          setIsInviteMode(false);
-          setError("");
-          router.push("/admin/login");
+        // Try to auto-login using the email the invite endpoint resolved.
+        // (Previously this sent an empty email, so the login always failed.)
+        const inviteEmail = data.email || data.admin?.email || "";
+        if (inviteEmail) {
+          const loginRes = await fetch("/api/admin/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: inviteEmail, password }),
+          });
+          if (loginRes.ok) {
+            router.push("/admin/dashboard");
+            return;
+          }
         }
+        // Could not auto-login — send the user to the normal login screen to
+        // sign in with the email from their invitation.
+        setIsInviteMode(false);
+        setPassword("");
+        setError("Account created. Please sign in with your email and password.");
+        router.push("/admin/login");
       } else {
         setError(data.error || "Failed to accept invite");
       }
@@ -159,10 +164,12 @@ function LoginForm() {
         <div className="flex justify-center">
           <div className="flex items-center">
             <Shield className="h-12 w-12 text-primary" />
-            <span className="ml-3 text-3xl font-bold text-white">ScamDunk</span>
+            <span className="ml-3 text-3xl font-bold text-foreground">
+              ScamDunk
+            </span>
           </div>
         </div>
-        <h2 className="mt-6 text-center text-2xl font-bold text-white">
+        <h2 className="mt-6 text-center text-2xl font-bold text-foreground">
           {isInviteMode ? "Accept Invitation" : "Admin Login"}
         </h2>
         <p className="mt-2 text-center text-sm text-muted-foreground">

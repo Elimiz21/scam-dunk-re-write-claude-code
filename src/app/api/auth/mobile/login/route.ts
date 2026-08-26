@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Find user by email
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: email.toLowerCase().trim() },
       select: {
         id: true,
         email: true,
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
         plan: true,
         hashedPassword: true,
         emailVerified: true,
+        sessionVersion: true,
       },
     });
 
@@ -94,9 +95,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user.id, user.email);
-    const refreshToken = generateRefreshToken(user.id, user.email);
+    // Generate tokens (embed sessionVersion so a password reset invalidates them)
+    const accessToken = generateAccessToken(
+      user.id,
+      user.email,
+      user.sessionVersion,
+    );
+    const refreshToken = generateRefreshToken(
+      user.id,
+      user.email,
+      user.sessionVersion,
+    );
 
     // Return user data and tokens
     return NextResponse.json({

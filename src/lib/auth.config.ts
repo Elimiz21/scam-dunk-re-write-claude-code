@@ -58,10 +58,14 @@ export const authConfig: NextAuthConfig = {
 
       return true;
     },
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.plan = user.plan;
+        // Carry sessionVersion through in the Edge runtime too. The Node-side
+        // callback in auth.ts performs the DB revalidation; the Edge runtime
+        // can't query Prisma, so it just preserves the claim (SEC-M10).
+        token.sessionVersion = user.sessionVersion ?? 0;
       }
       return token;
     },

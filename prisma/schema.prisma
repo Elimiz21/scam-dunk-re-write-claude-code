@@ -12,29 +12,37 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  hashedPassword    String?
-  name              String?
-  emailVerified     DateTime?
-  image             String?
-  plan              String    @default("FREE") // FREE or PAID
-  formerPro         Boolean   @default(false) // true if user ever cancelled a Pro subscription
-  billingProvider   String    @default("NONE") // NONE, PAYPAL, STRIPE, APPLE, MANUAL
-  billingCustomerId String?
-  subscriptionExpiresAt DateTime?
-  trialStartedAt    DateTime?
-  trialEndsAt       DateTime?
-  deletedAt         DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                         String    @id @default(cuid())
+  email                      String    @unique
+  hashedPassword             String?
+  name                       String?
+  emailVerified              DateTime?
+  image                      String?
+  plan                       String    @default("FREE") // FREE or PAID
+  formerPro                  Boolean   @default(false) // true if user ever cancelled a Pro subscription
+  billingProvider            String    @default("NONE") // NONE, PAYPAL, STRIPE, APPLE, MANUAL
+  billingCustomerId          String?
+  trialStartedAt             DateTime?
+  trialEndsAt                DateTime?
+  // Subscription entitlement (server-authoritative). store: "paypal" | "apple".
+  subscriptionStore          String? // which billing system granted the current plan
+  subscriptionExpiresAt      DateTime? // when PAID entitlement lapses; null = no active paid entitlement
+  // Apple original_transaction_id, globally unique so one purchase cannot upgrade many accounts.
+  appleOriginalTransactionId String?   @unique
+  // Bumped on password reset / credential change to invalidate outstanding JWT sessions and refresh tokens.
+  sessionVersion             Int       @default(0)
+  deletedAt                  DateTime?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 
   accounts   Account[]
   sessions   Session[]
   scanUsages ScanUsage[]
-  watchlistEntries       WatchlistEntry[]
-  notificationDeliveries NotificationDelivery[]
-  billingEvents BillingEvent[]
+  whatsAppIdentityBindings WhatsAppIdentityBinding[]
+  watchlistItems           WatchlistItem[]
+  watchlistEntries         WatchlistEntry[]
+  notificationDeliveries  NotificationDelivery[]
+  billingEvents            BillingEvent[]
 }
 
 // TODO [H-11]: OAuth tokens (refresh_token, access_token, id_token) are stored in plain text.
@@ -57,6 +65,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -65,6 +74,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -108,13 +119,9 @@ model ScanUsage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, monthKey])
-  @@index([userId, monthKey])
 }
 
-// ==========================================
-// USER WATCHLIST & SCHEDULED MONITORING
-// ==========================================
-
+// User-owned saved tickers and scheduled end-of-day monitoring.
 model WatchlistEntry {
   id         String   @id @default(cuid())
   userId     String
@@ -165,25 +172,25 @@ model MonitorExecution {
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
-  monitor        ActiveMonitor         @relation(fields: [monitorId], references: [id], onDelete: Cascade)
-  notifications  NotificationDelivery[]
+  monitor       ActiveMonitor         @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  notifications NotificationDelivery[]
 
   @@unique([monitorId, publicationKey])
   @@index([status, createdAt])
 }
 
 model NotificationDelivery {
-  id               String   @id @default(cuid())
-  userId           String
-  executionId      String
-  channel          String
-  status           String   @default("PENDING")
+  id                String   @id @default(cuid())
+  userId            String
+  executionId       String
+  channel           String
+  status            String   @default("PENDING")
   providerMessageId String?
-  errorReason      String?  @db.Text
-  attemptedAt      DateTime?
-  deliveredAt      DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  errorReason       String?  @db.Text
+  attemptedAt       DateTime?
+  deliveredAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   execution MonitorExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
@@ -199,12 +206,85 @@ model BillingEvent {
   eventType   String
   processedAt DateTime @default(now())
   createdAt   DateTime @default(now())
+  userId      String?
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId String?
 
   @@unique([provider, eventId])
   @@index([userId, createdAt])
+}
+
+// A returning user's saved list of previously scanned stocks — one row per
+// (user, ticker), auto-upserted on every logged-in scan (see logScanHistory).
+// Users can hide items (kept, tucked behind a toggle) or remove them entirely;
+// a removed ticker reappears only if the user scans it again.
+model WatchlistItem {
+  id            String   @id @default(cuid())
+  userId        String
+  ticker        String
+  assetType     String   @default("stock")
+  lastRiskLevel String? // LOW, MEDIUM, HIGH, INSUFFICIENT — from the latest scan
+  lastScore     Int?
+  scanCount     Int      @default(1)
+  isHidden      Boolean  @default(false)
+  lastScannedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ticker])
+  @@index([userId, isHidden, lastScannedAt(sort: Desc)])
+}
+
+// WhatsApp sender identity is never stored in clear text. identityHash is an
+// HMAC lookup key and identityEncrypted is protected with a dedicated key.
+model WhatsAppIdentityBinding {
+  id                    String   @id @default(cuid())
+  userId                String
+  identityHash          String   @unique
+  identityEncrypted     String   @db.Text
+  active                Boolean  @default(false)
+  verificationCodeHash  String?
+  verificationExpiresAt DateTime?
+  verificationAttempts  Int      @default(0)
+  lastVerificationSentAt DateTime?
+  bindingVersion        String   @default("web-template-v1")
+  boundAt               DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inboundEvents WhatsAppInboundEvent[]
+
+  @@index([userId, active])
+}
+
+// Minimal durable idempotency ledger. Raw inbound text is encrypted only while
+// an event is pending/retryable and is purged on the scheduled retention date.
+model WhatsAppInboundEvent {
+  id                   String   @id @default(cuid())
+  providerMessageId    String   @unique
+  senderIdentityHash   String
+  bindingId            String?
+  messageType          String
+  status               String   @default("RECEIVED")
+  reasonCode           String?
+  encryptedText        String?  @db.Text
+  encryptedReply       String?  @db.Text
+  senderIdentityEncrypted String? @db.Text
+  providerReplyMessageId String?
+  attemptCount         Int      @default(0)
+  processedAt          DateTime?
+  purgeAt              DateTime
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  binding WhatsAppIdentityBinding? @relation(fields: [bindingId], references: [id], onDelete: SetNull)
+
+  @@index([senderIdentityHash, createdAt])
+  @@index([status, purgeAt])
 }
 
 // ==========================================
@@ -225,8 +305,6 @@ model AdminUser {
 
   invitesSent AdminInvite[]  @relation("InvitedBy")
   sessions    AdminSession[]
-
-  @@index([email])
 }
 
 model AdminSession {
@@ -277,6 +355,8 @@ model ApiUsageLog {
 
   @@index([service, monthKey])
   @@index([service, dayKey])
+  @@index([dayKey])
+  @@index([hourKey])
   @@index([createdAt])
 }
 
@@ -315,31 +395,34 @@ model IntegrationConfig {
 }
 
 model ScanHistory {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   userId          String?
   ticker          String
-  assetType       String    @default("stock")
+  assetType       String   @default("stock")
   riskLevel       String // LOW, MEDIUM, HIGH, INSUFFICIENT
   totalScore      Int
   signalsCount    Int
   processingTime  Int? // In milliseconds
   openaiTokens    Int?
-  alphaVantageHit Boolean   @default(false)
+  alphaVantageHit Boolean  @default(false)
   isLegitimate    Boolean?
-  pitchProvided   Boolean   @default(false)
-  contextProvided Boolean   @default(false)
+  pitchProvided   Boolean  @default(false)
+  contextProvided Boolean  @default(false)
   ipAddress       String?
   // Segment classification fields for per-segment efficacy tracking
-  isOtc           Boolean   @default(false)
-  isMicroCap      Boolean   @default(false)
-  isHighVolume    Boolean   @default(false)  // Volume surge >= 3x
-  usedAiBackend   Boolean   @default(false)
-  createdAt       DateTime  @default(now())
+  isOtc           Boolean  @default(false)
+  isMicroCap      Boolean  @default(false)
+  isHighVolume    Boolean  @default(false) // Volume surge >= 3x
+  usedAiBackend   Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   @@index([createdAt])
   @@index([riskLevel])
   @@index([ticker])
-  @@index([userId])
+  // Hot path: /api/user/scans (userId filter, newest first)
+  @@index([userId, createdAt(sort: Desc)])
+  // Hot path: model-efficacy topTickers (date range, grouped by ticker)
+  @@index([createdAt, ticker])
   @@index([isOtc])
   @@index([isMicroCap])
 }
@@ -908,12 +991,18 @@ model SocialMention {
   isPromotional  Boolean       @default(false)
   promotionScore Int           @default(0) // 0-100
   redFlags       String?       @db.Text // JSON array of strings
+  // sha256(url || title || content); bounded so it can back a unique index for in-run dedup.
+  contentHash    String?
   createdAt      DateTime      @default(now())
 
+  // In-run idempotency: the same post for the same ticker is inserted once per run,
+  // making createMany({ skipDuplicates: true }) actually deduplicate.
+  @@unique([scanRunId, ticker, contentHash])
   @@index([ticker, platform])
   @@index([scanRunId])
   @@index([createdAt])
   @@index([ticker, createdAt])
+  @@index([ticker, contentHash])
   @@index([isPromotional])
 }
 
@@ -1155,4 +1244,24 @@ model PromoterNetwork {
   @@index([isActive])
   @@index([confidenceScore])
   @@index([dumpRate])
+}
+
+model PrePumpWatchlist {
+  id                 String    @id @default(uuid())
+  ticker             String
+  addedDate          DateTime  @default(now())
+  source             String // 'social_velocity', 'edgar_filing', 'short_interest'
+  mentionVelocity    Float?
+  mentionCount24h    Int?
+  uniqueAuthorsRatio Float?
+  signals            Json? // array of signal objects that triggered watchlist addition
+  isActive           Boolean   @default(true)
+  deactivatedDate    DateTime?
+  deactivationReason String? // 'no_activity_7d', 'confirmed_legitimate', 'scheme_tracked'
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([isActive, ticker])
+  @@index([addedDate])
+  @@map("pre_pump_watchlist")
 }

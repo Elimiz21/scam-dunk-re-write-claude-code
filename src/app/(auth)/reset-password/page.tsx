@@ -15,7 +15,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Loader2, Lock, Check, XCircle } from "lucide-react";
+import { Loader2, Lock, Check, XCircle } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/config";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -37,8 +39,10 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    // Use the shared password policy so reset matches signup (was 8 vs 10) — FE-M8.
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -67,14 +71,16 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/30">
-              <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+            <div className="p-3 rounded-full border border-destructive/30 bg-destructive/10">
+              <XCircle className="h-7 w-7 text-destructive" />
             </div>
           </div>
-          <CardTitle>Invalid reset link</CardTitle>
+          <CardTitle className="font-editorial text-2xl font-light">
+            Invalid reset link
+          </CardTitle>
           <CardDescription>
             This password reset link is invalid or has expired.
           </CardDescription>
@@ -93,14 +99,16 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
-              <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+            <div className="p-3 rounded-full border border-success/30 bg-success/10">
+              <Check className="h-7 w-7 text-success" />
             </div>
           </div>
-          <CardTitle>Password reset successful</CardTitle>
+          <CardTitle className="font-editorial text-2xl font-light">
+            Password reset successful
+          </CardTitle>
           <CardDescription>
             Your password has been reset. You can now log in with your new
             password.
@@ -116,14 +124,16 @@ function ResetPasswordForm() {
   }
 
   return (
-    <Card className="w-full max-w-md border-border bg-card">
+    <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <div className="p-3 rounded-full bg-primary/10">
-            <Lock className="h-8 w-8 text-primary" />
+          <div className="p-3 rounded-full border border-border bg-secondary">
+            <Lock className="h-7 w-7 text-teal" />
           </div>
         </div>
-        <CardTitle>Reset your password</CardTitle>
+        <CardTitle className="font-editorial text-2xl font-light">
+          Reset your password
+        </CardTitle>
         <CardDescription>Enter your new password below</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -145,7 +155,8 @@ function ResetPasswordForm() {
               disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground">
-              Must be at least 8 characters
+              Must be at least {MIN_PASSWORD_LENGTH} characters, with uppercase,
+              lowercase, and a number
             </p>
           </div>
           <div className="space-y-2">
@@ -182,13 +193,12 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <Shield className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">ScamDunk</span>
+        <div className="flex items-center justify-center mb-8">
+          <Logo size={56} href="/" />
         </div>
         <Suspense
           fallback={
-            <Card className="w-full max-w-md border-border bg-card">
+            <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
               <CardHeader className="text-center">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto" />
               </CardHeader>

@@ -48,13 +48,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Auto-cleanup: mark scans stuck in RUNNING for >10 minutes as TIMED_OUT
+    // Auto-cleanup: mark scans stuck in RUNNING as TIMED_OUT when their
+    // heartbeat (updatedAt) has gone quiet for >10 min — keying on updatedAt
+    // not createdAt avoids killing a live scan still making progress (SOC-M5).
     try {
       const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
       await prisma.socialScanRun.updateMany({
         where: {
           status: "RUNNING",
-          createdAt: { lt: staleThreshold },
+          updatedAt: { lt: staleThreshold },
         },
         data: {
           status: "TIMED_OUT",
@@ -138,19 +140,26 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.socialMention.count({ where: mentionWhere }),
+      // Headline stats must honor the active filters so they match the
+      // "across filtered mentions" copy in the response (SOC-R3).
       prisma.socialMention.aggregate({
+        where: mentionWhere,
         _count: true,
         _avg: { promotionScore: true },
       }),
-      prisma.socialMention.count({ where: { isPromotional: true } }),
+      prisma.socialMention.count({
+        where: { ...mentionWhere, isPromotional: true },
+      }),
       prisma.socialMention.groupBy({
         by: ["ticker"],
+        where: mentionWhere,
         _count: true,
         orderBy: { _count: { ticker: "desc" } },
         take: 20,
       }),
       prisma.socialMention.groupBy({
         by: ["platform"],
+        where: mentionWhere,
         _count: true,
         _avg: { promotionScore: true },
       }),
@@ -330,6 +339,29 @@ export async function POST(request: NextRequest) {
           signals: Array.isArray(t.signals) ? t.signals : [],
         };
       });
+    }
+
+    // Concurrency guard (SOC-M3): reject if another scan is already RUNNING and
+    // has shown progress (heartbeat) within the last 10 minutes. Prevents a
+    // double-click or cron+manual collision from launching two full paid scans.
+    const RUNNING_WINDOW_MS = 10 * 60 * 1000;
+    const activeRun = await prisma.socialScanRun.findFirst({
+      where: {
+        status: "RUNNING",
+        updatedAt: { gt: new Date(Date.now() - RUNNING_WINDOW_MS) },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, createdAt: true },
+    });
+    if (activeRun) {
+      return NextResponse.json(
+        {
+          error: "A social scan is already running. Try again shortly.",
+          code: "scan_in_progress",
+          scanRunId: activeRun.id,
+        },
+        { status: 409 },
+      );
     }
 
     // Create scan run record

@@ -35,16 +35,24 @@ def _load_expected_hashes() -> dict:
         return {}
 
 
+def _is_production() -> bool:
+    env = os.environ.get("ENVIRONMENT", os.environ.get("RAILWAY_ENVIRONMENT", "")).strip().lower()
+    return env in ("production", "prod")
+
+
 def verify_model_file(file_path: str) -> bool:
     """
     Verify a model file's SHA-256 hash against the expected value.
 
     Returns True if:
       - The hash matches the expected value, OR
-      - No expected hash is configured (null in model_hashes.json)
+      - No expected hash is configured (null in model_hashes.json) AND we are
+        not running in production (fail-open for local/dev only).
 
     Returns False if:
-      - The hash does not match the expected value
+      - The hash does not match the expected value, OR
+      - No expected hash is configured AND ENVIRONMENT=production (fail-closed):
+        loading an unverified pickled artifact in production is an RCE risk.
     """
     expected_hashes = _load_expected_hashes()
 
@@ -58,7 +66,13 @@ def verify_model_file(file_path: str) -> bool:
 
     expected = expected_hashes.get(relative_key)
     if expected is None:
-        logger.info(f"No hash configured for {relative_key}, skipping verification")
+        if _is_production():
+            logger.error(
+                f"No SHA-256 hash configured for {relative_key} and ENVIRONMENT=production. "
+                f"Refusing to load an unverified model artifact (fail-closed)."
+            )
+            return False
+        logger.info(f"No hash configured for {relative_key}, skipping verification (non-production)")
         return True
 
     if not os.path.exists(file_path):

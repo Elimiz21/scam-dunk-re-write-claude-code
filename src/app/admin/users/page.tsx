@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import StatCard from "@/components/admin/StatCard";
 import DataTable from "@/components/admin/DataTable";
@@ -102,11 +102,37 @@ export default function UsersPage() {
     userEmail: string;
   } | null>(null);
 
+  // Aborts the in-flight list fetch so a newer request (page/filter/search
+  // change) always wins the race.
+  const fetchAbortRef = useRef<AbortController | null>(null);
+  // Skip the search debounce on initial mount so we don't double-fetch.
+  const searchMounted = useRef(false);
+
+  // Close the row action menu on outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(null);
+    };
+    document.addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, planFilter]);
 
   useEffect(() => {
+    if (!searchMounted.current) {
+      searchMounted.current = true;
+      return;
+    }
     const timer = setTimeout(() => {
       if (pagination.page === 1) {
         fetchUsers();
@@ -115,10 +141,16 @@ export default function UsersPage() {
       }
     }, 300);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   async function fetchUsers() {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setLoading(true);
+    setError("");
+    setSuccess("");
     try {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
@@ -127,16 +159,24 @@ export default function UsersPage() {
       if (search) params.append("search", search);
       if (planFilter) params.append("plan", planFilter);
 
-      const res = await fetch(`/api/admin/users?${params}`);
+      const res = await fetch(`/api/admin/users?${params}`, {
+        signal: controller.signal,
+      });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch users");
       const data = await res.json();
+      if (controller.signal.aborted) return;
       setUsers(data.users);
       setPagination(data.pagination);
       setStats(data.stats);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
-      setLoading(false);
+      if (fetchAbortRef.current === controller) setLoading(false);
     }
   }
 
@@ -265,13 +305,19 @@ export default function UsersPage() {
           </button>
           <div className="relative">
             <button
-              onClick={() => setMenuOpen(menuOpen === item.id ? null : item.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(menuOpen === item.id ? null : item.id);
+              }}
               className="p-1 text-muted-foreground hover:text-muted-foreground rounded"
             >
               <MoreVertical className="h-4 w-4" />
             </button>
             {menuOpen === item.id && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-10">
+              <div
+                className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-10"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="py-1">
                   {item.plan === "FREE" ? (
                     <button
@@ -284,7 +330,14 @@ export default function UsersPage() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => performAction(item.id, "downgradeToFree")}
+                      onClick={() => {
+                        setConfirmModal({
+                          type: "downgradeToFree",
+                          userId: item.id,
+                          userEmail: item.email,
+                        });
+                        setMenuOpen(null);
+                      }}
                       disabled={actionLoading}
                       className="flex items-center w-full px-4 py-2 text-sm text-orange-700 hover:bg-secondary"
                     >
@@ -293,7 +346,14 @@ export default function UsersPage() {
                     </button>
                   )}
                   <button
-                    onClick={() => performAction(item.id, "resetScans")}
+                    onClick={() => {
+                      setConfirmModal({
+                        type: "resetScans",
+                        userId: item.id,
+                        userEmail: item.email,
+                      });
+                      setMenuOpen(null);
+                    }}
                     disabled={actionLoading}
                     className="flex items-center w-full px-4 py-2 text-sm text-blue-700 hover:bg-secondary"
                   >
@@ -755,7 +815,11 @@ export default function UsersPage() {
                 <h3 className="ml-3 text-lg font-medium text-foreground">
                   {confirmModal.type === "deleteUser"
                     ? "Delete User"
-                    : "Confirm Action"}
+                    : confirmModal.type === "downgradeToFree"
+                      ? "Downgrade to Free"
+                      : confirmModal.type === "resetScans"
+                        ? "Reset Monthly Scans"
+                        : "Confirm Action"}
                 </h3>
               </div>
               <div className="mb-4">
@@ -771,6 +835,18 @@ export default function UsersPage() {
                       permanently deleted.
                     </p>
                   </div>
+                )}
+                {confirmModal.type === "downgradeToFree" && (
+                  <p className="text-sm text-muted-foreground">
+                    Downgrade <strong>{confirmModal.userEmail}</strong> to the
+                    Free plan? They will immediately lose paid features.
+                  </p>
+                )}
+                {confirmModal.type === "resetScans" && (
+                  <p className="text-sm text-muted-foreground">
+                    Reset this month&apos;s scan count for{" "}
+                    <strong>{confirmModal.userEmail}</strong> back to zero?
+                  </p>
                 )}
               </div>
               <div className="flex justify-end space-x-3">
@@ -793,8 +869,10 @@ export default function UsersPage() {
                 >
                   {actionLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
+                  ) : confirmModal.type === "deleteUser" ? (
                     "Delete User"
+                  ) : (
+                    "Confirm"
                   )}
                 </button>
               </div>

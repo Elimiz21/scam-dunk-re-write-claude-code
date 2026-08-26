@@ -13,6 +13,35 @@ const API_BASE = `https://api.github.com/repos/${DATA_REPO}`;
 let _treeCache: { files: RepoFile[]; fetchedAt: number } | null = null;
 const TREE_CACHE_TTL = 5 * 60 * 1000; // 5 min
 
+/**
+ * Authorization headers for GitHub. When GITHUB_TOKEN is set, this raises the
+ * REST/raw limit from 60 req/h/IP (unauthenticated) to 5,000/h, which the admin
+ * intelligence surface needs to avoid going dark mid-session. Optional — when
+ * unset we fall back to the unauthenticated limit.
+ */
+function githubHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  const token = process.env.GITHUB_TOKEN;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+/**
+ * Error thrown when the data repo cannot be reached / is rate-limited, so
+ * callers can surface a 502 instead of silently rendering empty dashboards.
+ */
+export class ScanDataFetchError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+  ) {
+    super(message);
+    this.name = "ScanDataFetchError";
+  }
+}
+
 export interface RepoFile {
   path: string;
   size: number;
@@ -20,6 +49,10 @@ export interface RepoFile {
 
 /**
  * Get the full file listing from the data repo.
+ *
+ * Throws {@link ScanDataFetchError} when the tree can't be fetched AND there is
+ * no cached copy to fall back to — so the dashboard can distinguish an upstream
+ * outage/rate-limit from a genuinely empty repo.
  */
 export async function getRepoTree(): Promise<RepoFile[]> {
   if (_treeCache && Date.now() - _treeCache.fetchedAt < TREE_CACHE_TTL) {
@@ -27,9 +60,15 @@ export async function getRepoTree(): Promise<RepoFile[]> {
   }
   try {
     const res = await fetch(`${API_BASE}/git/trees/main?recursive=1`, {
+      headers: githubHeaders(),
       next: { revalidate: 300 },
     });
-    if (!res.ok) throw new Error(`Tree fetch failed: ${res.status}`);
+    if (!res.ok) {
+      throw new ScanDataFetchError(
+        `Tree fetch failed: ${res.status}`,
+        res.status,
+      );
+    }
     const data = await res.json();
     const files: RepoFile[] = (data.tree || [])
       .filter((f: { type: string }) => f.type === "blob")
@@ -40,8 +79,20 @@ export async function getRepoTree(): Promise<RepoFile[]> {
     _treeCache = { files, fetchedAt: Date.now() };
     return files;
   } catch (err) {
+    // Serve a stale cache if we have one; otherwise surface the failure.
+    if (_treeCache) {
+      console.warn(
+        "Failed to refresh repo tree, serving cached copy:",
+        err instanceof Error ? err.message : err,
+      );
+      return _treeCache.files;
+    }
     console.error("Failed to fetch repo tree:", err);
-    return _treeCache?.files || [];
+    throw err instanceof ScanDataFetchError
+      ? err
+      : new ScanDataFetchError(
+          `Failed to fetch repo tree: ${err instanceof Error ? err.message : String(err)}`,
+        );
   }
 }
 
@@ -74,13 +125,25 @@ export async function getScanDates(): Promise<string[]> {
 export async function fetchSmallFile<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(`${API_BASE}/contents/${path}`, {
+      headers: githubHeaders(),
       next: { revalidate: 300 },
     });
-    if (!res.ok) return null;
+    // 404 = this file legitimately doesn't exist for this date.
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      // 403/429/5xx = upstream problem (often rate limiting). Log so an empty
+      // dashboard is traceable rather than silently swallowed.
+      console.warn(`fetchSmallFile(${path}) failed: ${res.status}`);
+      return null;
+    }
     const data = await res.json();
     const content = Buffer.from(data.content, "base64").toString("utf-8");
     return JSON.parse(content) as T;
-  } catch {
+  } catch (err) {
+    console.warn(
+      `fetchSmallFile(${path}) error:`,
+      err instanceof Error ? err.message : err,
+    );
     return null;
   }
 }
@@ -94,18 +157,26 @@ export async function fetchLargeFile<T>(
   maxBytes?: number,
 ): Promise<T | null> {
   try {
-    const headers: Record<string, string> = {};
+    const extra: Record<string, string> = {};
     if (maxBytes) {
-      headers["Range"] = `bytes=0-${maxBytes}`;
+      extra["Range"] = `bytes=0-${maxBytes}`;
     }
     const res = await fetch(`${RAW_BASE}/${path}`, {
-      headers,
+      headers: githubHeaders(extra),
       next: { revalidate: 300 },
     });
-    if (!res.ok && res.status !== 206) return null;
+    if (res.status === 404) return null;
+    if (!res.ok && res.status !== 206) {
+      console.warn(`fetchLargeFile(${path}) failed: ${res.status}`);
+      return null;
+    }
     const text = await res.text();
     return JSON.parse(text) as T;
-  } catch {
+  } catch (err) {
+    console.warn(
+      `fetchLargeFile(${path}) error:`,
+      err instanceof Error ? err.message : err,
+    );
     return null;
   }
 }
@@ -120,10 +191,14 @@ export async function fetchPartialArray<T>(
 ): Promise<T[]> {
   try {
     const res = await fetch(`${RAW_BASE}/${path}`, {
-      headers: { Range: `bytes=0-${maxBytes}` },
+      headers: githubHeaders({ Range: `bytes=0-${maxBytes}` }),
       next: { revalidate: 300 },
     });
-    if (!res.ok && res.status !== 206) return [];
+    if (res.status === 404) return [];
+    if (!res.ok && res.status !== 206) {
+      console.warn(`fetchPartialArray(${path}) failed: ${res.status}`);
+      return [];
+    }
     let text = await res.text();
 
     // Try to parse complete objects from the partial response
@@ -137,7 +212,11 @@ export async function fetchPartialArray<T>(
       text = "[" + text;
     }
     return JSON.parse(text) as T[];
-  } catch {
+  } catch (err) {
+    console.warn(
+      `fetchPartialArray(${path}) error:`,
+      err instanceof Error ? err.message : err,
+    );
     return [];
   }
 }

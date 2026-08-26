@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminLogin } from "@/lib/admin/auth";
 import { z } from "zod";
-import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
+import { rateLimit, RateLimitStoreError, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +16,20 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit: strict for admin login (5 requests per minute)
-    const { success: rateLimitSuccess, headers: rateLimitHeaders } =
-      await rateLimit(request, "strict");
-    if (!rateLimitSuccess) {
-      return rateLimitExceededResponse(rateLimitHeaders);
+    // Rate limit: strict for admin login (5 requests per minute).
+    // Fail open if the store is unavailable — a broken Redis/DB must not
+    // permanently lock out all admins.
+    try {
+      const { success, headers } = await rateLimit(request, "strict");
+      if (!success) {
+        return rateLimitExceededResponse(headers);
+      }
+    } catch (rlErr) {
+      if (rlErr instanceof RateLimitStoreError) {
+        console.error("[admin-login] Rate-limit store unavailable, failing open:", rlErr.cause);
+      } else {
+        throw rlErr;
+      }
     }
 
     const body = await request.json();

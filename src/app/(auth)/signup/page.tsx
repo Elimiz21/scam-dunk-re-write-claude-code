@@ -15,8 +15,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Loader2, Mail, Eye } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Turnstile } from "@/components/turnstile";
+import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/config";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -26,6 +28,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileAvailable, setTurnstileAvailable] = useState(true);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -43,12 +46,21 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    // Shared password policy (FE-M8) — also enforces complexity client-side.
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
+    if (!turnstileToken) {
+      setError("Please complete CAPTCHA verification before signing up.");
       return;
     }
 
     setIsLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
       // Register the user
@@ -56,21 +68,26 @@ export default function SignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name, turnstileToken }),
+        signal: controller.signal,
       });
 
       const registerData = await registerResponse.json();
 
       if (!registerResponse.ok) {
         setError(registerData.error || "Registration failed");
-        setIsLoading(false);
         return;
       }
 
       // Show success state - user needs to verify email
       setIsSuccess(true);
-      setIsLoading(false);
-    } catch {
-      setError("An error occurred. Please try again.");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("Signup timed out. Please try again.");
+      } else {
+        setError("An error occurred. Please try again.");
+      }
+    } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
@@ -78,15 +95,15 @@ export default function SignupPage() {
   // Success state - show verification email sent message
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
-        <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
+      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
+        <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full gradient-brand shadow-glow-sm">
-                <Mail className="h-8 w-8 text-white" />
+              <div className="p-3 rounded-full border border-border bg-secondary">
+                <Mail className="h-7 w-7 text-teal" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-display italic">
+            <CardTitle className="font-editorial text-2xl font-light">
               Check your email
             </CardTitle>
             <CardDescription className="text-base mt-2">
@@ -127,24 +144,13 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
-      <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
-          <Link
-            href="/"
-            className="flex items-center justify-center gap-2 mb-4"
-          >
-            <div className="relative inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-xl shadow-glow-sm">
-              <Shield className="h-5 w-5 text-white" />
-              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
-                <Eye className="h-2 w-2 text-white" />
-              </div>
-            </div>
-            <span className="text-2xl font-bold font-display italic">
-              ScamDunk
-            </span>
-          </Link>
-          <CardTitle className="font-display italic">
+          <div className="mb-4 flex justify-center">
+            <Logo size={56} href="/" />
+          </div>
+          <CardTitle className="font-editorial text-2xl font-light">
             Create your account
           </CardTitle>
           <CardDescription>
@@ -197,7 +203,8 @@ export default function SignupPage() {
                 aria-describedby="password-hint"
               />
               <p id="password-hint" className="text-xs text-muted-foreground">
-                Must be at least 8 characters
+                Must be at least {MIN_PASSWORD_LENGTH} characters, with
+                uppercase, lowercase, and a number
               </p>
             </div>
             <div className="space-y-2">
@@ -213,13 +220,35 @@ export default function SignupPage() {
                 aria-required="true"
               />
             </div>
-            <Turnstile onVerify={handleTurnstileVerify} />
+            <Turnstile
+              onVerify={(token) => {
+                setError("");
+                setTurnstileAvailable(true);
+                handleTurnstileVerify(token);
+              }}
+              onError={() => {
+                setTurnstileToken("");
+                setTurnstileAvailable(true);
+                setError("CAPTCHA verification failed. Please try again.");
+              }}
+              onExpire={() => {
+                setTurnstileToken("");
+                setError("CAPTCHA expired. Please verify again.");
+              }}
+              onUnavailable={() => {
+                setTurnstileToken("");
+                setTurnstileAvailable(false);
+                setError(
+                  "CAPTCHA is currently unavailable. Please refresh and try again.",
+                );
+              }}
+            />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoading || !turnstileAvailable || !turnstileToken}
             >
               {isLoading ? (
                 <>

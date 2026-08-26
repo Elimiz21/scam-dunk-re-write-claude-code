@@ -1,14 +1,25 @@
 /**
  * Rate Limiting Module
  *
- * Provides rate limiting for API routes using PostgreSQL via Prisma.
- * Falls back to in-memory rate limiting if the database query fails.
+ * Provides rate limiting for API routes. Strategy, in priority order:
+ *   1. Upstash Redis (REST) when configured — a single shared sliding-window
+ *      counter across all serverless instances.
+ *   2. PostgreSQL via Prisma — shared across instances, but two writes/request.
+ *   3. In-memory Map — per-instance only; used as a last resort when both the
+ *      shared stores fail. To avoid silently widening the limit on every cold
+ *      instance, this fallback FAILS CLOSED for the strict/auth tiers
+ *      (brute-force-sensitive) and fails open for the looser tiers.
+ *
+ * No module-level timers: serverless instances are frozen between invocations
+ * so an interval never fires usefully. Expired in-memory entries are evicted
+ * lazily on access.
  */
 
 import { prisma } from "./db";
+import { kv } from "./kv";
 import { NextRequest, NextResponse } from "next/server";
 
-// In-memory fallback for when Prisma queries fail
+// In-memory fallback for when both KV and Prisma are unavailable.
 const inMemoryStore = new Map<string, { count: number; resetTime: number }>();
 
 /**
@@ -45,6 +56,36 @@ export const rateLimitConfigs = {
     window: "1 m" as const, // 10 requests per minute
     windowMs: 60 * 1000,
   },
+  whatsappHourly: {
+    requests: 20,
+    window: "1 h" as const,
+    windowMs: 60 * 60 * 1000,
+  },
+  whatsappDaily: {
+    requests: 60,
+    window: "1 d" as const,
+    windowMs: 24 * 60 * 60 * 1000,
+  },
+  whatsappGlobal: {
+    requests: 100,
+    window: "1 m" as const,
+    windowMs: 60 * 1000,
+  },
+  whatsappBindingUser: {
+    requests: 3,
+    window: "1 h" as const,
+    windowMs: 60 * 60 * 1000,
+  },
+  whatsappBindingIp: {
+    requests: 10,
+    window: "1 h" as const,
+    windowMs: 60 * 60 * 1000,
+  },
+  whatsappBindingGlobal: {
+    requests: 100,
+    window: "1 h" as const,
+    windowMs: 60 * 60 * 1000,
+  },
   // Contact: Contact form submissions (prevent email relay abuse)
   contact: {
     requests: 3,
@@ -54,6 +95,35 @@ export const rateLimitConfigs = {
 };
 
 type RateLimitConfig = keyof typeof rateLimitConfigs;
+
+// Tiers that protect against brute force. The per-instance in-memory fallback
+// must deny (fail closed) for these rather than granting each cold instance a
+// fresh allowance.
+const FAIL_CLOSED_TIERS: ReadonlySet<RateLimitConfig> = new Set<RateLimitConfig>(
+  [
+    "strict",
+    "auth",
+    "whatsappHourly",
+    "whatsappDaily",
+    "whatsappGlobal",
+    "whatsappBindingUser",
+    "whatsappBindingIp",
+    "whatsappBindingGlobal",
+  ],
+);
+
+/**
+ * Thrown when the shared rate-limit store fails for a fail-closed tier
+ * (strict/auth). The caller — checkLoginRateLimit — catches this and fails
+ * open so a transient DB timeout doesn't permanently lock out all logins.
+ */
+export class RateLimitStoreError extends Error {
+  constructor(cause: unknown) {
+    super("Rate-limit store unavailable");
+    this.name = "RateLimitStoreError";
+    this.cause = cause;
+  }
+}
 
 /**
  * Get client identifier from request
@@ -80,6 +150,43 @@ export function getClientIdentifier(request: NextRequest): string {
 
   // Fallback to localhost for development
   return "127.0.0.1";
+}
+
+/**
+ * Upstash Redis sliding-window rate limiting (shared across instances).
+ *
+ * Uses a fixed time bucket per window so the whole operation is a single atomic
+ * INCR + EXPIRE pipeline — no read-modify-write race between instances.
+ */
+async function kvRateLimit(
+  identifier: string,
+  config: RateLimitConfig,
+): Promise<{ success: boolean; remaining: number; reset: number }> {
+  if (!kv) throw new Error("KV not configured");
+
+  const configValues = rateLimitConfigs[config];
+  const now = Date.now();
+  // Align to the window so the counter naturally rolls over and expires.
+  const windowStart = now - (now % configValues.windowMs);
+  const reset = windowStart + configValues.windowMs;
+  const ttlSeconds = Math.ceil(configValues.windowMs / 1000);
+  const key = `ratelimit:${config}:${identifier}:${windowStart}`;
+
+  // INCR returns the new count; EXPIRE (NX) sets the TTL once on first write.
+  const [count] = await kv.pipeline<[number, unknown]>([
+    ["INCR", key],
+    ["EXPIRE", key, ttlSeconds],
+  ]);
+
+  if (count > configValues.requests) {
+    return { success: false, remaining: 0, reset };
+  }
+
+  return {
+    success: true,
+    remaining: configValues.requests - count,
+    reset,
+  };
 }
 
 /**
@@ -145,8 +252,10 @@ async function prismaRateLimit(
 }
 
 /**
- * In-memory rate limiting fallback
- * Used when the Prisma query fails
+ * In-memory rate limiting fallback (per-instance).
+ *
+ * Used only when both KV and Prisma are unavailable. Evicts the accessed key
+ * lazily when its window has elapsed (no background timer needed).
  */
 function inMemoryRateLimit(
   identifier: string,
@@ -159,7 +268,7 @@ function inMemoryRateLimit(
   const entry = inMemoryStore.get(key);
 
   if (!entry || now >= entry.resetTime) {
-    // Create new entry
+    // Window expired — evict the stale entry and start fresh.
     inMemoryStore.set(key, {
       count: 1,
       resetTime: now + configValues.windowMs,
@@ -187,20 +296,12 @@ function inMemoryRateLimit(
   };
 }
 
-// Clean up old entries periodically (for in-memory store)
-setInterval(() => {
-  const now = Date.now();
-  inMemoryStore.forEach((value, key) => {
-    if (now >= value.resetTime) {
-      inMemoryStore.delete(key);
-    }
-  });
-}, 60 * 1000); // Clean up every minute
-
 /**
- * Rate limit a request
+ * Rate limit a request.
  *
- * Tries PostgreSQL (via Prisma) first, falls back to in-memory on error.
+ * Tries the shared store (KV, then Prisma). If both fail, falls back to the
+ * per-instance in-memory limiter — which denies brute-force-sensitive tiers
+ * (strict/auth) rather than silently widening the limit per cold instance.
  *
  * @param request - The incoming request
  * @param config - Rate limit configuration to use
@@ -220,10 +321,27 @@ export async function rateLimit(
   let result: { success: boolean; remaining: number; reset: number };
 
   try {
-    result = await prismaRateLimit(identifier, config);
+    // Prefer the shared KV store when configured.
+    if (kv) {
+      result = await kvRateLimit(identifier, config);
+    } else {
+      result = await prismaRateLimit(identifier, config);
+    }
   } catch (error) {
-    console.error("Prisma rate limit error, falling back to in-memory:", error);
-    result = inMemoryRateLimit(identifier, config);
+    console.error(
+      "Shared rate-limit store failed, falling back to in-memory:",
+      error,
+    );
+
+    if (FAIL_CLOSED_TIERS.has(config)) {
+      // Throw so callers that wrap us in their own try/catch (e.g.
+      // checkLoginRateLimit) can distinguish a store outage from a legitimate
+      // rate-limit hit and choose to fail open — preventing a transient DB
+      // timeout from permanently locking out all logins.
+      throw new RateLimitStoreError(error);
+    } else {
+      result = inMemoryRateLimit(identifier, config);
+    }
   }
 
   const headers: Record<string, string> = {
@@ -291,7 +409,8 @@ export function withRateLimit<T extends NextRequest>(
 }
 
 /**
- * Check if rate limiting is using a persistent store (PostgreSQL via Prisma)
+ * Check if rate limiting is using a persistent store shared across instances
+ * (Upstash KV or PostgreSQL via Prisma).
  */
 export function isUsingPersistentStore(): boolean {
   return true;

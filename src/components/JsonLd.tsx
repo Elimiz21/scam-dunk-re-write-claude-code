@@ -10,10 +10,15 @@ export function JsonLd({
 }: {
   data: Record<string, unknown> | Record<string, unknown>[];
 }) {
+  // Escape "<" so DB-sourced fields (article headline/body, etc.) cannot break
+  // out of the <script> block with a literal </script> and inject markup —
+  // stored XSS on public pages (FE-M12).
+  const json = JSON.stringify(data).replace(/</g, "\\u003c");
+
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: json }}
     />
   );
 }

@@ -12,7 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Shield, Loader2, Check, XCircle, Mail } from "lucide-react";
+import { Loader2, Check, XCircle, Mail } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -54,12 +55,14 @@ function VerifyEmailContent() {
 
   if (status === "loading") {
     return (
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Loader2 className="h-12 w-12 text-primary animate-spin" />
+            <Loader2 className="h-10 w-10 text-teal animate-spin" />
           </div>
-          <CardTitle>Verifying your email...</CardTitle>
+          <CardTitle className="font-editorial text-2xl font-light">
+            Verifying your email...
+          </CardTitle>
           <CardDescription>
             Please wait while we verify your email address
           </CardDescription>
@@ -70,14 +73,16 @@ function VerifyEmailContent() {
 
   if (status === "success") {
     return (
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
-              <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+            <div className="p-3 rounded-full border border-success/30 bg-success/10">
+              <Check className="h-7 w-7 text-success" />
             </div>
           </div>
-          <CardTitle>Email verified!</CardTitle>
+          <CardTitle className="font-editorial text-2xl font-light">
+            Email verified!
+          </CardTitle>
           <CardDescription>
             Your email has been successfully verified. You can now log in to
             your account.
@@ -94,14 +99,16 @@ function VerifyEmailContent() {
 
   if (status === "error") {
     return (
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/30">
-              <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+            <div className="p-3 rounded-full border border-destructive/30 bg-destructive/10">
+              <XCircle className="h-7 w-7 text-destructive" />
             </div>
           </div>
-          <CardTitle>Verification failed</CardTitle>
+          <CardTitle className="font-editorial text-2xl font-light">
+            Verification failed
+          </CardTitle>
           <CardDescription>{errorMessage}</CardDescription>
         </CardHeader>
         <CardContent className="text-center">
@@ -126,14 +133,16 @@ function VerifyEmailContent() {
 
   // No token provided
   return (
-    <Card className="w-full max-w-md border-border bg-card">
+    <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
-            <Mail className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+          <div className="p-3 rounded-full border border-border bg-secondary">
+            <Mail className="h-7 w-7 text-teal" />
           </div>
         </div>
-        <CardTitle>Check your email</CardTitle>
+        <CardTitle className="font-editorial text-2xl font-light">
+          Check your email
+        </CardTitle>
         <CardDescription>
           We&apos;ve sent you a verification link. Please check your email inbox
           and click the link to verify your account.
@@ -162,13 +171,12 @@ export default function VerifyEmailPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <Shield className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">ScamDunk</span>
+        <div className="flex items-center justify-center mb-8">
+          <Logo size={56} href="/" />
         </div>
         <Suspense
           fallback={
-            <Card className="w-full max-w-md border-border bg-card">
+            <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
               <CardHeader className="text-center">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto" />
               </CardHeader>

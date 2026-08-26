@@ -27,12 +27,36 @@ interface TurnstileProps {
   onVerify: (token: string) => void;
   onError?: () => void;
   onExpire?: () => void;
+  onUnavailable?: () => void;
 }
 
-export function Turnstile({ onVerify, onError, onExpire }: TurnstileProps) {
+export function Turnstile({
+  onVerify,
+  onError,
+  onExpire,
+  onUnavailable,
+}: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
+  // Keep the latest callbacks in refs. Parents commonly pass fresh inline
+  // arrow functions on every render (e.g. as the form state changes on each
+  // keystroke). If the render effect depended on those callbacks it would tear
+  // down and recreate the widget constantly — flicker, wasted challenges, and a
+  // lost completed verification (FE-M7). By reading them from refs, the widget
+  // is rendered once and the effect can depend only on [siteKey].
+  const onVerifyRef = useRef(onVerify);
+  const onErrorRef = useRef(onError);
+  const onExpireRef = useRef(onExpire);
+  const onUnavailableRef = useRef(onUnavailable);
+
+  useEffect(() => {
+    onVerifyRef.current = onVerify;
+    onErrorRef.current = onError;
+    onExpireRef.current = onExpire;
+    onUnavailableRef.current = onUnavailable;
+  }, [onVerify, onError, onExpire, onUnavailable]);
 
   const renderWidget = useCallback(() => {
     if (!containerRef.current || !siteKey || widgetIdRef.current) return;
@@ -40,15 +64,20 @@ export function Turnstile({ onVerify, onError, onExpire }: TurnstileProps) {
     if (typeof window !== "undefined" && window.turnstile) {
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
-        callback: onVerify,
-        "error-callback": onError,
-        "expired-callback": onExpire,
+        callback: (token: string) => onVerifyRef.current(token),
+        "error-callback": () => onErrorRef.current?.(),
+        "expired-callback": () => onExpireRef.current?.(),
         theme: "auto",
       });
     }
-  }, [siteKey, onVerify, onError, onExpire]);
+  }, [siteKey]);
 
   useEffect(() => {
+    if (!siteKey) {
+      onUnavailableRef.current?.();
+      return;
+    }
+
     // Load Turnstile script if not already loaded
     if (!document.querySelector('script[src*="turnstile"]')) {
       const script = document.createElement("script");
@@ -72,9 +101,11 @@ export function Turnstile({ onVerify, onError, onExpire }: TurnstileProps) {
         widgetIdRef.current = null;
       }
     };
-  }, [renderWidget]);
+    // Depends only on [siteKey] (renderWidget is itself memoized on [siteKey]),
+    // so keystrokes in the parent no longer recreate the widget.
+  }, [renderWidget, siteKey]);
 
-  // Don't render anything if no site key (development mode)
+  // Don't render anything if no site key.
   if (!siteKey) {
     return null;
   }

@@ -23,6 +23,33 @@ export function formatPrice(price: number): string {
 }
 
 /**
+ * Normalize a raw risk score (typically 0-20+) to a 0-100 scale.
+ * Aligns with the mobile app's normalizeRiskScore():
+ *   LOW    (raw 0-1) → 0-29
+ *   MEDIUM (raw 2-4) → 30-59
+ *   HIGH   (raw 5+)  → 60-100  (caps at 100, treats 20 as practical max)
+ */
+export function normalizeRiskScore(rawScore: number): number {
+  if (rawScore <= 0) return 0;
+  if (rawScore < 2) return Math.round((rawScore / 2) * 30);
+  if (rawScore < 5) return Math.round(30 + ((rawScore - 2) / 3) * 30);
+  return Math.min(Math.round(60 + ((rawScore - 5) / 15) * 40), 100);
+}
+
+/**
+ * Convert an author (or any) name into a URL-safe slug.
+ * Used as the single source of truth for both the byline link and the
+ * author-page lookup so they never diverge.
+ */
+export function slugify(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
  * Extract the value from a settled promise, returning a fallback on rejection.
  * Useful with Promise.allSettled to safely unwrap results.
  */

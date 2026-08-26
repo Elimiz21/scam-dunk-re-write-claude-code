@@ -1,7 +1,7 @@
 {
-  "_comment": "SHA-256 hashes of trusted model files. Update after retraining models.",
-  "models/scam_detector_rf.joblib": null,
-  "models/scam_detector_scaler.joblib": null,
-  "models/scam_detector_lstm.keras": null,
-  "models/scam_detector_lstm_scaler.npy": null
+  "_comment": "SHA-256 hashes of trusted model files, keyed by path relative to python_ai/. Keys MUST match config.MODEL_PATHS filenames. Populate in CI after retraining (a null value means 'no hash configured'). When ENVIRONMENT=production these MUST be set or loading fails closed; when ML_MODELS_ENABLED is false the models are not loaded at all.",
+  "models/random_forest_scam_detector.joblib": null,
+  "models/feature_scaler.joblib": null,
+  "models/lstm_scam_detector.keras": null,
+  "models/lstm_scam_detector_scaler.npy": null
 }

@@ -1,0 +1,17 @@
+# ML-enabled build requirements — install ON TOP of requirements.txt.
+# Only needed when ML_MODELS_ENABLED=true (after retraining models on real data).
+#
+# Usage:
+#   pip install -r requirements.txt
+#   pip install -r requirements-ml.txt
+#
+# Railway: set ML_MODELS_ENABLED=true AND swap the Dockerfile CMD to use
+# gunicorn with both requirements files installed.
+
+-r requirements.txt
+
+# Deep learning (LSTM model)
+tensorflow==2.15.0
+
+# HDF5 for Keras model save/load
+h5py>=3.10.0

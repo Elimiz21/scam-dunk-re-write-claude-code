@@ -52,6 +52,10 @@ export default function HomepagePage() {
   const [generating, setGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  // Index of the suggestion currently being saved (prevents double-submit /
+  // duplicate heroes on a double-click).
+  const [acceptingIndex, setAcceptingIndex] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchHeroes = useCallback(async () => {
     try {
@@ -147,12 +151,22 @@ export default function HomepagePage() {
   };
 
   const handleDeleteHero = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this headline?")) return;
+    if (deletingId) return;
+    const hero = heroes.find((h) => h.id === id);
+    const message = hero?.isActive
+      ? "This is the ACTIVE headline shown on the live landing page. Deleting it will remove it from the homepage. Continue?"
+      : "Are you sure you want to delete this headline?";
+    if (!confirm(message)) return;
 
+    setDeletingId(id);
     try {
       const res = await fetch(`/api/admin/homepage?id=${id}`, {
         method: "DELETE",
       });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
 
       if (!res.ok) throw new Error("Failed to delete headline");
 
@@ -162,6 +176,8 @@ export default function HomepagePage() {
       setError(
         err instanceof Error ? err.message : "Failed to delete headline",
       );
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -196,7 +212,12 @@ export default function HomepagePage() {
     }
   };
 
-  const handleAcceptSuggestion = async (suggestion: AiSuggestion) => {
+  const handleAcceptSuggestion = async (
+    suggestion: AiSuggestion,
+    index: number,
+  ) => {
+    if (acceptingIndex !== null) return;
+    setAcceptingIndex(index);
     try {
       const res = await fetch("/api/admin/homepage", {
         method: "POST",
@@ -206,6 +227,10 @@ export default function HomepagePage() {
           subheadline: suggestion.subheadline,
         }),
       });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
 
       if (!res.ok) throw new Error("Failed to save suggestion");
 
@@ -223,6 +248,8 @@ export default function HomepagePage() {
       setError(
         err instanceof Error ? err.message : "Failed to save suggestion",
       );
+    } finally {
+      setAcceptingIndex(null);
     }
   };
 
@@ -412,7 +439,7 @@ export default function HomepagePage() {
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {suggestions.map((suggestion, index) => (
                 <div
-                  key={index}
+                  key={`${suggestion.headline}|${suggestion.subheadline}`}
                   className="p-4 rounded-2xl bg-card border border-border hover:border-primary/30 transition-colors"
                 >
                   <p className="font-bold text-foreground text-lg font-display italic mb-1">
@@ -423,11 +450,12 @@ export default function HomepagePage() {
                   </p>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleAcceptSuggestion(suggestion)}
-                      className="flex items-center gap-1 px-3 py-1.5 gradient-brand text-white text-sm rounded-2xl hover:opacity-90 transition-colors"
+                      onClick={() => handleAcceptSuggestion(suggestion, index)}
+                      disabled={acceptingIndex !== null}
+                      className="flex items-center gap-1 px-3 py-1.5 gradient-brand text-white text-sm rounded-2xl hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Check className="h-3 w-3" />
-                      Use This
+                      {acceptingIndex === index ? "Saving..." : "Use This"}
                     </button>
                     <button
                       onClick={() => {
@@ -573,10 +601,15 @@ export default function HomepagePage() {
                         </button>
                         <button
                           onClick={() => handleDeleteHero(hero.id)}
-                          className="p-2 text-muted-foreground hover:text-red-600 transition-colors"
+                          disabled={deletingId === hero.id}
+                          className="p-2 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                           title="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {deletingId === hero.id ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </button>
                       </div>
                     </div>

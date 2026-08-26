@@ -4,15 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
-import {
-  AlertTriangle,
-  XCircle,
-  ShieldAlert,
-  Scale,
-  FileWarning,
-  ArrowRight,
-  Eye,
-} from "lucide-react";
+import { Footer } from "@/components/Footer";
+import { AlertTriangle, XCircle, ShieldAlert, ArrowRight } from "lucide-react";
 
 export default function DisclaimerContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -28,36 +21,32 @@ export default function DisclaimerContent() {
       <div className="flex flex-col min-h-screen">
         <Header onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-8">
+        <main className="flex-1">
+          <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
             {/* Hero Section */}
-            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
-                <AlertTriangle className="h-8 w-8 text-white" />
-                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
-                  <Eye className="h-2.5 w-2.5 text-white" />
-                </div>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
-                Disclaimer & Limitations
+            <div className="mb-12 md:mb-16">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Legal
+              </p>
+              <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
+                Disclaimer &amp;{" "}
+                <span className="text-brand-blue">Limitations</span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Please read carefully before using{" "}
-                <span className="font-display italic">ScamDunk</span>.
-                Understanding our limitations is essential for using this tool
-                responsibly.
+              <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+                Please read carefully before using ScamDunk. Understanding our
+                limitations is essential for using this tool responsibly.
               </p>
             </div>
 
             {/* Critical Warning */}
-            <section className="mb-8 animate-slide-up">
-              <div className="p-6 rounded-xl bg-destructive/10 border-2 border-destructive/50">
-                <h2 className="text-xl font-semibold mb-3 flex items-center gap-2 text-destructive font-display italic">
-                  <ShieldAlert className="h-5 w-5" />
+            <section className="mb-10">
+              <div className="p-6 rounded-xl border-2 border-destructive/40 bg-destructive/5">
+                <h2 className="text-[15px] font-semibold mb-3 flex items-center gap-2 text-destructive">
+                  <ShieldAlert className="h-4 w-4" />
                   Critical Disclaimer
                 </h2>
-                <div className="space-y-3 text-sm">
-                  <p className="font-medium">
+                <div className="space-y-3 text-[13px] leading-relaxed">
+                  <p className="font-medium text-foreground">
                     ScamDunk is NOT financial advice. ScamDunk is NOT investment
                     advice. ScamDunk does NOT recommend buying or selling any
                     securities.
@@ -66,7 +55,7 @@ export default function DisclaimerContent() {
                     ScamDunk is an educational tool designed to help identify
                     potential red flags in stock promotions. We cannot guarantee
                     accuracy or completeness.{" "}
-                    <strong>
+                    <strong className="text-foreground">
                       You are solely responsible for your investment decisions.
                     </strong>
                   </p>
@@ -75,20 +64,20 @@ export default function DisclaimerContent() {
             </section>
 
             {/* What We Don't Check */}
-            <section className="mb-8 animate-slide-up delay-1">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <XCircle className="h-4 w-4 text-white" />
-                </span>
-                What Our Scans Do NOT Check
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                What our scans do NOT check
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated">
-                <p className="text-sm text-muted-foreground mb-4">
+              <div className="p-5 rounded-xl border border-border bg-card">
+                <p className="text-[13px] leading-relaxed text-muted-foreground mb-4">
                   Our analysis has significant limitations. We{" "}
-                  <strong>cannot detect or verify</strong>:
+                  <strong className="text-foreground">
+                    cannot detect or verify
+                  </strong>
+                  :
                 </p>
-                <div className="grid md:grid-cols-2 gap-3 text-sm">
+                <div className="grid md:grid-cols-2 gap-3 text-[13px] leading-relaxed">
                   <ul className="space-y-2 text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <XCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
@@ -142,40 +131,37 @@ export default function DisclaimerContent() {
             </section>
 
             {/* Potential Errors */}
-            <section className="mb-8 animate-slide-up delay-2">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <FileWarning className="h-4 w-4 text-white" />
-                </span>
-                We Can Make Mistakes
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                We can make mistakes
               </h2>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                  <h3 className="font-medium text-yellow-600 dark:text-yellow-400 mb-1">
+                <div className="p-4 rounded-xl border border-yellow-500/25 bg-yellow-500/5">
+                  <h3 className="text-[15px] font-semibold text-yellow-600 dark:text-yellow-400 mb-1">
                     False Positives
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     Legitimate stocks may be flagged as high risk. Small or
                     volatile companies may trigger signals for valid reasons.
                     HIGH risk does not mean a stock is definitely a scam.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                  <h3 className="font-medium text-yellow-600 dark:text-yellow-400 mb-1">
+                <div className="p-4 rounded-xl border border-yellow-500/25 bg-yellow-500/5">
+                  <h3 className="text-[15px] font-semibold text-yellow-600 dark:text-yellow-400 mb-1">
                     False Negatives
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     Real scams may not be detected. Sophisticated manipulation
                     can evade our patterns. LOW risk does not mean a stock is
                     safe. Never rely solely on our assessment.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                  <h3 className="font-medium text-yellow-600 dark:text-yellow-400 mb-1">
+                <div className="p-4 rounded-xl border border-yellow-500/25 bg-yellow-500/5">
+                  <h3 className="text-[15px] font-semibold text-yellow-600 dark:text-yellow-400 mb-1">
                     Data Errors
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
                     Market data may be delayed, incomplete, or incorrect. We
                     rely on third-party data sources and cannot guarantee their
                     accuracy.
@@ -185,79 +171,86 @@ export default function DisclaimerContent() {
             </section>
 
             {/* Coverage Limitations */}
-            <section className="mb-8 animate-fade-in delay-3">
-              <h2 className="text-xl font-semibold mb-4 font-display italic">
-                Geographic & Asset Limitations
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                Geographic &amp; asset limitations
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated">
-                <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-3">
-                    <AlertTriangle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>
-                      <strong>US Markets Only:</strong> We only analyze NYSE,
-                      NASDAQ, and OTC Markets. International stocks are not
-                      supported.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <AlertTriangle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>
-                      <strong>Stocks Only:</strong> Crypto, options, futures,
-                      bonds, and ETFs are not analyzed.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <AlertTriangle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>
-                      <strong>Data Delays:</strong> Market data may be delayed
-                      by 15+ minutes.
-                    </span>
-                  </li>
-                </ul>
-              </div>
+              <ul className="max-w-2xl space-y-3 text-sm leading-relaxed text-muted-foreground">
+                <li className="flex items-start gap-3">
+                  <AlertTriangle className="h-4 w-4 text-teal mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong className="text-foreground">
+                      US Markets Only:
+                    </strong>{" "}
+                    We only analyze NYSE, NASDAQ, and OTC Markets. International
+                    stocks are not supported.
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <AlertTriangle className="h-4 w-4 text-teal mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong className="text-foreground">Stocks Only:</strong>{" "}
+                    Crypto, options, futures, bonds, and ETFs are not analyzed.
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <AlertTriangle className="h-4 w-4 text-teal mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong className="text-foreground">Data Delays:</strong>{" "}
+                    Market data may be delayed by 15+ minutes.
+                  </span>
+                </li>
+              </ul>
             </section>
 
             {/* No Professional Relationship */}
-            <section className="mb-8 animate-fade-in delay-4">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 font-display italic">
-                <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">
-                  <Scale className="h-4 w-4 text-white" />
-                </span>
-                No Professional Relationship
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                No professional relationship
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated space-y-3 text-sm text-muted-foreground">
+              <div className="max-w-2xl space-y-3 text-sm leading-relaxed text-muted-foreground">
                 <p>
-                  <strong>No Fiduciary Duty:</strong> ScamDunk does not owe you
-                  any fiduciary duty.
+                  <strong className="text-foreground">
+                    No Fiduciary Duty:
+                  </strong>{" "}
+                  ScamDunk does not owe you any fiduciary duty.
                 </p>
                 <p>
-                  <strong>No Attorney-Client Relationship:</strong> Nothing
-                  creates legal advice or representation.
+                  <strong className="text-foreground">
+                    No Attorney-Client Relationship:
+                  </strong>{" "}
+                  Nothing creates legal advice or representation.
                 </p>
                 <p>
-                  <strong>No Investment Advisory:</strong> We are not registered
-                  investment advisors.
+                  <strong className="text-foreground">
+                    No Investment Advisory:
+                  </strong>{" "}
+                  We are not registered investment advisors.
                 </p>
                 <p>
-                  <strong>Educational Purpose:</strong> All information is for
-                  educational purposes only.
+                  <strong className="text-foreground">
+                    Educational Purpose:
+                  </strong>{" "}
+                  All information is for educational purposes only.
                 </p>
               </div>
             </section>
 
             {/* Investment Risk Warning */}
-            <section className="mb-8">
-              <div className="p-5 rounded-xl bg-destructive/10 border border-destructive/20">
-                <h2 className="font-semibold mb-3 text-destructive">
+            <section className="mb-10">
+              <div className="p-5 rounded-xl border border-destructive/25 bg-destructive/5">
+                <h2 className="text-[15px] font-semibold mb-3 text-destructive">
                   Investment Risk Warning
                 </h2>
-                <p className="text-sm text-muted-foreground mb-3">
-                  <strong>Investing involves substantial risk of loss.</strong>{" "}
+                <p className="text-[13px] leading-relaxed text-muted-foreground mb-3">
+                  <strong className="text-foreground">
+                    Investing involves substantial risk of loss.
+                  </strong>{" "}
                   You may lose some or all of your investment.
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
                   Past performance does not indicate future results. Penny
                   stocks and OTC securities are particularly risky. Only invest
                   money you can afford to lose entirely.
@@ -266,12 +259,12 @@ export default function DisclaimerContent() {
             </section>
 
             {/* Limitation of Liability */}
-            <section className="mb-8 animate-fade-in delay-5">
-              <h2 className="text-xl font-semibold mb-4 font-display italic">
-                Limitation of Liability
+            <section className="mb-10 border-t border-border/70 pt-10">
+              <h2 className="font-editorial mb-6 text-2xl md:text-[1.75rem] leading-tight text-foreground">
+                Limitation of liability
               </h2>
 
-              <div className="p-5 rounded-xl card-elevated text-sm text-muted-foreground space-y-3">
+              <div className="max-w-2xl space-y-3 text-sm leading-relaxed text-muted-foreground">
                 <p>
                   TO THE MAXIMUM EXTENT PERMITTED BY LAW, SCAMDUNK SHALL NOT BE
                   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
@@ -279,7 +272,7 @@ export default function DisclaimerContent() {
                   THIS SERVICE.
                 </p>
                 <p>
-                  <strong>
+                  <strong className="text-foreground">
                     THE SERVICE IS PROVIDED &quot;AS IS&quot; WITHOUT WARRANTIES
                     OF ANY KIND.
                   </strong>{" "}
@@ -289,16 +282,14 @@ export default function DisclaimerContent() {
             </section>
 
             {/* Acknowledgment */}
-            <section className="mb-8">
-              <div className="p-5 rounded-xl bg-primary/10 border border-primary/20">
-                <h2 className="font-semibold mb-3">
+            <section className="mb-10">
+              <div className="p-5 rounded-xl border border-border bg-secondary/60">
+                <h2 className="text-[15px] font-semibold text-foreground mb-3">
                   By Using ScamDunk, You Acknowledge:
                 </h2>
-                <ol className="text-sm text-muted-foreground space-y-2">
+                <ol className="text-[13px] leading-relaxed text-muted-foreground space-y-2">
                   <li>1. You have read and understood this disclaimer</li>
-                  <li>
-                    2. ScamDunk is not providing financial or legal advice
-                  </li>
+                  <li>2. ScamDunk is not providing financial or legal advice</li>
                   <li>3. Our analysis may contain errors</li>
                   <li>
                     4. You are solely responsible for your investment decisions
@@ -312,28 +303,24 @@ export default function DisclaimerContent() {
             </section>
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full gradient-brand text-white font-medium hover:opacity-90 transition-smooth shadow-glow-sm"
-              >
+            <div className="flex flex-col sm:flex-row gap-3 justify-center border-t border-border/70 pt-10">
+              <Link href="/" className="btn-pill btn-pill-primary gap-2">
                 I Understand, Start Scanning
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                href="/privacy"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
-              >
+              <Link href="/privacy" className="btn-pill btn-pill-ghost">
                 Privacy Policy
               </Link>
             </div>
 
             {/* Last Updated */}
-            <p className="text-center text-xs text-muted-foreground mt-8">
+            <p className="text-center text-xs text-muted-foreground mt-8 pb-4">
               Last Updated: December 2024
             </p>
           </div>
         </main>
+
+        <Footer />
       </div>
     </div>
   );

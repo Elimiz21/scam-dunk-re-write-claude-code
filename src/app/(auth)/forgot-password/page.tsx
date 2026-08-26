@@ -14,7 +14,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Loader2, Mail, Check, ArrowLeft } from "lucide-react";
+import { Loader2, Mail, Check, ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Turnstile } from "@/components/turnstile";
 
 export default function ForgotPasswordPage() {
@@ -23,6 +24,7 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileAvailable, setTurnstileAvailable] = useState(true);
 
   const handleTurnstileVerify = useCallback((token: string) => {
     setTurnstileToken(token);
@@ -31,6 +33,13 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // CAPTCHA is required by the server (SEC-M2); block submit until it's done.
+    if (!turnstileToken) {
+      setError("Please complete CAPTCHA verification before continuing.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -57,21 +66,19 @@ export default function ForgotPasswordPage() {
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
-        <Card className="w-full max-w-md border-border bg-card">
+        <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
           <CardHeader className="text-center">
-            <Link
-              href="/"
-              className="flex items-center justify-center gap-2 mb-4"
-            >
-              <Shield className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold">ScamDunk</span>
-            </Link>
+            <div className="mb-4 flex justify-center">
+              <Logo size={56} href="/" />
+            </div>
             <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
-                <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <div className="p-3 rounded-full border border-success/30 bg-success/10">
+                <Check className="h-7 w-7 text-success" />
               </div>
             </div>
-            <CardTitle>Check your email</CardTitle>
+            <CardTitle className="font-editorial text-2xl font-light">
+              Check your email
+            </CardTitle>
             <CardDescription>
               If an account exists for {email}, we&apos;ve sent password reset
               instructions.
@@ -95,21 +102,19 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
-          <Link
-            href="/"
-            className="flex items-center justify-center gap-2 mb-4"
-          >
-            <Shield className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">ScamDunk</span>
-          </Link>
+          <div className="mb-4 flex justify-center">
+            <Logo size={56} href="/" />
+          </div>
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-primary/10">
-              <Mail className="h-8 w-8 text-primary" />
+            <div className="p-3 rounded-full border border-border bg-secondary">
+              <Mail className="h-7 w-7 text-teal" />
             </div>
           </div>
-          <CardTitle>Forgot your password?</CardTitle>
+          <CardTitle className="font-editorial text-2xl font-light">
+            Forgot your password?
+          </CardTitle>
           <CardDescription>
             Enter your email and we&apos;ll send you a link to reset your
             password
@@ -134,10 +139,36 @@ export default function ForgotPasswordPage() {
                 disabled={isLoading}
               />
             </div>
-            <Turnstile onVerify={handleTurnstileVerify} />
+            <Turnstile
+              onVerify={(token) => {
+                setError("");
+                setTurnstileAvailable(true);
+                handleTurnstileVerify(token);
+              }}
+              onError={() => {
+                setTurnstileToken("");
+                setTurnstileAvailable(true);
+                setError("CAPTCHA verification failed. Please try again.");
+              }}
+              onExpire={() => {
+                setTurnstileToken("");
+                setError("CAPTCHA expired. Please verify again.");
+              }}
+              onUnavailable={() => {
+                setTurnstileToken("");
+                setTurnstileAvailable(false);
+                setError(
+                  "CAPTCHA is currently unavailable. Please refresh and try again.",
+                );
+              }}
+            />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || !turnstileAvailable || !turnstileToken}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import StatCard from "@/components/admin/StatCard";
 import AlertBanner from "@/components/admin/AlertBanner";
@@ -51,22 +51,37 @@ export default function ApiUsagePage() {
     threshold: 100,
   });
   const [savingAlert, setSavingAlert] = useState(false);
+  const [deletingAlert, setDeletingAlert] = useState<string | null>(null);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
   async function fetchData() {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setLoading(true);
+    setError("");
     try {
-      const res = await fetch(`/api/admin/api-usage?period=${period}`);
+      const res = await fetch(`/api/admin/api-usage?period=${period}`, {
+        signal: controller.signal,
+      });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch API usage");
       const result = await res.json();
+      if (controller.signal.aborted) return;
       setData(result);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed to load API usage");
     } finally {
-      setLoading(false);
+      if (fetchAbortRef.current === controller) setLoading(false);
     }
   }
 
@@ -94,16 +109,26 @@ export default function ApiUsagePage() {
   }
 
   async function handleDeleteAlert(id: string) {
+    if (deletingAlert) return;
+    if (!confirm("Delete this alert? This cannot be undone.")) return;
+    setDeletingAlert(id);
+    setError("");
     try {
       const res = await fetch("/api/admin/api-usage/alerts", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to delete alert");
       fetchData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete alert");
+    } finally {
+      setDeletingAlert(null);
     }
   }
 
@@ -172,9 +197,15 @@ export default function ApiUsagePage() {
       render: (item: ApiUsageData["activeAlerts"][0]) => (
         <button
           onClick={() => handleDeleteAlert(item.id)}
-          className="text-red-600 hover:text-red-800"
+          disabled={deletingAlert === item.id}
+          aria-label="Delete alert"
+          className="text-red-600 hover:text-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <Trash2 className="h-4 w-4" />
+          {deletingAlert === item.id ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
         </button>
       ),
     },
@@ -346,13 +377,17 @@ export default function ApiUsagePage() {
                         </label>
                         <input
                           type="number"
-                          value={newAlert.threshold}
-                          onChange={(e) =>
+                          min={0}
+                          value={Number.isNaN(newAlert.threshold) ? "" : newAlert.threshold}
+                          onChange={(e) => {
+                            const parsed = parseFloat(e.target.value);
                             setNewAlert({
                               ...newAlert,
-                              threshold: parseFloat(e.target.value),
-                            })
-                          }
+                              // Empty/invalid input becomes 0 instead of NaN,
+                              // which would otherwise be submitted to the API.
+                              threshold: Number.isNaN(parsed) ? 0 : parsed,
+                            });
+                          }}
                           className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-card text-foreground"
                         />
                       </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AdminLayout from "@/components/admin/AdminLayout";
+import AlertBanner from "@/components/admin/AlertBanner";
 import {
   Plus,
   Edit,
@@ -42,6 +43,9 @@ const SOURCE_TYPE_COLORS: Record<string, string> = {
 export default function AdminMediaListPage() {
   const [mentions, setMentions] = useState<MediaMention[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
@@ -50,60 +54,102 @@ export default function AdminMediaListPage() {
   }, []);
 
   async function fetchMentions() {
+    setError("");
     try {
       const res = await fetch("/api/admin/news/media");
-      if (res.ok) {
-        const data = await res.json();
-        setMentions(data.mentions || []);
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
       }
-    } catch (error) {
-      console.error("Failed to fetch mentions:", error);
+      if (!res.ok) throw new Error("Failed to load media mentions");
+      const data = await res.json();
+      setMentions(data.mentions || []);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load media mentions",
+      );
     } finally {
       setLoading(false);
     }
   }
 
   async function togglePublish(id: string, currentStatus: boolean) {
+    if (busyId) return;
+    setBusyId(id);
+    setError("");
+    setSuccess("");
     try {
       const res = await fetch(`/api/admin/news/media/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isPublished: !currentStatus }),
       });
-      if (res.ok) {
-        fetchMentions();
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
       }
-    } catch (error) {
-      console.error("Failed to toggle publish status:", error);
+      if (!res.ok) throw new Error("Failed to update publish status");
+      setSuccess(!currentStatus ? "Mention published" : "Mention unpublished");
+      await fetchMentions();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update publish status",
+      );
+    } finally {
+      setBusyId(null);
     }
   }
 
   async function toggleFeatured(id: string, currentStatus: boolean) {
+    if (busyId) return;
+    setBusyId(id);
+    setError("");
+    setSuccess("");
     try {
       const res = await fetch(`/api/admin/news/media/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isFeatured: !currentStatus }),
       });
-      if (res.ok) {
-        fetchMentions();
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
       }
-    } catch (error) {
-      console.error("Failed to toggle featured status:", error);
+      if (!res.ok) throw new Error("Failed to update featured status");
+      setSuccess(
+        !currentStatus ? "Marked as featured" : "Removed from featured",
+      );
+      await fetchMentions();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update featured status",
+      );
+    } finally {
+      setBusyId(null);
     }
   }
 
   async function deleteMention(id: string) {
+    if (busyId) return;
     if (!confirm("Are you sure you want to delete this mention?")) return;
+    setBusyId(id);
+    setError("");
+    setSuccess("");
     try {
       const res = await fetch(`/api/admin/news/media/${id}`, {
         method: "DELETE",
       });
-      if (res.ok) {
-        fetchMentions();
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
       }
-    } catch (error) {
-      console.error("Failed to delete mention:", error);
+      if (!res.ok) throw new Error("Failed to delete mention");
+      setSuccess("Mention deleted");
+      await fetchMentions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete mention");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -153,6 +199,23 @@ export default function AdminMediaListPage() {
             New Mention
           </Link>
         </div>
+
+        {error ? (
+          <AlertBanner
+            type="error"
+            title="Error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
+        ) : null}
+        {success ? (
+          <AlertBanner
+            type="success"
+            title="Success"
+            message={success}
+            onDismiss={() => setSuccess("")}
+          />
+        ) : null}
 
         {/* Filters */}
         <div className="bg-card rounded-2xl shadow p-4">
@@ -288,7 +351,8 @@ export default function AdminMediaListPage() {
                         onClick={() =>
                           toggleFeatured(mention.id, mention.isFeatured)
                         }
-                        className={`inline-flex items-center p-1.5 rounded-2xl ${
+                        disabled={busyId === mention.id}
+                        className={`inline-flex items-center p-1.5 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed ${
                           mention.isFeatured
                             ? "text-yellow-500 hover:bg-yellow-50"
                             : "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-50"
@@ -307,7 +371,8 @@ export default function AdminMediaListPage() {
                         onClick={() =>
                           togglePublish(mention.id, mention.isPublished)
                         }
-                        className="inline-flex items-center p-1.5 text-muted-foreground hover:text-purple-600 rounded-2xl hover:bg-purple-50"
+                        disabled={busyId === mention.id}
+                        className="inline-flex items-center p-1.5 text-muted-foreground hover:text-purple-600 rounded-2xl hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed"
                         title={mention.isPublished ? "Unpublish" : "Publish"}
                       >
                         {mention.isPublished ? (
@@ -325,7 +390,8 @@ export default function AdminMediaListPage() {
                       </Link>
                       <button
                         onClick={() => deleteMention(mention.id)}
-                        className="inline-flex items-center p-1.5 text-muted-foreground hover:text-red-600 rounded-2xl hover:bg-red-50"
+                        disabled={busyId === mention.id}
+                        className="inline-flex items-center p-1.5 text-muted-foreground hover:text-red-600 rounded-2xl hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />

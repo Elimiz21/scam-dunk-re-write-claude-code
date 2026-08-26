@@ -3,7 +3,9 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-healthcheckPath = "/"
+# Use the readiness-aware /health endpoint so a permanently-failed pipeline is
+# reported as 503 (unhealthy) rather than "/" always returning 200.
+healthcheckPath = "/health"
 healthcheckTimeout = 600
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5

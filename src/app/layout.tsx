@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, Playfair_Display } from "next/font/google";
+import { Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -8,14 +8,16 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { JsonLd } from "@/components/JsonLd";
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const playfairDisplay = Playfair_Display({
+const interTight = Inter_Tight({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
   variable: "--font-display",
   display: "swap",
 });
@@ -37,7 +39,7 @@ export const metadata: Metadata = {
     siteName: "ScamDunk",
     images: [
       {
-        url: `${siteUrl}/og-image.png`,
+        url: `${siteUrl}/opengraph-image`,
         width: 1200,
         height: 630,
         alt: "ScamDunk - Detect Stock Scam Red Flags",
@@ -49,7 +51,7 @@ export const metadata: Metadata = {
     title: "ScamDunk - Detect Stock Scam Red Flags",
     description:
       "Spot investment scam red flags instantly. ScamDunk analyzes stock pitches for pump-and-dump signals, volume anomalies, and manipulation patterns.",
-    images: [`${siteUrl}/og-image.png`],
+    images: [`${siteUrl}/opengraph-image`],
   },
   robots: {
     index: true,
@@ -61,15 +63,17 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
+      { url: "/images/brand/icon.png", type: "image/png", sizes: "512x512" },
     ],
-    shortcut: "/favicon.svg",
+    shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
 };
 
 // Global schema: WebSite + Organization (injected on every page)
+// NOTE: no SearchAction/potentialAction — the site has no `?q=` search
+// endpoint, so advertising one would be misleading structured data.
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -77,14 +81,6 @@ const websiteSchema = {
   url: siteUrl,
   description:
     "Investment scam detection tool that analyzes stock pitches for pump-and-dump signals and manipulation patterns.",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${siteUrl}/?q={search_term_string}`,
-    },
-    "query-input": "required name=search_term_string",
-  },
 };
 
 const organizationSchema = {
@@ -92,7 +88,7 @@ const organizationSchema = {
   "@type": "Organization",
   name: "ScamDunk",
   url: siteUrl,
-  logo: `${siteUrl}/og-image.png`,
+  logo: `${siteUrl}/opengraph-image`,
   description:
     "ScamDunk helps retail investors identify potential stock manipulation and pump-and-dump schemes through data-driven forensic analysis.",
   foundingDate: "2024",
@@ -113,8 +109,15 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${dmSans.variable} ${playfairDisplay.variable}`}
+      className={`${inter.variable} ${interTight.variable}`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("scamdunk-theme");var d=t==="dark"||(t!=="light"&&(t==="auto"||!t)&&(new Date().getHours()>=19||new Date().getHours()<6));document.documentElement.classList.add(d?"dark":"light");}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">
         <JsonLd data={[websiteSchema, organizationSchema]} />
         <SessionProvider>

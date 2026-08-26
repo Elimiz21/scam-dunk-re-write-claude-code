@@ -13,10 +13,80 @@ import {
   calculatePromotionScore,
   PROMOTION_SUBREDDITS,
   calculatePlatformSpecificScore,
+  textMentionsTicker,
+  buildTickerMatcher,
 } from "./types";
 import type { PlatformName } from "./platform-patterns";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// ─────────────────────────────────────────────────────────────
+// Shared fetch + budget helpers (SOC-H1, SOC-H2, SOC-C1)
+// ─────────────────────────────────────────────────────────────
+
+/** Per-request network timeout for every outbound fetch (SOC-H2). */
+const FETCH_TIMEOUT_MS = 10_000;
+
+/** Wall-clock budget each scanner gives itself so it returns BEFORE the
+ * orchestrator's hard timeout kills it and discards partial results (SOC-C1). */
+const SCANNER_BUDGET_MS = 100_000;
+
+/**
+ * fetch wrapper that aborts after FETCH_TIMEOUT_MS (or sooner if the caller's
+ * deadline is nearer) so one hung socket can't eat the whole scanner budget.
+ * clearTimeout always runs in finally.
+ */
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit = {},
+  deadline?: Deadline,
+): Promise<Response> {
+  const controller = new AbortController();
+  const remaining = deadline ? deadline.remaining() : FETCH_TIMEOUT_MS;
+  const timeoutMs = Math.max(1, Math.min(FETCH_TIMEOUT_MS, remaining));
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Tracks a wall-clock deadline so a scanner stops making (paid) calls once
+ * its time budget is exhausted, then returns whatever it has accumulated. */
+class Deadline {
+  private readonly end: number;
+  constructor(budgetMs: number = SCANNER_BUDGET_MS) {
+    this.end = Date.now() + budgetMs;
+  }
+  remaining(): number {
+    return this.end - Date.now();
+  }
+  expired(): boolean {
+    return Date.now() >= this.end;
+  }
+  /** Sleep `ms`, but never past the deadline. */
+  async sleep(ms: number): Promise<void> {
+    await sleep(Math.max(0, Math.min(ms, this.remaining())));
+  }
+}
+
+/**
+ * Compute a per-ticker delay so the cumulative throttle stays within a fraction
+ * of the scanner budget regardless of how many targets we process (SOC-C1).
+ * Falls back to the desired delay for small batches.
+ */
+function perTargetDelay(
+  targetCount: number,
+  desiredMs: number,
+  budgetMs: number = SCANNER_BUDGET_MS,
+): number {
+  if (targetCount <= 0) return desiredMs;
+  // Spend at most ~60% of the budget on inter-request sleeps.
+  const maxTotalSleep = budgetMs * 0.6;
+  const computed = Math.floor(maxTotalSleep / targetCount);
+  return Math.max(0, Math.min(desiredMs, computed));
+}
 
 // ─────────────────────────────────────────────────────────────
 // Reddit Public JSON Scanner (no OAuth needed)
@@ -27,7 +97,7 @@ const REDDIT_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 const REDDIT_DELAY_MS = 2500; // 2.5s between requests — respect Reddit's ~10 req/min unauthenticated limit
 
-async function redditGet(url: string): Promise<any> {
+async function redditGet(url: string, deadline?: Deadline): Promise<any> {
   const headers: Record<string, string> = {
     "User-Agent": REDDIT_USER_AGENT,
     Accept:
@@ -44,11 +114,11 @@ async function redditGet(url: string): Promise<any> {
 
   for (const tryUrl of urls) {
     try {
-      let response = await fetch(tryUrl, fetchOpts);
+      let response = await fetchWithTimeout(tryUrl, fetchOpts, deadline);
 
       if (response.status === 429) {
         await sleep(10000);
-        response = await fetch(tryUrl, fetchOpts);
+        response = await fetchWithTimeout(tryUrl, fetchOpts, deadline);
       }
 
       if (!response.ok) {
@@ -99,16 +169,29 @@ async function redditGet(url: string): Promise<any> {
   return null;
 }
 
+/**
+ * Reddit's public JSON endpoints are blocked from datacenter IPs (the code
+ * documents the spoofed-UA + HTML-block detection), so on serverless this
+ * scanner burns its whole budget for nothing. It is OFF by default and only
+ * runs when ENABLE_REDDIT_DIRECT_SCAN is explicitly set (SOC-H3). Serper's
+ * `site:reddit.com` query provides Reddit coverage when this is disabled.
+ */
+function isRedditDirectEnabled(): boolean {
+  const v = (process.env.ENABLE_REDDIT_DIRECT_SCAN || "").toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
 export class RedditScanner implements SocialScanner {
   name = "reddit_public";
   platform = "Reddit";
 
   isConfigured() {
-    return true;
+    return isRedditDirectEnabled();
   }
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
+    const deadline = new Deadline();
     const allMentions: SocialMention[] = [];
     const promotionSubs = new Set(PROMOTION_SUBREDDITS);
 
@@ -119,13 +202,15 @@ export class RedditScanner implements SocialScanner {
     // Single combined query per ticker to avoid timeout with 50+ tickers
     // Serper's site:reddit.com query provides additional Reddit coverage
     const seenUrls = new Set<string>();
+    const delayMs = perTargetDelay(targets.length, REDDIT_DELAY_MS);
 
     for (const target of targets) {
+      if (deadline.expired()) break; // Return what we have instead of timing out
       try {
         const query = `${target.ticker} OR $${target.ticker}`;
         const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=50`;
         fetchAttempts++;
-        const data = await redditGet(url);
+        const data = await redditGet(url, deadline);
         if (!data) {
           fetchFailures++;
           continue;
@@ -139,14 +224,9 @@ export class RedditScanner implements SocialScanner {
           const subreddit = (d.subreddit || "").toLowerCase();
           const title = d.title || "";
           const selftext = d.selftext || "";
-          const combined = `${title} ${selftext}`.toLowerCase();
-          const tickerLower = target.ticker.toLowerCase();
+          const combined = `${title} ${selftext}`;
 
-          if (
-            !combined.includes(tickerLower) &&
-            !combined.includes(`$${tickerLower}`)
-          )
-            continue;
+          if (!textMentionsTicker(combined, target.ticker)) continue;
           seenUrls.add(permalink);
 
           const accountCreatedUtc = d.author_created_utc;
@@ -183,7 +263,7 @@ export class RedditScanner implements SocialScanner {
             redFlags: flags,
           });
         }
-        await sleep(REDDIT_DELAY_MS);
+        await deadline.sleep(delayMs);
       } catch (error: any) {
         console.error(
           `[Reddit] Search error for "${target.ticker}":`,
@@ -195,10 +275,12 @@ export class RedditScanner implements SocialScanner {
     // Scan top pump-and-dump subreddits (reduced from 5 to 3 for speed)
     const topSubs = ["wallstreetbets", "pennystocks", "shortsqueeze"];
     for (const sub of topSubs) {
+      if (deadline.expired()) break;
       try {
         fetchAttempts++;
         const data = await redditGet(
           `https://www.reddit.com/r/${sub}/new.json?limit=100`,
+          deadline,
         );
         if (!data) {
           fetchFailures++;
@@ -208,15 +290,10 @@ export class RedditScanner implements SocialScanner {
           const d = post.data;
           const title = d.title || "";
           const selftext = d.selftext || "";
-          const combined = `${title} ${selftext}`.toLowerCase();
+          const combined = `${title} ${selftext}`;
 
           for (const target of targets) {
-            const tickerLower = target.ticker.toLowerCase();
-            if (
-              !combined.includes(tickerLower) &&
-              !combined.includes(`$${tickerLower}`)
-            )
-              continue;
+            if (!textMentionsTicker(combined, target.ticker)) continue;
 
             const permalink = `https://reddit.com${d.permalink}`;
             if (seenUrls.has(permalink)) continue;
@@ -252,7 +329,7 @@ export class RedditScanner implements SocialScanner {
             break;
           }
         }
-        await sleep(REDDIT_DELAY_MS);
+        await deadline.sleep(delayMs);
       } catch (error: any) {
         console.error(`[Reddit] Subreddit error for r/${sub}:`, error.message);
       }
@@ -306,6 +383,16 @@ export class RedditScanner implements SocialScanner {
 
 const YT_API_BASE = "https://www.googleapis.com/youtube/v3";
 
+// YouTube Data API v3 daily quota is 10,000 units. A search.list costs 100
+// units, videos.list costs 1. Scanning all 50 tickers (~5,050 units) burns
+// half the daily quota; two runs exhaust it. Cap searches per run and only
+// scan top-priority tickers (SOC-CO7).
+const YT_SEARCH_COST = 100;
+const YT_MAX_UNITS_PER_RUN = Number(
+  process.env.YOUTUBE_MAX_UNITS_PER_RUN || 2500,
+);
+const YT_MAX_TICKERS = Number(process.env.YOUTUBE_MAX_TICKERS || 20);
+
 export class YouTubeScanner implements SocialScanner {
   name = "youtube_api";
   platform = "YouTube";
@@ -316,13 +403,27 @@ export class YouTubeScanner implements SocialScanner {
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
+    const deadline = new Deadline();
     const apiKey = process.env.YOUTUBE_API_KEY!;
     const allMentions: SocialMention[] = [];
 
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    for (const target of targets) {
+    // Only the top-priority tickers, bounded again by the unit budget below.
+    const scanList = targets.slice(0, YT_MAX_TICKERS);
+    let unitsUsed = 0;
+    const delayMs = perTargetDelay(scanList.length, 200);
+
+    for (const target of scanList) {
+      if (deadline.expired()) break;
+      // Quota guard: stop before the next search would exceed the run budget.
+      if (unitsUsed + YT_SEARCH_COST > YT_MAX_UNITS_PER_RUN) {
+        console.warn(
+          `[YouTube] Quota guard hit (${unitsUsed}/${YT_MAX_UNITS_PER_RUN} units) — stopping after ${allMentions.length} mentions`,
+        );
+        break;
+      }
       try {
         const params = new URLSearchParams({
           part: "snippet",
@@ -333,7 +434,12 @@ export class YouTubeScanner implements SocialScanner {
           maxResults: "25",
           key: apiKey,
         });
-        const res = await fetch(`${YT_API_BASE}/search?${params}`);
+        const res = await fetchWithTimeout(
+          `${YT_API_BASE}/search?${params}`,
+          {},
+          deadline,
+        );
+        unitsUsed += YT_SEARCH_COST;
         if (!res.ok) {
           console.error(
             `[YouTube] API ${res.status} for ${target.ticker}: ${await res.text().catch(() => "no body")}`,
@@ -352,7 +458,12 @@ export class YouTubeScanner implements SocialScanner {
             id: videoIds.join(","),
             key: apiKey,
           });
-          const statsRes = await fetch(`${YT_API_BASE}/videos?${statsParams}`);
+          const statsRes = await fetchWithTimeout(
+            `${YT_API_BASE}/videos?${statsParams}`,
+            {},
+            deadline,
+          );
+          unitsUsed += 1; // videos.list costs 1 unit
           if (statsRes.ok) {
             const statsData = await statsRes.json();
             for (const item of statsData.items || [])
@@ -365,8 +476,8 @@ export class YouTubeScanner implements SocialScanner {
           if (!snippet) continue;
           const title = snippet.title || "";
           const description = snippet.description || "";
-          const combined = `${title} ${description}`.toLowerCase();
-          if (!combined.includes(target.ticker.toLowerCase())) continue;
+          const combined = `${title} ${description}`;
+          if (!textMentionsTicker(combined, target.ticker)) continue;
 
           const { score, flags } = calculatePromotionScore(
             `${title} ${description}`,
@@ -418,7 +529,7 @@ export class YouTubeScanner implements SocialScanner {
             redFlags: flags,
           });
         }
-        await sleep(200);
+        await deadline.sleep(delayMs);
       } catch (error: any) {
         console.error(`[YouTube] Error for ${target.ticker}:`, error.message);
       }
@@ -467,19 +578,26 @@ export class StockTwitsScanner implements SocialScanner {
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
+    const deadline = new Deadline();
     const allMentions: SocialMention[] = [];
     let hasErrors = false;
+    const delayMs = perTargetDelay(targets.length, 2000);
 
     for (const target of targets) {
+      if (deadline.expired()) break; // Return accumulated mentions on timeout
       try {
         const url = `https://api.stocktwits.com/api/2/streams/symbol/${encodeURIComponent(target.ticker)}.json`;
-        const response = await fetch(url, {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-            Accept: "application/json",
+        const response = await fetchWithTimeout(
+          url,
+          {
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+              Accept: "application/json",
+            },
           },
-        });
+          deadline,
+        );
 
         if (!response.ok) {
           hasErrors = true;
@@ -543,7 +661,7 @@ export class StockTwitsScanner implements SocialScanner {
             redFlags: flags,
           });
         }
-        await sleep(2000);
+        await deadline.sleep(delayMs);
       } catch (error: any) {
         console.error(
           `[StockTwits] Error for ${target.ticker}:`,
@@ -629,6 +747,9 @@ function detectSource(url: string): string {
   }
 }
 
+// Cap paid Serper queries to the top-N priority tickers (SOC-CO1).
+const SERPER_MAX_TICKERS = Number(process.env.SERPER_MAX_TICKERS || 20);
+
 export class SerperScanner implements SocialScanner {
   name = "serper_dev";
   platform = "Multi-Platform";
@@ -639,6 +760,7 @@ export class SerperScanner implements SocialScanner {
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
+    const deadline = new Deadline();
     const apiKey = process.env.SERPER_API_KEY!;
     const allMentions: SocialMention[] = [];
     const seenUrls = new Set<string>();
@@ -646,20 +768,26 @@ export class SerperScanner implements SocialScanner {
     let apiErrors = 0;
     let lastApiError = "";
 
-    // Two targeted queries per ticker:
-    // 1. Scam language query — surfaces pump-and-dump, alert service, and manipulation content
-    // 2. Social platform query — surfaces discussions on Reddit, StockTwits, Discord specifically
-    const buildQueries = (ticker: string): string[] => [
-      `"$${ticker}" OR "${ticker}" ("buy now" OR "guaranteed" OR "alert service" OR "pump" OR "100x" OR "join our" OR "moon")`,
-      `"$${ticker}" OR "${ticker}" site:reddit.com OR site:stocktwits.com OR site:youtube.com`,
-    ];
+    // Cap Serper to the top priority tickers — they arrive pre-sorted by the
+    // risk engine (SOC-CO1). The rest are covered for free by the other
+    // scanners; paid SERP credits go only to the highest-risk names.
+    const scanList = targets.slice(0, SERPER_MAX_TICKERS);
 
-    for (const target of targets) {
-      const queries = buildQueries(target.ticker);
+    // One combined query per ticker (was two) — halves the credit count while
+    // keeping both the scam-language and social-platform coverage (SOC-CO1).
+    const buildQuery = (ticker: string): string =>
+      `"$${ticker}" OR "${ticker}" ("buy now" OR "guaranteed" OR "alert service" OR "pump" OR "100x" OR "join our" OR "moon") (site:reddit.com OR site:stocktwits.com OR site:youtube.com OR site:twitter.com OR site:x.com)`;
 
-      for (const query of queries) {
-        try {
-          const res = await fetch("https://google.serper.dev/search", {
+    const delayMs = perTargetDelay(scanList.length, 100);
+
+    for (const target of scanList) {
+      if (deadline.expired()) break; // Return accumulated mentions on timeout
+      const query = buildQuery(target.ticker);
+
+      try {
+        const res = await fetchWithTimeout(
+          "https://google.serper.dev/search",
+          {
             method: "POST",
             headers: {
               "X-API-KEY": apiKey,
@@ -667,97 +795,93 @@ export class SerperScanner implements SocialScanner {
             },
             body: JSON.stringify({
               q: query,
-              num: 15,
+              num: 10, // was 15 — halves Serper credit cost (SOC-CO1)
               tbs: "qdr:w", // Past week
             }),
-          });
+          },
+          deadline,
+        );
 
-          if (!res.ok) {
-            const body = await res.text().catch(() => "no body");
-            console.error(
-              `[Serper] API ${res.status} for ${target.ticker}: ${body}`,
-            );
-            apiErrors++;
-
-            let parsedError = body;
-            try {
-              const json = JSON.parse(body);
-              parsedError = json.message || json.error || body;
-            } catch (e) {}
-            lastApiError = `Status ${res.status}: ${parsedError}`;
-            continue;
-          }
-
-          const data = await res.json();
-          const results = data.organic || [];
-
-          for (const result of results) {
-            const url = result.link || "";
-            if (seenUrls.has(url)) continue;
-            seenUrls.add(url);
-
-            const title = result.title || "";
-            const snippet = result.snippet || "";
-            const combined = `${title} ${snippet}`.toLowerCase();
-            const tickerLower = target.ticker.toLowerCase();
-            if (
-              !combined.includes(tickerLower) &&
-              !combined.includes(`$${tickerLower}`)
-            )
-              continue;
-
-            const platform = detectPlatform(url);
-            const source = detectSource(url);
-            const { score, flags } = calculatePromotionScore(
-              `${title} ${snippet}`,
-            );
-
-            // Apply platform-specific scoring based on detected platform
-            const platformMap: Record<string, PlatformName> = {
-              Reddit: "reddit",
-              YouTube: "youtube",
-              Twitter: "twitter",
-              StockTwits: "stocktwits",
-              Discord: "discord_telegram",
-              TikTok: "tiktok",
-            };
-            const platformKey = platformMap[platform];
-            let finalScore = score;
-            if (platformKey) {
-              const { scoreBonus, flags: pFlags } =
-                calculatePlatformSpecificScore(
-                  `${title} ${snippet}`,
-                  platformKey,
-                );
-              flags.push(...pFlags);
-              finalScore = Math.min(score + scoreBonus, 100);
-            }
-
-            let postDate = result.date || new Date().toISOString();
-
-            allMentions.push({
-              platform,
-              source,
-              discoveredVia: "serper_dev",
-              title: title.substring(0, 300),
-              content: snippet.substring(0, 500),
-              url,
-              author: "unknown",
-              postDate,
-              engagement: {},
-              sentiment: finalScore > 25 ? "bullish" : "neutral",
-              isPromotional: finalScore >= 20,
-              promotionScore: finalScore,
-              redFlags: flags,
-            });
-          }
-        } catch (error: any) {
-          console.error(`[Serper] Error for ${target.ticker}:`, error.message);
+        if (!res.ok) {
+          const body = await res.text().catch(() => "no body");
+          console.error(
+            `[Serper] API ${res.status} for ${target.ticker}: ${body}`,
+          );
           apiErrors++;
-          lastApiError = `Network error: ${error.message}`;
+
+          let parsedError = body;
+          try {
+            const json = JSON.parse(body);
+            parsedError = json.message || json.error || body;
+          } catch (e) {}
+          lastApiError = `Status ${res.status}: ${parsedError}`;
+          await deadline.sleep(delayMs);
+          continue;
         }
-        await sleep(100); // Serper is faster, gentle throttle
+
+        const data = await res.json();
+        const results = data.organic || [];
+
+        for (const result of results) {
+          const url = result.link || "";
+          if (seenUrls.has(url)) continue;
+          seenUrls.add(url);
+
+          const title = result.title || "";
+          const snippet = result.snippet || "";
+          const combined = `${title} ${snippet}`;
+          if (!textMentionsTicker(combined, target.ticker)) continue;
+
+          const platform = detectPlatform(url);
+          const source = detectSource(url);
+          const { score, flags } = calculatePromotionScore(
+            `${title} ${snippet}`,
+          );
+
+          // Apply platform-specific scoring based on detected platform
+          const platformMap: Record<string, PlatformName> = {
+            Reddit: "reddit",
+            YouTube: "youtube",
+            Twitter: "twitter",
+            StockTwits: "stocktwits",
+            Discord: "discord_telegram",
+            TikTok: "tiktok",
+          };
+          const platformKey = platformMap[platform];
+          let finalScore = score;
+          if (platformKey) {
+            const { scoreBonus, flags: pFlags } = calculatePlatformSpecificScore(
+              `${title} ${snippet}`,
+              platformKey,
+            );
+            flags.push(...pFlags);
+            finalScore = Math.min(score + scoreBonus, 100);
+          }
+
+          let postDate = result.date || new Date().toISOString();
+
+          allMentions.push({
+            platform,
+            source,
+            discoveredVia: "serper_dev",
+            title: title.substring(0, 300),
+            content: snippet.substring(0, 500),
+            url,
+            author: "unknown",
+            postDate,
+            engagement: {},
+            sentiment: finalScore > 25 ? "bullish" : "neutral",
+            isPromotional: finalScore >= 20,
+            promotionScore: finalScore,
+            redFlags: flags,
+          });
+        }
+      } catch (error: any) {
+        console.error(`[Serper] Error for ${target.ticker}:`, error.message);
+        apiErrors++;
+        lastApiError = `Network error: ${error.message}`;
       }
+      await deadline.sleep(delayMs); // Serper is faster, gentle throttle
     }
 
     const avgScore =
@@ -768,7 +892,7 @@ export class SerperScanner implements SocialScanner {
 
     if (apiErrors > 0) {
       console.error(
-        `[Serper] ${apiErrors}/${targets.length} ticker queries failed. Check your SERPER_API_KEY. Last error: ${lastApiError}`,
+        `[Serper] ${apiErrors}/${scanList.length} ticker queries failed. Check your SERPER_API_KEY. Last error: ${lastApiError}`,
       );
     }
 
@@ -779,7 +903,7 @@ export class SerperScanner implements SocialScanner {
         success: apiErrors === 0,
         error:
           apiErrors > 0
-            ? `${apiErrors}/${targets.length} API requests failed. Last error: ${lastApiError}`
+            ? `${apiErrors}/${scanList.length} API requests failed. Last error: ${lastApiError}`
             : undefined,
         mentionsFound: allMentions.length,
         mentions: allMentions,
@@ -813,14 +937,21 @@ export class PerplexityScanner implements SocialScanner {
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
+    const deadline = new Deadline();
     const apiKey = process.env.PERPLEXITY_API_KEY!;
     const allMentions: SocialMention[] = [];
     let apiErrors = 0;
     let lastApiError = "";
 
     const batchSize = 5;
-    for (let i = 0; i < targets.length; i += batchSize) {
-      const batch = targets.slice(i, i + batchSize);
+    // Max concurrent sonar calls — parallelize so the batches finish within the
+    // budget instead of running serially and losing the race (SOC-CO4).
+    const MAX_CONCURRENCY = 3;
+
+    // Run one Perplexity batch. Pushes parsed mentions into `allMentions` and
+    // bumps the shared error counters. Returns nothing — side-effecting so the
+    // concurrency runner stays simple.
+    const runBatch = async (batch: ScanTarget[]): Promise<void> => {
       const tickerList = batch
         .map((t) => `$${t.ticker} (${t.name})`)
         .join(", ");
@@ -850,34 +981,38 @@ For each SUSPICIOUS mention found, return a JSON array:
 IMPORTANT: Only REAL posts with actual URLs. Focus on content that looks MANIPULATIVE or designed to pump the stock — not legitimate stock discussion or news coverage. Return [] if nothing suspicious found. Return ONLY the JSON array.`;
 
       try {
-        const res = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
+        const res = await fetchWithTimeout(
+          "https://api.perplexity.ai/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "sonar",
+              temperature: 0.1,
+              max_tokens: 2000,
+              return_citations: true,
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are a financial fraud investigator specializing in stock market pump-and-dump schemes and social media manipulation. Your job is to find SUSPICIOUS promotional activity — coordinated pumps, paid alert services, fake due diligence, boiler room language, and scam indicators. You are NOT looking for legitimate stock discussion or news. You are looking for content that appears designed to manipulate retail investors into buying a stock so the promoter can dump their shares. Respond ONLY in valid JSON format.",
+                },
+                { role: "user", content: prompt },
+              ],
+            }),
           },
-          body: JSON.stringify({
-            model: "sonar",
-            temperature: 0.1,
-            max_tokens: 2000,
-            return_citations: true,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a financial fraud investigator specializing in stock market pump-and-dump schemes and social media manipulation. Your job is to find SUSPICIOUS promotional activity — coordinated pumps, paid alert services, fake due diligence, boiler room language, and scam indicators. You are NOT looking for legitimate stock discussion or news. You are looking for content that appears designed to manipulate retail investors into buying a stock so the promoter can dump their shares. Respond ONLY in valid JSON format.",
-              },
-              { role: "user", content: prompt },
-            ],
-          }),
-        });
+          deadline,
+        );
 
         if (!res.ok) {
           const body = await res.text().catch(() => "no body");
           console.error(`[Perplexity] API ${res.status}: ${body}`);
           apiErrors++;
           lastApiError = `Status ${res.status}: ${body.substring(0, 200)}`;
-          continue;
+          return;
         }
         const data = await res.json();
         const content = data.choices?.[0]?.message?.content || "";
@@ -1026,16 +1161,33 @@ IMPORTANT: Only REAL posts with actual URLs. Focus on content that looks MANIPUL
             redFlags: citFlags,
           });
         }
-
-        await sleep(1000);
       } catch (error: any) {
         console.error(`[Perplexity] Error:`, error.message);
         apiErrors++;
         lastApiError = `Network error: ${error.message}`;
       }
+    };
+
+    // Build batches, then run them MAX_CONCURRENCY at a time. Stop launching new
+    // batches once the deadline passes so we return partial results instead of
+    // racing past the orchestrator timeout and losing every paid call (SOC-CO4).
+    const batches: ScanTarget[][] = [];
+    for (let i = 0; i < targets.length; i += batchSize) {
+      batches.push(targets.slice(i, i + batchSize));
+    }
+    const totalBatches = batches.length;
+
+    for (let i = 0; i < batches.length; i += MAX_CONCURRENCY) {
+      if (deadline.expired()) {
+        console.warn(
+          `[Perplexity] Budget exhausted — returning ${allMentions.length} mentions from ${i}/${totalBatches} batches`,
+        );
+        break;
+      }
+      const chunk = batches.slice(i, i + MAX_CONCURRENCY);
+      await Promise.allSettled(chunk.map((b) => runBatch(b)));
     }
 
-    const totalBatches = Math.ceil(targets.length / batchSize);
     if (apiErrors > 0) {
       console.error(
         `[Perplexity] ${apiErrors}/${totalBatches} batch queries failed. Last error: ${lastApiError}`,
@@ -1102,16 +1254,21 @@ export class DiscordBotScanner implements SocialScanner {
 
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
+    const deadline = new Deadline();
     const token = process.env.DISCORD_BOT_TOKEN!;
     const allMentions: SocialMention[] = [];
 
     const discordGet = async (endpoint: string) => {
-      const res = await fetch(`https://discord.com/api/v10${endpoint}`, {
-        headers: {
-          Authorization: `Bot ${token}`,
-          "Content-Type": "application/json",
+      const res = await fetchWithTimeout(
+        `https://discord.com/api/v10${endpoint}`,
+        {
+          headers: {
+            Authorization: `Bot ${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
+        deadline,
+      );
       if (!res.ok) throw new Error(`Discord API ${res.status}`);
       return res.json();
     };
@@ -1143,12 +1300,17 @@ export class DiscordBotScanner implements SocialScanner {
         `[Discord] Bot is in ${guilds.length} server(s): ${guilds.map((g: any) => g.name).join(", ")}`,
       );
 
-      const tickerPatterns = targets.map((t) => ({
-        target: t,
-        regex: new RegExp(`\\b\\$?${t.ticker}\\b`, "i"),
-      }));
+      // Build matchers via the shared helper so ticker metacharacters are
+      // escaped and short tickers require a $cashtag (SOC-L2 / SOC-R1). Invalid
+      // tickers are dropped instead of throwing inside RegExp.
+      const tickerPatterns = targets
+        .map((t) => ({ target: t, regex: buildTickerMatcher(t.ticker) }))
+        .filter(
+          (p): p is { target: ScanTarget; regex: RegExp } => p.regex !== null,
+        );
 
       for (const guild of guilds) {
+        if (deadline.expired()) break;
         try {
           const channels = await discordGet(`/guilds/${guild.id}/channels`);
           const textChannels = channels
@@ -1156,6 +1318,7 @@ export class DiscordBotScanner implements SocialScanner {
             .slice(0, 10);
 
           for (const channel of textChannels) {
+            if (deadline.expired()) break;
             try {
               const messages = await discordGet(
                 `/channels/${channel.id}/messages?limit=100`,
@@ -1208,12 +1371,12 @@ export class DiscordBotScanner implements SocialScanner {
                   break;
                 }
               }
-              await sleep(500);
+              await deadline.sleep(500);
             } catch {
               /* skip unreadable channels */
             }
           }
-          await sleep(1000);
+          await deadline.sleep(1000);
         } catch (error: any) {
           console.error(
             `[Discord] Guild error for ${guild.name}:`,
@@ -1270,6 +1433,23 @@ export class DiscordBotScanner implements SocialScanner {
 // Registry: get all configured scanners
 // ─────────────────────────────────────────────────────────────
 
+function logSkipped(skipped: SocialScanner[]): void {
+  if (skipped.length === 0) return;
+  const envHints: Record<string, string> = {
+    serper_dev: "SERPER_API_KEY",
+    perplexity: "PERPLEXITY_API_KEY",
+    youtube_api: "YOUTUBE_API_KEY",
+    discord_bot: "DISCORD_BOT_TOKEN",
+    reddit_public: "ENABLE_REDDIT_DIRECT_SCAN",
+  };
+  for (const s of skipped) {
+    const hint = envHints[s.name] || "unknown env var";
+    console.warn(
+      `[Social Scan] SKIPPED ${s.name} (${s.platform}) — missing env: ${hint}`,
+    );
+  }
+}
+
 export function getConfiguredScanners(): SocialScanner[] {
   const all: SocialScanner[] = [
     // Layer 1: Broad sweep
@@ -1283,25 +1463,35 @@ export function getConfiguredScanners(): SocialScanner[] {
   ];
 
   const configured = all.filter((s) => s.isConfigured());
-  const skipped = all.filter((s) => !s.isConfigured());
+  logSkipped(all.filter((s) => !s.isConfigured()));
 
   console.log(
     `[Social Scan] Configured scanners (${configured.length}/${all.length}): ${configured.map((s) => s.name).join(", ")}`,
   );
-  if (skipped.length > 0) {
-    const envHints: Record<string, string> = {
-      serper_dev: "SERPER_API_KEY",
-      perplexity: "PERPLEXITY_API_KEY",
-      youtube_api: "YOUTUBE_API_KEY",
-      discord_bot: "DISCORD_BOT_TOKEN",
-    };
-    for (const s of skipped) {
-      const hint = envHints[s.name] || "unknown env var";
-      console.warn(
-        `[Social Scan] SKIPPED ${s.name} (${s.platform}) — missing env: ${hint}`,
-      );
-    }
-  }
 
   return configured;
+}
+
+/**
+ * Free scanners only (everything except Perplexity). The orchestrator runs
+ * these first, then decides per-ticker whether the paid Perplexity scanner is
+ * worth calling (SOC-CO4 tiering).
+ */
+export function getConfiguredFreeScanners(): SocialScanner[] {
+  const all: SocialScanner[] = [
+    new SerperScanner(),
+    new RedditScanner(),
+    new YouTubeScanner(),
+    new StockTwitsScanner(),
+    new DiscordBotScanner(),
+  ];
+  const configured = all.filter((s) => s.isConfigured());
+  logSkipped(all.filter((s) => !s.isConfigured()));
+  return configured;
+}
+
+/** The Perplexity scanner if its API key is configured, else null. */
+export function getPerplexityScanner(): SocialScanner | null {
+  const s = new PerplexityScanner();
+  return s.isConfigured() ? s : null;
 }

@@ -74,3 +74,7 @@ evaluation/results/checkpoint-*.json
 # Browser agent session data (cookies, progress, credentials)
 evaluation/browser-sessions/
 !evaluation/browser-sessions/.gitkeep
+.venv/
+
+# Claude Code worktrees (temporary agent workspaces)
+.claude/worktrees/

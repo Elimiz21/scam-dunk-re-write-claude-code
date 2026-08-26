@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/ingest-evaluation",
+      "schedule": "0 7 * * 1-5"
+    },
+    {
+      "path": "/api/cron/whatsapp-retention",
+      "schedule": "17 * * * *"
+    },
+    {
+      "path": "/api/cron/track-promoted-stocks",
+      "schedule": "30 21 * * 1-5"
+    }
+  ]
+}

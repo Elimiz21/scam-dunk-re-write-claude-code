@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { getDashboardMetrics } from "@/lib/admin/metrics";
+import { cached } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const metrics = await getDashboardMetrics();
+    // Unpersonalized aggregate — cache for 60s across admin viewers/refreshes.
+    const metrics = await cached("dashboard:metrics", 60, () =>
+      getDashboardMetrics(),
+    );
 
     return NextResponse.json({
       ...metrics,

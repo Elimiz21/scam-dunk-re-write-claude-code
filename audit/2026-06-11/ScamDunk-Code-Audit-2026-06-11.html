@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScamDunk — Full Codebase Audit — 2026-06-11</title>
+<style>
+  :root{
+    --ink:#1a1f2e; --muted:#5b6477; --line:#dfe3ea; --bg:#ffffff; --soft:#f5f7fa;
+    --crit:#b3001b; --critbg:#fdecee; --high:#c2410c; --highbg:#fff1e7;
+    --med:#a16207; --medbg:#fdf6e3; --low:#3f6212; --lowbg:#f1f8e9;
+    --ok:#0f766e; --okbg:#e6f4f2; --accent:#0b4f8a;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Georgia,'Times New Roman',serif;color:var(--ink);background:var(--bg);margin:0;line-height:1.55;font-size:14px}
+  .wrap{max-width:920px;margin:0 auto;padding:36px 40px}
+  header.cover{border-bottom:4px solid var(--accent);padding-bottom:22px;margin-bottom:30px}
+  h1{font-size:30px;margin:0 0 6px;color:var(--accent);letter-spacing:-.5px}
+  .sub{color:var(--muted);font-size:14px}
+  h2{font-size:21px;color:var(--accent);border-bottom:2px solid var(--line);padding-bottom:6px;margin:38px 0 14px;page-break-after:avoid}
+  h3{font-size:16px;margin:24px 0 8px;color:var(--ink);page-break-after:avoid}
+  h4{font-size:14px;margin:16px 0 6px}
+  p{margin:8px 0}
+  code{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12px;background:var(--soft);padding:1px 5px;border-radius:3px;border:1px solid var(--line)}
+  pre{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:11.5px;background:#f0f2f6;border:1px solid var(--line);border-left:3px solid var(--accent);padding:10px 12px;overflow-x:auto;border-radius:4px;white-space:pre-wrap;word-wrap:break-word}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12.5px}
+  th{background:var(--accent);color:#fff;text-align:left;padding:7px 9px;font-weight:600}
+  td{border:1px solid var(--line);padding:6px 9px;vertical-align:top}
+  tr:nth-child(even) td{background:var(--soft)}
+  .sev{display:inline-block;font-family:Menlo,Consolas,monospace;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:10px;letter-spacing:.4px}
+  .sev.C{background:var(--critbg);color:var(--crit);border:1px solid var(--crit)}
+  .sev.H{background:var(--highbg);color:var(--high);border:1px solid var(--high)}
+  .sev.M{background:var(--medbg);color:var(--med);border:1px solid var(--med)}
+  .sev.L{background:var(--lowbg);color:var(--low);border:1px solid var(--low)}
+  .sev.OK{background:var(--okbg);color:var(--ok);border:1px solid var(--ok)}
+  .card{border:1px solid var(--line);border-left:4px solid var(--crit);border-radius:5px;padding:12px 16px;margin:12px 0;page-break-inside:avoid;background:#fff}
+  .card.h{border-left-color:var(--high)}
+  .card .loc{font-family:Menlo,Consolas,monospace;font-size:11px;color:var(--muted)}
+  .card h4{margin:2px 0 6px}
+  .callout{border:2px solid var(--crit);background:var(--critbg);border-radius:6px;padding:14px 18px;margin:16px 0;page-break-inside:avoid}
+  .callout.warn{border-color:var(--high);background:var(--highbg)}
+  .callout.good{border-color:var(--ok);background:var(--okbg)}
+  .callout h3{margin-top:0}
+  ul,ol{margin:8px 0;padding-left:24px}
+  li{margin:4px 0}
+  .small{font-size:12px;color:var(--muted)}
+  .toc{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:14px 22px;margin:18px 0}
+  .toc ol{margin:6px 0;columns:2;column-gap:36px}
+  .kpi{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:10px 16px;margin:4px 6px 4px 0;text-align:center;background:var(--soft)}
+  .kpi b{display:block;font-size:24px}
+  .kpi span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .kpi.c b{color:var(--crit)} .kpi.h b{color:var(--high)} .kpi.m b{color:var(--med)} .kpi.l b{color:var(--low)}
+  footer{margin-top:48px;border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:11.5px}
+  @page{size:A4;margin:18mm 15mm;@bottom-right{content:"ScamDunk Audit 2026-06-11 — page " counter(page) " of " counter(pages);font-size:9px;color:#777}}
+  @media print{.wrap{padding:0;max-width:none} h2{page-break-before:auto}}
+</style>
+</head>
+<body><div class="wrap">
+
+<header class="cover">
+  <h1>ScamDunk — Full Codebase Audit</h1>
+  <div class="sub">
+    Repository: <code>Elimiz21/scam-dunk-re-write-claude-code</code> &nbsp;·&nbsp; Date: 2026-06-11 &nbsp;·&nbsp; Branch reviewed: <code>main</code> (HEAD 30976b1)<br>
+    Scope: every production source file — Next.js app (68,213 LOC TS/TSX), Python AI service (~9,600 LOC), evaluation pipeline (25,669 LOC), Prisma schema, 9 GitHub workflows, deployment configs.<br>
+    Method: 7 parallel adversarial line-by-line reviews (AI scoring, Python ML, social scanning, security, architecture/data, admin UI ×2, public frontend) + automated toolchain checks, cross-verified.
+  </div>
+</header>
+
+<div class="kpi c"><b>21</b><span>Critical</span></div>
+<div class="kpi h"><b>65</b><span>High</span></div>
+<div class="kpi m"><b>115</b><span>Medium</span></div>
+<div class="kpi l"><b>71</b><span>Low</span></div>
+<div class="kpi"><b>272</b><span>Total findings</span></div>
+
+<div class="toc">
+<strong>Contents</strong>
+<ol>
+  <li>Executive summary</li>
+  <li>Act today — emergency items</li>
+  <li>Why the AI scoring isn't working</li>
+  <li>Why the social scans are unstable &amp; expensive (and the Apify verdict)</li>
+  <li>Security review</li>
+  <li>Architecture &amp; data layer</li>
+  <li>Frontend &amp; admin UI</li>
+  <li>Automated check results</li>
+  <li>Findings index by area</li>
+  <li>What is working correctly</li>
+  <li>Remediation roadmap (summary)</li>
+  <li>Methodology &amp; appendices</li>
+</ol>
+</div>
+
+<h2>1. Executive summary</h2>
+<p>ScamDunk is a real, substantial product — a Next.js 14 scan app with PayPal/Apple billing, a 26-page admin intelligence dashboard, a Python ML sidecar on Railway, and a nightly GitHub Actions pipeline scoring ~7,000 stocks. The audit found the product's <em>core promise</em> — accurate AI risk scoring — undermined by a set of specific, fixable engineering defects rather than by any single design mistake. Three headline conclusions:</p>
+
+<ol>
+<li><strong>The "AI" layer is largely not running.</strong> The Random Forest model never produces a prediction in production (a 49-vs-35 feature mismatch makes it throw, retrain on synthetic data, and return 0.0 — on every request). The LSTM was trained on synthetic absolute prices and emits noise on real data. The SEC check in the Python service is a hardcoded 8-ticker demo list. What users actually receive is the rule-based score — and that layer over-flags small caps so aggressively (HIGH≥5 with 4–5 correlated signals stacking on a single price event) that essentially every OTC stock reads HIGH, while silent data-gap handling simultaneously produces false LOWs. Meanwhile the evaluation harness scores with a <em>different engine</em> than production, so every calibration number measured to date describes a scorer that isn't the one users see.</li>
+<li><strong>The social scans fail by construction, and Apify is not the cost.</strong> Apify appears nowhere in this codebase — source, lockfile, workflows, or git history. If you're paying for it, it's orphaned spend: cancel it. The real per-scan cost is Serper + Perplexity + OpenAI screening (≈ $0.15–0.30/clean scan), and the real bill multiplier is instability: the scan runs synchronously inside a 300-second Vercel function whose internal budgets exceed 300s, results are written only at the very end (a killed function loses everything already paid for), and the pipeline's fallback then <em>re-spends</em> the same API budget locally. The Reddit scanner alone needs ≥125s of sleep against a 120s timeout — it has mathematically never completed a full 50-ticker scan.</li>
+<li><strong>One credential leak requires action today.</strong> The production Supabase database password is committed in <code>scripts/query-blogs-pg.mjs</code> (and git history). Rotate it now. Beyond that, the security posture is mixed: webhook verification, token handling and admin-route auth are largely done well (65 admin routes audited, zero missing auth on mutations), but there are real holes — an unmetered twin of the paid scan endpoint, Apple receipt replay enabling unlimited PAID accounts from one purchase, no rate limit on the web login, and a preview-login backdoor that creates an OWNER admin with a published default password against the shared production DB.</li>
+</ol>
+
+<p>A phased remediation roadmap accompanies this report (<code>ROADMAP.md</code>): Phase 0 emergency items (~2 hours), then six weeks of sequenced work. The two highest-leverage engineering moves are (a) unifying the scoring engine into one shared module and recalibrating it, and (b) making the social scan asynchronous with incremental writes. Together they resolve the two complaints this audit was commissioned for.</p>
+
+<h2>2. Act today — emergency items</h2>
+<div class="callout">
+<h3>⛔ E1 — Rotate the production database password (verified leak)</h3>
+<p><code>scripts/query-blogs-pg.mjs:6</code> contains the full production connection string — host <code>aws-1-ap-northeast-1.pooler.supabase.com</code>, project ref and password — committed and in git history. Anyone with repo read access (collaborators, any leaked clone or fork) can connect directly to production Postgres: all user data, password hashes, billing IDs, support tickets, bypassing the app entirely.</p>
+<p><strong>Do now:</strong> Supabase dashboard → Settings → Database → reset password; update Vercel/GitHub Actions env vars; replace the literal with <code>process.env.DATABASE_URL</code>; audit DB logs for unfamiliar access. History purge (<code>git filter-repo</code>) when convenient — rotation is what closes the hole.</p>
+</div>
+<div class="callout warn">
+<h3>⚠ E2 — Remove the preview-login OWNER backdoor</h3>
+<p><code>/api/admin/auth/preview-login</code> creates a persistent <b>OWNER</b>-role admin (<code>preview@scamdunk.com</code>) with default password <code>PreviewAdmin2026!</code> when <code>PREVIEW_ADMIN_PASSWORD</code> is unset. Preview deployments share the production database, so this account works against production <code>/admin/login</code>. Delete the row if present; require a strong env password; fail closed.</p>
+</div>
+<div class="callout warn">
+<h3>⚠ E3 — Cancel Apify; set the Python API secret</h3>
+<p>Apify is not integrated anywhere in this repository — it is orphaned spend (see §4). Separately, the Python AI service serves all endpoints <em>unauthenticated</em> if <code>AI_API_SECRET</code> is unset (it only logs a warning) — verify the secret is set on Railway and make the service refuse to start without it.</p>
+</div>
+
+<h2>3. Why the AI scoring isn't working</h2>
+<p class="small">Full detail: <code>findings/01-ai-scoring-typescript.md</code> (39 findings) and <code>findings/02-python-ai-service.md</code> (35 findings).</p>
+
+<p>The scoring pipeline has three layers — TypeScript rule engine (<code>src/lib/scoring.ts</code>), Python ML service (<code>python_ai/</code>), and an LLM narrative — and each contributes a distinct failure mode. Ranked by impact:</p>
+
+<h3>3.1 The ML ensemble is functionally absent</h3>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">python_ai/feature_engineering.py:444–506 vs ml_model.py:84–95, pipeline.py:730–751</span>
+<h4>Random Forest probability is always 0.0 — and the model retrains on every request</h4>
+<p>Serving emits <b>49</b> features; the model was trained on <b>35</b>, in a different order, with different casing (<code>Price_Change_3d</code> vs <code>price_change_3d</code>). <code>scaler.transform()</code> throws, the pipeline catches it, retrains a fresh RF on <em>synthetic</em> data (per request — seconds of CPU and a disk write), retries, fails again, and sets <code>rf_prob = 0.0</code>. Half of the advertised ensemble contributes nothing, ever, while consuming most of the latency budget.</p></div>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">python_ai/lstm_model.py:101–107, 393–397, 499–505</span>
+<h4>LSTM scores are noise on real data</h4>
+<p>The LSTM consumes raw <code>Close</code>/<code>Volume</code> scaled by a MinMaxScaler fit on synthetic ranges ($1–$300, 10k–5M shares). A real $0.40 stock trading 80M shares — the product's core target — lands far outside [0,1] and saturates the network. With RF at 0.0, the "AI score" is in reality the rule-based anomaly heuristics plus hardcoded probability floors.</p></div>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">python_ai/data_ingestion.py:417–421, 463–465; config.py:194–196</span>
+<h4>OTC stocks are misclassified as non-OTC; failed lookups fabricate random large-cap fundamentals</h4>
+<p>yfinance reports Pink Sheets/OTCQX/OTCQB as <code>PNK</code>/<code>OQX</code>/<code>OQB</code> — none match the OTC detection sets, so the weight-3 OTC signal, the more-sensitive OTC thresholds, and every OTC probability floor are dead <em>for exactly the stocks the product targets</em>. Worse: when the (heavily rate-limited) yfinance <code>.info</code> call fails, the code silently substitutes <b>random</b> fundamentals — market cap uniformly drawn from $0.5–50B on a random major exchange — so a real penny-stock scam can be scored as a healthy mid-cap, differently on every restart.</p></div>
+
+<h3>3.2 The rule engine over-flags by construction</h3>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">src/lib/scoring.ts:553–555 + 256–457</span>
+<h4>HIGH≥5 / MEDIUM≥2 with 4–5 correlated signals stacking on one event</h4>
+<p>A single price pump fires up to five signals at once (SPIKE_7D 3–4, SPIKE_3D 2–3, PRICE_ANOMALY 2–4, EXTREME_SURGE 3, PRICE_ACCELERATION 2); one volume event fires four more. The HIGH cutoff was lowered to 5 without de-duplicating them. Consequences: a NYSE stock up 25% on earnings with 3× volume = HIGH; <em>any</em> sub-$300M or sub-$5 stock = at least MEDIUM; an OTC stock with a routine 10% weekly move = HIGH. Acceleration signals have no magnitude floor (three +0.1% days fire). Result: the false-positive flood users perceive as "scoring doesn't work".</p></div>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">evaluation/scripts/standalone-scorer.ts vs src/lib/scoring.ts</span>
+<h4>The evaluation harness scores with a different engine than production</h4>
+<p>The nightly pipeline's "layer1_deterministic" is <code>standalone-scorer.ts</code> — which gates patterns at 7 days of history (prod: 30), uses <code>Math.abs</code> where prod is signed, guards missing marketCap (prod doesn't), fixes the RSI flat-series bug (prod returns 100), and lacks the entire z-score anomaly stack. Every precision/recall number ever measured — including the test script that recommended lowering HIGH to 5 — describes a scorer that is not the one in production. <b>This is the root cause of "it looked fine in eval but doesn't work live."</b></p></div>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">src/lib/scoring.ts:200–221; src/lib/marketData.ts:157–161, 737–742</span>
+<h4>Missing data manufactures both false HIGHs and false LOWs — silently</h4>
+<p>Missing price/marketCap fields default to <code>0</code>, which reads as "microcap + penny stock + no liquidity" = +6 → instant HIGH for any stock with a data gap (including mega-caps). In the opposite direction, when the FMP history endpoint 403s (it's plan-gated) or Alpha Vantage throttles, the quote still succeeds, <code>dataAvailable</code> stays true, and ALL pattern/anomaly detection silently turns off — an actively pumping stock scores LOW with no indication that 13 of 18 signal types never ran. Same ticker, wildly different scores depending on which upstream call failed that minute — the instability you've observed.</p></div>
+
+<h3>3.3 The regulatory layer is unreliable at both ends</h3>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">src/lib/marketData.ts:920–931; src/lib/regulatoryDatabase.ts:203–249; src/lib/scoring.ts:618–629</span>
+<h4>SEC checks: substring-match false positives, a probably-dead live check, garbage-ticker ingestion — and suspended stocks come back "INSUFFICIENT"</h4>
+<p><code>checkSECFeed</code> substring-matches the ticker against the entire EDGAR XML ("GE" matches "EXCHANGE"; weight 5 → forced HIGH), sends no User-Agent (EDGAR 403s such requests, so in production it likely always returns false — silently dead), and the suspension sync extracts "tickers" as any 2–5 letter capitalized word ("ORDER", "CORP" become CRITICAL-flagged tickers). The Python side's SEC integration is openly fake (<code>SEC_FLAGGED_TICKERS = {'SCAM','PUMP','DUMP',...}</code>). And because the alert check is gated on having a quote, SEC-<em>suspended</em> stocks — the highest-risk category in the product — typically return INSUFFICIENT instead of HIGH.</p></div>
+
+<h3>3.4 Integration defects mask all of the above</h3>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">src/app/api/check/route.ts:124–237, 541–567; ai-analyze/route.ts:99–148</span>
+<h4>The 503 alert path is dead code; backend payloads are consumed unvalidated</h4>
+<p><code>ServiceUnavailableError</code> is thrown <em>inside its own try/catch</em> and converted to <code>{success:false}</code> — the elaborate 503 handler and admin-alert email can never execute from this path. The TS client also aborts the Python call at 10s while the Python path does a per-request retrain + uncached yfinance fetches + (for HIGH results) news verification — so the AI answer, when it exists, frequently arrives too late and is discarded. Backend JSON is consumed without validation: a missing weight makes <code>totalScore = NaN</code>; an unknown risk level passes a lying cast; level and score come from different systems and can contradict. And <code>isLegitimate</code> is redefined on the AI path so an obscure ticker scored LOW-with-no-signals is presented with the "well-established company" reassuring narrative — the exact false-negative messaging a scam victim would screenshot.</p></div>
+
+<div class="card h"><span class="sev H">HIGH</span> <span class="loc">src/lib/scoring.ts:574–597; src/lib/narrative.ts:181–192</span>
+<h4>Incoherent outputs erode trust</h4>
+<p>A stock can be simultaneously <code>riskLevel=HIGH</code> and <code>isLegitimate=true</code>, sending the LLM contradictory instructions ("RISK LEVEL: HIGH" + "tone should be reassuring"). Signal descriptions overstate evidence 2× (SPIKE_THEN_DROP says "50%+/40%+", triggers at 25%/20%). Z-score signals look only at the single most recent day, so ~5% of perfectly normal days randomly add +2 (= MEDIUM alone) and identical scans disagree day to day. Crypto is effectively unscored: every coin is labeled "OTC" (+3, BTC = permanent MEDIUM) while CoinGecko's 4-day candles silently disable all pattern detection — and three real NYSE tickers (SOL, APT, LINK) are scored against <em>cryptocurrency</em> data due to an override bug.</p></div>
+
+<div class="callout good">
+<h3>The fix, in order (Phase 2 of the roadmap)</h3>
+<ol>
+<li>Extract one shared pure scoring module used by app + pipeline; delete the fork; re-calibrate on the labeled set.</li>
+<li>De-duplicate correlated signals (max-of-family), add magnitude floors, re-derive cutoffs.</li>
+<li>Treat missing data as unknown (skip signal + confidence field), not zero.</li>
+<li>Fix the RF feature contract + stop in-request retraining; fix OTC code mapping; remove the synthetic-fundamentals fallback; disable the LSTM until real training data exists.</li>
+<li>Replace the SEC feed checks with structured data + proper User-Agent; force HIGH for suspended tickers regardless of quote availability.</li>
+<li>Validate the backend contract with zod; fix the swallowed 503; raise the AI timeout to ~20s after removing the retrain.</li>
+</ol>
+</div>
+
+<h2>4. Social scans: instability, cost, and the Apify verdict</h2>
+<p class="small">Full detail: <code>findings/03-social-scan.md</code> (46 findings).</p>
+
+<div class="callout good">
+<h3>Apify: definitively not used</h3>
+<p>Zero references in source, <code>package.json</code>, lockfile, env examples, workflows, or git history (<code>git log -S apify</code>). The only hit is an unrelated marketing-skill reference doc. <b>If you are paying for an Apify subscription, nothing in this repository consumes it — cancel it.</b></p>
+</div>
+
+<h3>4.1 What actually runs, and what it costs</h3>
+<p>The nightly pipeline POSTs up to 50 HIGH-risk tickers to <code>/api/admin/social-scan</code> (Vercel, <code>maxDuration=300</code>), which synchronously runs six scanners in parallel — Serper (paid), Perplexity sonar (paid), Reddit public JSON, YouTube API, StockTwits, Discord bot — then screens flagged mentions with GPT-4o-mini (paid) and writes everything to the DB in one batch at the very end.</p>
+<table>
+<tr><th>Cost line</th><th>Per clean 50-ticker scan</th><th>Notes</th></tr>
+<tr><td>Serper</td><td>~200 credits ≈ $0.06–0.20</td><td>2 queries/ticker × <code>num:15</code> = 2 credits each — the largest line item</td></tr>
+<tr><td>Perplexity sonar</td><td>≈ $0.08</td><td>10 batched calls; 5–15s each — frequently lose the 120s race <em>after being paid for</em></td></tr>
+<tr><td>OpenAI screening</td><td>≈ $0.01</td><td>gpt-4o-mini, batches of 25</td></tr>
+<tr><td>YouTube / Reddit / StockTwits / Discord</td><td>$0</td><td>but one scan = 50% of the free YouTube daily quota</td></tr>
+<tr><td><b>Total (clean)</b></td><td><b>≈ $0.15–0.30 → ~$3–7/month</b></td><td>at one cron run per weekday</td></tr>
+</table>
+<p><b>Why the real bill is higher:</b> on timeout days (which are the norm, see below) the pipeline's local fallback <em>re-spends</em> Serper+Perplexity on the same 50 tickers while the deployed run may still be spending (×2); manual admin re-triggers have no concurrency guard; abandoned scanners keep making paid calls whose results are discarded; and the same post is screened and stored once per substring-matching ticker (1.5–3×). If your actual spend is far above ~$20/month, the excess is in the OpenAI news-analysis phases of the nightly pipeline or in orphaned external subscriptions — compare provider dashboards against the table.</p>
+
+<h3>4.2 Why scans fail (ranked)</h3>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">src/lib/social-scan/scanners.ts:28,186,546; orchestrate.ts:289</span>
+<h4>The Reddit scanner can never finish: 125s of mandatory sleep vs a 120s timeout</h4>
+<p>2.5s politeness delay × 50 tickers = 125 seconds of sleep alone against <code>SCANNER_TIMEOUT = 120_000</code>; StockTwits (2s × 50) usually times out too. Because each scanner returns results only at the <em>end</em> of <code>scan()</code>, <code>Promise.race</code> discards 100% of partial results. Every full scan is PARTIAL by construction.</p></div>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">src/app/api/admin/social-scan/route.ts:19,364; orchestrate.ts:359</span>
+<h4>A 2–5-minute synchronous job inside a serverless request, with results written only at the end</h4>
+<p>Internal budgets (120s scanners + 180s AI screening + aggregation + write) exceed the 300s ceiling in the worst case; the pipeline client aborts at exactly 5 minutes. A killed function loses <em>everything already paid for</em> and leaves the run stuck RUNNING until a later GET marks it TIMED_OUT. Git history shows this exact failure was "fixed" twice before by shrinking timeouts — the architecture, not the numbers, is the problem.</p></div>
+<div class="card h"><span class="sev H">HIGH</span> <span class="loc">scanners.ts:25–73 (Reddit); all fetches</span>
+<h4>Datacenter-IP blocking + no fetch timeouts + no real retry policy</h4>
+<p>Reddit blocks Vercel egress IPs (the code's own comments and HTML-block detection acknowledge it) — the scanner burns its 2-minute window for nothing nearly every serverless run. No fetch anywhere in the scanner file has an AbortController; one hung socket eats a scanner's entire budget. 429s get a single naive retry on Reddit only.</p></div>
+<div class="card h"><span class="sev H">HIGH</span> <span class="loc">prisma/schema.prisma:789–815; orchestrate.ts:473; ingest/route.ts:90–121</span>
+<h4>No dedup, no idempotency</h4>
+<p><code>SocialMention</code> has no unique constraint, so <code>skipDuplicates: true</code> is a no-op: the same post is re-inserted every daily run and once per ticker it substring-matches. The ingest route inserts row-by-row with no <code>maxDuration</code> (default ~10s) — partial ingests, and retries re-insert everything. Dashboard counts are inflated; the DB grows without bound.</p></div>
+<div class="card h"><span class="sev H">HIGH</span> <span class="loc">evaluation/scripts/social-scan/browser-agents/*; src/app/api/admin/browser-agents/route.ts:122–176</span>
+<h4>The browser-agent subsystem is dead code with live risks</h4>
+<p>It cannot run — <code>playwright</code>, <code>playwright-extra</code> and <code>otplib</code> are not dependencies anywhere. The admin "trigger scan" button queues PENDING sessions that <em>nothing processes</em> ("Browser scan queued" is a lie), its persistence paths resolve to a nonexistent directory, and its evidence collector saves an empty file. Yet it is wired to collect the <b>owner's personal</b> Discord/Reddit/Twitter/Instagram passwords and TOTP seeds via env/admin UI — Discord self-botting is a permanent-ban offense and a legal exposure. Recommendation: delete the subsystem and the credential collection.</p></div>
+<div class="card h"><span class="sev H">HIGH</span> <span class="loc">orchestrate.ts:31–38; types.ts (both copies)</span>
+<h4>Attribution and drift problems corrupt the signal</h4>
+<p>Ticker attribution is substring-based — <code>YJ</code> (in the live default list) matches arbitrary text, so short tickers accumulate noise mentions. The #1 "top promoter" is literally <code>unknown@Reddit</code> because Serper mentions hardcode author "unknown". And there are <b>three</b> parallel scanner stacks (production lib, evaluation CLI, legacy real-social-scanner) with behaviorally drifted thresholds — the same ticker on the same day gets a different riskLevel depending on which path ran. Note also: <b>social results never feed back into any user-facing risk score</b> — they only annotate admin dashboards and the scheme database.</p></div>
+
+<div class="callout good">
+<h3>The fix (Phase 3): async + budgets + dedup + tiering</h3>
+<p>(1) POST returns 202 and execution moves out of the request handler with incremental writes — kills the #1 instability and the double-spend in one move. (2) Per-ticker streaming/chunking and per-request 10s timeouts. (3) Reddit via OAuth or drop it on serverless. (4) Unique constraint + cross-run seen-URL cache. (5) Serper <code>num:10</code> + merged query + top-20 tickers; Perplexity only for pre-flagged tickers. Estimated cost reduction: 60–80% per scan, with scans that actually complete.</p>
+</div>
+
+<h2>5. Security review</h2>
+<p class="small">Full detail: <code>findings/04-security.md</code>. 65 admin route files audited individually; injection/XSS/secret sweeps across the repo.</p>
+
+<h3>5.1 Critical &amp; high</h3>
+<table>
+<tr><th style="width:70px">Severity</th><th style="width:280px">Finding</th><th>Impact / exploit</th></tr>
+<tr><td><span class="sev C">CRITICAL</span></td><td>Production DB credentials committed (<code>scripts/query-blogs-pg.mjs:6</code>)</td><td>Direct production Postgres access for anyone with repo read access. Rotate today (§2).</td></tr>
+<tr><td><span class="sev H">HIGH</span></td><td>Quota bypass on <code>/api/ai-analyze</code></td><td>Checks quota but never consumes it and is absent from the middleware matcher — FREE users get unlimited full ML analyses; the paid <code>/api/check</code> is trivially sidestepped.</td></tr>
+<tr><td><span class="sev H">HIGH</span></td><td>Apple receipt replay (<code>billing/apple/validate</code>)</td><td>No uniqueness check on <code>original_transaction_id</code>, no stored expiry, no downgrade: one purchased receipt shared = unlimited permanent PAID accounts.</td></tr>
+<tr><td><span class="sev H">HIGH</span></td><td>No rate limit on web login (NextAuth credentials)</td><td>Unthrottled password brute force against any account; mobile login is rate-limited, web is not; no CAPTCHA on this path.</td></tr>
+<tr><td><span class="sev H">HIGH</span></td><td>HTML injection into transactional email (<code>src/lib/email.ts</code>)</td><td>Contact-form name/subject/message interpolated raw into admin notification AND into a confirmation sent to an attacker-chosen address — a phishing primitive from your trusted sender domain.</td></tr>
+<tr><td><span class="sev H">HIGH</span></td><td>Preview-login OWNER backdoor (default password, shared prod DB)</td><td>See §2 E2.</td></tr>
+</table>
+
+<h3>5.2 Medium (summary)</h3>
+<ul>
+<li>No security headers at all — no CSP, X-Frame-Options, HSTS, nosniff, Referrer-Policy (<code>next.config.js</code>); admin/account pages clickjackable.</li>
+<li>Register doesn't lowercase email while login does → MixedCase registrants can never log in; case-variant duplicate accounts.</li>
+<li>CAPTCHA optional on forgot-password (omit the token to skip it) → reset-email bombing.</li>
+<li>Mobile refresh tokens: stateless 7-day JWTs, no rotation/revocation, secret derived as <code>JWT_SECRET + "_REFRESH"</code>, algorithm not pinned.</li>
+<li>Password reset does not invalidate existing sessions; password policy inconsistent (10 vs 8 chars across flows).</li>
+<li>Upload route accepts SVG with client-declared MIME into a public bucket (stored-XSS vector); any admin role incl. VIEWER can upload.</li>
+<li>Admin blog preview renders stored HTML <em>without</em> DOMPurify (the public renderer sanitizes; the admin origin doesn't) — imported HTML files execute in the admin session.</li>
+<li>Credential-encryption key falls back to <code>NEXTAUTH_SECRET</code>; integration secrets are fanned out to GitHub Actions + Vercel preview envs; server-side storage writes use the public anon key (bucket RLS is the only barrier — and CI's <code>x-upsert</code> uploads prove anon <em>writes</em> are currently allowed).</li>
+<li><code>/admin</code> pages are not in the middleware matcher — the entire admin UI shell is client-gated only (data APIs are protected; page shells are not).</li>
+</ul>
+
+<h3>5.3 Verified secure (checked, not vulnerable)</h3>
+<div class="callout good"><p>PayPal webhooks are signature-verified and fail closed; billing and user routes key off the session (no IDOR found); password-reset/verification tokens are 32-byte CSPRNG, single-use, atomically consumed; admin session tokens stored as SHA-256; inbound-email webhook uses timing-safe comparison and fails closed; Turnstile fails closed in production; login callbackUrl sanitized (no open redirect); no SQL injection (parameterized throughout; raw SQL is hardcoded DDL only); no <code>child_process</code>/<code>eval</code>; admin mutations enforce role checks — 65/65 admin route files have auth on state-changing handlers.</p></div>
+
+<h2>6. Architecture &amp; data layer</h2>
+<p class="small">Full detail: <code>findings/05-architecture-data.md</code> (31 findings).</p>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">package.json:8; prisma/ (no migrations dir)</span>
+<h4><code>prisma db push --accept-data-loss</code> in the build path, zero migration history</h4>
+<p>Deploys diff-sync the schema straight into production and silently drop columns/tables on renames; failures are swallowed by <code>|| echo</code>; preview builds can push their schema at the prod DB; there is no rollback or audit trail. Adopt <code>prisma migrate</code> with a discrete <code>migrate deploy</code> release step.</p></div>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">src/lib/admin/scan-data.ts; scan-intelligence routes</span>
+<h4>GitHub-as-database for the admin intelligence surface — unauthenticated, 60 req/hour</h4>
+<p>Every admin intelligence page reads pipeline JSON from the GitHub Contents API with no auth token: the history page alone issues 30 sequential calls; the stock deep-dive downloads up to ~30–40MB serially per request (no <code>maxDuration</code> → 504s); "pagination" re-downloads a 2MB file per page flip and "repairs" truncated JSON with <code>lastIndexOf("},")</code>, silently corrupting records. One admin with two tabs exhausts the hourly budget and all dashboards silently render empty. The fix is already half-built: the pipeline should upsert into the existing Postgres tables and admin routes should read Prisma.</p></div>
+<div class="card"><span class="sev C">CRITICAL</span> <span class="loc">src/app/api/check/route.ts:282–299; src/lib/usage.ts:162–209</span>
+<h4>Quota charged before validation, never refunded, and the reservation races</h4>
+<p>The scan slot is consumed before the request body is even parsed; every later failure (400/503/500) burns the user's quota with no result and no refund. The reserve itself is read-then-write — concurrent requests at the limit slip past it.</p></div>
+<div class="card h"><span class="sev H">HIGH</span> <span class="loc">multiple</span>
+<h4>Serverless anti-patterns and observability gaps</h4>
+<p>Rate limiting fails open to per-instance memory Maps (auth tiers unprotected exactly when the DB hiccups); circuit breakers and caches are per-lambda; a module-level <code>setInterval</code> runs in lambdas; the un-awaited admin alert email races the response and is frequently lost at instance freeze. Sentry is wired but blind — only the global error boundary captures; all ~100 API routes swallow into <code>console.error</code> (443 call sites). <code>/api/check</code> chains ~8 serial stages including two with <em>unbounded</em> timeouts (OpenAI SDK default 600s; SEC fetch none) inside <code>maxDuration=30</code> — one slow call → 504 after quota burned. Nine GitHub workflows exist; <b>none runs tests/types/lint</b> — and the evaluation tree is excluded from tsconfig, so pipeline code importing prod modules is never type-checked.</p></div>
+<div class="card h"><span class="sev H">HIGH</span> <span class="loc">prisma/schema.prisma; src/lib/admin/metrics.ts</span>
+<h4>Data-layer flaws</h4>
+<p><code>ModelMetrics</code> uses read-modify-write counters on the hot path (concurrent scans corrupt the running averages permanently). <code>ApiUsageLog</code> grows forever with no index matching its main queries; <code>RateLimitEntry</code> rows are never deleted. Money is stored as <code>Float</code>; JSON lives in <code>String @db.Text</code>; several "foreign keys" are free-text with no relation (orphans). ~9 redundant indexes duplicate <code>@@unique</code> constraints on the hottest tables while <code>ScanHistory(userId, createdAt)</code> is missing. The backfill route loads the entire ScanHistory table into lambda memory inside a 5s-budget transaction.</p></div>
+<div class="card h"><span class="sev H">HIGH</span> <span class="loc">evaluation/; src/lib/social-scan vs evaluation copies; repo root</span>
+<h4>Duplication and dead weight</h4>
+<p>~70% of <code>evaluation/scripts</code> is superseded variants (8 <code>run-evaluation-*</code> + 3 social-scanner generations + dated shell scripts ≈ 5,300 dead/duplicate lines) feeding a 2,814-line single-file pipeline monolith. <code>platform-patterns.ts</code> is byte-identical in two trees while <code>types.ts</code> drifted behaviorally. The repo root carries a case-collision (<code>plan.md</code> + <code>PLAN.md</code> — breaks macOS/Windows checkouts), an accidental <code>Untitled</code> file, duplicate scripts, a dead embedded subproject (<code>scamdunk-history-db/</code> with a second Prisma schema), and 8.8MB of evaluation data shipped with every deploy. The README documents Stripe; the app uses PayPal.</p></div>
+<p><b>What breaks first at 10× traffic:</b> (1) GitHub 60 req/h — admin dashboards go dark in minutes; (2) Postgres connections (per-request rate-limit writes + interactive transactions + 18-query dashboard bursts); (3) the <code>/api/check</code> 30s budget; (4) seq scans on the unpruned event tables; (5) quota race overage.</p>
+
+<h2>7. Frontend &amp; admin UI</h2>
+<p class="small">Full detail: <code>findings/06-admin-ui.md</code> (36), <code>findings/07-admin-components-editor.md</code> (22), <code>findings/08-public-frontend.md</code> (37).</p>
+
+<h3>7.1 Product-integrity bugs (public)</h3>
+<table>
+<tr><th style="width:70px">Severity</th><th style="width:300px">Finding</th><th>Impact</th></tr>
+<tr><td><span class="sev H">HIGH</span></td><td>Uploaded screenshots silently discarded (<code>ScanInput.tsx:147</code> → <code>HomeContent</code> → API)</td><td>The UI toasts "Screenshots will be analyzed for scam patterns" but images never reach the backend. On a fraud-detection product, telling users evidence was analyzed when it wasn't is the single worst UX finding in this audit.</td></tr>
+<tr><td><span class="sev H">HIGH</span></td><td>Email-verification prompt is dead code (<code>login/page.tsx:53</code>)</td><td>NextAuth v5 returns the error code in <code>result.code</code>, not <code>result.error</code> — unverified users always see "Invalid email or password" and never get the resend option. Signup-funnel leak; one-line fix.</td></tr>
+<tr><td><span class="sev H">HIGH</span></td><td>Sidebar scan history items do nothing when clicked</td><td>Tapping a past scan just closes the panel — no detail route, no callback.</td></tr>
+<tr><td><span class="sev M">MEDIUM</span></td><td>Scan progress is fully simulated (~6.2s of setTimeouts)</td><td>Stamps "SEC and alert databases checked" regardless of outcome; keeps animating behind the error screen on failure.</td></tr>
+<tr><td><span class="sev M">MEDIUM</span></td><td>LimitReached shows PAID users "free checks" copy + a subscribe button for the plan they already pay for</td><td>Duplicate-subscription risk; also illegible in dark mode.</td></tr>
+<tr><td><span class="sev M">MEDIUM</span></td><td>Turnstile widget destroyed/recreated on every keystroke; PayPal button re-fetches config + tears down on every parent re-render</td><td>CAPTCHA churn can drop a completed verification; checkout button can reset mid-flow.</td></tr>
+<tr><td><span class="sev M">MEDIUM</span></td><td>Admin invite auto-login posts an empty email — always fails silently</td><td>Every invited admin lands on a blank login form with no explanation.</td></tr>
+<tr><td><span class="sev M">MEDIUM</span></td><td>SEO: <code>/og-image.png</code> referenced but doesn't exist; SearchAction advertises a search that doesn't exist; ticker validation rejects BRK.B/1INCH; author bylines 404 outside a 2-entry hardcoded map</td><td>Broken share cards, structured-data risk, blocked legitimate scans, crawlable 404s from every article.</td></tr>
+</table>
+
+<h3>7.2 Systemic admin-UI defects</h3>
+<ul>
+<li><b>The shared hook exists but is dead code.</b> <code>useAdminFetch</code> has zero importers; ~21 pages hand-roll the same fetch/loading/error block with three recurring defect classes: <b>no AbortController anywhere</b> (stale responses overwrite newer data on every filterable page — users, support, social-scan, stock-lookup, email-management, api-usage, model-efficacy…), <b>stuck-error pages</b> (market-analysis, risk-alerts, scheme/promoter/stock detail pages never clear <code>error</code> and gate the whole page on it — one transient failure bricks the page until remount), and <b>no 401→login redirect</b> after session expiry.</li>
+<li><b>Silent failures across the news CMS</b> — failed deletes/publish toggles give zero feedback; failed list fetches render as "No posts found".</li>
+<li><b>Destructive actions without confirmation</b> — browser-agents "Clear 30d+", api-usage alert delete, user plan downgrades; plus double-submit bugs (model-efficacy feedback double-clicks skew the accuracy metrics the team uses to tune the model).</li>
+<li><b>TipTap editor</b> (verified against installed v3.20): missing <code>immediatelyRender:false</code> (throws in dev), stale toolbar state (v3 no longer re-renders on transaction), duplicate Link/Underline extensions defeating <code>openOnClick:false</code>, full-document serialization per keystroke, ~700KB mammoth in the page bundle, base64 image paste ballooning post content, and the admin preview rendering imported HTML <em>unsanitized</em> (XSS in the admin origin — the public side sanitizes correctly).</li>
+<li><b>Render-phase state mutation</b> (promoter + data-ingestion pages call <code>.sort()</code> directly on React state), keyless fragments on expandable tables, and an a11y debt across the board (unlabeled inputs, icon-only buttons, color-only risk indicators, hover-only disclosure panels, modals without dialog semantics).</li>
+</ul>
+
+<h2>8. Automated check results</h2>
+<table>
+<tr><th>Check</th><th>Result</th></tr>
+<tr><td><code>npm audit</code></td><td>18 vulnerabilities: <b>1 critical</b> (handlebars — prototype pollution/JS injection; transitive), 9 high (undici ×6 advisories, xmldom ×5, glob), 8 moderate (uuid, ws, brace-expansion…). <code>npm audit fix</code> covers most without breaking changes.</td></tr>
+<tr><td><code>tsc --noEmit</code></td><td><b>10 type errors</b>, all in <code>src/tests/e2e.test.ts</code> (optional vs required behavioral-context fields). The suite passes only because ts-jest is configured leniently; CI would catch this — there is no CI.</td></tr>
+<tr><td><code>jest</code></td><td>58/58 tests pass in 4 suites — but a worker leaks (force-exited; untracked timer), <code>e2e.test.ts</code> is misnamed unit tests over mocks, and <code>rate-limit.test.ts</code> asserts only static config constants. None of the bug classes found in this audit (quota races, route auth, scan-data parsing) is covered.</td></tr>
+<tr><td>Python deps</td><td>Known-vulnerable pins: gunicorn 21.0 (CVE-2024-1135), requests 2.31 (CVE-2024-35195), fastapi 0.109/python-multipart (CVE-2024-24762), tensorflow 2.15 (multiple); yfinance 0.2.30 is ~2.5 years stale and the proximate cause of live 503s.</td></tr>
+<tr><td>Secrets scan</td><td>One live credential committed (§2 E1). <code>.env</code> correctly gitignored otherwise; <code>.env.example</code> files are placeholders.</td></tr>
+</table>
+
+<h2>9. Findings index by area</h2>
+<p class="small">Every finding with file:line evidence, exploit/impact detail, and a concrete fix lives in the appendix files. Counts below; IDs are referenced throughout the roadmap. Some findings are independently confirmed by multiple reviewers (e.g. the blog-preview XSS, the JsonLd escaping gap, the SEC substring check) — they are counted in each area's file but fixed once.</p>
+<table>
+<tr><th>Area</th><th>Appendix</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th><th>Total</th></tr>
+<tr><td>AI scoring engine (TypeScript)</td><td><code>findings/01-ai-scoring-typescript.md</code></td><td>7</td><td>9</td><td>14</td><td>9</td><td>39</td></tr>
+<tr><td>Python AI/ML service</td><td><code>findings/02-python-ai-service.md</code></td><td>6</td><td>9</td><td>13</td><td>7</td><td>35</td></tr>
+<tr><td>Social scanning subsystem</td><td><code>findings/03-social-scan.md</code></td><td>3</td><td>13</td><td>16</td><td>14</td><td>46</td></tr>
+<tr><td>Security</td><td><code>findings/04-security.md</code></td><td>1</td><td>5</td><td>10</td><td>10</td><td>26</td></tr>
+<tr><td>Architecture &amp; data layer</td><td><code>findings/05-architecture-data.md</code></td><td>4</td><td>9</td><td>13</td><td>5</td><td>31</td></tr>
+<tr><td>Admin UI pages</td><td><code>findings/06-admin-ui.md</code></td><td>0</td><td>11</td><td>22</td><td>3</td><td>36</td></tr>
+<tr><td>Editor &amp; shared admin components</td><td><code>findings/07-admin-components-editor.md</code></td><td>0</td><td>5</td><td>11</td><td>6</td><td>22</td></tr>
+<tr><td>Public frontend, auth, SEO</td><td><code>findings/08-public-frontend.md</code></td><td>0</td><td>4</td><td>16</td><td>17</td><td>37</td></tr>
+<tr><td><b>Total</b></td><td></td><td><b>21</b></td><td><b>65</b></td><td><b>115</b></td><td><b>71</b></td><td><b>272</b></td></tr>
+</table>
+
+<h2>10. What is working correctly</h2>
+<p>Credit where due — these were explicitly verified, not assumed:</p>
+<ul>
+<li>PayPal webhook signature verification (fails closed); billing ownership checks via <code>custom_id</code>; no IDOR across user routes.</li>
+<li>Token hygiene: CSPRNG reset/verification tokens, atomic single-use consumption, hashed admin session tokens, expiring invites.</li>
+<li>All 65 admin API route files enforce auth on state-changing handlers; role checks on mutations.</li>
+<li>Turnstile fails closed in production; callbackUrl sanitized; no SQL injection; no <code>eval</code>/<code>child_process</code> in app code.</li>
+<li>Public blog rendering sanitizes with DOMPurify; TipTap v3's link handling blocks <code>javascript:</code> URIs (verified against installed sources).</li>
+<li>The scoring test suite (525 lines) is genuinely useful; the data-ingestion admin page has the most robust fetch handling in the codebase; the public Sidebar demonstrates the correct AbortController pattern the admin pages should adopt.</li>
+<li>Prisma client singleton and scan-status interval cleanup are implemented correctly.</li>
+</ul>
+
+<h2>11. Remediation roadmap (summary)</h2>
+<p>The full dependency-ordered plan with effort estimates and finding-ID traceability is in <code>ROADMAP.md</code>. Shape:</p>
+<table>
+<tr><th>Phase</th><th>Window</th><th>Theme</th><th>Headline items</th></tr>
+<tr><td><b>0 — Emergency</b></td><td>Today (~2h)</td><td>Stop active exposure</td><td>Rotate DB password · delete preview OWNER · cancel Apify · enforce AI_API_SECRET</td></tr>
+<tr><td><b>1 — Stop the bleeding</b></td><td>Week 1</td><td>Billing/auth/deploy safety</td><td>Meter ai-analyze · Apple receipt binding · quota validate-then-reserve+refund · login rate limit + Turnstile · email escaping · security headers · prisma migrate (kill <code>db push --accept-data-loss</code>) · CI workflow · npm/pip audit fixes</td></tr>
+<tr><td><b>2 — Trustworthy scoring</b></td><td>Weeks 2–3</td><td>The "AI not working" fix</td><td>One shared scorer (delete the eval fork) · signal de-dup + recalibration · unknown≠0 + confidence field · SEC layer rebuild · RF feature contract + no in-request retraining · OTC mapping · remove synthetic fundamentals · zod on the backend contract · LLM timeouts/caching · coherence invariants</td></tr>
+<tr><td><b>3 — Social scans</b></td><td>Weeks 3–4</td><td>Stable + 60–80% cheaper</td><td>Async execution + incremental writes · scanner time budgets + per-fetch timeouts · Reddit OAuth · unique-key dedup + seen-URL cache · Serper/Perplexity tiering · word-boundary attribution · delete browser agents · lock storage buckets</td></tr>
+<tr><td><b>4 — Data layer &amp; admin</b></td><td>Weeks 4–5</td><td>Postgres as source of truth</td><td>Pipeline → Postgres, delete GitHub-API data layer · KV rate limiting (fail closed) · <code>withApiHandler</code> + Sentry on all routes · atomic metrics · schema migrations (Decimal/Json/FKs/indexes) · retention cron · upload + token hardening</td></tr>
+<tr><td><b>5 — Frontend &amp; hygiene</b></td><td>Week 6</td><td>UX correctness</td><td>useAdminFetch (abort/401/error-clear) across ~21 pages · sanitize admin preview · TipTap fixes · screenshot feature wired or removed · email-verified login fix · confirmations + disabled states · repo cleanup (case-collision, dead subprojects, 11 dead pipeline variants)</td></tr>
+<tr><td><b>6 — Calibration &amp; quality</b></td><td>Ongoing</td><td>Keep it working</td><td>Recalibrate unified scorer on labeled data · integration tests + strict TS · real ML training data or keep ML off · cost/observability dashboards</td></tr>
+</table>
+
+<h2>12. Methodology &amp; appendices</h2>
+<p>Seven specialized adversarial reviews ran in parallel, each reading its assigned files completely (line-by-line, with cross-file contract verification — e.g. the TS↔Python API contract was checked from both sides; TipTap behaviors were verified against the installed v3.20 sources in <code>node_modules</code>; the RF feature mismatch was reproduced empirically). Their outputs were cross-checked against each other and against automated tooling (<code>npm audit</code>, <code>tsc</code>, <code>jest</code>, dependency review, secret grep, git history analysis). Findings independently confirmed by two or more reviewers are flagged in the appendix files.</p>
+<ul>
+<li><code>audit/2026-06-11/ROADMAP.md</code> — full remediation plan (phases, effort, finding-ID traceability)</li>
+<li><code>audit/2026-06-11/findings/01…08-*.md</code> — every finding with evidence, impact, and concrete fix</li>
+</ul>
+<p class="small">Prior internal audits (<code>SECURITY_SCALABILITY_AUDIT.md</code>, <code>RED-TEAM-AUDIT-REPORT.md</code>) were reviewed for context: several of their critical items have since been fixed (PayPal webhook verification, CAPTCHA fail-closed, admin init/setup auth) and are acknowledged in §10; items still open (in-memory rate limiting, preview-login, refresh-token secrets, Python API hardening) are re-confirmed in this report with current line numbers.</p>
+
+<footer>ScamDunk full-codebase audit · 2026-06-11 · Generated from branch <code>main</code> @ 30976b1 · Deliverables: this report (HTML/PDF), ROADMAP.md, findings appendices.</footer>
+</div></body>
+</html>

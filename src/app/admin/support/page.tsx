@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import StatCard from "@/components/admin/StatCard";
 import DataTable from "@/components/admin/DataTable";
@@ -171,11 +171,37 @@ export default function SupportPage() {
   const [responseText, setResponseText] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
 
-  useEffect(() => {
-    fetchTickets();
-  }, [pagination.page, statusFilter, categoryFilter, priorityFilter]);
+  // Aborts the in-flight ticket-list fetch so a newer request wins the race.
+  const fetchAbortRef = useRef<AbortController | null>(null);
+  const searchMounted = useRef(false);
+  const filtersMounted = useRef(false);
 
   useEffect(() => {
+    fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.page]);
+
+  // When a filter changes, reset to page 1 (so we never land on a now-empty
+  // page) — resetting page triggers the fetch above; if already on page 1,
+  // fetch directly.
+  useEffect(() => {
+    if (!filtersMounted.current) {
+      filtersMounted.current = true;
+      return;
+    }
+    if (pagination.page === 1) {
+      fetchTickets();
+    } else {
+      setPagination((p) => ({ ...p, page: 1 }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, categoryFilter, priorityFilter]);
+
+  useEffect(() => {
+    if (!searchMounted.current) {
+      searchMounted.current = true;
+      return;
+    }
     const timer = setTimeout(() => {
       if (pagination.page === 1) {
         fetchTickets();
@@ -184,10 +210,16 @@ export default function SupportPage() {
       }
     }, 300);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   async function fetchTickets() {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setLoading(true);
+    setError("");
+    setSuccess("");
     try {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
@@ -198,23 +230,38 @@ export default function SupportPage() {
       if (categoryFilter) params.append("category", categoryFilter);
       if (priorityFilter) params.append("priority", priorityFilter);
 
-      const res = await fetch(`/api/admin/support?${params}`);
+      const res = await fetch(`/api/admin/support?${params}`, {
+        signal: controller.signal,
+      });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch tickets");
       const data = await res.json();
+      if (controller.signal.aborted) return;
       setTickets(data.tickets);
       setPagination(data.pagination);
       setStats(data.stats);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed to load tickets");
     } finally {
-      setLoading(false);
+      if (fetchAbortRef.current === controller) setLoading(false);
     }
   }
 
   async function fetchTicketDetails(ticketId: string) {
     setLoadingTicket(true);
+    // Clear any reply draft when switching tickets so a draft meant for one
+    // customer can never carry over and be sent to a different ticket.
+    setResponseText("");
     try {
       const res = await fetch(`/api/admin/support/${ticketId}`);
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch ticket details");
       const data = await res.json();
       setSelectedTicket(data);

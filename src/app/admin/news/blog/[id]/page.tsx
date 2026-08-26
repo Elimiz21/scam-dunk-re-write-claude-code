@@ -17,12 +17,15 @@ import {
   EyeOff,
   PenLine,
 } from "lucide-react";
-import mammoth from "mammoth";
+import DOMPurify from "isomorphic-dompurify";
 import ImageUploadModal from "@/components/admin/editor/ImageUploadModal";
 
 const RichTextEditor = lazy(
   () => import("@/components/admin/editor/RichTextEditor"),
 );
+
+// Cap imported files so a huge paste/upload can't lock up the browser.
+const MAX_IMPORT_BYTES = 5 * 1024 * 1024; // 5MB
 
 interface BlogPost {
   id?: string;
@@ -84,9 +87,13 @@ export default function AdminBlogEditorPage() {
   useEffect(() => {
     fetchTeamMembers();
     if (!isNew) {
+      setLoading(true);
       fetchPost();
     }
-  }, [isNew]);
+    // Key on params.id (not isNew) so back/forward between posts refetches the
+    // correct one instead of showing a stale post.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]);
 
   async function fetchTeamMembers() {
     try {
@@ -131,14 +138,18 @@ export default function AdminBlogEditorPage() {
   }
 
   function handleTitleChange(title: string) {
-    setPost((prev) => ({
-      ...prev,
-      title,
-      slug:
-        isNew || prev.slug === generateSlug(prev.title)
-          ? generateSlug(title)
-          : prev.slug,
-    }));
+    setPost((prev) => {
+      // Never silently rewrite the slug of an already-published post — that
+      // would break its live /news/<slug> URL. Only auto-derive the slug for
+      // new posts or unpublished drafts whose slug still tracks the title.
+      const slugFollowsTitle = prev.slug === generateSlug(prev.title);
+      const canAutoSlug = isNew || (!prev.isPublished && slugFollowsTitle);
+      return {
+        ...prev,
+        title,
+        slug: canAutoSlug ? generateSlug(title) : prev.slug,
+      };
+    });
   }
 
   async function handleFileImport(event: React.ChangeEvent<HTMLInputElement>) {
@@ -175,12 +186,22 @@ export default function AdminBlogEditorPage() {
       return;
     }
 
+    if (file.size > MAX_IMPORT_BYTES) {
+      alert(
+        `File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum import size is ${MAX_IMPORT_BYTES / 1024 / 1024}MB.`,
+      );
+      return;
+    }
+
     setAnalyzing(true);
 
     try {
       let htmlContent = "";
 
       if (isDocxFormat) {
+        // Lazy-load mammoth (~700KB) only when a .docx is actually imported,
+        // keeping it out of the main admin bundle.
+        const mammoth = (await import("mammoth")).default;
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer });
         htmlContent = result.value;
@@ -192,8 +213,11 @@ export default function AdminBlogEditorPage() {
         htmlContent = textToHtml(text);
       }
 
-      setPost((prev) => ({ ...prev, content: htmlContent }));
-      await analyzeContent(htmlContent);
+      // Sanitize imported HTML before it ever enters editor state — untrusted
+      // .html/.docx files can carry scripts or javascript: hrefs.
+      const safeHtml = DOMPurify.sanitize(htmlContent);
+      setPost((prev) => ({ ...prev, content: safeHtml }));
+      await analyzeContent(safeHtml);
     } catch (error) {
       console.error("Failed to read file:", error);
       alert("Failed to read the file. Please try a different format.");
@@ -331,13 +355,16 @@ export default function AdminBlogEditorPage() {
 
     setSaving(true);
     try {
+      const willPublish = publish || post.isPublished;
       const body = {
         ...post,
-        isPublished: publish ? true : post.isPublished,
-        publishedAt:
-          publish && !post.publishedAt
-            ? new Date().toISOString()
-            : post.publishedAt,
+        isPublished: willPublish,
+        // Stamp publishedAt the first time a post becomes published (covers the
+        // sidebar toggle, which only flips isPublished); clear it when the post
+        // is unpublished so a draft never carries a stale publish date.
+        publishedAt: willPublish
+          ? post.publishedAt || new Date().toISOString()
+          : null,
       };
 
       const url = isNew
@@ -630,7 +657,9 @@ export default function AdminBlogEditorPage() {
                       {post.content ? (
                         <div
                           className="tiptap prose prose-sm sm:prose-base max-w-none"
-                          dangerouslySetInnerHTML={{ __html: post.content }}
+                          dangerouslySetInnerHTML={{
+                            __html: DOMPurify.sanitize(post.content),
+                          }}
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
@@ -750,6 +779,11 @@ export default function AdminBlogEditorPage() {
                       className="w-full h-32 object-cover rounded-xl"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                      onLoad={(e) => {
+                        // Reset visibility so a corrected URL re-shows after a
+                        // previous load error hid the element.
+                        (e.target as HTMLImageElement).style.display = "";
                       }}
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">

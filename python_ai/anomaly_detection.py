@@ -30,7 +30,8 @@ class AnomalyResult:
 def detect_zscore_anomalies(
     df: pd.DataFrame,
     z_threshold: float = None,
-    volume_z_threshold: float = None
+    volume_z_threshold: float = None,
+    thresholds: dict = None
 ) -> Dict[str, Union[bool, float, List[str]]]:
     """
     Detect anomalies based on Z-score analysis.
@@ -39,12 +40,14 @@ def detect_zscore_anomalies(
         df: DataFrame with computed Z-scores
         z_threshold: Threshold for price/return Z-scores
         volume_z_threshold: Threshold for volume Z-scores
+        thresholds: Optional threshold dict (defaults to ANOMALY_CONFIG)
 
     Returns:
         Dictionary with Z-score anomaly analysis
     """
-    z_threshold = z_threshold or ANOMALY_CONFIG['z_score_threshold']
-    volume_z_threshold = volume_z_threshold or ANOMALY_CONFIG['volume_z_threshold']
+    _thresholds = thresholds or ANOMALY_CONFIG
+    z_threshold = z_threshold or _thresholds.get('z_score_threshold', 2.5)
+    volume_z_threshold = volume_z_threshold or _thresholds.get('volume_z_threshold', 2.0)
 
     latest = df.iloc[-1]
 
@@ -149,7 +152,8 @@ def detect_volatility_anomalies(
 def detect_surge_anomalies(
     df: pd.DataFrame,
     price_surge_threshold: float = None,
-    volume_surge_threshold: float = None
+    volume_surge_threshold: float = None,
+    thresholds: dict = None
 ) -> Dict[str, Union[bool, float, List[str]]]:
     """
     Detect price and volume surge anomalies.
@@ -158,12 +162,14 @@ def detect_surge_anomalies(
         df: DataFrame with surge metrics
         price_surge_threshold: Threshold for 7-day price surge
         volume_surge_threshold: Threshold for volume surge factor
+        thresholds: Optional threshold dict (defaults to ANOMALY_CONFIG)
 
     Returns:
         Dictionary with surge anomaly analysis
     """
-    price_threshold = price_surge_threshold or ANOMALY_CONFIG['price_surge_7d_threshold']
-    volume_threshold = volume_surge_threshold or ANOMALY_CONFIG['volume_surge_moderate']
+    _thresholds = thresholds or ANOMALY_CONFIG
+    price_threshold = price_surge_threshold or _thresholds.get('price_surge_7d_threshold', 0.25)
+    volume_threshold = volume_surge_threshold or _thresholds.get('volume_surge_moderate', 3.0)
 
     latest = df.iloc[-1]
 
@@ -174,7 +180,7 @@ def detect_surge_anomalies(
     price_change_7d = latest.get('Price_Change_7d', 0)  # Keep direction
     price_change_30d = latest.get('Price_Change_30d', 0)
 
-    if price_change_1d > ANOMALY_CONFIG['price_surge_1d_threshold']:
+    if price_change_1d > _thresholds.get('price_surge_1d_threshold', 0.10):
         anomalies_found.append('daily_price_surge')
 
     if abs(price_change_7d) > price_threshold:
@@ -183,12 +189,12 @@ def detect_surge_anomalies(
         else:
             anomalies_found.append('weekly_price_dump')
 
-    if abs(price_change_7d) > ANOMALY_CONFIG['price_surge_extreme']:
+    if abs(price_change_7d) > _thresholds.get('price_surge_extreme', 0.50):
         anomalies_found.append('extreme_weekly_price_move')
 
     # Volume surges
     volume_surge = latest.get('Volume_Surge_Factor', 1)
-    if volume_surge >= ANOMALY_CONFIG['volume_surge_extreme']:
+    if volume_surge >= _thresholds.get('volume_surge_extreme', 5.0):
         anomalies_found.append('extreme_volume_explosion')
     elif volume_surge >= volume_threshold:
         anomalies_found.append('volume_explosion')
@@ -217,7 +223,8 @@ def detect_surge_anomalies(
 
 def detect_pattern_anomalies(
     df: pd.DataFrame,
-    lookback: int = 14
+    lookback: int = 14,
+    thresholds: dict = None
 ) -> Dict[str, Union[bool, float, List[str]]]:
     """
     Detect suspicious patterns in recent data.
@@ -225,6 +232,7 @@ def detect_pattern_anomalies(
     Args:
         df: DataFrame with price/volume data
         lookback: Number of days to analyze for patterns
+        thresholds: Optional threshold dict (defaults to ANOMALY_CONFIG)
 
     Returns:
         Dictionary with pattern anomaly analysis
@@ -237,6 +245,7 @@ def detect_pattern_anomalies(
             'pattern_info': 'Insufficient data for pattern analysis'
         }
 
+    _thresholds = thresholds or ANOMALY_CONFIG
     recent = df.tail(lookback)
     anomalies_found = []
 
@@ -255,9 +264,8 @@ def detect_pattern_anomalies(
                 pre_peak_return = (pre_peak['Close'].iloc[-1] / pre_peak['Close'].iloc[0]) - 1
                 post_peak_return = (post_peak['Close'].iloc[-1] / post_peak['Close'].iloc[0]) - 1
 
-                # Use thresholds from config (lowered for earlier detection)
-                pump_rise_threshold = ANOMALY_CONFIG.get('pump_dump_rise', 0.20)
-                pump_fall_threshold = ANOMALY_CONFIG.get('pump_dump_fall', -0.15)
+                pump_rise_threshold = _thresholds.get('pump_dump_rise', 0.20)
+                pump_fall_threshold = _thresholds.get('pump_dump_fall', -0.15)
                 if pre_peak_return > pump_rise_threshold and post_peak_return < pump_fall_threshold:
                     anomalies_found.append('pump_and_dump_pattern')
 
@@ -291,7 +299,8 @@ def detect_pattern_anomalies(
 def detect_anomalies(
     df: pd.DataFrame,
     news_flag: bool = False,
-    sensitivity: float = 1.0
+    sensitivity: float = 1.0,
+    thresholds: dict = None
 ) -> AnomalyResult:
     """
     Main anomaly detection function combining all detection methods.
@@ -300,15 +309,16 @@ def detect_anomalies(
         df: DataFrame with all engineered features
         news_flag: Whether significant news exists (reduces false positives)
         sensitivity: Sensitivity multiplier (>1 = more sensitive)
+        thresholds: Optional threshold dict (defaults to ANOMALY_CONFIG)
 
     Returns:
         AnomalyResult with comprehensive anomaly analysis
     """
     # Run all anomaly detectors
-    zscore_result = detect_zscore_anomalies(df)
+    zscore_result = detect_zscore_anomalies(df, thresholds=thresholds)
     volatility_result = detect_volatility_anomalies(df)
-    surge_result = detect_surge_anomalies(df)
-    pattern_result = detect_pattern_anomalies(df)
+    surge_result = detect_surge_anomalies(df, thresholds=thresholds)
+    pattern_result = detect_pattern_anomalies(df, thresholds=thresholds)
 
     # Collect all anomaly types
     all_anomaly_types = (

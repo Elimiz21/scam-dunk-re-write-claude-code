@@ -25,7 +25,7 @@ ScamDunk is a web application that helps retail investors identify potential sca
 - **AI Narratives**: GPT-4 powered explanations of risk signals
 - **User Authentication**: Email/password authentication with NextAuth.js v5
 - **Usage Limits**: FREE plan (5 checks/month) and PAID plan (200 checks/month)
-- **Stripe Integration**: Payment processing for plan upgrades
+- **PayPal Integration**: Subscription processing for plan upgrades
 - **Responsive UI**: Mobile-friendly design with Tailwind CSS
 
 ## Tech Stack
@@ -36,7 +36,7 @@ ScamDunk is a web application that helps retail investors identify potential sca
 - **Database**: PostgreSQL (Supabase)
 - **ORM**: Prisma
 - **Authentication**: NextAuth.js v5 (Auth.js)
-- **Payments**: Stripe
+- **Payments**: PayPal (subscriptions)
 - **AI/LLM**: OpenAI GPT-4o-mini (for narrative generation)
 - **Market Data**: Alpha Vantage API (real-time quotes, company data, price history)
 - **Testing**: Jest
@@ -57,7 +57,7 @@ scamdunk/
 │   │   │   └── check/         # Main stock check page
 │   │   ├── api/
 │   │   │   ├── auth/          # NextAuth routes + register
-│   │   │   ├── billing/       # Stripe checkout/portal/webhook
+│   │   │   ├── billing/       # PayPal config/activate/cancel/subscription
 │   │   │   ├── check/         # Main stock analysis endpoint
 │   │   │   └── user/usage/    # Usage tracking endpoint
 │   │   ├── globals.css        # Global styles + CSS variables
@@ -71,7 +71,7 @@ scamdunk/
 │   ├── lib/
 │   │   ├── auth.config.ts     # Edge-compatible auth config
 │   │   ├── auth.ts            # Full auth config with providers
-│   │   ├── billing.ts         # Stripe integration
+│   │   ├── billing.ts         # PayPal integration
 │   │   ├── config.ts          # App configuration
 │   │   ├── db.ts              # Prisma client singleton
 │   │   ├── marketData.ts      # Alpha Vantage API integration
@@ -153,11 +153,12 @@ OPENAI_API_KEY="sk-..."
 # Alpha Vantage (for real market data)
 ALPHA_VANTAGE_API_KEY="your-key"
 
-# Stripe (for payment processing)
-STRIPE_SECRET_KEY="sk_..."
-STRIPE_PUBLISHABLE_KEY="pk_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
-STRIPE_PRICE_PAID_PLAN_ID="price_..."
+# PayPal (for subscription processing)
+PAYPAL_CLIENT_ID="your-paypal-client-id"
+PAYPAL_CLIENT_SECRET="your-paypal-client-secret"
+PAYPAL_PLAN_ID="P-..."
+PAYPAL_WEBHOOK_ID="your-webhook-id"   # optional, for webhook verification
+PAYPAL_MODE="sandbox"                  # "sandbox" or "live"
 
 # Supabase (optional - for direct access)
 NEXT_PUBLIC_SUPABASE_URL="https://xxx.supabase.co"
@@ -173,7 +174,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJ..."
 - `hashedPassword`: Bcrypt hashed password
 - `name`: Optional display name
 - `plan`: "FREE" or "PAID"
-- `billingCustomerId`: Stripe customer ID
+- `billingCustomerId`: PayPal subscription ID
 
 ### ScanUsage
 
@@ -225,13 +226,17 @@ Main stock analysis endpoint. Requires authentication.
 
 Get current user's usage information.
 
-### `POST /api/billing/checkout`
+### `GET /api/billing/paypal/config`
 
-Create Stripe checkout session for upgrade.
+Return the public PayPal client/plan IDs used to render the subscribe button.
 
-### `POST /api/billing/portal`
+### `POST /api/billing/paypal/activate`
 
-Create Stripe billing portal session.
+Activate a PayPal subscription after the buyer approves it.
+
+### `POST /api/billing/paypal/cancel`
+
+Cancel the current user's active PayPal subscription.
 
 ## Risk Scoring System
 

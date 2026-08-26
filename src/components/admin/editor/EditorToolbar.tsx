@@ -1,6 +1,6 @@
 "use client";
 
-import { Editor } from "@tiptap/react";
+import { Editor, useEditorState } from "@tiptap/react";
 import {
   Bold,
   Italic,
@@ -106,12 +106,29 @@ export default function EditorToolbar({
           .run();
       }
     } else {
-      // Generic embed
+      // Generic embed — only allow validated http(s) URLs and escape them
+      // before interpolating so a crafted value can't break out of the
+      // attribute and inject markup.
+      let safeUrl: string;
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          return;
+        }
+        safeUrl = parsed.href;
+      } catch {
+        return;
+      }
+      const escaped = safeUrl
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
       editor
         .chain()
         .focus()
         .insertContent(
-          `<div data-type="embed" data-src="${url}"><iframe src="${url}" width="640" height="360" frameborder="0" allowfullscreen></iframe></div>`,
+          `<div data-type="embed" data-src="${escaped}"><iframe src="${escaped}" width="640" height="360" frameborder="0" allowfullscreen></iframe></div>`,
         )
         .run();
     }
@@ -125,6 +142,36 @@ export default function EditorToolbar({
       .run();
   };
 
+  // TipTap v3 does not re-render on every transaction, so editor.isActive()/
+  // editor.can() read inline during render go stale (active highlights and
+  // undo/redo disabled states lag a keystroke behind). useEditorState
+  // subscribes the toolbar to exactly the slices it shows.
+  const state = useEditorState({
+    editor,
+    selector: ({ editor: ed }) => ({
+      canUndo: ed.can().undo(),
+      canRedo: ed.can().redo(),
+      isH1: ed.isActive("heading", { level: 1 }),
+      isH2: ed.isActive("heading", { level: 2 }),
+      isH3: ed.isActive("heading", { level: 3 }),
+      isBold: ed.isActive("bold"),
+      isItalic: ed.isActive("italic"),
+      isUnderline: ed.isActive("underline"),
+      isStrike: ed.isActive("strike"),
+      isHighlight: ed.isActive("highlight"),
+      isCode: ed.isActive("code"),
+      isAlignLeft: ed.isActive({ textAlign: "left" }),
+      isAlignCenter: ed.isActive({ textAlign: "center" }),
+      isAlignRight: ed.isActive({ textAlign: "right" }),
+      isAlignJustify: ed.isActive({ textAlign: "justify" }),
+      isBulletList: ed.isActive("bulletList"),
+      isOrderedList: ed.isActive("orderedList"),
+      isBlockquote: ed.isActive("blockquote"),
+      isCodeBlock: ed.isActive("codeBlock"),
+      isLink: ed.isActive("link"),
+    }),
+  });
+
   const iconSize = 16;
 
   return (
@@ -132,14 +179,14 @@ export default function EditorToolbar({
       {/* Undo / Redo */}
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}
-        disabled={!editor.can().undo()}
+        disabled={!state?.canUndo}
         title="Undo (Ctrl+Z)"
       >
         <Undo size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().redo().run()}
-        disabled={!editor.can().redo()}
+        disabled={!state?.canRedo}
         title="Redo (Ctrl+Shift+Z)"
       >
         <Redo size={iconSize} />
@@ -150,21 +197,21 @@ export default function EditorToolbar({
       {/* Headings */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        isActive={editor.isActive("heading", { level: 1 })}
+        isActive={state?.isH1}
         title="Heading 1"
       >
         <Heading1 size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        isActive={editor.isActive("heading", { level: 2 })}
+        isActive={state?.isH2}
         title="Heading 2"
       >
         <Heading2 size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        isActive={editor.isActive("heading", { level: 3 })}
+        isActive={state?.isH3}
         title="Heading 3"
       >
         <Heading3 size={iconSize} />
@@ -175,42 +222,42 @@ export default function EditorToolbar({
       {/* Text Formatting */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
-        isActive={editor.isActive("bold")}
+        isActive={state?.isBold}
         title="Bold (Ctrl+B)"
       >
         <Bold size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        isActive={editor.isActive("italic")}
+        isActive={state?.isItalic}
         title="Italic (Ctrl+I)"
       >
         <Italic size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
-        isActive={editor.isActive("underline")}
+        isActive={state?.isUnderline}
         title="Underline (Ctrl+U)"
       >
         <Underline size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        isActive={editor.isActive("strike")}
+        isActive={state?.isStrike}
         title="Strikethrough"
       >
         <Strikethrough size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHighlight().run()}
-        isActive={editor.isActive("highlight")}
+        isActive={state?.isHighlight}
         title="Highlight"
       >
         <Highlighter size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCode().run()}
-        isActive={editor.isActive("code")}
+        isActive={state?.isCode}
         title="Inline Code"
       >
         <Code size={iconSize} />
@@ -221,28 +268,28 @@ export default function EditorToolbar({
       {/* Alignment */}
       <ToolbarButton
         onClick={() => editor.chain().focus().setTextAlign("left").run()}
-        isActive={editor.isActive({ textAlign: "left" })}
+        isActive={state?.isAlignLeft}
         title="Align Left"
       >
         <AlignLeft size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().setTextAlign("center").run()}
-        isActive={editor.isActive({ textAlign: "center" })}
+        isActive={state?.isAlignCenter}
         title="Align Center"
       >
         <AlignCenter size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().setTextAlign("right").run()}
-        isActive={editor.isActive({ textAlign: "right" })}
+        isActive={state?.isAlignRight}
         title="Align Right"
       >
         <AlignRight size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().setTextAlign("justify").run()}
-        isActive={editor.isActive({ textAlign: "justify" })}
+        isActive={state?.isAlignJustify}
         title="Justify"
       >
         <AlignJustify size={iconSize} />
@@ -253,14 +300,14 @@ export default function EditorToolbar({
       {/* Lists */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        isActive={editor.isActive("bulletList")}
+        isActive={state?.isBulletList}
         title="Bullet List"
       >
         <List size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        isActive={editor.isActive("orderedList")}
+        isActive={state?.isOrderedList}
         title="Numbered List"
       >
         <ListOrdered size={iconSize} />
@@ -271,14 +318,14 @@ export default function EditorToolbar({
       {/* Block elements */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        isActive={editor.isActive("blockquote")}
+        isActive={state?.isBlockquote}
         title="Blockquote"
       >
         <Quote size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        isActive={editor.isActive("codeBlock")}
+        isActive={state?.isCodeBlock}
         title="Code Block"
       >
         <CodeSquare size={iconSize} />
@@ -295,12 +342,12 @@ export default function EditorToolbar({
       {/* Links */}
       <ToolbarButton
         onClick={setLink}
-        isActive={editor.isActive("link")}
+        isActive={state?.isLink}
         title="Add Link (Ctrl+K)"
       >
         <Link size={iconSize} />
       </ToolbarButton>
-      {editor.isActive("link") && (
+      {state?.isLink && (
         <ToolbarButton
           onClick={() => editor.chain().focus().unsetLink().run()}
           title="Remove Link"

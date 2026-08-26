@@ -24,7 +24,12 @@ from pathlib import Path
 
 # Load environment variables from .env file
 def load_env():
-    """Load environment variables from .env file."""
+    """Load environment variables from a local .env file.
+
+    Uses setdefault so real environment variables (set by the platform) are
+    NEVER overridden by stale values in a committed/leftover .env file
+    (PY-M12). The .env file is only a fallback for keys that are not already set.
+    """
     env_path = Path(__file__).parent / '.env'
     if env_path.exists():
         with open(env_path) as f:
@@ -32,7 +37,7 @@ def load_env():
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, value = line.split('=', 1)
-                    os.environ[key.strip()] = value.strip().strip('"\'')
+                    os.environ.setdefault(key.strip(), value.strip().strip('"\''))
 
 load_env()
 
@@ -313,31 +318,20 @@ def check_sec_enforcement(ticker: str) -> Dict:
         'enddt': datetime.now().strftime('%Y-%m-%d'),
     }
 
-    try:
-        # Note: This is a simplified check
-        # Full implementation would parse SEC EDGAR filings
-
-        # For demonstration, check if ticker matches known patterns
-        flagged_patterns = ['SUSP', 'HALT', 'FRAUD', 'SCAM']
-        is_flagged = any(pattern in ticker.upper() for pattern in flagged_patterns)
-
-        return {
-            'ticker': ticker,
-            'is_flagged': is_flagged,
-            'reason': 'Ticker matches flagged pattern' if is_flagged else None,
-            'last_checked': datetime.now().isoformat(),
-            'source': 'SEC EDGAR'
-        }
-
-    except Exception as e:
-        print(f"   Warning: SEC check failed: {e}")
-        return {
-            'ticker': ticker,
-            'is_flagged': False,
-            'reason': None,
-            'last_checked': datetime.now().isoformat(),
-            'source': 'SEC EDGAR (check failed)'
-        }
+    # IMPORTANT: This is NOT an authoritative SEC source. The real SEC flag is
+    # computed upstream (TypeScript layer) from regulatory data and passed into
+    # /analyze via sec_flagged_override. We deliberately DO NOT fabricate a flag
+    # from ticker substring patterns (the old 'SUSP'/'HALT'/'SCAM' heuristic
+    # falsely flagged any ticker containing those letters and missed every real
+    # suspended ticker). Return not-flagged and let the upstream authority decide.
+    return {
+        'ticker': ticker,
+        'is_flagged': False,
+        'reason': None,
+        'authoritative': False,
+        'last_checked': datetime.now().isoformat(),
+        'source': 'local fallback (non-authoritative; real check is upstream)',
+    }
 
 
 # =============================================================================

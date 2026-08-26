@@ -1,6 +1,20 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { marked } from "marked";
 import BlogPostClient from "../post-client";
+
+/**
+ * Stored post content is expected to be HTML (tiptap), but legacy/seeded
+ * posts may be Markdown or plain text. Convert those to HTML server-side so
+ * the article template can style them; the client still sanitizes with
+ * DOMPurify before rendering.
+ */
+function normalizeContent(content: string): string {
+  if (content.trimStart().startsWith("<")) {
+    return content;
+  }
+  return marked.parse(content, { gfm: true, async: false }) as string;
+}
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
 
@@ -172,8 +186,11 @@ export default async function BlogPostPage({ params }: { params: PageParams }) {
     console.error("Failed to fetch related posts:", error);
   }
 
+  const contentHtml = normalizeContent(post.content);
+
   const serializedPost = {
     ...post,
+    content: contentHtml,
     publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
     updatedAt: post.updatedAt.toISOString(),
   };
@@ -183,7 +200,7 @@ export default async function BlogPostPage({ params }: { params: PageParams }) {
     return html.replace(/<[^>]*>/g, "").trim();
   };
 
-  const articleBody = stripHtmlTags(post.content);
+  const articleBody = stripHtmlTags(contentHtml);
 
   // Generate Article schema
   const articleSchema = {

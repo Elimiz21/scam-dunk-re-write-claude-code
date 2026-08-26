@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScamDunk — Your Steps (Do These to Go Live)</title>
+<style>
+  :root{
+    --ink:#1c2230; --muted:#5b6477; --line:#e2e6ed; --bg:#ffffff; --soft:#f6f8fb;
+    --brand:#0b5cab; --branddark:#073f78; --good:#0f766e; --goodbg:#e7f5f2;
+    --stop:#b3001b; --stopbg:#fdecee; --warn:#b45309; --warnbg:#fdf3e6;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--soft);margin:0;line-height:1.6;font-size:16px}
+  .wrap{max-width:820px;margin:0 auto;padding:32px 24px 80px;background:#fff}
+  header{border-bottom:4px solid var(--brand);padding-bottom:18px}
+  h1{font-size:27px;margin:0 0 6px;color:var(--branddark)}
+  .lead{color:var(--muted);font-size:15px}
+  .est{display:inline-block;background:var(--goodbg);color:var(--good);font-weight:700;font-size:13px;padding:3px 12px;border-radius:20px;margin-top:8px}
+  .step{border:1px solid var(--line);border-radius:12px;margin:20px 0;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden}
+  .step.urgent{border:2px solid var(--stop)}
+  .head{display:flex;align-items:flex-start;gap:14px;padding:16px 20px;background:var(--soft);border-bottom:1px solid var(--line)}
+  .num{flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .step.urgent .num{background:var(--stop)}
+  .head h2{margin:0;font-size:19px;color:var(--branddark)}
+  .head .why{font-size:13.5px;color:var(--muted);margin-top:3px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:12px;margin-left:8px;vertical-align:middle}
+  .tag.now{background:var(--stopbg);color:var(--stop)}
+  .tag.min{background:var(--goodbg);color:var(--good)}
+  .body{padding:8px 20px 18px}
+  ol.sub{margin:10px 0;padding-left:22px}
+  ol.sub li{margin:8px 0}
+  .cmd{position:relative;background:#0f1b2d;color:#dbe7f5;border-radius:8px;padding:12px 14px;margin:10px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;white-space:pre-wrap;word-break:break-word}
+  .cmd button{position:absolute;top:8px;right:8px;background:#21507f;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+  .cmd button:hover{background:#2f6aa6}
+  code{background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;color:var(--muted)}
+  .chk input{width:18px;height:18px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th{background:var(--brand);color:#fff;text-align:left;padding:7px 9px}
+  td{border:1px solid var(--line);padding:7px 9px;vertical-align:top}
+  tr:nth-child(even) td{background:var(--soft)}
+  .opt{background:var(--warnbg);border-left:4px solid var(--warn);border-radius:8px;padding:10px 16px;margin:12px 0;font-size:14px}
+  .ask{background:#fff;border:2px dashed var(--brand);border-radius:10px;padding:16px 18px;margin:14px 0}
+  .qbtn{display:block;width:100%;text-align:left;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:11px 14px;margin:8px 0;cursor:pointer;font-size:14px;color:var(--ink)}
+  .qbtn:hover{background:#eef4fb;border-color:var(--brand)}
+  .copied{color:var(--good);font-weight:600;font-size:12.5px;margin-left:8px}
+  a{color:var(--brand)}
+  footer{margin-top:36px;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13px}
+  @media print{body{background:#fff}.wrap{max-width:none;padding:0}.cmd button,.qbtn{display:none}}
+</style>
+</head>
+<body><div class="wrap">
+
+<header>
+  <h1>Your Steps: Make It Live & Finish Up</h1>
+  <div class="lead">Do these in order. Steps 1–5 take about 30 minutes total and only need a web browser (plus one short terminal command in Step 2). Step 6 is optional and lets me finish the database items myself.</div>
+  <div class="est">⏱ Steps 1–5 ≈ 30 minutes</div>
+</header>
+
+<!-- STEP 1 -->
+<div class="step urgent">
+  <div class="head"><div class="num">1</div><div>
+    <h2>Change your database password <span class="tag now">DO TODAY</span></h2>
+    <div class="why">Your old password was visible in the code. Until you change it, anyone who saw the code can open your database.</div>
+  </div></div>
+  <div class="body">
+    <ol class="sub">
+      <li>Open <a href="https://supabase.com/dashboard" target="_blank">supabase.com/dashboard</a> → your project → <b>Settings → Database</b>.</li>
+      <li>Click <b>Reset database password</b>. Copy the new password somewhere safe.</li>
+      <li>Copy the two new connection strings (the <b>pooled</b> one ending in <code>:6543</code>, and the <b>direct</b> one ending in <code>:5432</code>).</li>
+      <li>In <b>Vercel → your project → Settings → Environment Variables</b>, update:
+        <ul>
+          <li><code>DATABASE_URL</code> = the <b>pooled</b> string (add <code>?pgbouncer=true&amp;connection_limit=1</code> at the end if it isn't there).</li>
+          <li><code>DIRECT_URL</code> = the <b>direct</b> string.</li>
+        </ul>
+      </li>
+      <li>In <b>GitHub → repo → Settings → Secrets and variables → Actions</b>, update any database secret used by the automated jobs.</li>
+      <li>(Optional) In Supabase → <b>Logs → Postgres</b>, glance for any connection you don't recognise.</li>
+    </ol>
+    <div class="chk"><input type="checkbox" id="c1"><label for="c1">Done — password changed and updated everywhere</label></div>
+  </div>
+</div>
+
+<!-- STEP 2 -->
+<div class="step">
+  <div class="head"><div class="num">2</div><div>
+    <h2>Apply the database update <span class="tag min">~5 min</span></h2>
+    <div class="why">I prepared the database changes safely (nothing was touched live). You apply them once. They only <b>add</b> things — no data is deleted.</div>
+  </div></div>
+  <div class="body">
+    <p>In a terminal on the project (with <code>DIRECT_URL</code> pointed at your new direct connection), run:</p>
+    <div class="cmd"><button onclick="cp(this)">Copy</button>npx prisma migrate resolve --applied 00000000000000_baseline
+npx prisma migrate deploy
+npx prisma migrate status</button></div>
+    <p>The last command should say <b>"Database schema is up to date."</b> Run it during a quiet period (it briefly builds an index). Not comfortable in a terminal? Use Step 6 and I'll do it for you.</p>
+    <div class="chk"><input type="checkbox" id="c2"><label for="c2">Done — migration applied, status is "up to date"</label></div>
+  </div>
+</div>
+
+<!-- STEP 3 -->
+<div class="step">
+  <div class="head"><div class="num">3</div><div>
+    <h2>Point Vercel at the safe build command <span class="tag min">~2 min</span></h2>
+    <div class="why">The old build command could delete live data on every deploy. The new one can't.</div>
+  </div></div>
+  <div class="body">
+    <ol class="sub">
+      <li><b>Vercel → Settings → General → Build &amp; Development Settings</b>.</li>
+      <li>Set <b>Build Command</b> to:</li>
+    </ol>
+    <div class="cmd"><button onclick="cp(this)">Copy</button>npm run build</div>
+    <p>Do <b>not</b> add the migration command here — you ran it in Step 2 so that preview deployments never touch your live database.</p>
+    <div class="chk"><input type="checkbox" id="c3"><label for="c3">Done — build command set to <code>npm run build</code></label></div>
+  </div>
+</div>
+
+<!-- STEP 4 -->
+<div class="step">
+  <div class="head"><div class="num">4</div><div>
+    <h2>Cancel Apify <span class="tag min">~2 min</span></h2>
+    <div class="why">Your code doesn't use Apify at all. If you're paying for it, it's wasted money.</div>
+  </div></div>
+  <div class="body">
+    <p>Log into your Apify account and cancel the subscription (or confirm you don't have one). Nothing in the app depends on it.</p>
+    <div class="chk"><input type="checkbox" id="c4"><label for="c4">Done — Apify cancelled / confirmed not subscribed</label></div>
+  </div>
+</div>
+
+<!-- STEP 5 -->
+<div class="step">
+  <div class="head"><div class="num">5</div><div>
+    <h2>Set the new environment variables <span class="tag min">~8 min</span></h2>
+    <div class="why">A few security fixes now <b>require</b> their own secret (instead of insecurely reusing another). The app will refuse to run insecurely without them.</div>
+  </div></div>
+  <div class="body">
+    <p>In <b>Vercel → Settings → Environment Variables</b> (and Railway for the Python service), add any that are missing. To generate a strong random value, run <code>openssl rand -hex 32</code> in a terminal.</p>
+    <table>
+      <tr><th>Name</th><th>Where</th><th>Required?</th><th>What it's for</th></tr>
+      <tr><td><code>JWT_REFRESH_SECRET</code></td><td>Vercel</td><td><b>Yes</b></td><td>Mobile login security. <code>openssl rand -hex 32</code></td></tr>
+      <tr><td><code>CREDENTIAL_ENCRYPTION_KEY</code></td><td>Vercel</td><td><b>Yes</b></td><td>Encrypts stored integration keys. <code>openssl rand -hex 32</code></td></tr>
+      <tr><td><code>AI_API_SECRET</code></td><td>Railway + Vercel</td><td><b>Yes</b></td><td>Locks down the Python AI service.</td></tr>
+      <tr><td><code>PREVIEW_ADMIN_PASSWORD</code></td><td>Vercel (preview)</td><td>Optional</td><td>Leave unset to keep the preview-login disabled (recommended).</td></tr>
+      <tr><td><code>UPSTASH_REDIS_REST_URL</code> + <code>_TOKEN</code></td><td>Vercel</td><td>Optional</td><td>Better rate-limiting/caching at scale. Falls back safely if unset. Free at <a href="https://console.upstash.com" target="_blank">upstash.com</a>.</td></tr>
+      <tr><td><code>GITHUB_TOKEN</code></td><td>Vercel</td><td>Optional</td><td>Raises the admin-dashboard data limit. Falls back safely if unset.</td></tr>
+    </table>
+    <p>Also: in Supabase's table editor, <b>delete the row <code>preview@scamdunk.com</code></b> from the <code>AdminUser</code> table if it exists (it was created with the old default password).</p>
+    <div class="chk"><input type="checkbox" id="c5"><label for="c5">Done — required secrets set; preview admin row removed</label></div>
+  </div>
+</div>
+
+<!-- STEP 6 -->
+<div class="step">
+  <div class="head"><div class="num">6</div><div>
+    <h2>Optional: give me database access so I can finish the rest</h2>
+    <div class="why">This is your Question 1. Below is the safe way to do it — and an honest note on what it does and doesn't unblock.</div>
+  </div></div>
+  <div class="body">
+    <p><b>Strong recommendation: do NOT give me your live production database.</b> Instead, give me a throwaway <b>branch database</b> — a real, separate copy I can apply migrations to and test against, with zero risk to your live data.</p>
+    <ol class="sub">
+      <li><b>Create a branch database.</b> In Supabase, use <b>Database Branching</b> (or just spin up a second free Supabase project as a sandbox). This gives you a separate connection string.</li>
+      <li><b>Give the session that connection string.</b> In Claude Code on the web, open your <b>environment settings</b> and add it as a secret/environment variable named <code>DATABASE_URL</code> (and <code>DIRECT_URL</code>). The how-to is here: <a href="https://code.claude.com/docs/en/claude-code-on-the-web" target="_blank">code.claude.com/docs/en/claude-code-on-the-web</a> (see "environments / environment variables").</li>
+      <li><b>Allow the connection.</b> That same settings area controls the <b>network policy</b> — make sure outbound access to your Supabase host is permitted, or the session can't reach it.</li>
+      <li><b>Tell me it's ready.</b> Use the button below; I'll apply the migration, verify it, and start the database-dependent items.</li>
+    </ol>
+    <div class="opt"><b>Honest note on what DB access unblocks:</b> it lets me <b>apply &amp; verify the migration</b> and <b>build/test the admin-dashboard rebuild</b>. It does <b>not</b> finish the two data-dependent items — tuning the score thresholds and re-training the AI — because those need your <i>labelled history</i> (which past stocks were real scams), not just a database connection. If that labelled data lives in your database or files, share where, and I can use it.</div>
+    <div class="ask">
+      <p>Click to copy an instruction, then paste it into Claude Code:</p>
+      <button class="qbtn" onclick="cpt(this,'I have added a Supabase BRANCH (non-production) DATABASE_URL and DIRECT_URL to this environment and allowed the network policy. Please apply the migration, verify the schema, and tell me what you can now finish.')"><b>→ "I've added a safe branch database — go finish the DB items."</b></button>
+      <button class="qbtn" onclick="cpt(this,'I cannot easily create a branch database. Walk me through the absolute safest way to let you apply the migration, and what the risks are.')"><b>→ "I need help setting up safe access."</b></button>
+      <button class="qbtn" onclick="cpt(this,'Open a pull request from claude/compassionate-clarke-s6xqk1 into main with a clear plain-language summary so I can review and merge.')"><b>→ "Just open a pull request so I can review everything."</b></button>
+    </div>
+    <div class="chk"><input type="checkbox" id="c6"><label for="c6">(Optional) Done — access provided / decided to skip</label></div>
+  </div>
+</div>
+
+<footer>
+  When Steps 1–5 are done, deploy the <code>claude/compassionate-clarke-s6xqk1</code> branch to a Vercel <b>preview</b> first, click around, then merge to <code>main</code>. Stuck on anything? Paste your question into Claude Code — everything is saved in GitHub, so it's safe to experiment.
+</footer>
+
+<script>
+function cp(btn){
+  var txt = btn.parentNode.innerText.replace(/^Copy\s*/,'').trim();
+  navigator.clipboard.writeText(txt).then(()=>{var o=btn.textContent;btn.textContent='Copied ✓';setTimeout(()=>btn.textContent=o,1800);})
+  .catch(()=>window.prompt('Copy:',txt));
+}
+function cpt(btn,text){
+  navigator.clipboard.writeText(text).then(()=>{
+    var o=btn.innerHTML;btn.innerHTML=o+' <span class="copied">✓ Copied — paste into Claude Code</span>';
+    setTimeout(()=>btn.innerHTML=o,2600);
+  }).catch(()=>window.prompt('Copy this, then paste into Claude Code:',text));
+}
+</script>
+</div></body>
+</html>

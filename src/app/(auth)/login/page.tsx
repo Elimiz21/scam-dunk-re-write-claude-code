@@ -16,7 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Loader2, Eye } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 function LoginForm() {
   const router = useRouter();
@@ -51,14 +52,18 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        // Check if it's an email verification error
-        // NextAuth v5 returns the error code from CredentialsSignin subclasses
-        if (
-          result.error === "EMAIL_NOT_VERIFIED" ||
-          result.error.includes("EMAIL_NOT_VERIFIED")
-        ) {
+        // Check if it's an email verification error.
+        // NextAuth v5 sets result.error = "CredentialsSignin" for ALL failures
+        // and exposes the CredentialsSignin subclass's `code` in result.code.
+        // So EMAIL_NOT_VERIFIED must be detected via result.code, not
+        // result.error (which would never match) — FE-H2.
+        if (result.code === "EMAIL_NOT_VERIFIED") {
           setShowVerificationPrompt(true);
           setError("Please verify your email before logging in.");
+        } else if (result.code === "TOO_MANY_ATTEMPTS") {
+          setError(
+            "Too many login attempts. Please wait a minute and try again.",
+          );
         } else if (result.error === "CredentialsSignin") {
           setError("Invalid email or password");
         } else if (
@@ -149,11 +154,7 @@ function LoginForm() {
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -176,24 +177,15 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 gradient-mesh">
-      <Card className="w-full max-w-md border-border glass-strong animate-fade-in-scale">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4">
+      <Card className="w-full max-w-md rounded-2xl border-border bg-card shadow-none">
         <CardHeader className="text-center">
-          <Link
-            href="/"
-            className="flex items-center justify-center gap-2 mb-4"
-          >
-            <div className="relative inline-flex items-center justify-center w-10 h-10 gradient-brand rounded-xl shadow-glow-sm">
-              <Shield className="h-5 w-5 text-white" />
-              <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
-                <Eye className="h-2 w-2 text-white" />
-              </div>
-            </div>
-            <span className="text-2xl font-bold font-display italic">
-              ScamDunk
-            </span>
-          </Link>
-          <CardTitle className="font-display italic">Welcome back</CardTitle>
+          <div className="mb-4 flex justify-center">
+            <Logo size={56} href="/" />
+          </div>
+          <CardTitle className="font-editorial text-2xl font-light">
+            Welcome back
+          </CardTitle>
           <CardDescription>
             Log in to check stocks for red flags
           </CardDescription>

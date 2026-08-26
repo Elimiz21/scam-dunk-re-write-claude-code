@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { getSegmentEfficacyMetrics } from "@/lib/admin/metrics";
+import { cached } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const days = parseInt(searchParams.get("days") || "30", 10);
 
-    const metrics = await getSegmentEfficacyMetrics(days);
+    // Unpersonalized aggregate — cache for 60s.
+    const metrics = await cached(`segment-efficacy:${days}`, 60, () =>
+      getSegmentEfficacyMetrics(days),
+    );
 
     return NextResponse.json(metrics);
   } catch (error) {

@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
         email: true,
         name: true,
         plan: true,
+        sessionVersion: true,
       },
     });
 
@@ -65,9 +66,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
 
-    // Generate new tokens
-    const newAccessToken = generateAccessToken(user.id, user.email);
-    const newRefreshToken = generateRefreshToken(user.id, user.email);
+    // Reject refresh tokens minted before the current session generation
+    // (e.g. issued before a password reset). Tokens predating the claim
+    // (sessionVersion === undefined) are also rejected.
+    if (
+      typeof payload.sessionVersion !== "number" ||
+      payload.sessionVersion < user.sessionVersion
+    ) {
+      return NextResponse.json(
+        { error: "Invalid or expired refresh token" },
+        { status: 401 },
+      );
+    }
+
+    // Rotate: mint new tokens carrying the user's current sessionVersion.
+    const newAccessToken = generateAccessToken(
+      user.id,
+      user.email,
+      user.sessionVersion,
+    );
+    const newRefreshToken = generateRefreshToken(
+      user.id,
+      user.email,
+      user.sessionVersion,
+    );
 
     // Return new tokens and current user data
     return NextResponse.json({

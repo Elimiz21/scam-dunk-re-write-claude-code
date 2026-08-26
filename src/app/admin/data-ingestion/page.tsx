@@ -88,6 +88,7 @@ export default function DataIngestionPage() {
   const [dbStatus, setDbStatus] = useState<DbStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [ingesting, setIngesting] = useState<string | null>(null);
+  const [ingestingAll, setIngestingAll] = useState(false);
   const [creatingTables, setCreatingTables] = useState(false);
   const [results, setResults] = useState<IngestionResult[]>([]);
   const [backfillResult, setBackfillResult] = useState<BackfillResult | null>(
@@ -215,10 +216,18 @@ export default function DataIngestionPage() {
   }
 
   async function ingestAll() {
+    if (ingestingAll || ingesting) return;
     if (!status?.pendingDates.length) return;
 
-    for (const date of status.pendingDates.sort()) {
-      await ingestDate(date);
+    setIngestingAll(true);
+    try {
+      // Copy before sorting — sorting state in place mutates React state.
+      const dates = [...status.pendingDates].sort();
+      for (const date of dates) {
+        await ingestDate(date);
+      }
+    } finally {
+      setIngestingAll(false);
     }
   }
 
@@ -550,15 +559,17 @@ export default function DataIngestionPage() {
               </h3>
               <button
                 onClick={ingestAll}
-                disabled={!!ingesting}
+                disabled={!!ingesting || ingestingAll}
                 className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
               >
                 <Upload className="h-4 w-4" />
-                Import All ({status.pendingDates.length})
+                {ingestingAll
+                  ? "Importing..."
+                  : `Import All (${status.pendingDates.length})`}
               </button>
             </div>
             <div className="divide-y divide-border">
-              {status.pendingDates
+              {[...status.pendingDates]
                 .sort()
                 .reverse()
                 .map((date) => {

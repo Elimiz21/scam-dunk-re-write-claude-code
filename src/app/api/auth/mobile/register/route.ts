@@ -13,17 +13,18 @@ import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { createEmailVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { validatePasswordStrength } from "@/lib/config";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(10, "Password must be at least 10 characters")
-    .regex(/[a-z]/, "Password must contain a lowercase letter")
-    .regex(/[A-Z]/, "Password must contain an uppercase letter")
-    .regex(/[0-9]/, "Password must contain a number"),
+  // Single source of truth for the password policy (lib/config) so web/mobile
+  // and the reset flow stay consistent (FE-M8 / SEC-L6).
+  password: z.string().superRefine((pw, ctx) => {
+    const error = validatePasswordStrength(pw);
+    if (error) ctx.addIssue({ code: z.ZodIssueCode.custom, message: error });
+  }),
   name: z.string().optional(),
-  turnstileToken: z.string().optional(),
+  turnstileToken: z.string().min(1, "CAPTCHA verification is required"),
 });
 
 export async function POST(request: NextRequest) {
@@ -47,19 +48,17 @@ export async function POST(request: NextRequest) {
 
     const { email, password, name, turnstileToken } = validation.data;
 
-    // Verify Turnstile CAPTCHA if token provided
-    if (turnstileToken) {
-      const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
-      const isValid = await verifyTurnstileToken(turnstileToken, ip);
-      if (!isValid) {
-        return NextResponse.json(
-          { error: "CAPTCHA verification failed. Please try again." },
-          { status: 400 },
-        );
-      }
+    // Verify Turnstile CAPTCHA for every mobile registration request.
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
+    const isValid = await verifyTurnstileToken(turnstileToken, ip);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: "CAPTCHA verification failed. Please try again." },
+        { status: 400 },
+      );
     }
 
-    const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

@@ -13,8 +13,6 @@ import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 export const dynamic = "force-dynamic";
 
 const PREVIEW_EMAIL = "preview@scamdunk.com";
-const PREVIEW_PASSWORD =
-  process.env.PREVIEW_ADMIN_PASSWORD || "PreviewAdmin2026!";
 const PREVIEW_NAME = "Preview Admin";
 
 function isPreviewEnvironment(): boolean {
@@ -41,13 +39,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SEC-H5: never provision a known-password OWNER. Preview and production
+    // share one database, so a default credential here is a production admin
+    // backdoor. Require a strong, operator-set PREVIEW_ADMIN_PASSWORD; if it
+    // is unset, the endpoint must fail closed rather than mint an OWNER.
+    const previewPassword = process.env.PREVIEW_ADMIN_PASSWORD;
+    if (!previewPassword || previewPassword.length < 12) {
+      console.error(
+        "[PREVIEW-LOGIN] PREVIEW_ADMIN_PASSWORD is unset or too weak; refusing to create a preview OWNER.",
+      );
+      return NextResponse.json(
+        { error: "Preview login is not configured" },
+        { status: 403 },
+      );
+    }
+
     // Create or reset the preview admin account
     let admin = await prisma.adminUser.findUnique({
       where: { email: PREVIEW_EMAIL },
     });
 
     if (!admin) {
-      const hashedPassword = await hashPassword(PREVIEW_PASSWORD);
+      const hashedPassword = await hashPassword(previewPassword);
       admin = await prisma.adminUser.create({
         data: {
           email: PREVIEW_EMAIL,
@@ -68,20 +81,20 @@ export async function POST(request: NextRequest) {
 
     let result = await adminLogin(
       PREVIEW_EMAIL,
-      PREVIEW_PASSWORD,
+      previewPassword,
       ipAddress,
       userAgent,
     );
 
     if (!result.success) {
-      const hashedPassword = await hashPassword(PREVIEW_PASSWORD);
+      const hashedPassword = await hashPassword(previewPassword);
       await prisma.adminUser.update({
         where: { email: PREVIEW_EMAIL },
         data: { hashedPassword, isActive: true },
       });
       result = await adminLogin(
         PREVIEW_EMAIL,
-        PREVIEW_PASSWORD,
+        previewPassword,
         ipAddress,
         userAgent,
       );

@@ -4,68 +4,79 @@
 
 @layer base {
   :root {
-    /* Light Mode — Warm Guardian palette */
-    --background: 40 33% 98%;
-    --foreground: 24 10% 10%;
+    /* Light Mode — Paper & Ink palette (agency design, Aug 2026) */
+    --background: 0 0% 100%;
+    --foreground: 206 13% 7%;
     --card: 0 0% 100%;
-    --card-foreground: 24 10% 10%;
+    --card-foreground: 206 13% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 24 10% 10%;
-    --primary: 12 76% 56%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 40 18% 95%;
-    --secondary-foreground: 24 10% 10%;
-    --muted: 40 12% 93%;
-    --muted-foreground: 24 5% 45%;
-    --accent: 172 50% 38%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 40 12% 89%;
-    --input: 40 12% 89%;
-    --ring: 12 76% 56%;
-    --radius: 0.75rem;
-    /* Brand */
-    --brand-gradient-from: 12 76% 56%;
-    --brand-gradient-to: 172 50% 38%;
-    --brand-mid: 36 90% 52%;
-    --success: 160 84% 39%;
+    --popover-foreground: 206 13% 7%;
+    --primary: 191 46% 24%;
+    --primary-foreground: 48 37% 98%;
+    --secondary: 45 25% 97%;
+    --secondary-foreground: 206 13% 7%;
+    --muted: 45 25% 96%;
+    --muted-foreground: 206 6% 37%;
+    --accent: 45 25% 96%;
+    --accent-foreground: 206 13% 7%;
+    --destructive: 0 68% 48%;
+    --destructive-foreground: 48 37% 98%;
+    --border: 44 14% 83%;
+    --input: 44 14% 83%;
+    --ring: 191 46% 24%;
+    --radius: 0.5rem;
+    /* Brand — ink for emphasis, teal as the single brand hue, blue for
+       highlighted words in editorial headlines */
+    --ink: 206 13% 7%;
+    --paper: 0 0% 100%;
+    --teal: 191 46% 24%;
+    --teal-soft: 189 30% 69%;
+    --brand-blue: 212 100% 48%;
+    --brand-gradient-from: 191 46% 24%;
+    --brand-gradient-to: 191 46% 24%;
+    --brand-mid: 191 46% 24%;
+    --success: 129 64% 38%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --font-sans: "DM Sans";
-    --font-display: "Playfair Display";
+    --font-sans: "Inter";
+    --font-display: "Inter Tight";
   }
 
   .dark {
-    /* Dark Mode — Deep warm tones */
-    --background: 24 12% 7%;
-    --foreground: 40 12% 92%;
-    --card: 24 10% 10%;
-    --card-foreground: 40 12% 92%;
-    --popover: 24 10% 10%;
-    --popover-foreground: 40 12% 92%;
-    --primary: 12 80% 62%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 24 8% 14%;
-    --secondary-foreground: 40 12% 92%;
-    --muted: 24 6% 16%;
-    --muted-foreground: 24 5% 55%;
-    --accent: 172 50% 45%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 24 8% 17%;
-    --input: 24 8% 17%;
-    --ring: 12 80% 62%;
+    /* Dark Mode — Ink & Paper inverted */
+    --background: 205 23% 5%;
+    --foreground: 48 24% 94%;
+    --card: 206 16% 10%;
+    --card-foreground: 48 24% 94%;
+    --popover: 206 16% 10%;
+    --popover-foreground: 48 24% 94%;
+    --primary: 189 30% 69%;
+    --primary-foreground: 205 23% 5%;
+    --secondary: 206 13% 16%;
+    --secondary-foreground: 48 24% 94%;
+    --muted: 206 13% 16%;
+    --muted-foreground: 206 7% 62%;
+    --accent: 206 13% 16%;
+    --accent-foreground: 48 24% 94%;
+    --destructive: 359 99% 69%;
+    --destructive-foreground: 205 23% 5%;
+    --border: 206 11% 16%;
+    --input: 206 11% 18%;
+    --ring: 189 30% 69%;
     /* Brand */
-    --brand-gradient-from: 12 80% 62%;
-    --brand-gradient-to: 172 50% 50%;
-    --brand-mid: 36 90% 58%;
-    --success: 160 84% 45%;
-    --success-foreground: 0 0% 100%;
+    --ink: 48 24% 94%;
+    --paper: 205 23% 5%;
+    --teal: 189 30% 69%;
+    --teal-soft: 191 46% 24%;
+    --brand-blue: 212 100% 62%;
+    --brand-gradient-from: 189 30% 69%;
+    --brand-gradient-to: 189 30% 69%;
+    --brand-mid: 189 30% 69%;
+    --success: 129 55% 45%;
+    --success-foreground: 205 23% 5%;
     --warning: 38 92% 55%;
-    --warning-foreground: 0 0% 100%;
+    --warning-foreground: 205 23% 5%;
   }
 }
 
@@ -96,7 +107,66 @@
 }
 
 /* ============================================
-   BRAND GRADIENTS — Coral → Amber → Teal
+   AGENCY DESIGN LANGUAGE — pills & editorial type
+   ============================================ */
+
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0.9rem 1.6rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition:
+    transform 0.2s,
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+  will-change: transform;
+}
+
+.btn-pill:active {
+  transform: scale(0.98);
+}
+
+.btn-pill-primary {
+  background-color: hsl(var(--ink));
+  color: hsl(var(--paper));
+}
+
+.btn-pill-primary:hover {
+  background-color: hsl(var(--teal));
+  color: hsl(48 37% 98%);
+}
+
+.dark .btn-pill-primary:hover {
+  color: hsl(205 23% 5%);
+}
+
+.btn-pill-ghost {
+  background-color: transparent;
+  color: hsl(var(--ink));
+  border: 1px solid hsl(var(--ink) / 0.18);
+}
+
+.btn-pill-ghost:hover {
+  background-color: hsl(var(--ink) / 0.05);
+}
+
+.font-editorial {
+  font-family: var(--font-display), "Inter Tight", ui-sans-serif, system-ui,
+    sans-serif;
+  font-weight: 300;
+  letter-spacing: -0.035em;
+}
+
+.text-brand-blue {
+  color: hsl(var(--brand-blue));
+}
+
+/* ============================================
+   BRAND GRADIENTS — now flat teal (agency palette)
    ============================================ */
 
 .gradient-brand {
@@ -129,65 +199,11 @@
   background-clip: text;
 }
 
-/* Hero background — warm mesh with subtle dot grid */
+/* Hero background — flat paper (agency design); kept as a hook for pages
+   that still reference it. No mesh, no dot grid. */
 .gradient-mesh {
   position: relative;
-  background:
-    radial-gradient(
-      ellipse at 25% 40%,
-      hsl(var(--brand-gradient-from) / 0.1) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse at 75% 25%,
-      hsl(var(--brand-gradient-to) / 0.07) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 50% 75%,
-      hsl(var(--brand-mid) / 0.06) 0%,
-      transparent 50%
-    );
-}
-
-.gradient-mesh::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(
-    circle,
-    hsl(var(--foreground) / 0.04) 1px,
-    transparent 1px
-  );
-  background-size: 28px 28px;
-  pointer-events: none;
-}
-
-.dark .gradient-mesh {
-  background:
-    radial-gradient(
-      ellipse at 25% 40%,
-      hsl(var(--brand-gradient-from) / 0.06) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse at 75% 25%,
-      hsl(var(--brand-gradient-to) / 0.04) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 50% 75%,
-      hsl(var(--brand-mid) / 0.03) 0%,
-      transparent 50%
-    );
-}
-
-.dark .gradient-mesh::before {
-  background-image: radial-gradient(
-    circle,
-    hsl(var(--foreground) / 0.025) 1px,
-    transparent 1px
-  );
+  background: hsl(var(--background));
 }
 
 /* ============================================
@@ -752,44 +768,70 @@
   height: 0;
 }
 
+/* Article body typography — Paper & Ink editorial (matches the page
+   templates: font-editorial display headings, teal accents, generous
+   reading rhythm). Shared by the public blog pages and the admin editor. */
+
 .tiptap h1 {
-  @apply text-3xl font-bold mb-4 mt-6;
+  font-family:
+    var(--font-display), "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  @apply text-3xl md:text-4xl leading-tight mb-5 mt-10;
 }
 
 .tiptap h2 {
-  @apply text-2xl font-bold mb-3 mt-5;
+  font-family:
+    var(--font-display), "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 350;
+  letter-spacing: -0.025em;
+  @apply text-2xl md:text-[1.75rem] leading-snug mb-4 mt-10;
 }
 
 .tiptap h3 {
-  @apply text-xl font-semibold mb-2 mt-4;
+  @apply text-lg md:text-xl font-semibold leading-snug mb-3 mt-8;
+}
+
+.tiptap h2:first-child,
+.tiptap h3:first-child {
+  @apply mt-0;
 }
 
 .tiptap p {
-  @apply mb-3 leading-relaxed;
+  @apply mb-4 text-[15px] md:text-base leading-[1.75];
 }
 
 .tiptap ul {
-  @apply list-disc pl-6 mb-3;
+  @apply list-disc pl-6 mb-4 space-y-1.5;
 }
 
 .tiptap ol {
-  @apply list-decimal pl-6 mb-3;
+  @apply list-decimal pl-6 mb-4 space-y-1.5;
 }
 
 .tiptap li {
-  @apply mb-1;
+  @apply text-[15px] md:text-base leading-[1.7];
+}
+
+.tiptap li::marker {
+  color: hsl(var(--teal));
 }
 
 .tiptap blockquote {
-  @apply border-l-4 border-primary/30 pl-4 py-1 italic text-muted-foreground my-4;
+  border-left: 2px solid hsl(var(--teal));
+  @apply pl-5 py-1 my-6 text-muted-foreground;
+}
+
+.tiptap blockquote p {
+  @apply text-[15px] md:text-base italic;
 }
 
 .tiptap pre {
-  @apply bg-secondary rounded-xl p-4 my-4 font-mono text-sm overflow-x-auto;
+  @apply bg-secondary rounded-xl p-4 my-5 font-mono text-[13px] leading-snug overflow-x-auto;
 }
 
 .tiptap code {
-  @apply bg-secondary px-1.5 py-0.5 rounded text-sm font-mono;
+  @apply bg-secondary px-1.5 py-0.5 rounded text-[13px] font-mono;
 }
 
 .tiptap pre code {
@@ -797,33 +839,47 @@
 }
 
 .tiptap hr {
-  @apply my-6 border-border;
+  @apply my-10 border-border;
 }
 
 .tiptap a {
-  @apply text-primary underline cursor-pointer hover:text-primary/80;
+  color: hsl(var(--teal));
+  text-decoration-line: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: hsl(var(--teal) / 0.35);
+  @apply cursor-pointer transition-colors;
+}
+
+.tiptap a:hover {
+  text-decoration-color: hsl(var(--teal));
 }
 
 .tiptap img {
-  @apply rounded-xl max-w-full h-auto my-4 mx-auto block;
+  @apply rounded-2xl max-w-full h-auto my-6 mx-auto block;
 }
 
 .tiptap mark {
   @apply bg-yellow-200/60 rounded px-0.5;
 }
 
-/* Table styles */
+.tiptap strong {
+  @apply font-semibold text-foreground;
+}
+
+/* Table styles — match the site's report/data tables: hairline rules,
+   uppercase kicker header, no heavy grid. */
 .tiptap table {
-  @apply border-collapse w-full my-4 rounded-xl overflow-hidden;
+  @apply border-collapse w-full my-6;
 }
 
 .tiptap th {
-  @apply border border-border px-3 py-2 text-sm font-semibold text-left;
-  background: hsl(var(--secondary));
+  border-bottom: 1px solid hsl(var(--border));
+  @apply px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-widest text-muted-foreground;
 }
 
 .tiptap td {
-  @apply border border-border px-3 py-2 text-sm;
+  border-bottom: 1px solid hsl(var(--border) / 0.6);
+  @apply px-3 py-2.5 text-sm align-top;
 }
 
 .tiptap tr:hover td {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AlertBanner from "@/components/admin/AlertBanner";
 import ChartCard from "@/components/admin/ChartCard";
@@ -69,6 +69,24 @@ interface StockData {
   daysTracked: number;
 }
 
+interface StockSignal {
+  code: string;
+  category: string;
+  weight: number;
+}
+
+// Tolerant parse for the signals JSON string — a malformed value must not
+// throw during render and white-screen the whole page.
+function parseSignals(raw: string | null | undefined): StockSignal[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as StockSignal[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 const riskLevelColors: Record<string, string> = {
   LOW: "bg-green-100 text-green-800",
   MEDIUM: "bg-yellow-100 text-yellow-800",
@@ -84,24 +102,51 @@ export default function StockLookupPage() {
   const [error, setError] = useState("");
   const [days, setDays] = useState(90);
 
-  async function handleSearch(searchQuery: string) {
-    if (!searchQuery.trim()) {
+  // Debounce the typeahead query and abort superseded requests so a short
+  // query's results (e.g. "AA") can't land after and overwrite a longer one
+  // ("AAPL").
+  const searchAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
       setSearchResults([]);
       return;
     }
-
-    try {
-      const res = await fetch(
-        `/api/admin/stock-lookup?q=${encodeURIComponent(searchQuery)}`,
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(data.results || []);
+    const timer = setTimeout(async () => {
+      searchAbortRef.current?.abort();
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+      try {
+        const res = await fetch(
+          `/api/admin/stock-lookup?q=${encodeURIComponent(q)}`,
+          { signal: controller.signal },
+        );
+        if (res.status === 401) {
+          window.location.href = "/admin/login";
+          return;
+        }
+        if (res.ok) {
+          const data = await res.json();
+          if (controller.signal.aborted) return;
+          setSearchResults(data.results || []);
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        console.error("Search error:", err);
       }
-    } catch (err) {
-      console.error("Search error:", err);
-    }
-  }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Re-fetch the currently displayed stock when the time window changes so the
+  // charts/history reflect the selected range.
+  useEffect(() => {
+    const symbol = stockData?.stock.symbol;
+    if (!symbol) return;
+    lookupStock(symbol);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days]);
 
   async function lookupStock(symbol: string) {
     setLoading(true);
@@ -113,6 +158,10 @@ export default function StockLookupPage() {
       const res = await fetch(
         `/api/admin/stock-lookup?symbol=${symbol}&days=${days}`,
       );
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) {
         if (res.status === 404) {
           setError(`Stock ${symbol} not found in tracking database`);
@@ -165,10 +214,7 @@ export default function StockLookupPage() {
               <input
                 type="text"
                 value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  handleSearch(e.target.value);
-                }}
+                onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && query.trim()) {
                     lookupStock(query.trim().toUpperCase());
@@ -421,38 +467,32 @@ export default function StockLookupPage() {
             )}
 
             {/* Signals */}
-            {stockData.current && stockData.current.signals !== "[]" && (
-              <div className="bg-card rounded-2xl shadow p-6">
-                <h3 className="text-lg font-medium text-foreground mb-4">
-                  Current Signals
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {JSON.parse(stockData.current.signals).map(
-                    (
-                      signal: {
-                        code: string;
-                        category: string;
-                        weight: number;
-                      },
-                      idx: number,
-                    ) => (
-                      <span
-                        key={idx}
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          signal.weight >= 20
-                            ? "bg-red-100 text-red-800"
-                            : signal.weight >= 10
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-secondary text-foreground"
-                        }`}
-                      >
-                        {signal.code} ({signal.weight})
-                      </span>
-                    ),
-                  )}
+            {stockData.current &&
+              parseSignals(stockData.current.signals).length > 0 && (
+                <div className="bg-card rounded-2xl shadow p-6">
+                  <h3 className="text-lg font-medium text-foreground mb-4">
+                    Current Signals
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {parseSignals(stockData.current.signals).map(
+                      (signal, idx) => (
+                        <span
+                          key={idx}
+                          className={`px-3 py-1 rounded-full text-sm ${
+                            signal.weight >= 20
+                              ? "bg-red-100 text-red-800"
+                              : signal.weight >= 10
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-secondary text-foreground"
+                          }`}
+                        >
+                          {signal.code} ({signal.weight})
+                        </span>
+                      ),
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </>
         )}
 

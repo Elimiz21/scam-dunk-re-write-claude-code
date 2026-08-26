@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AlertBanner from "@/components/admin/AlertBanner";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { StockAILayers } from "@/components/admin/AILayerPanel";
 import SignalGrid from "@/components/admin/SignalGrid";
 import ChartCard from "@/components/admin/ChartCard";
@@ -130,30 +131,17 @@ export default function StockDeepDivePage() {
   const router = useRouter();
   const symbol = (params.symbol as string)?.toUpperCase();
 
-  const [data, setData] = useState<StockData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { data, loading, error, fetchData } = useAdminFetch<StockData>();
 
   useEffect(() => {
     if (!symbol) return;
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/admin/scan-intelligence/stock/${symbol}`);
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "Stock not found");
-        }
-        setData(await res.json());
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load stock");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [symbol]);
+    // The hook clears the error + aborts the previous request at the start of
+    // every call, so changing symbol resets state and never sticks on a stale
+    // "not found".
+    fetchData(`/api/admin/scan-intelligence/stock/${symbol}`);
+  }, [symbol, fetchData]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <AdminLayout>
         <div className="animate-pulse space-y-6">

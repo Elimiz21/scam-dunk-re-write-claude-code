@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AlertBanner from "@/components/admin/AlertBanner";
 import {
@@ -190,6 +190,9 @@ export default function BrowserAgentsPage() {
   const [showConfigModal, setShowConfigModal] = useState<string | null>(null);
   const [triggering, setTriggering] = useState(false);
   const [togglingPlatform, setTogglingPlatform] = useState<string | null>(null);
+  const [clearingSessions, setClearingSessions] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   // Scan modal state
   const [scanTickers, setScanTickers] = useState("");
@@ -201,21 +204,32 @@ export default function BrowserAgentsPage() {
   const [configTargets, setConfigTargets] = useState("");
 
   const fetchData = useCallback(async () => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    setError("");
     try {
       const res = await fetch(
         `/api/admin/browser-agents?page=${pagination.page}&limit=${pagination.limit}`,
+        { signal: controller.signal },
       );
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
+      if (controller.signal.aborted) return;
       setStats(data.stats);
       setSessions(data.sessions);
       setPlatformConfigs(data.platformConfigs);
       setRecentEvidence(data.recentEvidence);
       setPagination(data.pagination);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Error loading data");
     } finally {
-      setLoading(false);
+      if (fetchAbortRef.current === controller) setLoading(false);
     }
   }, [pagination.page, pagination.limit]);
 
@@ -290,25 +304,57 @@ export default function BrowserAgentsPage() {
   }
 
   async function clearOldSessions() {
+    if (clearingSessions) return;
+    if (
+      !confirm(
+        "Delete all browser sessions older than 30 days? This cannot be undone.",
+      )
+    ) {
+      return;
+    }
+    setClearingSessions(true);
+    setError("");
     try {
       const res = await fetch("/api/admin/browser-agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "clear_sessions", olderThanDays: 30 }),
       });
+      if (res.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
       if (!res.ok) throw new Error("Failed to clear");
       const data = await res.json();
       setSuccess(`Cleared ${data.deleted} old sessions`);
       await fetchData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Clear failed");
+    } finally {
+      setClearingSessions(false);
     }
   }
 
   async function saveConfig(platform: string) {
+    if (savingConfig) return;
+
+    // Validate the targets JSON up front so a syntax error surfaces a clear
+    // message instead of a raw SyntaxError after a partial save.
+    let parsedTargets: unknown = null;
+    if (configTargets.trim()) {
+      try {
+        parsedTargets = JSON.parse(configTargets);
+      } catch {
+        setError("Monitor targets must be valid JSON.");
+        return;
+      }
+    }
+
+    setSavingConfig(true);
+    setError("");
     try {
       // Save daily limit and notes
-      await fetch("/api/admin/browser-agents/platforms", {
+      const configRes = await fetch("/api/admin/browser-agents/platforms", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -318,19 +364,24 @@ export default function BrowserAgentsPage() {
           notes: configNotes,
         }),
       });
+      if (configRes.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
+      if (!configRes.ok) throw new Error("Failed to save configuration");
 
       // Save targets if provided
-      if (configTargets.trim()) {
-        const targets = JSON.parse(configTargets);
-        await fetch("/api/admin/browser-agents/platforms", {
+      if (parsedTargets !== null) {
+        const targetsRes = await fetch("/api/admin/browser-agents/platforms", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             platform,
             action: "update_targets",
-            targets,
+            targets: parsedTargets,
           }),
         });
+        if (!targetsRes.ok) throw new Error("Failed to save monitor targets");
       }
 
       setSuccess(`Configuration updated for ${platformDisplayNames[platform]}`);
@@ -338,6 +389,8 @@ export default function BrowserAgentsPage() {
       await fetchData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save config");
+    } finally {
+      setSavingConfig(false);
     }
   }
 
@@ -655,10 +708,15 @@ export default function BrowserAgentsPage() {
             </h2>
             <button
               onClick={clearOldSessions}
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              disabled={clearingSessions}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Trash2 className="h-3 w-3" />
-              Clear 30d+
+              {clearingSessions ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Trash2 className="h-3 w-3" />
+              )}
+              {clearingSessions ? "Clearing..." : "Clear 30d+"}
             </button>
           </div>
 
@@ -1095,9 +1153,11 @@ export default function BrowserAgentsPage() {
                 </button>
                 <button
                   onClick={() => saveConfig(showConfigModal)}
-                  className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90"
+                  disabled={savingConfig}
+                  className="px-4 py-2 gradient-brand text-white rounded-md hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-2"
                 >
-                  Save Changes
+                  {savingConfig && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {savingConfig ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </div>

@@ -4,20 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import {
-  HelpCircle,
-  MessageCircle,
   ChevronDown,
   ChevronUp,
-  Mail,
-  ExternalLink,
   Search,
   Shield,
   TrendingUp,
   CreditCard,
   AlertTriangle,
   ArrowRight,
-  Eye,
 } from "lucide-react";
 
 interface FAQItem {
@@ -164,11 +160,11 @@ export default function HelpContent() {
     : faqs;
 
   const categoryIcons: { [key: string]: React.ReactNode } = {
-    "Getting Started": <Search className="h-4 w-4" />,
-    "Understanding Results": <TrendingUp className="h-4 w-4" />,
-    "Coverage & Limitations": <AlertTriangle className="h-4 w-4" />,
-    "Account & Billing": <CreditCard className="h-4 w-4" />,
-    "Technical Issues": <Shield className="h-4 w-4" />,
+    "Getting Started": <Search className="h-3.5 w-3.5" />,
+    "Understanding Results": <TrendingUp className="h-3.5 w-3.5" />,
+    "Coverage & Limitations": <AlertTriangle className="h-3.5 w-3.5" />,
+    "Account & Billing": <CreditCard className="h-3.5 w-3.5" />,
+    "Technical Issues": <Shield className="h-3.5 w-3.5" />,
   };
 
   return (
@@ -182,34 +178,30 @@ export default function HelpContent() {
       <div className="flex flex-col min-h-screen">
         <Header onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-8">
+        <main className="flex-1">
+          <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
             {/* Hero Section */}
-            <div className="text-center mb-12 gradient-mesh rounded-2xl py-12 px-4 animate-fade-in">
-              <div className="relative inline-flex items-center justify-center w-16 h-16 gradient-brand rounded-2xl mb-6 shadow-glow-sm">
-                <HelpCircle className="h-8 w-8 text-white" />
-                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
-                  <Eye className="h-2.5 w-2.5 text-white" />
-                </div>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 font-display italic">
-                Help & FAQ
+            <div className="mb-12 md:mb-16">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Support
+              </p>
+              <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
+                Help &amp; <span className="text-brand-blue">FAQ</span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Find answers to common questions about using{" "}
-                <span className="font-display italic">ScamDunk</span>.
+              <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+                Find answers to common questions about using ScamDunk.
               </p>
             </div>
 
             {/* Category Filters */}
             <div className="mb-8">
-              <div className="flex flex-wrap gap-2 justify-center">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setActiveCategory(null)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-full text-[13px] font-medium border transition-colors ${
                     activeCategory === null
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border bg-transparent text-muted-foreground hover:border-foreground/40 hover:text-foreground"
                   }`}
                 >
                   All Topics
@@ -218,10 +210,10 @@ export default function HelpContent() {
                   <button
                     key={category}
                     onClick={() => setActiveCategory(category)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ${
+                    className={`px-4 py-2 rounded-full text-[13px] font-medium border transition-colors flex items-center gap-2 ${
                       activeCategory === category
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-transparent text-muted-foreground hover:border-foreground/40 hover:text-foreground"
                     }`}
                   >
                     {categoryIcons[category]}
@@ -232,36 +224,35 @@ export default function HelpContent() {
             </div>
 
             {/* FAQ List */}
-            <div className="space-y-3 mb-12 animate-slide-up">
+            <div className="space-y-3 mb-14">
               {filteredFAQs.map((faq, index) => (
                 <div
                   key={index}
-                  className="rounded-xl card-interactive overflow-hidden"
+                  className="rounded-xl border border-border bg-card overflow-hidden"
                 >
                   <button
                     onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
-                    className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-secondary/50 transition-colors"
+                    className="w-full px-5 py-4 flex items-center justify-between gap-3 text-left transition-colors hover:bg-secondary/60"
                   >
-                    <div className="flex items-start gap-3">
-                      <HelpCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">{faq.question}</span>
-                        {!activeCategory && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({faq.category})
-                          </span>
-                        )}
-                      </div>
+                    <div>
+                      <span className="text-[15px] font-medium text-foreground">
+                        {faq.question}
+                      </span>
+                      {!activeCategory && (
+                        <span className="ml-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {faq.category}
+                        </span>
+                      )}
                     </div>
                     {openFAQ === index ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     )}
                   </button>
                   {openFAQ === index && (
                     <div className="px-5 pb-4 pt-0">
-                      <div className="pl-8 text-sm text-muted-foreground">
+                      <div className="border-t border-border/60 pt-3 text-[13px] leading-relaxed text-muted-foreground">
                         {faq.answer}
                       </div>
                     </div>
@@ -271,90 +262,81 @@ export default function HelpContent() {
             </div>
 
             {/* Still Need Help */}
-            <section className="mb-8 animate-slide-up delay-1">
-              <div className="p-6 rounded-xl card-elevated text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 gradient-brand rounded-2xl mb-4">
-                  <MessageCircle className="h-6 w-6 text-white" />
-                </div>
-                <h2 className="text-xl font-semibold mb-2 font-display italic">
-                  Still Need Help?
-                </h2>
-                <p className="text-muted-foreground mb-4">
-                  Can&apos;t find what you&apos;re looking for? We&apos;re here
-                  to help.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link
-                    href="/contact"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full gradient-brand text-white font-medium hover:opacity-90 transition-smooth shadow-glow-sm"
-                  >
-                    <Mail className="h-4 w-4" />
-                    Contact Us
-                  </Link>
-                  <Link
-                    href="/about"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-smooth"
-                  >
-                    Learn About{" "}
-                    <span className="font-display italic ml-1">ScamDunk</span>
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
-                </div>
+            <section className="mb-14 border-t border-border/70 pt-12 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+                Contact
+              </p>
+              <h2 className="font-editorial mt-3 text-2xl md:text-3xl leading-tight text-foreground">
+                Still need help?
+              </h2>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Can&apos;t find what you&apos;re looking for? We&apos;re here to
+                help.
+              </p>
+              <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/contact" className="btn-pill btn-pill-primary">
+                  Contact Us
+                </Link>
+                <Link href="/about" className="btn-pill btn-pill-ghost">
+                  Learn About ScamDunk
+                </Link>
               </div>
             </section>
 
             {/* Quick Links */}
-            <section className="animate-fade-in delay-2">
-              <h2 className="text-lg font-semibold mb-4 font-display italic">
+            <section className="border-t border-border/70 pt-12 pb-4">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
                 Quick Links
-              </h2>
-              <div className="grid sm:grid-cols-3 gap-3">
+              </p>
+              <div className="mt-5 grid sm:grid-cols-3 gap-3">
                 <Link
                   href="/how-it-works"
-                  className="p-4 rounded-xl card-interactive group flex items-center justify-between"
+                  className="p-4 rounded-xl border border-border bg-card group flex items-center justify-between transition-colors hover:border-foreground/30"
                 >
                   <div>
-                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">
                       How It Works
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       Detailed methodology
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </Link>
                 <Link
                   href="/disclaimer"
-                  className="p-4 rounded-xl card-interactive group flex items-center justify-between"
+                  className="p-4 rounded-xl border border-border bg-card group flex items-center justify-between transition-colors hover:border-foreground/30"
                 >
                   <div>
-                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">
                       Disclaimer
                     </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Limitations & warnings
+                    <p className="text-[13px] text-muted-foreground">
+                      Limitations &amp; warnings
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </Link>
                 <Link
                   href="/account"
-                  className="p-4 rounded-xl card-interactive group flex items-center justify-between"
+                  className="p-4 rounded-xl border border-border bg-card group flex items-center justify-between transition-colors hover:border-foreground/30"
                 >
                   <div>
-                    <h3 className="font-medium mb-1 group-hover:text-primary transition-smooth">
+                    <h3 className="text-[15px] font-semibold text-foreground mb-1">
                       Account Settings
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       Manage your account
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-smooth" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </Link>
               </div>
             </section>
           </div>
         </main>
+
+        <Footer />
       </div>
     </div>
   );

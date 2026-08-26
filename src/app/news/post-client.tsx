@@ -5,10 +5,10 @@ import Link from "next/link";
 import DOMPurify from "isomorphic-dompurify";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { Footer } from "@/components/Footer";
 import { JsonLd } from "@/components/JsonLd";
 import { ArrowLeft, Calendar, User, Tag, Share2, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/utils";
+import { formatDate, slugify } from "@/lib/utils";
 
 interface BlogPost {
   id: string;
@@ -91,58 +91,61 @@ export default function BlogPostClient({
           onShare={handleShare}
           showShare
         />
-        <main className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full">
-          <div className="mb-6">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/news">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to News
-              </Link>
-            </Button>
+        <main className="flex-1 px-4 py-12 md:py-16 max-w-4xl mx-auto w-full">
+          <div className="mb-8">
+            <Link
+              href="/news"
+              className="inline-flex items-center gap-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to News
+            </Link>
           </div>
 
-          <article className="card-elevated rounded-2xl p-6 md:p-10">
-            {post.coverImage && (
-              <div className="mb-6">
-                <img
-                  src={post.coverImage}
-                  alt={post.title}
-                  className="w-full h-auto rounded-xl"
-                />
-              </div>
-            )}
+          <article>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+              {post.category}
+            </p>
 
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">
+            <h1 className="font-editorial mt-4 text-[clamp(2rem,4.5vw,3rem)] leading-[1.12] text-foreground mb-5">
               {post.title}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6">
-              <Link
-                href={`/authors/${post.author.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                <span className="inline-flex items-center gap-1 hover:text-primary cursor-pointer">
-                  <User className="h-4 w-4" />
+            <div className="flex flex-wrap items-center gap-4 text-[13px] text-muted-foreground mb-8 border-b border-border/70 pb-8">
+              <Link href={`/authors/${slugify(post.author)}`}>
+                <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80 transition-colors hover:text-foreground cursor-pointer">
+                  <User className="h-3.5 w-3.5" />
                   {post.author}
                 </span>
               </Link>
               {post.publishedAt && (
-                <span className="inline-flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
+                <span className="inline-flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
                   {formatDate(post.publishedAt)}
                 </span>
               )}
-              <span className="inline-flex items-center gap-1">
-                <Clock className="h-4 w-4" />
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
                 {estimateReadTime(post.content)} min read
               </span>
-              <span className="inline-flex items-center gap-1">
-                <Tag className="h-4 w-4" />
+              <span className="inline-flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5" />
                 {post.category}
               </span>
             </div>
 
+            {post.coverImage && (
+              <div className="mb-8 overflow-hidden rounded-2xl">
+                <img
+                  src={post.coverImage}
+                  alt={post.title}
+                  className="w-full h-auto"
+                />
+              </div>
+            )}
+
             {post.excerpt && (
-              <p className="text-lg text-muted-foreground mb-6">
+              <p className="text-[17px] leading-relaxed text-muted-foreground mb-8">
                 {post.excerpt}
               </p>
             )}
@@ -156,11 +159,11 @@ export default function BlogPostClient({
           </article>
 
           {post.tags && (
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-8 flex flex-wrap gap-2">
               {post.tags.split(",").map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs px-2 py-1 rounded-full bg-secondary"
+                  className="text-xs px-3 py-1 rounded-full border border-border text-muted-foreground"
                 >
                   #{tag.trim()}
                 </span>
@@ -169,25 +172,33 @@ export default function BlogPostClient({
           )}
 
           <div className="mt-8">
-            <Button variant="outline" onClick={handleShare}>
-              <Share2 className="h-4 w-4 mr-2" />
+            <button
+              onClick={handleShare}
+              className="btn-pill btn-pill-ghost gap-2 text-sm"
+            >
+              <Share2 className="h-4 w-4" />
               Share this post
-            </Button>
+            </button>
           </div>
 
           {/* Related Articles Section */}
           {relatedPosts.length > 0 && (
-            <section className="mt-16 pt-12 border-t border-border">
-              <h2 className="text-2xl font-bold mb-8">Related Articles</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <section className="mt-16 pt-12 border-t border-border/70">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+                Keep Reading
+              </p>
+              <h2 className="font-editorial mt-3 mb-8 text-2xl md:text-3xl leading-tight text-foreground">
+                Related articles
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {relatedPosts.map((relatedPost) => (
                   <Link key={relatedPost.id} href={`/news/${relatedPost.slug}`}>
-                    <div className="card-elevated rounded-xl p-5 h-full hover:shadow-lg transition-shadow cursor-pointer">
-                      <h3 className="font-semibold text-lg mb-2 line-clamp-2 hover:text-primary">
+                    <div className="rounded-xl border border-border bg-card p-5 h-full transition-colors hover:border-foreground/30 cursor-pointer">
+                      <h3 className="text-[15px] font-semibold leading-snug text-foreground mb-2 line-clamp-2">
                         {relatedPost.title}
                       </h3>
                       {relatedPost.excerpt && (
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        <p className="text-[13px] leading-relaxed text-muted-foreground mb-3 line-clamp-2">
                           {relatedPost.excerpt}
                         </p>
                       )}
@@ -210,6 +221,8 @@ export default function BlogPostClient({
             </section>
           )}
         </main>
+
+        <Footer />
       </div>
     </div>
   );
