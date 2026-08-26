@@ -107,20 +107,31 @@ export default function TermsContent() {
               <div className="space-y-3">
                 <div className="p-4 rounded-xl border border-border bg-card">
                   <h3 className="text-[15px] font-semibold text-foreground mb-1">
-                    Free Plan
+                    Free plan
                   </h3>
                   <p className="text-[13px] leading-relaxed text-muted-foreground">
-                    5 scans per month, resets on the first of each month. No
-                    credit card required.
+                    5 manual scan credits per month, an unlimited watchlist,
+                    and 1 price monitor. Scheduled checks are not live.
                   </p>
                 </div>
                 <div className="p-4 rounded-xl border border-border bg-card">
                   <h3 className="text-[15px] font-semibold text-foreground mb-1">
-                    Paid Plan
+                    Pro plan
                   </h3>
                   <p className="text-[13px] leading-relaxed text-muted-foreground">
-                    200 scans per month, billed monthly via Stripe. Prices
-                    subject to change with 30 days notice.
+                    50 manual scan credits per month, 2 full monitors, and 5
+                    price monitors, billed monthly. Daily or weekly checks run
+                    after the trading day closes, not live.
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl border border-border bg-card">
+                  <h3 className="text-[15px] font-semibold text-foreground mb-1">
+                    Pro Max plan
+                  </h3>
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
+                    200 manual scan credits per month, 10 full monitors, and
+                    20 price monitors, billed monthly. Prices subject to
+                    change with 30 days notice.
                   </p>
                 </div>
                 <div className="p-4 rounded-xl border border-border bg-card">

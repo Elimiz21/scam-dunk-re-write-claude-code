@@ -32,6 +32,8 @@ interface LandingOptionAProps {
   error?: string;
   headline?: string;
   subheadline?: string;
+  proPrice: string;
+  proMaxPrice: string;
 }
 
 const DEFAULT_SUBHEADLINE =
@@ -57,6 +59,8 @@ export function LandingOptionA({
   error,
   headline,
   subheadline,
+  proPrice,
+  proMaxPrice,
 }: LandingOptionAProps) {
   const [value, setValue] = useState("");
   const [inputError, setInputError] = useState<string | null>(null);
@@ -340,7 +344,7 @@ export function LandingOptionA({
 
       {/* ================= PRICING ================= */}
       <section className="border-t border-border/70 bg-background py-16 md:py-24">
-        <div className="mx-auto max-w-4xl px-4">
+        <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               Pricing
@@ -350,7 +354,7 @@ export function LandingOptionA({
             </h2>
           </div>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
             {/* Free */}
             <div className="flex flex-col rounded-2xl border border-border bg-card p-7">
               <h3 className="text-[15px] font-semibold text-foreground">
@@ -363,9 +367,11 @@ export function LandingOptionA({
                 </span>
               </p>
               <ul className="mt-5 flex-1 space-y-2 text-[14px] text-foreground/90">
-                <li>5 scam checks per month</li>
+                <li>5 manual scan credits per month</li>
+                <li>Unlimited watchlist saves</li>
+                <li>1 price monitor</li>
+                <li>Daily or Weekly scheduled checks</li>
                 <li>Full verdict with the exact signals found</li>
-                <li>Pump-and-dump pattern detection</li>
               </ul>
             </div>
             {/* Pro */}
@@ -375,18 +381,46 @@ export function LandingOptionA({
               </span>
               <h3 className="text-[15px] font-semibold text-foreground">Pro</h3>
               <p className="font-editorial mt-2 text-3xl text-foreground">
-                $4.99
+                {proPrice}
                 <span className="ml-1 text-sm font-normal text-muted-foreground">
                   / month
                 </span>
               </p>
               <ul className="mt-5 flex-1 space-y-2 text-[14px] text-foreground/90">
-                <li>200 scam checks per month</li>
-                <li>Full scan history &amp; re-checks</li>
+                <li>50 manual scan credits per month</li>
+                <li>Unlimited watchlist saves</li>
+                <li>2 full monitors · 5 price monitors</li>
+                <li>Daily or Weekly scheduled checks</li>
                 <li>WhatsApp &amp; Telegram bots (coming soon)</li>
               </ul>
             </div>
+            {/* Pro Max */}
+            <div className="relative flex flex-col rounded-2xl border-2 border-teal/70 bg-card p-7">
+              <span className="absolute -top-3 left-7 rounded-full bg-foreground px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-background">
+                For heavy monitoring
+              </span>
+              <h3 className="text-[15px] font-semibold text-foreground">Pro Max</h3>
+              <p className="font-editorial mt-2 text-3xl text-foreground">
+                {proMaxPrice}
+                <span className="ml-1 text-sm font-normal text-muted-foreground">
+                  / month
+                </span>
+              </p>
+              <ul className="mt-5 flex-1 space-y-2 text-[14px] text-foreground/90">
+                <li>200 manual scan credits per month</li>
+                <li>Unlimited watchlist saves</li>
+                <li>10 full monitors · 20 price monitors</li>
+                <li>Daily or Weekly scheduled checks</li>
+                <li>Everything in Pro</li>
+              </ul>
+            </div>
           </div>
+
+          <p className="mx-auto mt-6 max-w-3xl text-center text-[13px] leading-relaxed text-muted-foreground">
+            Watchlist saves are free and unlimited. Scheduled checks run after
+            the trading day closes, not live; each completed check uses one
+            credit and results appear in-app and by email.
+          </p>
 
           {/* Messenger bots — coming soon */}
           <div className="mt-8 grid gap-6 md:grid-cols-2">

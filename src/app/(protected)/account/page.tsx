@@ -98,10 +98,10 @@ function AccountAlerts() {
         <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
           <Check className="h-4 w-4 text-green-600" />
           <AlertTitle className="text-green-800 dark:text-green-200">
-            Welcome to ScamDunk Pro!
+            Welcome to ScamDunk!
           </AlertTitle>
           <AlertDescription className="text-green-700 dark:text-green-300">
-            Your account has been upgraded. Your Pro credits are now active.
+            Your account has been upgraded. Your new plan credits are now active.
           </AlertDescription>
         </Alert>
       )}
@@ -181,7 +181,9 @@ function AccountContent() {
   const [deleteError, setDeleteError] = useState("");
   const billing = subscriptionInfo?.billing;
   const currentPlan = billing?.plan ?? usage?.plan ?? "FREE";
-  const currentPlanName = billing?.displayName ?? (currentPlan === "PAID" ? "Pro" : "Free");
+  const currentPlanName = billing?.displayName ?? (
+    currentPlan === "PRO_MAX" ? "Pro Max" : currentPlan === "PAID" ? "Pro" : "Free"
+  );
   const monthlyCredits =
     billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 5;
 
@@ -356,7 +358,7 @@ function AccountContent() {
     }
   };
 
-  const handlePayPalSuccess = () => {
+  const handlePayPalSuccess = (plan: "PAID" | "PRO_MAX") => {
     // Refresh usage and subscription data
     fetchUsage();
     fetchSubscriptionInfo();
@@ -364,7 +366,7 @@ function AccountContent() {
     addToast({
       type: "success",
       title: "Subscription activated!",
-      description: "Welcome to ScamDunk Pro. Your new plan is now active.",
+      description: `Welcome to ScamDunk ${plan === "PRO_MAX" ? "Pro Max" : "Pro"}. Your new plan is now active.`,
     });
     // Refresh the page to update UI
     router.refresh();
@@ -1076,7 +1078,7 @@ function AccountContent() {
           </Card>
 
           {/* Upgrade options for Free users */}
-          {currentPlan === "FREE" && (
+          {currentPlan !== "PRO_MAX" && (
             <Card className="border-primary gradient-brand-subtle">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display italic">
@@ -1092,7 +1094,9 @@ function AccountContent() {
                   uses plan slots and scheduled credits.
                 </p>
                 <div className="grid gap-4 md:grid-cols-3">
-                  {subscriptionInfo?.plans?.map((plan) => (
+                  {subscriptionInfo?.plans
+                    ?.filter((plan) => plan.plan !== "FREE" && plan.plan !== currentPlan)
+                    .map((plan) => (
                     <div
                       key={plan.plan}
                       className="rounded-xl border border-border bg-card p-4 space-y-3"
@@ -1109,11 +1113,13 @@ function AccountContent() {
                         <li>{plan.fullMonitorSlots} full-monitor slots</li>
                         <li>{plan.priceMonitorSlots} price-monitor slots</li>
                       </ul>
-                      {plan.plan === "FREE" ? (
-                        <p className="text-sm font-medium">Current plan</p>
+                      {currentPlan === "PAID" && plan.plan === "PRO_MAX" ? (
+                        <p className="text-sm text-muted-foreground">
+                          Contact support to change from Pro to Pro Max.
+                        </p>
                       ) : plan.paypalPlanId ? (
                         <PayPalButton
-                          plan={plan.plan}
+                          plan={plan.plan as "PAID" | "PRO_MAX"}
                           onSuccess={handlePayPalSuccess}
                           onError={handlePayPalError}
                         />
@@ -1127,7 +1133,7 @@ function AccountContent() {
                         </p>
                       )}
                     </div>
-                  ))}
+                    ))}
                 </div>
                 <div className="rounded-lg border border-border bg-background/60 p-4 text-sm text-muted-foreground space-y-1">
                   <p>

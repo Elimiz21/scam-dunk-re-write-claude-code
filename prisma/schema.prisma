@@ -18,7 +18,7 @@ model User {
   name                       String?
   emailVerified              DateTime?
   image                      String?
-  plan                       String    @default("FREE") // FREE or PAID
+  plan                       String    @default("FREE") // FREE, PAID (Pro), or PRO_MAX
   formerPro                  Boolean   @default(false) // true if user ever cancelled a Pro subscription
   billingProvider            String    @default("NONE") // NONE, PAYPAL, STRIPE, APPLE, MANUAL
   billingCustomerId          String?

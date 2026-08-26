@@ -12,7 +12,7 @@ export function Footer() {
               Independent scam &amp; fraud check for self-directed investors.
             </p>
           </div>
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+          <nav className="flex max-w-full flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Link href="/pricing" className="hover:text-foreground">
               Pricing
             </Link>

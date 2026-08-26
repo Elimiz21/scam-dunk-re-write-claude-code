@@ -75,7 +75,7 @@ export const authConfig: NextAuthConfig = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.plan = (token.plan as "FREE" | "PAID") || "FREE";
+        session.user.plan = (token.plan as "FREE" | "PAID" | "PRO_MAX") || "FREE";
       }
       return session;
     },

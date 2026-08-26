@@ -30,6 +30,13 @@ import type {
   ScanSocialDto,
 } from "@/components/dashboard/types";
 
+interface HomeContentProps {
+  billingPrices: {
+    pro: string;
+    proMax: string;
+  };
+}
+
 /** Normalize raw risk score to 0-100 (matches mobile app) */
 function normalizeRiskScore(rawScore: number): number {
   if (rawScore <= 0) return 0;
@@ -38,7 +45,7 @@ function normalizeRiskScore(rawScore: number): number {
   return Math.min(Math.round(60 + ((rawScore - 5) / 15) * 40), 100);
 }
 
-export default function HomeContent() {
+export default function HomeContent({ billingPrices }: HomeContentProps) {
   const { data: session, status } = useSession();
   const { addToast } = useToast();
 
@@ -608,6 +615,8 @@ export default function HomeContent() {
                     error={error}
                     headline={heroContent.headline}
                     subheadline={heroContent.subheadline}
+                    proPrice={billingPrices.pro}
+                    proMaxPrice={billingPrices.proMax}
                   />
                   <section className="bg-background px-4 py-10 sm:px-6 sm:py-14" aria-label="Pump Radar market-wide findings">
                     <div className="mx-auto w-full max-w-[1200px]">

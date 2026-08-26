@@ -1,6 +1,6 @@
 // API Request/Response Types for ScamDunk
 
-export type Plan = "FREE" | "PAID";
+export type Plan = "FREE" | "PAID" | "PRO_MAX";
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT";
 
