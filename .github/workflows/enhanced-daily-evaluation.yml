@@ -206,10 +206,16 @@ jobs:
           AI_API_SECRET: ${{ secrets.AI_API_SECRET }}
           SOCIAL_SCAN_APP_URL: ${{ secrets.SOCIAL_SCAN_APP_URL }}
           SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SCAMDUNK_PRICE_DATASET_BUCKET: ${{ vars.SCAMDUNK_PRICE_DATASET_BUCKET }}
         run: |
           MISSING=""
           if [ -z "$FMP_API_KEY" ]; then MISSING="$MISSING FMP_API_KEY"; fi
           if [ -z "$DATA_REPO_TOKEN" ]; then MISSING="$MISSING DATA_REPO_TOKEN"; fi
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then MISSING="$MISSING NEXT_PUBLIC_SUPABASE_URL"; fi
+          if [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then MISSING="$MISSING NEXT_PUBLIC_SUPABASE_ANON_KEY"; fi
+          if [ -z "$SCAMDUNK_PRICE_DATASET_BUCKET" ]; then MISSING="$MISSING SCAMDUNK_PRICE_DATASET_BUCKET"; fi
           if [ -n "$MISSING" ]; then
             echo "::error::Missing required secrets:$MISSING"
             echo "Please configure these in Settings > Secrets and variables > Actions"
@@ -220,6 +226,7 @@ jobs:
           else
             echo "OPENAI_API_KEY configured for AI-powered analysis"
           fi
+          echo "Canonical daily-price dataset: ${SCAMDUNK_PRICE_DATASET_BUCKET} (reader credentials only)"
           if [ -n "$SOCIAL_SCAN_APP_URL" ] && [ -n "$SOCIAL_SCAN_API_KEY" ]; then
             echo "Social scan: Deployed API configured → results go to Supabase + AI screening"
           else
@@ -251,6 +258,10 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           SOCIAL_SCAN_APP_URL: ${{ secrets.SOCIAL_SCAN_APP_URL }}
           SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SCAMDUNK_PRICE_DATASET_BUCKET: ${{ vars.SCAMDUNK_PRICE_DATASET_BUCKET }}
+          SCAMDUNK_PRICE_DATASET_MAX_AGE_HOURS: ${{ vars.SCAMDUNK_PRICE_DATASET_MAX_AGE_HOURS || '36' }}
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
         run: |

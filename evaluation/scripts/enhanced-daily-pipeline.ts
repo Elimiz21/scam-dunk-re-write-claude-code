@@ -39,6 +39,8 @@ import {
   createNewsAnalysisPlan,
   NewsAnalysisCandidateGroup,
 } from "./news-analysis-plan";
+import { loadDailyPriceDatasetFromSupabase } from "./daily-price-dataset-storage";
+import { marketDataFromDailyPriceDataset } from "./daily-price-scan-source";
 
 // Deployed app URL and API key for triggering the production social scan
 const SOCIAL_SCAN_APP_URL = process.env.SOCIAL_SCAN_APP_URL || "";
@@ -61,6 +63,7 @@ const AI_API_SECRET = process.env.AI_API_SECRET || ""; // Auth key for Python AI
 const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 // Note: Legacy v3 endpoints deprecated Aug 31, 2025 - now using stable API
 const FMP_DELAY_MS = 210;
+let phase3FmpEvidenceCalls = 0;
 
 function positiveIntegerFromEnv(name: string, fallback: number): number {
   const value = Number.parseInt(process.env[name] || "", 10);
@@ -94,6 +97,10 @@ const OPENAI_OUTPUT_COST_PER_MILLION = nonNegativeNumberFromEnv(
   "OPENAI_NEWS_OUTPUT_COST_PER_MILLION",
   0.6,
 );
+const DAILY_PRICE_DATASET_MAX_AGE_HOURS = positiveIntegerFromEnv(
+  "SCAMDUNK_PRICE_DATASET_MAX_AGE_HOURS",
+  36,
+);
 
 // Thresholds for filtering
 const MARKET_CAP_THRESHOLD = 10_000_000_000; // $10B - excludes mega/large cap
@@ -114,6 +121,7 @@ interface EnhancedStockResult {
   lastPrice: number | null;
   avgDailyVolume: number | null;
   avgDollarVolume: number | null;
+  priceDataSource: string;
 
   // Risk scoring
   riskLevel: string;
@@ -667,88 +675,11 @@ async function checkPythonAIHealth(): Promise<boolean> {
   }
 }
 
-// FMP API functions
+// FMP Phase-3 evidence functions. Phase 1 price history is deliberately read
+// only from the validated canonical daily-price dataset below.
 interface ExtendedQuote extends StockQuote {
   sector?: string;
   industry?: string;
-}
-
-function fetchFMPQuote(symbol: string): ExtendedQuote | null {
-  const url = `${FMP_BASE_URL}/profile?symbol=${symbol}&apikey=${FMP_API_KEY}`;
-  const response = curlFetch(url);
-  if (!response) return null;
-
-  try {
-    const raw = JSON.parse(response);
-    if (!raw || raw["Error Message"]) return null;
-    // FMP stable API may return object directly or wrapped in array
-    const profile = Array.isArray(raw) ? raw[0] : raw;
-    if (!profile || !profile.companyName) return null;
-    return {
-      ticker: symbol.toUpperCase(),
-      companyName: profile.companyName || symbol,
-      exchange: profile.exchange || "Unknown",
-      lastPrice: profile.price || 0,
-      marketCap: profile.marketCap || 0,
-      avgVolume30d: profile.averageVolume || profile.volume || 0,
-      avgDollarVolume30d:
-        (profile.averageVolume || profile.volume || 0) * (profile.price || 0),
-      sector: profile.sector || "Unknown",
-      industry: profile.industry || "Unknown",
-    };
-  } catch {
-    return null;
-  }
-}
-
-function fetchFMPHistory(symbol: string): PriceHistory[] {
-  const url = `${FMP_BASE_URL}/historical-price-eod/full?symbol=${symbol}&apikey=${FMP_API_KEY}`;
-  const response = curlFetch(url);
-  if (!response) return [];
-
-  try {
-    const raw = JSON.parse(response);
-    if (!raw || raw["Error Message"]) return [];
-    // FMP stable API wraps history in { historical: [...] }; legacy returns flat array
-    const data = Array.isArray(raw)
-      ? raw
-      : Array.isArray(raw.historical)
-        ? raw.historical
-        : [];
-    if (data.length === 0) return [];
-    return data
-      .slice(0, 100)
-      .reverse()
-      .map((day: any) => ({
-        date: day.date,
-        open: day.open,
-        high: day.high,
-        low: day.low,
-        close: day.close,
-        volume: day.volume,
-      }));
-  } catch {
-    return [];
-  }
-}
-
-async function fetchStockData(symbol: string): Promise<MarketData | null> {
-  const quote = fetchFMPQuote(symbol);
-  if (!quote) return null;
-  await sleep(FMP_DELAY_MS);
-
-  const priceHistory = fetchFMPHistory(symbol);
-  const otcExchanges = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets"];
-  const isOTC = otcExchanges.some((exc) =>
-    quote.exchange.toUpperCase().includes(exc.toUpperCase()),
-  );
-
-  return {
-    quote,
-    priceHistory,
-    isOTC,
-    dataAvailable: priceHistory.length > 0,
-  };
 }
 
 // Fetch stock news
@@ -758,6 +689,7 @@ async function fetchStockNews(symbol: string): Promise<any[]> {
   try {
     // Using stable API (v3 deprecated Aug 31, 2025)
     const url = `${FMP_BASE_URL}/news/stock?symbols=${symbol}&limit=15&apikey=${FMP_API_KEY}`;
+    phase3FmpEvidenceCalls++;
     const response = curlFetch(url);
     if (!response) return [];
     const news = JSON.parse(response);
@@ -780,6 +712,7 @@ async function fetchSECFilings(symbol: string): Promise<any[]> {
       .toISOString()
       .split("T")[0];
     const url = `${FMP_BASE_URL}/sec-filings-search/symbol?symbol=${symbol}&from=${fromDate}&to=${toDate}&limit=10&apikey=${FMP_API_KEY}`;
+    phase3FmpEvidenceCalls++;
     const response = curlFetch(url);
     if (!response) return [];
     const filings = JSON.parse(response);
@@ -801,7 +734,7 @@ function computePrePumpBasePrice(
 ): number | null {
   if (!priceHistory || priceHistory.length < 10) return null;
 
-  // priceHistory is ordered oldest-to-newest (reversed in fetchFMPHistory)
+  // The validated canonical scan window is ordered oldest-to-newest.
   const len = priceHistory.length;
   const endIdx = Math.max(0, len - 5); // exclude last 5 days (spike window)
   const startIdx = Math.max(0, endIdx - 30); // look back 30 days from there
@@ -836,6 +769,7 @@ async function fetchPressReleases(symbol: string): Promise<any[]> {
   try {
     // Using stable API (v3 deprecated Aug 31, 2025)
     const url = `${FMP_BASE_URL}/news/press-releases?symbols=${symbol}&limit=10&apikey=${FMP_API_KEY}`;
+    phase3FmpEvidenceCalls++;
     const response = curlFetch(url);
     if (!response) return [];
     const releases = JSON.parse(response);
@@ -1247,6 +1181,7 @@ function sendCrashNotification(scanStatus: ScanStatus): void {
 // Main pipeline execution
 async function runEnhancedPipeline(): Promise<void> {
   const startTime = Date.now();
+  phase3FmpEvidenceCalls = 0;
   const evaluationDate = getEvaluationDate();
   const scanStatus = createInitialScanStatus(evaluationDate);
 
@@ -1269,6 +1204,19 @@ async function runEnhancedPipeline(): Promise<void> {
   const stocks = loadStockList();
   console.log(`\nLoaded ${stocks.length} US stocks for scanning\n`);
   scanStatus.summary.totalStocks = stocks.length;
+
+  // This is deliberately before any Phase-1 scoring. A missing, stale,
+  // partial, or corrupt dataset aborts the scan; routine execution must never
+  // fall back to FMP's unbounded historical-price endpoint.
+  const priceDataset = await loadDailyPriceDatasetFromSupabase({
+    expectedSymbols: stocks.map((stock) => stock.symbol),
+    maxAgeHours: DAILY_PRICE_DATASET_MAX_AGE_HOURS,
+  });
+  console.log(
+    `Loaded canonical daily-price run ${priceDataset.runId} ` +
+      `(${priceDataset.callBudget.storageObjectsRead} storage objects, ` +
+      `${priceDataset.callBudget.fmpHistoryCalls} FMP history calls)`,
+  );
 
   // Load existing scheme database
   const schemeDB = loadSchemeDatabase();
@@ -1431,6 +1379,14 @@ async function runEnhancedPipeline(): Promise<void> {
   console.log("-".repeat(50));
   scanStatus.phases.phase1_riskScoring.status = "running";
   scanStatus.phases.phase1_riskScoring.startedAt = new Date().toISOString();
+  scanStatus.phases.phase1_riskScoring.details.priceDataset = {
+    runId: priceDataset.runId,
+    vendor: priceDataset.manifest.source.vendor,
+    vendorAsOf: priceDataset.manifest.freshness.vendorAsOf,
+    latestTradingDate: priceDataset.manifest.freshness.latestTradingDate,
+    storageObjectsRead: priceDataset.callBudget.storageObjectsRead,
+    fmpHistoryCalls: priceDataset.callBudget.fmpHistoryCalls,
+  };
 
   // Check Python AI Backend availability for full 4-layer analysis
   const pythonAIAvailable = await checkPythonAIHealth();
@@ -1478,12 +1434,7 @@ async function runEnhancedPipeline(): Promise<void> {
     );
 
     try {
-      const marketData = await fetchStockData(stock.symbol);
-
-      if (!marketData || !marketData.dataAvailable) {
-        skippedNoData++;
-        continue;
-      }
+      const marketData = marketDataFromDailyPriceDataset(stock, priceDataset);
 
       const extendedQuote = marketData.quote as ExtendedQuote;
 
@@ -1581,6 +1532,7 @@ async function runEnhancedPipeline(): Promise<void> {
         lastPrice: extendedQuote?.lastPrice || null,
         avgDailyVolume: extendedQuote?.avgVolume30d || null,
         avgDollarVolume: extendedQuote?.avgDollarVolume30d || null,
+        priceDataSource: "canonical-daily-price-dataset/v1",
         riskLevel: scoringResult.riskLevel,
         totalScore: scoringResult.totalScore,
         signals: scoringResult.signals,
@@ -1609,7 +1561,6 @@ async function runEnhancedPipeline(): Promise<void> {
         highRiskBeforeFilter.push(result);
       }
 
-      await sleep(FMP_DELAY_MS);
     } catch (error: any) {
       console.error(
         `\nError processing ${stock.symbol}:`,
@@ -2710,7 +2661,15 @@ async function runEnhancedPipeline(): Promise<void> {
     startTime: new Date(startTime).toISOString(),
     endTime: new Date(endTime).toISOString(),
     durationMinutes,
-    apiCallsMade: processedCount * 2, // estimate: 1 profile + 1 history per stock
+    apiCallsMade: phase3FmpEvidenceCalls,
+    priceDataset: {
+      runId: priceDataset.runId,
+      sourceVendor: priceDataset.manifest.source.vendor,
+      vendorAsOf: priceDataset.manifest.freshness.vendorAsOf,
+      storageObjectsRead: priceDataset.callBudget.storageObjectsRead,
+      fmpFullHistoryCalls: priceDataset.callBudget.fmpHistoryCalls,
+      phase3FmpEvidenceCalls,
+    },
   };
 
   const summaryPath = path.join(
