@@ -28,6 +28,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { UsageInfo } from "@/lib/types";
+import { usagePercent } from "@/lib/account-usage";
 import { useToast } from "@/components/ui/toast";
 import { PayPalButton } from "@/components/PayPalButton";
 
@@ -870,16 +871,7 @@ function AccountContent() {
                     <div
                       className="h-full bg-primary rounded-full transition-all"
                       style={{
-                        width: `${
-                          monthlyCredits
-                            ? Math.min(
-                                ((usage.scansUsedThisMonth ?? 0) /
-                                  monthlyCredits) *
-                                  100,
-                                100,
-                              )
-                            : 0
-                        }%`,
+                        width: `${usagePercent(usage, monthlyCredits)}%`,
                       }}
                     />
                   </div>
