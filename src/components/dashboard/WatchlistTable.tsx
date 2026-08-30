@@ -1,4 +1,5 @@
-import { CalendarClock, Radio, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { CalendarClock, Radio, ScanLine, Trash2 } from "lucide-react";
 
 import type {
   ApiErrorShape,
@@ -28,13 +29,43 @@ function formatDate(value: string | null): string {
       }).format(date);
 }
 
+function hasActiveMonitoring(entry: WatchlistEntryDto): boolean {
+  return entry.monitors.some((monitor) => monitor.status === "ACTIVE");
+}
+
+function needsManualRescan(lastScanAt: string | null): boolean {
+  if (!lastScanAt) return true;
+  const scanTime = new Date(lastScanAt).getTime();
+  if (Number.isNaN(scanTime)) return true;
+  return Date.now() - scanTime >= 7 * 24 * 60 * 60 * 1000;
+}
+
+function ScanStatus({ entry }: { entry: WatchlistEntryDto }) {
+  const manualOnly = !hasActiveMonitoring(entry);
+  return (
+    <div className="space-y-1">
+      <p className="text-xs text-muted-foreground">
+        Last scan: {entry.lastScanAt ? formatDate(entry.lastScanAt) : "No scan yet"}
+      </p>
+      {manualOnly && needsManualRescan(entry.lastScanAt) && (
+        <p className="text-xs font-semibold text-primary" role="status">
+          Scan again recommended
+        </p>
+      )}
+    </div>
+  );
+}
+
 function MonitorBadges({ entry }: { entry: WatchlistEntryDto }) {
-  if (entry.monitors.length === 0) {
+  const activeMonitors = entry.monitors.filter(
+    (monitor) => monitor.status === "ACTIVE" || monitor.status === "PAUSED",
+  );
+  if (activeMonitors.length === 0) {
     return <span className="text-xs text-muted-foreground">No active monitoring</span>;
   }
   return (
     <div className="flex flex-wrap gap-1.5">
-      {entry.monitors.map((monitor) => (
+      {activeMonitors.map((monitor) => (
         <div key={monitor.id} className="rounded-lg border border-border/70 px-2.5 py-1.5">
           <Badge variant={monitor.status === "ACTIVE" ? "secondary" : "outline"} className="normal-case tracking-normal">
             {monitor.kind === "FULL" ? "Full" : "Price"} · {monitor.frequency === "DAILY" ? "Daily" : "Weekly"} · {monitor.status.toLowerCase()}
@@ -88,7 +119,7 @@ export function WatchlistTable({
                 <thead className="bg-secondary/50 text-xs text-muted-foreground">
                   <tr>
                     <th className="w-[18%] px-5 py-3 font-semibold">Stock</th>
-                    <th className="w-[24%] px-5 py-3 font-semibold">Last published data</th>
+                    <th className="w-[24%] px-5 py-3 font-semibold">Last scan / market data</th>
                     <th className="w-[34%] px-5 py-3 font-semibold">Active monitoring</th>
                     <th className="w-[24%] px-5 py-3 text-right font-semibold">Actions</th>
                   </tr>
@@ -97,7 +128,10 @@ export function WatchlistTable({
                   {entries.map((entry) => (
                     <tr key={entry.id} className="border-t border-border/60">
                       <td className="px-5 py-4 font-semibold">{entry.ticker}</td>
-                      <td className="px-5 py-4 text-muted-foreground">{formatDate(entry.lastDataAt)}</td>
+                      <td className="px-5 py-4 text-muted-foreground">
+                        <p>{formatDate(entry.lastDataAt)}</p>
+                        <ScanStatus entry={entry} />
+                      </td>
                       <td className="px-5 py-4"><MonitorBadges entry={entry} /></td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
@@ -105,6 +139,14 @@ export function WatchlistTable({
                             <CalendarClock className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                             Monitor
                           </Button>
+                          {!hasActiveMonitoring(entry) && (
+                            <Button asChild variant="brand" size="sm" className="min-h-10">
+                              <Link href={`/?ticker=${encodeURIComponent(entry.ticker)}`}>
+                                <ScanLine className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                                Scan now
+                              </Link>
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -129,6 +171,7 @@ export function WatchlistTable({
                     <div>
                       <h3 className="font-semibold">{entry.ticker}</h3>
                       <p className="mt-1 text-xs text-muted-foreground">Last data: {formatDate(entry.lastDataAt)}</p>
+                      <ScanStatus entry={entry} />
                     </div>
                     <Button
                       variant="ghost"
@@ -145,6 +188,14 @@ export function WatchlistTable({
                   <Button variant="outline" className="min-h-11 w-full" onClick={() => onEditMonitor(entry)}>
                     Manage monitoring
                   </Button>
+                  {!hasActiveMonitoring(entry) && (
+                    <Button asChild variant="brand" className="min-h-11 w-full">
+                      <Link href={`/?ticker=${encodeURIComponent(entry.ticker)}`}>
+                        <ScanLine className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                        Scan now
+                      </Link>
+                    </Button>
+                  )}
                 </article>
               ))}
             </div>

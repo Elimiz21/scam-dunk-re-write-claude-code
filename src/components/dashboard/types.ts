@@ -71,6 +71,7 @@ export interface WatchlistEntryDto {
   ticker: string;
   addedAt: string;
   lastDataAt: string | null;
+  lastScanAt: string | null;
   monitors: MonitorDto[];
 }
 

@@ -25,7 +25,7 @@ export function UsageSummary({
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-widest text-primary">{plan.displayName} plan</p>
-          <h2 id="usage-summary-title" className="mt-1 font-display text-xl italic">Usage this month</h2>
+          <h2 id="usage-summary-title" className="mt-1 font-editorial text-xl">Usage this month</h2>
         </div>
         {noCredits && <span className="text-xs font-semibold text-destructive">{view.quotaLabel}</span>}
       </div>

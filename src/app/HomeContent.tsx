@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
@@ -12,7 +13,7 @@ import {
   ScanResultsLayout,
   LearnMoreCompact,
 } from "@/components/ScanResultsLayout";
-import { Shield, AlertTriangle, Eye } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import {
   RiskResponse,
   LimitReachedResponse,
@@ -24,6 +25,7 @@ import { LandingOptionA } from "@/components/landing/LandingOptionA";
 import { useToast } from "@/components/ui/toast";
 import { Step } from "@/components/LoadingStepper";
 import { PublicPumpRadar } from "@/components/dashboard/PumpRadar";
+import { ActivityTicker } from "@/components/ActivityTicker";
 import type {
   HistoryPayload,
   ScanDetailDto,
@@ -74,6 +76,12 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
   const [scanRefreshKey, setScanRefreshKey] = useState(0);
   const [scanSocial, setScanSocial] = useState<ScanSocialDto | null>(null);
   const [scanSocialLoading, setScanSocialLoading] = useState(false);
+  const [initialTicker, setInitialTicker] = useState<string | undefined>();
+
+  useEffect(() => {
+    const ticker = new URLSearchParams(window.location.search).get("ticker");
+    if (ticker) setInitialTicker(ticker.trim().toUpperCase());
+  }, []);
 
   const [steps, setSteps] = useState<Step[]>([
     { label: "Validating ticker symbol", status: "pending" },
@@ -491,6 +499,7 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
           onShare={handleShare}
           showShare={!!result}
         />
+        <ActivityTicker />
 
         {/* Content Area */}
         <main className="flex-1 flex flex-col">
@@ -562,50 +571,58 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
             <>
               {/* Logged-in users: simple welcome with ScanInput */}
               {session ? (
-                <div className="flex-1 flex flex-col items-center p-4 pb-8 gradient-mesh overflow-y-auto">
-                  <div className="text-center mb-8 mt-8 sm:mt-16 animate-fade-in">
-                    <div className="flex justify-center mb-6">
-                      <div className="relative">
-                        <div className="h-16 w-16 rounded-2xl gradient-brand flex items-center justify-center shadow-lg shadow-primary/25 animate-gentle-float">
-                          <Shield
-                            className="h-8 w-8 text-white"
-                            strokeWidth={2}
-                          />
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-background">
-                          <Eye className="h-2.5 w-2.5 text-white" />
+                  <div className="flex-1 overflow-y-auto bg-background">
+                    <section className="relative overflow-hidden">
+                      <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
+                        <div className="max-w-3xl animate-fade-in">
+                          <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/80 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                            <span className="h-1.5 w-1.5 rounded-full bg-brand-blue" />
+                            Your ScamDunk workspace
+                          </span>
+                          <h1 className="font-editorial text-[clamp(2.25rem,5vw,4rem)] leading-[1.1] text-foreground">
+                            {tagline.headline}
+                          </h1>
+                          <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+                            {tagline.subtext} Every result shows the signals we checked, with clear evidence and no stock-picking advice.
+                          </p>
+                          <div className="mt-6 flex flex-wrap gap-3 text-[13px]">
+                            <Link href="/dashboard" className="btn-pill btn-pill-primary gap-1.5">
+                              Open dashboard
+                            </Link>
+                            <Link href="/watchlist" className="btn-pill btn-pill-ghost">
+                              Manage watchlist
+                            </Link>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <h1 className="font-display text-hero-sm sm:text-hero mb-4 max-w-xl mx-auto italic">
-                      {tagline.headline}
-                    </h1>
-                    <p className="text-subtitle text-muted-foreground max-w-md mx-auto">
-                      {tagline.subtext}
-                    </p>
-                  </div>
+                    </section>
 
-                  {error && (
-                    <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-sm max-w-md text-center animate-fade-in">
-                      <AlertTriangle className="h-4 w-4 inline mr-2" />
-                      {error}
-                    </div>
-                  )}
+                    {error && (
+                      <div className="mx-auto mb-6 max-w-3xl px-4">
+                        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive animate-fade-in">
+                          <AlertTriangle className="mr-2 inline h-4 w-4" />
+                          {error}
+                        </div>
+                      </div>
+                    )}
 
-                  <div
-                    className="w-full max-w-3xl mx-auto mt-2 mb-12 animate-fade-in"
-                    style={{ animationDelay: "0.05s" }}
-                  >
-                    <ScanInput
-                      onSubmit={handleSubmit}
-                      isLoading={isLoading}
-                      disabled={usage?.limitReached && !result}
-                    />
+                    <div className="mx-auto mb-12 w-full max-w-3xl px-4 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+                      <ScanInput
+                        onSubmit={handleSubmit}
+                        isLoading={isLoading}
+                        disabled={usage?.limitReached && !result}
+                        initialTicker={initialTicker}
+                      />
+                    </div>
+                    <section className="bg-background px-4 pb-12 sm:px-6" aria-label="Pump Radar market-wide findings">
+                      <div className="mx-auto w-full max-w-[1200px]">
+                        <p className="mx-auto mb-4 max-w-[1200px] text-center text-xs text-muted-foreground">
+                          Pump Radar shows market-wide findings from the latest completed scan. Checked after the trading day closes — not live.
+                        </p>
+                        <PublicPumpRadar showDashboardLink />
+                      </div>
+                    </section>
                   </div>
-                  <div className="mb-12 w-full max-w-[1200px]">
-                    <PublicPumpRadar showDashboardLink />
-                  </div>
-                </div>
               ) : (
                 <>
                   <LandingOptionA

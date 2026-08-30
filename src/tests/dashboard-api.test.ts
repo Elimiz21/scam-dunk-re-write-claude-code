@@ -18,6 +18,7 @@ const mockPrisma = {
   socialMention: { findMany: jest.fn() },
   watchlistEntry: {
     findMany: jest.fn(),
+    count: jest.fn(),
     findFirst: jest.fn(),
     upsert: jest.fn(),
     deleteMany: jest.fn(),
@@ -225,6 +226,19 @@ describe("watchlist mutations", () => {
     mockPrisma.$transaction.mockImplementation(
       async (callback: (client: typeof mockPrisma) => unknown) => callback(mockPrisma),
     );
+  });
+
+  test("supports a lightweight sidebar count without loading scan history", async () => {
+    mockPrisma.watchlistEntry.count.mockResolvedValue(4);
+
+    const response = await getWatchlist(
+      new NextRequest("http://localhost/api/watchlist?countOnly=1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ watchlistCount: 4 });
+    expect(mockPrisma.watchlistEntry.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.scanHistory.findMany).not.toHaveBeenCalled();
   });
 
   test("rejects an unsupported ticker before any write or credit charge", async () => {

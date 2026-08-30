@@ -133,7 +133,7 @@ export function PumpRadar({
                 </p>
                 <h2
                   id="pump-radar-title"
-                  className="mt-1 font-display text-xl italic sm:text-2xl"
+                  className="mt-1 font-editorial text-xl sm:text-2xl"
                 >
                   Pump Radar
                 </h2>

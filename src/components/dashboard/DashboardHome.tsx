@@ -104,7 +104,7 @@ export function DashboardHome() {
       <Card role="alert">
         <CardContent className="flex flex-col items-center px-5 py-12 text-center">
           <RefreshCw className="h-7 w-7 text-destructive" aria-hidden="true" />
-          <h2 className="mt-3 font-display text-xl italic">Dashboard unavailable</h2>
+          <h2 className="mt-3 font-editorial text-xl">Dashboard unavailable</h2>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
             {state.error || "Dashboard data is temporarily unavailable."}
           </p>
@@ -130,7 +130,7 @@ export function DashboardHome() {
           <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Saved stocks</p>
-              <CardTitle className="mt-1 font-display text-xl italic">Watchlist</CardTitle>
+              <CardTitle className="mt-1 font-editorial text-xl">Watchlist</CardTitle>
             </div>
             <Button asChild variant="ghost" size="sm" className="min-h-10 gap-1.5">
               <Link href="/watchlist">
@@ -169,7 +169,7 @@ export function DashboardHome() {
           <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Completed checks</p>
-              <CardTitle className="mt-1 font-display text-xl italic">Recent scans</CardTitle>
+              <CardTitle className="mt-1 font-editorial text-xl">Recent scans</CardTitle>
             </div>
             <Button asChild variant="ghost" size="sm" className="min-h-10 gap-1.5">
               <Link href="/recent-scans">
@@ -214,7 +214,7 @@ export function DashboardHome() {
           <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Monitoring updates</p>
-              <CardTitle className="mt-1 font-display text-xl italic">Recent notifications</CardTitle>
+              <CardTitle className="mt-1 font-editorial text-xl">Recent notifications</CardTitle>
             </div>
             <BellRing className="h-5 w-5 text-primary" aria-hidden="true" />
           </CardHeader>

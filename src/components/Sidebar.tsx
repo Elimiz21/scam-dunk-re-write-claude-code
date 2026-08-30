@@ -26,11 +26,12 @@ import {
   Newspaper,
   Mail,
   Sparkles,
-  Eye,
   LayoutDashboard,
   ListChecks,
+  BadgeDollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "./Logo";
 import { cn, formatRelativeDate } from "@/lib/utils";
 
 interface ScanHistoryItem {
@@ -111,8 +112,10 @@ export function Sidebar({
 }: SidebarProps) {
   const { data: session } = useSession();
   const [recentScans, setRecentScans] = useState<ScanHistoryItem[]>([]);
+  const [watchlistCount, setWatchlistCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const fetchControllerRef = useRef<AbortController | null>(null);
+  const watchlistControllerRef = useRef<AbortController | null>(null);
 
   const fetchRecentScans = useCallback(async () => {
     if (!session?.user) return;
@@ -147,19 +150,50 @@ export function Sidebar({
     }
   }, [session?.user]);
 
+  const fetchWatchlistCount = useCallback(async () => {
+    if (!session?.user) return;
+
+    watchlistControllerRef.current?.abort();
+    const controller = new AbortController();
+    watchlistControllerRef.current = controller;
+    try {
+      const response = await fetch(`/api/watchlist?countOnly=1&_t=${Date.now()}`, {
+        cache: "no-store",
+        signal: controller.signal,
+        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+      });
+      if (controller.signal.aborted) return;
+      if (response.ok) {
+        const data = (await response.json()) as { watchlistCount?: unknown; entries?: unknown };
+        setWatchlistCount(
+          typeof data.watchlistCount === "number"
+            ? data.watchlistCount
+            : Array.isArray(data.entries)
+              ? data.entries.length
+              : 0,
+        );
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      console.error("Failed to fetch watchlist count:", err);
+    }
+  }, [session?.user]);
+
   // Fetch when sidebar opens
   useEffect(() => {
     if (session?.user && isOpen) {
       fetchRecentScans();
+      fetchWatchlistCount();
     }
-  }, [session?.user, isOpen, fetchRecentScans]);
+  }, [session?.user, isOpen, fetchRecentScans, fetchWatchlistCount]);
 
   // Re-fetch when a new scan completes (refreshKey changes), even if sidebar is closed
   useEffect(() => {
     if (session?.user && refreshKey > 0) {
       fetchRecentScans();
+      fetchWatchlistCount();
     }
-  }, [refreshKey, session?.user, fetchRecentScans]);
+  }, [refreshKey, session?.user, fetchRecentScans, fetchWatchlistCount]);
 
   // Re-fetch when user returns to the tab (catches stale data after background time)
   useEffect(() => {
@@ -167,12 +201,13 @@ export function Sidebar({
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         fetchRecentScans();
+        fetchWatchlistCount();
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [session?.user, fetchRecentScans]);
+  }, [session?.user, fetchRecentScans, fetchWatchlistCount]);
 
   return (
     <>
@@ -193,21 +228,8 @@ export function Sidebar({
       >
         <div className={cn("flex flex-col h-full", !isOpen && "invisible")}>
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border/50">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="relative h-7 w-7 rounded-lg gradient-brand flex items-center justify-center">
-                <Shield className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success flex items-center justify-center border-[1.5px] border-background">
-                  <Eye className="h-1.5 w-1.5 text-white" />
-                </div>
-              </div>
-              <span className="font-display tracking-tight italic">
-                Scam
-                <span className="gradient-brand-text not-italic font-sans font-bold">
-                  Dunk
-                </span>
-              </span>
-            </Link>
+          <div className="flex items-center justify-between p-4 border-b border-border/70">
+            <Logo size={32} href="/" />
             <Button
               variant="ghost"
               size="icon"
@@ -241,13 +263,23 @@ export function Sidebar({
                 </p>
                 {[
                   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-                  { href: "/watchlist", icon: ListChecks, label: "Watchlist" },
+                  { href: "/watchlist", icon: ListChecks, label: "Watchlist", badge: watchlistCount },
                   { href: "/recent-scans", icon: History, label: "Recent scans" },
-                ].map(({ href, icon: Icon, label }) => (
+                  { href: "/pricing", icon: BadgeDollarSign, label: "Pricing" },
+                ].map(({ href, icon: Icon, label, badge }) => (
                   <Link key={href} href={href} onClick={onToggle}>
                     <span className="flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
                       <Icon className="h-4 w-4" aria-hidden="true" />
-                      {label}
+                      <span className="flex-1">{label}</span>
+                      {label === "Watchlist" && (
+                        <span
+                          id="watchlist-count"
+                          className="min-w-6 rounded-full bg-secondary px-1.5 py-0.5 text-center text-[11px] font-semibold text-foreground"
+                          aria-label={`${badge ?? 0} stocks in watchlist`}
+                        >
+                          {badge ?? "…"}
+                        </span>
+                      )}
                     </span>
                   </Link>
                 ))}

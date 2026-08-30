@@ -39,6 +39,10 @@ interface LandingOptionAProps {
 const DEFAULT_SUBHEADLINE =
   "Enter a ticker or paste the message, we check it for scam and fraud red flags, and show you exactly what we found.";
 
+const MARKET_FEED_LINES = [
+  "Illustrative market-wide scan — checked after the trading day closes, not live",
+];
+
 /** Pull a plausible ticker out of free text ("$ACME", "buy ACME now", "acme"). */
 function extractTicker(raw: string): { ticker: string; pitch?: string } | null {
   const text = raw.trim();
@@ -87,7 +91,7 @@ export function LandingOptionA({
       {/* ================= HERO ================= */}
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-14 md:py-20 lg:grid-cols-[1.05fr_0.95fr]">
-          <div>
+          <div className="min-w-0">
             <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/80 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-brand-blue" />
               Free stock scam &amp; fraud checker
@@ -124,7 +128,7 @@ export function LandingOptionA({
                 placeholder="Enter a ticker, e.g. ACME"
                 disabled={disabled || isLoading}
                 aria-label="Ticker or suspicious message"
-                className="flex-1 bg-transparent px-4 py-2 text-[15px] text-foreground outline-none placeholder:text-muted-foreground/70"
+                className="min-w-0 flex-1 bg-transparent px-4 py-2 text-[15px] text-foreground outline-none placeholder:text-muted-foreground/70"
               />
               <button
                 onClick={handleCheck}
@@ -156,7 +160,24 @@ export function LandingOptionA({
           </div>
 
           {/* Hero image with floating cards */}
-          <div className="relative">
+          <div className="relative min-w-0">
+            <div className="absolute inset-x-0 top-0 z-10 px-3 pt-3 sm:px-4 sm:pt-4">
+              <div className="market-bar flex min-w-0 items-center gap-2 rounded-xl px-3 py-2.5 text-paper shadow-lg sm:gap-3 sm:px-4">
+                <span className="market-dot shrink-0" aria-hidden="true" />
+                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-paper/70">
+                  Market feed preview
+                </span>
+                <span className="h-3 w-px shrink-0 bg-paper/25" aria-hidden="true" />
+                <p
+                  id="hero-feed-line"
+                  className="min-w-0 truncate text-[11px] leading-tight text-paper/90 sm:text-xs"
+                  aria-live="polite"
+                >
+                  {MARKET_FEED_LINES[0]}
+                </p>
+              </div>
+              <div className="market-underline" aria-hidden="true" />
+            </div>
             <div className="overflow-hidden rounded-2xl">
               <Image
                 src="/images/landing/hero-reading.jpg"

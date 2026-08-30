@@ -469,6 +469,24 @@ export function createDashboardDataService(
       : [];
 
     const entitlements = getPlanEntitlements(user.plan);
+    const latestWatchlistScans = watchlist.length
+      ? await client.scanHistory.findMany({
+          where: {
+            userId,
+            ticker: { in: watchlist.map((entry) => entry.ticker) },
+          },
+          orderBy: { createdAt: "desc" },
+          distinct: ["ticker"],
+          take: watchlist.length,
+          select: { ticker: true, createdAt: true },
+        })
+      : [];
+    const lastScanByTicker = new Map<string, string>();
+    for (const scan of latestWatchlistScans ?? []) {
+      if (!lastScanByTicker.has(scan.ticker)) {
+        lastScanByTicker.set(scan.ticker, scan.createdAt.toISOString());
+      }
+    }
     const fullUsed = monitors.filter((monitor) => monitor.kind === "FULL").length;
     const priceUsed = monitors.filter(
       (monitor) => monitor.kind === "PRICE",
@@ -506,6 +524,7 @@ export function createDashboardDataService(
         ticker: entry.ticker,
         addedAt: entry.createdAt.toISOString(),
         lastDataAt: entry.lastDataAt?.toISOString() ?? null,
+        lastScanAt: lastScanByTicker.get(entry.ticker) ?? null,
         monitors: entry.monitors.map((monitor) => ({
           id: monitor.id,
           kind: monitor.kind,
