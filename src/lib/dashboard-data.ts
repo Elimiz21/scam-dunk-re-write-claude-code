@@ -29,6 +29,7 @@ type DashboardDataClient = {
   dailyScanSummary?: { findFirst: (args: unknown) => Promise<any> };
   socialScanRun?: { findFirst: (args: unknown) => Promise<any> };
   socialMention: { findMany: (args: unknown) => Promise<any[]> };
+  notificationDelivery?: { findMany: (args: unknown) => Promise<any[]> };
 };
 
 const RISK_ORDER: Record<string, number> = {
@@ -442,7 +443,50 @@ export function createDashboardDataService(
       ]);
     if (!user) throw new Error("User not found.");
 
+    const notifications = client.notificationDelivery
+      ? await client.notificationDelivery.findMany({
+          where: { userId, channel: "IN_APP", status: "DELIVERED" },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: {
+            id: true,
+            createdAt: true,
+            execution: {
+              select: {
+                status: true,
+                skipReason: true,
+                publicationKey: true,
+                monitor: {
+                  select: {
+                    kind: true,
+                    watchlistEntry: { select: { ticker: true } },
+                  },
+                },
+              },
+            },
+          },
+        })
+      : [];
+
     const entitlements = getPlanEntitlements(user.plan);
+    const latestWatchlistScans = watchlist.length
+      ? await client.scanHistory.findMany({
+          where: {
+            userId,
+            ticker: { in: watchlist.map((entry) => entry.ticker) },
+          },
+          orderBy: { createdAt: "desc" },
+          distinct: ["ticker"],
+          take: watchlist.length,
+          select: { ticker: true, createdAt: true },
+        })
+      : [];
+    const lastScanByTicker = new Map<string, string>();
+    for (const scan of latestWatchlistScans ?? []) {
+      if (!lastScanByTicker.has(scan.ticker)) {
+        lastScanByTicker.set(scan.ticker, scan.createdAt.toISOString());
+      }
+    }
     const fullUsed = monitors.filter((monitor) => monitor.kind === "FULL").length;
     const priceUsed = monitors.filter(
       (monitor) => monitor.kind === "PRICE",
@@ -480,6 +524,7 @@ export function createDashboardDataService(
         ticker: entry.ticker,
         addedAt: entry.createdAt.toISOString(),
         lastDataAt: entry.lastDataAt?.toISOString() ?? null,
+        lastScanAt: lastScanByTicker.get(entry.ticker) ?? null,
         monitors: entry.monitors.map((monitor) => ({
           id: monitor.id,
           kind: monitor.kind,
@@ -491,6 +536,15 @@ export function createDashboardDataService(
         })),
       })),
       recentScans: recentScans.items,
+      notifications: notifications.map((notification) => ({
+        id: notification.id,
+        ticker: notification.execution.monitor.watchlistEntry.ticker,
+        kind: notification.execution.monitor.kind,
+        status: notification.execution.status,
+        skipReason: notification.execution.skipReason,
+        publicationKey: notification.execution.publicationKey,
+        createdAt: notification.createdAt.toISOString(),
+      })),
       pumpRadar,
       freshness:
         pumpRadar.status === "AVAILABLE"

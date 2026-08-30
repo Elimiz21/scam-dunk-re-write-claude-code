@@ -17,6 +17,7 @@ import { prisma } from "./db";
 import { authConfig } from "./auth.config";
 import { logAuthError } from "./auth-error-tracking";
 import { rateLimit } from "./rate-limit";
+import { findCredentialsUser } from "./auth-user";
 
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
@@ -84,12 +85,12 @@ declare module "next-auth" {
       id: string;
       email: string;
       name?: string | null;
-      plan: "FREE" | "PAID";
+      plan: "FREE" | "PAID" | "PRO_MAX";
     };
   }
 
   interface User {
-    plan?: "FREE" | "PAID";
+    plan?: "FREE" | "PAID" | "PRO_MAX";
     sessionVersion?: number;
   }
 }
@@ -97,7 +98,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
-    plan?: "FREE" | "PAID";
+    plan?: "FREE" | "PAID" | "PRO_MAX";
     // Per-user session generation, captured at login. If the user's DB
     // sessionVersion later exceeds this (e.g. after a password reset), the
     // session is rejected — see the jwt callback below (SEC-M10).
@@ -155,9 +156,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         let user;
         try {
-          user = await prisma.user.findUnique({
-            where: { email },
-          });
+          user = await findCredentialsUser(prisma, email);
         } catch (dbError) {
           const errorMsg =
             dbError instanceof Error ? dbError.message : String(dbError);
@@ -276,7 +275,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          plan: user.plan as "FREE" | "PAID",
+          plan: user.plan as "FREE" | "PAID" | "PRO_MAX",
           sessionVersion: user.sessionVersion,
         };
       },
@@ -318,7 +317,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // Token predates a credential change — invalidate it.
             return null;
           }
-          token.plan = dbUser.plan as "FREE" | "PAID";
+          token.plan = dbUser.plan as "FREE" | "PAID" | "PRO_MAX";
         } catch (error) {
           // DB unavailable — fail open and keep the existing token rather than
           // logging every user out during a transient outage.
@@ -329,7 +328,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }: { session: Session; token: JWT }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.plan = (token.plan as "FREE" | "PAID") || "FREE";
+        session.user.plan = (token.plan as "FREE" | "PAID" | "PRO_MAX") || "FREE";
       }
       return session;
     },

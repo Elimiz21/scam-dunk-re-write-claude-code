@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HomeContent from "./HomeContent";
+import { formatUsdCents, getPublicBillingPrices } from "@/lib/billing/pricing";
 
 export const metadata: Metadata = {
   alternates: {
@@ -8,5 +9,13 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <HomeContent />;
+  const prices = getPublicBillingPrices();
+  return (
+    <HomeContent
+      billingPrices={{
+        pro: formatUsdCents(prices.PAID),
+        proMax: formatUsdCents(prices.PRO_MAX),
+      }}
+    />
+  );
 }

@@ -44,6 +44,7 @@ interface ScanInputProps {
   }) => void;
   isLoading?: boolean;
   disabled?: boolean;
+  initialTicker?: string;
 }
 
 // Valid ticker patterns
@@ -60,8 +61,8 @@ const ACCEPTED_IMAGE_TYPES = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 5;
 
-export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
-  const [ticker, setTicker] = useState("");
+export function ScanInput({ onSubmit, isLoading, disabled, initialTicker }: ScanInputProps) {
+  const [ticker, setTicker] = useState(initialTicker?.toUpperCase() ?? "");
   const assetType: AssetType = "stock";
   const [showChatInput, setShowChatInput] = useState(false);
   const [showContextFlags, setShowContextFlags] = useState(false);
@@ -89,6 +90,13 @@ export function ScanInput({ onSubmit, isLoading, disabled }: ScanInputProps) {
       textareaRef.current.focus();
     }
   }, [showChatInput]);
+
+  useEffect(() => {
+    if (initialTicker) {
+      setTicker(initialTicker.toUpperCase());
+      setValidationError("");
+    }
+  }, [initialTicker]);
 
   // Cleanup file previews on unmount
   useEffect(() => {

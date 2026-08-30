@@ -1,7 +1,19 @@
 ALTER TABLE "User" ADD COLUMN "billingProvider" TEXT NOT NULL DEFAULT 'NONE';
 ALTER TABLE "User" ADD COLUMN "trialStartedAt" TIMESTAMP(3);
 ALTER TABLE "User" ADD COLUMN "trialEndsAt" TIMESTAMP(3);
-ALTER TABLE "User" ADD COLUMN "subscriptionExpiresAt" TIMESTAMP(3);
+-- subscriptionExpiresAt, subscriptionStore, and appleOriginalTransactionId
+-- are already added by 20260611000000_audit_remediation.
+
+UPDATE "User"
+SET "billingProvider" = CASE
+  WHEN LOWER(COALESCE("subscriptionStore", '')) = 'apple' THEN 'APPLE'
+  WHEN LOWER(COALESCE("subscriptionStore", '')) = 'stripe' THEN 'STRIPE'
+  WHEN LOWER(COALESCE("subscriptionStore", '')) = 'paypal' THEN 'PAYPAL'
+  ELSE "billingProvider"
+END
+WHERE "billingProvider" = 'NONE'
+  AND "plan" <> 'FREE'
+  AND ("subscriptionExpiresAt" IS NULL OR "subscriptionExpiresAt" > CURRENT_TIMESTAMP);
 
 CREATE TABLE "BillingEvent" (
     "id" TEXT NOT NULL,

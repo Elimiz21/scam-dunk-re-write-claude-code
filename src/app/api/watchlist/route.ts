@@ -41,11 +41,21 @@ async function readBody(request: NextRequest) {
   }
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return unauthorized();
 
   try {
+    if (request.nextUrl.searchParams.get("countOnly") === "1") {
+      const watchlistCount = await prisma.watchlistEntry.count({
+        where: { userId: session.user.id },
+      });
+      return NextResponse.json(
+        { watchlistCount },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
+
     const entries = await prisma.watchlistEntry.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -53,6 +63,24 @@ export async function GET(_request: NextRequest) {
         monitors: { orderBy: { createdAt: "desc" } },
       },
     });
+    const latestScans = entries.length
+      ? await prisma.scanHistory.findMany({
+          where: {
+            userId: session.user.id,
+            ticker: { in: entries.map((entry) => entry.ticker) },
+          },
+          orderBy: { createdAt: "desc" },
+          distinct: ["ticker"],
+          take: entries.length,
+          select: { ticker: true, createdAt: true },
+        })
+      : [];
+    const lastScanByTicker = new Map<string, string>();
+    for (const scan of latestScans) {
+      if (!lastScanByTicker.has(scan.ticker)) {
+        lastScanByTicker.set(scan.ticker, scan.createdAt.toISOString());
+      }
+    }
     return NextResponse.json(
       {
         entries: entries.map((entry) => ({
@@ -60,6 +88,7 @@ export async function GET(_request: NextRequest) {
           ticker: entry.ticker,
           addedAt: entry.createdAt.toISOString(),
           lastDataAt: entry.lastDataAt?.toISOString() ?? null,
+          lastScanAt: lastScanByTicker.get(entry.ticker) ?? null,
           monitors: entry.monitors.map((monitor) => ({
             id: monitor.id,
             kind: monitor.kind,

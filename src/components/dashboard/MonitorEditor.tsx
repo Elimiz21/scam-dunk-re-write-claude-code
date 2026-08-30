@@ -97,7 +97,7 @@ export function MonitorEditor({
   return (
     <Card role="dialog" aria-labelledby="monitor-editor-title" aria-modal="false">
       <CardHeader>
-        <CardTitle id="monitor-editor-title" className="font-display text-xl italic">
+        <CardTitle id="monitor-editor-title" className="font-editorial text-xl">
           Monitor {entry.ticker}
         </CardTitle>
         <p className="text-sm leading-relaxed text-muted-foreground">

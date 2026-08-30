@@ -12,7 +12,7 @@ declare global {
 
 interface PayPalButtonProps {
   plan?: "PAID" | "PRO_MAX";
-  onSuccess?: () => void;
+  onSuccess?: (plan: "PAID" | "PRO_MAX") => void;
   onError?: (error: string) => void;
 }
 
@@ -128,7 +128,7 @@ export function PayPalButton({
 
                 // Success! Refresh the page or redirect
                 if (onSuccess) {
-                  onSuccess();
+                  onSuccess(plan);
                 } else {
                   router.push("/account?upgraded=true");
                   router.refresh();

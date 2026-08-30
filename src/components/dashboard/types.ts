@@ -71,6 +71,7 @@ export interface WatchlistEntryDto {
   ticker: string;
   addedAt: string;
   lastDataAt: string | null;
+  lastScanAt: string | null;
   monitors: MonitorDto[];
 }
 
@@ -119,6 +120,16 @@ export interface RecentScanDto {
   socialEvidenceAvailable: boolean;
 }
 
+export interface NotificationDto {
+  id: string;
+  ticker: string;
+  kind: "FULL" | "PRICE" | string;
+  status: string;
+  skipReason: string | null;
+  publicationKey: string;
+  createdAt: string;
+}
+
 export interface HistoryPayload {
   order: HistoryOrder;
   items: RecentScanDto[];
@@ -145,6 +156,7 @@ export interface DashboardPayload {
   };
   watchlist: WatchlistEntryDto[];
   recentScans: RecentScanDto[];
+  notifications?: NotificationDto[];
   pumpRadar: PumpRadarPayload;
   freshness: {
     asOf: string | null;

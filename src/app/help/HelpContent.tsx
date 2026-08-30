@@ -40,7 +40,7 @@ const faqs: FAQItem[] = [
     category: "Getting Started",
     question: "Is ScamDunk free to use?",
     answer:
-      "Yes! We offer a free plan with 5 scans per month. If you need more scans, you can upgrade to our paid plan which includes 200 scans per month.",
+      "Yes! Free includes 5 manual scan credits per month, an unlimited watchlist, and 1 price monitor. Pro includes 50 credits, 2 full monitors, and 5 price monitors. Pro Max includes 200 credits, 10 full monitors, and 20 price monitors.",
   },
   {
     category: "Getting Started",
@@ -92,7 +92,7 @@ const faqs: FAQItem[] = [
     category: "Coverage & Limitations",
     question: "Is the market data live?",
     answer:
-      "No. ScamDunk checks published market data after the trading day closes; it does not provide live price monitoring.",
+      "No. ScamDunk checks published market data after the trading day closes; it does not provide live price monitoring. You can choose a daily or weekly full monitor or price monitor, for a duration of 1–24 months. Each completed scheduled check uses one credit and results appear in-app and by email.",
   },
 
   // Account & Billing
@@ -100,7 +100,7 @@ const faqs: FAQItem[] = [
     category: "Account & Billing",
     question: "How do I upgrade to the paid plan?",
     answer:
-      "Go to your Account settings and click 'Upgrade'. You'll be redirected to our secure payment processor (Stripe) to complete your subscription.",
+      "Go to your Account settings and choose Pro or Pro Max. You'll be redirected to a configured secure payment processor to complete your subscription. Provider checkout must be configured before a plan can be purchased.",
   },
   {
     category: "Account & Billing",

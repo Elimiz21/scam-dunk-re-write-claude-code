@@ -25,8 +25,10 @@ import {
   AlertTriangle,
   Calendar,
   XCircle,
+  MessageCircle,
 } from "lucide-react";
 import { UsageInfo } from "@/lib/types";
+import { usagePercent } from "@/lib/account-usage";
 import { useToast } from "@/components/ui/toast";
 import { PayPalButton } from "@/components/PayPalButton";
 
@@ -69,6 +71,12 @@ interface BillingEntitlements extends BillingPlanSummary {
   };
 }
 
+interface WhatsAppBindingStatus {
+  active: boolean;
+  maskedPhone?: string;
+  available?: boolean;
+}
+
 function formatMonthlyPrice(priceCents: number | null): string {
   if (priceCents === null) return "Price set at checkout";
   if (priceCents === 0) return "Free";
@@ -91,10 +99,10 @@ function AccountAlerts() {
         <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
           <Check className="h-4 w-4 text-green-600" />
           <AlertTitle className="text-green-800 dark:text-green-200">
-            Welcome to ScamDunk Pro!
+            Welcome to ScamDunk!
           </AlertTitle>
           <AlertDescription className="text-green-700 dark:text-green-300">
-            Your account has been upgraded. Your Pro credits are now active.
+            Your account has been upgraded. Your new plan credits are now active.
           </AlertDescription>
         </Alert>
       )}
@@ -156,6 +164,17 @@ function AccountContent() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  const [whatsAppBinding, setWhatsAppBinding] =
+    useState<WhatsAppBindingStatus | null>(null);
+  const [isLoadingWhatsApp, setIsLoadingWhatsApp] = useState(true);
+  const [whatsAppPhone, setWhatsAppPhone] = useState("");
+  const [whatsAppCode, setWhatsAppCode] = useState("");
+  const [isSendingWhatsAppCode, setIsSendingWhatsAppCode] = useState(false);
+  const [isConfirmingWhatsApp, setIsConfirmingWhatsApp] = useState(false);
+  const [isRevokingWhatsApp, setIsRevokingWhatsApp] = useState(false);
+  const [whatsAppError, setWhatsAppError] = useState("");
+  const [whatsAppCodeSent, setWhatsAppCodeSent] = useState(false);
+
   // Account deletion
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
@@ -163,7 +182,9 @@ function AccountContent() {
   const [deleteError, setDeleteError] = useState("");
   const billing = subscriptionInfo?.billing;
   const currentPlan = billing?.plan ?? usage?.plan ?? "FREE";
-  const currentPlanName = billing?.displayName ?? (currentPlan === "PAID" ? "Pro" : "Free");
+  const currentPlanName = billing?.displayName ?? (
+    currentPlan === "PRO_MAX" ? "Pro Max" : currentPlan === "PAID" ? "Pro" : "Free"
+  );
   const monthlyCredits =
     billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 5;
 
@@ -177,6 +198,7 @@ function AccountContent() {
     if (session?.user) {
       fetchUsage();
       fetchSubscriptionInfo();
+      fetchWhatsAppBinding();
       setEditName(session.user.name || "");
     }
   }, [session]);
@@ -205,6 +227,102 @@ function AccountContent() {
       console.error("Failed to fetch subscription info:", err);
     } finally {
       setIsLoadingSubscription(false);
+    }
+  };
+
+  const fetchWhatsAppBinding = async () => {
+    setIsLoadingWhatsApp(true);
+    try {
+      const response = await fetch("/api/user/whatsapp");
+      if (!response.ok) throw new Error("Unable to load WhatsApp status");
+      setWhatsAppBinding(await response.json());
+      setWhatsAppError("");
+    } catch {
+      setWhatsAppError("Couldn’t load WhatsApp access. Try again.");
+    } finally {
+      setIsLoadingWhatsApp(false);
+    }
+  };
+
+  const handleSendWhatsAppCode = async () => {
+    setIsSendingWhatsAppCode(true);
+    setWhatsAppError("");
+    try {
+      const response = await fetch("/api/user/whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "begin", phoneNumber: whatsAppPhone }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setWhatsAppCodeSent(true);
+      addToast({
+        type: "success",
+        title: "Verification code sent",
+        description: `Enter the code sent to ${data.maskedPhone} here to finish linking.`,
+      });
+    } catch (requestError) {
+      setWhatsAppError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Couldn’t send a code. Try again.",
+      );
+    } finally {
+      setIsSendingWhatsAppCode(false);
+    }
+  };
+
+  const handleConfirmWhatsAppCode = async () => {
+    setIsConfirmingWhatsApp(true);
+    setWhatsAppError("");
+    try {
+      const response = await fetch("/api/user/whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "confirm", code: whatsAppCode }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setWhatsAppBinding({ active: true, maskedPhone: data.maskedPhone });
+      setWhatsAppCode("");
+      setWhatsAppPhone("");
+      setWhatsAppCodeSent(false);
+      addToast({
+        type: "success",
+        title: "WhatsApp linked",
+        description: "Send AAPL or scan AAPL to ScamDunk to run a stock scan.",
+      });
+    } catch (requestError) {
+      setWhatsAppError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Couldn’t verify the code. Try again.",
+      );
+    } finally {
+      setIsConfirmingWhatsApp(false);
+    }
+  };
+
+  const handleRevokeWhatsApp = async () => {
+    setIsRevokingWhatsApp(true);
+    setWhatsAppError("");
+    try {
+      const response = await fetch("/api/user/whatsapp", { method: "DELETE" });
+      if (!response.ok) throw new Error("Couldn’t unlink WhatsApp. Try again.");
+      setWhatsAppBinding({ active: false });
+      addToast({
+        type: "success",
+        title: "WhatsApp unlinked",
+        description: "This number can no longer request ScamDunk scans.",
+      });
+    } catch (requestError) {
+      setWhatsAppError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Couldn’t unlink WhatsApp. Try again.",
+      );
+    } finally {
+      setIsRevokingWhatsApp(false);
     }
   };
 
@@ -241,7 +359,7 @@ function AccountContent() {
     }
   };
 
-  const handlePayPalSuccess = () => {
+  const handlePayPalSuccess = (plan: "PAID" | "PRO_MAX") => {
     // Refresh usage and subscription data
     fetchUsage();
     fetchSubscriptionInfo();
@@ -249,7 +367,7 @@ function AccountContent() {
     addToast({
       type: "success",
       title: "Subscription activated!",
-      description: "Welcome to ScamDunk Pro. Your new plan is now active.",
+      description: `Welcome to ScamDunk ${plan === "PRO_MAX" ? "Pro Max" : "Pro"}. Your new plan is now active.`,
     });
     // Refresh the page to update UI
     router.refresh();
@@ -740,7 +858,7 @@ function AccountContent() {
                     </span>
                     <span className="text-sm text-muted-foreground">
                       {monthlyCredits &&
-                        usage.scansUsedThisMonth !== undefined &&
+                        usage?.scansUsedThisMonth !== undefined &&
                         Math.round(
                           (usage.scansUsedThisMonth /
                             monthlyCredits) *
@@ -753,16 +871,7 @@ function AccountContent() {
                     <div
                       className="h-full bg-primary rounded-full transition-all"
                       style={{
-                        width: `${
-                          monthlyCredits
-                            ? Math.min(
-                                ((usage.scansUsedThisMonth ?? 0) /
-                                  monthlyCredits) *
-                                  100,
-                                100,
-                              )
-                            : 0
-                        }%`,
+                        width: `${usagePercent(usage, monthlyCredits)}%`,
                       }}
                     />
                   </div>
@@ -895,8 +1004,73 @@ function AccountContent() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                WhatsApp scans
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Link one WhatsApp number to send a stock ticker for a ScamDunk scan. Only <span className="font-medium text-foreground">AAPL</span> or <span className="font-medium text-foreground">scan AAPL</span> are supported.
+              </p>
+              {isLoadingWhatsApp ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading WhatsApp access…
+                </div>
+              ) : whatsAppError ? (
+                <Alert variant="destructive">
+                  <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <span>{whatsAppError}</span>
+                    <Button variant="outline" size="sm" onClick={() => void fetchWhatsAppBinding()}>Retry</Button>
+                  </AlertDescription>
+                </Alert>
+              ) : whatsAppBinding?.available === false ? (
+                <Alert>
+                  <AlertDescription>
+                    <span className="mr-2 rounded-full border border-teal/40 bg-teal/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-teal">Coming soon</span>
+                    WhatsApp scanning is launching shortly. As a subscriber you&apos;ll be able to link your number here when it goes live — no extra cost.
+                  </AlertDescription>
+                </Alert>
+              ) : whatsAppBinding?.active ? (
+                <div className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium">Linked {whatsAppBinding.maskedPhone ? `to ${whatsAppBinding.maskedPhone}` : ""}</p>
+                    <p className="text-sm text-muted-foreground">Scans still use your current monthly ScamDunk allowance.</p>
+                  </div>
+                  <Button variant="outline" onClick={() => void handleRevokeWhatsApp()} disabled={isRevokingWhatsApp}>
+                    {isRevokingWhatsApp ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Unlinking…</> : "Unlink WhatsApp"}
+                  </Button>
+                </div>
+              ) : currentPlan === "FREE" ? (
+                <Alert><AlertDescription>An active ScamDunk subscription is required before you can link WhatsApp.</AlertDescription></Alert>
+              ) : whatsAppCodeSent ? (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp-code">Six-digit verification code</Label>
+                    <Input id="whatsapp-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={whatsAppCode} onChange={(event) => setWhatsAppCode(event.target.value.replace(/\D/g, ""))} placeholder="123456" disabled={isConfirmingWhatsApp} />
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button onClick={() => void handleConfirmWhatsAppCode()} disabled={isConfirmingWhatsApp || whatsAppCode.length !== 6}>{isConfirmingWhatsApp ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Verifying…</> : "Verify and link"}</Button>
+                    <Button variant="outline" onClick={() => { setWhatsAppCodeSent(false); setWhatsAppCode(""); }}>Use another number</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp-phone">WhatsApp phone number</Label>
+                    <Input id="whatsapp-phone" type="tel" inputMode="tel" autoComplete="tel" value={whatsAppPhone} onChange={(event) => setWhatsAppPhone(event.target.value)} placeholder="+12125550199" disabled={isSendingWhatsAppCode} />
+                    <p className="text-xs text-muted-foreground">Use international format. We&apos;ll send a one-time code to this WhatsApp chat; enter it on this page.</p>
+                  </div>
+                  <Button onClick={() => void handleSendWhatsAppCode()} disabled={isSendingWhatsAppCode || !whatsAppPhone}>{isSendingWhatsAppCode ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Sending code…</> : "Send verification code"}</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Upgrade options for Free users */}
-          {currentPlan === "FREE" && (
+          {currentPlan !== "PRO_MAX" && (
             <Card className="border-primary gradient-brand-subtle">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display italic">
@@ -912,7 +1086,9 @@ function AccountContent() {
                   uses plan slots and scheduled credits.
                 </p>
                 <div className="grid gap-4 md:grid-cols-3">
-                  {subscriptionInfo?.plans?.map((plan) => (
+                  {subscriptionInfo?.plans
+                    ?.filter((plan) => plan.plan !== "FREE" && plan.plan !== currentPlan)
+                    .map((plan) => (
                     <div
                       key={plan.plan}
                       className="rounded-xl border border-border bg-card p-4 space-y-3"
@@ -929,11 +1105,13 @@ function AccountContent() {
                         <li>{plan.fullMonitorSlots} full-monitor slots</li>
                         <li>{plan.priceMonitorSlots} price-monitor slots</li>
                       </ul>
-                      {plan.plan === "FREE" ? (
-                        <p className="text-sm font-medium">Current plan</p>
+                      {currentPlan === "PAID" && plan.plan === "PRO_MAX" ? (
+                        <p className="text-sm text-muted-foreground">
+                          Contact support to change from Pro to Pro Max.
+                        </p>
                       ) : plan.paypalPlanId ? (
                         <PayPalButton
-                          plan={plan.plan}
+                          plan={plan.plan as "PAID" | "PRO_MAX"}
                           onSuccess={handlePayPalSuccess}
                           onError={handlePayPalError}
                         />
@@ -947,7 +1125,7 @@ function AccountContent() {
                         </p>
                       )}
                     </div>
-                  ))}
+                    ))}
                 </div>
                 <div className="rounded-lg border border-border bg-background/60 p-4 text-sm text-muted-foreground space-y-1">
                   <p>

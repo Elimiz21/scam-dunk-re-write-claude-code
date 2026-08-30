@@ -2,9 +2,10 @@ import {
   getBillingPlanCatalog,
   resolveBillingEntitlements,
 } from "../lib/billing/provider";
-import { getPayPalConfig } from "../lib/paypal";
+import { getPayPalConfig, planForPayPalPlanId } from "../lib/paypal";
 import { GET as paypalConfig } from "../app/api/billing/paypal/config/route";
 import { NextRequest } from "next/server";
+import { getPublicBillingPrices } from "../lib/billing/pricing";
 
 const BILLING_ENV_KEYS = [
   "BILLING_PRO_MONTHLY_PRICE_CENTS",
@@ -126,5 +127,20 @@ describe("billing plan catalog", () => {
       planId: "P-PRO-MAX",
       monthlyPriceCents: 1499,
     });
+  });
+
+  test("keeps the approved Pro Max price visible when no override is set", () => {
+    delete process.env.BILLING_PRO_MAX_MONTHLY_PRICE_CENTS;
+
+    expect(getBillingPlanCatalog().PRO_MAX.monthlyPriceCents).toBe(1499);
+  });
+
+  test("uses the same configured monthly prices for public pricing and billing", () => {
+    expect(getPublicBillingPrices()).toEqual({ PAID: 499, PRO_MAX: 1499 });
+  });
+
+  test("does not grant a plan for an unknown PayPal plan id", () => {
+    expect(planForPayPalPlanId("P-UNKNOWN")).toBeNull();
+    expect(planForPayPalPlanId(undefined)).toBeNull();
   });
 });

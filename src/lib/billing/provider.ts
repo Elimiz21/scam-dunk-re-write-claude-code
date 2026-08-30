@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/db";
 import { getPlanEntitlements } from "@/lib/entitlements";
+import {
+  configuredPrice,
+  DEFAULT_BILLING_MONTHLY_PRICE_CENTS,
+} from "@/lib/billing/pricing";
 
 export type BillingPlan = "FREE" | "PAID" | "PRO_MAX";
 export type BillingProvider = "NONE" | "PAYPAL" | "STRIPE" | "APPLE" | "MANUAL";
@@ -45,11 +49,6 @@ function configuredString(value: string | undefined): string | null {
   return value?.trim() || null;
 }
 
-function configuredPrice(value: string | undefined, fallback: number | null): number | null {
-  const parsed = Number.parseInt(value ?? "", 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-}
-
 function planConfig(plan: BillingPlan, price: number | null, paypalPlanId: string | null, stripePriceId: string | null): BillingPlanConfig {
   const entitlements = getPlanEntitlements(plan);
 
@@ -71,13 +70,19 @@ export function getBillingPlanCatalog(): Record<BillingPlan, BillingPlanConfig> 
     FREE: planConfig("FREE", 0, null, null),
     PAID: planConfig(
       "PAID",
-      configuredPrice(process.env.BILLING_PRO_MONTHLY_PRICE_CENTS, 499),
+      configuredPrice(
+        process.env.BILLING_PRO_MONTHLY_PRICE_CENTS,
+        DEFAULT_BILLING_MONTHLY_PRICE_CENTS.PAID,
+      ),
       configuredString(process.env.PAYPAL_PLAN_ID),
       configuredString(process.env.STRIPE_PRICE_PAID_PLAN_ID),
     ),
     PRO_MAX: planConfig(
       "PRO_MAX",
-      configuredPrice(process.env.BILLING_PRO_MAX_MONTHLY_PRICE_CENTS, null),
+      configuredPrice(
+        process.env.BILLING_PRO_MAX_MONTHLY_PRICE_CENTS,
+        DEFAULT_BILLING_MONTHLY_PRICE_CENTS.PRO_MAX,
+      ),
       configuredString(process.env.PAYPAL_PRO_MAX_PLAN_ID),
       configuredString(process.env.STRIPE_PRO_MAX_PRICE_ID),
     ),
@@ -130,8 +135,8 @@ export function resolveBillingEntitlements(
 
 /**
  * Reads only the persisted account state needed to build billing display data.
- * The current schema has no Stripe provider or trial fields, so only existing
- * PayPal subscription IDs are represented as provider-managed subscriptions.
+ * Provider and trial fields are server-authoritative; legacy paid accounts with
+ * no explicit provider remain compatible through the PayPal fallback below.
  */
 export async function getBillingEntitlements(
   userId: string,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer } from "react";
 import Link from "next/link";
-import { ArrowRight, History, ListChecks, Loader2, RefreshCw, ScanSearch } from "lucide-react";
+import { ArrowRight, BellRing, History, ListChecks, Loader2, RefreshCw, ScanSearch } from "lucide-react";
 
 import {
   dashboardResourceReducer,
@@ -104,7 +104,7 @@ export function DashboardHome() {
       <Card role="alert">
         <CardContent className="flex flex-col items-center px-5 py-12 text-center">
           <RefreshCw className="h-7 w-7 text-destructive" aria-hidden="true" />
-          <h2 className="mt-3 font-display text-xl italic">Dashboard unavailable</h2>
+          <h2 className="mt-3 font-editorial text-xl">Dashboard unavailable</h2>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
             {state.error || "Dashboard data is temporarily unavailable."}
           </p>
@@ -130,7 +130,7 @@ export function DashboardHome() {
           <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Saved stocks</p>
-              <CardTitle className="mt-1 font-display text-xl italic">Watchlist</CardTitle>
+              <CardTitle className="mt-1 font-editorial text-xl">Watchlist</CardTitle>
             </div>
             <Button asChild variant="ghost" size="sm" className="min-h-10 gap-1.5">
               <Link href="/watchlist">
@@ -169,7 +169,7 @@ export function DashboardHome() {
           <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Completed checks</p>
-              <CardTitle className="mt-1 font-display text-xl italic">Recent scans</CardTitle>
+              <CardTitle className="mt-1 font-editorial text-xl">Recent scans</CardTitle>
             </div>
             <Button asChild variant="ghost" size="sm" className="min-h-10 gap-1.5">
               <Link href="/recent-scans">
@@ -208,6 +208,33 @@ export function DashboardHome() {
         socialSummary={aggregateSocialSummary(data.pumpRadar.rows)}
         showDashboardLink={false}
       />
+
+      {(data.notifications?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader className="flex-row items-start justify-between space-y-0">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Monitoring updates</p>
+              <CardTitle className="mt-1 font-editorial text-xl">Recent notifications</CardTitle>
+            </div>
+            <BellRing className="h-5 w-5 text-primary" aria-hidden="true" />
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-border/60" aria-label="Recent monitoring notifications">
+              {data.notifications?.map((notification) => (
+                <li key={notification.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <div>
+                    <p className="font-semibold">{notification.ticker} · {notification.kind === "FULL" ? "Full" : "Price"} monitor</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {notification.status === "COMPLETED" ? "Completed" : `Skipped: ${(notification.skipReason || "unavailable").replaceAll("_", " ").toLowerCase()}`} · {notification.publicationKey.replace("eod:", "")}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">After close</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-primary/15 bg-primary/5">
         <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">

@@ -323,7 +323,9 @@ export async function getDashboardMetrics() {
       { low: 0, medium: 0, high: 0, insufficient: 0 },
     );
 
-    const paidUsers = usersByPlan.find((u) => u.plan === "PAID")?._count ?? 0;
+    const paidUsers =
+      (usersByPlan.find((u) => u.plan === "PAID")?._count ?? 0) +
+      (usersByPlan.find((u) => u.plan === "PRO_MAX")?._count ?? 0);
     const freeUsers = totalUsers - paidUsers;
 
     const activeUsers = Number(activeUsersRows[0]?.count ?? 0);

@@ -23,3 +23,16 @@ export function getPlanForStripePrice(priceId: string | null | undefined): Billi
   if (priceId === process.env.STRIPE_PRO_MAX_PRICE_ID) return "PRO_MAX";
   return null;
 }
+
+export function shouldApplyStripeSubscriptionEvent(
+  currentSubscriptionId: string | null,
+  incomingSubscriptionId: string,
+  currentEventAt: Date | null,
+  incomingEventAt: Date,
+  allowReplacement = false,
+): boolean {
+  if (currentSubscriptionId !== incomingSubscriptionId) {
+    return !currentSubscriptionId || allowReplacement;
+  }
+  return !currentEventAt || incomingEventAt >= currentEventAt;
+}

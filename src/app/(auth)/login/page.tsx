@@ -22,14 +22,14 @@ import { Logo } from "@/components/Logo";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const rawCallbackUrl = searchParams.get("callbackUrl") || "/";
+  const rawCallbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   // Prevent open redirect: only allow relative paths, block protocol-relative URLs (//, /\)
   const callbackUrl =
     rawCallbackUrl.startsWith("/") &&
     !rawCallbackUrl.startsWith("//") &&
     !rawCallbackUrl.startsWith("/\\")
       ? rawCallbackUrl
-      : "/";
+      : "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

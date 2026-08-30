@@ -197,7 +197,7 @@ export default function WatchlistPage() {
         <div className="mx-auto w-full max-w-[1200px] space-y-6">
           <header>
             <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Saved stocks</p>
-            <h1 className="mt-2 font-display text-3xl italic sm:text-4xl">Watchlist</h1>
+            <h1 className="mt-2 font-editorial text-3xl sm:text-4xl">Watchlist</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
               Save as many supported US-listed common stocks as you need. Adding or removing a stock never uses a scan credit. Monitoring is checked after the trading day closes — not live.
             </p>

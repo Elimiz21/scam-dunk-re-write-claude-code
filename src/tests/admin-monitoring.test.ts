@@ -75,6 +75,10 @@ describe("GET /api/admin/monitoring", () => {
     delete process.env.PAYPAL_CLIENT_SECRET;
     delete process.env.PAYPAL_PLAN_ID;
     delete process.env.PAYPAL_WEBHOOK_ID;
+    delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_WEBHOOK_SECRET;
+    delete process.env.STRIPE_PRICE_PAID_PLAN_ID;
+    delete process.env.STRIPE_PRO_MAX_PRICE_ID;
   });
 
   test("rejects unauthenticated requests before querying operational data", async () => {
@@ -153,6 +157,27 @@ describe("GET /api/admin/monitoring", () => {
     expect(payload.overall.status).toBe("DEGRADED");
     expect(payload.publication.status).toBe("STALE");
     expect(payload.socialScan.status).toBe("STALE");
+  });
+
+  test("reports configured Stripe state instead of hardcoding it disabled", async () => {
+    mockGetAdminSession.mockResolvedValue({ role: "VIEWER" });
+    process.env.STRIPE_SECRET_KEY = "sk_test_configured";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_configured";
+    process.env.STRIPE_PRICE_PAID_PLAN_ID = "price_pro";
+
+    const response = await GET();
+    const payload = await response.json();
+    const stripe = payload.billing.providers.find(
+      (provider: { name: string }) => provider.name === "Stripe",
+    );
+
+    expect(stripe).toMatchObject({
+      configured: true,
+      credentialsConfigured: true,
+      planConfigured: true,
+      webhookConfigured: true,
+    });
+    expect(payload.billing.plans.pro.stripePriceConfigured).toBe(true);
   });
 
   test("fails closed with unavailable summaries when operational reads fail", async () => {

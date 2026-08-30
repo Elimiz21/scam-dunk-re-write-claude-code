@@ -11,6 +11,9 @@ export const authConfig: NextAuthConfig = {
   // Explicitly set secret - NextAuth v5 uses AUTH_SECRET by default
   // We support both AUTH_SECRET and NEXTAUTH_SECRET for flexibility
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  // The edge/middleware instance must accept the host used by local previews
+  // and Vercel deployments, just like the Node-side auth configuration.
+  trustHost: true,
   session: {
     strategy: "jwt",
   },
@@ -72,7 +75,7 @@ export const authConfig: NextAuthConfig = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.plan = (token.plan as "FREE" | "PAID") || "FREE";
+        session.user.plan = (token.plan as "FREE" | "PAID" | "PRO_MAX") || "FREE";
       }
       return session;
     },

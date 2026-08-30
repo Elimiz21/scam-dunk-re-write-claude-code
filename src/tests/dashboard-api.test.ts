@@ -18,6 +18,7 @@ const mockPrisma = {
   socialMention: { findMany: jest.fn() },
   watchlistEntry: {
     findMany: jest.fn(),
+    count: jest.fn(),
     findFirst: jest.fn(),
     upsert: jest.fn(),
     deleteMany: jest.fn(),
@@ -227,6 +228,19 @@ describe("watchlist mutations", () => {
     );
   });
 
+  test("supports a lightweight sidebar count without loading scan history", async () => {
+    mockPrisma.watchlistEntry.count.mockResolvedValue(4);
+
+    const response = await getWatchlist(
+      new NextRequest("http://localhost/api/watchlist?countOnly=1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ watchlistCount: 4 });
+    expect(mockPrisma.watchlistEntry.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.scanHistory.findMany).not.toHaveBeenCalled();
+  });
+
   test("rejects an unsupported ticker before any write or credit charge", async () => {
     const response = await postWatchlist(
       jsonRequest("http://localhost/api/watchlist", "POST", {
@@ -367,6 +381,45 @@ describe("monitor mutations", () => {
       }),
     });
     expect(rejected.status).toBe(400);
+  });
+
+  test.each(["EXPIRED", "CANCELLED"])("reuses a %s monitor row instead of colliding with the unique slot key", async (terminalStatus) => {
+    mockPrisma.activeMonitor.count.mockResolvedValue(0);
+    mockPrisma.activeMonitor.findFirst.mockResolvedValue({
+      id: "monitor-expired",
+      status: terminalStatus,
+      kind: "PRICE",
+    });
+    mockPrisma.activeMonitor.update.mockResolvedValue({
+      id: "monitor-expired",
+      watchlistEntryId: "watch-1",
+      kind: "PRICE",
+      frequency: "DAILY",
+      startsAt: new Date("2026-08-25T12:00:00.000Z"),
+      expiresAt: new Date("2026-09-25T12:00:00.000Z"),
+      status: "ACTIVE",
+      lastEvaluatedAt: null,
+      nextEvaluationAt: new Date("2026-08-25T12:00:00.000Z"),
+    });
+
+    const response = await postMonitor(
+      jsonRequest("http://localhost/api/monitors", "POST", {
+        watchlistEntryId: "watch-1",
+        kind: "PRICE",
+        frequency: "DAILY",
+        durationMonths: 1,
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockPrisma.activeMonitor.update).toHaveBeenCalledWith({
+      where: { id: "monitor-expired" },
+      data: expect.objectContaining({
+        status: "ACTIVE",
+        nextEvaluationAt: new Date("2026-08-25T12:00:00.000Z"),
+      }),
+    });
+    expect(mockPrisma.activeMonitor.create).not.toHaveBeenCalled();
   });
 });
 
