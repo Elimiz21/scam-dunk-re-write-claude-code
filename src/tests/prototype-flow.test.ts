@@ -23,8 +23,8 @@ describe("Alon prototype workflow integration", () => {
     expect(read("src/components/dashboard/types.ts")).toContain("lastScanAt: string | null");
     expect(read("src/app/api/watchlist/route.ts")).toContain("prisma.scanHistory.findMany");
     const table = read("src/components/dashboard/WatchlistTable.tsx");
-    expect(table).toContain("Scan now");
-    expect(table).toContain("Scan again recommended");
+    expect(table).toContain("Rescan now");
+    expect(table).toContain("Rescan recommended");
   });
 
   test("prefills a rescan without silently submitting it", () => {
@@ -37,8 +37,8 @@ describe("Alon prototype workflow integration", () => {
 
   test("keeps pricing visible in the authenticated sidebar and mounts the shared activity ticker", () => {
     const sidebar = read("src/components/Sidebar.tsx");
-    expect(sidebar).toContain('href: "/pricing"');
-    expect(sidebar).toContain('label: "Pricing"');
+    expect(sidebar).toContain('href="/pricing"');
+    expect(sidebar).toContain("Pricing");
 
     const layout = read("src/components/PageLayout.tsx");
     expect(layout).toContain("ActivityTicker");

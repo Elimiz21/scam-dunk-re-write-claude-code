@@ -10,6 +10,7 @@ import {
 import type {
   ApiErrorShape,
   MonitorCreditEstimate,
+  MonitorDto,
   MonitorListPayload,
   MonitorSlots,
   WatchlistEntryDto,
@@ -43,7 +44,10 @@ export default function WatchlistPage() {
   const [feedback, setFeedback] = useState<ApiErrorShape | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingTicker, setPendingTicker] = useState<string | null>(null);
-  const [selectedEntry, setSelectedEntry] = useState<WatchlistEntryDto | null>(null);
+  const [selectedMonitor, setSelectedMonitor] = useState<{
+    entry: WatchlistEntryDto;
+    kind: MonitorDto["kind"];
+  } | null>(null);
   const [monitorError, setMonitorError] = useState<ApiErrorShape | null>(null);
   const [isSavingMonitor, setIsSavingMonitor] = useState(false);
 
@@ -117,6 +121,7 @@ export default function WatchlistPage() {
       setTicker("");
       setSuccess(`${normalized} added to your watchlist. No scan credit was used.`);
       await load();
+      window.dispatchEvent(new Event("scamdunk:watchlist-updated"));
     } catch {
       setFeedback({ code: "WATCHLIST_UNAVAILABLE", message: "The ticker could not be saved." });
     } finally {
@@ -139,9 +144,10 @@ export default function WatchlistPage() {
         setFeedback(readApiError(body, "The ticker could not be removed."));
         return;
       }
-      if (selectedEntry?.id === entry.id) setSelectedEntry(null);
+      if (selectedMonitor?.entry.id === entry.id) setSelectedMonitor(null);
       setSuccess(`${entry.ticker} removed. No scan credit was used.`);
       await load();
+      window.dispatchEvent(new Event("scamdunk:watchlist-updated"));
     } catch {
       setFeedback({ code: "WATCHLIST_UNAVAILABLE", message: "The ticker could not be removed." });
     } finally {
@@ -182,7 +188,7 @@ export default function WatchlistPage() {
           ? "Monitor created. No credit was used to save it."
           : "Monitor updated. No credit was used to save it.",
       );
-      setSelectedEntry(null);
+      setSelectedMonitor(null);
       await load();
     } catch {
       setMonitorError({ code: "MONITORS_UNAVAILABLE", message: "The monitor could not be saved." });
@@ -192,14 +198,16 @@ export default function WatchlistPage() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout dashboardShell>
       <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mx-auto w-full max-w-[1200px] space-y-6">
           <header>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Saved stocks</p>
-            <h1 className="mt-2 font-editorial text-3xl sm:text-4xl">Watchlist</h1>
+            <h1 className="font-editorial text-3xl sm:text-4xl">Your watchlist</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Save as many supported US-listed common stocks as you need. Adding or removing a stock never uses a scan credit. Monitoring is checked after the trading day closes — not live.
+              Choose per ticker whether to use a full monitor or price monitor, how often it checks, and for how long. Monitoring is checked after the trading day closes — not live.
+            </p>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Active monitoring: <strong className="text-foreground">{slots.full.used} of {slots.full.limit} full monitors</strong> and <strong className="text-foreground">{slots.price.used} of {slots.price.limit} price monitors</strong>.
             </p>
           </header>
 
@@ -254,25 +262,30 @@ export default function WatchlistPage() {
               pendingTicker={pendingTicker}
               feedback={feedback}
               onRemove={(entry) => void removeTicker(entry)}
-              onEditMonitor={(entry) => {
+              onEditMonitor={(entry, kind = "FULL") => {
                 setMonitorError(null);
-                setSelectedEntry(entry);
+                setSelectedMonitor((current) =>
+                  current?.entry.id === entry.id && current.kind === kind
+                    ? null
+                    : { entry, kind },
+                );
               }}
-            />
-          )}
-
-          {selectedEntry && (
-            <MonitorEditor
-              entry={selectedEntry}
-              slots={slots}
-              creditEstimate={creditEstimate}
-              error={monitorError}
-              isSaving={isSavingMonitor}
-              onSubmit={saveMonitor}
-              onCancel={() => {
-                setMonitorError(null);
-                setSelectedEntry(null);
-              }}
+              renderMonitorEditor={(entry) => selectedMonitor?.entry.id === entry.id ? (
+                <MonitorEditor
+                  key={`${entry.id}:${selectedMonitor.kind}`}
+                  entry={entry}
+                  slots={slots}
+                  creditEstimate={creditEstimate}
+                  error={monitorError}
+                  isSaving={isSavingMonitor}
+                  initialKind={selectedMonitor.kind}
+                  onSubmit={saveMonitor}
+                  onCancel={() => {
+                    setMonitorError(null);
+                    setSelectedMonitor(null);
+                  }}
+                />
+              ) : null}
             />
           )}
         </div>

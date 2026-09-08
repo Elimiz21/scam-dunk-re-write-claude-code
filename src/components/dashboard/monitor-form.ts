@@ -12,6 +12,13 @@ export interface MonitorCreditEstimate {
   weeklyPerMonth: number;
 }
 
+export interface ExistingMonitorDraftSource {
+  kind: MonitorKind;
+  frequency: MonitorFrequency;
+  status: string;
+  expiresAt: string;
+}
+
 export type MonitorDraftValidation =
   | { ok: true; value: MonitorDraft }
   | { ok: false; message: string };
@@ -43,4 +50,32 @@ export function estimateScheduledCredits(
     ? creditEstimate.dailyPerMonth
     : creditEstimate.weeklyPerMonth;
   return checksPerMonth * Math.max(1, Math.min(24, durationMonths));
+}
+
+export function getInitialMonitorDraft(
+  monitors: ExistingMonitorDraftSource[],
+  preferredKind: MonitorKind = "FULL",
+  now = new Date(),
+): MonitorDraft {
+  const existing = monitors.find(
+    (monitor) =>
+      monitor.kind === preferredKind &&
+      (monitor.status === "ACTIVE" || monitor.status === "PAUSED"),
+  );
+  if (!existing) {
+    return { kind: preferredKind, frequency: "DAILY", durationMonths: 1 };
+  }
+
+  const expiresAt = new Date(existing.expiresAt).getTime();
+  const remainingMilliseconds = expiresAt - now.getTime();
+  const averageMonthMilliseconds = 30.4375 * 24 * 60 * 60 * 1000;
+  const durationMonths = Number.isFinite(remainingMilliseconds)
+    ? Math.ceil(remainingMilliseconds / averageMonthMilliseconds)
+    : 1;
+
+  return {
+    kind: preferredKind,
+    frequency: existing.frequency,
+    durationMonths: Math.max(1, Math.min(24, durationMonths)),
+  };
 }

@@ -11,9 +11,12 @@ import {
   buildSocialEvidenceView,
   buildUsageView,
   buildWatchlistView,
+  filterPumpRadarRows,
+  filterRecentScans,
 } from "@/components/dashboard/view-model";
 import {
   estimateScheduledCredits,
+  getInitialMonitorDraft,
   validateMonitorDraft,
 } from "@/components/dashboard/monitor-form";
 
@@ -216,6 +219,18 @@ describe("Pump Radar render state", () => {
     });
     expect(aggregateSocialSummary([])).toBeNull();
   });
+
+  test("filters the full Pump Radar view by the approved risk labels", () => {
+    const rows = [
+      { displayTicker: "AAPL", riskLabel: "High risk" as const },
+      { displayTicker: "NVAX", riskLabel: "Caution" as const },
+      { displayTicker: "MSFT", riskLabel: "Low risk" as const },
+    ] as Parameters<typeof filterPumpRadarRows>[0];
+
+    expect(filterPumpRadarRows(rows, "HIGH")).toEqual([rows[0]]);
+    expect(filterPumpRadarRows(rows, "CAUTION")).toEqual([rows[1]]);
+    expect(filterPumpRadarRows(rows, "ALL")).toEqual(rows);
+  });
 });
 
 describe("watchlist and monitoring render state", () => {
@@ -289,6 +304,30 @@ describe("watchlist and monitoring render state", () => {
     expect(estimateScheduledCredits("DAILY", 1, creditEstimate)).toBe(22);
     expect(estimateScheduledCredits("WEEKLY", 1, creditEstimate)).toBe(4);
   });
+
+  test("opens the exact existing monitor selected from a watchlist row", () => {
+    const now = new Date("2026-09-08T12:00:00.000Z");
+    const monitors = [
+      {
+        kind: "FULL" as const,
+        frequency: "DAILY" as const,
+        status: "ACTIVE",
+        expiresAt: "2026-10-08T12:00:00.000Z",
+      },
+      {
+        kind: "PRICE" as const,
+        frequency: "WEEKLY" as const,
+        status: "ACTIVE",
+        expiresAt: "2027-03-08T12:00:00.000Z",
+      },
+    ];
+
+    expect(getInitialMonitorDraft(monitors, "PRICE", now)).toEqual({
+      kind: "PRICE",
+      frequency: "WEEKLY",
+      durationMonths: 6,
+    });
+  });
 });
 
 describe("quota, history, and social evidence render state", () => {
@@ -324,6 +363,16 @@ describe("quota, history, and social evidence render state", () => {
         { value: "DATE_ADDED", label: "Date added to watchlist" },
       ],
     });
+  });
+
+  test("filters recent scans by ticker like Alon's prototype", () => {
+    const scans = [
+      { id: "one", ticker: "AAPL" },
+      { id: "two", ticker: "NVAX" },
+    ] as Parameters<typeof filterRecentScans>[0];
+
+    expect(filterRecentScans(scans, " nv ")).toEqual([scans[1]]);
+    expect(filterRecentScans(scans, "   ")).toEqual(scans);
   });
 
   test("shows not analyzed only when the server says the social source was absent", () => {

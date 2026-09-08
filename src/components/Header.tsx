@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import {
-  User,
   Settings,
   LogOut,
   HelpCircle,
@@ -47,45 +46,60 @@ export function Header({
   onShare,
   showShare,
 }: HeaderProps) {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [loadedUsage, setLoadedUsage] = useState<UsageInfo | null>(null);
+  const effectiveUsage = usage ?? loadedUsage;
 
-  const usagePercent = usage
-    ? Math.round((usage.scansUsedThisMonth / usage.scansLimitThisMonth) * 100)
+  useEffect(() => {
+    if (!session?.user || usage) return;
+    const controller = new AbortController();
+    fetch("/api/user/usage", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (response.ok) setLoadedUsage((await response.json()) as UsageInfo);
+      })
+      .catch((error) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error("Failed to load usage", error);
+        }
+      });
+    return () => controller.abort();
+  }, [session?.user, usage]);
+
+  const usagePercent = effectiveUsage?.scansLimitThisMonth
+    ? Math.round((effectiveUsage.scansUsedThisMonth / effectiveUsage.scansLimitThisMonth) * 100)
     : 0;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
-      <div className="flex items-center justify-between px-4 h-16 max-w-6xl mx-auto">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4">
         {/* Left side - Brand */}
         <div className="flex items-center gap-3">
           {session && <SidebarToggle onClick={onSidebarToggle} />}
-          <Logo size={40} className="ml-1" priority />
+          <Logo size={30} className="ml-1" priority />
         </div>
 
-        {/* Center - Marketing nav (logged-out only) */}
-        {!session && (
-          <nav className="hidden items-center gap-8 lg:flex">
-            {NAV_LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground"
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-        )}
+        {/* Alon's shell keeps the public navigation visible after login. */}
+        <nav className="hidden items-center gap-6 lg:flex">
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-[13px] font-medium text-foreground/70 transition-colors hover:text-foreground"
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
 
         {/* Center - Usage indicator */}
-        {usage && (
-          <div className="hidden md:flex items-center gap-3">
-            <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-secondary/80 border border-border/50">
+        {effectiveUsage && (
+          <div className="hidden items-center gap-3 sm:flex">
+            <div className="flex items-center gap-2.5 rounded-full border border-border/70 bg-secondary/80 px-3 py-1.5">
               <div className="flex items-center gap-1.5">
-                <Zap className="h-3.5 w-3.5 text-primary" />
+                <Zap className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                  {usage.plan}
+                  {String(effectiveUsage.plan).replaceAll("_", " ")}
                 </span>
               </div>
               <div className="h-3 w-px bg-border" />
@@ -97,7 +111,7 @@ export function Header({
                   />
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground tabular-nums">
-                  {usage.scansUsedThisMonth}/{usage.scansLimitThisMonth}
+                  {effectiveUsage.scansUsedThisMonth}/{effectiveUsage.scansLimitThisMonth}
                 </span>
               </div>
             </div>
@@ -126,12 +140,19 @@ export function Header({
           {session ? (
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-secondary transition-smooth"
+                aria-label="Open account menu"
+                aria-expanded={showUserMenu}
+                aria-controls="account-menu"
               >
-                <div className="h-8 w-8 rounded-xl gradient-brand-subtle flex items-center justify-center border border-primary/10">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-[11px] font-semibold uppercase text-background">
+                  {(session.user?.name || session.user?.email || "U").slice(0, 1)}
+                </span>
+                <span className="hidden max-w-24 truncate text-[13px] font-medium sm:inline">
+                  {session.user?.name || session.user?.email?.split("@")[0] || "User"}
+                </span>
                 <ChevronDown
                   className={cn(
                     "h-3.5 w-3.5 hidden sm:block text-muted-foreground transition-transform duration-200",
@@ -146,7 +167,7 @@ export function Header({
                     className="fixed inset-0 z-40"
                     onClick={() => setShowUserMenu(false)}
                   />
-                  <div className="absolute right-0 top-full mt-2 w-60 p-2 rounded-2xl bg-card border border-border shadow-lg shadow-black/5 dark:shadow-black/20 z-50 animate-fade-in-scale">
+                  <div id="account-menu" className="absolute right-0 top-full mt-2 w-60 p-2 rounded-2xl bg-card border border-border shadow-lg shadow-black/5 dark:shadow-black/20 z-50 animate-fade-in-scale">
                     <div className="px-3 py-2.5 border-b border-border mb-1.5">
                       <p className="font-semibold text-sm truncate">
                         {session.user?.name || "User"}

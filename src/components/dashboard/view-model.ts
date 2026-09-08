@@ -22,6 +22,17 @@ export const HISTORY_ORDER_OPTIONS: Array<{
   { value: "DATE_ADDED", label: "Date added to watchlist" },
 ];
 
+export type PumpRadarFilter = "ALL" | "HIGH" | "CAUTION";
+
+export function filterPumpRadarRows(
+  rows: PumpRadarRow[],
+  filter: PumpRadarFilter,
+): PumpRadarRow[] {
+  if (filter === "ALL") return rows;
+  const riskLabel = filter === "HIGH" ? "High risk" : "Caution";
+  return rows.filter((row) => row.riskLabel === riskLabel);
+}
+
 export function aggregateSocialSummary(
   rows: PumpRadarRow[],
 ): Omit<SocialSummary, "maxPromotionScore"> | null {
@@ -199,6 +210,15 @@ export function buildHistoryView(items: RecentScanDto[]) {
     title: `${items.length} ${items.length === 1 ? "scan" : "scans"}`,
     orderOptions: HISTORY_ORDER_OPTIONS,
   };
+}
+
+export function filterRecentScans(
+  items: RecentScanDto[],
+  query: string,
+): RecentScanDto[] {
+  const normalized = query.trim().toUpperCase();
+  if (!normalized) return items;
+  return items.filter((item) => item.ticker.toUpperCase().includes(normalized));
 }
 
 export function buildSocialEvidenceView(social: ScanSocialDto) {

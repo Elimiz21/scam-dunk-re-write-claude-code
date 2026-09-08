@@ -14,6 +14,8 @@ import type {
 import {
   aggregateSocialSummary,
   buildPumpRadarView,
+  filterPumpRadarRows,
+  type PumpRadarFilter,
 } from "@/components/dashboard/view-model";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,8 @@ interface PumpRadarProps {
   notice: string;
   compact?: boolean;
   showDashboardLink?: boolean;
+  showFullPageLink?: boolean;
+  fullPage?: boolean;
 }
 
 function riskVariant(label: PumpRadarRow["riskLabel"]) {
@@ -115,8 +119,14 @@ export function PumpRadar({
   notice,
   compact = false,
   showDashboardLink = false,
+  showFullPageLink = false,
+  fullPage = false,
 }: PumpRadarProps) {
+  const [filter, setFilter] = useState<PumpRadarFilter>("ALL");
   const view = buildPumpRadarView({ status, rows, coverage, socialSummary });
+  const filteredRows = filterPumpRadarRows(rows, filter);
+  const highRiskCount = rows.filter((row) => row.riskLabel === "High risk").length;
+  const cautionCount = rows.filter((row) => row.riskLabel === "Caution").length;
 
   return (
     <section aria-labelledby="pump-radar-title" className="w-full">
@@ -151,6 +161,14 @@ export function PumpRadar({
                 </Link>
               </Button>
             )}
+            {showFullPageLink && (
+              <Button asChild variant="outline" size="sm" className="min-h-10 shrink-0 gap-2 self-start">
+                <Link href="/pump-radar">
+                  View all
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
+              </Button>
+            )}
           </div>
           <FreshnessNote
             state={status === "LOADING" ? "LOADING" : status === "UNAVAILABLE" ? "UNAVAILABLE" : freshness || "FRESH"}
@@ -158,6 +176,46 @@ export function PumpRadar({
             publishedAt={publishedAt}
             notice={notice}
           />
+          {fullPage && view.state === "ready" && (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  [rows.length, "flagged in publication"],
+                  [highRiskCount, "high risk"],
+                  [cautionCount, "caution"],
+                  [coverage?.evaluated ?? "—", "stocks evaluated"],
+                ].map(([value, label]) => (
+                  <div key={label} className="rounded-2xl border border-border bg-secondary/35 p-4 text-center">
+                    <p className="font-editorial text-2xl tabular-nums text-foreground">{value}</p>
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Filter Pump Radar by risk">
+                {([
+                  ["ALL", "All"],
+                  ["HIGH", "High risk"],
+                  ["CAUTION", "Caution"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={filter === value}
+                    onClick={() => setFilter(value)}
+                    className={cn(
+                      "min-h-10 rounded-full border px-4 text-[13px] font-medium transition-colors",
+                      filter === value
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-background text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </CardHeader>
 
         {view.state === "loading" ? (
@@ -193,11 +251,14 @@ export function PumpRadar({
         ) : (
           <CardContent className="p-0">
             <div className="border-y border-border/60" role="list" aria-label="Pump Radar findings">
-              {rows.map((row, index) => (
+              {filteredRows.map((row, index) => (
                 <div role="listitem" key={`${row.displayTicker}-${index}`}>
                   <RadarRow row={row} />
                 </div>
               ))}
+              {filteredRows.length === 0 && (
+                <p className="px-5 py-10 text-center text-sm text-muted-foreground">No findings match this filter.</p>
+              )}
             </div>
             <div className="flex flex-col gap-2 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>{view.coverageLabel}</span>
@@ -219,14 +280,16 @@ export function PumpRadar({
 
 export function PublicPumpRadar({
   showDashboardLink = false,
+  fullPage = false,
 }: {
   showDashboardLink?: boolean;
+  fullPage?: boolean;
 }) {
   const [payload, setPayload] = useState<PumpRadarPayload | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/pump-radar?limit=8", {
+    fetch(`/api/pump-radar?limit=${fullPage ? 50 : 8}`, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
     })
@@ -250,7 +313,7 @@ export function PublicPumpRadar({
         });
       });
     return () => controller.abort();
-  }, []);
+  }, [fullPage]);
 
   if (!payload) {
     return (
@@ -264,6 +327,7 @@ export function PublicPumpRadar({
         freshness={null}
         notice="Retrieving the latest completed end-of-day scan."
         showDashboardLink={showDashboardLink}
+        fullPage={fullPage}
       />
     );
   }
@@ -273,6 +337,7 @@ export function PublicPumpRadar({
       {...payload}
       socialSummary={aggregateSocialSummary(payload.rows)}
       showDashboardLink={showDashboardLink}
+      fullPage={fullPage}
     />
   );
 }

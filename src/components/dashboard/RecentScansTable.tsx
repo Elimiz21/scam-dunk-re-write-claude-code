@@ -1,15 +1,18 @@
 "use client";
 
-import { Eye, History } from "lucide-react";
+import { useState } from "react";
+import { Eye, History, Search } from "lucide-react";
 
 import type {
   HistoryOrder,
   RecentScanDto,
 } from "@/components/dashboard/types";
-import { buildHistoryView } from "@/components/dashboard/view-model";
+import { buildHistoryView, filterRecentScans } from "@/components/dashboard/view-model";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface RecentScansTableProps {
   items: RecentScanDto[];
@@ -47,34 +50,50 @@ export function RecentScansTable({
   onOrderChange,
   onOpenDetail,
 }: RecentScansTableProps) {
-  const view = buildHistoryView(items);
+  const [query, setQuery] = useState("");
+  const filteredItems = filterRecentScans(items, query);
+  const view = buildHistoryView(filteredItems);
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <label htmlFor="scan-order" className="text-sm font-semibold">
-          Order scans
-        </label>
-        <select
-          id="scan-order"
-          aria-label="Order scans"
-          value={order}
-          onChange={(event) => onOrderChange(event.target.value as HistoryOrder)}
-          className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:w-64"
-        >
-          {view.orderOptions.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_16rem] sm:items-end">
+        <div>
+          <Label htmlFor="scan-search">Search recent scans</Label>
+          <div className="relative mt-2">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="scan-search"
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by ticker"
+              className="min-h-11 pl-9"
+            />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="scan-order">Order by</Label>
+          <select
+            id="scan-order"
+            aria-label="Order by"
+            value={order}
+            onChange={(event) => onOrderChange(event.target.value as HistoryOrder)}
+            className="mt-2 min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          >
+            {view.orderOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          {items.length === 0 ? (
+          {filteredItems.length === 0 ? (
             <div className="px-5 py-12 text-center">
               <History className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
-              <p className="mt-3 font-semibold">{view.title}</p>
+              <p className="mt-3 font-semibold">{query.trim() ? "No scans match that search" : view.title}</p>
               <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
-                Completed manual and scheduled checks will appear here.
+                {query.trim() ? "Try another ticker." : "Completed manual and scheduled checks will appear here."}
               </p>
             </div>
           ) : (
@@ -91,7 +110,7 @@ export function RecentScansTable({
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((scan) => (
+                    {filteredItems.map((scan) => (
                       <tr key={scan.id} className="border-t border-border/60">
                         <td className="px-5 py-4 font-semibold">{scan.ticker}</td>
                         <td className="px-5 py-4"><Badge variant={riskVariant(scan.riskLabel)}>{scan.riskLabel}</Badge></td>
@@ -109,7 +128,7 @@ export function RecentScansTable({
                 </table>
               </div>
               <div className="divide-y divide-border/60 md:hidden">
-                {items.map((scan) => (
+                {filteredItems.map((scan) => (
                   <article key={scan.id} className="space-y-3 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>

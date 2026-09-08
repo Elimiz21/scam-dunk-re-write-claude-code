@@ -481,28 +481,27 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onNewScan={handleNewScan}
-        refreshKey={scanRefreshKey}
+    <div className="flex min-h-screen flex-col bg-background">
+      <Header
+        onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+        usage={usage}
+        onShare={handleShare}
+        showShare={!!result}
       />
+      <ActivityTicker />
 
-      {/* Main Content */}
-      <div className="flex flex-col min-h-screen">
-        {/* Header */}
-        <Header
-          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-          usage={usage}
-          onShare={handleShare}
-          showShare={!!result}
-        />
-        <ActivityTicker />
+      <div className="mx-auto flex w-full max-w-[1600px] flex-1 items-start">
+        {session && (
+          <Sidebar
+            isOpen={sidebarOpen}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
+            onNewScan={handleNewScan}
+            refreshKey={scanRefreshKey}
+            persistent
+          />
+        )}
 
-        {/* Content Area */}
-        <main className="flex-1 flex flex-col">
+        <main className="flex min-w-0 flex-1 flex-col">
           {/* Show limit reached message */}
           {limitReached && (
             <div className="flex-1 flex items-center justify-center p-4">
@@ -569,31 +568,18 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
           {/* Welcome State (no result, not loading) */}
           {!result && !isLoading && !limitReached && (
             <>
-              {/* Logged-in users: simple welcome with ScanInput */}
+              {/* Logged-in users stay in Alon's dashboard shell for scanning. */}
               {session ? (
                   <div className="flex-1 overflow-y-auto bg-background">
-                    <section className="relative overflow-hidden">
-                      <div className="mx-auto max-w-6xl px-4 py-14 md:py-20">
-                        <div className="max-w-3xl animate-fade-in">
-                          <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/80 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
-                            <span className="h-1.5 w-1.5 rounded-full bg-brand-blue" />
-                            Your ScamDunk workspace
-                          </span>
-                          <h1 className="font-editorial text-[clamp(2.25rem,5vw,4rem)] leading-[1.1] text-foreground">
-                            {tagline.headline}
-                          </h1>
-                          <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
-                            {tagline.subtext} Every result shows the signals we checked, with clear evidence and no stock-picking advice.
-                          </p>
-                          <div className="mt-6 flex flex-wrap gap-3 text-[13px]">
-                            <Link href="/dashboard" className="btn-pill btn-pill-primary gap-1.5">
-                              Open dashboard
-                            </Link>
-                            <Link href="/watchlist" className="btn-pill btn-pill-ghost">
-                              Manage watchlist
-                            </Link>
-                          </div>
-                        </div>
+                    <section className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+                      <div className="rounded-3xl border border-brand-blue/25 bg-[#193650] px-6 py-7 text-white sm:px-9">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-white/65">New scan</p>
+                        <h1 className="mt-2 font-editorial text-[clamp(2rem,4vw,3rem)] leading-tight">
+                          Paste a ticker, get the truth.
+                        </h1>
+                        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/70">
+                          Run the full risk check, then review every signal and the available evidence.
+                        </p>
                       </div>
                     </section>
 
@@ -606,7 +592,7 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
                       </div>
                     )}
 
-                    <div className="mx-auto mb-12 w-full max-w-3xl px-4 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+                    <div className="mx-auto mb-12 w-full max-w-3xl px-4 animate-fade-in sm:px-6" style={{ animationDelay: "0.05s" }}>
                       <ScanInput
                         onSubmit={handleSubmit}
                         isLoading={isLoading}

@@ -7,6 +7,7 @@ import {
   type MonitorDraft,
   type MonitorFrequency,
   type MonitorKind,
+  getInitialMonitorDraft,
   validateMonitorDraft,
 } from "@/components/dashboard/monitor-form";
 import type {
@@ -17,7 +18,6 @@ import type {
 } from "@/components/dashboard/types";
 import { buildMonitorView } from "@/components/dashboard/view-model";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -41,6 +41,7 @@ interface MonitorEditorProps {
   creditEstimate: MonitorCreditEstimate;
   error?: ApiErrorShape | null;
   isSaving: boolean;
+  initialKind?: MonitorKind;
   onSubmit: (request: MonitorSaveRequest) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -51,12 +52,14 @@ export function MonitorEditor({
   creditEstimate,
   error,
   isSaving,
+  initialKind = "FULL",
   onSubmit,
   onCancel,
 }: MonitorEditorProps) {
-  const [kind, setKind] = useState<MonitorKind>("FULL");
-  const [frequency, setFrequency] = useState<MonitorFrequency>("DAILY");
-  const [durationMonths, setDurationMonths] = useState(1);
+  const initialDraft = getInitialMonitorDraft(entry.monitors, initialKind);
+  const [kind, setKind] = useState<MonitorKind>(initialDraft.kind);
+  const [frequency, setFrequency] = useState<MonitorFrequency>(initialDraft.frequency);
+  const [durationMonths, setDurationMonths] = useState(initialDraft.durationMonths);
   const [validationError, setValidationError] = useState<string | null>(null);
   const selectedLabel = kind === "FULL" ? "full" : "price";
   const view = useMemo(
@@ -95,17 +98,16 @@ export function MonitorEditor({
   }
 
   return (
-    <Card role="dialog" aria-labelledby="monitor-editor-title" aria-modal="false">
-      <CardHeader>
-        <CardTitle id="monitor-editor-title" className="font-editorial text-xl">
+    <div className="mt-4 max-w-2xl rounded-xl border border-border bg-secondary/40 p-4" role="region" aria-labelledby="monitor-editor-title">
+      <div>
+        <h3 id="monitor-editor-title" className="text-sm font-semibold">
           Monitor {entry.ticker}
-        </CardTitle>
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        </h3>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
           {view.notice} Results appear in app and by email.
         </p>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={submit} className="space-y-5">
+      </div>
+        <form onSubmit={submit} className="mt-4 space-y-4">
           <fieldset>
             <legend className="text-sm font-semibold">Monitor type</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -121,7 +123,12 @@ export function MonitorEditor({
                       name="monitor-kind"
                       value={value}
                       checked={kind === value}
-                      onChange={() => setKind(value)}
+                      onChange={() => {
+                        const nextDraft = getInitialMonitorDraft(entry.monitors, value);
+                        setKind(nextDraft.kind);
+                        setFrequency(nextDraft.frequency);
+                        setDurationMonths(nextDraft.durationMonths);
+                      }}
                       className="mt-1 h-4 w-4 accent-primary"
                     />
                     <span>
@@ -189,7 +196,7 @@ export function MonitorEditor({
             </div>
           )}
 
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <Button type="button" variant="ghost" className="min-h-11" onClick={onCancel} disabled={isSaving}>
               Cancel
             </Button>
@@ -199,7 +206,6 @@ export function MonitorEditor({
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
