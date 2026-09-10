@@ -63,9 +63,9 @@ export function LimitReached({
           <h4 className="font-medium mb-2">Plan benefits:</h4>
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• More monthly analysis credits</li>
-            <li>• Full and price-monitoring slots</li>
-            <li>• Price monitoring is checked after market close — not live</li>
-            <li>• Full monitors rerun risk analysis; price monitors check movement only</li>
+            <li>• Active monitoring slots</li>
+            <li>• Monitoring runs after market close — not live</li>
+            <li>• Every monitor reruns the full ScamDunk risk analysis</li>
             <li>• Priority support</li>
           </ul>
         </div>

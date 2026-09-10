@@ -39,8 +39,7 @@ function formatDate(value: string): string {
 }
 
 function sourceLabel(source: RecentScanDto["source"]): string {
-  if (source === "AUTOMATIC_FULL") return "Full monitor";
-  if (source === "AUTOMATIC_PRICE") return "Price monitor";
+  if (source === "AUTOMATIC_FULL" || source === "AUTOMATIC_PRICE") return "Monitor";
   return "Manual scan";
 }
 

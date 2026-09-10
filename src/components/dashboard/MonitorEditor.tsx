@@ -6,7 +6,6 @@ import { BellRing, Clock3, Loader2 } from "lucide-react";
 import {
   type MonitorDraft,
   type MonitorFrequency,
-  type MonitorKind,
   getInitialMonitorDraft,
   validateMonitorDraft,
 } from "@/components/dashboard/monitor-form";
@@ -41,7 +40,6 @@ interface MonitorEditorProps {
   creditEstimate: MonitorCreditEstimate;
   error?: ApiErrorShape | null;
   isSaving: boolean;
-  initialKind?: MonitorKind;
   onSubmit: (request: MonitorSaveRequest) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -52,30 +50,25 @@ export function MonitorEditor({
   creditEstimate,
   error,
   isSaving,
-  initialKind = "FULL",
   onSubmit,
   onCancel,
 }: MonitorEditorProps) {
-  const initialDraft = getInitialMonitorDraft(entry.monitors, initialKind);
-  const [kind, setKind] = useState<MonitorKind>(initialDraft.kind);
+  const initialDraft = getInitialMonitorDraft(entry.monitors);
   const [frequency, setFrequency] = useState<MonitorFrequency>(initialDraft.frequency);
   const [durationMonths, setDurationMonths] = useState(initialDraft.durationMonths);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const selectedLabel = kind === "FULL" ? "full" : "price";
   const view = useMemo(
-    () => buildMonitorView({ kind, frequency, durationMonths, slots, creditEstimate, error }),
-    [creditEstimate, durationMonths, error, frequency, kind, slots],
+    () => buildMonitorView({ kind: "FULL", frequency, durationMonths, slots, creditEstimate, error }),
+    [creditEstimate, durationMonths, error, frequency, slots],
   );
   const existingMonitor = entry.monitors.find(
-    (monitor) =>
-      monitor.kind === kind &&
-      (monitor.status === "ACTIVE" || monitor.status === "PAUSED"),
+    (monitor) => monitor.status === "ACTIVE" || monitor.status === "PAUSED",
   );
   const noSlotAvailable = !view.hasAvailableSlot && !existingMonitor;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = validateMonitorDraft({ kind, frequency, durationMonths });
+    const result = validateMonitorDraft({ kind: "FULL", frequency, durationMonths });
     if ("message" in result) {
       setValidationError(result.message);
       return;
@@ -108,42 +101,12 @@ export function MonitorEditor({
         </p>
       </div>
         <form onSubmit={submit} className="mt-4 space-y-4">
-          <fieldset>
-            <legend className="text-sm font-semibold">Monitor type</legend>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {(["FULL", "PRICE"] as const).map((value) => {
-                const slot = value === "FULL" ? slots.full : slots.price;
-                return (
-                  <label
-                    key={value}
-                    className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-border px-4 py-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                  >
-                    <input
-                      type="radio"
-                      name="monitor-kind"
-                      value={value}
-                      checked={kind === value}
-                      onChange={() => {
-                        const nextDraft = getInitialMonitorDraft(entry.monitors, value);
-                        setKind(nextDraft.kind);
-                        setFrequency(nextDraft.frequency);
-                        setDurationMonths(nextDraft.durationMonths);
-                      }}
-                      className="mt-1 h-4 w-4 accent-primary"
-                    />
-                    <span>
-                      <span className="block text-sm font-semibold">
-                        {value === "FULL" ? "Full monitor" : "Price monitor"}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-muted-foreground">
-                        {slot.used} of {slot.limit} {value === "FULL" ? "full" : "price"} slots used
-                      </span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
+          <div className="rounded-xl border border-brand-blue/20 bg-brand-blue/5 px-4 py-3">
+            <p className="text-sm font-semibold">Monitoring</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Every scheduled check runs the full ScamDunk risk analysis. {view.slotLabel}.
+            </p>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -187,7 +150,7 @@ export function MonitorEditor({
 
           {noSlotAvailable && !error && (
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm" role="status">
-              All {selectedLabel} monitor slots are currently in use. The server will confirm your plan limit before saving.
+              All monitoring slots are currently in use. The server will confirm your plan limit before saving.
             </div>
           )}
           {(validationError || error) && (

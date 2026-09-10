@@ -111,7 +111,8 @@ export default function TermsContent() {
                   </h3>
                   <p className="text-[13px] leading-relaxed text-muted-foreground">
                     5 manual scan credits per month, an unlimited watchlist,
-                    and 1 price monitor. Scheduled checks are not live.
+                    and 1 active monitor. Every monitor runs the full ScamDunk
+                    risk analysis. Scheduled checks are not live.
                   </p>
                 </div>
                 <div className="p-4 rounded-xl border border-border bg-card">
@@ -119,8 +120,8 @@ export default function TermsContent() {
                     Pro plan
                   </h3>
                   <p className="text-[13px] leading-relaxed text-muted-foreground">
-                    50 manual scan credits per month, 2 full monitors, and 5
-                    price monitors, billed monthly. Daily or weekly checks run
+                    50 manual scan credits per month and 2 active monitors,
+                    billed monthly. Daily or weekly checks run
                     after the trading day closes, not live.
                   </p>
                 </div>
@@ -129,8 +130,8 @@ export default function TermsContent() {
                     Pro Max plan
                   </h3>
                   <p className="text-[13px] leading-relaxed text-muted-foreground">
-                    200 manual scan credits per month, 10 full monitors, and
-                    20 price monitors, billed monthly. Prices subject to
+                    200 manual scan credits per month and 10 active monitors,
+                    billed monthly. Prices subject to
                     change with 30 days notice.
                   </p>
                 </div>

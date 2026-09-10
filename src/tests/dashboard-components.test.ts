@@ -13,6 +13,9 @@ import {
   buildWatchlistView,
   filterPumpRadarRows,
   filterRecentScans,
+  buildUnifiedMarketRows,
+  filterUnifiedMarketRows,
+  sortUnifiedMarketRows,
 } from "@/components/dashboard/view-model";
 import {
   estimateScheduledCredits,
@@ -233,6 +236,114 @@ describe("Pump Radar render state", () => {
   });
 });
 
+describe("Alon's unified market table", () => {
+  const watching = {
+    id: "watch-nvax",
+    ticker: "NVAX",
+    addedAt: "2026-09-01T12:00:00.000Z",
+    lastDataAt: "2026-09-08T12:00:00.000Z",
+    lastScanAt: "2026-09-08T12:00:00.000Z",
+    monitors: [],
+  };
+  const radarRows = [
+    {
+      displayTicker: "NVAX",
+      ticker: "NVAX",
+      companyName: "Novavax Inc.",
+      riskLabel: "Caution" as const,
+      score: 46,
+      signalCount: 2,
+      signalSummary: "Price and volume anomalies",
+      lastPrice: 8.15,
+      priceChangePct: -2.4,
+      volumeRatio: 1.8,
+      socialSummary: null,
+    },
+    {
+      displayTicker: "M••T",
+      ticker: "MULN",
+      companyName: "Hidden company",
+      riskLabel: "High risk" as const,
+      score: 84,
+      signalCount: 5,
+      signalSummary: "Sudden options activity spike",
+      lastPrice: 4.61,
+      priceChangePct: 11.1,
+      volumeRatio: 7.2,
+      socialSummary: null,
+    },
+  ];
+
+  test("merges watching and radar data without duplicating a tracked ticker", () => {
+    const rows = buildUnifiedMarketRows({
+      watchlist: [watching],
+      recentScans: [],
+      pumpRadarRows: radarRows,
+    });
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      key: "watch-nvax",
+      ticker: "NVAX",
+      displayTicker: "NVAX",
+      companyName: "Novavax Inc.",
+      source: "WATCHING",
+      tracked: true,
+      priceChangePct: -2.4,
+      lastPrice: 8.15,
+      pumpScore: 46,
+    });
+    expect(rows[1]).toMatchObject({
+      ticker: "MULN",
+      displayTicker: "M••T",
+      source: "RADAR",
+      tracked: false,
+      pumpScore: 84,
+    });
+  });
+
+  test("filters the unified table by watching, radar, and high risk", () => {
+    const rows = buildUnifiedMarketRows({
+      watchlist: [watching],
+      recentScans: [],
+      pumpRadarRows: radarRows,
+    });
+
+    expect(filterUnifiedMarketRows(rows, "WATCHING").map((row) => row.ticker)).toEqual(["NVAX"]);
+    expect(filterUnifiedMarketRows(rows, "RADAR").map((row) => row.ticker)).toEqual(["MULN"]);
+    expect(filterUnifiedMarketRows(rows, "HIGH").map((row) => row.ticker)).toEqual(["MULN"]);
+  });
+
+  test("sorts numeric columns while leaving unavailable values last", () => {
+    const rows = buildUnifiedMarketRows({
+      watchlist: [watching],
+      recentScans: [],
+      pumpRadarRows: [
+        ...radarRows,
+        {
+          ...radarRows[1],
+          displayTicker: "N••X",
+          ticker: "NNOX",
+          lastPrice: null,
+          priceChangePct: null,
+          score: 42,
+        },
+      ],
+    });
+
+    expect(sortUnifiedMarketRows(rows, "PRICE", "ASC").map((row) => row.ticker)).toEqual([
+      "MULN",
+      "NVAX",
+      "NNOX",
+    ]);
+    expect(sortUnifiedMarketRows(rows, "PUMP_SCORE", "DESC").map((row) => row.ticker)).toEqual([
+      "MULN",
+      "NVAX",
+      "NNOX",
+    ]);
+  });
+});
+
 describe("watchlist and monitoring render state", () => {
   test("gives an actionable empty state and never charges watchlist changes", () => {
     expect(buildWatchlistView([], null)).toEqual({
@@ -274,7 +385,7 @@ describe("watchlist and monitoring render state", () => {
         },
       }),
     ).toEqual({
-      slotLabel: "2 of 2 full slots used",
+      slotLabel: "2 of 2 monitoring slots used",
       hasAvailableSlot: false,
       estimatedCredits: 22,
       error: "Your Pro plan includes 2 active full monitors.",
@@ -292,20 +403,20 @@ describe("watchlist and monitoring render state", () => {
     ).toEqual({ ok: false, message: "Choose a duration from 1 to 24 months." });
     expect(
       validateMonitorDraft({
-        kind: "PRICE",
+        kind: "FULL",
         frequency: "WEEKLY",
         durationMonths: 24,
       }),
     ).toEqual({
       ok: true,
-      value: { kind: "PRICE", frequency: "WEEKLY", durationMonths: 24 },
+      value: { kind: "FULL", frequency: "WEEKLY", durationMonths: 24 },
     });
     const creditEstimate = { dailyPerMonth: 22, weeklyPerMonth: 4 };
     expect(estimateScheduledCredits("DAILY", 1, creditEstimate)).toBe(22);
     expect(estimateScheduledCredits("WEEKLY", 1, creditEstimate)).toBe(4);
   });
 
-  test("opens the exact existing monitor selected from a watchlist row", () => {
+  test("normalizes a legacy price monitor into the single monitoring editor", () => {
     const now = new Date("2026-09-08T12:00:00.000Z");
     const monitors = [
       {
@@ -322,8 +433,8 @@ describe("watchlist and monitoring render state", () => {
       },
     ];
 
-    expect(getInitialMonitorDraft(monitors, "PRICE", now)).toEqual({
-      kind: "PRICE",
+    expect(getInitialMonitorDraft(monitors.slice(1), "PRICE", now)).toEqual({
+      kind: "FULL",
       frequency: "WEEKLY",
       durationMonths: 6,
     });
@@ -348,8 +459,8 @@ describe("quota, history, and social evidence render state", () => {
     ).toEqual({
       quotaLabel: "No scan credits remaining",
       creditsLabel: "5 of 5 used",
-      fullMonitorLabel: "0 of 0 full monitors active",
-      priceMonitorLabel: "1 of 1 price monitors active",
+      fullMonitorLabel: "0 of 0 monitors active",
+      priceMonitorLabel: null,
     });
   });
 

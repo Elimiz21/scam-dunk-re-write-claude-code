@@ -45,6 +45,7 @@ interface ScanInputProps {
   isLoading?: boolean;
   disabled?: boolean;
   initialTicker?: string;
+  autoSubmit?: boolean;
 }
 
 // Valid ticker patterns
@@ -61,7 +62,7 @@ const ACCEPTED_IMAGE_TYPES = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 5;
 
-export function ScanInput({ onSubmit, isLoading, disabled, initialTicker }: ScanInputProps) {
+export function ScanInput({ onSubmit, isLoading, disabled, initialTicker, autoSubmit = false }: ScanInputProps) {
   const [ticker, setTicker] = useState(initialTicker?.toUpperCase() ?? "");
   const assetType: AssetType = "stock";
   const [showChatInput, setShowChatInput] = useState(false);
@@ -78,6 +79,7 @@ export function ScanInput({ onSubmit, isLoading, disabled, initialTicker }: Scan
   });
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
+  const autoSubmittedRef = useRef(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -97,6 +99,14 @@ export function ScanInput({ onSubmit, isLoading, disabled, initialTicker }: Scan
       setValidationError("");
     }
   }, [initialTicker]);
+
+  useEffect(() => {
+    const normalized = initialTicker?.trim().toUpperCase();
+    if (!autoSubmit || autoSubmittedRef.current || !normalized || isLoading || disabled) return;
+    if (!STOCK_TICKER_PATTERN.test(normalized)) return;
+    autoSubmittedRef.current = true;
+    onSubmit({ ticker: normalized, assetType: "stock" });
+  }, [autoSubmit, disabled, initialTicker, isLoading, onSubmit]);
 
   // Cleanup file previews on unmount
   useEffect(() => {

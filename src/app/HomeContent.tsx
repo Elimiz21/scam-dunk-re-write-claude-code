@@ -77,10 +77,12 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
   const [scanSocial, setScanSocial] = useState<ScanSocialDto | null>(null);
   const [scanSocialLoading, setScanSocialLoading] = useState(false);
   const [initialTicker, setInitialTicker] = useState<string | undefined>();
+  const [autoSubmitTicker, setAutoSubmitTicker] = useState(false);
 
   useEffect(() => {
     const ticker = new URLSearchParams(window.location.search).get("ticker");
     if (ticker) setInitialTicker(ticker.trim().toUpperCase());
+    setAutoSubmitTicker(new URLSearchParams(window.location.search).get("auto") === "1");
   }, []);
 
   const [steps, setSteps] = useState<Step[]>([
@@ -598,6 +600,7 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
                         isLoading={isLoading}
                         disabled={usage?.limitReached && !result}
                         initialTicker={initialTicker}
+                        autoSubmit={autoSubmitTicker}
                       />
                     </div>
                     <section className="bg-background px-4 pb-12 sm:px-6" aria-label="Pump Radar market-wide findings">

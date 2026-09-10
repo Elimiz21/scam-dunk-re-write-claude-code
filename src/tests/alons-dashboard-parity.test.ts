@@ -7,11 +7,10 @@ const root = process.cwd();
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 
 describe("Alon's authenticated dashboard journey", () => {
-  test("keeps the prototype's four primary destinations in order", () => {
+  test("keeps only the three approved primary destinations in order", () => {
     expect(DASHBOARD_NAV_ITEMS.map(({ label, href }) => ({ label, href }))).toEqual([
       { label: "Home", href: "/dashboard" },
       { label: "Watchlist", href: "/watchlist" },
-      { label: "Recent Scans", href: "/recent-scans" },
       { label: "Pump Radar", href: "/pump-radar" },
     ]);
   });
@@ -25,18 +24,36 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(layout).toContain("dashboardShell = false");
     expect(sidebar).toContain("lg:sticky");
     expect(sidebar).toContain("lg:translate-x-0");
-    expect(sidebar).toContain("New Scan");
+    expect(sidebar).not.toContain("New Scan");
+    expect(sidebar).not.toContain("Account &amp; billing");
     expect(scanWorkspace).toContain("persistent");
     expect(read("src/app/(protected)/dashboard/page.tsx")).toContain("<PageLayout dashboardShell>");
   });
 
-  test("keeps scanning on the dashboard home instead of a detached welcome journey", () => {
+  test("uses Alon's unified dashboard table instead of detached preview cards", () => {
     const dashboard = read("src/components/dashboard/DashboardHome.tsx");
 
     expect(dashboard).toContain("Welcome back");
     expect(dashboard).toContain("DashboardScanEntry");
-    expect(dashboard).toContain("Your watchlist");
-    expect(dashboard).toContain("Recent scans");
+    expect(dashboard).toContain("UnifiedMarketTable");
+    expect(dashboard).not.toContain('title="Your watchlist"');
+    expect(dashboard).not.toContain('title="Recent scans"');
+  });
+
+  test("opens scan-history details in place instead of linking to a missing route", () => {
+    const marketTable = read("src/components/dashboard/UnifiedMarketTable.tsx");
+
+    expect(marketTable).toContain("/api/scans/");
+    expect(marketTable).toContain("setHistoryDetail");
+    expect(marketTable).not.toContain("/recent-scans/${scan.id}");
+  });
+
+  test("announces table sorting and exposes watchlist action failures", () => {
+    const marketTable = read("src/components/dashboard/UnifiedMarketTable.tsx");
+
+    expect(marketTable).toContain("aria-sort");
+    expect(marketTable).toContain("setActionError");
+    expect(marketTable).toContain('role="alert"');
   });
 
   test("provides a dedicated authenticated Pump Radar page", () => {
@@ -45,11 +62,13 @@ describe("Alon's authenticated dashboard journey", () => {
     ).toBe(true);
   });
 
-  test("keeps both monitor types inside Alon's inline watchlist interaction", () => {
+  test("uses one full-analysis monitoring control inside Alon's inline interaction", () => {
     const watchlist = `${read("src/components/dashboard/WatchlistTable.tsx")}\n${read("src/components/dashboard/MonitorEditor.tsx")}`;
 
-    expect(watchlist).toContain("Full monitor");
-    expect(watchlist).toContain("Price monitor");
+    expect(watchlist).toContain("Monitoring");
+    expect(watchlist).toContain("full ScamDunk risk analysis");
+    expect(watchlist).not.toContain("Price monitor");
+    expect(watchlist).not.toContain("Monitor type");
     expect(watchlist).toContain("Save");
     expect(watchlist).toContain("Cancel");
   });

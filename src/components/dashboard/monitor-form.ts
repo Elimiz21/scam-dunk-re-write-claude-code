@@ -32,8 +32,8 @@ export function validateMonitorDraft(
   if (draft.durationMonths < 1 || draft.durationMonths > 24) {
     return { ok: false, message: "Choose a duration from 1 to 24 months." };
   }
-  if (draft.kind !== "FULL" && draft.kind !== "PRICE") {
-    return { ok: false, message: "Choose a monitor type." };
+  if (draft.kind !== "FULL") {
+    return { ok: false, message: "Monitoring always runs the full ScamDunk risk analysis." };
   }
   if (draft.frequency !== "DAILY" && draft.frequency !== "WEEKLY") {
     return { ok: false, message: "Choose daily or weekly monitoring." };
@@ -54,16 +54,15 @@ export function estimateScheduledCredits(
 
 export function getInitialMonitorDraft(
   monitors: ExistingMonitorDraftSource[],
-  preferredKind: MonitorKind = "FULL",
+  _preferredKind: MonitorKind = "FULL",
   now = new Date(),
 ): MonitorDraft {
   const existing = monitors.find(
     (monitor) =>
-      monitor.kind === preferredKind &&
-      (monitor.status === "ACTIVE" || monitor.status === "PAUSED"),
+      monitor.status === "ACTIVE" || monitor.status === "PAUSED",
   );
   if (!existing) {
-    return { kind: preferredKind, frequency: "DAILY", durationMonths: 1 };
+    return { kind: "FULL", frequency: "DAILY", durationMonths: 1 };
   }
 
   const expiresAt = new Date(existing.expiresAt).getTime();
@@ -74,7 +73,7 @@ export function getInitialMonitorDraft(
     : 1;
 
   return {
-    kind: preferredKind,
+    kind: "FULL",
     frequency: existing.frequency,
     durationMonths: Math.max(1, Math.min(24, durationMonths)),
   };

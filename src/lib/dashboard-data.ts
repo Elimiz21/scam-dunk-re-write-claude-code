@@ -1,6 +1,6 @@
 import { getCurrentMonthKey } from "@/lib/config";
 import { prisma } from "@/lib/db";
-import { getPlanEntitlements, getRiskLabel } from "@/lib/entitlements";
+import { getMonitorCreditEstimate, getPlanEntitlements, getRiskLabel } from "@/lib/entitlements";
 import { createPumpRadarService } from "@/lib/pump-radar";
 import type { RiskLevel } from "@/lib/types";
 
@@ -419,7 +419,7 @@ export function createDashboardDataService(
         client.watchlistEntry.findMany({
           where: { userId },
           orderBy: { createdAt: "desc" },
-          take: 5,
+          take: 50,
           include: {
             monitors: {
               where: { status: "ACTIVE" },
@@ -434,10 +434,10 @@ export function createDashboardDataService(
         getScanHistory(userId, {
           order: "MOST_RECENT",
           page: 1,
-          limit: 5,
+          limit: 50,
         }),
         createPumpRadarService(client as never).getPumpRadar({
-          limit: 5,
+          limit: 50,
           viewer: "AUTHENTICATED",
         }),
       ]);
@@ -487,10 +487,7 @@ export function createDashboardDataService(
         lastScanByTicker.set(scan.ticker, scan.createdAt.toISOString());
       }
     }
-    const fullUsed = monitors.filter((monitor) => monitor.kind === "FULL").length;
-    const priceUsed = monitors.filter(
-      (monitor) => monitor.kind === "PRICE",
-    ).length;
+    const fullUsed = monitors.length;
     const creditsUsed = usage?.scanCount ?? 0;
 
     return {
@@ -514,11 +511,12 @@ export function createDashboardDataService(
           remaining: Math.max(entitlements.fullMonitorSlots - fullUsed, 0),
         },
         price: {
-          used: priceUsed,
-          limit: entitlements.priceMonitorSlots,
-          remaining: Math.max(entitlements.priceMonitorSlots - priceUsed, 0),
+          used: 0,
+          limit: 0,
+          remaining: 0,
         },
       },
+      monitorCreditEstimate: getMonitorCreditEstimate(),
       watchlist: watchlist.map((entry) => ({
         id: entry.id,
         ticker: entry.ticker,
@@ -527,7 +525,7 @@ export function createDashboardDataService(
         lastScanAt: lastScanByTicker.get(entry.ticker) ?? null,
         monitors: entry.monitors.map((monitor) => ({
           id: monitor.id,
-          kind: monitor.kind,
+          kind: "FULL" as const,
           frequency: monitor.frequency,
           status: monitor.status,
           expiresAt: monitor.expiresAt.toISOString(),

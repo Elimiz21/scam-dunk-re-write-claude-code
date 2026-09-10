@@ -36,7 +36,8 @@ describe("approved authenticated Paper & Ink shell", () => {
     const dashboard = readProjectFile("src/components/dashboard/DashboardHome.tsx");
 
     expect(dashboard).toContain("font-editorial");
-    expect(dashboard).toContain("bg-brand-blue");
+    expect(dashboard).toContain("UnifiedMarketTable");
+    expect(dashboard).toContain("not live");
   });
 
   test("allows the approved landing hero to shrink on narrow screens", () => {

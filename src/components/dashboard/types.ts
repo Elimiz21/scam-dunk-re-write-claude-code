@@ -154,6 +154,7 @@ export interface DashboardPayload {
     full: Required<SlotUsage>;
     price: Required<SlotUsage>;
   };
+  monitorCreditEstimate: MonitorCreditEstimate;
   watchlist: WatchlistEntryDto[];
   recentScans: RecentScanDto[];
   notifications?: NotificationDto[];
@@ -164,6 +165,26 @@ export interface DashboardPayload {
     state: "FRESH" | "STALE" | "UNAVAILABLE";
     notice: string;
   };
+}
+
+export type UnifiedMarketFilter = "ALL" | "WATCHING" | "RADAR" | "HIGH";
+export type UnifiedMarketSort = "DEFAULT" | "CHANGE" | "PRICE" | "PUMP_SCORE";
+export type SortDirection = "ASC" | "DESC";
+
+export interface UnifiedMarketRow {
+  key: string;
+  ticker: string;
+  displayTicker: string;
+  companyName: string | null;
+  source: "WATCHING" | "RADAR";
+  tracked: boolean;
+  watchlistEntry: WatchlistEntryDto | null;
+  lastScannedAt: string | null;
+  signalSummary: string | null;
+  riskLabel: CustomerRiskLabel;
+  priceChangePct: number | null;
+  lastPrice: number | null;
+  pumpScore: number | null;
 }
 
 export interface SocialEvidenceItem {

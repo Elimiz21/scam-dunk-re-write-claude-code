@@ -24,7 +24,7 @@ export function InfoTooltip({ term, definition, className }: InfoTooltipProps) {
   const [isVisible, setIsVisible] = React.useState(false);
   const [position, setPosition] = React.useState<"top" | "bottom">("top");
   const triggerRef = React.useRef<HTMLButtonElement>(null);
-  const tooltipRef = React.useRef<HTMLDivElement>(null);
+  const tooltipRef = React.useRef<HTMLSpanElement>(null);
 
   // Calculate optimal position based on available space
   React.useEffect(() => {
@@ -96,7 +96,7 @@ export function InfoTooltip({ term, definition, className }: InfoTooltipProps) {
       </button>
 
       {/* Tooltip */}
-      <div
+      <span
         ref={tooltipRef}
         id={`tooltip-${term.replace(/\s+/g, "-")}`}
         role="tooltip"
@@ -129,7 +129,7 @@ export function InfoTooltip({ term, definition, className }: InfoTooltipProps) {
         )}
       >
         {/* Arrow */}
-        <div
+        <span
           className={cn(
             "absolute left-1/2 -translate-x-1/2",
             "w-2.5 h-2.5",
@@ -142,13 +142,13 @@ export function InfoTooltip({ term, definition, className }: InfoTooltipProps) {
         />
 
         {/* Content */}
-        <div className="relative">
-          <p className="font-medium text-foreground mb-1">{term}</p>
-          <p className="text-muted-foreground text-xs leading-relaxed">
+        <span className="relative block">
+          <span className="mb-1 block font-medium text-foreground">{term}</span>
+          <span className="block text-xs leading-relaxed text-muted-foreground">
             {definition}
-          </p>
-        </div>
-      </div>
+          </span>
+        </span>
+      </span>
     </span>
   );
 }

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
-  BellRing,
   CalendarDays,
   Check,
   ListChecks,
@@ -19,7 +18,7 @@ const publicBillingPrices = getPublicBillingPrices();
 export const metadata: Metadata = {
   title: "Pricing — ScamDunk",
   description:
-    "Choose Free, Pro, or Pro Max for ScamDunk stock-risk checks, unlimited watchlist saves, and scheduled full or price monitoring after the trading day closes.",
+    "Choose Free, Pro, or Pro Max for ScamDunk stock-risk checks, unlimited watchlist saves, and scheduled full-analysis monitoring after the trading day closes.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -28,7 +27,7 @@ const productSchema = {
   "@type": "Product",
   name: "ScamDunk",
   description:
-    "Stock scam checks with unlimited watchlist saves and scheduled full-risk or price monitoring. Scheduled checks run after the trading day closes, not live.",
+    "Stock scam checks with unlimited watchlist saves and scheduled full-risk monitoring. Scheduled checks run after the trading day closes, not live.",
   brand: { "@type": "Brand", name: "ScamDunk" },
   offers: [
     {
@@ -37,7 +36,7 @@ const productSchema = {
       price: "0",
       priceCurrency: "USD",
       description:
-        "5 manual scan credits per month, an unlimited watchlist, and 1 price monitor.",
+        "5 manual scan credits per month, an unlimited watchlist, and 1 active monitor.",
     },
     {
       "@type": "Offer",
@@ -45,7 +44,7 @@ const productSchema = {
       price: (publicBillingPrices.PAID / 100).toFixed(2),
       priceCurrency: "USD",
       description:
-        "50 manual scan credits per month, an unlimited watchlist, 2 full monitors, and 5 price monitors.",
+        "50 manual scan credits per month, an unlimited watchlist, and 2 active monitors.",
     },
     {
       "@type": "Offer",
@@ -53,7 +52,7 @@ const productSchema = {
       price: (publicBillingPrices.PRO_MAX / 100).toFixed(2),
       priceCurrency: "USD",
       description:
-        "200 manual scan credits per month, an unlimited watchlist, 10 full monitors, and 20 price monitors.",
+        "200 manual scan credits per month, an unlimited watchlist, and 10 active monitors.",
     },
   ],
 };
@@ -67,7 +66,7 @@ const faqSchema = {
       name: "What does the free plan include?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Five manual scan credits per month, an unlimited watchlist, and one price monitor. Every check returns the full verdict and the exact signals we found — the free plan is not a teaser.",
+        text: "Five manual scan credits per month, an unlimited watchlist, and one active monitor. Every check returns the full verdict and the exact signals we found — the free plan is not a teaser.",
       },
     },
     {
@@ -75,15 +74,15 @@ const faqSchema = {
       name: "How do daily and weekly monitoring work?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Save as many supported US stocks as you want, then assign an available full monitor or price monitor to a ticker. Choose daily or weekly monitoring for 1–24 months. Each completed scheduled check uses one credit; creating or changing a monitor uses no credit. Checks run after the trading day closes — they are not live — and results appear in-app and by email.",
+        text: "Save as many supported US stocks as you want, then assign an available monitor to a ticker. Every monitor runs the full ScamDunk risk analysis. Choose daily or weekly monitoring for 1–24 months. Each completed scheduled check uses one credit; creating or changing a monitor uses no credit. Checks run after the trading day closes — they are not live — and results appear in-app and by email.",
       },
     },
     {
       "@type": "Question",
-      name: "What is the difference between a full monitor and a price monitor?",
+      name: "What does monitoring check?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "A full monitor reruns ScamDunk’s full risk analysis on its schedule. A price monitor checks price movement only on its schedule and does not rerun the full risk analysis. Both are scheduled after-market-close checks, not live monitoring.",
+        text: "Every monitor reruns ScamDunk’s full risk analysis on its daily or weekly schedule. Monitoring uses the latest completed after-market-close data and is not live.",
       },
     },
     {
@@ -122,7 +121,7 @@ const PLAN_CARDS = [
     features: [
       "5 manual scan credits per month",
       "Unlimited watchlist saves",
-      "1 price monitor",
+      "1 active monitor",
       "Daily or Weekly scheduled checks",
       "Full verdict with the exact signals found",
     ],
@@ -139,8 +138,7 @@ const PLAN_CARDS = [
     features: [
       "50 manual scan credits per month",
       "Unlimited watchlist saves",
-      "2 full monitors",
-      "5 price monitors",
+      "2 active monitors",
       "Daily or Weekly scheduled checks",
       "Everything in Free",
     ],
@@ -157,8 +155,7 @@ const PLAN_CARDS = [
     features: [
       "200 manual scan credits per month",
       "Unlimited watchlist saves",
-      "10 full monitors",
-      "20 price monitors",
+      "10 active monitors",
       "Daily or Weekly scheduled checks",
       "Everything in Pro",
     ],
@@ -178,15 +175,9 @@ const MONITORING_DETAILS = [
   },
   {
     icon: ScanSearch,
-    title: "Full monitor",
+    title: "Monitoring",
     description:
-      "Reruns the full ScamDunk risk analysis on a daily or weekly schedule.",
-  },
-  {
-    icon: BellRing,
-    title: "Price monitor",
-    description:
-      "Checks price movement on a daily or weekly schedule without rerunning the full risk analysis.",
+      "Every monitor reruns the full ScamDunk risk analysis on a daily or weekly schedule.",
   },
   {
     icon: CalendarDays,
@@ -210,9 +201,9 @@ export default function PricingPage() {
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
             Every plan includes an unlimited watchlist. Plans differ by manual
-            scan credits and monitoring capacity, so you can choose full risk
-            checks or price-movement checks without confusing either one for
-            live market monitoring.
+            scan credits and active monitoring capacity. Every monitor performs
+            the same full risk check using the latest completed market-wide scan,
+            never live market monitoring.
           </p>
         </section>
 
@@ -270,8 +261,8 @@ export default function PricingPage() {
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                 Active monitoring is separate from saving stocks to your
-                watchlist. Pick the monitor type, frequency, and duration that
-                match what you actually want checked.
+                watchlist. Pick the frequency and duration for the full analysis
+                you want scheduled.
               </p>
             </div>
             <div className="mt-8 grid gap-5 sm:grid-cols-2">

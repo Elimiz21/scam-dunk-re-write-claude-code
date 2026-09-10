@@ -882,21 +882,15 @@ function AccountContent() {
               </div>
 
               {billing && (
-                <div className="grid gap-3 sm:grid-cols-2 pt-4 border-t">
+                <div className="pt-4 border-t">
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      Full monitors
+                      Active monitors
                     </p>
                     <p className="font-medium">{billing.fullMonitorSlots} slots</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Price monitors
-                    </p>
-                    <p className="font-medium">{billing.priceMonitorSlots} slots</p>
-                  </div>
-                  <p className="sm:col-span-2 text-xs text-muted-foreground">
-                    Price monitoring is checked after the trading day closes — not live.
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Every monitor runs the full ScamDunk risk analysis after the trading day closes — not live.
                   </p>
                 </div>
               )}
@@ -1102,8 +1096,7 @@ function AccountContent() {
                       </div>
                       <ul className="text-sm space-y-1 text-muted-foreground">
                         <li>{plan.manualScanCredits} monthly scan credits</li>
-                        <li>{plan.fullMonitorSlots} full-monitor slots</li>
-                        <li>{plan.priceMonitorSlots} price-monitor slots</li>
+                        <li>{plan.fullMonitorSlots} active monitor{plan.fullMonitorSlots === 1 ? "" : "s"}</li>
                       </ul>
                       {currentPlan === "PAID" && plan.plan === "PRO_MAX" ? (
                         <p className="text-sm text-muted-foreground">
@@ -1129,7 +1122,7 @@ function AccountContent() {
                 </div>
                 <div className="rounded-lg border border-border bg-background/60 p-4 text-sm text-muted-foreground space-y-1">
                   <p>
-                    Price monitoring is checked after the trading day closes — not live.
+                    Monitoring runs the full ScamDunk risk analysis after the trading day closes — not live.
                   </p>
                   <p>
                     {billing?.trial.days

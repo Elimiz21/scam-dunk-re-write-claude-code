@@ -29,8 +29,8 @@ const PLAN_ENTITLEMENTS: Record<Plan | "PRO_MAX", PlanEntitlements> = {
     plan: "FREE",
     displayName: "Free",
     manualScanCredits: 5,
-    fullMonitorSlots: 0,
-    priceMonitorSlots: 1,
+    fullMonitorSlots: 1,
+    priceMonitorSlots: 0,
     savedWatchlistLimit: null,
   },
   PAID: {
@@ -38,7 +38,7 @@ const PLAN_ENTITLEMENTS: Record<Plan | "PRO_MAX", PlanEntitlements> = {
     displayName: "Pro",
     manualScanCredits: 50,
     fullMonitorSlots: 2,
-    priceMonitorSlots: 5,
+    priceMonitorSlots: 0,
     savedWatchlistLimit: null,
   },
   PRO_MAX: {
@@ -46,7 +46,7 @@ const PLAN_ENTITLEMENTS: Record<Plan | "PRO_MAX", PlanEntitlements> = {
     displayName: "Pro Max",
     manualScanCredits: 200,
     fullMonitorSlots: 10,
-    priceMonitorSlots: 20,
+    priceMonitorSlots: 0,
     savedWatchlistLimit: null,
   },
 };
@@ -56,9 +56,9 @@ export function getPlanEntitlements(plan: Plan | string): PlanEntitlements {
 }
 
 export function getMonitorSlotKey(
-  kind: "FULL" | "PRICE",
+  _kind: "FULL" | "PRICE",
 ): "fullMonitorSlots" | "priceMonitorSlots" {
-  return kind === "FULL" ? "fullMonitorSlots" : "priceMonitorSlots";
+  return "fullMonitorSlots";
 }
 
 /**

@@ -151,7 +151,7 @@ export default function RecentScansPage() {
                   <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div><dt className="text-xs text-muted-foreground">Risk score</dt><dd className="mt-1 font-semibold tabular-nums">{detail.score}</dd></div>
                     <div><dt className="text-xs text-muted-foreground">Signals</dt><dd className="mt-1 font-semibold tabular-nums">{detail.signalCount}</dd></div>
-                    <div><dt className="text-xs text-muted-foreground">Source</dt><dd className="mt-1 font-semibold">{detail.source === "MANUAL" ? "Manual scan" : detail.source === "AUTOMATIC_FULL" ? "Full monitor" : "Price monitor"}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Source</dt><dd className="mt-1 font-semibold">{detail.source === "MANUAL" ? "Manual scan" : "Monitor"}</dd></div>
                     <div><dt className="text-xs text-muted-foreground">Market data</dt><dd className="mt-1 font-semibold">{detail.market?.asOf ? "Published end-of-day" : "Unavailable"}</dd></div>
                   </dl>
                   {detail.market?.signalSummary && (

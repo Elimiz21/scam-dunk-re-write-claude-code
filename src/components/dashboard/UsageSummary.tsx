@@ -1,4 +1,4 @@
-import { BellRing, Gauge, Zap } from "lucide-react";
+import { Gauge, Zap } from "lucide-react";
 
 import type { DashboardPayload } from "@/components/dashboard/types";
 import { buildUsageView } from "@/components/dashboard/view-model";
@@ -29,7 +29,7 @@ export function UsageSummary({
         </div>
         {noCredits && <span className="text-xs font-semibold text-destructive">{view.quotaLabel}</span>}
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Card>
           <CardContent className="p-4 sm:p-5">
             <div className="flex items-center gap-2 text-primary"><Zap className="h-4 w-4" aria-hidden="true" /><span className="text-xs font-bold uppercase tracking-wider">Scan credits</span></div>
@@ -42,16 +42,9 @@ export function UsageSummary({
         </Card>
         <Card>
           <CardContent className="p-4 sm:p-5">
-            <div className="flex items-center gap-2 text-primary"><Gauge className="h-4 w-4" aria-hidden="true" /><span className="text-xs font-bold uppercase tracking-wider">Full monitoring</span></div>
+            <div className="flex items-center gap-2 text-primary"><Gauge className="h-4 w-4" aria-hidden="true" /><span className="text-xs font-bold uppercase tracking-wider">Monitoring</span></div>
             <p className="mt-3 text-2xl font-semibold tabular-nums">{monitorSlots.full.remaining}</p>
             <p className="mt-1 text-xs text-muted-foreground">{view.fullMonitorLabel}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex items-center gap-2 text-primary"><BellRing className="h-4 w-4" aria-hidden="true" /><span className="text-xs font-bold uppercase tracking-wider">Price monitoring</span></div>
-            <p className="mt-3 text-2xl font-semibold tabular-nums">{monitorSlots.price.remaining}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{view.priceMonitorLabel}</p>
           </CardContent>
         </Card>
       </div>

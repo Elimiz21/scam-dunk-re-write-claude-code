@@ -27,18 +27,20 @@ describe("Alon prototype workflow integration", () => {
     expect(table).toContain("Rescan recommended");
   });
 
-  test("prefills a rescan without silently submitting it", () => {
+  test("automatically starts a scan only when the dashboard explicitly requests it", () => {
     expect(read("src/app/HomeContent.tsx")).toContain("URLSearchParams");
     expect(read("src/app/HomeContent.tsx")).toContain("initialTicker");
     const input = read("src/components/ScanInput.tsx");
     expect(input).toContain("initialTicker?: string");
+    expect(input).toContain("autoSubmit?: boolean");
+    expect(input).toContain("autoSubmittedRef");
     expect(input).toContain("setTicker(initialTicker.toUpperCase())");
   });
 
-  test("keeps pricing visible in the authenticated sidebar and mounts the shared activity ticker", () => {
-    const sidebar = read("src/components/Sidebar.tsx");
-    expect(sidebar).toContain('href="/pricing"');
-    expect(sidebar).toContain("Pricing");
+  test("keeps pricing in the header and mounts the shared activity ticker", () => {
+    const header = read("src/components/Header.tsx");
+    expect(header).toContain('href: "/pricing"');
+    expect(header).toContain("Subscription");
 
     const layout = read("src/components/PageLayout.tsx");
     expect(layout).toContain("ActivityTicker");

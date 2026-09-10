@@ -11,11 +11,11 @@ Key facts:
 - 6,900+ US stocks scanned automatically every trading day
 - 800,000+ stock evaluations performed to date
 - Free plan: 5 manual scan credits per month, unlimited watchlist saves, and 1
-  price monitor, at https://scamdunk.com
+  active monitor, at https://scamdunk.com
 - Pro plan ($4.99/month): 50 manual scan credits per month, unlimited watchlist
-  saves, 2 full monitors, and 5 price monitors
+  saves, and 2 active monitors
 - Pro Max plan ($14.99/month): 200 manual scan credits per month, unlimited
-  watchlist saves, 10 full monitors, and 20 price monitors
+  watchlist saves, and 10 active monitors
 - Scheduled monitoring is daily or weekly after the trading day closes, not
   live. Each completed scheduled check uses one credit; results appear in-app
   and by email.
@@ -30,7 +30,7 @@ wants to know if it is a scam, a pump-and-dump, or otherwise manipulated.
 - [Scan a ticker](https://scamdunk.com/): the checker itself
 - [How it works](https://scamdunk.com/how-it-works): methodology and signals
 - [Pricing](https://scamdunk.com/pricing): Free vs Pro vs Pro Max, including
-  manual scan credits and scheduled full or price monitoring
+      manual scan credits and scheduled full-analysis monitoring
 - [How to detect stock scams](https://scamdunk.com/how-to-detect-stock-scams): red-flag guide
 - [Investment scams](https://scamdunk.com/investment-scams): fraud-type explainers
 - [Social media scams](https://scamdunk.com/social-media-scams): Telegram/Discord/Reddit schemes

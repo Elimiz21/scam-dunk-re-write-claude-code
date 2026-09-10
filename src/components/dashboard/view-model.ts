@@ -11,6 +11,10 @@ import type {
   SocialSummary,
   MonitorCreditEstimate,
   WatchlistEntryDto,
+  UnifiedMarketFilter,
+  UnifiedMarketRow,
+  UnifiedMarketSort,
+  SortDirection,
 } from "@/components/dashboard/types";
 
 export const HISTORY_ORDER_OPTIONS: Array<{
@@ -167,10 +171,9 @@ export function buildMonitorView(input: {
   creditEstimate: MonitorCreditEstimate;
   error?: ApiErrorShape | null;
 }) {
-  const selected = input.kind === "FULL" ? input.slots.full : input.slots.price;
-  const label = input.kind === "FULL" ? "full" : "price";
+  const selected = input.slots.full;
   return {
-    slotLabel: `${selected.used} of ${selected.limit} ${label} slots used`,
+    slotLabel: `${selected.used} of ${selected.limit} monitoring slots used`,
     hasAvailableSlot: selected.used < selected.limit,
     estimatedCredits: estimateScheduledCredits(
       input.frequency,
@@ -192,8 +195,8 @@ export function buildUsageView(input: Pick<
         ? "No scan credits remaining"
         : `${input.usage.creditsRemaining} scan credits remaining`,
     creditsLabel: `${input.usage.creditsUsed} of ${input.usage.creditsLimit} used`,
-    fullMonitorLabel: `${input.monitorSlots.full.used} of ${input.monitorSlots.full.limit} full monitors active`,
-    priceMonitorLabel: `${input.monitorSlots.price.used} of ${input.monitorSlots.price.limit} price monitors active`,
+    fullMonitorLabel: `${input.monitorSlots.full.used} of ${input.monitorSlots.full.limit} monitors active`,
+    priceMonitorLabel: null,
   };
 }
 
@@ -219,6 +222,95 @@ export function filterRecentScans(
   const normalized = query.trim().toUpperCase();
   if (!normalized) return items;
   return items.filter((item) => item.ticker.toUpperCase().includes(normalized));
+}
+
+export function buildUnifiedMarketRows(input: {
+  watchlist: WatchlistEntryDto[];
+  recentScans: RecentScanDto[];
+  pumpRadarRows: PumpRadarRow[];
+}): UnifiedMarketRow[] {
+  const radarByTicker = new Map(
+    input.pumpRadarRows
+      .filter((row): row is PumpRadarRow & { ticker: string } => Boolean(row.ticker))
+      .map((row) => [row.ticker.toUpperCase(), row]),
+  );
+  const recentByTicker = new Map<string, RecentScanDto>();
+  for (const scan of input.recentScans) {
+    const ticker = scan.ticker.toUpperCase();
+    if (!recentByTicker.has(ticker)) recentByTicker.set(ticker, scan);
+  }
+  const trackedTickers = new Set(input.watchlist.map((entry) => entry.ticker.toUpperCase()));
+
+  const watchingRows: UnifiedMarketRow[] = input.watchlist.map((entry) => {
+    const ticker = entry.ticker.toUpperCase();
+    const radar = radarByTicker.get(ticker);
+    const recent = recentByTicker.get(ticker);
+    return {
+      key: entry.id,
+      ticker,
+      displayTicker: ticker,
+      companyName: radar?.companyName ?? null,
+      source: "WATCHING",
+      tracked: true,
+      watchlistEntry: entry,
+      lastScannedAt: entry.lastScanAt,
+      signalSummary: radar?.signalSummary ?? null,
+      riskLabel: radar?.riskLabel ?? recent?.riskLabel ?? "Low risk",
+      priceChangePct: radar?.priceChangePct ?? null,
+      lastPrice: radar?.lastPrice ?? null,
+      pumpScore: radar?.score ?? recent?.score ?? null,
+    };
+  });
+
+  const radarRows: UnifiedMarketRow[] = input.pumpRadarRows
+    .filter((row) => !row.ticker || !trackedTickers.has(row.ticker.toUpperCase()))
+    .map((row, index) => ({
+      key: `radar:${row.ticker ?? row.displayTicker}:${index}`,
+      ticker: row.ticker?.toUpperCase() ?? row.displayTicker,
+      displayTicker: row.displayTicker,
+      companyName: row.companyName ?? null,
+      source: "RADAR",
+      tracked: false,
+      watchlistEntry: null,
+      lastScannedAt: null,
+      signalSummary: row.signalSummary,
+      riskLabel: row.riskLabel,
+      priceChangePct: row.priceChangePct,
+      lastPrice: row.lastPrice,
+      pumpScore: row.score,
+    }));
+
+  return [...watchingRows, ...radarRows];
+}
+
+export function filterUnifiedMarketRows(
+  rows: UnifiedMarketRow[],
+  filter: UnifiedMarketFilter,
+): UnifiedMarketRow[] {
+  if (filter === "WATCHING") return rows.filter((row) => row.tracked);
+  if (filter === "RADAR") return rows.filter((row) => row.source === "RADAR");
+  if (filter === "HIGH") return rows.filter((row) => row.riskLabel === "High risk");
+  return rows;
+}
+
+export function sortUnifiedMarketRows(
+  rows: UnifiedMarketRow[],
+  sort: UnifiedMarketSort,
+  direction: SortDirection,
+): UnifiedMarketRow[] {
+  if (sort === "DEFAULT") return rows;
+  const valueFor = (row: UnifiedMarketRow) => {
+    if (sort === "CHANGE") return row.priceChangePct;
+    if (sort === "PRICE") return row.lastPrice;
+    return row.pumpScore;
+  };
+  return [...rows].sort((left, right) => {
+    const leftValue = valueFor(left);
+    const rightValue = valueFor(right);
+    if (leftValue === null) return rightValue === null ? 0 : 1;
+    if (rightValue === null) return -1;
+    return direction === "ASC" ? leftValue - rightValue : rightValue - leftValue;
+  });
 }
 
 export function buildSocialEvidenceView(social: ScanSocialDto) {

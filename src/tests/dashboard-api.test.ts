@@ -322,7 +322,7 @@ describe("monitor mutations", () => {
     const response = await postMonitor(
       jsonRequest("http://localhost/api/monitors", "POST", {
         watchlistEntryId: "watch-1",
-        kind: "PRICE",
+        kind: "FULL",
         frequency: "DAILY",
         durationMonths: 1,
       }),
@@ -332,7 +332,7 @@ describe("monitor mutations", () => {
     expect(await response.json()).toEqual({
       error: {
         code: "PLAN_LIMIT",
-        message: "Your Free plan includes 1 active price monitor.",
+        message: "Your Free plan includes 1 active monitor.",
       },
     });
     expect(mockPrisma.activeMonitor.create).not.toHaveBeenCalled();
@@ -345,7 +345,7 @@ describe("monitor mutations", () => {
     mockPrisma.activeMonitor.create.mockResolvedValue({
       id: "monitor-1",
       watchlistEntryId: "watch-1",
-      kind: "PRICE",
+      kind: "FULL",
       frequency: "WEEKLY",
       startsAt: new Date("2026-08-25T12:00:00.000Z"),
       expiresAt: new Date("2028-08-25T12:00:00.000Z"),
@@ -359,7 +359,7 @@ describe("monitor mutations", () => {
     const accepted = await postMonitor(
       jsonRequest("http://localhost/api/monitors", "POST", {
         watchlistEntryId: "watch-1",
-        kind: "PRICE",
+        kind: "FULL",
         frequency: "WEEKLY",
         durationMonths: 24,
       }),
@@ -367,7 +367,7 @@ describe("monitor mutations", () => {
     const rejected = await postMonitor(
       jsonRequest("http://localhost/api/monitors", "POST", {
         watchlistEntryId: "watch-1",
-        kind: "PRICE",
+        kind: "FULL",
         frequency: "WEEKLY",
         durationMonths: 25,
       }),
@@ -388,7 +388,7 @@ describe("monitor mutations", () => {
     mockPrisma.activeMonitor.findFirst.mockResolvedValue({
       id: "monitor-expired",
       status: terminalStatus,
-      kind: "PRICE",
+      kind: "FULL",
     });
     mockPrisma.activeMonitor.update.mockResolvedValue({
       id: "monitor-expired",
@@ -405,7 +405,7 @@ describe("monitor mutations", () => {
     const response = await postMonitor(
       jsonRequest("http://localhost/api/monitors", "POST", {
         watchlistEntryId: "watch-1",
-        kind: "PRICE",
+        kind: "FULL",
         frequency: "DAILY",
         durationMonths: 1,
       }),

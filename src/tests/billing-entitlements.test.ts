@@ -57,15 +57,15 @@ describe("billing plan catalog", () => {
       displayName: "Free",
       monthlyPriceCents: 0,
       manualScanCredits: 5,
-      fullMonitorSlots: 0,
-      priceMonitorSlots: 1,
+      fullMonitorSlots: 1,
+      priceMonitorSlots: 0,
     });
     expect(catalog.PAID).toMatchObject({
       displayName: "Pro",
       monthlyPriceCents: 499,
       manualScanCredits: 50,
       fullMonitorSlots: 2,
-      priceMonitorSlots: 5,
+      priceMonitorSlots: 0,
       paypalPlanId: "P-LEGACY-PRO",
       stripePriceId: "price_pro",
     });
@@ -74,7 +74,7 @@ describe("billing plan catalog", () => {
       monthlyPriceCents: 1499,
       manualScanCredits: 200,
       fullMonitorSlots: 10,
-      priceMonitorSlots: 20,
+      priceMonitorSlots: 0,
       paypalPlanId: "P-PRO-MAX",
       stripePriceId: "price_pro_max",
     });
@@ -93,7 +93,7 @@ describe("billing plan catalog", () => {
       subscriptionId: "I-EXISTING-PAYPAL-SUBSCRIPTION",
       manualScanCredits: 50,
       fullMonitorSlots: 2,
-      priceMonitorSlots: 5,
+      priceMonitorSlots: 0,
     });
   });
 

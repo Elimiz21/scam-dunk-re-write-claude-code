@@ -10,7 +10,6 @@ import {
 import type {
   ApiErrorShape,
   MonitorCreditEstimate,
-  MonitorDto,
   MonitorListPayload,
   MonitorSlots,
   WatchlistEntryDto,
@@ -44,10 +43,7 @@ export default function WatchlistPage() {
   const [feedback, setFeedback] = useState<ApiErrorShape | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingTicker, setPendingTicker] = useState<string | null>(null);
-  const [selectedMonitor, setSelectedMonitor] = useState<{
-    entry: WatchlistEntryDto;
-    kind: MonitorDto["kind"];
-  } | null>(null);
+  const [selectedMonitor, setSelectedMonitor] = useState<WatchlistEntryDto | null>(null);
   const [monitorError, setMonitorError] = useState<ApiErrorShape | null>(null);
   const [isSavingMonitor, setIsSavingMonitor] = useState(false);
 
@@ -144,7 +140,7 @@ export default function WatchlistPage() {
         setFeedback(readApiError(body, "The ticker could not be removed."));
         return;
       }
-      if (selectedMonitor?.entry.id === entry.id) setSelectedMonitor(null);
+      if (selectedMonitor?.id === entry.id) setSelectedMonitor(null);
       setSuccess(`${entry.ticker} removed. No scan credit was used.`);
       await load();
       window.dispatchEvent(new Event("scamdunk:watchlist-updated"));
@@ -204,10 +200,10 @@ export default function WatchlistPage() {
           <header>
             <h1 className="font-editorial text-3xl sm:text-4xl">Your watchlist</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Choose per ticker whether to use a full monitor or price monitor, how often it checks, and for how long. Monitoring is checked after the trading day closes — not live.
+              Choose how often each monitored ticker receives the full ScamDunk risk analysis and for how long. Monitoring runs after the trading day closes — not live.
             </p>
             <p className="mt-3 text-xs text-muted-foreground">
-              Active monitoring: <strong className="text-foreground">{slots.full.used} of {slots.full.limit} full monitors</strong> and <strong className="text-foreground">{slots.price.used} of {slots.price.limit} price monitors</strong>.
+              Active monitoring: <strong className="text-foreground">{slots.full.used} of {slots.full.limit} monitors</strong>.
             </p>
           </header>
 
@@ -262,23 +258,22 @@ export default function WatchlistPage() {
               pendingTicker={pendingTicker}
               feedback={feedback}
               onRemove={(entry) => void removeTicker(entry)}
-              onEditMonitor={(entry, kind = "FULL") => {
+              onEditMonitor={(entry) => {
                 setMonitorError(null);
                 setSelectedMonitor((current) =>
-                  current?.entry.id === entry.id && current.kind === kind
+                  current?.id === entry.id
                     ? null
-                    : { entry, kind },
+                    : entry,
                 );
               }}
-              renderMonitorEditor={(entry) => selectedMonitor?.entry.id === entry.id ? (
+              renderMonitorEditor={(entry) => selectedMonitor?.id === entry.id ? (
                 <MonitorEditor
-                  key={`${entry.id}:${selectedMonitor.kind}`}
+                  key={entry.id}
                   entry={entry}
                   slots={slots}
                   creditEstimate={creditEstimate}
                   error={monitorError}
                   isSaving={isSavingMonitor}
-                  initialKind={selectedMonitor.kind}
                   onSubmit={saveMonitor}
                   onCancel={() => {
                     setMonitorError(null);

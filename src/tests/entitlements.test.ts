@@ -7,9 +7,9 @@ import { getScanLimit } from "../lib/config";
 
 describe("plan entitlements", () => {
   test.each([
-    ["FREE", 5, 0, 1, "Free"],
-    ["PAID", 50, 2, 5, "Pro"],
-    ["PRO_MAX", 200, 10, 20, "Pro Max"],
+    ["FREE", 5, 1, 0, "Free"],
+    ["PAID", 50, 2, 0, "Pro"],
+    ["PRO_MAX", 200, 10, 0, "Pro Max"],
   ])(
     "%s returns the approved credits and monitor slots",
     (plan, manualScanCredits, fullMonitorSlots, priceMonitorSlots, displayName) => {
@@ -30,9 +30,9 @@ describe("plan entitlements", () => {
     );
   });
 
-  test("maps monitor kinds to their entitlement fields", () => {
+  test("maps every legacy monitor kind to the single monitoring entitlement", () => {
     expect(getMonitorSlotKey("FULL")).toBe("fullMonitorSlots");
-    expect(getMonitorSlotKey("PRICE")).toBe("priceMonitorSlots");
+    expect(getMonitorSlotKey("PRICE")).toBe("fullMonitorSlots");
   });
 
   test("uses the approved 50-credit Pro entitlement even when a legacy environment override remains set", () => {

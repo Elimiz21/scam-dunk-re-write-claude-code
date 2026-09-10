@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
   watchlistEntryId: z.string().trim().min(1).max(128),
-  kind: z.enum(["FULL", "PRICE"]),
+  kind: z.enum(["FULL", "PRICE"]).default("FULL"),
   frequency: z.enum(["DAILY", "WEEKLY"]),
   durationMonths: z.number().int().min(1).max(24),
 });
@@ -79,11 +79,9 @@ function addCalendarMonths(date: Date, months: number): Date {
 function planLimitMessage(
   displayName: string,
   limit: number,
-  kind: "FULL" | "PRICE",
 ) {
-  const label = kind === "FULL" ? "full" : "price";
   const noun = limit === 1 ? "monitor" : "monitors";
-  return `Your ${displayName} plan includes ${limit} active ${label} ${noun}.`;
+  return `Your ${displayName} plan includes ${limit} active ${noun}.`;
 }
 
 async function parseBody(request: NextRequest): Promise<unknown> {
@@ -115,7 +113,7 @@ function handleError(error: unknown) {
       {
         error: {
           code: "MONITOR_EXISTS",
-          message: "This ticker already has a monitor of that type.",
+          message: "This ticker already has active monitoring.",
         },
       },
       { status: 409 },
@@ -153,18 +151,13 @@ export async function GET(_request: NextRequest) {
     ]);
     if (!user) return unauthorized();
     const entitlements = getPlanEntitlements(user.plan);
-    const activeFull = monitors.filter(
-      (monitor) => monitor.status === "ACTIVE" && monitor.kind === "FULL",
-    ).length;
-    const activePrice = monitors.filter(
-      (monitor) => monitor.status === "ACTIVE" && monitor.kind === "PRICE",
-    ).length;
+    const activeFull = monitors.filter((monitor) => monitor.status === "ACTIVE").length;
     return NextResponse.json(
       {
         monitors,
         slots: {
           full: { used: activeFull, limit: entitlements.fullMonitorSlots },
-          price: { used: activePrice, limit: entitlements.priceMonitorSlots },
+          price: { used: 0, limit: 0 },
         },
         creditEstimate: getMonitorCreditEstimate(),
         notice: "Checked after the trading day closes — not live.",
@@ -212,7 +205,6 @@ export async function POST(request: NextRequest) {
         const slotLimit = entitlements[getMonitorSlotKey(parsed.data.kind)];
         const activeCount = await transaction.activeMonitor.count({
           where: {
-            kind: parsed.data.kind,
             status: "ACTIVE",
             watchlistEntry: { userId: session.user.id },
           },
@@ -223,7 +215,6 @@ export async function POST(request: NextRequest) {
             planLimitMessage(
               entitlements.displayName,
               slotLimit,
-              parsed.data.kind,
             ),
             409,
           );
@@ -232,7 +223,6 @@ export async function POST(request: NextRequest) {
         const existing = await transaction.activeMonitor.findFirst({
           where: {
             watchlistEntryId: watchlistEntry.id,
-            kind: parsed.data.kind,
             status: { in: ["ACTIVE", "PAUSED", "EXPIRED"] },
           },
           select: { id: true, status: true },
@@ -240,7 +230,7 @@ export async function POST(request: NextRequest) {
         if (existing?.status === "ACTIVE" || existing?.status === "PAUSED") {
           throw new MonitorApiError(
             "MONITOR_EXISTS",
-            "This ticker already has a monitor of that type.",
+            "This ticker already has active monitoring.",
             409,
           );
         }
@@ -261,7 +251,7 @@ export async function POST(request: NextRequest) {
           : transaction.activeMonitor.create({
               data: {
                 watchlistEntryId: watchlistEntry.id,
-                kind: parsed.data.kind,
+                kind: "FULL",
                 ...data,
               },
             });
@@ -307,7 +297,6 @@ export async function PATCH(request: NextRequest) {
           const slotLimit = entitlements[getMonitorSlotKey(current.kind as "FULL" | "PRICE")];
           const activeCount = await transaction.activeMonitor.count({
             where: {
-              kind: current.kind,
               status: "ACTIVE",
               watchlistEntry: { userId: session.user.id },
             },
@@ -318,7 +307,6 @@ export async function PATCH(request: NextRequest) {
               planLimitMessage(
                 entitlements.displayName,
                 slotLimit,
-                current.kind as "FULL" | "PRICE",
               ),
               409,
             );

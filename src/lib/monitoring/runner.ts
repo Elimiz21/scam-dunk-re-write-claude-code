@@ -309,8 +309,7 @@ export function createMonitoringRunner(
           data: {
             userId: monitor.watchlistEntry.userId,
             ticker: monitor.watchlistEntry.ticker,
-            assetType:
-              monitor.kind === "FULL" ? "monitor-full" : "monitor-price",
+            assetType: "monitor-full",
             riskLevel: snapshot.riskLevel,
             totalScore: snapshot.totalScore,
             signalsCount: snapshot.signalCount,

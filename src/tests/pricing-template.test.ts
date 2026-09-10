@@ -44,21 +44,20 @@ describe("public pricing disclosure", () => {
   test("shows all three plans with their approved scan and monitoring limits", () => {
     expect(pricingPage).toContain('name: "Pro Max"');
     expect(pricingPage).toContain("200 manual scan credits");
-    expect(pricingPage).toContain("10 full monitors");
-    expect(pricingPage).toContain("20 price monitors");
+    expect(pricingPage).toContain("10 active monitors");
     expect(pricingPage).toContain("50 manual scan credits");
-    expect(pricingPage).toContain("2 full monitors");
-    expect(pricingPage).toContain("5 price monitors");
+    expect(pricingPage).toContain("2 active monitors");
     expect(pricingPage).toContain("5 manual scan credits");
-    expect(pricingPage).toContain("1 price monitor");
+    expect(pricingPage).toContain("1 active monitor");
   });
 
   test("explains watchlists, scheduled frequencies, credits, and the not-live boundary", () => {
     expect(pricingPage).toContain("Save as many supported US stocks as you want");
     expect(pricingPage).toContain("Daily");
     expect(pricingPage).toContain("Weekly");
-    expect(pricingPage).toContain("Price monitor");
-    expect(pricingPage).toContain("Full monitor");
+    expect(pricingPage).toContain("full ScamDunk risk analysis");
+    expect(pricingPage).not.toContain("Price monitor");
+    expect(pricingPage).not.toContain("Full monitor");
     expect(pricingPage).toContain("not live");
     expect(pricingPage).toContain("Each completed scheduled check uses one credit");
     expect(pricingPage).toContain("in-app");
@@ -75,18 +74,16 @@ describe("public pricing disclosure", () => {
   test("keeps landing, help, and terms pricing language aligned with the approved model", () => {
     expect(landing).toContain("Pro Max");
     expect(homePage).toContain("formatUsdCents");
-    expect(landing).toContain("10 full monitors");
-    expect(landing).toContain("20 price monitors");
+    expect(landing).toContain("10 active monitors");
     expect(help).toContain("Pro Max");
-    expect(help).toContain("price monitoring");
+    expect(help).toContain("full ScamDunk risk analysis");
     expect(terms).toContain("Pro Max");
     expect(terms).toContain("not live");
   });
 
   test("keeps machine-readable and signup pricing copy aligned", () => {
     expect(llms).toContain("Pro Max plan");
-    expect(llms).toContain("10 full monitors");
-    expect(llms).toContain("20 price monitors");
+    expect(llms).toContain("10 active monitors");
     expect(llms).toContain("daily or weekly");
     expect(signup).toContain("5 manual scan credits per month");
   });
@@ -95,10 +92,13 @@ describe("public pricing disclosure", () => {
     expect(limitReached).toContain("Pro Max");
     expect(limitReached).toContain("Your Pro Max plan is active");
     expect(limitReached).toContain("Plan: {planLabel}");
+    expect(limitReached).not.toContain("price-monitoring");
     expect(account).toContain('currentPlan !== "PRO_MAX"');
     expect(account).toContain('plan.plan === "PRO_MAX"');
     expect(account).toContain('plan === "PRO_MAX" ? "Pro Max" : "Pro"');
     expect(account).toContain("Contact support to change from Pro to Pro Max");
+    expect(account).not.toContain("full-monitor slots");
+    expect(account).not.toContain("price-monitor slots");
     expect(homepageGenerator).toContain("Free, Pro, and Pro Max");
   });
 });

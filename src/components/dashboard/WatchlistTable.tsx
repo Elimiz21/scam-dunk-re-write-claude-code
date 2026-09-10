@@ -13,7 +13,7 @@ interface WatchlistTableProps {
   pendingTicker: string | null;
   feedback?: ApiErrorShape | null;
   onRemove: (entry: WatchlistEntryDto) => void;
-  onEditMonitor: (entry: WatchlistEntryDto, kind?: MonitorDto["kind"]) => void;
+  onEditMonitor: (entry: WatchlistEntryDto) => void;
   renderMonitorEditor?: (entry: WatchlistEntryDto) => ReactNode;
 }
 
@@ -28,9 +28,8 @@ function needsManualRescan(lastScanAt: string | null): boolean {
 }
 
 function monitorLabel(monitor: MonitorDto): string {
-  const kind = monitor.kind === "FULL" ? "Full monitor" : "Price monitor";
   const frequency = monitor.frequency === "DAILY" ? "Daily" : "Weekly";
-  return `${kind} · ${frequency}`;
+  return `Monitoring · ${frequency}`;
 }
 
 export function WatchlistTable({
@@ -57,7 +56,7 @@ export function WatchlistTable({
           <div className="px-5 py-12 text-center">
             <Radio className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
             <p className="mt-3 font-semibold">{view.title}</p>
-            <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Add a supported US-listed stock, then choose full or price monitoring.</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Add a supported US-listed stock, then schedule the full ScamDunk risk analysis.</p>
           </div>
         ) : (
           <div className="divide-y divide-border/60 px-4 sm:px-6">
@@ -83,7 +82,7 @@ export function WatchlistTable({
                         <button
                           key={monitor.id}
                           type="button"
-                          onClick={() => onEditMonitor(entry, monitor.kind)}
+                          onClick={() => onEditMonitor(entry)}
                           className="min-h-10 rounded-full border border-teal/30 bg-teal/10 px-3 text-[11px] font-semibold text-teal transition-colors hover:bg-teal/15"
                         >
                           {monitorLabel(monitor)}
@@ -100,7 +99,7 @@ export function WatchlistTable({
                       )}
                       {manualOnly && (
                         <Button asChild variant="outline" size="sm" className="min-h-10 rounded-full">
-                          <Link href={`/?ticker=${encodeURIComponent(entry.ticker)}&focus=scan`}>
+                          <Link href={`/?ticker=${encodeURIComponent(entry.ticker)}&focus=scan&auto=1`}>
                             <ScanLine className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                             Rescan now
                           </Link>

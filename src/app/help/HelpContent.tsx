@@ -40,7 +40,7 @@ const faqs: FAQItem[] = [
     category: "Getting Started",
     question: "Is ScamDunk free to use?",
     answer:
-      "Yes! Free includes 5 manual scan credits per month, an unlimited watchlist, and 1 price monitor. Pro includes 50 credits, 2 full monitors, and 5 price monitors. Pro Max includes 200 credits, 10 full monitors, and 20 price monitors.",
+      "Yes! Free includes 5 manual scan credits per month, an unlimited watchlist, and 1 active monitor. Pro includes 50 credits and 2 active monitors. Pro Max includes 200 credits and 10 active monitors. Every monitor runs the full ScamDunk risk analysis.",
   },
   {
     category: "Getting Started",
@@ -92,7 +92,7 @@ const faqs: FAQItem[] = [
     category: "Coverage & Limitations",
     question: "Is the market data live?",
     answer:
-      "No. ScamDunk checks published market data after the trading day closes; it does not provide live price monitoring. You can choose a daily or weekly full monitor or price monitor, for a duration of 1–24 months. Each completed scheduled check uses one credit and results appear in-app and by email.",
+      "No. ScamDunk checks published market data after the trading day closes; it does not provide live monitoring. You can schedule the full ScamDunk risk analysis daily or weekly for 1–24 months. Each completed scheduled check uses one credit and results appear in-app and by email.",
   },
 
   // Account & Billing

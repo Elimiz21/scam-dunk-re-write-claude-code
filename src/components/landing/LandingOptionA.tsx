@@ -390,7 +390,7 @@ export function LandingOptionA({
               <ul className="mt-5 flex-1 space-y-2 text-[14px] text-foreground/90">
                 <li>5 manual scan credits per month</li>
                 <li>Unlimited watchlist saves</li>
-                <li>1 price monitor</li>
+                <li>1 active monitor</li>
                 <li>Daily or Weekly scheduled checks</li>
                 <li>Full verdict with the exact signals found</li>
               </ul>
@@ -410,7 +410,7 @@ export function LandingOptionA({
               <ul className="mt-5 flex-1 space-y-2 text-[14px] text-foreground/90">
                 <li>50 manual scan credits per month</li>
                 <li>Unlimited watchlist saves</li>
-                <li>2 full monitors · 5 price monitors</li>
+                <li>2 active monitors</li>
                 <li>Daily or Weekly scheduled checks</li>
                 <li>WhatsApp &amp; Telegram bots (coming soon)</li>
               </ul>
@@ -430,7 +430,7 @@ export function LandingOptionA({
               <ul className="mt-5 flex-1 space-y-2 text-[14px] text-foreground/90">
                 <li>200 manual scan credits per month</li>
                 <li>Unlimited watchlist saves</li>
-                <li>10 full monitors · 20 price monitors</li>
+                <li>10 active monitors</li>
                 <li>Daily or Weekly scheduled checks</li>
                 <li>Everything in Pro</li>
               </ul>
