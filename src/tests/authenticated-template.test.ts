@@ -32,6 +32,11 @@ describe("approved authenticated Paper & Ink shell", () => {
     expect(ticker).not.toContain("community");
     expect(ticker).toContain("not live");
     expect(ticker).toContain("xl:hidden");
+    expect(ticker).toContain("text-primary sm:flex");
+    expect(ticker).toContain('compactLabel="Latest"');
+    expect(ticker).toContain('compactLabel="High"');
+    expect(ticker).toContain('aria-hidden="true"');
+    expect(ticker).toContain('className="sr-only sm:hidden"');
   });
 
   test("keeps the authenticated scan home inside the approved dashboard shell", () => {
