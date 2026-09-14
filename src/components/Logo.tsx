@@ -3,52 +3,77 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
-  /** Rendered height in pixels. Header uses 56; footer 48; auth pages 64. */
+  /** Rendered height in pixels. */
   size?: number;
   href?: string | null;
   className?: string;
   priority?: boolean;
+  onDarkSurface?: boolean;
 }
 
 /**
- * The ScamDunk brand mark (agency design, Aug 2026): shield-S icon plus
- * wordmark, shipped as a single image asset. Source of truth:
- * public/images/brand/logo.png (1012x320). Use size to scale; aspect ratio
- * is preserved.
+ * The ScamDunk shield-S and wordmark. Dark mode layers the white wordmark
+ * over the original teal shield so the shield's dark S cutout stays intact.
  */
 export function Logo({
   size = 56,
   href = "/",
   className,
   priority = false,
+  onDarkSurface = false,
 }: LogoProps) {
   const width = Math.round(size * (1012 / 320));
   const img = (
-    <span className={cn("inline-flex items-center", className)}>
+    <span
+      className={cn("relative inline-flex shrink-0 items-center", className)}
+      style={{ width, height: size }}
+    >
       <Image
         src="/images/brand/logo.png"
         alt="ScamDunk"
         width={width}
         height={size}
         priority={priority}
-        className="w-auto dark:hidden"
-        style={{ height: size }}
+        className="h-full w-full object-contain"
       />
       <Image
+        data-logo-layer="dark-wordmark"
         src="/images/brand/logo-dark.png"
-        alt="ScamDunk"
+        alt=""
+        aria-hidden="true"
         width={width}
         height={size}
         priority={priority}
-        className="hidden w-auto dark:block"
-        style={{ height: size }}
+        className={cn(
+          "absolute inset-0 h-full w-full object-contain",
+          onDarkSurface ? "block" : "hidden dark:block",
+        )}
+        style={{ clipPath: "inset(0 0 0 25%)" }}
       />
     </span>
   );
+
   if (!href) return img;
   return (
     <Link href={href} className="flex items-center" aria-label="ScamDunk home">
       {img}
     </Link>
+  );
+}
+
+export function NavigationLogo({
+  href = "/",
+  className,
+  priority = false,
+  onDarkSurface = false,
+}: Omit<LogoProps, "size">) {
+  return (
+    <Logo
+      size={32}
+      href={href}
+      className={className}
+      priority={priority}
+      onDarkSurface={onDarkSurface}
+    />
   );
 }

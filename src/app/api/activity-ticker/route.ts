@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
 
-import { auth } from "@/lib/auth";
 import { getActivityTicker } from "@/lib/activity-ticker";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const session = await auth();
-    const payload = await getActivityTicker({
-      excludeUserId: session?.user?.id,
-    });
+    const payload = await getActivityTicker();
     return NextResponse.json(payload, {
-      headers: { "Cache-Control": "private, no-store" },
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
     });
   } catch (error) {
     console.error("Activity ticker API error:", error);
