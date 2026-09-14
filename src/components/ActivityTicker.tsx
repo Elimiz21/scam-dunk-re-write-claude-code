@@ -28,11 +28,13 @@ function Stat({
   value,
   tone,
   className,
+  compactLabel,
 }: {
   label: string;
   value: string;
   tone?: "high" | "caution";
   className?: string;
+  compactLabel?: string;
 }) {
   return (
     <span
@@ -47,7 +49,22 @@ function Stat({
       {tone === "caution" && (
         <AlertCircle className="h-3 w-3 text-amber-500" aria-hidden="true" />
       )}
-      <span className="text-muted-foreground">{label}</span>
+      <span
+        className={cn("text-muted-foreground", compactLabel && "hidden sm:inline")}
+      >
+        {label}
+      </span>
+      {compactLabel && (
+        <>
+          <span
+            aria-hidden="true"
+            className="text-muted-foreground sm:hidden"
+          >
+            {compactLabel}
+          </span>
+          <span className="sr-only sm:hidden">{label}</span>
+        </>
+      )}
       <strong
         className={cn(
           "tabular-nums text-foreground",
@@ -99,7 +116,7 @@ export function ActivityTicker() {
       className="sticky top-16 z-30 overflow-hidden border-b border-border/60 bg-card/95 backdrop-blur"
     >
       <div className="mx-auto flex min-h-11 w-full max-w-[1600px] items-center gap-1.5 overflow-hidden px-2 py-2 text-[11px] sm:gap-3 sm:px-4">
-        <div className="flex shrink-0 items-center gap-1.5 font-semibold uppercase tracking-widest text-primary">
+        <div className="hidden shrink-0 items-center gap-1.5 font-semibold uppercase tracking-widest text-primary sm:flex">
           <Activity className="h-3.5 w-3.5" aria-hidden="true" />
           <span className="hidden sm:inline">Activity</span>
         </div>
@@ -129,11 +146,13 @@ export function ActivityTicker() {
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 overflow-hidden sm:gap-3">
             <Stat
               label="Latest scan"
+              compactLabel="Latest"
               value={formatCount(state.data.latestScan.evaluated)}
             />
             <span className="h-4 w-px shrink-0 bg-border" aria-hidden="true" />
             <Stat
               label="High risk"
+              compactLabel="High"
               value={formatCount(state.data.latestScan.highRisk)}
               tone="high"
             />

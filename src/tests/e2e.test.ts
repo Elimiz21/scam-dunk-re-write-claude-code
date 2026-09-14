@@ -109,7 +109,24 @@ function generateMockPriceHistory(
   return history;
 }
 
+const originalOpenAIKey = process.env.OPENAI_API_KEY;
+
 describe("End-to-End Integration Tests", () => {
+  beforeAll(() => {
+    // This suite verifies deterministic application behavior. Never turn it
+    // into a live, paid OpenAI integration test because a developer shell has
+    // credentials configured.
+    delete process.env.OPENAI_API_KEY;
+  });
+
+  afterAll(() => {
+    if (originalOpenAIKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = originalOpenAIKey;
+    }
+  });
+
   describe("Price Calculation Functions", () => {
     it("should calculate price change correctly", () => {
       const history = [
@@ -374,23 +391,6 @@ describe("End-to-End Integration Tests", () => {
   });
 
   describe("Narrative Generation (Fallback)", () => {
-    const originalOpenAIKey = process.env.OPENAI_API_KEY;
-
-    beforeAll(() => {
-      // These cases assert the deterministic fallback contract. A developer
-      // shell with an OpenAI key must not turn them into live, nondeterministic
-      // network tests.
-      delete process.env.OPENAI_API_KEY;
-    });
-
-    afterAll(() => {
-      if (originalOpenAIKey === undefined) {
-        delete process.env.OPENAI_API_KEY;
-      } else {
-        process.env.OPENAI_API_KEY = originalOpenAIKey;
-      }
-    });
-
     it("should generate HIGH risk narrative", async () => {
       const signals = [
         {
