@@ -8,6 +8,7 @@ describe("credential login database read", () => {
       name: "Investor",
       plan: "FREE",
       hashedPassword: "hash",
+      sessionVersion: 3,
       emailVerified: new Date("2026-01-01T00:00:00.000Z"),
     };
     const findUnique = jest.fn().mockResolvedValue(user);
@@ -24,6 +25,7 @@ describe("credential login database read", () => {
         name: true,
         plan: true,
         hashedPassword: true,
+        sessionVersion: true,
         emailVerified: true,
       },
     });

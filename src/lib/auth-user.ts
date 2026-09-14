@@ -4,6 +4,7 @@ type CredentialsUser = {
   name: string | null;
   plan: string;
   hashedPassword: string | null;
+  sessionVersion: number;
   emailVerified: Date | null;
 };
 
@@ -17,6 +18,7 @@ type CredentialsUserClient = {
         name: true;
         plan: true;
         hashedPassword: true;
+        sessionVersion: true;
         emailVerified: true;
       };
     }): Promise<CredentialsUser | null>;
@@ -35,6 +37,7 @@ export function findCredentialsUser(
       name: true,
       plan: true,
       hashedPassword: true,
+      sessionVersion: true,
       emailVerified: true,
     },
   });
