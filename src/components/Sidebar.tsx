@@ -9,7 +9,7 @@ import { Menu, X } from "lucide-react";
 import { DASHBOARD_NAV_ITEMS } from "@/components/dashboard/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Logo } from "./Logo";
+import { NavigationLogo } from "./Logo";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -86,7 +86,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan: _onNewScan, refreshKey = 
         aria-label="Dashboard navigation"
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-4 lg:hidden">
-          <Logo size={30} href="/dashboard" />
+          <NavigationLogo href="/dashboard" onDarkSurface />
           <Button type="button" variant="ghost" size="icon" className="h-11 w-11" onClick={onToggle} aria-label="Close menu">
             <X className="h-5 w-5" aria-hidden="true" />
           </Button>

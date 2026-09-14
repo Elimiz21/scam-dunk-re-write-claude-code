@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { SidebarToggle } from "./Sidebar";
 import { ThemeToggle } from "./ThemeToggle";
-import { Logo } from "./Logo";
+import { NavigationLogo } from "./Logo";
 import { cn } from "@/lib/utils";
 import { UsageInfo } from "@/lib/types";
 
@@ -76,7 +76,7 @@ export function Header({
         {/* Left side - Brand */}
         <div className="flex items-center gap-3">
           {session && <SidebarToggle onClick={onSidebarToggle} />}
-          <Logo size={30} className="ml-1" priority />
+          <NavigationLogo className="ml-1" priority />
         </div>
 
         {/* Alon's shell keeps the public navigation visible after login. */}

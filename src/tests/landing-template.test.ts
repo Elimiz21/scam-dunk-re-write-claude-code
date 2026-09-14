@@ -21,6 +21,11 @@ describe("approved Paper & Ink landing template", () => {
     const logo = readProjectFile("src/components/Logo.tsx");
 
     expect(logo).toContain("/images/brand/logo.png");
+    expect(logo).toContain("/images/brand/logo-dark.png");
+    expect(logo).toContain('data-logo-layer="dark-wordmark"');
+    expect(logo).toContain('clipPath: "inset(0 0 0 25%)"');
+    expect(logo).toContain("export function NavigationLogo");
+    expect(logo).toContain("onDarkSurface");
     expect(readProjectFile("public/images/brand/logo.png")).not.toHaveLength(0);
     expect(readProjectFile("public/images/landing/hero-reading.jpg")).not.toHaveLength(0);
     expect(readProjectFile("public/images/landing/how-phone.jpg")).not.toHaveLength(0);
