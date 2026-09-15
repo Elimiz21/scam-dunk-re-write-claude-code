@@ -11,9 +11,32 @@ describe("approved authenticated Paper & Ink shell", () => {
   test("uses the shared approved logo in the sliding sidebar", () => {
     const sidebar = readProjectFile("src/components/Sidebar.tsx");
 
-    expect(sidebar).toContain('import { Logo } from "./Logo";');
-    expect(sidebar).toContain('<Logo size={30} href="/dashboard" />');
+    expect(sidebar).toContain('import { NavigationLogo } from "./Logo";');
+    expect(sidebar).toContain('<NavigationLogo href="/dashboard" onDarkSurface />');
     expect(sidebar).not.toContain("<Shield className=\"h-3.5 w-3.5 text-white\"");
+  });
+
+  test("uses the same navigation logo in the public and authenticated header", () => {
+    const header = readProjectFile("src/components/Header.tsx");
+
+    expect(header).toContain('import { NavigationLogo } from "./Logo";');
+    expect(header).toContain("<NavigationLogo");
+  });
+
+  test("keeps the activity strip inside the viewport without a horizontal scrollbar", () => {
+    const ticker = readProjectFile("src/components/ActivityTicker.tsx");
+
+    expect(ticker).toContain("overflow-hidden");
+    expect(ticker).not.toContain("overflow-x-auto");
+    expect(ticker).not.toContain("Other users");
+    expect(ticker).not.toContain("community");
+    expect(ticker).toContain("not live");
+    expect(ticker).toContain("xl:hidden");
+    expect(ticker).toContain("text-primary sm:flex");
+    expect(ticker).toContain('compactLabel="Latest"');
+    expect(ticker).toContain('compactLabel="High"');
+    expect(ticker).toContain('aria-hidden="true"');
+    expect(ticker).toContain('className="sr-only sm:hidden"');
   });
 
   test("keeps the authenticated scan home inside the approved dashboard shell", () => {

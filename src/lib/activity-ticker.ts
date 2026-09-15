@@ -1,154 +1,141 @@
 import { prisma } from "@/lib/db";
 
-export interface ActivityRiskCounts {
-  total: number;
+export interface ActivityMarketScan {
+  scanDate: string;
+  totalStocks: number;
+  evaluated: number;
+  skipped: number;
   highRisk: number;
   caution: number;
   lowRisk: number;
+  coveragePercent: number | null;
 }
 
-export interface ActivityTickerPayload {
-  status: "AVAILABLE";
-  updatedAt: string;
-  allTimeScans: number;
-  week: ActivityRiskCounts;
-  month: ActivityRiskCounts;
-  community: Array<{
-    displayTicker: string;
-    riskLabel: "High risk";
-    score: number;
-    scannedAt: string;
-  }>;
-  notice: string;
-}
+export type ActivityTickerPayload =
+  | {
+      status: "AVAILABLE";
+      updatedAt: string;
+      latestScan: ActivityMarketScan;
+      allTimeEvaluations: number;
+      notice: string;
+    }
+  | {
+      status: "UNAVAILABLE";
+      updatedAt: string;
+      latestScan: null;
+      allTimeEvaluations: null;
+      notice: string;
+    };
+
+type DailyScanSummaryRow = {
+  scanDate: Date;
+  totalStocks: number;
+  evaluated: number;
+  skippedNoData: number;
+  lowRiskCount: number;
+  mediumRiskCount: number;
+  highRiskCount: number;
+  insufficientCount: number;
+};
 
 type ActivityTickerClient = {
-  scanHistory: {
-    count: (args: unknown) => Promise<number>;
-    groupBy: (args: unknown) => Promise<unknown[]>;
-    findMany: (args: unknown) => Promise<unknown[]>;
+  dailyScanSummary: {
+    findFirst: (args: unknown) => Promise<DailyScanSummaryRow | null>;
+    aggregate: (args: unknown) => Promise<{ _sum: { evaluated: number | null } }>;
   };
 };
 
-type RiskGroup = {
-  riskLevel?: unknown;
-  _count?: { _all?: unknown };
-};
-
-function startOfUtcWeek(date: Date): Date {
-  const result = new Date(date);
-  result.setUTCHours(0, 0, 0, 0);
-  const day = result.getUTCDay();
-  const daysSinceMonday = day === 0 ? 6 : day - 1;
-  result.setUTCDate(result.getUTCDate() - daysSinceMonday);
-  return result;
+function safeCount(value: unknown): number {
+  return Math.max(Number(value) || 0, 0);
 }
 
-function startOfUtcMonth(date: Date): Date {
-  const result = new Date(date);
-  result.setUTCHours(0, 0, 0, 0);
-  result.setUTCDate(1);
-  return result;
-}
-
-function maskedTicker(value: unknown): string {
-  const ticker = String(value || "").trim().toUpperCase();
-  return ticker ? `${ticker.slice(0, 1)}•••` : "•••";
-}
-
-function riskCounts(groups: unknown[]): ActivityRiskCounts {
-  const counts: ActivityRiskCounts = {
-    total: 0,
-    highRisk: 0,
-    caution: 0,
-    lowRisk: 0,
+function unavailable(updatedAt: string, notice: string): ActivityTickerPayload {
+  return {
+    status: "UNAVAILABLE",
+    updatedAt,
+    latestScan: null,
+    allTimeEvaluations: null,
+    notice,
   };
-
-  for (const group of groups as RiskGroup[]) {
-    const count = Math.max(Number(group._count?._all) || 0, 0);
-    counts.total += count;
-    switch (String(group.riskLevel || "").toUpperCase()) {
-      case "HIGH":
-        counts.highRisk += count;
-        break;
-      case "LOW":
-        counts.lowRisk += count;
-        break;
-      case "MEDIUM":
-      case "INSUFFICIENT":
-        counts.caution += count;
-        break;
-      default:
-        break;
-    }
-  }
-
-  return counts;
 }
 
 export function createActivityTickerService(
   client: ActivityTickerClient = prisma as unknown as ActivityTickerClient,
 ) {
   async function getActivityTicker({
-    excludeUserId,
     now = new Date(),
   }: {
-    excludeUserId?: string;
     now?: Date;
-  }): Promise<ActivityTickerPayload> {
-    const weekStart = startOfUtcWeek(now);
-    const monthStart = startOfUtcMonth(now);
-    const communityWhere = {
-      createdAt: { gte: weekStart },
-      riskLevel: "HIGH",
-      userId: excludeUserId ? { not: excludeUserId } : { not: null },
-    };
+  } = {}): Promise<ActivityTickerPayload> {
+    const [latest, allTime] = await Promise.all([
+      client.dailyScanSummary.findFirst({
+        orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
+        select: {
+          scanDate: true,
+          totalStocks: true,
+          evaluated: true,
+          skippedNoData: true,
+          lowRiskCount: true,
+          mediumRiskCount: true,
+          highRiskCount: true,
+          insufficientCount: true,
+        },
+      }),
+      client.dailyScanSummary.aggregate({ _sum: { evaluated: true } }),
+    ]);
 
-    const [allTimeScans, weekGroups, monthGroups, communityRows] =
-      await Promise.all([
-        client.scanHistory.count({}),
-        client.scanHistory.groupBy({
-          by: ["riskLevel"],
-          where: { createdAt: { gte: weekStart } },
-          _count: { _all: true },
-        }),
-        client.scanHistory.groupBy({
-          by: ["riskLevel"],
-          where: { createdAt: { gte: monthStart } },
-          _count: { _all: true },
-        }),
-        client.scanHistory.findMany({
-          where: communityWhere,
-          orderBy: { createdAt: "desc" },
-          take: 5,
-          select: {
-            ticker: true,
-            riskLevel: true,
-            totalScore: true,
-            createdAt: true,
-          },
-        }),
-      ]);
+    if (!latest) {
+      return unavailable(
+        now.toISOString(),
+        "No completed market-wide scan is available yet.",
+      );
+    }
+
+    const totalStocks = safeCount(latest.totalStocks);
+    const evaluated = safeCount(latest.evaluated);
+    const skipped = safeCount(latest.skippedNoData);
+    const highRisk = safeCount(latest.highRiskCount);
+    const caution =
+      safeCount(latest.mediumRiskCount) + safeCount(latest.insufficientCount);
+    const lowRisk = safeCount(latest.lowRiskCount);
+    const allTimeEvaluations = safeCount(allTime._sum.evaluated);
+    const scanDateValid =
+      latest.scanDate instanceof Date && !Number.isNaN(latest.scanDate.getTime());
+    const publicationIsComplete =
+      scanDateValid &&
+      totalStocks > 0 &&
+      evaluated > 0 &&
+      evaluated <= totalStocks &&
+      evaluated + skipped === totalStocks &&
+      highRisk + caution + lowRisk === evaluated &&
+      allTimeEvaluations >= evaluated;
+
+    if (!publicationIsComplete) {
+      return unavailable(
+        now.toISOString(),
+        "The latest market-wide scan publication is incomplete.",
+      );
+    }
 
     return {
       status: "AVAILABLE",
       updatedAt: now.toISOString(),
-      allTimeScans: Math.max(Number(allTimeScans) || 0, 0),
-      week: riskCounts(weekGroups),
-      month: riskCounts(monthGroups),
-      community: (communityRows as Array<{
-        ticker?: unknown;
-        riskLevel?: unknown;
-        totalScore?: unknown;
-        createdAt?: Date;
-      }>).map((row) => ({
-        displayTicker: maskedTicker(row.ticker),
-        riskLabel: "High risk" as const,
-        score: Math.max(Number(row.totalScore) || 0, 0),
-        scannedAt: new Date(row.createdAt || now).toISOString(),
-      })),
+      latestScan: {
+        scanDate: latest.scanDate.toISOString(),
+        totalStocks,
+        evaluated,
+        skipped,
+        highRisk,
+        caution,
+        lowRisk,
+        coveragePercent:
+          totalStocks > 0
+            ? Math.round((evaluated / totalStocks) * 1000) / 10
+            : null,
+      },
+      allTimeEvaluations,
       notice:
-        "Counts reflect completed scan records. Community high-risk tickers are masked and limited to the last 7 days.",
+        "Verified market-wide end-of-day scan totals. Monitoring is not live.",
     };
   }
 
