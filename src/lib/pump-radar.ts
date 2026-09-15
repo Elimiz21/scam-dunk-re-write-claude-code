@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { getRiskLabel } from "@/lib/entitlements";
 import type { RiskLevel } from "@/lib/types";
@@ -58,8 +59,8 @@ export type PumpRadarPayload =
       };
       rows: Array<{
         displayTicker: string;
-        ticker?: string;
-        companyName?: string;
+        sector: string;
+        marketCapBand: string;
         riskLabel: "High risk" | "Caution" | "Low risk";
         score: number;
         signalCount: number;
@@ -77,8 +78,30 @@ export type PumpRadarPayload =
       notice: string;
     };
 
-export function maskTicker(ticker: string): string {
-  return `${ticker.slice(0, 1).toUpperCase()}•••`;
+const RADAR_SECTORS = new Set([
+  "Technology", "Healthcare", "Financial Services", "Consumer Cyclical",
+  "Consumer Defensive", "Industrials", "Energy", "Basic Materials",
+  "Real Estate", "Utilities", "Communication Services",
+]);
+
+function marketCapBand(value: unknown): string {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return "Cap unavailable";
+  if (value < 300_000_000) return "Micro cap";
+  if (value < 2_000_000_000) return "Small cap";
+  if (value < 10_000_000_000) return "Mid cap";
+  return "Large cap";
+}
+
+// Use opaque database IDs, never an enumerable hash of the stock symbol.
+function caseLabel(snapshotId: string): string {
+  return `Case ${createHash("sha256").update(snapshotId).digest("hex").slice(0, 10).toUpperCase()}`;
+}
+
+function patternSummary(snapshot: any): string {
+  const patterns: string[] = [];
+  if (snapshot.volumeRatio >= 3) patterns.push("Elevated trading volume");
+  if (Math.abs(snapshot.priceChangePct ?? 0) >= 10) patterns.push("Sharp price movement");
+  return patterns.length ? patterns.join(" · ") : "Combined risk signals";
 }
 
 export function isFreshMarketPublication(
@@ -162,7 +185,6 @@ export function createPumpRadarService(
 ) {
   async function getPumpRadar({
     limit,
-    viewer,
     now = new Date(),
   }: {
     limit: number;
@@ -206,16 +228,17 @@ export function createPumpRadarService(
       orderBy: [{ totalScore: "desc" }, { signalCount: "desc" }],
       take: Math.min(safeLimit * 4, 200),
       select: {
+        id: true,
+        marketCap: true,
         riskLevel: true,
         totalScore: true,
         signalCount: true,
-        signalSummary: true,
-        lastPrice: true,
         priceChangePct: true,
         volumeRatio: true,
         stock: {
           select: {
             symbol: true,
+            sector: true,
             name: true,
             exchange: true,
             isOTC: true,
@@ -251,23 +274,20 @@ export function createPumpRadarService(
 
     const rows = snapshots.map((snapshot) => {
       const ticker = String(snapshot.stock.symbol).toUpperCase();
-      const base = {
-        displayTicker: viewer === "PUBLIC" ? maskTicker(ticker) : ticker,
+      return {
+        displayTicker: caseLabel(snapshot.id),
+        sector: RADAR_SECTORS.has(snapshot.stock.sector) ? snapshot.stock.sector : "Sector unavailable",
+        marketCapBand: marketCapBand(snapshot.marketCap),
+        signalSummary: patternSummary(snapshot),
         riskLabel: getRiskLabel(snapshot.riskLevel as RiskLevel),
         score: snapshot.totalScore,
         signalCount: snapshot.signalCount,
-        lastPrice: snapshot.lastPrice ?? null,
-        priceChangePct: snapshot.priceChangePct ?? null,
-        volumeRatio: snapshot.volumeRatio ?? null,
+        // Precise market observations can identify a stock by matching public quotes.
+        // Retain nullable keys for API compatibility; publish only broad patterns.
+        lastPrice: null,
+        priceChangePct: null,
+        volumeRatio: null,
         socialSummary: socialByTicker.get(ticker) ?? null,
-      };
-
-      if (viewer === "PUBLIC") return base;
-      return {
-        ...base,
-        ticker,
-        companyName: snapshot.stock.name,
-        signalSummary: snapshot.signalSummary ?? null,
       };
     });
 

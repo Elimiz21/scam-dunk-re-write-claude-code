@@ -8,7 +8,6 @@ import { ScanSocialEvidence } from "@/components/dashboard/ScanSocialEvidence";
 import type {
   HistoryOrder,
   HistoryPayload,
-  RecentScanDto,
   ScanDetailDto,
 } from "@/components/dashboard/types";
 import { readApiError } from "@/components/dashboard/types";
@@ -59,12 +58,12 @@ export default function RecentScansPage() {
     return () => controller.abort();
   }, [loadHistory, order]);
 
-  async function openDetail(scan: RecentScanDto) {
+  const openDetail = useCallback(async (scanId: string) => {
     setDetail(null);
     setDetailError(null);
     setDetailStatus("loading");
     try {
-      const response = await fetch(`/api/scans/${encodeURIComponent(scan.id)}`, {
+      const response = await fetch(`/api/scans/${encodeURIComponent(scanId)}`, {
         cache: "no-store",
       });
       const body = (await response.json()) as unknown;
@@ -80,7 +79,12 @@ export default function RecentScansPage() {
       setDetailStatus("error");
       setDetailError(caught instanceof Error ? caught.message : "Scan details are temporarily unavailable.");
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const scanId = new URLSearchParams(window.location.search).get("scan");
+    if (scanId) void openDetail(scanId);
+  }, [openDetail]);
 
   return (
     <PageLayout dashboardShell>
@@ -117,7 +121,7 @@ export default function RecentScansPage() {
                 setDetail(null);
                 setOrder(nextOrder);
               }}
-              onOpenDetail={(scan) => void openDetail(scan)}
+              onOpenDetail={(scan) => void openDetail(scan.id)}
             />
           )}
 

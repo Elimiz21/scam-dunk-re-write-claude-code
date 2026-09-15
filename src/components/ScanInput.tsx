@@ -64,6 +64,7 @@ const MAX_FILES = 5;
 
 export function ScanInput({ onSubmit, isLoading, disabled, initialTicker, autoSubmit = false }: ScanInputProps) {
   const [ticker, setTicker] = useState(initialTicker?.toUpperCase() ?? "");
+  const [tickerFocused, setTickerFocused] = useState(false);
   const assetType: AssetType = "stock";
   const [showChatInput, setShowChatInput] = useState(false);
   const [showContextFlags, setShowContextFlags] = useState(false);
@@ -680,7 +681,7 @@ export function ScanInput({ onSubmit, isLoading, disabled, initialTicker, autoSu
       )}
 
       {/* Main Input Bar */}
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} autoComplete="off">
         <div className="input-bar p-2">
           <div className="flex items-center gap-2">
             {/* Supported asset type */}
@@ -704,7 +705,18 @@ export function ScanInput({ onSubmit, isLoading, disabled, initialTicker, autoSu
             {/* Ticker Input */}
             <input
               ref={inputRef}
-              type="text"
+              id="scan-stock-ticker"
+              name="stock-ticker"
+              type="search"
+              autoComplete="off"
+              readOnly={!tickerFocused}
+              onFocus={(event) => {
+                event.currentTarget.readOnly = false;
+                setTickerFocused(true);
+              }}
+              data-1p-ignore
+              data-lpignore="true"
+              spellCheck={false}
               value={ticker}
               onChange={(e) => handleTickerChange(e.target.value)}
               onKeyDown={handleKeyDown}
