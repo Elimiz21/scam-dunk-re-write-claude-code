@@ -550,8 +550,9 @@ export async function processCheckRequest(
       ? forwardedFor.split(",")[0].trim()
       : undefined;
 
-    // Save scan to history — fire-and-forget so a metrics hiccup can't 500 a
-    // completed analysis after the slot was consumed (audit TS-M13).
+    // Finish saving customer history before returning: a serverless runtime
+    // may freeze unfinished work after the response. Keep the catch so a
+    // logging failure cannot discard an already completed analysis.
     currentStep = "LOG_HISTORY";
     const isOtcScan =
       marketData.isOTC ||
@@ -565,7 +566,7 @@ export async function processCheckRequest(
       (s) => s.code === "VOLUME_EXPLOSION" || s.code === "VOLUME_ANOMALY",
     );
 
-    void logScanHistory({
+    await logScanHistory({
       userId,
       ticker: supportedTicker,
       assetType,

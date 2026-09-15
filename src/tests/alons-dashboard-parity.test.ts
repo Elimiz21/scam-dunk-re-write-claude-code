@@ -30,14 +30,17 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(read("src/app/(protected)/dashboard/page.tsx")).toContain("<PageLayout dashboardShell>");
   });
 
-  test("uses Alon's unified dashboard table instead of detached preview cards", () => {
+  test("restores personal previews ahead of a separate compact Pump Radar", () => {
     const dashboard = read("src/components/dashboard/DashboardHome.tsx");
 
     expect(dashboard).toContain("Welcome back");
     expect(dashboard).toContain("DashboardScanEntry");
-    expect(dashboard).toContain("UnifiedMarketTable");
-    expect(dashboard).not.toContain('title="Your watchlist"');
-    expect(dashboard).not.toContain('title="Recent scans"');
+    expect(dashboard).not.toContain("UnifiedMarketTable");
+    expect(dashboard).toContain("PersonalDashboardPreviews");
+    expect(dashboard).toContain("<PumpRadar");
+    expect(dashboard.indexOf("<PersonalDashboardPreviews")).toBeLessThan(dashboard.indexOf("<PumpRadar"));
+    expect(dashboard).toContain("rows={state.data.pumpRadar.rows.slice(0, 4)}");
+    expect(dashboard).toContain("showFullPageLink");
   });
 
   test("opens scan-history details in place instead of linking to a missing route", () => {
@@ -46,6 +49,13 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(marketTable).toContain("/api/scans/");
     expect(marketTable).toContain("setHistoryDetail");
     expect(marketTable).not.toContain("/recent-scans/${scan.id}");
+  });
+
+  test("opens a personal Home scan link through the existing detail API", () => {
+    const history = read("src/app/(protected)/recent-scans/page.tsx");
+    expect(history).toContain('new URLSearchParams(window.location.search).get("scan")');
+    expect(history).toContain("void openDetail(scanId)");
+    expect(history).toContain("/api/scans/${encodeURIComponent(scanId)}");
   });
 
   test("announces table sorting and exposes watchlist action failures", () => {

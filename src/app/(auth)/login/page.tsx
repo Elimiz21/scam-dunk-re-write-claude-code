@@ -124,6 +124,8 @@ function LoginForm() {
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
+            name="email"
+            autoComplete="username"
             type="email"
             placeholder="you@example.com"
             value={email}
@@ -144,6 +146,8 @@ function LoginForm() {
           </div>
           <Input
             id="password"
+            name="password"
+            autoComplete="current-password"
             type="password"
             placeholder="••••••••"
             value={password}

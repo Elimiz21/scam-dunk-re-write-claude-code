@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
 const config = {
   preset: "ts-jest",
+  transform: { "^.+\\.tsx?$": ["ts-jest", { tsconfig: { jsx: "react-jsx" } }] },
   testEnvironment: "node",
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",

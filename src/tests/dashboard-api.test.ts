@@ -92,8 +92,8 @@ describe("dashboard API authentication", () => {
   });
 });
 
-describe("public Pump Radar privacy", () => {
-  test("returns only US common stocks and never exposes identifying narrative or private social content publicly", async () => {
+describe("Pump Radar privacy for every viewer", () => {
+  test.each(["PUBLIC", "AUTHENTICATED"] as const)("%s returns anonymous cases without identifying narrative or private social content", async (viewer) => {
     const client = {
       dailyScanSummary: {
         findFirst: jest.fn().mockResolvedValue({
@@ -122,6 +122,8 @@ describe("public Pump Radar privacy", () => {
             },
           },
           {
+            id: "opaque-snapshot-42",
+            marketCap: 850_000_000,
             riskLevel: "MEDIUM",
             totalScore: 51,
             signalCount: 2,
@@ -131,6 +133,7 @@ describe("public Pump Radar privacy", () => {
             volumeRatio: 1.2,
             stock: {
               symbol: "AAPL",
+              sector: "Technology",
               name: "Apple Inc.",
               exchange: "NASDAQ",
               isOTC: false,
@@ -181,7 +184,7 @@ describe("public Pump Radar privacy", () => {
 
     const payload = await service.getPumpRadar({
       limit: 10,
-      viewer: "PUBLIC",
+      viewer,
       now: new Date("2026-08-26T01:00:00.000Z"),
     });
     const serialized = JSON.stringify(payload);
@@ -195,7 +198,9 @@ describe("public Pump Radar privacy", () => {
     });
     expect(payload.rows).toEqual([
       expect.objectContaining({
-        displayTicker: "A•••",
+        displayTicker: expect.stringMatching(/^Case [A-F0-9]{10}$/),
+        sector: "Technology",
+        marketCapBand: "Small cap",
         riskLabel: "Caution",
         socialSummary: {
           mentionCount: 2,
@@ -205,6 +210,11 @@ describe("public Pump Radar privacy", () => {
         },
       }),
     ]);
+    expect(payload.rows[0]).toMatchObject({ lastPrice: null, priceChangePct: null, volumeRatio: null });
+    expect(payload.rows[0]).not.toHaveProperty("ticker");
+    expect(payload.rows[0]).not.toHaveProperty("companyName");
+    const repeated = await service.getPumpRadar({limit: 10, viewer, now: new Date("2026-08-26T01:00:00.000Z")});
+    expect(repeated.rows[0].displayTicker).toEqual(payload.rows[0].displayTicker);
     expect(serialized).not.toContain("AAPL");
     expect(serialized).not.toContain("ACME.AX");
     expect(serialized).not.toContain("Apple Inc.");
@@ -216,6 +226,15 @@ describe("public Pump Radar privacy", () => {
     expect(serialized).not.toContain("private-user");
     expect(serialized).not.toContain("private-room");
     expect(serialized).not.toContain("private.example");
+
+    const [, valid] = await client.stockDailySnapshot.findMany();
+    client.stockDailySnapshot.findMany.mockResolvedValue([
+      {...valid, id: "another-opaque-snapshot", marketCap: null, stock: {...valid.stock, sector: "Apple Inc. AAPL"}},
+    ]);
+    const unknownSector = await service.getPumpRadar({ limit: 10, viewer });
+    expect(unknownSector.rows[0]).toMatchObject({sector: "Sector unavailable", marketCapBand: "Cap unavailable"});
+    expect(unknownSector.rows[0].displayTicker).not.toEqual(payload.rows[0].displayTicker);
+    expect(JSON.stringify(unknownSector)).not.toContain("AAPL");
   });
 });
 

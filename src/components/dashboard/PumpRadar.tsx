@@ -43,13 +43,6 @@ function riskVariant(label: PumpRadarRow["riskLabel"]) {
   return "low" as const;
 }
 
-function formatNumber(value: number | null): string {
-  if (value === null) return "—";
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(
-    value,
-  );
-}
-
 function RadarRow({ row }: { row: PumpRadarRow }) {
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1.2fr)_auto] gap-3 border-b border-border/60 px-4 py-4 last:border-b-0 md:grid-cols-[minmax(0,1.3fr)_auto_auto_auto] md:items-center">
@@ -58,13 +51,13 @@ function RadarRow({ row }: { row: PumpRadarRow }) {
           <span className="font-semibold tracking-tight">{row.displayTicker}</span>
           <Badge variant={riskVariant(row.riskLabel)}>{row.riskLabel}</Badge>
         </div>
-        {row.companyName && (
+        {(row.sector || row.marketCapBand) && (
           <p className="mt-1 truncate text-xs text-muted-foreground">
-            {row.companyName}
+            {[row.sector, row.marketCapBand].filter(Boolean).join(" · ")}
           </p>
         )}
         {row.signalSummary && (
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground md:hidden">
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
             {row.signalSummary}
           </p>
         )}
@@ -77,12 +70,10 @@ function RadarRow({ row }: { row: PumpRadarRow }) {
       </div>
       <div className="hidden text-right md:block">
         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          Price move
+          Signals
         </p>
         <p className="mt-0.5 text-sm font-semibold tabular-nums">
-          {row.priceChangePct === null
-            ? "—"
-            : `${row.priceChangePct > 0 ? "+" : ""}${formatNumber(row.priceChangePct)}%`}
+          {row.signalCount}
         </p>
       </div>
       <div className="hidden text-right md:block">
@@ -97,7 +88,6 @@ function RadarRow({ row }: { row: PumpRadarRow }) {
       </div>
       <div className="col-span-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground md:hidden">
         <span>{row.signalCount} signals</span>
-        <span>Volume {formatNumber(row.volumeRatio)}×</span>
         <span>
           {row.socialSummary
             ? `${row.socialSummary.promotionalMentions} promotional mentions`
@@ -148,8 +138,8 @@ export function PumpRadar({
                   Pump Radar
                 </h2>
                 <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  Stocks with the strongest risk signals in the latest completed
-                  US market scan. Checked after the trading day closes — not live.
+                  Anonymous cases and risk patterns from the latest completed
+                  US market scan. Company names and tickers stay hidden, including after login.
                 </p>
               </div>
             </div>
@@ -289,7 +279,7 @@ export function PublicPumpRadar({
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/pump-radar?limit=${fullPage ? 50 : 8}`, {
+    fetch(`/api/pump-radar?limit=${fullPage ? 50 : 4}`, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
     })

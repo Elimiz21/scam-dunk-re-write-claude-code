@@ -437,7 +437,7 @@ export function createDashboardDataService(
           limit: 50,
         }),
         createPumpRadarService(client as never).getPumpRadar({
-          limit: 50,
+          limit: 4,
           viewer: "AUTHENTICATED",
         }),
       ]);

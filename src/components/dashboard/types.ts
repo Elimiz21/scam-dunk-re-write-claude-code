@@ -23,6 +23,8 @@ export interface PumpRadarCoverage {
 
 export interface PumpRadarRow {
   displayTicker: string;
+  sector?: string;
+  marketCapBand?: string;
   ticker?: string;
   companyName?: string;
   riskLabel: CustomerRiskLabel;

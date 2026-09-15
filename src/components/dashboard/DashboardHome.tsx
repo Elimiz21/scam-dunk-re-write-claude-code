@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useReducer } from "react";
 import { useSession } from "next-auth/react";
-import { Circle, Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 import { dashboardResourceReducer, type DashboardResourceState } from "@/components/dashboard/dashboard-state";
 import { DashboardScanEntry } from "@/components/dashboard/DashboardScanEntry";
 import type { DashboardPayload } from "@/components/dashboard/types";
 import { readApiError } from "@/components/dashboard/types";
-import { UnifiedMarketTable } from "@/components/dashboard/UnifiedMarketTable";
+import { PersonalDashboardPreviews } from "@/components/dashboard/PersonalDashboardPreviews";
+import { PumpRadar } from "@/components/dashboard/PumpRadar";
+import { aggregateSocialSummary } from "@/components/dashboard/view-model";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -50,11 +52,7 @@ export function DashboardHome() {
   return (
     <div className="space-y-8">
       <header className="max-w-3xl">
-        <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          <Circle className="h-2.5 w-2.5 fill-destructive text-destructive" aria-hidden="true" />
-          Latest market-wide scan · not live
-        </p>
-        <h1 className="font-editorial mt-4 text-[clamp(2.2rem,4vw,3.2rem)] leading-tight">Welcome back, {firstName}</h1>
+        <h1 className="font-editorial text-[clamp(2.2rem,4vw,3.2rem)] leading-tight">Welcome back, {firstName}</h1>
         <DashboardScanEntry />
       </header>
 
@@ -75,7 +73,23 @@ export function DashboardHome() {
         </Card>
       )}
 
-      {state.data && <UnifiedMarketTable data={state.data} onRefresh={() => load()} />}
+      {state.data && (
+        <>
+          <PersonalDashboardPreviews watchlist={state.data.watchlist} recentScans={state.data.recentScans} />
+          <PumpRadar
+            status={state.data.pumpRadar.status}
+            rows={state.data.pumpRadar.rows.slice(0, 4)}
+            asOf={state.data.pumpRadar.asOf}
+            publishedAt={state.data.pumpRadar.publishedAt}
+            coverage={state.data.pumpRadar.coverage}
+            socialSummary={aggregateSocialSummary(state.data.pumpRadar.rows)}
+            freshness={state.data.pumpRadar.freshness}
+            notice={state.data.pumpRadar.notice}
+            compact
+            showFullPageLink
+          />
+        </>
+      )}
     </div>
   );
 }

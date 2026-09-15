@@ -7,6 +7,7 @@ import { Plus, TrendingUp } from "lucide-react";
 export function DashboardScanEntry() {
   const router = useRouter();
   const [ticker, setTicker] = useState("");
+  const [tickerFocused, setTickerFocused] = useState(false);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -16,7 +17,7 @@ export function DashboardScanEntry() {
   }
 
   return (
-    <form onSubmit={submit} className="mt-7 flex min-h-16 items-center rounded-full border border-border bg-card p-2 shadow-sm" aria-label="Start a stock scan">
+    <form autoComplete="off" onSubmit={submit} className="mt-7 flex min-h-16 items-center rounded-full border border-border bg-card p-2 shadow-sm" aria-label="Start a stock scan">
       <span className="hidden items-center gap-2 border-r border-border px-4 text-[13px] font-medium text-foreground sm:flex">
         <TrendingUp className="h-4 w-4" aria-hidden="true" />
         Stock
@@ -24,9 +25,19 @@ export function DashboardScanEntry() {
       <label htmlFor="dashboard-ticker" className="sr-only">Stock ticker</label>
       <input
         id="dashboard-ticker"
+        name="stock-ticker"
+        type="search"
+        readOnly={!tickerFocused}
+        onFocus={(event) => {
+          event.currentTarget.readOnly = false;
+          setTickerFocused(true);
+        }}
+        data-1p-ignore
+        data-lpignore="true"
+        spellCheck={false}
         value={ticker}
         onChange={(event) => setTicker(event.target.value.toUpperCase())}
-        placeholder="Add a ticker to track (e.g., AAPL, TSLA)"
+        placeholder="Enter stock ticker (e.g., AAPL, TSLA)"
         autoCapitalize="characters"
         autoComplete="off"
         maxLength={16}
