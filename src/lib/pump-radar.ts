@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/db";
 import { getRiskLabel } from "@/lib/entitlements";
 import type { RiskLevel } from "@/lib/types";
+import {
+  getTickerCoverage,
+  parseRunMetadata,
+} from "@/lib/social-scan/coverage";
 
 export type PumpRadarViewer = "PUBLIC" | "AUTHENTICATED";
 export type PumpRadarFreshness = "FRESH" | "STALE";
@@ -42,6 +46,7 @@ export type PumpRadarPayload =
       publishedAt: null;
       freshness: null;
       coverage: null;
+      socialPublication: null;
       rows: [];
       notice: string;
     }
@@ -56,6 +61,11 @@ export type PumpRadarPayload =
         skipped: number;
         evaluatedPercent: number | null;
       };
+      socialPublication: {
+        status: "COMPLETED" | "PARTIAL";
+        scanDate: string;
+        updatedAt: string;
+      } | null;
       rows: Array<{
         displayTicker: string;
         ticker?: string;
@@ -73,6 +83,17 @@ export type PumpRadarPayload =
           maxPromotionScore: number;
           platforms: string[];
         } | null;
+        socialCoverage: {
+          status:
+            | "COMPLETE"
+            | "PARTIAL"
+            | "NOT_SEARCHED"
+            | "NOT_TARGETED"
+            | "UNKNOWN";
+          searchedPlatforms: string[];
+          incompletePlatforms: string[];
+          rateLimitedPlatforms: string[];
+        };
       }>;
       notice: string;
     };
@@ -190,6 +211,7 @@ export function createPumpRadarService(
         publishedAt: null,
         freshness: null,
         coverage: null,
+        socialPublication: null,
         rows: [],
         notice: "No published end-of-day market scan is available.",
       };
@@ -230,11 +252,17 @@ export function createPumpRadarService(
     const dayRange = utcDayRange(summary.scanDate);
     const socialRun = await client.socialScanRun.findFirst({
       where: {
-        status: "COMPLETED",
+        status: { in: ["COMPLETED", "PARTIAL"] },
         scanDate: dayRange,
       },
       orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
-      select: { id: true },
+      select: {
+        id: true,
+        status: true,
+        scanDate: true,
+        updatedAt: true,
+        platformsUsed: true,
+      },
     });
     const socialMentions = socialRun
       ? await client.socialMention.findMany({
@@ -248,6 +276,7 @@ export function createPumpRadarService(
         })
       : [];
     const socialByTicker = buildSocialSummary(socialMentions);
+    const socialMetadata = parseRunMetadata(socialRun?.platformsUsed);
 
     const rows = snapshots.map((snapshot) => {
       const ticker = String(snapshot.stock.symbol).toUpperCase();
@@ -260,6 +289,7 @@ export function createPumpRadarService(
         priceChangePct: snapshot.priceChangePct ?? null,
         volumeRatio: snapshot.volumeRatio ?? null,
         socialSummary: socialByTicker.get(ticker) ?? null,
+        socialCoverage: getTickerCoverage(socialMetadata, ticker),
       };
 
       if (viewer === "PUBLIC") return base;
@@ -287,6 +317,13 @@ export function createPumpRadarService(
             ? Math.round((summary.evaluated / summary.totalStocks) * 1000) / 10
             : null,
       },
+      socialPublication: socialRun
+        ? {
+            status: socialRun.status as "COMPLETED" | "PARTIAL",
+            scanDate: socialRun.scanDate.toISOString(),
+            updatedAt: socialRun.updatedAt.toISOString(),
+          }
+        : null,
       rows,
       notice: "Checked after the trading day closes — not live.",
     };

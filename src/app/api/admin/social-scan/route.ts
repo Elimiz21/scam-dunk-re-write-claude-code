@@ -14,6 +14,7 @@ import { prisma } from "@/lib/db";
 import { runSocialScanAndStore } from "@/lib/social-scan/orchestrate";
 import { ScanTarget } from "@/lib/social-scan/types";
 import { settledVal } from "@/lib/utils";
+import { parseRunMetadata } from "@/lib/social-scan/coverage";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes — scanning takes time
@@ -90,6 +91,7 @@ export async function GET(request: NextRequest) {
           errors: true,
           triggeredBy: true,
           createdAt: true,
+          updatedAt: true,
         },
       }),
       prisma.socialMention.findMany({
@@ -185,6 +187,7 @@ export async function GET(request: NextRequest) {
       },
       scanRuns: scanRuns.map((run: any) => {
         let platformsUsed: string[] = [];
+        const metadata = parseRunMetadata(run.platformsUsed);
         let errors: string[] = [];
         try {
           if (run.platformsUsed) {
@@ -206,6 +209,14 @@ export async function GET(request: NextRequest) {
           tickersWithMentions: run.tickersWithMentions ?? 0,
           totalMentions: run.totalMentions ?? 0,
           platformsUsed,
+          submittedTickers: metadata.submittedTickers,
+          searchedTickers: Array.from(
+            new Set(
+              metadata.coverage.flatMap((entry) => entry.searchedTickers),
+            ),
+          ),
+          coverage: metadata.coverage,
+          persistence: metadata.persistence,
           errors,
         };
       }),
@@ -409,6 +420,10 @@ export async function POST(request: NextRequest) {
       tickersWithMentions: result.tickersWithMentions,
       totalMentions: result.totalMentions,
       platformsUsed: result.platformsUsed,
+      submittedTickers: result.submittedTickers || [],
+      searchedTickers: result.searchedTickers || [],
+      coverage: result.coverage || [],
+      persistence: result.persistence || null,
       errors: result.errors,
       duration: result.duration,
       message:

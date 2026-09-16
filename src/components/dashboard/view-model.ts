@@ -89,9 +89,25 @@ export function buildPumpRadarView(input: {
     input.coverage?.evaluatedPercent === null || !input.coverage
       ? "Coverage unavailable"
       : `${input.coverage.evaluatedPercent}% coverage`;
+  const socialStatuses = input.rows
+    .map((row) => row.socialCoverage?.status)
+    .filter((status): status is NonNullable<typeof status> => Boolean(status));
+  const hasIncompleteCoverage = socialStatuses.some((status) =>
+    ["PARTIAL", "NOT_SEARCHED", "UNKNOWN"].includes(status),
+  );
+  const hasCompleteCoverage = socialStatuses.includes("COMPLETE");
+  const onlyUntargeted =
+    socialStatuses.length > 0 &&
+    socialStatuses.every((status) => status === "NOT_TARGETED");
   const socialLabel = input.socialSummary
     ? `${input.socialSummary.promotionalMentions} promotional mentions across ${input.socialSummary.platforms.length} platforms`
-    : "Social media not analyzed for this publication";
+    : hasIncompleteCoverage
+      ? "Social media coverage incomplete; missing findings are not a negative result"
+      : hasCompleteCoverage
+        ? "Social media searched; no indexed promotional mentions in covered sources"
+        : onlyUntargeted
+          ? "Social media was not targeted for these rows"
+          : "Social media not analyzed for this publication";
 
   if (input.status === "LOADING") {
     return { state: "loading" as const, coverageLabel, socialLabel };
@@ -209,6 +225,20 @@ export function buildSocialEvidenceView(social: ScanSocialDto) {
       detail:
         "The source was not provided for this scan, so no social media conclusion is shown.",
       evidenceCount: 0,
+    };
+  }
+  if (social.status === "PARTIAL") {
+    const noCompletedSearch =
+      !social.coverage ||
+      social.coverage.status === "NOT_SEARCHED" ||
+      social.coverage.status === "UNKNOWN";
+    return {
+      state: "partial" as const,
+      title: "Social media coverage incomplete",
+      detail: noCompletedSearch
+        ? "No completed platform search is available for this ticker. Missing evidence is not a negative finding."
+        : "Some platform searches completed, while others failed or were skipped. The evidence shown is partial.",
+      evidenceCount: social.evidence.length,
     };
   }
   if (social.evidence.length === 0) {

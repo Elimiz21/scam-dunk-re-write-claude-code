@@ -17,6 +17,7 @@ import {
   buildTickerMatcher,
 } from "./types";
 import type { PlatformName } from "./platform-patterns";
+import { CoverageTracker } from "./coverage";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -192,6 +193,11 @@ export class RedditScanner implements SocialScanner {
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
     const deadline = new Deadline();
+    const coverageTracker = new CoverageTracker(
+      this.name,
+      this.platform,
+      targets.map((target) => target.ticker),
+    );
     const allMentions: SocialMention[] = [];
     const promotionSubs = new Set(PROMOTION_SUBREDDITS);
 
@@ -210,11 +216,16 @@ export class RedditScanner implements SocialScanner {
         const query = `${target.ticker} OR $${target.ticker}`;
         const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&t=week&limit=50`;
         fetchAttempts++;
+        coverageTracker.attempt(target.ticker);
         const data = await redditGet(url, deadline);
         if (!data) {
           fetchFailures++;
+          coverageTracker.failed(target.ticker, {
+            error: "Reddit request failed or was rate limited",
+          });
           continue;
         }
+        coverageTracker.searched(target.ticker);
 
         for (const post of data?.data?.children || []) {
           const d = post.data;
@@ -269,6 +280,7 @@ export class RedditScanner implements SocialScanner {
           `[Reddit] Search error for "${target.ticker}":`,
           error.message,
         );
+        coverageTracker.failed(target.ticker, { error: error.message });
       }
     }
 
@@ -349,16 +361,17 @@ export class RedditScanner implements SocialScanner {
       );
     }
 
+    const coverage = coverageTracker.finish();
     return [
       {
         platform: "Reddit",
         scanner: this.name,
-        success: !allFailed,
-        error: allFailed
+        success: coverage.status === "COMPLETED",
+        error: coverage.error || (allFailed
           ? `All ${fetchAttempts} Reddit requests failed — blocked or rate limited`
           : fetchFailures > 0
             ? `${fetchFailures}/${fetchAttempts} requests failed`
-            : undefined,
+            : undefined),
         mentionsFound: allMentions.length,
         mentions: allMentions,
         activityLevel:
@@ -372,6 +385,7 @@ export class RedditScanner implements SocialScanner {
         promotionRisk:
           avgScore >= 50 ? "high" : avgScore >= 25 ? "medium" : "low",
         scanDuration: Date.now() - startTime,
+        coverage,
       },
     ];
   }
@@ -404,6 +418,11 @@ export class YouTubeScanner implements SocialScanner {
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
     const deadline = new Deadline();
+    const coverageTracker = new CoverageTracker(
+      this.name,
+      this.platform,
+      targets.map((target) => target.ticker),
+    );
     const apiKey = process.env.YOUTUBE_API_KEY!;
     const allMentions: SocialMention[] = [];
 
@@ -425,6 +444,7 @@ export class YouTubeScanner implements SocialScanner {
         break;
       }
       try {
+        coverageTracker.attempt(target.ticker);
         const params = new URLSearchParams({
           part: "snippet",
           q: `${target.ticker} stock`,
@@ -441,12 +461,17 @@ export class YouTubeScanner implements SocialScanner {
         );
         unitsUsed += YT_SEARCH_COST;
         if (!res.ok) {
+          coverageTracker.failed(target.ticker, {
+            rateLimited: res.status === 429,
+            error: `YouTube API ${res.status}`,
+          });
           console.error(
             `[YouTube] API ${res.status} for ${target.ticker}: ${await res.text().catch(() => "no body")}`,
           );
           continue;
         }
         const data = await res.json();
+        coverageTracker.searched(target.ticker);
         const videos = data.items || [];
 
         // Get stats
@@ -532,6 +557,7 @@ export class YouTubeScanner implements SocialScanner {
         await deadline.sleep(delayMs);
       } catch (error: any) {
         console.error(`[YouTube] Error for ${target.ticker}:`, error.message);
+        coverageTracker.failed(target.ticker, { error: error.message });
       }
     }
 
@@ -541,11 +567,13 @@ export class YouTubeScanner implements SocialScanner {
           allMentions.length
         : 0;
 
+    const coverage = coverageTracker.finish();
     return [
       {
         platform: "YouTube",
         scanner: this.name,
-        success: true,
+        success: coverage.status === "COMPLETED",
+        error: coverage.error,
         mentionsFound: allMentions.length,
         mentions: allMentions,
         activityLevel:
@@ -559,6 +587,7 @@ export class YouTubeScanner implements SocialScanner {
         promotionRisk:
           avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
         scanDuration: Date.now() - startTime,
+        coverage,
       },
     ];
   }
@@ -579,6 +608,11 @@ export class StockTwitsScanner implements SocialScanner {
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
     const deadline = new Deadline();
+    const coverageTracker = new CoverageTracker(
+      this.name,
+      this.platform,
+      targets.map((target) => target.ticker),
+    );
     const allMentions: SocialMention[] = [];
     let hasErrors = false;
     const delayMs = perTargetDelay(targets.length, 2000);
@@ -586,6 +620,7 @@ export class StockTwitsScanner implements SocialScanner {
     for (const target of targets) {
       if (deadline.expired()) break; // Return accumulated mentions on timeout
       try {
+        coverageTracker.attempt(target.ticker);
         const url = `https://api.stocktwits.com/api/2/streams/symbol/${encodeURIComponent(target.ticker)}.json`;
         const response = await fetchWithTimeout(
           url,
@@ -601,16 +636,31 @@ export class StockTwitsScanner implements SocialScanner {
 
         if (!response.ok) {
           hasErrors = true;
+          coverageTracker.failed(target.ticker, {
+            rateLimited: response.status === 429,
+            error: `StockTwits API ${response.status}`,
+          });
           continue;
         }
         const text = await response.text();
         if (text.startsWith("<")) {
           hasErrors = true;
+          coverageTracker.failed(target.ticker, {
+            error: "StockTwits returned HTML instead of JSON",
+          });
           continue;
         }
 
         const data = JSON.parse(text);
-        if (data.response?.status !== 200) continue;
+        if (data.response?.status !== 200) {
+          hasErrors = true;
+          coverageTracker.failed(target.ticker, {
+            rateLimited: data.response?.status === 429,
+            error: `StockTwits response ${data.response?.status || "unknown"}`,
+          });
+          continue;
+        }
+        coverageTracker.searched(target.ticker);
 
         for (const msg of data.messages || []) {
           const body = msg.body || "";
@@ -668,6 +718,7 @@ export class StockTwitsScanner implements SocialScanner {
           error.message,
         );
         hasErrors = true;
+        coverageTracker.failed(target.ticker, { error: error.message });
       }
     }
 
@@ -677,14 +728,14 @@ export class StockTwitsScanner implements SocialScanner {
           allMentions.length
         : 0;
 
+    const coverage = coverageTracker.finish();
     return [
       {
         platform: "StockTwits",
         scanner: this.name,
-        success: allMentions.length > 0 || !hasErrors,
-        error: hasErrors
-          ? "Some tickers failed (possibly rate limited)"
-          : undefined,
+        success: coverage.status === "COMPLETED",
+        error: coverage.error ||
+          (hasErrors ? "Some tickers failed (possibly rate limited)" : undefined),
         mentionsFound: allMentions.length,
         mentions: allMentions,
         activityLevel:
@@ -698,6 +749,7 @@ export class StockTwitsScanner implements SocialScanner {
         promotionRisk:
           avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
         scanDuration: Date.now() - startTime,
+        coverage,
       },
     ];
   }
@@ -761,6 +813,11 @@ export class SerperScanner implements SocialScanner {
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
     const deadline = new Deadline();
+    const coverageTracker = new CoverageTracker(
+      this.name,
+      this.platform,
+      targets.map((target) => target.ticker),
+    );
     const apiKey = process.env.SERPER_API_KEY!;
     const allMentions: SocialMention[] = [];
     const seenUrls = new Set<string>();
@@ -785,6 +842,7 @@ export class SerperScanner implements SocialScanner {
       const query = buildQuery(target.ticker);
 
       try {
+        coverageTracker.attempt(target.ticker);
         const res = await fetchWithTimeout(
           "https://google.serper.dev/search",
           {
@@ -808,6 +866,10 @@ export class SerperScanner implements SocialScanner {
             `[Serper] API ${res.status} for ${target.ticker}: ${body}`,
           );
           apiErrors++;
+          coverageTracker.failed(target.ticker, {
+            rateLimited: res.status === 429,
+            error: `Serper API ${res.status}`,
+          });
 
           let parsedError = body;
           try {
@@ -820,6 +882,7 @@ export class SerperScanner implements SocialScanner {
         }
 
         const data = await res.json();
+        coverageTracker.searched(target.ticker);
         const results = data.organic || [];
 
         for (const result of results) {
@@ -880,6 +943,7 @@ export class SerperScanner implements SocialScanner {
         console.error(`[Serper] Error for ${target.ticker}:`, error.message);
         apiErrors++;
         lastApiError = `Network error: ${error.message}`;
+        coverageTracker.failed(target.ticker, { error: lastApiError });
       }
       await deadline.sleep(delayMs); // Serper is faster, gentle throttle
     }
@@ -896,11 +960,12 @@ export class SerperScanner implements SocialScanner {
       );
     }
 
+    const coverage = coverageTracker.finish();
     return [
       {
         platform: "Multi-Platform (Serper)",
         scanner: this.name,
-        success: apiErrors === 0,
+        success: coverage.status === "COMPLETED",
         error:
           apiErrors > 0
             ? `${apiErrors}/${scanList.length} API requests failed. Last error: ${lastApiError}`
@@ -918,6 +983,7 @@ export class SerperScanner implements SocialScanner {
         promotionRisk:
           avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
         scanDuration: Date.now() - startTime,
+        coverage,
       },
     ];
   }
@@ -938,6 +1004,11 @@ export class PerplexityScanner implements SocialScanner {
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
     const deadline = new Deadline();
+    const coverageTracker = new CoverageTracker(
+      this.name,
+      this.platform,
+      targets.map((target) => target.ticker),
+    );
     const apiKey = process.env.PERPLEXITY_API_KEY!;
     const allMentions: SocialMention[] = [];
     let apiErrors = 0;
@@ -952,6 +1023,7 @@ export class PerplexityScanner implements SocialScanner {
     // bumps the shared error counters. Returns nothing — side-effecting so the
     // concurrency runner stays simple.
     const runBatch = async (batch: ScanTarget[]): Promise<void> => {
+      for (const target of batch) coverageTracker.attempt(target.ticker);
       const tickerList = batch
         .map((t) => `$${t.ticker} (${t.name})`)
         .join(", ");
@@ -1012,6 +1084,12 @@ IMPORTANT: Only REAL posts with actual URLs. Focus on content that looks MANIPUL
           console.error(`[Perplexity] API ${res.status}: ${body}`);
           apiErrors++;
           lastApiError = `Status ${res.status}: ${body.substring(0, 200)}`;
+          for (const target of batch) {
+            coverageTracker.failed(target.ticker, {
+              rateLimited: res.status === 429,
+              error: lastApiError,
+            });
+          }
           return;
         }
         const data = await res.json();
@@ -1048,6 +1126,8 @@ IMPORTANT: Only REAL posts with actual URLs. Focus on content that looks MANIPUL
           console.warn(
             `[Perplexity] No JSON array found in response for "${tickerList}". Content starts with: ${content.substring(0, 150)}`,
           );
+          apiErrors++;
+          lastApiError = `No valid JSON array returned for batch "${tickerList}"`;
         }
 
         if (parsed) {
@@ -1161,10 +1241,20 @@ IMPORTANT: Only REAL posts with actual URLs. Focus on content that looks MANIPUL
             redFlags: citFlags,
           });
         }
+        if (parsed !== null) {
+          for (const target of batch) coverageTracker.searched(target.ticker);
+        } else {
+          for (const target of batch) {
+            coverageTracker.failed(target.ticker, { error: lastApiError });
+          }
+        }
       } catch (error: any) {
         console.error(`[Perplexity] Error:`, error.message);
         apiErrors++;
         lastApiError = `Network error: ${error.message}`;
+        for (const target of batch) {
+          coverageTracker.failed(target.ticker, { error: lastApiError });
+        }
       }
     };
 
@@ -1213,11 +1303,12 @@ IMPORTANT: Only REAL posts with actual URLs. Focus on content that looks MANIPUL
           allMentions.length
         : 0;
 
+    const coverage = coverageTracker.finish();
     return [
       {
         platform: "Multi-Platform (Perplexity)",
         scanner: this.name,
-        success: apiErrors === 0,
+        success: coverage.status === "COMPLETED",
         error:
           apiErrors > 0
             ? `${apiErrors}/${totalBatches} batch requests failed. Last error: ${lastApiError}`
@@ -1235,6 +1326,7 @@ IMPORTANT: Only REAL posts with actual URLs. Focus on content that looks MANIPUL
         promotionRisk:
           avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
         scanDuration: Date.now() - startTime,
+        coverage,
       },
     ];
   }
@@ -1255,6 +1347,11 @@ export class DiscordBotScanner implements SocialScanner {
   async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
     const deadline = new Deadline();
+    const coverageTracker = new CoverageTracker(
+      this.name,
+      this.platform,
+      targets.map((target) => target.ticker),
+    );
     const token = process.env.DISCORD_BOT_TOKEN!;
     const allMentions: SocialMention[] = [];
 
@@ -1280,6 +1377,12 @@ export class DiscordBotScanner implements SocialScanner {
         console.warn(
           "[Discord] Bot is not in any servers. Invite it to stock-related Discord servers for scanning to work.",
         );
+        for (const target of targets) {
+          coverageTracker.failed(target.ticker, {
+            error: "Discord bot is not in any servers",
+          });
+        }
+        const coverage = coverageTracker.finish();
         return [
           {
             platform: "Discord",
@@ -1292,6 +1395,7 @@ export class DiscordBotScanner implements SocialScanner {
             activityLevel: "none",
             promotionRisk: "low",
             scanDuration: Date.now() - startTime,
+            coverage,
           },
         ];
       }
@@ -1308,6 +1412,16 @@ export class DiscordBotScanner implements SocialScanner {
         .filter(
           (p): p is { target: ScanTarget; regex: RegExp } => p.regex !== null,
         );
+      const validTickers = new Set(
+        tickerPatterns.map(({ target }) => target.ticker.toUpperCase()),
+      );
+      for (const target of targets) {
+        if (!validTickers.has(target.ticker.toUpperCase())) {
+          coverageTracker.failed(target.ticker, {
+            error: "Invalid ticker could not be searched on Discord",
+          });
+        }
+      }
 
       for (const guild of guilds) {
         if (deadline.expired()) break;
@@ -1373,7 +1487,9 @@ export class DiscordBotScanner implements SocialScanner {
               }
               await deadline.sleep(500);
             } catch {
-              /* skip unreadable channels */
+              coverageTracker.partialAll(
+                "One or more Discord channels could not be read",
+              );
             }
           }
           await deadline.sleep(1000);
@@ -1382,9 +1498,24 @@ export class DiscordBotScanner implements SocialScanner {
             `[Discord] Guild error for ${guild.name}:`,
             error.message,
           );
+          coverageTracker.partialAll(
+            `Discord guild scan failed: ${error.message}`,
+          );
         }
       }
+      for (const { target } of tickerPatterns) {
+        coverageTracker.searched(target.ticker);
+      }
+      if (deadline.expired()) {
+        coverageTracker.partialAll("Discord source traversal hit its deadline");
+      }
     } catch (error: any) {
+      for (const target of targets) {
+        coverageTracker.failed(target.ticker, {
+          error: `Discord API error: ${error.message}`,
+        });
+      }
+      const coverage = coverageTracker.finish();
       return [
         {
           platform: "Discord",
@@ -1396,6 +1527,7 @@ export class DiscordBotScanner implements SocialScanner {
           activityLevel: "none",
           promotionRisk: "low",
           scanDuration: Date.now() - startTime,
+          coverage,
         },
       ];
     }
@@ -1406,11 +1538,13 @@ export class DiscordBotScanner implements SocialScanner {
           allMentions.length
         : 0;
 
+    const coverage = coverageTracker.finish();
     return [
       {
         platform: "Discord",
         scanner: this.name,
-        success: true,
+        success: coverage.status === "COMPLETED",
+        error: coverage.error,
         mentionsFound: allMentions.length,
         mentions: allMentions,
         activityLevel:
@@ -1424,6 +1558,7 @@ export class DiscordBotScanner implements SocialScanner {
         promotionRisk:
           avgScore >= 40 ? "high" : avgScore >= 20 ? "medium" : "low",
         scanDuration: Date.now() - startTime,
+        coverage,
       },
     ];
   }

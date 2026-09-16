@@ -45,6 +45,11 @@ import {
   createNewsAnalysisPlan,
   NewsAnalysisCandidateGroup,
 } from "./news-analysis-plan";
+import {
+  fetchAllMentionPages,
+  getTickerCoverage,
+  type SocialRunMetadata,
+} from "./social-coverage";
 
 // Deployed app URL and API key for triggering the production social scan
 const SOCIAL_SCAN_APP_URL = process.env.SOCIAL_SCAN_APP_URL || "";
@@ -163,6 +168,12 @@ interface EnhancedStockResult {
   // Social media scan (only for remaining high-risk stocks)
   socialMediaScanned: boolean;
   socialMediaFindings?: ComprehensiveScanResult | null;
+  socialMediaCoverage?: {
+    status: "COMPLETE" | "PARTIAL" | "NOT_SEARCHED" | "NOT_TARGETED" | "UNKNOWN";
+    searchedPlatforms: string[];
+    incompletePlatforms: string[];
+    rateLimitedPlatforms: string[];
+  };
 
   // Pre-pump baseline price (lowest close in 30 days before spike)
   prePumpBasePrice: number | null;
@@ -1124,6 +1135,8 @@ interface ScanStatus {
     totalMentions: number;
     tickersScanned: number;
     tickersWithMentions: number;
+    tickersSubmitted: number;
+    tickersActuallySearched: number;
   };
 }
 
@@ -1177,6 +1190,8 @@ function createInitialScanStatus(date: string): ScanStatus {
       totalMentions: 0,
       tickersScanned: 0,
       tickersWithMentions: 0,
+      tickersSubmitted: 0,
+      tickersActuallySearched: 0,
     },
   };
 }
@@ -2083,6 +2098,10 @@ async function runEnhancedPipeline(): Promise<void> {
           tickersScanned: apiResult.tickersScanned || 0,
           tickersWithMentions: apiResult.tickersWithMentions || 0,
           errors: apiResult.errors || [],
+          submittedTickers: apiResult.submittedTickers || [],
+          searchedTickers: apiResult.searchedTickers || [],
+          coverage: apiResult.coverage || [],
+          persistence: apiResult.persistence || null,
           results: [], // Will be populated from DB fetch below
         };
 
@@ -2093,37 +2112,40 @@ async function runEnhancedPipeline(): Promise<void> {
             console.log(
               "  Fetching per-ticker mention data from DB for scheme tracking...",
             );
-            const mentionsRes = await fetch(
-              `${SOCIAL_SCAN_APP_URL}/api/admin/social-scan?scanRunId=${apiResult.scanRunId}&limit=500`,
-              {
-                headers: {
-                  Authorization: `Bearer ${SOCIAL_SCAN_API_KEY}`,
-                },
-                signal: AbortSignal.timeout(30_000),
+            const mentions = await fetchAllMentionPages<any>(
+              async (page, limit) => {
+                const mentionsRes = await fetch(
+                  `${SOCIAL_SCAN_APP_URL}/api/admin/social-scan?scanRunId=${apiResult.scanRunId}&page=${page}&limit=${limit}`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${SOCIAL_SCAN_API_KEY}`,
+                    },
+                    signal: AbortSignal.timeout(30_000),
+                  },
+                );
+                if (!mentionsRes.ok) {
+                  throw new Error(
+                    `Mention page ${page} returned ${mentionsRes.status}`,
+                  );
+                }
+                return mentionsRes.json();
               },
+              { pageSize: 500 },
             );
-            if (mentionsRes.ok) {
-              const mentionsData = await mentionsRes.json();
-              const mentions = mentionsData.mentions || [];
 
-              // Group mentions by ticker
-              const byTicker = new Map<string, any[]>();
-              for (const m of mentions) {
-                const t = (m.ticker || "").toUpperCase();
-                if (!byTicker.has(t)) byTicker.set(t, []);
-                byTicker.get(t)!.push(m);
-              }
-
-              // Store in a map the pipeline can use to build ComprehensiveScanResult
-              (scanRunResult as any)._mentionsByTicker = byTicker;
-              console.log(
-                `  Retrieved ${mentions.length} mentions across ${byTicker.size} ticker(s)`,
-              );
-            } else {
-              console.log(
-                `  ⚠️  Could not fetch mentions from GET API: ${mentionsRes.status}`,
-              );
+            // Group mentions by ticker
+            const byTicker = new Map<string, any[]>();
+            for (const m of mentions) {
+              const t = (m.ticker || "").toUpperCase();
+              if (!byTicker.has(t)) byTicker.set(t, []);
+              byTicker.get(t)!.push(m);
             }
+
+            // Store in a map the pipeline can use to build ComprehensiveScanResult
+            (scanRunResult as any)._mentionsByTicker = byTicker;
+            console.log(
+              `  Retrieved all ${mentions.length} mentions across ${byTicker.size} ticker(s)`,
+            );
           } catch (fetchErr: any) {
             console.log(
               `  ⚠️  Mention fetch failed (non-blocking): ${fetchErr.message}`,
@@ -2155,11 +2177,23 @@ async function runEnhancedPipeline(): Promise<void> {
       }
     }
 
+    const deployedRunMetadata: SocialRunMetadata | null = usedDeployedAPI
+      ? {
+          submittedTickers: scanRunResult.submittedTickers || [],
+          coverage: scanRunResult.coverage || [],
+        }
+      : null;
+
     // Map results back to each stock in afterNewsFilter
     for (const result of afterNewsFilter) {
       // When using deployed API, build ComprehensiveScanResult from DB mentions
       if (usedDeployedAPI) {
-        result.socialMediaScanned = true;
+        const tickerCoverage = getTickerCoverage(
+          deployedRunMetadata!,
+          result.symbol,
+        );
+        result.socialMediaCoverage = tickerCoverage;
+        result.socialMediaScanned = tickerCoverage.status === "COMPLETE";
         const mentionsByTicker = (scanRunResult as any)._mentionsByTicker as
           Map<string, any[]> | undefined;
         const tickerMentions = mentionsByTicker?.get(
@@ -2269,7 +2303,7 @@ async function runEnhancedPipeline(): Promise<void> {
               avgScore >= 60 ? "high" : avgScore >= 30 ? "medium" : "low",
             hasRealSocialEvidence: tickerMentions.length > 0,
             potentialPromoters,
-            summary: `${tickerMentions.length} mentions found across ${platformMap.size} platform(s). Avg promotion score: ${avgScore}/100.`,
+            summary: `${tickerMentions.length} mentions retained across ${platformMap.size} platform(s). Coverage: ${tickerCoverage.status.toLowerCase().replace("_", " ")}; avg promotion score: ${avgScore}/100.`,
           };
 
           if (avgScore >= 60) {
@@ -2287,7 +2321,15 @@ async function runEnhancedPipeline(): Promise<void> {
           }
         } else {
           result.socialMediaFindings = null;
-          console.log(`  ⚪ ${result.symbol}: No mention data in DB`);
+          if (tickerCoverage.status === "COMPLETE") {
+            console.log(
+              `  ⚪ ${result.symbol}: Completed configured searches returned no indexed mentions`,
+            );
+          } else {
+            console.log(
+              `  ⚪ ${result.symbol}: No mention data; coverage is ${tickerCoverage.status.toLowerCase().replace("_", " ")}, so no negative conclusion is recorded`,
+            );
+          }
         }
         suspiciousStocks.push(result);
         continue;
@@ -2299,7 +2341,13 @@ async function runEnhancedPipeline(): Promise<void> {
 
       if (tickerResult) {
         const socialFindings = tickerResultToComprehensiveScan(tickerResult);
-        result.socialMediaScanned = true;
+        result.socialMediaScanned = false;
+        result.socialMediaCoverage = {
+          status: "UNKNOWN",
+          searchedPlatforms: [],
+          incompletePlatforms: [],
+          rateLimitedPlatforms: [],
+        };
         result.socialMediaFindings = socialFindings;
 
         if (socialFindings.overallPromotionScore >= 60) {
@@ -2316,9 +2364,22 @@ async function runEnhancedPipeline(): Promise<void> {
           );
         }
       } else {
-        result.socialMediaScanned = true;
+        result.socialMediaScanned = false;
+        result.socialMediaCoverage = {
+          status: top50Targets.some(
+            (target) =>
+              target.ticker.toUpperCase() === result.symbol.toUpperCase(),
+          )
+            ? "UNKNOWN"
+            : "NOT_TARGETED",
+          searchedPlatforms: [],
+          incompletePlatforms: [],
+          rateLimitedPlatforms: [],
+        };
         result.socialMediaFindings = null;
-        console.log(`  ⚪ ${result.symbol}: No scan results returned`);
+        console.log(
+          `  ⚪ ${result.symbol}: ${result.socialMediaCoverage.status === "NOT_TARGETED" ? "Not submitted for social scanning" : "No verifiable target coverage returned"}`,
+        );
       }
 
       suspiciousStocks.push(result);
@@ -2340,18 +2401,35 @@ async function runEnhancedPipeline(): Promise<void> {
       totalMentions: scanRunResult.totalMentions,
       tickersScanned: scanRunResult.tickersScanned,
       tickersWithMentions: scanRunResult.tickersWithMentions,
+      tickersSubmitted:
+        scanRunResult.submittedTickers?.length || top50Targets.length,
+      tickersActuallySearched: scanRunResult.searchedTickers?.length || 0,
     };
   } else {
     console.log("  No suspicious stocks to scan.");
   }
 
-  scanStatus.phases.phase4_socialMedia.status = "completed";
+  const socialCoverageDegraded =
+    scanStatus.socialMediaDetails.tickersActuallySearched <
+      scanStatus.socialMediaDetails.tickersSubmitted ||
+    (scanStatus.socialMediaDetails.tickersSubmitted > 0 &&
+      scanStatus.socialMediaDetails.tickersActuallySearched === 0);
+  scanStatus.phases.phase4_socialMedia.status = socialCoverageDegraded
+    ? "degraded"
+    : "completed";
+  if (socialCoverageDegraded) {
+    scanStatus.phases.phase4_socialMedia.error =
+      `${scanStatus.socialMediaDetails.tickersActuallySearched}/${scanStatus.socialMediaDetails.tickersSubmitted} submitted tickers have verified search coverage; partial evidence was retained`;
+  }
   scanStatus.phases.phase4_socialMedia.completedAt = new Date().toISOString();
   scanStatus.phases.phase4_socialMedia.durationMs =
     Date.now() -
     new Date(scanStatus.phases.phase4_socialMedia.startedAt!).getTime();
   scanStatus.phases.phase4_socialMedia.details = {
-    tickersScanned: afterNewsFilter.length,
+    eligibleCandidates: afterNewsFilter.length,
+    tickersSubmitted: scanStatus.socialMediaDetails.tickersSubmitted,
+    tickersActuallySearched:
+      scanStatus.socialMediaDetails.tickersActuallySearched,
     platformsUsed: scanStatus.socialMediaDetails.platformsUsed,
     totalMentions: scanStatus.socialMediaDetails.totalMentions,
   };
@@ -2825,7 +2903,7 @@ async function runEnhancedPipeline(): Promise<void> {
 
   // Generate social-media-scan file (standalone social media data)
   const socialMediaResults = suspiciousStocks
-    .filter((s) => s.socialMediaScanned && s.socialMediaFindings)
+    .filter((s) => s.socialMediaFindings)
     .map((s) => ({
       symbol: s.symbol,
       name: s.name,
@@ -2846,13 +2924,29 @@ async function runEnhancedPipeline(): Promise<void> {
       hasRealSocialEvidence: s.socialMediaFindings!.hasRealSocialEvidence,
       potentialPromoters: s.socialMediaFindings!.potentialPromoters,
       overallAssessment: s.socialMediaFindings!.summary,
+      coverage: s.socialMediaCoverage || {
+        status: "UNKNOWN",
+        searchedPlatforms: [],
+        incompletePlatforms: [],
+        rateLimitedPlatforms: [],
+      },
       scanDate: evaluationDate,
     }));
 
+  const completelyScannedCount = suspiciousStocks.filter(
+    (stock) => stock.socialMediaCoverage?.status === "COMPLETE",
+  ).length;
   const socialScanData = {
     scanDate: evaluationDate,
-    totalScanned: suspiciousStocks.length,
-    socialMediaScannedCount: socialMediaResults.length,
+    eligibleCandidates: suspiciousStocks.length,
+    tickersSubmitted: scanStatus.socialMediaDetails.tickersSubmitted,
+    tickersActuallySearched:
+      scanStatus.socialMediaDetails.tickersActuallySearched,
+    totalScanned: completelyScannedCount,
+    socialMediaScannedCount: completelyScannedCount,
+    partialEvidenceCount: socialMediaResults.filter(
+      (result) => result.coverage.status !== "COMPLETE",
+    ).length,
     highPromotionCount: socialMediaResults.filter(
       (r) => r.overallPromotionScore >= 60,
     ).length,
@@ -2870,7 +2964,7 @@ async function runEnhancedPipeline(): Promise<void> {
 
   // Generate promoted-stocks file (stocks with high promotion scores)
   const promotedStocks = suspiciousStocks
-    .filter((s) => s.socialMediaScanned && s.socialMediaFindings)
+    .filter((s) => s.socialMediaFindings)
     .map((s) => {
       const promo = s.socialMediaFindings!;
       const highRiskPlatforms = promo.platforms
@@ -2912,6 +3006,12 @@ async function runEnhancedPipeline(): Promise<void> {
               `${p.platform}: ${p.mentionsFound} mentions (${p.dataSource})`,
           ),
         assessment: promo.summary || null,
+        socialCoverage: s.socialMediaCoverage || {
+          status: "UNKNOWN",
+          searchedPlatforms: [],
+          incompletePlatforms: [],
+          rateLimitedPlatforms: [],
+        },
       };
     })
     .sort((a, b) => b.riskScore - a.riskScore);

@@ -27,6 +27,11 @@ interface PumpRadarProps {
   publishedAt: string | null;
   coverage: PumpRadarCoverage | null;
   socialSummary: Omit<SocialSummary, "maxPromotionScore"> | null;
+  socialPublication?: {
+    status: "COMPLETED" | "PARTIAL";
+    scanDate: string;
+    updatedAt: string;
+  } | null;
   freshness: "FRESH" | "STALE" | null;
   notice: string;
   compact?: boolean;
@@ -47,6 +52,19 @@ function formatNumber(value: number | null): string {
 }
 
 function RadarRow({ row }: { row: PumpRadarRow }) {
+  const socialLabel = row.socialSummary
+    ? `${row.socialSummary.promotionalMentions} flagged`
+    : row.socialCoverage?.status === "COMPLETE"
+      ? "No indexed mentions"
+      : row.socialCoverage?.status === "PARTIAL"
+        ? "Partial coverage"
+        : row.socialCoverage?.status === "NOT_SEARCHED"
+          ? "Search incomplete"
+          : row.socialCoverage?.status === "NOT_TARGETED"
+            ? "Not targeted"
+            : row.socialCoverage?.status === "UNKNOWN"
+              ? "Coverage unknown"
+              : "Not analyzed";
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1.2fr)_auto] gap-3 border-b border-border/60 px-4 py-4 last:border-b-0 md:grid-cols-[minmax(0,1.3fr)_auto_auto_auto] md:items-center">
       <div className="min-w-0">
@@ -86,9 +104,7 @@ function RadarRow({ row }: { row: PumpRadarRow }) {
           Social
         </p>
         <p className="mt-0.5 text-sm font-semibold tabular-nums">
-          {row.socialSummary
-            ? `${row.socialSummary.promotionalMentions} flagged`
-            : "Not analyzed"}
+          {socialLabel}
         </p>
       </div>
       <div className="col-span-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground md:hidden">
@@ -97,7 +113,7 @@ function RadarRow({ row }: { row: PumpRadarRow }) {
         <span>
           {row.socialSummary
             ? `${row.socialSummary.promotionalMentions} promotional mentions`
-            : "Social not analyzed"}
+            : `Social: ${socialLabel.toLowerCase()}`}
         </span>
       </div>
     </div>
@@ -111,6 +127,7 @@ export function PumpRadar({
   publishedAt,
   coverage,
   socialSummary,
+  socialPublication = null,
   freshness,
   notice,
   compact = false,
@@ -201,14 +218,21 @@ export function PumpRadar({
             </div>
             <div className="flex flex-col gap-2 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>{view.coverageLabel}</span>
-              {socialSummary ? (
-                <span className="flex items-center gap-1.5">
-                  <Megaphone className="h-3.5 w-3.5" aria-hidden="true" />
-                  {view.socialLabel}
-                </span>
-              ) : (
-                <span>Social media not analyzed for this publication</span>
-              )}
+              <span className="flex items-center gap-1.5">
+                <Megaphone className="h-3.5 w-3.5" aria-hidden="true" />
+                {view.socialLabel}
+                {socialPublication && (
+                  <span>
+                    · {socialPublication.status === "PARTIAL" ? "partial run" : "completed run"}
+                    {" · updated "}
+                    {new Intl.DateTimeFormat("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    }).format(new Date(socialPublication.updatedAt))}
+                  </span>
+                )}
+              </span>
             </div>
           </CardContent>
         )}
@@ -245,6 +269,7 @@ export function PublicPumpRadar({
           publishedAt: null,
           freshness: null,
           coverage: null,
+          socialPublication: null,
           rows: [],
           notice: "Published end-of-day findings are temporarily unavailable.",
         });

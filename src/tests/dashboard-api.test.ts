@@ -153,7 +153,13 @@ describe("public Pump Radar privacy", () => {
         ]),
       },
       socialScanRun: {
-        findFirst: jest.fn().mockResolvedValue({ id: "social-run-1" }),
+        findFirst: jest.fn().mockResolvedValue({
+          id: "social-run-1",
+          status: "COMPLETED",
+          scanDate: new Date("2026-08-25T00:00:00.000Z"),
+          updatedAt: new Date("2026-08-25T22:30:00.000Z"),
+          platformsUsed: null,
+        }),
       },
       socialMention: {
         findMany: jest.fn().mockResolvedValue([
@@ -215,6 +221,115 @@ describe("public Pump Radar privacy", () => {
     expect(serialized).not.toContain("private-user");
     expect(serialized).not.toContain("private-room");
     expect(serialized).not.toContain("private.example");
+  });
+
+  test("retains partial social evidence and exposes freshness without claiming an unsearched ticker was negative", async () => {
+    const scanDate = new Date("2026-09-16T00:00:00.000Z");
+    const updatedAt = new Date("2026-09-17T02:08:00.000Z");
+    const client = {
+      dailyScanSummary: {
+        findFirst: jest.fn().mockResolvedValue({
+          scanDate,
+          createdAt: new Date("2026-09-17T01:00:00.000Z"),
+          totalStocks: 2,
+          evaluated: 2,
+          skippedNoData: 0,
+        }),
+      },
+      stockDailySnapshot: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            riskLevel: "HIGH",
+            totalScore: 90,
+            signalCount: 3,
+            signalSummary: "AAPL signal",
+            lastPrice: 1,
+            priceChangePct: 1,
+            volumeRatio: 2,
+            stock: { symbol: "AAPL", name: "Apple", exchange: "NASDAQ", isOTC: false },
+          },
+          {
+            riskLevel: "HIGH",
+            totalScore: 80,
+            signalCount: 2,
+            signalSummary: "MSFT signal",
+            lastPrice: 1,
+            priceChangePct: 1,
+            volumeRatio: 2,
+            stock: { symbol: "MSFT", name: "Microsoft", exchange: "NASDAQ", isOTC: false },
+          },
+        ]),
+      },
+      socialScanRun: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: "social-partial",
+          status: "PARTIAL",
+          scanDate,
+          updatedAt,
+          platformsUsed: JSON.stringify({
+            version: 2,
+            scanners: ["stocktwits"],
+            submittedTickers: ["AAPL", "MSFT"],
+            persistence: {},
+            coverage: [
+              {
+                scanner: "stocktwits",
+                platform: "StockTwits",
+                status: "PARTIAL",
+                submittedTickers: ["AAPL", "MSFT"],
+                attemptedTickers: ["AAPL", "MSFT"],
+                searchedTickers: ["AAPL"],
+                failedTickers: ["MSFT"],
+                rateLimitedTickers: ["MSFT"],
+                skippedTickers: [],
+              },
+            ],
+          }),
+        }),
+      },
+      socialMention: {
+        findMany: jest.fn().mockResolvedValue([
+          { ticker: "AAPL", platform: "StockTwits", isPromotional: true, promotionScore: 70 },
+        ]),
+      },
+    };
+    const service = createPumpRadarService(client as never);
+
+    const payload = await service.getPumpRadar({
+      limit: 10,
+      viewer: "AUTHENTICATED",
+      now: updatedAt,
+    });
+
+    expect(payload).toMatchObject({
+      status: "AVAILABLE",
+      socialPublication: {
+        status: "PARTIAL",
+        scanDate: "2026-09-16T00:00:00.000Z",
+        updatedAt: "2026-09-17T02:08:00.000Z",
+      },
+      rows: [
+        {
+          ticker: "AAPL",
+          socialCoverage: { status: "COMPLETE", searchedPlatforms: ["StockTwits"] },
+          socialSummary: { mentionCount: 1 },
+        },
+        {
+          ticker: "MSFT",
+          socialCoverage: {
+            status: "NOT_SEARCHED",
+            searchedPlatforms: [],
+            rateLimitedPlatforms: ["StockTwits"],
+          },
+          socialSummary: null,
+        },
+      ],
+    });
+    expect(client.socialScanRun.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: { in: ["COMPLETED", "PARTIAL"] } }),
+      }),
+    );
   });
 });
 
