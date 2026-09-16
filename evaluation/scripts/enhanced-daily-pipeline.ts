@@ -26,6 +26,7 @@ import {
   reconcileListedResults,
 } from "./otc-daily";
 import { execSync } from "child_process";
+import { assessRiskScoringCoverage } from "./risk-scoring-coverage";
 
 // Import scoring modules
 import {
@@ -183,7 +184,8 @@ interface EnhancedStockResult {
   socialMediaScanned: boolean;
   socialMediaFindings?: ComprehensiveScanResult | null;
   socialMediaCoverage?: {
-    status: "COMPLETE" | "PARTIAL" | "NOT_SEARCHED" | "NOT_TARGETED" | "UNKNOWN";
+    status:
+      "COMPLETE" | "PARTIAL" | "NOT_SEARCHED" | "NOT_TARGETED" | "UNKNOWN";
     searchedPlatforms: string[];
     incompletePlatforms: string[];
     rateLimitedPlatforms: string[];
@@ -1429,7 +1431,9 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log(
       `✅ Python AI Backend authenticated (${pythonAIPreflight.scoringMode ?? "mode unknown"})`,
     );
-    console.log("   Result layers will be recorded only after accepted responses.");
+    console.log(
+      "   Result layers will be recorded only after accepted responses.",
+    );
   } else {
     console.log(
       `⚠️  Python AI Backend unavailable (${pythonAIPreflight.failure ?? "unknown"}) - using TypeScript scorer`,
@@ -1493,11 +1497,9 @@ async function runEnhancedPipeline(): Promise<void> {
       ) {
         const onWatchlist = watchlistTickers.has(stock.symbol);
         scanStatus.aiBackend.attempted++;
-        const pyResult = await callPythonAIBackend(
-          stock.symbol,
-          marketData,
-          { onWatchlist },
-        );
+        const pyResult = await callPythonAIBackend(stock.symbol, marketData, {
+          onWatchlist,
+        });
         if (pyResult && pyResult.success) {
           scanStatus.aiBackend.accepted++;
           pyResult.acceptedLayers.forEach((layer) =>
@@ -1737,13 +1739,23 @@ async function runEnhancedPipeline(): Promise<void> {
     }
   }
 
-  scanStatus.phases.phase1_riskScoring.status =
-    otcScan.coverage.status === "completed" ? "completed" : "degraded";
+  const scoringCoverage = assessRiskScoringCoverage({
+    listedExpected: reconcileListedResults(
+      stocks,
+      otcScan.coverage.directorySymbols,
+    ).length,
+    listedEvaluated: retained.length,
+    otcStatus: otcScan.coverage.status,
+  });
+  scanStatus.phases.phase1_riskScoring.status = scoringCoverage.status;
   scanStatus.phases.phase1_riskScoring.completedAt = new Date().toISOString();
   scanStatus.phases.phase1_riskScoring.durationMs =
     Date.now() -
     new Date(scanStatus.phases.phase1_riskScoring.startedAt!).getTime();
   scanStatus.phases.phase1_riskScoring.details = {
+    listedExpected: scoringCoverage.listedExpected,
+    listedEvaluated: scoringCoverage.listedEvaluated,
+    listedMissing: scoringCoverage.listedMissing,
     processed: processedCount,
     skippedNoData,
     otcCoverage: {
@@ -1769,6 +1781,13 @@ async function runEnhancedPipeline(): Promise<void> {
   scanStatus.summary.skippedNoData = skippedNoData;
   scanStatus.summary.riskCounts = { ...riskCounts };
   scanStatus.summary.highRiskBeforeFilters = highRiskBeforeFilter.length;
+
+  if (scoringCoverage.status === "failed") {
+    saveScanStatus(scanStatus);
+    throw new Error(
+      "Mandatory listed risk scoring failed: no valid listed coverage",
+    );
+  }
 
   // Phase 2: Filter high-risk stocks
   console.log("\n" + "=".repeat(80));
@@ -2413,21 +2432,21 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log("  No suspicious stocks to scan.");
   }
 
-  const socialPhaseStatus = afterNewsFilter.length > 0
-    ? assessSocialPhase({
-        runStatus: scanRunResult?.status || "FAILED",
-        submitted: scanStatus.socialMediaDetails.tickersSubmitted,
-        searched: scanStatus.socialMediaDetails.tickersActuallySearched,
-        persistence: scanRunResult?.persistence || null,
-        readbackComplete: scanRunResult?.readbackComplete !== false,
-        coverage: scanRunResult?.coverage || [],
-      })
-    : "completed";
+  const socialPhaseStatus =
+    afterNewsFilter.length > 0
+      ? assessSocialPhase({
+          runStatus: scanRunResult?.status || "FAILED",
+          submitted: scanStatus.socialMediaDetails.tickersSubmitted,
+          searched: scanStatus.socialMediaDetails.tickersActuallySearched,
+          persistence: scanRunResult?.persistence || null,
+          readbackComplete: scanRunResult?.readbackComplete !== false,
+          coverage: scanRunResult?.coverage || [],
+        })
+      : "completed";
   const socialCoverageDegraded = socialPhaseStatus === "degraded";
   scanStatus.phases.phase4_socialMedia.status = socialPhaseStatus;
   if (socialCoverageDegraded) {
-    scanStatus.phases.phase4_socialMedia.error =
-      `${scanStatus.socialMediaDetails.tickersActuallySearched}/${scanStatus.socialMediaDetails.tickersSubmitted} submitted tickers have verified search coverage; partial evidence was retained`;
+    scanStatus.phases.phase4_socialMedia.error = `${scanStatus.socialMediaDetails.tickersActuallySearched}/${scanStatus.socialMediaDetails.tickersSubmitted} submitted tickers have verified search coverage; partial evidence was retained`;
   }
   scanStatus.phases.phase4_socialMedia.completedAt = new Date().toISOString();
   scanStatus.phases.phase4_socialMedia.durationMs =
