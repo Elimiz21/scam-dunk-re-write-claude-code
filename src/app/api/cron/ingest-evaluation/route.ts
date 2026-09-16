@@ -10,6 +10,11 @@
 
 import { NextResponse } from "next/server";
 import { getPendingDates, ingestDate, IngestResult } from "@/lib/admin/ingest-evaluation-core";
+import {
+  cronAuthorizationFailure,
+  unsafeIngestionTargetResponse,
+  verifyIngestionTarget,
+} from "@/lib/server/ingestion-safety";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 800; // 13 min max (Vercel Pro)
@@ -17,7 +22,12 @@ export const maxDuration = 800; // 13 min max (Vercel Pro)
 // Time budget: stop processing new dates after this many ms (9 minutes)
 const TIME_BUDGET_MS = 9 * 60 * 1000;
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
+  const authorizationFailure = cronAuthorizationFailure(request);
+  if (authorizationFailure) return authorizationFailure;
+
+  if (!verifyIngestionTarget().ok) return unsafeIngestionTargetResponse();
+
   const cronStart = Date.now();
 
   // 2. Get all pending dates

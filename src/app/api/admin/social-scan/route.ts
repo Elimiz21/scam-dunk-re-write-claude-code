@@ -48,27 +48,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Auto-cleanup: mark scans stuck in RUNNING as TIMED_OUT when their
-    // heartbeat (updatedAt) has gone quiet for >10 min — keying on updatedAt
-    // not createdAt avoids killing a live scan still making progress (SOC-M5).
-    try {
-      const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
-      await prisma.socialScanRun.updateMany({
-        where: {
-          status: "RUNNING",
-          updatedAt: { lt: staleThreshold },
-        },
-        data: {
-          status: "TIMED_OUT",
-          errors: JSON.stringify([
-            "Scan timed out — no status update received within 10 minutes",
-          ]),
-        },
-      });
-    } catch (cleanupErr) {
-      console.error("Stale scan cleanup failed:", cleanupErr);
-    }
-
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");

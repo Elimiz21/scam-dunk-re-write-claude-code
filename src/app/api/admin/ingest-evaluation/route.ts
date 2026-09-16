@@ -11,11 +11,17 @@ import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
 import { ingestDate } from "@/lib/admin/ingest-evaluation-core";
+import {
+  unsafeIngestionTargetResponse,
+  verifyIngestionTarget,
+} from "@/lib/server/ingestion-safety";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 600; // 10 minutes for large imports (enhanced pipeline produces ~6,500 stocks)
 
 export async function POST(request: Request) {
+  if (!verifyIngestionTarget().ok) return unsafeIngestionTargetResponse();
+
   const startTime = Date.now();
   let sessionId: string | null = null;
   try {

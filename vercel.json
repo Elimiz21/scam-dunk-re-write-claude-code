@@ -5,6 +5,10 @@
       "schedule": "0 7 * * 1-5"
     },
     {
+      "path": "/api/cron/social-scan-cleanup",
+      "schedule": "7 * * * *"
+    },
+    {
       "path": "/api/cron/whatsapp-retention",
       "schedule": "17 * * * *"
     },
