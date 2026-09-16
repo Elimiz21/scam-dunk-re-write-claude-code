@@ -37,6 +37,10 @@ on:
         type: boolean
 
 # Grant write permissions for issue creation on failure
+concurrency:
+  group: enhanced-daily-evaluation
+  cancel-in-progress: false
+
 permissions:
   contents: write
   issues: write
@@ -303,6 +307,7 @@ jobs:
             ["social-media-scan"]="results/social-media-scan-${DATE}.json"
             ["promoted-stocks"]="results/promoted-stocks-${DATE}.json"
             ["scan-status"]="results/scan-status-${DATE}.json"
+            ["otc-coverage"]="results/otc-coverage-${DATE}.json"
             ["scheme-database"]="scheme-database/scheme-database.json"
           )
 
@@ -403,7 +408,7 @@ jobs:
           echo "Validation report written to results/pipeline-validation-${DATE}.json"
 
       - name: Upload to Supabase
-        continue-on-error: true
+        if: ${{ github.event.inputs.test_mode != 'true' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -411,13 +416,14 @@ jobs:
           DATE="${{ steps.date.outputs.date }}"
 
           if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
-            echo "Warning: Supabase credentials not configured, skipping upload"
+            echo "::error::Supabase credentials not configured; publication failed"
             echo "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY secrets to enable"
-            exit 0
+            exit 1
           fi
 
           cd evaluation
           UPLOADED=0
+          FAILED=0
 
           # Upload all result files
           for file in results/*-${DATE}*.json results/*-${DATE}*.md; do
@@ -435,7 +441,8 @@ jobs:
                 echo "  OK ($HTTP_CODE)"
                 UPLOADED=$((UPLOADED + 1))
               else
-                echo "  Warning: Upload returned $HTTP_CODE - $BODY"
+                echo "::error::Upload failed for $FILENAME (HTTP $HTTP_CODE)"
+                FAILED=$((FAILED + 1))
               fi
             fi
           done
@@ -463,8 +470,10 @@ jobs:
           fi
 
           echo "Uploaded $UPLOADED files to Supabase"
+          if [ "$FAILED" -gt 0 ]; then exit 1; fi
 
       - name: Checkout data repository
+        if: ${{ github.event.inputs.test_mode != 'true' }}
         continue-on-error: true
         id: checkout-data
         uses: actions/checkout@v4
@@ -487,6 +496,8 @@ jobs:
           mkdir -p data-repo/suspicious-stocks
           mkdir -p data-repo/scheme-tracking
           mkdir -p data-repo/reports
+
+          cp evaluation/results/otc-coverage-${DATE}.json data-repo/reports/ 2>/dev/null || true
 
           # Copy enhanced evaluation results
           cp evaluation/results/enhanced-evaluation-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true

@@ -1,5 +1,8 @@
 const list = jest.fn();
-const from = jest.fn(() => ({ list }));
+const getPublicUrl = jest.fn((filename: string) => ({
+  data: { publicUrl: `https://storage.test/${filename}` },
+}));
+const from = jest.fn(() => ({ list, getPublicUrl }));
 
 jest.mock("@/lib/supabase", () => ({
   EVALUATION_BUCKET: "evaluation-data",
@@ -8,7 +11,19 @@ jest.mock("@/lib/supabase", () => ({
 
 jest.mock("@/lib/db", () => ({
   prisma: {
-    dailyScanSummary: { findMany: jest.fn() },
+    dailyScanSummary: { findMany: jest.fn(), upsert: jest.fn() },
+    trackedStock: {
+      findMany: jest.fn(),
+      createMany: jest.fn(),
+      update: jest.fn(),
+    },
+    stockRiskAlert: { findMany: jest.fn(), createMany: jest.fn() },
+    promotedStock: { upsert: jest.fn() },
+    stockDailySnapshot: {
+      findMany: jest.fn(),
+      createMany: jest.fn(),
+      groupBy: jest.fn(),
+    },
   },
 }));
 
@@ -17,7 +32,10 @@ jest.mock("@/lib/promoted-stocks/tracker", () => ({
 }));
 
 import { prisma } from "@/lib/db";
-import { getPendingDates } from "@/lib/admin/ingest-evaluation-core";
+import {
+  getPendingDates,
+  ingestDate,
+} from "@/lib/admin/ingest-evaluation-core";
 
 describe("getPendingDates", () => {
   beforeEach(() => {
@@ -56,5 +74,403 @@ describe("getPendingDates", () => {
       offset: 500,
       sortBy: { column: "name", order: "asc" },
     });
+  });
+  it("keeps dates with identity quarantines pending for retry", async () => {
+    list.mockResolvedValue({
+      data: [{ name: "enhanced-evaluation-2026-09-16.json" }],
+      error: null,
+    });
+    (prisma.dailyScanSummary.findMany as jest.Mock).mockResolvedValue([
+      {
+        scanDate: new Date("2026-09-16"),
+        byExchange: JSON.stringify({
+          OTC: {
+            total: 0,
+            LOW: 0,
+            MEDIUM: 0,
+            HIGH: 0,
+            identityQuarantines: [{ symbol: "EXAMPLE" }],
+          },
+        }),
+      },
+    ]);
+    await expect(getPendingDates()).resolves.toEqual(["2026-09-16"]);
+  });
+});
+
+describe("ingestDate OTC records", () => {
+  const originalFetch = global.fetch;
+  const row = {
+    symbol: "EXAMPLE",
+    name: "Example Corp",
+    exchange: "OTCQB",
+    riskLevel: "INSUFFICIENT",
+    totalScore: 0,
+    signals: [],
+    evaluatedAt: "2026-09-16T23:12:34.567Z",
+  };
+  let rows: Array<Record<string, unknown>>;
+  let promoted: unknown[];
+  beforeEach(() => {
+    jest.clearAllMocks();
+    rows = [{ ...row }];
+    promoted = [];
+    global.fetch = jest.fn(async (url) => ({
+      ok:
+        String(url).includes("enhanced-evaluation") ||
+        (String(url).includes("promoted-stocks") && promoted.length > 0),
+      status: 404,
+      headers: { get: () => "application/json" },
+      text: async () =>
+        JSON.stringify(
+          String(url).includes("promoted-stocks")
+            ? { promotedStocks: promoted }
+            : rows,
+        ),
+    })) as unknown as typeof fetch;
+    (prisma.trackedStock.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: "stock-1",
+        name: "Example Corp",
+        symbol: "EXAMPLE",
+        exchange: "NASDAQ",
+        isOTC: false,
+      },
+    ]);
+    (prisma.trackedStock.update as jest.Mock).mockResolvedValue({});
+    (prisma.stockRiskAlert.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.stockRiskAlert.createMany as jest.Mock).mockResolvedValue({
+      count: 1,
+    });
+    (prisma.stockDailySnapshot.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.stockDailySnapshot.groupBy as jest.Mock).mockResolvedValue([]);
+    (prisma.stockDailySnapshot.createMany as jest.Mock).mockImplementation(
+      async ({ data }) => ({ count: data.length }),
+    );
+    (prisma.trackedStock.createMany as jest.Mock).mockImplementation(
+      async ({ data }) => ({ count: data.length }),
+    );
+    (prisma.dailyScanSummary.upsert as jest.Mock).mockResolvedValue({});
+  });
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it.each([
+    "OTC",
+    "OTCQX",
+    "OTCQB",
+    "OTCPK",
+    "PNK",
+    "PINK",
+    "GREY",
+    "OTC Markets",
+    "OTHER OTC",
+  ])("refreshes stale listed metadata for %s", async (exchange) => {
+    rows[0].exchange = exchange;
+    expect((await ingestDate("2026-09-16")).success).toBe(true);
+    expect(prisma.trackedStock.update).toHaveBeenCalledWith({
+      where: { id: "stock-1" },
+      data: { exchange, isOTC: true },
+    });
+  });
+  it("classifies newly discovered PNK securities as OTC", async () => {
+    rows[0].exchange = "PNK";
+    (prisma.trackedStock.findMany as jest.Mock)
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([
+        { id: "stock-1", name: "Example Corp", symbol: "EXAMPLE" },
+      ]);
+    await ingestDate("2026-09-16");
+    expect(
+      (prisma.trackedStock.createMany as jest.Mock).mock.calls[0][0].data[0],
+    ).toMatchObject({ exchange: "PNK", isOTC: true });
+  });
+  it("clears stale OTC classification when a security is now listed", async () => {
+    rows[0].exchange = "NASDAQ";
+    (prisma.trackedStock.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: "stock-1",
+        name: "Example Corp",
+        symbol: "EXAMPLE",
+        exchange: "OTC",
+        isOTC: true,
+      },
+    ]);
+    await ingestDate("2026-09-16");
+    expect(prisma.trackedStock.update).toHaveBeenCalledWith({
+      where: { id: "stock-1" },
+      data: { exchange: "NASDAQ", isOTC: false },
+    });
+  });
+  it.each([
+    ["2026-09-15", "2026-09-17T01:00:00Z"],
+    ["2026-09-16", "2026-09-16T22:00:00Z"],
+    ["2026-09-17", "2026-09-15T23:00:00Z"],
+  ])(
+    "preserves current metadata when scan %s or evaluation %s is older",
+    async (date, evaluatedAt) => {
+      rows[0].evaluatedAt = evaluatedAt;
+      (prisma.trackedStock.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: "stock-1",
+          name: "Example Corp",
+          symbol: "EXAMPLE",
+          exchange: "NASDAQ",
+          isOTC: false,
+          dailySnapshots: [
+            {
+              scanDate: new Date("2026-09-16T00:00:00Z"),
+              evaluatedAt: new Date("2026-09-16T23:00:00Z"),
+            },
+          ],
+        },
+      ]);
+      (prisma.stockDailySnapshot.groupBy as jest.Mock).mockResolvedValue([
+        {
+          stockId: "stock-1",
+          _max: {
+            scanDate: new Date("2026-09-16T00:00:00Z"),
+            evaluatedAt: new Date("2026-09-16T23:00:00Z"),
+          },
+        },
+      ]);
+      const result = await ingestDate(date);
+      expect(result.success).toBe(true);
+      expect(result.snapshotsCreated).toBe(1);
+      expect(prisma.trackedStock.update).not.toHaveBeenCalled();
+      expect(result.stocksUpdated).toBe(0);
+    },
+  );
+  it("refreshes metadata only after the latest scan and evaluation", async () => {
+    (prisma.trackedStock.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: "stock-1",
+        name: "Example Corp",
+        symbol: "EXAMPLE",
+        exchange: "NASDAQ",
+        isOTC: false,
+        dailySnapshots: [
+          {
+            scanDate: new Date("2026-09-15T00:00:00Z"),
+            evaluatedAt: new Date("2026-09-15T23:00:00Z"),
+          },
+        ],
+      },
+    ]);
+    (prisma.stockDailySnapshot.groupBy as jest.Mock).mockResolvedValue([
+      {
+        stockId: "stock-1",
+        _max: {
+          scanDate: new Date("2026-09-15T00:00:00Z"),
+          evaluatedAt: new Date("2026-09-15T23:00:00Z"),
+        },
+      },
+    ]);
+    const result = await ingestDate("2026-09-16");
+    expect(result.success).toBe(true);
+    expect(result.stocksUpdated).toBe(1);
+    expect(prisma.stockDailySnapshot.groupBy).toHaveBeenCalledWith({
+      by: ["stockId"],
+      where: { stockId: { in: ["stock-1"] } },
+      _max: { scanDate: true, evaluatedAt: true },
+    });
+  });
+  it("does not update metadata on same-day reruns whose snapshots are immutable", async () => {
+    const storedScanDate = new Date("2026-09-16");
+    storedScanDate.setHours(0, 0, 0, 0);
+    (prisma.stockDailySnapshot.groupBy as jest.Mock).mockResolvedValue([
+      {
+        stockId: "stock-1",
+        _max: {
+          scanDate: storedScanDate,
+          evaluatedAt: new Date("2026-09-16T20:00:00Z"),
+        },
+      },
+    ]);
+    (prisma.stockDailySnapshot.findMany as jest.Mock).mockResolvedValue([
+      { stockId: "stock-1" },
+    ]);
+    rows[0].evaluatedAt = "2026-09-16T23:00:00Z";
+    expect((await ingestDate("2026-09-16")).success).toBe(true);
+    rows[0].evaluatedAt = "2026-09-16T22:00:00Z";
+    expect((await ingestDate("2026-09-16")).success).toBe(true);
+    expect(prisma.trackedStock.update).not.toHaveBeenCalled();
+    expect(prisma.stockDailySnapshot.createMany).not.toHaveBeenCalled();
+  });
+  it("does not weaken metadata provenance after a newer scan with an older evaluation", async () => {
+    const current = {
+      id: "stock-1",
+      name: "Example Corp",
+      symbol: "EXAMPLE",
+      exchange: "NASDAQ",
+      isOTC: false,
+    };
+    (prisma.trackedStock.findMany as jest.Mock).mockResolvedValue([
+      {
+        ...current,
+        dailySnapshots: [
+          {
+            scanDate: new Date("2026-09-17"),
+            evaluatedAt: new Date("2026-09-15T00:00:00Z"),
+          },
+        ],
+      },
+    ]);
+    (prisma.stockDailySnapshot.groupBy as jest.Mock).mockResolvedValue([
+      {
+        stockId: "stock-1",
+        _max: {
+          scanDate: new Date("2026-09-17"),
+          evaluatedAt: new Date("2026-09-16T23:00:00Z"),
+        },
+      },
+    ]);
+    rows[0].evaluatedAt = "2026-09-15T12:00:00Z";
+    expect((await ingestDate("2026-09-18")).success).toBe(true);
+    expect(prisma.trackedStock.update).not.toHaveBeenCalled();
+  });
+  it("quarantines a reused OTC issuer name while preserving unrelated listed ingestion", async () => {
+    rows[0] = {
+      ...row,
+      name: "Different Issuer Ltd",
+      securityIdentifier: "US9999999999",
+      riskLevel: "HIGH",
+    };
+    rows.push({
+      ...row,
+      symbol: "LISTED",
+      name: "Listed Inc",
+      exchange: "NYSE",
+      riskLevel: "LOW",
+    });
+    (prisma.trackedStock.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: "stock-1",
+        symbol: "EXAMPLE",
+        name: "Example Corp",
+        exchange: "OTC",
+        isOTC: true,
+      },
+      {
+        id: "stock-2",
+        symbol: "LISTED",
+        name: "Listed Inc",
+        exchange: "NYSE",
+        isOTC: false,
+      },
+    ]);
+    promoted = [
+      {
+        symbol: "EXAMPLE",
+        name: "Different Issuer Ltd",
+        platforms: [],
+        sources: [],
+      },
+    ];
+    const result = await ingestDate("2026-09-16");
+    expect(result).toMatchObject({
+      success: false,
+      partial: true,
+      totalProcessed: 1,
+      skipped: 1,
+      identityQuarantines: [
+        {
+          symbol: "EXAMPLE",
+          existingName: "Example Corp",
+          incomingName: "Different Issuer Ltd",
+          securityIdentifier: "US9999999999",
+          reason: "OTC_ISSUER_NAME_CONFLICT",
+        },
+      ],
+    });
+    expect(prisma.trackedStock.update).not.toHaveBeenCalled();
+    expect(prisma.trackedStock.createMany).not.toHaveBeenCalled();
+    expect(prisma.stockRiskAlert.createMany).not.toHaveBeenCalled();
+    expect(prisma.promotedStock.upsert).not.toHaveBeenCalled();
+    expect(
+      (
+        prisma.stockDailySnapshot.createMany as jest.Mock
+      ).mock.calls[0][0].data.map((x: { stockId: string }) => x.stockId),
+    ).toEqual(["stock-2"]);
+    const summary = (prisma.dailyScanSummary.upsert as jest.Mock).mock
+      .calls[0][0].create;
+    expect(summary).toMatchObject({
+      totalStocks: 2,
+      evaluated: 1,
+      highRiskCount: 0,
+      lowRiskCount: 1,
+    });
+    expect(JSON.parse(summary.byExchange).OTC.identityQuarantines).toHaveLength(
+      1,
+    );
+  });
+  it("clears stored quarantine metadata when a corrected retry matches the issuer", async () => {
+    const result = await ingestDate("2026-09-16");
+    expect(result.success).toBe(true);
+    const summary = (prisma.dailyScanSummary.upsert as jest.Mock).mock
+      .calls[0][0].update;
+    expect(summary.evaluated).toBe(1);
+    expect(
+      JSON.parse(summary.byExchange).OTC.identityQuarantines,
+    ).toBeUndefined();
+  });
+  it("quarantines every duplicate-symbol row if an earlier issuer conflicts", async () => {
+    rows = [
+      { ...row, name: "Different Issuer", riskLevel: "HIGH" },
+      { ...row },
+    ];
+    const result = await ingestDate("2026-09-16");
+    expect(result).toMatchObject({
+      success: false,
+      partial: true,
+      totalProcessed: 0,
+      skipped: 2,
+    });
+    expect(result.identityQuarantines).toHaveLength(1);
+    expect(prisma.stockDailySnapshot.createMany).not.toHaveBeenCalled();
+    expect(prisma.stockRiskAlert.createMany).not.toHaveBeenCalled();
+  });
+  it("accepts cosmetic issuer-name differences", async () => {
+    rows[0].name = "  EXAMPLE, Corp. ";
+    const result = await ingestDate("2026-09-16");
+    expect(result).toMatchObject({
+      success: true,
+      partial: false,
+      identityQuarantines: [],
+    });
+    expect(prisma.stockDailySnapshot.createMany).toHaveBeenCalled();
+  });
+  it("persists real evaluation time and insufficient status without asserting legitimacy", async () => {
+    await ingestDate("2026-09-16");
+    const snapshot = (prisma.stockDailySnapshot.createMany as jest.Mock).mock
+      .calls[0][0].data[0];
+    expect(snapshot).toMatchObject({
+      evaluatedAt: new Date("2026-09-16T23:12:34.567Z"),
+      isInsufficient: true,
+      isLegitimate: false,
+    });
+  });
+  it.each([
+    undefined,
+    "invalid",
+    "2026-09-16",
+    "2026-02-30T23:12:34.567Z",
+    "2026-09-16T24:00:00Z",
+  ])(
+    "rejects OTC records without a real evaluation timestamp (%s)",
+    async (evaluatedAt) => {
+      rows[0].evaluatedAt = evaluatedAt;
+      const result = await ingestDate("2026-09-16");
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/evaluatedAt/);
+      expect(prisma.stockDailySnapshot.createMany).not.toHaveBeenCalled();
+      expect(prisma.dailyScanSummary.upsert).not.toHaveBeenCalled();
+    },
+  );
+  it("preserves legacy listed ingestion without evaluation timestamps", async () => {
+    rows[0].exchange = "NASDAQ";
+    delete rows[0].evaluatedAt;
+    expect((await ingestDate("2026-09-16")).success).toBe(true);
   });
 });

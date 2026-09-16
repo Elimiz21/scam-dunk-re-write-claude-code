@@ -17,7 +17,17 @@ const BATCH_SIZE = 1000;
 // date is required when the price feed covers the symbol at all.
 const PROMOTED_MAX_QUOTE_AGE_DAYS = 10;
 
+export interface IdentityQuarantine {
+  symbol: string;
+  existingName: string;
+  incomingName: string;
+  securityIdentifier: string | null;
+  reason: "OTC_ISSUER_NAME_CONFLICT";
+}
+
 export interface IngestResult {
+  partial?: boolean;
+  identityQuarantines?: IdentityQuarantine[];
   success: boolean;
   date: string;
   stocksCreated: number;
@@ -81,13 +91,75 @@ interface EvaluationStock {
   signalSummary?: string;
   evaluatedAt: string;
   priceDataSource?: string;
+  securityIdentifier?: string;
+}
+
+// Provider exchange codes and OTC market-tier labels describe the same market
+// classification. Keep the original exchange label for reporting.
+function isOTCExchange(exchange: string): boolean {
+  const normalized = exchange.trim().toUpperCase();
+  return (
+    normalized.startsWith("OTC") ||
+    [
+      "OTHER OTC",
+      "PNK",
+      "PINK",
+      "PINK SHEETS",
+      "GREY",
+      "GRAY",
+      "GREY MARKET",
+      "GRAY MARKET",
+      "EXPERT",
+      "EXPERT MARKET",
+    ].includes(normalized)
+  );
+}
+
+function normalizedIssuerName(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toUpperCase()
+    .replace(new RegExp("[^\\p{L}\\p{N}]", "gu"), "");
+}
+
+function hasEvaluationTimestamp(value: string): boolean {
+  if (typeof value !== "string") return false;
+  const parts =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.exec(
+      value,
+    );
+  if (!parts) return false;
+  const [, year, month, day, hour, minute, second] = parts.map(Number);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+  // Date.parse normalizes impossible dates and 24:00 into another day.
+  return (
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= daysInMonth[month - 1] &&
+    hour < 24 &&
+    minute < 60 &&
+    second < 60 &&
+    Number.isFinite(new Date(value).getTime())
+  );
 }
 
 type IngestionErrorType =
-  | "MISSING_FILE"
-  | "BAD_JSON"
-  | "INVALID_SUPABASE_CONFIG"
-  | "FETCH_ERROR";
+  "MISSING_FILE" | "BAD_JSON" | "INVALID_SUPABASE_CONFIG" | "FETCH_ERROR";
 
 interface EvaluationSummary {
   totalStocks: number;
@@ -96,7 +168,13 @@ interface EvaluationSummary {
   byRiskLevel: Record<string, number>;
   byExchange: Record<
     string,
-    { total: number; LOW: number; MEDIUM: number; HIGH: number }
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      identityQuarantines?: IdentityQuarantine[];
+    }
   >;
   startTime?: string;
   endTime?: string;
@@ -354,10 +432,19 @@ export async function getPendingDates(): Promise<string[]> {
 
   // Get all already-ingested dates from DailyScanSummary
   const ingested = await prisma.dailyScanSummary.findMany({
-    select: { scanDate: true },
+    select: { scanDate: true, byExchange: true },
   });
   const ingestedDates = new Set(
-    ingested.map((row) => row.scanDate.toISOString().split("T")[0]),
+    ingested
+      .filter((row) => {
+        if (!row.byExchange) return true;
+        try {
+          return !JSON.parse(row.byExchange)?.OTC?.identityQuarantines?.length;
+        } catch {
+          return false; // unreadable completion metadata must remain retryable
+        }
+      })
+      .map((row) => row.scanDate.toISOString().split("T")[0]),
   );
 
   // Return pending dates sorted oldest-first
@@ -375,6 +462,8 @@ export async function getPendingDates(): Promise<string[]> {
  */
 export async function ingestDate(date: string): Promise<IngestResult> {
   const startTime = Date.now();
+  const identityQuarantines: IdentityQuarantine[] = [];
+  const quarantinedSymbols = new Set<string>();
 
   try {
     const enhancedEvalFilename = `enhanced-evaluation-${date}.json`;
@@ -423,26 +512,135 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     scanDate.setHours(0, 0, 0, 0);
 
     // Filter valid stocks
-    const validStocks = evaluationData.filter(
+    let validStocks = evaluationData.filter(
       (stock) => stock.symbol && stock.name && stock.exchange,
     );
-    const skippedCount = evaluationData.length - validStocks.length;
+    // Validate OTC provenance before any writes. A scan date is not the time
+    // an evaluation actually occurred, including for historical reconstructions.
+    for (const stock of validStocks) {
+      if (
+        isOTCExchange(stock.exchange) &&
+        !hasEvaluationTimestamp(stock.evaluatedAt)
+      ) {
+        throw new Error(
+          `Invalid or missing evaluatedAt for OTC security ${stock.symbol}`,
+        );
+      }
+    }
+    const invalidStockCount = evaluationData.length - validStocks.length;
+    let skippedCount = invalidStockCount;
     console.log(
       `[ingest-core] ${validStocks.length} valid stocks (${skippedCount} skipped) for ${date}`,
     );
 
     // Step 1: Get all existing stocks in batches
-    const symbols = validStocks.map((s) => s.symbol);
+    const symbols = Array.from(new Set(validStocks.map((s) => s.symbol)));
     const existingStockMap = new Map<string, string>();
 
+    let stocksUpdated = 0;
+    const incomingStocks = new Map(
+      validStocks.map((stock) => [stock.symbol, stock]),
+    );
+    const incomingBySymbol = new Map<string, EvaluationStock[]>();
+    for (const stock of validStocks) {
+      const group = incomingBySymbol.get(stock.symbol) ?? [];
+      group.push(stock);
+      incomingBySymbol.set(stock.symbol, group);
+    }
     for (let i = 0; i < symbols.length; i += BATCH_SIZE) {
       const batch = symbols.slice(i, i + BATCH_SIZE);
       const existingStocks = await prisma.trackedStock.findMany({
         where: { symbol: { in: batch } },
-        select: { id: true, symbol: true },
+        select: {
+          id: true,
+          symbol: true,
+          name: true,
+          exchange: true,
+          isOTC: true,
+        },
       });
-      existingStocks.forEach((s) => existingStockMap.set(s.symbol, s.id));
+      for (const existing of existingStocks) {
+        const incoming = incomingBySymbol
+          .get(existing.symbol)!
+          .find(
+            (candidate) =>
+              (isOTCExchange(candidate.exchange) ||
+                existing.isOTC ||
+                isOTCExchange(existing.exchange)) &&
+              normalizedIssuerName(existing.name) !==
+                normalizedIssuerName(candidate.name),
+          );
+        if (incoming) {
+          quarantinedSymbols.add(existing.symbol);
+          identityQuarantines.push({
+            symbol: existing.symbol,
+            existingName: existing.name,
+            incomingName: incoming.name,
+            securityIdentifier: incoming.securityIdentifier ?? null,
+            reason: "OTC_ISSUER_NAME_CONFLICT",
+          });
+        }
+      }
+      const changedStockIds = existingStocks
+        .filter((existing) => {
+          if (quarantinedSymbols.has(existing.symbol)) return false;
+          const incoming = incomingStocks.get(existing.symbol)!;
+          return (
+            existing.exchange !== incoming.exchange ||
+            existing.isOTC !== isOTCExchange(incoming.exchange)
+          );
+        })
+        .map((existing) => existing.id);
+      // The latest scan and latest evaluation can belong to different rows.
+      // Aggregate both independently so out-of-order replays cannot weaken the guard.
+      const provenance =
+        changedStockIds.length > 0
+          ? await prisma.stockDailySnapshot.groupBy({
+              by: ["stockId"],
+              where: { stockId: { in: changedStockIds } },
+              _max: { scanDate: true, evaluatedAt: true },
+            })
+          : [];
+      const latestByStock = new Map(
+        provenance.map((row) => [row.stockId, row._max]),
+      );
+      for (const existing of existingStocks) {
+        if (quarantinedSymbols.has(existing.symbol)) continue;
+        existingStockMap.set(existing.symbol, existing.id);
+        const incoming = incomingStocks.get(existing.symbol)!;
+        const isOTC = isOTCExchange(incoming.exchange);
+        // Historical artifact replays may create missing snapshots, but cannot
+        // roll current security metadata back to an earlier market listing.
+        const latestSnapshot = latestByStock.get(existing.id);
+        const incomingEvaluationTime = hasEvaluationTimestamp(
+          incoming.evaluatedAt,
+        )
+          ? new Date(incoming.evaluatedAt).getTime()
+          : scanDate.getTime();
+        // Same-day snapshots are immutable below. Do not update metadata from
+        // a newer same-day observation whose provenance would not be persisted.
+        const isCurrent =
+          !latestSnapshot ||
+          (scanDate.getTime() > (latestSnapshot.scanDate?.getTime() ?? 0) &&
+            incomingEvaluationTime >=
+              (latestSnapshot.evaluatedAt?.getTime() ?? 0));
+        if (
+          isCurrent &&
+          (existing.exchange !== incoming.exchange || existing.isOTC !== isOTC)
+        ) {
+          await prisma.trackedStock.update({
+            where: { id: existing.id },
+            data: { exchange: incoming.exchange, isOTC },
+          });
+          stocksUpdated++;
+        }
+      }
     }
+
+    validStocks = validStocks.filter(
+      (stock) => !quarantinedSymbols.has(stock.symbol),
+    );
+    skippedCount = evaluationData.length - validStocks.length;
 
     // Step 2: Identify stocks to create
     const stocksToCreate = validStocks.filter(
@@ -464,7 +662,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
               exchange: stock.exchange,
               sector: stock.sector || null,
               industry: stock.industry || null,
-              isOTC: stock.exchange === "OTC",
+              isOTC: isOTCExchange(stock.exchange),
             })),
             skipDuplicates: true,
           }),
@@ -507,7 +705,9 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         const stockId = existingStockMap.get(stock.symbol)!;
         let evaluatedAt: Date;
         try {
-          evaluatedAt = stock.evaluatedAt ? new Date(stock.evaluatedAt) : scanDate;
+          evaluatedAt = stock.evaluatedAt
+            ? new Date(stock.evaluatedAt)
+            : scanDate;
           if (isNaN(evaluatedAt.getTime())) evaluatedAt = scanDate;
         } catch {
           evaluatedAt = scanDate;
@@ -518,8 +718,12 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           scanDate,
           riskLevel: stock.riskLevel || "UNKNOWN",
           totalScore: toInt(stock.totalScore) ?? 0,
-          isLegitimate: stock.isLegitimate ?? true,
-          isInsufficient: stock.isInsufficient || false,
+          isLegitimate:
+            stock.riskLevel === "INSUFFICIENT" || stock.isInsufficient
+              ? false
+              : (stock.isLegitimate ?? true),
+          isInsufficient:
+            stock.riskLevel === "INSUFFICIENT" || stock.isInsufficient === true,
           lastPrice: stock.lastPrice || null,
           previousClose: stock.previousClose || null,
           priceChangePct: stock.priceChangePct || null,
@@ -603,54 +807,59 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       }
     }
 
-    // Step 8: Create/update daily summary
-    if (summaryData) {
-      await prisma.dailyScanSummary.upsert({
-        where: { scanDate },
-        create: {
-          scanDate,
-          totalStocks: summaryData.totalStocks,
-          evaluated: summaryData.evaluated,
-          skippedNoData: summaryData.skippedNoData,
-          lowRiskCount: summaryData.byRiskLevel?.LOW || 0,
-          mediumRiskCount: summaryData.byRiskLevel?.MEDIUM || 0,
-          highRiskCount: summaryData.byRiskLevel?.HIGH || 0,
-          insufficientCount: summaryData.byRiskLevel?.INSUFFICIENT || 0,
-          byExchange: JSON.stringify(summaryData.byExchange || {}),
-          scanDurationMins: summaryData.durationMinutes || null,
-          apiCallsMade: summaryData.apiCallsMade || null,
-        },
-        update: {
-          totalStocks: summaryData.totalStocks,
-          evaluated: summaryData.evaluated,
-          skippedNoData: summaryData.skippedNoData,
-          lowRiskCount: summaryData.byRiskLevel?.LOW || 0,
-          mediumRiskCount: summaryData.byRiskLevel?.MEDIUM || 0,
-          highRiskCount: summaryData.byRiskLevel?.HIGH || 0,
-          insufficientCount: summaryData.byRiskLevel?.INSUFFICIENT || 0,
-          byExchange: JSON.stringify(summaryData.byExchange || {}),
-          scanDurationMins: summaryData.durationMinutes || null,
-          apiCallsMade: summaryData.apiCallsMade || null,
-        },
-      });
-    } else {
-      // No summary file: upsert a minimal record so this date is marked ingested
-      await prisma.dailyScanSummary.upsert({
-        where: { scanDate },
-        create: {
-          scanDate,
-          totalStocks: validStocks.length,
-          evaluated: validStocks.length,
-          skippedNoData: skippedCount,
-          lowRiskCount: validStocks.filter((s) => s.riskLevel === "LOW").length,
-          mediumRiskCount: validStocks.filter((s) => s.riskLevel === "MEDIUM").length,
-          highRiskCount: validStocks.filter((s) => s.riskLevel === "HIGH").length,
-          insufficientCount: validStocks.filter((s) => s.riskLevel === "INSUFFICIENT").length,
-          byExchange: JSON.stringify({}),
-        },
-        update: {},
-      });
+    // Persist accepted counts and the explicit quarantine without a schema change.
+    // Existing consumers read total/LOW/MEDIUM/HIGH; extra OTC metadata is additive.
+    let effectiveSummary = summaryData;
+    if (!effectiveSummary || identityQuarantines.length > 0) {
+      const byExchange: EvaluationSummary["byExchange"] = {};
+      const byRiskLevel: Record<string, number> = {};
+      for (const stock of validStocks) {
+        byRiskLevel[stock.riskLevel] = (byRiskLevel[stock.riskLevel] || 0) + 1;
+        const exchange = isOTCExchange(stock.exchange) ? "OTC" : stock.exchange;
+        const counts = (byExchange[exchange] ||= {
+          total: 0,
+          LOW: 0,
+          MEDIUM: 0,
+          HIGH: 0,
+        });
+        counts.total++;
+        if (
+          stock.riskLevel === "LOW" ||
+          stock.riskLevel === "MEDIUM" ||
+          stock.riskLevel === "HIGH"
+        )
+          counts[stock.riskLevel]++;
+      }
+      if (identityQuarantines.length > 0) {
+        byExchange.OTC ||= { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0 };
+        byExchange.OTC.identityQuarantines = identityQuarantines;
+      }
+      effectiveSummary = {
+        ...summaryData,
+        totalStocks: summaryData?.totalStocks ?? evaluationData.length,
+        evaluated: validStocks.length,
+        skippedNoData: summaryData?.skippedNoData ?? invalidStockCount,
+        byRiskLevel,
+        byExchange,
+      };
     }
+    const summaryValues = {
+      totalStocks: effectiveSummary.totalStocks,
+      evaluated: effectiveSummary.evaluated,
+      skippedNoData: effectiveSummary.skippedNoData,
+      lowRiskCount: effectiveSummary.byRiskLevel?.LOW || 0,
+      mediumRiskCount: effectiveSummary.byRiskLevel?.MEDIUM || 0,
+      highRiskCount: effectiveSummary.byRiskLevel?.HIGH || 0,
+      insufficientCount: effectiveSummary.byRiskLevel?.INSUFFICIENT || 0,
+      byExchange: JSON.stringify(effectiveSummary.byExchange || {}),
+      scanDurationMins: effectiveSummary.durationMinutes || null,
+      apiCallsMade: effectiveSummary.apiCallsMade || null,
+    };
+    await prisma.dailyScanSummary.upsert({
+      where: { scanDate },
+      create: { scanDate, ...summaryValues },
+      update: summaryValues,
+    });
 
     // Step 9: Ingest promoted stocks
     let promotedStocksCreated = 0;
@@ -661,6 +870,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       // scan date are dropped instead of polluting the outcome ledger.
       const staleBySymbol = new Map<string, boolean>();
       for (const promoted of promotedData.promotedStocks) {
+        if (quarantinedSymbols.has(promoted.symbol)) continue;
         if (!staleBySymbol.has(promoted.symbol)) {
           try {
             staleBySymbol.set(
@@ -674,6 +884,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       }
 
       for (const promoted of promotedData.promotedStocks) {
+        if (quarantinedSymbols.has(promoted.symbol)) continue;
         if (staleBySymbol.get(promoted.symbol)) {
           promotedStocksSkippedStale++;
           console.warn(
@@ -736,14 +947,21 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
     const durationMs = Date.now() - startTime;
     console.log(
-      `[ingest-core] Completed ${date} in ${Math.round(durationMs / 1000)}s`,
+      `[ingest-core] ${identityQuarantines.length ? "Partial ingestion" : "Completed"} ${date} in ${Math.round(durationMs / 1000)}s`,
     );
 
     return {
-      success: true,
+      success: identityQuarantines.length === 0,
+      partial: identityQuarantines.length > 0,
+      identityQuarantines,
+      ...(identityQuarantines.length
+        ? {
+            error: `${identityQuarantines.length} OTC issuer identity conflicts quarantined; date remains pending`,
+          }
+        : {}),
       date,
       stocksCreated,
-      stocksUpdated: validStocks.length - stocksCreated,
+      stocksUpdated,
       snapshotsCreated,
       alertsCreated,
       promotedStocksCreated,
