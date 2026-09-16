@@ -3,6 +3,7 @@ import {
   ingestCliSocialScan,
   parseCliSocialIngestPayload,
 } from "@/lib/social-scan/cli-ingest";
+import { getTickerCoverage, parseRunMetadata } from "@/lib/social-scan/coverage";
 
 const completeCoverage = {
   version: 2,
@@ -68,6 +69,31 @@ function payload(overrides: Record<string, unknown> = {}) {
     duration: 12,
     ...overrides,
   };
+}
+
+async function ingestWithMetadata(platformsUsed: unknown) {
+  const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+  const tx = {
+    $executeRawUnsafe: jest.fn().mockResolvedValue(0),
+    $queryRawUnsafe: jest
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { totalMentions: 1, tickers: ["AAPL"], platforms: ["Fixture"] },
+      ]),
+    socialScanRun: {
+      create: jest.fn().mockResolvedValue({ id: "cli-unit-run" }),
+      updateMany,
+    },
+    socialMention: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+  };
+  const client = { $transaction: jest.fn(async (callback) => callback(tx)) };
+  const parsed = parseCliSocialIngestPayload(payload({ platformsUsed }));
+  if (!parsed.success) throw parsed.error;
+  const result = await ingestCliSocialScan(client as never, parsed.data, {
+    owner: "cli:test",
+  });
+  return { result, stored: updateMany.mock.calls[0][0].data };
 }
 
 describe("CLI social ingestion", () => {
@@ -223,5 +249,66 @@ describe("CLI social ingestion", () => {
         ingestCliSocialScan(client as never, parsed.data, { owner: "cli:test" }),
       ).rejects.toBeInstanceOf(CliIngestConflictError);
     }
+  });
+
+  test("preserves source persistence losses and cannot publish them completed", async () => {
+    const source = {
+      ...completeCoverage,
+      persistence: {
+        ...completeCoverage.persistence,
+        rejected: 7,
+        unprocessed: 12,
+        timedOut: true,
+        lossTickers: ["AAPL"],
+      },
+    };
+    const { result, stored } = await ingestWithMetadata(source);
+    expect(result).toMatchObject({ status: "PARTIAL", tickersScanned: 1 });
+    const raw = JSON.parse(stored.platformsUsed);
+    expect(raw.sourcePersistence).toMatchObject({
+      rejected: 7,
+      unprocessed: 12,
+      timedOut: true,
+      lossTickers: ["AAPL"],
+    });
+    expect(raw.ingestionPersistence).toMatchObject({
+      rejected: 0,
+      unprocessed: 0,
+      timedOut: false,
+    });
+    expect(raw.persistence).toMatchObject({
+      rejected: 7,
+      unprocessed: 12,
+      timedOut: true,
+    });
+    expect(
+      getTickerCoverage(parseRunMetadata(stored.platformsUsed), "AAPL").status,
+    ).toBe("PARTIAL");
+  });
+
+  test("incomplete source readback cannot publish completed", async () => {
+    const { result, stored } = await ingestWithMetadata({
+      ...completeCoverage,
+      readbackComplete: false,
+    });
+    expect(result.status).toBe("PARTIAL");
+    expect(JSON.parse(stored.platformsUsed).readbackComplete).toBe(false);
+  });
+
+  test("filters searched coverage to submitted ticker subsets", async () => {
+    const source = {
+      ...completeCoverage,
+      coverage: [
+        {
+          ...completeCoverage.coverage[0],
+          searchedTickers: ["AAPL", "FABRICATED"],
+        },
+      ],
+    };
+    const { result, stored } = await ingestWithMetadata(source);
+    expect(result).toMatchObject({ status: "PARTIAL", tickersScanned: 1 });
+    expect(JSON.parse(stored.platformsUsed).coverage[0].searchedTickers).toEqual([
+      "AAPL",
+    ]);
   });
 });

@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
-import { parseRunMetadata } from "./coverage";
+import {
+  parseRunMetadata,
+  type PlatformCoverage,
+  type SocialRunMetadata,
+} from "./coverage";
 import { persistRowsBounded, sanitizeAndTruncateUnicode } from "./persistence";
 
 const TRANSACTION_TIMEOUT_MS = 8_000;
@@ -131,22 +135,72 @@ function buildRows(scanRunId: string, payload: CliSocialIngestPayload) {
   });
 }
 
-function searchedTickers(payload: CliSocialIngestPayload): string[] {
-  const metadata = parseRunMetadata(payload.platformsUsed);
-  return Array.from(new Set(metadata.coverage.flatMap((entry) => entry.searchedTickers))).sort();
+interface CoverageAssessment {
+  source: SocialRunMetadata;
+  coverage: PlatformCoverage[];
+  searchedTickers: string[];
+  complete: boolean;
+  hasCompletenessFailure: boolean;
 }
 
-function completeCoverage(payload: CliSocialIngestPayload): boolean {
-  const metadata = parseRunMetadata(payload.platformsUsed);
-  if (metadata.submittedTickers.length === 0 || metadata.coverage.length === 0) return false;
-  const searched = new Set(searchedTickers(payload));
-  return metadata.submittedTickers.every((ticker) => searched.has(ticker)) &&
-    metadata.coverage.every((entry) => entry.status === "COMPLETED" &&
+function assessCoverage(value: unknown): CoverageAssessment {
+  const source = parseRunMetadata(value);
+  const globallySubmitted = new Set(source.submittedTickers);
+  let invalidRelationships = false;
+  const coverage = source.coverage.map((entry): PlatformCoverage => {
+    let entryInvalid = false;
+    const filterTo = (values: string[], allowed: Set<string>): string[] => {
+      const filtered = values.filter((ticker) => allowed.has(ticker));
+      if (filtered.length !== values.length) entryInvalid = true;
+      return filtered;
+    };
+    const submittedTickers = filterTo(entry.submittedTickers, globallySubmitted);
+    const submitted = new Set(submittedTickers);
+    const attemptedTickers = filterTo(entry.attemptedTickers, submitted);
+    const attempted = new Set(attemptedTickers);
+    const searchedTickers = filterTo(entry.searchedTickers, submitted);
+    const failedTickers = filterTo(entry.failedTickers, submitted);
+    const failed = new Set(failedTickers);
+    const rateLimitedTickers = filterTo(entry.rateLimitedTickers, submitted);
+    const skippedTickers = filterTo(entry.skippedTickers, submitted);
+    entryInvalid = entryInvalid || searchedTickers.some((ticker) => !attempted.has(ticker)) ||
+        failedTickers.some((ticker) => !attempted.has(ticker)) ||
+        rateLimitedTickers.some((ticker) => !failed.has(ticker));
+    invalidRelationships = invalidRelationships || entryInvalid;
+    return {
+      ...entry,
+      status: entryInvalid ? "PARTIAL" : entry.status,
+      submittedTickers,
+      attemptedTickers,
+      searchedTickers,
+      failedTickers,
+      rateLimitedTickers,
+      skippedTickers,
+    };
+  });
+  const searchedTickers = Array.from(new Set(
+    coverage.flatMap((entry) => entry.searchedTickers),
+  )).sort();
+  const searched = new Set(searchedTickers);
+  const sourceLoss = source.persistence.rejected > 0 ||
+    source.persistence.unprocessed > 0 || source.persistence.timedOut;
+  const readbackIncomplete = source.readbackComplete === false;
+  const hasCompletenessFailure = sourceLoss || readbackIncomplete || invalidRelationships;
+  const complete = !hasCompletenessFailure && source.submittedTickers.length > 0 &&
+    coverage.length > 0 && source.submittedTickers.every((ticker) => searched.has(ticker)) &&
+    coverage.every((entry) => entry.status === "COMPLETED" &&
       entry.failedTickers.length === 0 && entry.skippedTickers.length === 0 &&
       entry.submittedTickers.every((ticker) => entry.searchedTickers.includes(ticker)));
+  return { source, coverage, searchedTickers, complete, hasCompletenessFailure };
 }
 
-function canonicalStatus(requested: CliSocialIngestPayload["status"], count: number, complete: boolean) {
+function canonicalStatus(
+  requested: CliSocialIngestPayload["status"],
+  count: number,
+  complete: boolean,
+  hasCompletenessFailure: boolean,
+) {
+  if (hasCompletenessFailure) return "PARTIAL" as const;
   if (requested === "COMPLETED" && complete) return "COMPLETED" as const;
   if (requested === "FAILED" && count === 0) return "FAILED" as const;
   return "PARTIAL" as const;
@@ -209,25 +263,50 @@ export async function ingestCliSocialScan(
     }
 
     const summary = await storedSummary(tx, id);
-    const searched = searchedTickers(payload);
-    const coverageComplete = completeCoverage(payload);
-    const status = canonicalStatus(payload.status, summary.totalMentions, coverageComplete);
+    const assessment = assessCoverage(payload.platformsUsed);
+    const status = canonicalStatus(
+      payload.status,
+      summary.totalMentions,
+      assessment.complete,
+      assessment.hasCompletenessFailure,
+    );
     const metadata = safeMetadata(payload.platformsUsed);
-    metadata.persistence = {
+    const sourcePersistence = assessment.source.persistence;
+    const ingestionPersistence = {
       submitted: rows.length, inserted: summary.totalMentions,
       duplicates: Math.max(0, rows.length - summary.totalMentions),
       rejected: 0, unprocessed: 0, timedOut: false,
       transientRetries: persistence.transientRetries, lossTickers: [],
     };
+    const validLossTickers = sourcePersistence.lossTickers?.filter((ticker) =>
+      assessment.source.submittedTickers.includes(ticker),
+    ) ?? [];
+    metadata.submittedTickers = assessment.source.submittedTickers;
+    metadata.coverage = assessment.coverage;
+    metadata.readbackComplete = assessment.source.readbackComplete !== false;
+    metadata.sourcePersistence = sourcePersistence;
+    metadata.ingestionPersistence = ingestionPersistence;
+    metadata.persistence = {
+      submitted: sourcePersistence.submitted || ingestionPersistence.submitted,
+      inserted: ingestionPersistence.inserted,
+      duplicates: Math.max(sourcePersistence.duplicates, ingestionPersistence.duplicates),
+      rejected: sourcePersistence.rejected,
+      unprocessed: sourcePersistence.unprocessed,
+      timedOut: sourcePersistence.timedOut,
+      transientRetries: sourcePersistence.transientRetries + ingestionPersistence.transientRetries,
+      lossTickers: validLossTickers,
+    };
     metadata.cliIngest = {
       version: 1, payloadHash: fingerprint, requestedStatus: payload.status,
-      coverageStatus: coverageComplete ? "COMPLETE" : "UNKNOWN",
+      coverageStatus: assessment.complete
+        ? "COMPLETE"
+        : assessment.hasCompletenessFailure ? "PARTIAL" : "UNKNOWN",
       retainedPlatforms: summary.platforms,
     };
     const finalized = await tx.socialScanRun.updateMany({
       where: { id, status: "RUNNING", triggeredBy: options.owner },
       data: {
-        status, tickersScanned: searched.length,
+        status, tickersScanned: assessment.searchedTickers.length,
         tickersWithMentions: summary.tickers.length,
         totalMentions: summary.totalMentions,
         platformsUsed: JSON.stringify(metadata),
@@ -239,7 +318,7 @@ export async function ingestCliSocialScan(
       scanRunId: id, mentionsIngested: persistence.inserted,
       totalMentions: summary.totalMentions,
       tickersWithMentions: summary.tickers.length,
-      tickersScanned: searched.length, status, idempotent: false,
+      tickersScanned: assessment.searchedTickers.length, status, idempotent: false,
     };
   }, { maxWait: 1_000, timeout: TRANSACTION_TIMEOUT_MS });
 }
