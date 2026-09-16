@@ -198,7 +198,10 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npx prisma generate
+          npm run typecheck:pipeline
 
       - name: Validate required secrets
         env:
@@ -263,7 +266,7 @@ jobs:
           echo "Test Mode: $TEST_MODE"
 
           if [ -n "$AI_BACKEND_URL" ]; then
-            echo "Python AI Backend: $AI_BACKEND_URL (full 4-layer analysis)"
+            echo "Python AI Backend: $AI_BACKEND_URL (accepted layers reported per result)"
           else
             echo "Python AI Backend: Not configured (using Layer 1 only)"
           fi
