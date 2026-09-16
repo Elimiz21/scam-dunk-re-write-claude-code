@@ -149,23 +149,47 @@ function assessCoverage(value: unknown): CoverageAssessment {
   let invalidRelationships = false;
   const coverage = source.coverage.map((entry): PlatformCoverage => {
     let entryInvalid = false;
-    const filterTo = (values: string[], allowed: Set<string>): string[] => {
+    let submittedTickers: string[] = [];
+    const validationFailedTickers = new Set<string>();
+    const filterTo = (
+      values: string[],
+      allowed: Set<string>,
+      recordFailure = true,
+    ): string[] => {
       const filtered = values.filter((ticker) => allowed.has(ticker));
-      if (filtered.length !== values.length) entryInvalid = true;
+      const removed = values.filter((ticker) => !allowed.has(ticker));
+      if (removed.length > 0 && recordFailure) {
+        entryInvalid = true;
+        let hasUnattributableFailure = false;
+        for (const ticker of removed) {
+          if (globallySubmitted.has(ticker)) validationFailedTickers.add(ticker);
+          else hasUnattributableFailure = true;
+        }
+        if (hasUnattributableFailure) {
+          const affected = submittedTickers.length > 0
+            ? submittedTickers
+            : source.submittedTickers;
+          for (const ticker of affected) validationFailedTickers.add(ticker);
+        }
+      }
       return filtered;
     };
-    const submittedTickers = filterTo(entry.submittedTickers, globallySubmitted);
+    submittedTickers = filterTo(entry.submittedTickers, globallySubmitted, false);
+    if (submittedTickers.length !== entry.submittedTickers.length) {
+      entryInvalid = true;
+      const affected = submittedTickers.length > 0
+        ? submittedTickers
+        : source.submittedTickers;
+      for (const ticker of affected) validationFailedTickers.add(ticker);
+    }
     const submitted = new Set(submittedTickers);
     const attemptedTickers = filterTo(entry.attemptedTickers, submitted);
     const attempted = new Set(attemptedTickers);
-    const searchedTickers = filterTo(entry.searchedTickers, submitted);
-    const failedTickers = filterTo(entry.failedTickers, submitted);
+    const searchedTickers = filterTo(entry.searchedTickers, attempted);
+    const failedTickers = filterTo(entry.failedTickers, attempted);
     const failed = new Set(failedTickers);
-    const rateLimitedTickers = filterTo(entry.rateLimitedTickers, submitted);
+    const rateLimitedTickers = filterTo(entry.rateLimitedTickers, failed);
     const skippedTickers = filterTo(entry.skippedTickers, submitted);
-    entryInvalid = entryInvalid || searchedTickers.some((ticker) => !attempted.has(ticker)) ||
-        failedTickers.some((ticker) => !attempted.has(ticker)) ||
-        rateLimitedTickers.some((ticker) => !failed.has(ticker));
     invalidRelationships = invalidRelationships || entryInvalid;
     return {
       ...entry,
@@ -176,6 +200,7 @@ function assessCoverage(value: unknown): CoverageAssessment {
       failedTickers,
       rateLimitedTickers,
       skippedTickers,
+      validationFailedTickers: Array.from(validationFailedTickers).sort(),
     };
   });
   const searchedTickers = Array.from(new Set(

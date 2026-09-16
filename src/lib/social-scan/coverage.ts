@@ -14,6 +14,7 @@ export interface PlatformCoverage {
   failedTickers: string[];
   rateLimitedTickers: string[];
   skippedTickers: string[];
+  validationFailedTickers?: string[];
   error?: string;
 }
 
@@ -230,6 +231,7 @@ export function parseRunMetadata(value: unknown): SocialRunMetadata {
             failedTickers: stringArray(item.failedTickers),
             rateLimitedTickers: stringArray(item.rateLimitedTickers),
             skippedTickers: stringArray(item.skippedTickers),
+            validationFailedTickers: stringArray(item.validationFailedTickers),
             error: typeof item.error === "string" ? item.error : undefined,
           },
         ];
@@ -286,7 +288,8 @@ export function getTickerCoverage(
   }
 
   const applicable = metadata.coverage.filter((entry) =>
-    entry.submittedTickers.includes(normalized),
+    entry.submittedTickers.includes(normalized) ||
+    entry.validationFailedTickers?.includes(normalized) === true,
   );
   const searchedPlatforms = Array.from(
     new Set(
@@ -302,7 +305,8 @@ export function getTickerCoverage(
           (entry) =>
             !entry.searchedTickers.includes(normalized) ||
             entry.failedTickers.includes(normalized) ||
-            entry.skippedTickers.includes(normalized),
+            entry.skippedTickers.includes(normalized) ||
+            entry.validationFailedTickers?.includes(normalized) === true,
         )
         .map((entry) => entry.platform),
     ),
@@ -322,11 +326,16 @@ export function getTickerCoverage(
     (hasPersistenceLoss &&
       ((metadata.persistence.lossTickers?.length || 0) === 0 ||
         metadata.persistence.lossTickers?.includes(normalized) === true)) ||
-    metadata.readbackComplete === false;
+    metadata.readbackComplete === false ||
+    applicable.some((entry) =>
+      entry.validationFailedTickers?.includes(normalized) === true,
+    );
   const status: TickerCoverageStatus =
-    searchedPlatforms.length === 0
+    evidenceIncomplete
+      ? "PARTIAL"
+      : searchedPlatforms.length === 0
       ? "NOT_SEARCHED"
-      : incompletePlatforms.length > 0 || evidenceIncomplete
+      : incompletePlatforms.length > 0
         ? "PARTIAL"
         : "COMPLETE";
   return {

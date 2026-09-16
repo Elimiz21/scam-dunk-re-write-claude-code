@@ -310,5 +310,56 @@ describe("CLI social ingestion", () => {
     expect(JSON.parse(stored.platformsUsed).coverage[0].searchedTickers).toEqual([
       "AAPL",
     ]);
+    expect(
+      getTickerCoverage(parseRunMetadata(stored.platformsUsed), "AAPL"),
+    ).toMatchObject({ status: "PARTIAL", evidenceIncomplete: true });
+  });
+
+  test("does not count searched tickers that were never attempted", async () => {
+    const source = {
+      ...completeCoverage,
+      coverage: [
+        {
+          ...completeCoverage.coverage[0],
+          attemptedTickers: [],
+        },
+      ],
+    };
+    const { result, stored } = await ingestWithMetadata(source);
+    expect(result).toMatchObject({ status: "PARTIAL", tickersScanned: 0 });
+    const parsed = parseRunMetadata(stored.platformsUsed);
+    expect(parsed.coverage[0]).toMatchObject({
+      status: "PARTIAL",
+      searchedTickers: [],
+      validationFailedTickers: ["AAPL"],
+    });
+    expect(getTickerCoverage(parsed, "AAPL")).toMatchObject({
+      status: "PARTIAL",
+      evidenceIncomplete: true,
+      incompletePlatforms: ["Fixture"],
+    });
+  });
+
+  test("keeps valid ticker coverage complete when another ticker is malformed", async () => {
+    const source = {
+      ...completeCoverage,
+      submittedTickers: ["AAPL", "MSFT"],
+      coverage: [
+        {
+          ...completeCoverage.coverage[0],
+          submittedTickers: ["AAPL", "MSFT"],
+          attemptedTickers: ["AAPL"],
+          searchedTickers: ["AAPL", "MSFT"],
+        },
+      ],
+    };
+    const { result, stored } = await ingestWithMetadata(source);
+    expect(result).toMatchObject({ status: "PARTIAL", tickersScanned: 1 });
+    const parsed = parseRunMetadata(stored.platformsUsed);
+    expect(getTickerCoverage(parsed, "AAPL").status).toBe("COMPLETE");
+    expect(getTickerCoverage(parsed, "MSFT")).toMatchObject({
+      status: "PARTIAL",
+      evidenceIncomplete: true,
+    });
   });
 });
