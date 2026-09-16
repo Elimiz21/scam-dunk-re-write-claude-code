@@ -1287,6 +1287,7 @@ async function runEnhancedPipeline(): Promise<void> {
   // Counters
   let processedCount = 0;
   let skippedNoData = 0;
+  const listedNoData: Array<{ symbol: string }> = [];
   let filteredByMarketCap = 0;
   let filteredByVolume = 0;
   let filteredByNews = 0;
@@ -1487,6 +1488,7 @@ async function runEnhancedPipeline(): Promise<void> {
 
       if (!marketData || !marketData.dataAvailable) {
         skippedNoData++;
+        listedNoData.push({ symbol: stock.symbol });
         continue;
       }
 
@@ -1618,6 +1620,7 @@ async function runEnhancedPipeline(): Promise<void> {
 
       await sleep(FMP_DELAY_MS);
     } catch (error: any) {
+      listedNoData.push({ symbol: stock.symbol });
       console.error(
         `\nError processing ${stock.symbol}:`,
         error?.message || error,
@@ -1685,9 +1688,11 @@ async function runEnhancedPipeline(): Promise<void> {
     processedCount++;
     if (otc.riskLevel === "HIGH") highRiskBeforeFilter.push(result);
   }
-  skippedNoData += otcScan.coverage.outcomes.filter(
-    (outcome) => outcome.status === "failed",
-  ).length;
+  skippedNoData =
+    reconcileListedResults(listedNoData, otcScan.coverage.directorySymbols)
+      .length +
+    otcScan.coverage.outcomes.filter((outcome) => outcome.status === "failed")
+      .length;
   const listedSymbols = new Set(stocks.map((stock) => stock.symbol));
   scanStatus.summary.totalStocks += otcScan.coverage.eligibleSymbols.filter(
     (symbol) => !listedSymbols.has(symbol),
@@ -2795,7 +2800,7 @@ async function runEnhancedPipeline(): Promise<void> {
 
   const summary = {
     totalStocks: scanStatus.summary.totalStocks,
-    otcCoverage: otcScan.coverage,
+    otcCoverage: { ...otcScan.coverage, apiCalls: otcClient.calls },
     evaluated: processedCount,
     skippedNoData: skippedNoData,
     byRiskLevel: riskCounts,
@@ -2803,7 +2808,13 @@ async function runEnhancedPipeline(): Promise<void> {
     startTime: new Date(startTime).toISOString(),
     endTime: new Date(endTime).toISOString(),
     durationMinutes,
-    apiCallsMade: processedCount * 2, // estimate: 1 profile + 1 history per stock
+    apiCallsMade:
+      Math.max(0, processedCount - otcScan.results.length) * 2 +
+      otcClient.calls,
+    apiCallAccounting: {
+      listed: "estimated successful profile/history calls",
+      otc: "actual calls including failures and retries",
+    },
   };
 
   const summaryPath = path.join(

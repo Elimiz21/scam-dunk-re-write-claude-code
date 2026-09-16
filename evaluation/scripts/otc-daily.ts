@@ -374,16 +374,17 @@ export async function runOtcScan(
     coverage.directoryRetrievedAt = new Date().toISOString();
     options.checkpoint?.(coverage);
     coverage.outcomes.push(...universe.excluded);
+    const ordered = orderOtcSecurities(universe.securities, date);
     let next = 0;
     const done = new Map<
       string,
       Awaited<ReturnType<typeof evaluateOtcSecurity>>
     >();
     await Promise.all(
-      Array.from({ length: 4 }, async () => {
+      Array.from({ length: 8 }, async () => {
         while (next < universe.securities.length) {
           const index = next++;
-          const security = universe.securities[index];
+          const security = ordered[index];
           if (options.limit !== undefined && index >= options.limit) {
             coverage.outcomes.push({
               symbol: security.symbol,
@@ -444,4 +445,16 @@ export function reconcileListedResults<T extends { symbol: string }>(
 ): T[] {
   const otc = new Set(directorySymbols);
   return listed.filter((result) => !otc.has(result.symbol));
+}
+
+/** Rotate across dates so a bounded outage cannot permanently starve the same tail. */
+export function orderOtcSecurities(
+  securities: OtcSecurity[],
+  date: string,
+): OtcSecurity[] {
+  if (!securities.length) return [];
+  const step = securities.length % 997 === 0 ? 991 : 997;
+  const offset =
+    (Math.floor(Date.parse(date) / 86400000) * step) % securities.length;
+  return [...securities.slice(offset), ...securities.slice(0, offset)];
 }

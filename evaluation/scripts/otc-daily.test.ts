@@ -236,3 +236,15 @@ test("entitlement failure opens a circuit for the rest of the run", async () => 
   await expect(client.request("profile", {})).rejects.toThrow("entitlement");
   expect(calls).toBe(1);
 });
+test("budget-limited scans rotate their starting point without losing or duplicating candidates", () => {
+  const { orderOtcSecurities } = require("./otc-daily");
+  const stocks = ["A", "B", "C", "D", "E"].map((symbol) => ({
+    ...security,
+    symbol,
+  }));
+  const first = orderOtcSecurities(stocks, "2026-09-15");
+  const next = orderOtcSecurities(stocks, "2026-09-16");
+  expect(first.map((s) => s.symbol).sort()).toEqual(["A", "B", "C", "D", "E"]);
+  expect(first[0].symbol).not.toBe(next[0].symbol);
+  expect(orderOtcSecurities(stocks, "2026-09-15")).toEqual(first);
+});
