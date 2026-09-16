@@ -140,6 +140,7 @@ export async function GET() {
 
     // List with the server-only client so this also works with a private bucket.
     let files: { name: string }[] = [];
+    const headByDate = new Map<string, string>();
     try {
       const bucket = getEvaluationStorageServerClient().storage.from(
         EVALUATION_BUCKET,
@@ -147,11 +148,18 @@ export async function GET() {
       files = await listAllEvaluationFiles((path, options) =>
         bucket.list(path, options),
       );
-      if (files.some((file) => file.name === "revisions")) {
-        const dateFolders = await listAllEvaluationFiles(
+      const heads = await prisma.evaluationArtifactPublicationHead.findMany({
+        select: { scanDate: true, revisionHash: true },
+      });
+      for (const head of heads) headByDate.set(head.scanDate.toISOString().slice(0, 10), head.revisionHash);
+      if (heads.length || files.some((file) => file.name === "revisions")) {
+        const dateFolders = files.some((file) => file.name === "revisions") ? await listAllEvaluationFiles(
           (path, options) => bucket.list(path, options),
           "revisions",
-        );
+        ) : [];
+        for (const date of Array.from(headByDate.keys())) {
+          if (!dateFolders.some((folder) => folder.name === date)) dateFolders.push({ name: date });
+        }
         for (const folder of dateFolders) {
           if (!/^\d{4}-\d{2}-\d{2}$/.test(folder.name)) continue;
           const manifest = await readPublishedArtifactManifest(
@@ -166,6 +174,7 @@ export async function GET() {
               }
               return Buffer.from(await data.arrayBuffer());
             },
+            headByDate.get(folder.name),
           );
           for (const artifact of manifest?.artifacts ?? []) {
             if (!files.some((file) => file.name === artifact.logicalName)) {
@@ -262,12 +271,13 @@ export async function GET() {
 
     // Get already ingested dates from DailyScanSummary
     const ingestedSummaries = await prisma.dailyScanSummary.findMany({
-      select: { scanDate: true },
+      select: { scanDate: true, artifactRevision: { select: { revisionHash: true, status: true } } },
       orderBy: { scanDate: "desc" },
     });
-    const ingestedDates = ingestedSummaries.map(
-      (s) => s.scanDate.toISOString().split("T")[0],
-    );
+    const ingestedDates = ingestedSummaries.filter((summary) => {
+      const head = headByDate.get(summary.scanDate.toISOString().slice(0, 10));
+      return !head || (summary.artifactRevision?.revisionHash === head && summary.artifactRevision.status === "PUBLISHED");
+    }).map((summary) => summary.scanDate.toISOString().slice(0, 10));
 
     const lastIngestion = await prisma.adminAuditLog.findFirst({
       where: { action: "INGEST_EVALUATION" },

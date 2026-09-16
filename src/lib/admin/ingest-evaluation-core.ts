@@ -354,7 +354,12 @@ export async function getPendingDates(): Promise<string[]> {
     bucket.list(path, options),
   );
 
-  const revisionPointers = new Map<string, string>();
+  const heads = await prisma.evaluationArtifactPublicationHead.findMany({
+    select: { scanDate: true, revisionHash: true },
+  });
+  const revisionPointers = new Map<string, string>(heads.map((head) => [
+    head.scanDate.toISOString().slice(0, 10), head.revisionHash,
+  ]));
   if (files.some((file) => file.name === "revisions")) {
     const revisionDates = await listAllEvaluationFiles(
       (path, options) => bucket.list(path, options),
@@ -362,6 +367,7 @@ export async function getPendingDates(): Promise<string[]> {
     );
     for (const entry of revisionDates) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(entry.name)) continue;
+      if (revisionPointers.has(entry.name)) continue;
       const pointer = await readArtifactPointer(entry.name, readStorageObject);
       if (pointer) revisionPointers.set(entry.name, pointer.revisionHash);
     }

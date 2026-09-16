@@ -19,7 +19,8 @@ jest.mock("@/lib/server/evaluation-storage", () => ({
 
 jest.mock("@/lib/db", () => ({
   prisma: {
-    evaluationArtifactPublicationHead: { findUnique: jest.fn().mockResolvedValue(null) },
+    evaluationArtifactPublicationHead: { findUnique: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
+    evaluationArtifactRevision: { findMany: jest.fn().mockResolvedValue([]) },
     dailyScanSummary: { findMany: jest.fn(), upsert: jest.fn() },
     trackedStock: {
       findMany: jest.fn(),
@@ -52,6 +53,17 @@ describe("getPendingDates", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (prisma.dailyScanSummary.findMany as jest.Mock).mockResolvedValue([]);
+  });
+
+  it.each([false, true])("discovers authoritative heads despite absent or stale pointers (%s)", async (hasPointer) => {
+    const date = "2026-09-16";
+    const hash = "b".repeat(64);
+    (prisma.evaluationArtifactPublicationHead.findMany as jest.Mock).mockResolvedValueOnce([{ scanDate: new Date(date), revisionHash: hash }]);
+    (prisma.dailyScanSummary.findMany as jest.Mock).mockResolvedValueOnce([{ scanDate: new Date(date), byExchange: "{}" }]);
+    list.mockImplementation(async (prefix: string) => ({ data: hasPointer ? [{ name: prefix === "revisions" ? date : "revisions" }] : [], error: null }));
+    await expect(getPendingDates()).resolves.toEqual([date]);
+    expect(download).not.toHaveBeenCalled();
+    expect(prisma.evaluationArtifactRevision.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { revisionHash: { in: [hash] }, status: "PUBLISHED" } }));
   });
 
   it("discovers a recent evaluation file beyond the first storage page", async () => {

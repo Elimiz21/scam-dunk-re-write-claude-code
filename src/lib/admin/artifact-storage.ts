@@ -20,7 +20,9 @@ export interface LoadedArtifactRevision {
 export async function readPublishedArtifactManifest(
   scanDate: string,
   readObject: (path: string) => Promise<Buffer | null>,
+  authoritativeRevisionHash?: string,
 ): Promise<ArtifactManifest | null> {
+  if (authoritativeRevisionHash) return readArtifactManifestByHash(scanDate, authoritativeRevisionHash, readObject);
   const pointer = await readArtifactPointer(scanDate, readObject);
   if (!pointer) return null;
   const manifestBytes = await readObject(pointer.manifestPath);
