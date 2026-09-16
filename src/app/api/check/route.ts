@@ -14,7 +14,10 @@ import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
 import { logScanHistory } from "@/lib/admin/metrics";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { sendAPIFailureAlert } from "@/lib/email";
-import { parseAIBackendResponse } from "@/lib/ai-backend-schema";
+import {
+  acceptAIBackendResponse,
+  buildAIBackendRequest,
+} from "@/lib/ai-backend-schema";
 import { normalizeSupportedTicker } from "@/lib/stock-universe";
 import {
   LimitReachedResponse,
@@ -94,6 +97,9 @@ interface AIBackendCallResult {
   rfProbability?: number | null;
   lstmProbability?: number | null;
   anomalyScore?: number;
+  layersApplied?: Array<
+    "rule_signals" | "anomaly_detection" | "random_forest" | "lstm"
+  >;
   explanations?: string[];
   secFlagged?: boolean;
   isOtc?: boolean;
@@ -153,14 +159,13 @@ async function callPythonAIBackend(
       method: "POST",
       headers,
       // TS <-> Python contract (see ai-backend-schema.ts).
-      body: JSON.stringify({
+      body: JSON.stringify(buildAIBackendRequest({
         ticker,
-        asset_type: assetType,
-        use_live_data: true,
-        days: 90,
-        sec_flagged: secFlagged ?? null,
-        news_flag: newsFlag ?? null,
-      }),
+        assetType: assetType as "stock" | "crypto",
+        useLiveData: true,
+        secFlagged,
+        newsFlag,
+      })),
       signal: controller.signal,
     });
 
@@ -192,7 +197,10 @@ async function callPythonAIBackend(
     }
 
     const raw = await response.json();
-    const data = parseAIBackendResponse(raw);
+    const data = acceptAIBackendResponse(raw, {
+      expectedSource: "live",
+      requireDataAvailable: true,
+    });
     if (!data) {
       // Payload failed the contract — fall back to TS scoring.
       return {
@@ -220,6 +228,7 @@ async function callPythonAIBackend(
       rfProbability: data.rf_probability ?? null,
       lstmProbability: data.lstm_probability ?? null,
       anomalyScore: data.anomaly_score,
+      layersApplied: data.layers_applied,
       explanations: data.explanations,
       secFlagged: data.sec_flagged,
       isOtc: data.is_otc,
@@ -533,8 +542,14 @@ async function processCheckRequest(
     );
 
     if (usedAIBackend) {
+      const appliedLabels = (aiResult.layersApplied ?? []).map((layer) => ({
+        rule_signals: "rule signals",
+        anomaly_detection: "statistical anomaly detection",
+        random_forest: "Random Forest",
+        lstm: "LSTM",
+      })[layer]);
       narrative.disclaimers.push(
-        "Analysis powered by AI models: Random Forest + LSTM + Anomaly Detection",
+        `Python engine layers applied: ${appliedLabels.join(", ")}`,
       );
     }
 

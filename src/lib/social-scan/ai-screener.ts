@@ -57,7 +57,16 @@ interface ScreeningResult {
  */
 export async function screenMentionsWithAI(
   mentions: SocialMention[],
+  options: { signal?: AbortSignal; deadlineAt?: number } = {},
 ): Promise<SocialMention[]> {
+  const deadlineSignal =
+    options.deadlineAt === undefined
+      ? undefined
+      : AbortSignal.timeout(Math.max(1, options.deadlineAt - Date.now()));
+  const effectiveSignal =
+    options.signal && deadlineSignal
+      ? AbortSignal.any([options.signal, deadlineSignal])
+      : options.signal || deadlineSignal;
   if (!config.openaiApiKey) {
     console.warn(
       "[AI Screener] OPENAI_API_KEY not configured — skipping AI screening",
@@ -95,6 +104,9 @@ export async function screenMentionsWithAI(
   let suspiciousCount = 0;
   let legitimateCount = 0;
   let errorsCount = 0;
+  const cancelled = () =>
+    effectiveSignal?.aborted === true ||
+    (options.deadlineAt !== undefined && Date.now() >= options.deadlineAt);
 
   // Classify a batch, retrying ONCE on failure/empty before giving up — a
   // truncated or rate-limited response used to silently drop the whole batch
@@ -102,20 +114,24 @@ export async function screenMentionsWithAI(
   async function classifyWithRetry(
     mentionsToClassify: SocialMention[],
   ): Promise<ScreeningResult[]> {
+    if (cancelled()) return [];
     try {
-      const first = await classifyBatch(mentionsToClassify);
+      const first = await classifyBatch(mentionsToClassify, effectiveSignal);
       if (first.length > 0) return first;
     } catch (err: any) {
+      if (cancelled()) return [];
       console.warn(
         `[AI Screener] Batch failed (${err?.message || err}) — retrying once`,
       );
     }
     // Retry once (covers transient timeouts/rate limits and empty parses)
-    return classifyBatch(mentionsToClassify);
+    if (cancelled()) return [];
+    return classifyBatch(mentionsToClassify, effectiveSignal);
   }
 
   // Process batches in parallel (MAX_CONCURRENCY at a time)
   for (let i = 0; i < batches.length; i += MAX_CONCURRENCY) {
+    if (cancelled()) break;
     const chunk = batches.slice(i, i + MAX_CONCURRENCY);
     const settled = await Promise.allSettled(
       chunk.map((batch) => classifyWithRetry(batch.map((b) => b.mention))),
@@ -188,6 +204,7 @@ export async function screenMentionsWithAI(
  */
 async function classifyBatch(
   mentions: SocialMention[],
+  signal?: AbortSignal,
 ): Promise<ScreeningResult[]> {
   const openai = getOpenAI();
 
@@ -228,7 +245,7 @@ Respond with ONLY a JSON object of the form: {"classifications":[{"index":0,"cla
         },
       ],
     },
-    { timeout: REQUEST_TIMEOUT_MS },
+    { timeout: REQUEST_TIMEOUT_MS, signal },
   );
 
   const content = response.choices?.[0]?.message?.content || "";

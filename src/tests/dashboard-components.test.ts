@@ -173,6 +173,54 @@ describe("Pump Radar render state", () => {
     });
   });
 
+  test("labels incomplete social coverage without turning missing evidence into a negative result", () => {
+    const view = buildPumpRadarView({
+      status: "AVAILABLE",
+      rows: [
+        {
+          displayTicker: "P•••",
+          riskLabel: "Caution",
+          score: 52,
+          signalCount: 2,
+          signalSummary: null,
+          lastPrice: 4.2,
+          priceChangePct: 8.1,
+          volumeRatio: 3.4,
+          socialSummary: null,
+          socialCoverage: {
+            status: "PARTIAL",
+            searchedPlatforms: ["Reddit"],
+            incompletePlatforms: ["YouTube"],
+            rateLimitedPlatforms: ["YouTube"],
+          },
+        },
+        {
+          displayTicker: "N•••",
+          riskLabel: "Low risk",
+          score: 14,
+          signalCount: 0,
+          signalSummary: null,
+          lastPrice: null,
+          priceChangePct: null,
+          volumeRatio: null,
+          socialSummary: null,
+          socialCoverage: {
+            status: "NOT_SEARCHED",
+            searchedPlatforms: [],
+            incompletePlatforms: ["Reddit", "YouTube"],
+            rateLimitedPlatforms: [],
+          },
+        },
+      ],
+      coverage: { total: 100, evaluated: 100, skipped: 0, evaluatedPercent: 100 },
+      socialSummary: null,
+    });
+
+    expect(view.socialLabel).toBe(
+      "Social media coverage incomplete; missing findings are not a negative result",
+    );
+  });
+
   test("aggregates only social summaries supplied by the server", () => {
     expect(
       aggregateSocialSummary([
@@ -365,6 +413,29 @@ describe("quota, history, and social evidence render state", () => {
       state: "ready",
       title: "Social media evidence",
       evidenceCount: 1,
+    });
+  });
+
+  test("labels partial social coverage without turning an empty result into a negative", () => {
+    expect(
+      buildSocialEvidenceView({
+        status: "PARTIAL",
+        asOf: "2026-09-16T00:00:00.000Z",
+        updatedAt: "2026-09-17T02:08:00.000Z",
+        coverage: {
+          status: "NOT_SEARCHED",
+          searchedPlatforms: [],
+          incompletePlatforms: ["StockTwits"],
+          rateLimitedPlatforms: ["StockTwits"],
+        },
+        evidence: [],
+      }),
+    ).toEqual({
+      state: "partial",
+      title: "Social media coverage incomplete",
+      detail:
+        "No completed platform search is available for this ticker. Missing evidence is not a negative finding.",
+      evidenceCount: 0,
     });
   });
 });

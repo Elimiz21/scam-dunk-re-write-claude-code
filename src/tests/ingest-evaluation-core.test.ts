@@ -2,15 +2,25 @@ const list = jest.fn();
 const getPublicUrl = jest.fn((filename: string) => ({
   data: { publicUrl: `https://storage.test/${filename}` },
 }));
-const from = jest.fn(() => ({ list, getPublicUrl }));
+const download = jest.fn().mockResolvedValue({
+  data: null,
+  error: { message: "not found" },
+});
+const from = jest.fn(() => ({ list, getPublicUrl, download }));
 
 jest.mock("@/lib/supabase", () => ({
   EVALUATION_BUCKET: "evaluation-data",
   supabase: { storage: { from } },
 }));
 
+jest.mock("@/lib/server/evaluation-storage", () => ({
+  getEvaluationStorageServerClient: () => ({ storage: { from } }),
+}));
+
 jest.mock("@/lib/db", () => ({
   prisma: {
+    evaluationArtifactPublicationHead: { findUnique: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
+    evaluationArtifactRevision: { findMany: jest.fn().mockResolvedValue([]) },
     dailyScanSummary: { findMany: jest.fn(), upsert: jest.fn() },
     trackedStock: {
       findMany: jest.fn(),
@@ -36,11 +46,24 @@ import {
   getPendingDates,
   ingestDate,
 } from "@/lib/admin/ingest-evaluation-core";
+import { createRevisionUploadPlan } from "../../evaluation/scripts/storage-publisher";
+import { PrismaIngestionStore } from "@/lib/admin/prisma-ingestion-store";
 
 describe("getPendingDates", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (prisma.dailyScanSummary.findMany as jest.Mock).mockResolvedValue([]);
+  });
+
+  it.each([false, true])("discovers authoritative heads despite absent or stale pointers (%s)", async (hasPointer) => {
+    const date = "2026-09-16";
+    const hash = "b".repeat(64);
+    (prisma.evaluationArtifactPublicationHead.findMany as jest.Mock).mockResolvedValueOnce([{ scanDate: new Date(date), revisionHash: hash }]);
+    (prisma.dailyScanSummary.findMany as jest.Mock).mockResolvedValueOnce([{ scanDate: new Date(date), byExchange: "{}" }]);
+    list.mockImplementation(async (prefix: string) => ({ data: hasPointer ? [{ name: prefix === "revisions" ? date : "revisions" }] : [], error: null }));
+    await expect(getPendingDates()).resolves.toEqual([date]);
+    expect(download).not.toHaveBeenCalled();
+    expect(prisma.evaluationArtifactRevision.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { revisionHash: { in: [hash] }, status: "PUBLISHED" } }));
   });
 
   it("discovers a recent evaluation file beyond the first storage page", async () => {
@@ -128,6 +151,16 @@ describe("ingestDate OTC records", () => {
             : rows,
         ),
     })) as unknown as typeof fetch;
+    download.mockImplementation(async (filename: string) => {
+      const response = await global.fetch(`https://storage.test/${filename}`);
+      if (!response.ok) {
+        return { data: null, error: { message: "not found" } };
+      }
+      return {
+        data: new Blob([await response.text()], { type: "application/json" }),
+        error: null,
+      };
+    });
     (prisma.trackedStock.findMany as jest.Mock).mockResolvedValue([
       {
         id: "stock-1",
@@ -153,7 +186,88 @@ describe("ingestDate OTC records", () => {
     (prisma.dailyScanSummary.upsert as jest.Mock).mockResolvedValue({});
   });
   afterEach(() => {
+    jest.restoreAllMocks();
     global.fetch = originalFetch;
+  });
+
+  it("fails a pointer revision with an identity conflict before any canonical or metadata write", async () => {
+    const date = "2026-09-16";
+    rows[0] = { ...row, name: "Different Issuer Ltd", riskLevel: "HIGH" };
+    const evaluationName = `enhanced-evaluation-${date}.json`;
+    const summaryName = `fmp-summary-${date}.json`;
+    const plan = createRevisionUploadPlan({
+      scanDate: date,
+      producerRunId: "identity-conflict",
+      files: {
+        [evaluationName]: Buffer.from(JSON.stringify(rows)),
+        [summaryName]: Buffer.from(JSON.stringify({
+          totalStocks: 1, evaluated: 1, skippedNoData: 0,
+          byRiskLevel: { HIGH: 1 }, byExchange: { OTC: { total: 1, HIGH: 1 } },
+        })),
+      },
+      required: [evaluationName, summaryName],
+    });
+    const objects = new Map(plan.operations.map((op) => [op.path, op.content]));
+    download.mockImplementation(async (objectPath: string) => {
+      const bytes = objects.get(objectPath);
+      return bytes
+        ? { data: new Blob([new Uint8Array(bytes)]), error: null }
+        : { data: null, error: { message: "not found" } };
+    });
+    jest.spyOn(PrismaIngestionStore.prototype, "ensureRevision").mockResolvedValue();
+    jest.spyOn(PrismaIngestionStore.prototype, "claimPhase").mockResolvedValue({
+      state: "CLAIMED", leaseToken: "identity-lease",
+    });
+    const fail = jest.spyOn(PrismaIngestionStore.prototype, "failPhase").mockResolvedValue();
+    const publish = jest.spyOn(PrismaIngestionStore.prototype, "publishEvaluationRevision").mockResolvedValue({
+      snapshotsCreated: 0, alertsCreated: 0, promotedStocksCreated: 0, stocksCreated: 0,
+    });
+    (prisma.trackedStock.findMany as jest.Mock).mockResolvedValue([{
+      id: "stock-1", symbol: "EXAMPLE", name: "Example Corp", exchange: "OTC", isOTC: true,
+    }]);
+
+    await expect(ingestDate(date)).resolves.toMatchObject({
+      success: false, partial: true, snapshotsCreated: 0,
+    });
+    expect(fail).toHaveBeenCalledWith(
+      plan.manifest.revisionHash, "CANONICAL_PUBLISH", "identity-lease",
+      expect.stringContaining("identity conflicts"),
+    );
+    expect(publish).not.toHaveBeenCalled();
+    expect(prisma.trackedStock.update).not.toHaveBeenCalled();
+    expect(prisma.trackedStock.createMany).not.toHaveBeenCalled();
+    expect(prisma.stockDailySnapshot.createMany).not.toHaveBeenCalled();
+    expect(prisma.dailyScanSummary.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects hash-bound failed mandatory scoring before claiming publication", async () => {
+    const date = "2026-09-16";
+    const evaluationName = `enhanced-evaluation-${date}.json`;
+    const summaryName = `fmp-summary-${date}.json`;
+    const statusName = `scan-status-${date}.json`;
+    const validationName = `pipeline-validation-${date}.json`;
+    const plan = createRevisionUploadPlan({
+      scanDate: date, producerRunId: "failed-quality", producerKind: "DAILY_PIPELINE",
+      qualityStatus: "DEGRADED",
+      files: {
+        [evaluationName]: Buffer.from(JSON.stringify(rows)),
+        [summaryName]: Buffer.from("{}"),
+        [statusName]: Buffer.from(JSON.stringify({
+          date, pipelineStatus: "failed", phases: { phase1_riskScoring: { status: "failed" } },
+        })),
+        [validationName]: Buffer.from(JSON.stringify({ date, status: "failing", scanPipelineStatus: "failed" })),
+      },
+      required: [evaluationName, summaryName, statusName, validationName],
+    });
+    const objects = new Map(plan.operations.map((op) => [op.path, op.content]));
+    download.mockImplementation(async (objectPath: string) => {
+      const bytes = objects.get(objectPath);
+      return bytes ? { data: new Blob([new Uint8Array(bytes)]), error: null } : { data: null, error: { message: "not found" } };
+    });
+    const ensure = jest.spyOn(PrismaIngestionStore.prototype, "ensureRevision");
+    await expect(ingestDate(date)).resolves.toMatchObject({ success: false, error: expect.stringContaining("risk scoring") });
+    expect(ensure).not.toHaveBeenCalled();
+    expect(prisma.stockDailySnapshot.createMany).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -448,8 +562,40 @@ describe("ingestDate OTC records", () => {
     expect(snapshot).toMatchObject({
       evaluatedAt: new Date("2026-09-16T23:12:34.567Z"),
       isInsufficient: true,
-      isLegitimate: false,
+      isLegitimate: null,
     });
+  });
+  it("preserves zero summary measurements instead of replacing them with unknown", async () => {
+    download.mockImplementation(async (filename: string) => {
+      if (filename === "fmp-summary-2026-09-16.json") {
+        return {
+          data: new Blob([
+            JSON.stringify({
+              totalStocks: 1,
+              evaluated: 1,
+              skippedNoData: 0,
+              byRiskLevel: { INSUFFICIENT: 1 },
+              byExchange: {},
+              durationMinutes: 0,
+              apiCallsMade: 0,
+            }),
+          ]),
+          error: null,
+        };
+      }
+      const response = await global.fetch(`https://storage.test/${filename}`);
+      return response.ok
+        ? {
+            data: new Blob([await response.text()], {
+              type: "application/json",
+            }),
+            error: null,
+          }
+        : { data: null, error: { message: "not found" } };
+    });
+    await ingestDate("2026-09-16");
+    expect((prisma.dailyScanSummary.upsert as jest.Mock).mock.calls[0][0].update)
+      .toMatchObject({ scanDurationMins: 0, apiCallsMade: 0 });
   });
   it.each([
     undefined,

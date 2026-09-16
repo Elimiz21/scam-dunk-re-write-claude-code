@@ -11,7 +11,7 @@
  *
  * Required environment variables:
  *   NEXT_PUBLIC_SUPABASE_URL
- *   NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY for write access)
+ *   SUPABASE_SERVICE_ROLE_KEY (server-side only; anonymous keys are rejected)
  */
 
 // Load environment variables from .env.local in project root
@@ -20,8 +20,19 @@ import * as path from "path";
 dotenv.config({ path: path.join(__dirname, "..", "..", ".env.local") });
 
 import * as fs from "fs";
-import { execSync } from "child_process";
 import { createClient } from "@supabase/supabase-js";
+import {
+  createRevisionUploadPlan,
+  executeRevisionUploadPlan,
+  extractProducerExecutedAt,
+  assertPublicationQuality,
+  requireStoragePublisherConfig,
+} from "./storage-publisher";
+import { assertPostScanReportParent } from "./post-scan-artifact-source";
+import {
+  LoadedArtifactRevision,
+  loadPublishedArtifactRevision,
+} from "../../src/lib/admin/artifact-storage";
 
 const RESULTS_DIR = path.join(__dirname, "..", "results");
 const SCHEME_DB_DIR = path.join(__dirname, "..", "scheme-database");
@@ -54,18 +65,8 @@ const STATIC_FILES = [
 ];
 
 function getSupabaseCredentials() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error(
-      "Missing Supabase credentials. Set NEXT_PUBLIC_SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    );
-  }
-
-  return { supabaseUrl, supabaseKey };
+  const { supabaseUrl, serviceKey } = requireStoragePublisherConfig(process.env);
+  return { supabaseUrl, supabaseKey: serviceKey };
 }
 
 function getSupabaseClient() {
@@ -73,48 +74,9 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-async function uploadFile(filePath: string, fileName: string) {
-  const { supabaseUrl, supabaseKey } = getSupabaseCredentials();
-  const contentType = fileName.endsWith(".json")
-    ? "application/json"
-    : "text/markdown";
-
-  console.log(`  Uploading ${fileName}...`);
-
-  // Use curl with -k flag to bypass TLS certificate verification issues
-  // This is needed in some environments with TLS inspection proxies
-  const uploadUrl = `${supabaseUrl}/storage/v1/object/${BUCKET_NAME}/${fileName}`;
-
-  try {
-    const result = execSync(
-      `curl -k -s -X POST "${uploadUrl}" ` +
-        `-H "Authorization: Bearer ${supabaseKey}" ` +
-        `-H "Content-Type: ${contentType}" ` +
-        `-H "x-upsert: true" ` +
-        `--data-binary @"${filePath}"`,
-      { encoding: "utf-8", maxBuffer: 50 * 1024 * 1024 },
-    );
-
-    const response = JSON.parse(result);
-    if (response.error) {
-      throw new Error(response.message || response.error);
-    }
-
-    console.log(`  ✓ Uploaded ${fileName}`);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("JSON")) {
-      // If JSON parse fails, check if it's a curl error
-      throw new Error(`Failed to upload ${fileName}: Network or server error`);
-    }
-    throw error;
-  }
-}
-
 async function uploadDateFiles(date: string) {
-  let uploadCount = 0;
-
   console.log(`\nUploading files for ${date}...`);
-
+  const files: Record<string, Buffer> = {};
   for (const pattern of FILE_PATTERNS) {
     // Try both .json and .md extensions
     const extensions = ["social-media", "scheme-report"].includes(pattern.type)
@@ -126,8 +88,7 @@ async function uploadDateFiles(date: string) {
       const filePath = path.join(RESULTS_DIR, fileName);
 
       if (fs.existsSync(filePath)) {
-        await uploadFile(filePath, fileName);
-        uploadCount++;
+        files[fileName] = fs.readFileSync(filePath);
       }
     }
   }
@@ -135,12 +96,103 @@ async function uploadDateFiles(date: string) {
   // Always upload scheme and promoter databases
   for (const staticFile of STATIC_FILES) {
     if (fs.existsSync(staticFile.path)) {
-      await uploadFile(staticFile.path, staticFile.name);
-      uploadCount++;
+      files[staticFile.name] = fs.readFileSync(staticFile.path);
+    }
+  }
+  // Late phases emit additional dated files that do not have a fixed prefix.
+  // Include them in the next immutable revision instead of overwriting a root key.
+  for (const fileName of fs.readdirSync(RESULTS_DIR)) {
+    if (
+      fileName.includes(date) &&
+      (fileName.endsWith(".json") || fileName.endsWith(".md"))
+    ) {
+      files[fileName] = fs.readFileSync(path.join(RESULTS_DIR, fileName));
     }
   }
 
-  return uploadCount;
+  let previous: LoadedArtifactRevision | null = null;
+  const client = getSupabaseClient();
+  const { data: publicationHead, error: publicationHeadError } = await client
+    .from("EvaluationArtifactPublicationHead")
+    .select("revisionHash")
+    .eq("scanDate", `${date}T00:00:00.000Z`)
+    .maybeSingle();
+  if (publicationHeadError) {
+    throw new Error(`Failed to read authoritative publication head: ${publicationHeadError.message}`);
+  }
+  previous = await loadPublishedArtifactRevision(date, async (objectPath) => {
+    const { data, error } = await client.storage
+      .from(BUCKET_NAME)
+      .download(objectPath);
+    if (error) {
+      if (/not.?found|404/i.test(error.message)) return null;
+      throw new Error(`Failed to read ${objectPath}: ${error.message}`);
+    }
+    return Buffer.from(await data.arrayBuffer());
+  }, publicationHead?.revisionHash);
+  if (previous) {
+    for (const [logicalName, bytes] of previous.files) {
+      if (!(logicalName in files)) files[logicalName] = bytes;
+    }
+  }
+
+  const postScanReportName = `post-scan-report-${date}.json`;
+  if (files[postScanReportName]) {
+    assertPostScanReportParent({
+      scanDate: date,
+      candidate: files[postScanReportName],
+      previousBytes: previous?.files.get(postScanReportName),
+      previousRevisionHash: previous?.manifest.revisionHash,
+    });
+  }
+
+  const evaluationName = [
+    `enhanced-evaluation-${date}.json`,
+    `fmp-evaluation-${date}.json`,
+  ].find((name) => files[name]);
+  const summaryName = `fmp-summary-${date}.json`;
+  if (!evaluationName || !files[summaryName]) {
+    throw new Error(
+      `Publication blocked for ${date}: evaluation and summary artifacts are required`,
+    );
+  }
+  const qualityStatus = assertPublicationQuality(date, files);
+  const qualityArtifacts = [
+    `scan-status-${date}.json`,
+    `pipeline-validation-${date}.json`,
+  ];
+  const producerRunId =
+    process.env.ARTIFACT_PRODUCER_RUN_ID ||
+    (process.env.GITHUB_RUN_ID
+      ? `${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT || "1"}`
+      : "");
+  if (!producerRunId) {
+    throw new Error(
+      "ARTIFACT_PRODUCER_RUN_ID is required outside GitHub Actions",
+    );
+  }
+  const plan = createRevisionUploadPlan({
+    scanDate: date,
+    producerRunId,
+    producerExecutedAt: extractProducerExecutedAt(files[summaryName]),
+    publicationGeneration:
+      (previous?.manifest.publicationGeneration ?? 0) + 1,
+    parentRevisionHash: previous?.manifest.revisionHash ?? null,
+    producerKind: "DAILY_PIPELINE",
+    qualityStatus,
+    files,
+    required: Array.from(new Set([
+      ...(previous?.manifest.requiredArtifacts ?? [evaluationName, summaryName]),
+      ...qualityArtifacts,
+    ])),
+  });
+  await executeRevisionUploadPlan({
+    config: requireStoragePublisherConfig(process.env),
+    operations: plan.operations,
+    bucket: BUCKET_NAME,
+  });
+  console.log(`  Published immutable revision ${plan.manifest.revisionHash}`);
+  return plan.manifest.artifacts.length;
 }
 
 async function listResultsFiles() {
@@ -195,6 +247,7 @@ async function main() {
       }
     } catch (error) {
       console.error(`  Error uploading ${date}:`, error);
+      process.exitCode = 1;
     }
   }
 
@@ -208,5 +261,8 @@ export { uploadDateFiles, getSupabaseClient, BUCKET_NAME };
 
 // Run if called directly
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
 }

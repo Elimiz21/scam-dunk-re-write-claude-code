@@ -26,6 +26,7 @@ import {
   reconcileListedResults,
 } from "./otc-daily";
 import { execSync } from "child_process";
+import { assessRiskScoringCoverage } from "./risk-scoring-coverage";
 
 // Import scoring modules
 import {
@@ -45,6 +46,18 @@ import {
   createNewsAnalysisPlan,
   NewsAnalysisCandidateGroup,
 } from "./news-analysis-plan";
+import {
+  assessSocialPhase,
+  fetchMentionPagesWithStatus,
+  getTickerCoverage,
+  type SocialRunMetadata,
+} from "./social-coverage";
+import {
+  acceptedLayerLabels,
+  buildProductionEvaluationRequest,
+  preflightPythonAIBackend,
+  requestPythonAnalysis,
+} from "./python-ai-client";
 
 // Deployed app URL and API key for triggering the production social scan
 const SOCIAL_SCAN_APP_URL = process.env.SOCIAL_SCAN_APP_URL || "";
@@ -120,6 +133,13 @@ interface EnhancedStockResult {
   lastPrice: number | null;
   avgDailyVolume: number | null;
   avgDollarVolume: number | null;
+  previousClose: number | null;
+  priceChangePct: number | null;
+  volume: number | null;
+  volumeRatio: number | null;
+  priceDataSource: string;
+  sourceObservedAt: string | null;
+  sourceVersion: string;
 
   // Risk scoring
   riskLevel: string;
@@ -163,6 +183,14 @@ interface EnhancedStockResult {
   // Social media scan (only for remaining high-risk stocks)
   socialMediaScanned: boolean;
   socialMediaFindings?: ComprehensiveScanResult | null;
+  socialMediaCoverage?: {
+    status:
+      "COMPLETE" | "PARTIAL" | "NOT_SEARCHED" | "NOT_TARGETED" | "UNKNOWN";
+    searchedPlatforms: string[];
+    incompletePlatforms: string[];
+    rateLimitedPlatforms: string[];
+    evidenceIncomplete?: boolean;
+  };
 
   // Pre-pump baseline price (lowest close in 30 days before spike)
   prePumpBasePrice: number | null;
@@ -553,126 +581,57 @@ interface PythonAIResult {
   is_otc: boolean;
   is_micro_cap: boolean;
   stock_info?: {
-    company_name?: string;
-    exchange?: string;
-    last_price?: number;
-    market_cap?: number;
-    avg_volume?: number;
+    company_name?: string | null;
+    exchange?: string | null;
+    last_price?: number | null;
+    market_cap?: number | null;
+    avg_volume?: number | null;
   };
+  acceptedLayers: string[];
   error?: string;
 }
 
 async function callPythonAIBackend(
   symbol: string,
+  marketData: MarketData,
   options?: { onWatchlist?: boolean },
 ): Promise<PythonAIResult | null> {
-  if (!AI_BACKEND_URL) {
+  const result = await requestPythonAnalysis({
+    baseUrl: AI_BACKEND_URL,
+    apiSecret: AI_API_SECRET,
+    request: buildProductionEvaluationRequest(
+      symbol,
+      marketData,
+      options?.onWatchlist ?? false,
+    ),
+  });
+  if ("failure" in result) {
+    console.log(
+      `     Python AI result rejected for ${symbol}: ${result.failure}${result.detail ? ` (${result.detail})` : ""}`,
+    );
     return null;
   }
 
-  try {
-    // Build auth header if API secret is configured
-    const authHeader = AI_API_SECRET ? `-H "X-API-Key: ${AI_API_SECRET}" ` : "";
-
-    // Build request body with optional watchlist context
-    // use_live_data=false avoids redundant yfinance fetches — the TypeScript
-    // pipeline already has real FMP data; the Python backend only needs to run
-    // its ML models (anomaly detection, RF, LSTM) on synthetic/cached data.
-    const requestBody: Record<string, any> = {
-      ticker: symbol,
-      asset_type: "stock",
-      use_live_data: false,
-    };
-    if (options?.onWatchlist) {
-      requestBody.on_watchlist = true;
-    }
-    const bodyJson = JSON.stringify(requestBody).replace(/'/g, "'\\''");
-
-    // Single retry for transient 503s (worker busy) — kept minimal to
-    // avoid ballooning runtime across 7,000 stocks
-    const MAX_RETRIES = 1;
-    let httpStatus = 0;
-    let body = "";
-
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      if (attempt > 0) {
-        execSync(`sleep 1`);
-      }
-
-      // Use -w to append HTTP status code, separated by newline
-      const cmd =
-        `curl -s --max-time 30 -w '\\n%{http_code}' -X POST "${AI_BACKEND_URL}/analyze" ` +
-        `-H "Content-Type: application/json" ` +
-        authHeader +
-        `-d '${bodyJson}'`;
-
-      const result = execSync(cmd, {
-        encoding: "utf-8",
-        maxBuffer: 10 * 1024 * 1024,
-      });
-
-      if (!result) return null;
-
-      const lines = result.trim().split("\n");
-      httpStatus = parseInt(lines[lines.length - 1], 10);
-      body = lines.slice(0, -1).join("\n");
-
-      if (httpStatus === 200) break;
-      if (httpStatus !== 503) break; // Only retry on 503
-    }
-
-    // Reject non-200 responses instead of silently treating them as LOW
-    if (httpStatus !== 200) {
-      console.log(
-        `     Python AI backend returned HTTP ${httpStatus} for ${symbol}`,
-      );
-      return null;
-    }
-
-    if (!body) return null;
-
-    const data = JSON.parse(body);
-
-    // Validate that the response has the expected structure
-    // (prevents error responses like {"detail":"..."} from being misinterpreted)
-    if (!data.ticker && !data.risk_level) {
-      console.log(
-        `     Python AI backend returned unexpected response for ${symbol}`,
-      );
-      return null;
-    }
-
-    return {
-      success: true,
-      riskLevel: data.risk_level || "LOW",
-      riskProbability: data.risk_probability || 0,
-      rf_probability: data.rf_probability || null,
-      lstm_probability: data.lstm_probability || null,
-      anomaly_score: data.anomaly_score || 0,
-      signals: data.signals || [],
-      sec_flagged: data.sec_flagged || false,
-      is_otc: data.is_otc || false,
-      is_micro_cap: data.is_micro_cap || false,
-      stock_info: data.stock_info,
-    };
-  } catch (error: any) {
-    // Python backend not available or error
-    return null;
-  }
-}
-
-// Check if Python AI Backend is available
-async function checkPythonAIHealth(): Promise<boolean> {
-  if (!AI_BACKEND_URL) return false;
-
-  try {
-    const result = curlFetch(`${AI_BACKEND_URL}/health`);
-    if (!result) return false;
-    const data = JSON.parse(result);
-    return data.status === "healthy";
-  } catch {
-    return false;
-  }
+  const data = result.data;
+  return {
+    success: true,
+    riskLevel: data.risk_level,
+    riskProbability: data.risk_probability,
+    rf_probability: data.rf_probability ?? null,
+    lstm_probability: data.lstm_probability ?? null,
+    anomaly_score: data.anomaly_score,
+    signals: data.signals.map((signal) => ({
+      code: signal.code,
+      category: signal.category ?? "PATTERN",
+      weight: signal.weight,
+      description: signal.description,
+    })),
+    sec_flagged: data.sec_flagged ?? false,
+    is_otc: data.is_otc ?? false,
+    is_micro_cap: data.is_micro_cap ?? false,
+    stock_info: data.stock_info ?? undefined,
+    acceptedLayers: acceptedLayerLabels(data),
+  };
 }
 
 // FMP API functions
@@ -1082,6 +1041,10 @@ interface ScanStatus {
     configured: boolean;
     available: boolean;
     layersUsed: string[];
+    preflightFailure?: string;
+    scoringMode?: string;
+    attempted: number;
+    accepted: number;
   };
   phases: {
     phase0_socialEarlyWarning: PhaseStatus;
@@ -1124,6 +1087,8 @@ interface ScanStatus {
     totalMentions: number;
     tickersScanned: number;
     tickersWithMentions: number;
+    tickersSubmitted: number;
+    tickersActuallySearched: number;
   };
 }
 
@@ -1145,7 +1110,13 @@ function createInitialScanStatus(date: string): ScanStatus {
     durationMinutes: null,
     error: null,
     failedAtPhase: null,
-    aiBackend: { configured: false, available: false, layersUsed: [] },
+    aiBackend: {
+      configured: false,
+      available: false,
+      layersUsed: ["Layer 1: TypeScript deterministic"],
+      attempted: 0,
+      accepted: 0,
+    },
     phases: {
       phase0_socialEarlyWarning: emptyPhase(
         "Social Early Warning & Pre-Pump Scan",
@@ -1177,6 +1148,8 @@ function createInitialScanStatus(date: string): ScanStatus {
       totalMentions: 0,
       tickersScanned: 0,
       tickersWithMentions: 0,
+      tickersSubmitted: 0,
+      tickersActuallySearched: 0,
     },
   };
 }
@@ -1438,37 +1411,37 @@ async function runEnhancedPipeline(): Promise<void> {
   scanStatus.phases.phase1_riskScoring.status = "running";
   scanStatus.phases.phase1_riskScoring.startedAt = new Date().toISOString();
 
-  // Check Python AI Backend availability for full 4-layer analysis
-  const pythonAIAvailable = await checkPythonAIHealth();
+  // Prove readiness and the shared secret once before any per-symbol requests.
+  // A failed authenticated preflight disables the engine for this entire run.
+  const pythonAIPreflight = await preflightPythonAIBackend({
+    baseUrl: AI_BACKEND_URL,
+    apiSecret: AI_API_SECRET,
+  });
+  const pythonAIAvailable = pythonAIPreflight.available;
   scanStatus.aiBackend = {
     configured: !!AI_BACKEND_URL,
     available: pythonAIAvailable,
-    layersUsed: pythonAIAvailable
-      ? [
-          "Layer 1: Deterministic",
-          "Layer 2: Anomaly Detection",
-          "Layer 3: Random Forest",
-          "Layer 4: LSTM",
-        ]
-      : ["Layer 1: Deterministic"],
+    layersUsed: ["Layer 1: TypeScript deterministic"],
+    preflightFailure: pythonAIPreflight.failure,
+    scoringMode: pythonAIPreflight.scoringMode,
+    attempted: 0,
+    accepted: 0,
   };
   if (pythonAIAvailable) {
-    console.log("✅ Python AI Backend ONLINE - Using ALL 4 AI Layers:");
-    console.log("   Layer 1: Deterministic Signal Detection (rule-based)");
     console.log(
-      "   Layer 2: Statistical Anomaly Detection (Z-scores, Keltner, ATR)",
+      `✅ Python AI Backend authenticated (${pythonAIPreflight.scoringMode ?? "mode unknown"})`,
     );
-    console.log("   Layer 3: Machine Learning Classification (Random Forest)");
-    console.log("   Layer 4: Deep Learning Sequence Analysis (LSTM)");
+    console.log(
+      "   Result layers will be recorded only after accepted responses.",
+    );
   } else {
     console.log(
-      "⚠️  Python AI Backend OFFLINE - Using Layer 1 only (TypeScript scorer)",
-    );
-    console.log(
-      "   Set AI_BACKEND_URL environment variable to enable full 4-layer analysis",
+      `⚠️  Python AI Backend unavailable (${pythonAIPreflight.failure ?? "unknown"}) - using TypeScript scorer`,
     );
   }
   console.log("");
+
+  const acceptedPythonLayers = new Set<string>();
 
   // For testing, limit to first 100 stocks (remove this for production)
   const stocksToProcess =
@@ -1523,10 +1496,15 @@ async function runEnhancedPipeline(): Promise<void> {
         !scoringResult.isInsufficient
       ) {
         const onWatchlist = watchlistTickers.has(stock.symbol);
-        const pyResult = await callPythonAIBackend(stock.symbol, {
+        scanStatus.aiBackend.attempted++;
+        const pyResult = await callPythonAIBackend(stock.symbol, marketData, {
           onWatchlist,
         });
         if (pyResult && pyResult.success) {
+          scanStatus.aiBackend.accepted++;
+          pyResult.acceptedLayers.forEach((layer) =>
+            acceptedPythonLayers.add(layer),
+          );
           // Cast signals to the expected type (Python backend returns compatible structure)
           const typedSignals = pyResult.signals.map((s) => ({
             code: s.code,
@@ -1578,16 +1556,36 @@ async function runEnhancedPipeline(): Promise<void> {
       // Increment risk count
       riskCounts[scoringResult.riskLevel as keyof typeof riskCounts]++;
 
+      const latestBar = marketData.priceHistory.at(-1);
+      const previousBar = marketData.priceHistory.at(-2);
+      const previousClose = previousBar?.close ?? null;
+      const priceChangePct =
+        latestBar && previousClose !== null && previousClose !== 0
+          ? ((latestBar.close - previousClose) / previousClose) * 100
+          : null;
+      const currentVolume = latestBar?.volume ?? null;
+      const averageVolume = extendedQuote?.avgVolume30d ?? null;
+
       const result: EnhancedStockResult = {
         symbol: stock.symbol,
         name: extendedQuote?.companyName || stock.name,
         exchange: extendedQuote?.exchange || stock.exchange,
         sector: extendedQuote?.sector || "Unknown",
         industry: extendedQuote?.industry || "Unknown",
-        marketCap: extendedQuote?.marketCap || null,
-        lastPrice: extendedQuote?.lastPrice || null,
-        avgDailyVolume: extendedQuote?.avgVolume30d || null,
-        avgDollarVolume: extendedQuote?.avgDollarVolume30d || null,
+        marketCap: extendedQuote?.marketCap ?? null,
+        lastPrice: extendedQuote?.lastPrice ?? latestBar?.close ?? null,
+        avgDailyVolume: averageVolume,
+        avgDollarVolume: extendedQuote?.avgDollarVolume30d ?? null,
+        previousClose,
+        priceChangePct,
+        volume: currentVolume,
+        volumeRatio:
+          currentVolume !== null && averageVolume !== null && averageVolume > 0
+            ? currentVolume / averageVolume
+            : null,
+        priceDataSource: "FMP",
+        sourceObservedAt: latestBar ? `${latestBar.date}T00:00:00.000Z` : null,
+        sourceVersion: "fmp-stable/profile+historical-price-eod/full",
         isInsufficient: scoringResult.isInsufficient,
         isLegitimate: scoringResult.isLegitimate,
         riskLevel: scoringResult.riskLevel,
@@ -1741,13 +1739,23 @@ async function runEnhancedPipeline(): Promise<void> {
     }
   }
 
-  scanStatus.phases.phase1_riskScoring.status =
-    otcScan.coverage.status === "completed" ? "completed" : "degraded";
+  const scoringCoverage = assessRiskScoringCoverage({
+    listedExpected: reconcileListedResults(
+      stocks,
+      otcScan.coverage.directorySymbols,
+    ).length,
+    listedEvaluated: retained.length,
+    otcStatus: otcScan.coverage.status,
+  });
+  scanStatus.phases.phase1_riskScoring.status = scoringCoverage.status;
   scanStatus.phases.phase1_riskScoring.completedAt = new Date().toISOString();
   scanStatus.phases.phase1_riskScoring.durationMs =
     Date.now() -
     new Date(scanStatus.phases.phase1_riskScoring.startedAt!).getTime();
   scanStatus.phases.phase1_riskScoring.details = {
+    listedExpected: scoringCoverage.listedExpected,
+    listedEvaluated: scoringCoverage.listedEvaluated,
+    listedMissing: scoringCoverage.listedMissing,
     processed: processedCount,
     skippedNoData,
     otcCoverage: {
@@ -1758,11 +1766,28 @@ async function runEnhancedPipeline(): Promise<void> {
     },
     riskCounts: { ...riskCounts },
     highRiskFound: highRiskBeforeFilter.length,
+    pythonBackend: {
+      attempted: scanStatus.aiBackend.attempted,
+      accepted: scanStatus.aiBackend.accepted,
+      acceptedLayers: Array.from(acceptedPythonLayers),
+      preflightFailure: scanStatus.aiBackend.preflightFailure ?? null,
+    },
   };
+  scanStatus.aiBackend.layersUsed = [
+    "Layer 1: TypeScript deterministic",
+    ...Array.from(acceptedPythonLayers),
+  ];
   scanStatus.summary.processed = processedCount;
   scanStatus.summary.skippedNoData = skippedNoData;
   scanStatus.summary.riskCounts = { ...riskCounts };
   scanStatus.summary.highRiskBeforeFilters = highRiskBeforeFilter.length;
+
+  if (scoringCoverage.status === "failed") {
+    saveScanStatus(scanStatus);
+    throw new Error(
+      "Mandatory listed risk scoring failed: no valid listed coverage",
+    );
+  }
 
   // Phase 2: Filter high-risk stocks
   console.log("\n" + "=".repeat(80));
@@ -2004,6 +2029,7 @@ async function runEnhancedPipeline(): Promise<void> {
   console.log("-".repeat(50));
   scanStatus.phases.phase4_socialMedia.status = "running";
   scanStatus.phases.phase4_socialMedia.startedAt = new Date().toISOString();
+  let scanRunResult: any = null;
 
   if (afterNewsFilter.length > 0) {
     // Convert pipeline stocks to ScanTarget format
@@ -2022,7 +2048,6 @@ async function runEnhancedPipeline(): Promise<void> {
 
     // Prefer deployed API (stores to Supabase, includes AI screening)
     // Falls back to local scan if APP_URL or API_KEY not configured
-    let scanRunResult: any;
     let usedDeployedAPI = false;
 
     if (SOCIAL_SCAN_APP_URL && SOCIAL_SCAN_API_KEY) {
@@ -2083,6 +2108,11 @@ async function runEnhancedPipeline(): Promise<void> {
           tickersScanned: apiResult.tickersScanned || 0,
           tickersWithMentions: apiResult.tickersWithMentions || 0,
           errors: apiResult.errors || [],
+          submittedTickers: apiResult.submittedTickers || [],
+          searchedTickers: apiResult.searchedTickers || [],
+          coverage: apiResult.coverage || [],
+          persistence: apiResult.persistence || null,
+          readbackComplete: apiResult.readbackComplete !== false,
           results: [], // Will be populated from DB fetch below
         };
 
@@ -2093,37 +2123,50 @@ async function runEnhancedPipeline(): Promise<void> {
             console.log(
               "  Fetching per-ticker mention data from DB for scheme tracking...",
             );
-            const mentionsRes = await fetch(
-              `${SOCIAL_SCAN_APP_URL}/api/admin/social-scan?scanRunId=${apiResult.scanRunId}&limit=500`,
-              {
-                headers: {
-                  Authorization: `Bearer ${SOCIAL_SCAN_API_KEY}`,
-                },
-                signal: AbortSignal.timeout(30_000),
+            const readback = await fetchMentionPagesWithStatus<any>(
+              async (page, limit) => {
+                const mentionsRes = await fetch(
+                  `${SOCIAL_SCAN_APP_URL}/api/admin/social-scan?scanRunId=${apiResult.scanRunId}&page=${page}&limit=${limit}`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${SOCIAL_SCAN_API_KEY}`,
+                    },
+                    signal: AbortSignal.timeout(30_000),
+                  },
+                );
+                if (!mentionsRes.ok) {
+                  throw new Error(
+                    `Mention page ${page} returned ${mentionsRes.status}`,
+                  );
+                }
+                return mentionsRes.json();
               },
+              { pageSize: 500 },
             );
-            if (mentionsRes.ok) {
-              const mentionsData = await mentionsRes.json();
-              const mentions = mentionsData.mentions || [];
-
-              // Group mentions by ticker
-              const byTicker = new Map<string, any[]>();
-              for (const m of mentions) {
-                const t = (m.ticker || "").toUpperCase();
-                if (!byTicker.has(t)) byTicker.set(t, []);
-                byTicker.get(t)!.push(m);
-              }
-
-              // Store in a map the pipeline can use to build ComprehensiveScanResult
-              (scanRunResult as any)._mentionsByTicker = byTicker;
-              console.log(
-                `  Retrieved ${mentions.length} mentions across ${byTicker.size} ticker(s)`,
+            const mentions = readback.mentions;
+            scanRunResult.readbackComplete = readback.complete;
+            if (!readback.complete) {
+              scanRunResult.errors.push(
+                `Mention readback incomplete at page ${readback.failedPage}: ${readback.error || "unknown error"}`,
               );
-            } else {
               console.log(
-                `  ⚠️  Could not fetch mentions from GET API: ${mentionsRes.status}`,
+                `  ⚠️  Retained ${mentions.length} mentions before readback failed at page ${readback.failedPage}`,
               );
             }
+
+            // Group mentions by ticker
+            const byTicker = new Map<string, any[]>();
+            for (const m of mentions) {
+              const t = (m.ticker || "").toUpperCase();
+              if (!byTicker.has(t)) byTicker.set(t, []);
+              byTicker.get(t)!.push(m);
+            }
+
+            // Store in a map the pipeline can use to build ComprehensiveScanResult
+            (scanRunResult as any)._mentionsByTicker = byTicker;
+            console.log(
+              `  Retrieved all ${mentions.length} mentions across ${byTicker.size} ticker(s)`,
+            );
           } catch (fetchErr: any) {
             console.log(
               `  ⚠️  Mention fetch failed (non-blocking): ${fetchErr.message}`,
@@ -2155,11 +2198,25 @@ async function runEnhancedPipeline(): Promise<void> {
       }
     }
 
+    const deployedRunMetadata: SocialRunMetadata | null = usedDeployedAPI
+      ? {
+          submittedTickers: scanRunResult.submittedTickers || [],
+          coverage: scanRunResult.coverage || [],
+          persistence: scanRunResult.persistence || null,
+          readbackComplete: scanRunResult.readbackComplete !== false,
+        }
+      : null;
+
     // Map results back to each stock in afterNewsFilter
     for (const result of afterNewsFilter) {
       // When using deployed API, build ComprehensiveScanResult from DB mentions
       if (usedDeployedAPI) {
-        result.socialMediaScanned = true;
+        const tickerCoverage = getTickerCoverage(
+          deployedRunMetadata!,
+          result.symbol,
+        );
+        result.socialMediaCoverage = tickerCoverage;
+        result.socialMediaScanned = tickerCoverage.status === "COMPLETE";
         const mentionsByTicker = (scanRunResult as any)._mentionsByTicker as
           Map<string, any[]> | undefined;
         const tickerMentions = mentionsByTicker?.get(
@@ -2269,7 +2326,7 @@ async function runEnhancedPipeline(): Promise<void> {
               avgScore >= 60 ? "high" : avgScore >= 30 ? "medium" : "low",
             hasRealSocialEvidence: tickerMentions.length > 0,
             potentialPromoters,
-            summary: `${tickerMentions.length} mentions found across ${platformMap.size} platform(s). Avg promotion score: ${avgScore}/100.`,
+            summary: `${tickerMentions.length} mentions retained across ${platformMap.size} platform(s). Coverage: ${tickerCoverage.status.toLowerCase().replace("_", " ")}; avg promotion score: ${avgScore}/100.`,
           };
 
           if (avgScore >= 60) {
@@ -2287,7 +2344,15 @@ async function runEnhancedPipeline(): Promise<void> {
           }
         } else {
           result.socialMediaFindings = null;
-          console.log(`  ⚪ ${result.symbol}: No mention data in DB`);
+          if (tickerCoverage.status === "COMPLETE") {
+            console.log(
+              `  ⚪ ${result.symbol}: Completed configured searches returned no indexed mentions`,
+            );
+          } else {
+            console.log(
+              `  ⚪ ${result.symbol}: No mention data; coverage is ${tickerCoverage.status.toLowerCase().replace("_", " ")}, so no negative conclusion is recorded`,
+            );
+          }
         }
         suspiciousStocks.push(result);
         continue;
@@ -2299,7 +2364,13 @@ async function runEnhancedPipeline(): Promise<void> {
 
       if (tickerResult) {
         const socialFindings = tickerResultToComprehensiveScan(tickerResult);
-        result.socialMediaScanned = true;
+        result.socialMediaScanned = false;
+        result.socialMediaCoverage = {
+          status: "UNKNOWN",
+          searchedPlatforms: [],
+          incompletePlatforms: [],
+          rateLimitedPlatforms: [],
+        };
         result.socialMediaFindings = socialFindings;
 
         if (socialFindings.overallPromotionScore >= 60) {
@@ -2316,9 +2387,22 @@ async function runEnhancedPipeline(): Promise<void> {
           );
         }
       } else {
-        result.socialMediaScanned = true;
+        result.socialMediaScanned = false;
+        result.socialMediaCoverage = {
+          status: top50Targets.some(
+            (target) =>
+              target.ticker.toUpperCase() === result.symbol.toUpperCase(),
+          )
+            ? "UNKNOWN"
+            : "NOT_TARGETED",
+          searchedPlatforms: [],
+          incompletePlatforms: [],
+          rateLimitedPlatforms: [],
+        };
         result.socialMediaFindings = null;
-        console.log(`  ⚪ ${result.symbol}: No scan results returned`);
+        console.log(
+          `  ⚪ ${result.symbol}: ${result.socialMediaCoverage.status === "NOT_TARGETED" ? "Not submitted for social scanning" : "No verifiable target coverage returned"}`,
+        );
       }
 
       suspiciousStocks.push(result);
@@ -2340,18 +2424,39 @@ async function runEnhancedPipeline(): Promise<void> {
       totalMentions: scanRunResult.totalMentions,
       tickersScanned: scanRunResult.tickersScanned,
       tickersWithMentions: scanRunResult.tickersWithMentions,
+      tickersSubmitted:
+        scanRunResult.submittedTickers?.length || top50Targets.length,
+      tickersActuallySearched: scanRunResult.searchedTickers?.length || 0,
     };
   } else {
     console.log("  No suspicious stocks to scan.");
   }
 
-  scanStatus.phases.phase4_socialMedia.status = "completed";
+  const socialPhaseStatus =
+    afterNewsFilter.length > 0
+      ? assessSocialPhase({
+          runStatus: scanRunResult?.status || "FAILED",
+          submitted: scanStatus.socialMediaDetails.tickersSubmitted,
+          searched: scanStatus.socialMediaDetails.tickersActuallySearched,
+          persistence: scanRunResult?.persistence || null,
+          readbackComplete: scanRunResult?.readbackComplete !== false,
+          coverage: scanRunResult?.coverage || [],
+        })
+      : "completed";
+  const socialCoverageDegraded = socialPhaseStatus === "degraded";
+  scanStatus.phases.phase4_socialMedia.status = socialPhaseStatus;
+  if (socialCoverageDegraded) {
+    scanStatus.phases.phase4_socialMedia.error = `${scanStatus.socialMediaDetails.tickersActuallySearched}/${scanStatus.socialMediaDetails.tickersSubmitted} submitted tickers have verified search coverage; partial evidence was retained`;
+  }
   scanStatus.phases.phase4_socialMedia.completedAt = new Date().toISOString();
   scanStatus.phases.phase4_socialMedia.durationMs =
     Date.now() -
     new Date(scanStatus.phases.phase4_socialMedia.startedAt!).getTime();
   scanStatus.phases.phase4_socialMedia.details = {
-    tickersScanned: afterNewsFilter.length,
+    eligibleCandidates: afterNewsFilter.length,
+    tickersSubmitted: scanStatus.socialMediaDetails.tickersSubmitted,
+    tickersActuallySearched:
+      scanStatus.socialMediaDetails.tickersActuallySearched,
     platformsUsed: scanStatus.socialMediaDetails.platformsUsed,
     totalMentions: scanStatus.socialMediaDetails.totalMentions,
   };
@@ -2825,7 +2930,7 @@ async function runEnhancedPipeline(): Promise<void> {
 
   // Generate social-media-scan file (standalone social media data)
   const socialMediaResults = suspiciousStocks
-    .filter((s) => s.socialMediaScanned && s.socialMediaFindings)
+    .filter((s) => s.socialMediaFindings)
     .map((s) => ({
       symbol: s.symbol,
       name: s.name,
@@ -2846,13 +2951,29 @@ async function runEnhancedPipeline(): Promise<void> {
       hasRealSocialEvidence: s.socialMediaFindings!.hasRealSocialEvidence,
       potentialPromoters: s.socialMediaFindings!.potentialPromoters,
       overallAssessment: s.socialMediaFindings!.summary,
+      coverage: s.socialMediaCoverage || {
+        status: "UNKNOWN",
+        searchedPlatforms: [],
+        incompletePlatforms: [],
+        rateLimitedPlatforms: [],
+      },
       scanDate: evaluationDate,
     }));
 
+  const completelyScannedCount = suspiciousStocks.filter(
+    (stock) => stock.socialMediaCoverage?.status === "COMPLETE",
+  ).length;
   const socialScanData = {
     scanDate: evaluationDate,
-    totalScanned: suspiciousStocks.length,
-    socialMediaScannedCount: socialMediaResults.length,
+    eligibleCandidates: suspiciousStocks.length,
+    tickersSubmitted: scanStatus.socialMediaDetails.tickersSubmitted,
+    tickersActuallySearched:
+      scanStatus.socialMediaDetails.tickersActuallySearched,
+    totalScanned: completelyScannedCount,
+    socialMediaScannedCount: completelyScannedCount,
+    partialEvidenceCount: socialMediaResults.filter(
+      (result) => result.coverage.status !== "COMPLETE",
+    ).length,
     highPromotionCount: socialMediaResults.filter(
       (r) => r.overallPromotionScore >= 60,
     ).length,
@@ -2870,7 +2991,7 @@ async function runEnhancedPipeline(): Promise<void> {
 
   // Generate promoted-stocks file (stocks with high promotion scores)
   const promotedStocks = suspiciousStocks
-    .filter((s) => s.socialMediaScanned && s.socialMediaFindings)
+    .filter((s) => s.socialMediaFindings)
     .map((s) => {
       const promo = s.socialMediaFindings!;
       const highRiskPlatforms = promo.platforms
@@ -2912,6 +3033,12 @@ async function runEnhancedPipeline(): Promise<void> {
               `${p.platform}: ${p.mentionsFound} mentions (${p.dataSource})`,
           ),
         assessment: promo.summary || null,
+        socialCoverage: s.socialMediaCoverage || {
+          status: "UNKNOWN",
+          searchedPlatforms: [],
+          incompletePlatforms: [],
+          rateLimitedPlatforms: [],
+        },
       };
     })
     .sort((a, b) => b.riskScore - a.riskScore);

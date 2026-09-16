@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-// Public marketing stats, recomputed after each daily scan lands. Cached for
-// 6 hours: the underlying numbers only move once per trading day.
-export const revalidate = 21600;
+// Publication can change after late ingestion or a corrected artifact. Always
+// read the published database state instead of caching an obsolete scan date.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface SiteStatsRow {
   dump_symbols_6mo: bigint;
@@ -18,7 +19,7 @@ export async function GET() {
     const [latestScan, totals, rows] = await Promise.all([
       prisma.dailyScanSummary.findFirst({
         orderBy: { scanDate: "desc" },
-        select: { scanDate: true, evaluated: true, highRiskCount: true },
+        select: { scanDate: true, createdAt: true, evaluated: true, highRiskCount: true },
       }),
       prisma.dailyScanSummary.aggregate({ _sum: { evaluated: true } }),
       prisma.$queryRaw<SiteStatsRow[]>`
@@ -42,6 +43,7 @@ export async function GET() {
     const stats = {
       updatedAt: new Date().toISOString(),
       lastScanDate: latestScan?.scanDate?.toISOString() ?? null,
+      summaryCreatedAt: latestScan?.createdAt?.toISOString() ?? null,
       stocksPerDay: latestScan?.evaluated ?? null,
       highRiskLastScan: latestScan?.highRiskCount ?? null,
       totalScans: totals._sum.evaluated ?? null,
@@ -54,8 +56,7 @@ export async function GET() {
 
     return NextResponse.json(stats, {
       headers: {
-        "Cache-Control":
-          "public, s-maxage=21600, stale-while-revalidate=86400",
+        "Cache-Control": "no-store",
       },
     });
   } catch (error) {

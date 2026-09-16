@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "noEmit": true
+  },
+  "include": [
+    "scripts/enhanced-daily-pipeline.ts",
+    "scripts/upload-to-supabase.ts",
+    "scripts/run-post-scan-phases.ts",
+    "scripts/run-evaluation-fmp.ts"
+  ]
+}

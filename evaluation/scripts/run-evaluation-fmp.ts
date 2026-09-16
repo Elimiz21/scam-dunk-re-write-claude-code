@@ -533,8 +533,7 @@ async function runEvaluation(): Promise<void> {
   // Auto-upload to Supabase if credentials are available
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    process.env.SUPABASE_SERVICE_ROLE_KEY
   ) {
     console.log("\n" + "=".repeat(70));
     console.log("UPLOADING TO SUPABASE STORAGE");
@@ -554,7 +553,7 @@ async function runEvaluation(): Promise<void> {
       "\nNote: Supabase credentials not found. To auto-upload results, set:",
     );
     console.log(
-      "  NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY)",
+      "  NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
     );
     console.log(
       "  Or run manually: npx ts-node scripts/upload-to-supabase.ts " + today,

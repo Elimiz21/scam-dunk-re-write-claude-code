@@ -18,6 +18,26 @@
 
 import { z } from "zod";
 
+export interface AIBackendRequestInput {
+  ticker: string;
+  assetType: "stock" | "crypto";
+  useLiveData: boolean;
+  secFlagged?: boolean;
+  newsFlag?: boolean;
+}
+
+/** Build the interactive request with explicit null/default semantics. */
+export function buildAIBackendRequest(input: AIBackendRequestInput) {
+  return {
+    ticker: input.ticker.trim().toUpperCase(),
+    asset_type: input.assetType,
+    use_live_data: input.useLiveData,
+    days: 90,
+    sec_flagged: input.secFlagged ?? null,
+    news_flag: input.newsFlag ?? false,
+  };
+}
+
 export const RISK_LEVEL_VALUES = [
   "LOW",
   "MEDIUM",
@@ -30,8 +50,8 @@ export const AIBackendSignalSchema = z.object({
   code: z.string(),
   description: z.string().default(""),
   // Coerce so a stringified number ("3") still parses; reject NaN/Infinity.
-  weight: z.coerce
-    .number()
+  weight: z
+    .union([z.number(), z.string().min(1).transform(Number)])
     .refine((n) => Number.isFinite(n), "weight must be finite"),
   severity: z.string().optional(),
   category: z.string().optional(),
@@ -48,23 +68,20 @@ export const AIBackendNewsVerificationSchema = z.object({
 
 export const AIBackendResponseSchema = z.object({
   risk_level: z.enum(RISK_LEVEL_VALUES),
-  // risk_score may be absent on some paths; default 0 and require finite.
-  risk_score: z.coerce
-    .number()
-    .refine((n) => Number.isFinite(n), "risk_score must be finite")
-    .default(0),
+  risk_score: z
+    .union([z.number(), z.string().min(1).transform(Number)])
+    .refine((n) => Number.isFinite(n), "risk_score must be finite"),
   // Probability is clamped to [0,1] (backend models occasionally overshoot).
-  risk_probability: z.coerce
-    .number()
+  risk_probability: z
+    .union([z.number(), z.string().min(1).transform(Number)])
     .refine((n) => Number.isFinite(n), "risk_probability must be finite")
-    .transform((n) => Math.min(1, Math.max(0, n)))
-    .default(0),
-  signals: z.array(AIBackendSignalSchema).default([]),
-  data_available: z.boolean().default(true),
+    .refine((n) => n >= 0 && n <= 1, "risk_probability must be between 0 and 1"),
+  signals: z.array(AIBackendSignalSchema),
+  data_available: z.boolean(),
   // Optional model/diagnostic fields (passed through when present).
   rf_probability: z.number().nullable().optional(),
   lstm_probability: z.number().nullable().optional(),
-  anomaly_score: z.coerce.number().optional(),
+  anomaly_score: z.number(),
   explanations: z.array(z.string()).optional(),
   sec_flagged: z.boolean().optional(),
   is_otc: z.boolean().optional(),
@@ -75,14 +92,40 @@ export const AIBackendResponseSchema = z.object({
   asset_type: z.string().optional(),
   stock_info: z
     .object({
-      company_name: z.string().optional(),
-      exchange: z.string().optional(),
-      last_price: z.number().optional(),
-      market_cap: z.number().optional(),
-      avg_volume: z.number().optional(),
+      company_name: z.string().nullable().optional(),
+      exchange: z.string().nullable().optional(),
+      last_price: z.number().nullable().optional(),
+      market_cap: z.number().nullable().optional(),
+      avg_volume: z.number().nullable().optional(),
     })
+    .nullable()
     .optional(),
-  news_verification: AIBackendNewsVerificationSchema.optional(),
+  news_verification: AIBackendNewsVerificationSchema.nullable().optional(),
+  input_source: z.enum(["live", "provided_real_bars", "synthetic"]),
+  layers_applied: z.array(
+    z.enum([
+      "rule_signals",
+      "anomaly_detection",
+      "random_forest",
+      "lstm",
+    ]),
+  ),
+}).superRefine((response, context) => {
+  const checks = [
+    ["random_forest", response.rf_probability],
+    ["lstm", response.lstm_probability],
+  ] as const;
+  for (const [layer, probability] of checks) {
+    const claimed = response.layers_applied.includes(layer);
+    const hasOutput = probability != null;
+    if (claimed !== hasOutput) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["layers_applied"],
+        message: `${layer} layer and probability must be present together`,
+      });
+    }
+  }
 });
 
 export type AIBackendResponse = z.infer<typeof AIBackendResponseSchema>;
@@ -102,4 +145,35 @@ export function parseAIBackendResponse(raw: unknown): AIBackendResponse | null {
     return null;
   }
   return result.data;
+}
+
+export interface AIBackendAcceptanceOptions {
+  expectedSource: "live" | "provided_real_bars" | "synthetic";
+  requireDataAvailable?: boolean;
+}
+
+/**
+ * Validate both the response shape and the caller-specific trust boundary.
+ * Interactive callers may only accept an available result derived from live
+ * inputs; a schema-valid synthetic or supplied-bar response must still fall
+ * back rather than being presented as a live scan.
+ */
+export function acceptAIBackendResponse(
+  raw: unknown,
+  options: AIBackendAcceptanceOptions,
+): AIBackendResponse | null {
+  const response = parseAIBackendResponse(raw);
+  if (!response) return null;
+
+  if (response.input_source !== options.expectedSource) {
+    console.error(
+      `AI backend response used ${response.input_source}; expected ${options.expectedSource}`,
+    );
+    return null;
+  }
+  if (options.requireDataAvailable && !response.data_available) {
+    console.error("AI backend response reported unavailable input data");
+    return null;
+  }
+  return response;
 }

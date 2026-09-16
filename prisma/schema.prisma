@@ -35,13 +35,13 @@ model User {
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
 
-  accounts   Account[]
-  sessions   Session[]
-  scanUsages ScanUsage[]
+  accounts                 Account[]
+  sessions                 Session[]
+  scanUsages               ScanUsage[]
   whatsAppIdentityBindings WhatsAppIdentityBinding[]
   watchlistItems           WatchlistItem[]
   watchlistEntries         WatchlistEntry[]
-  notificationDeliveries  NotificationDelivery[]
+  notificationDeliveries   NotificationDelivery[]
   billingEvents            BillingEvent[]
 }
 
@@ -123,12 +123,12 @@ model ScanUsage {
 
 // User-owned saved tickers and scheduled end-of-day monitoring.
 model WatchlistEntry {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
   ticker     String
   lastDataAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   monitors ActiveMonitor[]
@@ -139,17 +139,17 @@ model WatchlistEntry {
 }
 
 model ActiveMonitor {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   watchlistEntryId String
   kind             String
   frequency        String
   startsAt         DateTime
   expiresAt        DateTime
-  status           String   @default("ACTIVE")
+  status           String    @default("ACTIVE")
   lastEvaluatedAt  DateTime?
   nextEvaluationAt DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   watchlistEntry WatchlistEntry     @relation(fields: [watchlistEntryId], references: [id], onDelete: Cascade)
   executions     MonitorExecution[]
@@ -172,7 +172,7 @@ model MonitorExecution {
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
-  monitor       ActiveMonitor         @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  monitor       ActiveMonitor          @relation(fields: [monitorId], references: [id], onDelete: Cascade)
   notifications NotificationDelivery[]
 
   @@unique([monitorId, publicationKey])
@@ -180,17 +180,17 @@ model MonitorExecution {
 }
 
 model NotificationDelivery {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   userId            String
   executionId       String
   channel           String
-  status            String   @default("PENDING")
+  status            String    @default("PENDING")
   providerMessageId String?
-  errorReason       String?  @db.Text
+  errorReason       String?   @db.Text
   attemptedAt       DateTime?
   deliveredAt       DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   execution MonitorExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
@@ -240,22 +240,22 @@ model WatchlistItem {
 // WhatsApp sender identity is never stored in clear text. identityHash is an
 // HMAC lookup key and identityEncrypted is protected with a dedicated key.
 model WhatsAppIdentityBinding {
-  id                    String   @id @default(cuid())
-  userId                String
-  identityHash          String   @unique
-  identityEncrypted     String   @db.Text
-  active                Boolean  @default(false)
-  verificationCodeHash  String?
-  verificationExpiresAt DateTime?
-  verificationAttempts  Int      @default(0)
+  id                     String    @id @default(cuid())
+  userId                 String
+  identityHash           String    @unique
+  identityEncrypted      String    @db.Text
+  active                 Boolean   @default(false)
+  verificationCodeHash   String?
+  verificationExpiresAt  DateTime?
+  verificationAttempts   Int       @default(0)
   lastVerificationSentAt DateTime?
-  bindingVersion        String   @default("web-template-v1")
-  boundAt               DateTime?
-  revokedAt             DateTime?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  bindingVersion         String    @default("web-template-v1")
+  boundAt                DateTime?
+  revokedAt              DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
-  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   inboundEvents WhatsAppInboundEvent[]
 
   @@index([userId, active])
@@ -264,22 +264,22 @@ model WhatsAppIdentityBinding {
 // Minimal durable idempotency ledger. Raw inbound text is encrypted only while
 // an event is pending/retryable and is purged on the scheduled retention date.
 model WhatsAppInboundEvent {
-  id                   String   @id @default(cuid())
-  providerMessageId    String   @unique
-  senderIdentityHash   String
-  bindingId            String?
-  messageType          String
-  status               String   @default("RECEIVED")
-  reasonCode           String?
-  encryptedText        String?  @db.Text
-  encryptedReply       String?  @db.Text
-  senderIdentityEncrypted String? @db.Text
-  providerReplyMessageId String?
-  attemptCount         Int      @default(0)
-  processedAt          DateTime?
-  purgeAt              DateTime
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                      String    @id @default(cuid())
+  providerMessageId       String    @unique
+  senderIdentityHash      String
+  bindingId               String?
+  messageType             String
+  status                  String    @default("RECEIVED")
+  reasonCode              String?
+  encryptedText           String?   @db.Text
+  encryptedReply          String?   @db.Text
+  senderIdentityEncrypted String?   @db.Text
+  providerReplyMessageId  String?
+  attemptCount            Int       @default(0)
+  processedAt             DateTime?
+  purgeAt                 DateTime
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   binding WhatsAppIdentityBinding? @relation(fields: [bindingId], references: [id], onDelete: SetNull)
 
@@ -496,8 +496,8 @@ model StockDailySnapshot {
   // Risk Assessment
   riskLevel      String // LOW, MEDIUM, HIGH, INSUFFICIENT
   totalScore     Int
-  isLegitimate   Boolean
-  isInsufficient Boolean @default(false)
+  isLegitimate   Boolean?
+  isInsufficient Boolean?
 
   // Price Data
   lastPrice      Float?
@@ -517,8 +517,13 @@ model StockDailySnapshot {
   signalSummary String?
   signalCount   Int     @default(0)
 
-  dataSource  String // FMP, etc.
-  evaluatedAt DateTime
+  dataSource       String? // FMP, etc.; null means source is not evidenced
+  sourceObservedAt DateTime?
+  sourceVersion    String?
+  evaluatedAt      DateTime
+
+  artifactRevisionId String?
+  artifactRevision   EvaluationArtifactRevision? @relation(fields: [artifactRevisionId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -526,6 +531,7 @@ model StockDailySnapshot {
   @@index([scanDate])
   @@index([riskLevel])
   @@index([riskLevel, scanDate])
+  @@index([artifactRevisionId])
 }
 
 model DailyScanSummary {
@@ -547,9 +553,84 @@ model DailyScanSummary {
   scanDurationMins Int?
   apiCallsMade     Int?
 
-  createdAt DateTime @default(now())
+  artifactRevisionId String?                     @unique
+  artifactRevision   EvaluationArtifactRevision? @relation(fields: [artifactRevisionId], references: [id], onDelete: SetNull)
+  publishedAt        DateTime?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
 
   @@index([scanDate])
+}
+
+model EvaluationArtifactRevision {
+  id                    String    @id @default(cuid())
+  scanDate              DateTime
+  producerRunId         String
+  producerExecutedAt    DateTime?
+  publicationGeneration Int       @default(1)
+  parentRevisionHash    String?
+  producerKind          String    @default("LEGACY_RETAINED")
+  qualityStatus         String    @default("UNKNOWN")
+  revisionHash          String    @unique
+  manifestPath          String    @unique
+  manifestJson          String    @db.Text
+  status                String    @default("DISCOVERED")
+  requiredPhases        String    @db.Text
+  publishedAt           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  artifacts EvaluationArtifactObject[]
+  phases    EvaluationIngestionPhase[]
+  snapshots StockDailySnapshot[]
+  summary   DailyScanSummary?
+
+  @@unique([scanDate, publicationGeneration])
+  @@index([scanDate, status])
+}
+
+model EvaluationArtifactPublicationHead {
+  scanDate              DateTime @id
+  publicationGeneration Int
+  revisionHash          String   @unique
+  parentRevisionHash    String?
+  updatedAt             DateTime @updatedAt
+}
+
+model EvaluationArtifactObject {
+  id          String                     @id @default(cuid())
+  revisionId  String
+  revision    EvaluationArtifactRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  logicalName String
+  storagePath String
+  sha256      String
+  byteLength  Int
+  required    Boolean                    @default(false)
+  createdAt   DateTime                   @default(now())
+
+  @@unique([revisionId, logicalName])
+  @@index([storagePath])
+  @@index([sha256])
+}
+
+model EvaluationIngestionPhase {
+  id             String                     @id @default(cuid())
+  revisionId     String
+  revision       EvaluationArtifactRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  phase          String
+  status         String                     @default("PENDING")
+  attemptCount   Int                        @default(0)
+  leaseToken     String?
+  leaseOwner     String?
+  leaseExpiresAt DateTime?
+  lastError      String?                    @db.Text
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@unique([revisionId, phase])
+  @@index([status, leaseExpiresAt])
 }
 
 model StockRiskAlert {

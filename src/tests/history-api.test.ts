@@ -192,7 +192,9 @@ describe("scan history API", () => {
     expect(client.socialMention.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          scanRun: expect.objectContaining({ status: "COMPLETED" }),
+          scanRun: expect.objectContaining({
+            status: { in: ["COMPLETED", "PARTIAL"] },
+          }),
         }),
       }),
     );
@@ -239,6 +241,79 @@ describe("scan history API", () => {
         }),
       }),
     );
+  });
+
+  test("shows a partial social run with its publication time and does not turn missing mentions into a negative", async () => {
+    const client = {
+      scanHistory: {
+        findMany: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue({
+          id: "scan-partial",
+          ticker: "MSFT",
+          assetType: "monitor-full",
+          riskLevel: "HIGH",
+          totalScore: 90,
+          signalsCount: 4,
+          isLegitimate: false,
+          pitchProvided: false,
+          contextProvided: false,
+          createdAt: new Date("2026-09-16T00:00:00.000Z"),
+        }),
+      },
+      trackedStock: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: "stock-msft",
+          symbol: "MSFT",
+          name: "Microsoft",
+          exchange: "NASDAQ",
+        }),
+      },
+      stockDailySnapshot: { findFirst: jest.fn().mockResolvedValue(null) },
+      socialScanRun: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: "social-partial",
+          status: "PARTIAL",
+          scanDate: new Date("2026-09-16T00:00:00.000Z"),
+          updatedAt: new Date("2026-09-17T02:08:00.000Z"),
+          platformsUsed: JSON.stringify({
+            version: 2,
+            scanners: ["stocktwits"],
+            submittedTickers: ["MSFT"],
+            persistence: {},
+            coverage: [
+              {
+                scanner: "stocktwits",
+                platform: "StockTwits",
+                status: "FAILED",
+                submittedTickers: ["MSFT"],
+                attemptedTickers: ["MSFT"],
+                searchedTickers: [],
+                failedTickers: ["MSFT"],
+                rateLimitedTickers: ["MSFT"],
+                skippedTickers: [],
+              },
+            ],
+          }),
+        }),
+      },
+      socialMention: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const service = createDashboardDataService(client as never);
+
+    const payload = await service.getScanDetail("user-1", "scan-partial");
+
+    expect(payload?.social).toEqual({
+      status: "PARTIAL",
+      asOf: "2026-09-16T00:00:00.000Z",
+      updatedAt: "2026-09-17T02:08:00.000Z",
+      coverage: {
+        status: "NOT_SEARCHED",
+        searchedPlatforms: [],
+        incompletePlatforms: ["StockTwits"],
+        rateLimitedPlatforms: ["StockTwits"],
+      },
+      evidence: [],
+    });
   });
 
   test("does not expose another user's scan detail", async () => {

@@ -2,6 +2,8 @@
  * Shared types for the Social Media Scanning System (server-side)
  */
 
+import type { PlatformCoverage } from "./coverage";
+
 export interface ScanTarget {
   ticker: string;
   name: string;
@@ -50,6 +52,7 @@ export interface PlatformScanResult {
   activityLevel: "high" | "medium" | "low" | "none";
   promotionRisk: "high" | "medium" | "low";
   scanDuration: number;
+  coverage?: PlatformCoverage;
 }
 
 export interface TickerScanResult {
@@ -68,6 +71,13 @@ export interface TickerScanResult {
     avgPromotionScore: number;
   }>;
   summary: string;
+  coverage?: {
+    status: "COMPLETE" | "PARTIAL" | "NOT_SEARCHED" | "NOT_TARGETED" | "UNKNOWN";
+    searchedPlatforms: string[];
+    incompletePlatforms: string[];
+    rateLimitedPlatforms: string[];
+    evidenceIncomplete?: boolean;
+  };
 }
 
 export interface ScanRunResult {
@@ -81,13 +91,35 @@ export interface ScanRunResult {
   results: TickerScanResult[];
   errors: string[];
   duration: number;
+  submittedTickers?: string[];
+  searchedTickers?: string[];
+  coverage?: PlatformCoverage[];
+  persistence?: {
+    submitted: number;
+    inserted: number;
+    duplicates: number;
+    rejected: number;
+    unprocessed: number;
+    timedOut: boolean;
+    transientRetries: number;
+    lossTickers?: string[];
+  };
+  readbackComplete?: boolean;
 }
 
 export interface SocialScanner {
   name: string;
   platform: string;
   isConfigured(): boolean;
-  scan(targets: ScanTarget[]): Promise<PlatformScanResult[]>;
+  scan(
+    targets: ScanTarget[],
+    context?: SocialScanContext,
+  ): Promise<PlatformScanResult[]>;
+}
+
+export interface SocialScanContext {
+  signal: AbortSignal;
+  deadlineAt: number;
 }
 
 // ─── Weighted promotional pattern categories ───────────────
