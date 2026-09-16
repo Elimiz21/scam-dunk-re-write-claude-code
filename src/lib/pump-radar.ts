@@ -45,6 +45,7 @@ export type PumpRadarPayload =
       asOf: null;
       publishedAt: null;
       executedAt: null;
+      publicationQuality: "UNKNOWN";
       freshness: null;
       coverage: null;
       socialPublication: null;
@@ -56,6 +57,7 @@ export type PumpRadarPayload =
       asOf: string;
       publishedAt: string | null;
       executedAt: string | null;
+      publicationQuality: "VERIFIED" | "DEGRADED" | "UNKNOWN";
       freshness: PumpRadarFreshness;
       coverage: {
         total: number;
@@ -198,7 +200,7 @@ export function createPumpRadarService(
       select: {
         scanDate: true,
         publishedAt: true,
-        artifactRevision: { select: { status: true, producerExecutedAt: true } },
+        artifactRevision: { select: { status: true, producerExecutedAt: true, qualityStatus: true } },
         totalStocks: true,
         evaluated: true,
         skippedNoData: true,
@@ -213,6 +215,7 @@ export function createPumpRadarService(
         asOf: null,
         publishedAt: null,
         executedAt: null,
+        publicationQuality: "UNKNOWN",
         freshness: null,
         coverage: null,
         socialPublication: null,
@@ -310,6 +313,7 @@ export function createPumpRadarService(
       asOf: summary.scanDate.toISOString(),
       publishedAt: summary.artifactRevision ? summary.publishedAt?.toISOString() ?? null : null,
       executedAt: summary.artifactRevision?.producerExecutedAt?.toISOString() ?? null,
+      publicationQuality: summary.artifactRevision?.qualityStatus === "VERIFIED" ? "VERIFIED" : summary.artifactRevision?.qualityStatus === "DEGRADED" ? "DEGRADED" : "UNKNOWN",
       freshness: isFreshMarketPublication(summary.scanDate, now)
         ? "FRESH"
         : "STALE",

@@ -26,6 +26,7 @@ interface PumpRadarProps {
   asOf: string | null;
   publishedAt: string | null;
   executedAt?: string | null;
+  publicationQuality?: "VERIFIED" | "DEGRADED" | "UNKNOWN";
   coverage: PumpRadarCoverage | null;
   socialSummary: Omit<SocialSummary, "maxPromotionScore"> | null;
   socialPublication?: {
@@ -127,6 +128,7 @@ export function PumpRadar({
   asOf,
   publishedAt,
   executedAt = null,
+  publicationQuality = "UNKNOWN",
   coverage,
   socialSummary,
   socialPublication = null,
@@ -176,6 +178,7 @@ export function PumpRadar({
             asOf={asOf}
             publishedAt={publishedAt}
             executedAt={executedAt}
+            publicationQuality={publicationQuality}
             socialPublication={socialPublication}
             notice={notice}
           />

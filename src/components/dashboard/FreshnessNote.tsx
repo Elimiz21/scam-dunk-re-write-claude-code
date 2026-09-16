@@ -20,15 +20,17 @@ export function FreshnessNote({
   publishedAt,
   executedAt,
   socialPublication,
+  publicationQuality,
   notice,
   className,
 }: FreshnessNoteProps) {
   const isStale = state === "STALE";
+  const needsAttention = isStale || publicationQuality === "DEGRADED";
   const isUnavailable = state === "UNAVAILABLE";
   const isLoading = state === "LOADING";
   const Icon = isLoading
     ? Loader2
-    : isUnavailable || isStale
+    : isUnavailable || needsAttention
       ? AlertCircle
       : CheckCircle2;
   const view = buildFreshnessView({
@@ -37,7 +39,7 @@ export function FreshnessNote({
     publishedAt: publishedAt ?? null,
     notice,
   });
-  const timeline = buildPublicationTimeline({ asOf, executedAt, publishedAt, socialPublication });
+  const timeline = buildPublicationTimeline({ asOf, executedAt, publishedAt, socialPublication, publicationQuality });
 
   return (
     <div
@@ -45,7 +47,7 @@ export function FreshnessNote({
         "flex flex-col gap-2 rounded-2xl border px-4 py-3 ",
         isUnavailable
           ? "border-destructive/20 bg-destructive/5"
-          : isStale
+          : needsAttention
             ? "border-amber-500/25 bg-amber-500/5"
             : "border-primary/15 bg-primary/5",
         className,
@@ -60,7 +62,7 @@ export function FreshnessNote({
             isLoading && "animate-spin motion-reduce:animate-none",
             isUnavailable
               ? "text-destructive"
-              : isStale
+              : needsAttention
                 ? "text-amber-600 dark:text-amber-400"
                 : "text-primary",
           )}

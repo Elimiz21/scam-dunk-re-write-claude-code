@@ -55,6 +55,7 @@ export type PumpRadarPayload =
       asOf: null;
       publishedAt: null;
       executedAt?: null;
+      publicationQuality?: "UNKNOWN";
       freshness: null;
       coverage: null;
       socialPublication?: null;
@@ -66,6 +67,7 @@ export type PumpRadarPayload =
       asOf: string;
       publishedAt: string | null;
       executedAt?: string | null;
+      publicationQuality?: "VERIFIED" | "DEGRADED" | "UNKNOWN";
       freshness: "FRESH" | "STALE";
       coverage: PumpRadarCoverage;
       socialPublication?: {

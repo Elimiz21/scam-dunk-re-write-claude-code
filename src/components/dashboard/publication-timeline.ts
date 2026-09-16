@@ -1,4 +1,5 @@
 export interface PublicationTimelineInput {
+  publicationQuality?: "VERIFIED" | "DEGRADED" | "UNKNOWN";
   asOf?: string | null;
   executedAt?: string | null;
   publishedAt?: string | null;
@@ -23,6 +24,7 @@ export function buildPublicationTimeline(input: PublicationTimelineInput): { lab
     { label: "Market data", value: format(input.asOf, false) },
     { label: "Scan ran", value: format(input.executedAt, true) },
     { label: "Published", value: format(input.publishedAt, true) },
+    { label: "Scan completeness", value: input.publicationQuality === "VERIFIED" ? "Reported complete" : input.publicationQuality === "DEGRADED" ? "Partial coverage" : "Not recorded" },
   ];
   if (input.socialPublication) {
     items.push(
