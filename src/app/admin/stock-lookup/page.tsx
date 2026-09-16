@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEntryPrice, visiblePromotion } from "@/lib/promoted-stocks/entry-price";
+
 import { useEffect, useRef, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AlertBanner from "@/components/admin/AlertBanner";
@@ -61,7 +63,7 @@ interface StockData {
   promotion: {
     promoterName: string;
     platform: string;
-    entryPrice: number;
+    entryPrice: number | null;
     addedDate: string;
     outcome: string | null;
     currentGainPct: number | null;
@@ -101,6 +103,7 @@ export default function StockLookupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [days, setDays] = useState(90);
+  const promotion = stockData?.promotion ? visiblePromotion(stockData.promotion) : null;
 
   // Debounce the typeahead query and abort superseded requests so a short
   // query's results (e.g. "AA") can't land after and overwrite a longer one
@@ -389,11 +392,11 @@ export default function StockLookupPage() {
             </div>
 
             {/* Promotion Warning */}
-            {stockData.promotion && (
+            {promotion && (
               <AlertBanner
                 type="warning"
                 title="Promoted Stock"
-                message={`This stock was promoted by ${stockData.promotion.promoterName} on ${stockData.promotion.platform} at $${stockData.promotion.entryPrice.toFixed(2)}. ${stockData.promotion.outcome ? `Outcome: ${stockData.promotion.outcome}` : ""}`}
+                message={`This stock was promoted by ${promotion.promoterName} on ${promotion.platform}. Entry price: ${formatEntryPrice(promotion.entryPrice)}. ${promotion.outcome ? `Outcome: ${promotion.outcome}` : "Outcome: Unknown"}`}
               />
             )}
 

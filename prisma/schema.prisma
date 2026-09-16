@@ -669,7 +669,7 @@ model PromotedStock {
   promotionPlatform String // Discord, Twitter, Reddit
   promotionGroup    String?
 
-  entryPrice     Float
+  entryPrice     Float?
   entryMarketCap Float?
   entryRiskScore Int
 

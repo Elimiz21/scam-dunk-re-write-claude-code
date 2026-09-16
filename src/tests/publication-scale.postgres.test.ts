@@ -1,3 +1,11 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+let mockStatsClient: PrismaClient;
+jest.mock("@/lib/db", () => ({ prisma: new Proxy({}, { get(_target, key) {
+  const value = (mockStatsClient as any)[key];
+  return typeof value === "function" ? value.bind(mockStatsClient) : value;
+} }) }));
+import { GET as siteStats } from "@/app/api/stats/site/route";
 import { randomUUID } from "node:crypto";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { buildArtifactManifest } from "@/lib/admin/artifact-ingestion";
@@ -23,6 +31,7 @@ describePostgres("bounded full-date publication on PostgreSQL", () => {
   isolatedUrl.searchParams.set("schema", schema);
   const admin = new PrismaClient({ datasources: { db: { url: baseUrl } } });
   const client = new PrismaClient({ datasources: { db: { url: isolatedUrl.toString() } }, log: [{ emit: "event", level: "query" }] });
+  mockStatsClient = client;
   let measure = false;
   let queries = 0;
   let createdSchema = false;
@@ -43,6 +52,10 @@ describePostgres("bounded full-date publication on PostgreSQL", () => {
       await admin.$executeRawUnsafe(`ALTER TABLE "${schema}"."${fk.table}" ADD CONSTRAINT "${fk.name}" ${definition}`);
     }
     expect(foreignKeys.length).toBeGreaterThan(0);
+    const migration = readFileSync(path.join(process.cwd(), "prisma/migrations/20260917010000_promoted_entry_price_nullable/migration.sql"), "utf8");
+    await client.$transaction(async (tx) => {
+      for (const statement of migration.split(";").filter((sql) => sql.trim())) await tx.$executeRawUnsafe(statement);
+    });
     await client.trackedStock.createMany({ data: stocks.slice(0, 6000) });
   }, 30_000);
 
@@ -225,6 +238,28 @@ describePostgres("bounded full-date publication on PostgreSQL", () => {
     expect(await client.stockDailySnapshot.count({ where: { scanDate: input.scanDate } })).toBe(0);
     expect(await client.dailyScanSummary.count({ where: { scanDate: input.scanDate } })).toBe(0);
     expect(await client.evaluationArtifactRevision.findUnique({ where: { revisionHash: input.revisionHash } })).toMatchObject({ status: "INGESTING", publishedAt: null });
+  });
+
+  test("publishes null, omitted and zero promoted entry prices without resetting existing outcomes", async () => {
+    const input = await inputFor("2092-06-01");
+    const rows = [null, undefined, 0].map((entryPrice, i) => ({ symbol: `UNKNOWN${i}`, addedDate: input.scanDate, entryPrice, promoterName: "Retained", promotionPlatform: "Offline", entryRiskScore: 10 }));
+    const oldTime = new Date("2091-01-01T00:00:00Z");
+    const existing = await client.promotedStock.create({ data: { ...rows[0], id: "unknown-existing", entryPrice: 2, peakPrice: 99, currentPrice: 88, currentGainPct: 4300, maxGainPct: 4850, outcome: "PUMPING", createdAt: oldTime } });
+    await new PrismaIngestionStore(client).publishEvaluationRevision({ ...input, promotedStocks: rows });
+    expect(await client.promotedStock.findUnique({ where: { id: existing.id } })).toMatchObject({ id: existing.id, entryPrice: null, peakPrice: 99, currentPrice: 88, currentGainPct: 4300, maxGainPct: 4850, outcome: "PUMPING", createdAt: oldTime });
+    for (const [i, expected] of Array.from([null, null, 0].entries())) {
+      expect(await client.promotedStock.findUnique({ where: { symbol_addedDate: { symbol: `UNKNOWN${i}`, addedDate: input.scanDate } } })).toMatchObject({ entryPrice: expected });
+    }
+  });
+
+  test("site performance counts exclude unknown and zero entry while flag counts retain them", async () => {
+    const before = await (await siteStats()).json();
+    await client.promotedStock.createMany({ data: [null, 0, -1, 2].flatMap((entryPrice, i) => ["DUMPED", "PUMPING"].map((outcome) => ({ symbol: `STATS-${i}-${outcome}`, addedDate: new Date(), promoterName: "Fixture", promotionPlatform: "Offline", entryRiskScore: 10, entryPrice, outcome, isActive: true }))) });
+    const after = await (await siteStats()).json();
+    expect(after.dumpsConfirmed6mo - before.dumpsConfirmed6mo).toBe(1);
+    expect(after.dumpsConfirmed30d - before.dumpsConfirmed30d).toBe(1);
+    expect(after.pumpingNow - before.pumpingNow).toBe(1);
+    expect(after.newFlagSymbols7d - before.newFlagSymbols7d).toBe(8);
   });
 
 });

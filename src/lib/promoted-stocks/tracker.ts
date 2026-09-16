@@ -1,3 +1,4 @@
+import { hasReturnBasis } from "./entry-price";
 /**
  * Promoted-stock outcome tracker
  *
@@ -160,7 +161,7 @@ export async function fetchIsActivelyTrading(
 }
 
 export interface OutcomeInput {
-  entryPrice: number;
+  entryPrice: number | null;
   currentPrice: number;
   peakPrice: number;
   daysSinceAdded: number;
@@ -172,6 +173,7 @@ export function computeOutcome({
   peakPrice,
   daysSinceAdded,
 }: OutcomeInput): { outcome: string; isActive: boolean } {
+  if (!hasReturnBasis(entryPrice)) return { outcome: "UNKNOWN", isActive: false };
   const maxGainPct = ((peakPrice - entryPrice) / entryPrice) * 100;
   const dropFromPeakPct =
     peakPrice > 0 ? ((peakPrice - currentPrice) / peakPrice) * 100 : 0;
@@ -201,6 +203,7 @@ export interface TrackResult {
   rowsRetiredNoData: number;
   rowsRetiredDelisted: number;
   successorTickersResolved: number;
+  /** Compatibility counter; source entry prices are never backfilled. */
   entryPricesBackfilled: number;
   outcomes: Record<string, number>;
   errors: number;
@@ -226,7 +229,7 @@ export async function trackPromotedStocks(
   const now = new Date();
 
   const rows = await prisma.promotedStock.findMany({
-    where: { isActive: true },
+    where: { isActive: true, entryPrice: { gt: 0 } },
     select: {
       id: true,
       symbol: true,
@@ -240,6 +243,9 @@ export async function trackPromotedStocks(
 
   const bySymbol = new Map<string, typeof rows>();
   for (const row of rows) {
+    // Preserve unknown/zero source entry and all stored outcomes. A later
+    // market observation cannot establish the original alert's return basis.
+    if (!hasReturnBasis(row.entryPrice)) continue;
     const list = bySymbol.get(row.symbol) ?? [];
     list.push(row);
     bySymbol.set(row.symbol, list);
@@ -325,8 +331,7 @@ export async function trackPromotedStocks(
         // fields keep whatever the series shows (the pump before the death);
         // the position itself is worth nothing.
         if (delistingConfirmed) {
-          const entryPrice =
-            row.entryPrice > 0 ? row.entryPrice : (sinceAdded[0]?.close ?? 0);
+          const entryPrice = row.entryPrice;
           const peak = sinceAdded.reduce(
             (best, c) => (c.high > best ? c.high : best),
             row.peakPrice ?? 0,
@@ -365,14 +370,7 @@ export async function trackPromotedStocks(
           continue;
         }
 
-        // Repair rows saved with entryPrice 0 using the first close on record
-        let entryPrice = row.entryPrice;
-        let backfilledEntry = false;
-        if (entryPrice <= 0) {
-          entryPrice = sinceAdded[0].close;
-          backfilledEntry = true;
-          if (entryPrice <= 0) continue;
-        }
+        const entryPrice = row.entryPrice;
 
         const peak = sinceAdded.reduce(
           (best, c) => (c.high > best.price ? { price: c.high, date: c.date } : best),
@@ -390,7 +388,6 @@ export async function trackPromotedStocks(
         await prisma.promotedStock.update({
           where: { id: row.id },
           data: {
-            ...(backfilledEntry ? { entryPrice } : {}),
             currentPrice,
             peakPrice: peak.price,
             peakDate: new Date(peak.date),
@@ -403,7 +400,6 @@ export async function trackPromotedStocks(
         });
 
         result.rowsUpdated++;
-        if (backfilledEntry) result.entryPricesBackfilled++;
         result.outcomes[outcome] = (result.outcomes[outcome] ?? 0) + 1;
       } catch (error) {
         result.errors++;
