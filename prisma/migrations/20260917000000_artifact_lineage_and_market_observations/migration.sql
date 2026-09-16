@@ -130,12 +130,6 @@ ALTER TABLE "EvaluationArtifactObject" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "EvaluationIngestionPhase" ENABLE ROW LEVEL SECURITY;
 DO $internal_table_grants$
 BEGIN
-  IF scan_date_input IS NULL OR scan_date_input <> date_trunc('day', scan_date_input)
-    OR generation_input IS NULL OR generation_input < 1
-    OR revision_hash_input IS NULL OR revision_hash_input !~ '^[a-f0-9]{64}$'
-    OR (parent_revision_hash_input IS NOT NULL AND parent_revision_hash_input !~ '^[a-f0-9]{64}$') THEN
-    RAISE EXCEPTION 'invalid publication head claim';
-  END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
     REVOKE ALL ON TABLE "EvaluationArtifactRevision" FROM anon;
     REVOKE ALL ON TABLE "EvaluationArtifactPublicationHead" FROM anon;
