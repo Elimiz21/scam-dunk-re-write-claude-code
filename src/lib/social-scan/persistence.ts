@@ -70,6 +70,7 @@ export async function persistRowsBounded<T>(
     createMany: (rows: T[], signal: AbortSignal) => Promise<{ count: number }>;
     chunkSize: number;
     maxTransientRetries: number;
+    isolateInvalidRows?: boolean;
     deadlineAt: number;
     now?: () => number;
     sleep?: (ms: number) => Promise<void>;
@@ -220,6 +221,19 @@ export async function persistRowsBounded<T>(
             batch,
             `Transient persistence failure after retry budget: ${errorMessage(error)}`,
             false,
+          );
+          stopAll = true;
+          await reportProgress();
+          return;
+        }
+
+        if (options.isolateInvalidRows === false) {
+          result.rejected += batch.length;
+          result.rejectedRows.push(
+            ...batch.map(({ index }) => ({
+              index,
+              reason: errorMessage(error),
+            })),
           );
           stopAll = true;
           await reportProgress();
