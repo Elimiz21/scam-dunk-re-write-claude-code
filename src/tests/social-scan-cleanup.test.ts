@@ -116,7 +116,13 @@ describe("social scan cleanup separation", () => {
     });
     mockPrisma.$transaction.mockImplementation(async (callback) =>
       callback({
-        $queryRawUnsafe: lock,
+        $queryRawUnsafe: jest.fn(async (sql: string) => {
+          if (sql.includes("pg_advisory_xact_lock")) {
+            throw new Error("P2010: void result cannot be deserialized");
+          }
+          return [];
+        }),
+        $executeRawUnsafe: lock,
         socialScanRun: { findFirst, create },
       }),
     );
@@ -146,7 +152,7 @@ describe("social scan cleanup separation", () => {
     expect(lock).toHaveBeenCalledWith(
       "SELECT pg_advisory_xact_lock(hashtext('scamdunk_social_scan_singleton'))",
     );
-    expect(lock.mock.invocationCallOrder[2]).toBeLessThan(
+    expect(lock.mock.invocationCallOrder[0]).toBeLessThan(
       findFirst.mock.invocationCallOrder[0],
     );
     expect(findFirst.mock.invocationCallOrder[0]).toBeLessThan(

@@ -392,7 +392,7 @@ export async function POST(request: NextRequest) {
       // advisory lock releases immediately after the RUNNING row is created.
       await tx.$queryRawUnsafe("SET LOCAL lock_timeout = '4000ms'");
       await tx.$queryRawUnsafe("SET LOCAL statement_timeout = '4500ms'");
-      await tx.$queryRawUnsafe(
+      await tx.$executeRawUnsafe(
         "SELECT pg_advisory_xact_lock(hashtext('scamdunk_social_scan_singleton'))",
       );
       const activeRun = await tx.socialScanRun.findFirst({
