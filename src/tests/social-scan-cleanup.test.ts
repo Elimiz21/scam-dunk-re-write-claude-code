@@ -3,6 +3,8 @@ import { NextRequest } from "next/server";
 const mockGetAdminSession = jest.fn();
 const mockHasRole = jest.fn();
 const mockUpdateMany = jest.fn();
+const mockQueryRawUnsafe = jest.fn();
+const mockExecuteRawUnsafe = jest.fn();
 const mockRunSocialScanAndStore = jest.fn();
 const mockPrisma = {
   socialScanRun: {
@@ -16,6 +18,8 @@ const mockPrisma = {
     groupBy: jest.fn(),
   },
   adminAuditLog: { create: jest.fn() },
+  $queryRawUnsafe: mockQueryRawUnsafe,
+  $executeRawUnsafe: mockExecuteRawUnsafe,
   $transaction: jest.fn(),
 };
 
@@ -63,6 +67,11 @@ describe("social scan cleanup separation", () => {
     });
     mockPrisma.socialMention.groupBy.mockResolvedValue([]);
     mockUpdateMany.mockResolvedValue({ count: 2 });
+    mockQueryRawUnsafe.mockResolvedValue([]);
+    mockExecuteRawUnsafe.mockResolvedValue(0);
+    mockPrisma.$transaction.mockImplementation(async (callback) =>
+      callback(mockPrisma),
+    );
     mockPrisma.adminAuditLog.create.mockResolvedValue({});
   });
 
@@ -167,11 +176,26 @@ describe("social scan cleanup separation", () => {
 
     expect(response.status).toBe(401);
     expect(mockUpdateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 
-  test("cleanup atomically expires only stale RUNNING scans", async () => {
+  test("cleanup atomically reconciles stale RUNNING scans", async () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-09-16T12:30:00.000Z"));
     try {
+      mockQueryRawUnsafe
+        .mockResolvedValueOnce([
+          { id: "with-evidence", errors: null, platformsUsed: null },
+          { id: "without-evidence", errors: null, platformsUsed: null },
+        ])
+        .mockResolvedValueOnce([
+          {
+            scanRunId: "with-evidence",
+            totalMentions: 2,
+            tickers: ["AAPL"],
+            platforms: ["YouTube"],
+          },
+        ]);
+      mockUpdateMany.mockResolvedValue({ count: 1 });
       const response = await cleanupSocialScans(
         new Request("http://localhost/api/cron/social-scan-cleanup", {
           headers: { authorization: "Bearer cleanup-secret" },
@@ -179,19 +203,18 @@ describe("social scan cleanup separation", () => {
       );
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ expired: 2 });
-      expect(mockUpdateMany).toHaveBeenCalledWith({
-        where: {
-          status: "RUNNING",
-          updatedAt: { lt: new Date("2026-09-16T12:20:00.000Z") },
-        },
-        data: {
-          status: "TIMED_OUT",
-          errors: JSON.stringify([
-            "Scan timed out — no status update received within 10 minutes",
-          ]),
-        },
+      expect(await response.json()).toEqual({
+        expired: 2,
+        partial: 1,
+        timedOut: 1,
       });
+      expect(mockQueryRawUnsafe.mock.calls[0][0]).toContain(
+        "FOR UPDATE SKIP LOCKED",
+      );
+      expect(mockUpdateMany.mock.calls.map(([input]) => input.data.status)).toEqual([
+        "PARTIAL",
+        "TIMED_OUT",
+      ]);
     } finally {
       jest.useRealTimers();
     }
@@ -199,7 +222,9 @@ describe("social scan cleanup separation", () => {
 
   test("cleanup reports a sanitized failure when the database update fails", async () => {
     const consoleError = jest.spyOn(console, "error").mockImplementation();
-    mockUpdateMany.mockRejectedValue(new Error("secret database details"));
+    mockPrisma.$transaction.mockRejectedValue(
+      new Error("secret database details"),
+    );
     try {
       const response = await cleanupSocialScans(
         new Request("http://localhost/api/cron/social-scan-cleanup", {

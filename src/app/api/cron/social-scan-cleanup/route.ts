@@ -5,11 +5,10 @@ import {
   unsafeIngestionTargetResponse,
   verifyIngestionTarget,
 } from "@/lib/server/ingestion-safety";
+import { reconcileStaleSocialRuns } from "@/lib/social-scan/stale-run-cleanup";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-const STALE_AFTER_MS = 10 * 60 * 1000;
 
 export async function GET(request: Request) {
   const authorizationFailure = cronAuthorizationFailure(request);
@@ -17,21 +16,8 @@ export async function GET(request: Request) {
 
   if (!verifyIngestionTarget().ok) return unsafeIngestionTargetResponse();
 
-  const staleThreshold = new Date(Date.now() - STALE_AFTER_MS);
   try {
-    const result = await prisma.socialScanRun.updateMany({
-      where: {
-        status: "RUNNING",
-        updatedAt: { lt: staleThreshold },
-      },
-      data: {
-        status: "TIMED_OUT",
-        errors: JSON.stringify([
-          "Scan timed out — no status update received within 10 minutes",
-        ]),
-      },
-    });
-    return NextResponse.json({ expired: result.count });
+    return NextResponse.json(await reconcileStaleSocialRuns(prisma));
   } catch (error) {
     console.error("Social scan cleanup failed:", error);
     return NextResponse.json(
