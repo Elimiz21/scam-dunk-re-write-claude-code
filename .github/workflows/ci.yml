@@ -50,12 +50,10 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Type-check (evaluation pipeline)
-        run: npx tsc --noEmit -p evaluation/tsconfig.json
-        continue-on-error: true # evaluation tree is being hardened; don't block yet
+        run: npm run typecheck:pipeline
 
       - name: Lint
         run: npm run lint
-        continue-on-error: true # codebase was never linted; surface findings without blocking yet
 
       - name: Unit tests
         run: npm test -- --ci
@@ -80,4 +78,3 @@ jobs:
           pip install -r requirements.txt
       - name: Run tests
         run: pytest -q
-        continue-on-error: true # surfaced but not yet blocking
