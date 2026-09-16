@@ -455,10 +455,18 @@ def _analysis_inputs(request: AnalysisRequest) -> Tuple[Any, Optional[Dict[str, 
         for bar in request.historical_bars or []
     ]
     fundamentals = request.fundamentals.model_dump() if request.fundamentals else {}
+    # Quote-less daily inputs still contain an object full of nulls. Preserve
+    # that as unavailable context: real bars can be scored without crashing,
+    # but the result must remain fail-closed for production publication.
+    fundamentals_available = (
+        fundamentals.get("market_cap") is not None
+        and fundamentals.get("avg_daily_volume") is not None
+        and bool(fundamentals.get("exchange"))
+    )
     fundamentals.update({
         "long_name": fundamentals.get("company_name"),
         "short_name": fundamentals.get("company_name"),
-        "fundamentals_available": True,
+        "fundamentals_available": fundamentals_available,
     })
     return pd.DataFrame(rows), fundamentals, False, "provided_real_bars"
 
