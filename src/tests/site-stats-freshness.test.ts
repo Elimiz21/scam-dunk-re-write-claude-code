@@ -28,14 +28,26 @@ describe("published site statistics", () => {
     const body = await newResponse.json();
     expect(body.lastScanDate).toBe("2026-09-15T00:00:00.000Z");
     expect(body.highRiskLastScan).toBe(2);
-    expect(body.publishedAt).toBe("2026-09-16T07:00:00.000Z");
+    expect(body.summaryCreatedAt).toBe("2026-09-16T07:00:00.000Z");
   });
 
-  it("keeps missing publication unknown instead of inventing a current date", async () => {
+  it("does not mislabel initial creation as publication on same-date corrections", async () => {
+    const summary = { scanDate: new Date("2026-09-15"), createdAt: new Date("2026-09-16T07:00:00Z"), evaluated: 10, highRiskCount: 2 };
+    (prisma.dailyScanSummary.findFirst as jest.Mock)
+      .mockResolvedValueOnce(summary)
+      .mockResolvedValueOnce({ ...summary, highRiskCount: 5 });
+    const original = await (await GET()).json();
+    const corrected = await (await GET()).json();
+    expect(corrected.highRiskLastScan).toBe(5);
+    expect(corrected.summaryCreatedAt).toBe(original.summaryCreatedAt);
+    expect(corrected).not.toHaveProperty("publishedAt");
+  });
+
+  it("keeps missing summary creation unknown instead of inventing a current date", async () => {
     (prisma.dailyScanSummary.findFirst as jest.Mock).mockResolvedValue(null);
     const body = await (await GET()).json();
     expect(body.lastScanDate).toBeNull();
-    expect(body.publishedAt).toBeNull();
+    expect(body.summaryCreatedAt).toBeNull();
     expect(body.highRiskLastScan).toBeNull();
   });
 });

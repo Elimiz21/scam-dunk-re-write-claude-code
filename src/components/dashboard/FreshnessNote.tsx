@@ -1,11 +1,12 @@
-import { AlertCircle, CheckCircle2, Clock3, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 
 import { buildFreshnessView } from "@/components/dashboard/view-model";
+import { buildPublicationTimeline, type PublicationTimelineInput } from "@/components/dashboard/publication-timeline";
 import { cn } from "@/lib/utils";
 
 type FreshnessState = "LOADING" | "UNAVAILABLE" | "STALE" | "FRESH";
 
-interface FreshnessNoteProps {
+interface FreshnessNoteProps extends PublicationTimelineInput {
   state: FreshnessState;
   asOf?: string | null;
   publishedAt?: string | null;
@@ -13,20 +14,12 @@ interface FreshnessNoteProps {
   className?: string;
 }
 
-function formatDate(value?: string | null): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(parsed);
-}
-
 export function FreshnessNote({
   state,
   asOf,
   publishedAt,
+  executedAt,
+  socialPublication,
   notice,
   className,
 }: FreshnessNoteProps) {
@@ -44,13 +37,12 @@ export function FreshnessNote({
     publishedAt: publishedAt ?? null,
     notice,
   });
-  const asOfLabel = formatDate(asOf);
-  const publishedLabel = formatDate(publishedAt);
+  const timeline = buildPublicationTimeline({ asOf, executedAt, publishedAt, socialPublication });
 
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-2 rounded-2xl border px-4 py-3 ",
         isUnavailable
           ? "border-destructive/20 bg-destructive/5"
           : isStale
@@ -81,15 +73,15 @@ export function FreshnessNote({
           </p>
         </div>
       </div>
-      {(asOfLabel || publishedLabel) && (
-        <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-          <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>
-            {asOfLabel ? `Market data ${asOfLabel}` : ""}
-            {asOfLabel && publishedLabel ? " · " : ""}
-            {publishedLabel ? `Published ${publishedLabel}` : ""}
-          </span>
-        </div>
+      {!isLoading && !isUnavailable && (
+        <dl className="grid min-w-0 gap-x-6 gap-y-2 pl-7 text-xs sm:grid-cols-2 lg:grid-cols-3">
+          {timeline.map(({ label, value }) => (
+            <div key={label} className="min-w-0">
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="mt-0.5 break-words">{value}</dd>
+            </div>
+          ))}
+        </dl>
       )}
     </div>
   );

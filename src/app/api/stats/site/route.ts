@@ -43,7 +43,7 @@ export async function GET() {
     const stats = {
       updatedAt: new Date().toISOString(),
       lastScanDate: latestScan?.scanDate?.toISOString() ?? null,
-      publishedAt: latestScan?.createdAt?.toISOString() ?? null,
+      summaryCreatedAt: latestScan?.createdAt?.toISOString() ?? null,
       stocksPerDay: latestScan?.evaluated ?? null,
       highRiskLastScan: latestScan?.highRiskCount ?? null,
       totalScans: totals._sum.evaluated ?? null,
