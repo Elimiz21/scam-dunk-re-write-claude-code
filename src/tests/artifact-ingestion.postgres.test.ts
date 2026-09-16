@@ -155,6 +155,37 @@ describePostgres("artifact ingestion PostgreSQL integration", () => {
     await client.evaluationArtifactPublicationHead.deleteMany({ where: { scanDate: scan } });
   });
 
+  it.each([false, true])("publishes the desired head across un-ingested generations (prior=%s)", async (hasCanonical) => {
+    const date = hasCanonical ? "2099-09-19" : "2099-09-18";
+    const scan = new Date(`${date}T00:00:00.000Z`);
+    const store = new PrismaIngestionStore(client);
+    const filename = `enhanced-evaluation-${date}.json`;
+    let parent: string | null = null;
+    const hashes: string[] = [];
+    const publish = async (hash: string) => {
+      const claim = await store.claimPhase(hash, "OBSERVATIONS", "gap-fixture", 60_000);
+      if (claim.state !== "CLAIMED") throw new Error("Expected claimed phase");
+      await store.completePhase(hash, "OBSERVATIONS", claim.leaseToken);
+      return store.publishIfComplete(hash, ["OBSERVATIONS"]);
+    };
+    try {
+      for (let generation = 1; generation <= (hasCanonical ? 3 : 2); generation++) {
+        const manifest = buildArtifactManifest({ scanDate: date, producerRunId: `gap-${generation}`, publicationGeneration: generation, parentRevisionHash: parent, files: { [filename]: Buffer.from("[]") }, required: [filename] });
+        await store.ensureRevision(manifest, ["OBSERVATIONS"]);
+        hashes.push(manifest.revisionHash);
+        parent = manifest.revisionHash;
+        if (hasCanonical && generation === 1) await expect(publish(parent)).resolves.toBe(true);
+      }
+      await expect(publish(parent!)).resolves.toBe(true);
+      await expect(store.claimPhase(hashes[0], "OBSERVATIONS", "delayed", 60_000)).rejects.toThrow("stale publication");
+      const active = await client.evaluationArtifactRevision.findMany({ where: { scanDate: scan, status: "PUBLISHED" }, select: { revisionHash: true } });
+      expect(active).toEqual([{ revisionHash: parent }]);
+    } finally {
+      await client.evaluationArtifactRevision.deleteMany({ where: { scanDate: scan } });
+      await client.evaluationArtifactPublicationHead.deleteMany({ where: { scanDate: scan } });
+    }
+  });
+
   it("replaces canonical observations and publication metadata in one transaction", async () => {
     const canonicalDate = "2099-09-16";
     const canonicalScanDate = new Date(`${canonicalDate}T00:00:00.000Z`);

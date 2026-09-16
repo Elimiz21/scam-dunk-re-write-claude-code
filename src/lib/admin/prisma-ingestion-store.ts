@@ -66,14 +66,12 @@ export class PrismaIngestionStore implements IngestionStore {
       select: { revisionHash: true, publicationGeneration: true },
     });
     if (current?.revisionHash === revision.revisionHash) return;
-    const expectedGeneration = (current?.publicationGeneration ?? 0) + 1;
-    const expectedParent = current?.revisionHash ?? null;
-    if (
-      revision.publicationGeneration !== expectedGeneration ||
-      revision.parentRevisionHash !== expectedParent
-    ) {
+    // Upload ancestry can advance several generations between ingestions.
+    // The desired head must be newer than the canonical publication, but need
+    // not be its immediate child; unpublished intermediates are not required.
+    if (current && revision.publicationGeneration <= current.publicationGeneration) {
       throw new Error(
-        `Refusing stale publication ${revision.revisionHash}: expected generation ${expectedGeneration} after ${expectedParent ?? "none"}`,
+        `Refusing stale publication ${revision.revisionHash}: canonical generation ${current.publicationGeneration} is not older`,
       );
     }
   }
