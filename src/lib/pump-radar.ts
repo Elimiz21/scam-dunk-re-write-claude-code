@@ -1,3 +1,4 @@
+import { expectedMarketDate, isCurrentMarketPublication } from "@/lib/market-publication-freshness";
 import { prisma } from "@/lib/db";
 import { getRiskLabel } from "@/lib/entitlements";
 import type { RiskLevel } from "@/lib/types";
@@ -9,7 +10,6 @@ import {
 export type PumpRadarViewer = "PUBLIC" | "AUTHENTICATED";
 export type PumpRadarFreshness = "FRESH" | "STALE";
 
-const MAX_PUBLICATION_AGE_MS = 4 * 24 * 60 * 60 * 1000;
 const US_COMMON_STOCK_EXCHANGES = new Set(["NASDAQ", "NYSE", "AMEX"]);
 const NON_COMMON_SECURITY_NAME =
   /\b(?:ETF|FUND|DEPOSITARY|ADR|WARRANT|UNIT|PREFERRED|BOND|NOTE|RIGHTS?)\b/i;
@@ -44,6 +44,7 @@ export type PumpRadarPayload =
       status: "UNAVAILABLE";
       asOf: null;
       publishedAt: null;
+      executedAt: null;
       freshness: null;
       coverage: null;
       socialPublication: null;
@@ -53,7 +54,8 @@ export type PumpRadarPayload =
   | {
       status: "AVAILABLE";
       asOf: string;
-      publishedAt: string;
+      publishedAt: string | null;
+      executedAt: string | null;
       freshness: PumpRadarFreshness;
       coverage: {
         total: number;
@@ -106,8 +108,7 @@ export function isFreshMarketPublication(
   scanDate: Date,
   now: Date,
 ): boolean {
-  const age = now.getTime() - scanDate.getTime();
-  return age >= 0 && age <= MAX_PUBLICATION_AGE_MS;
+  return isCurrentMarketPublication(scanDate, now);
 }
 
 function utcDayRange(date: Date): { gte: Date; lt: Date } {
@@ -192,23 +193,26 @@ export function createPumpRadarService(
   }): Promise<PumpRadarPayload> {
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
     const summary = await client.dailyScanSummary.findFirst({
+      where: { OR: [{ artifactRevisionId: null }, { artifactRevision: { status: "PUBLISHED" } }] },
       orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
       select: {
         scanDate: true,
-        createdAt: true,
+        publishedAt: true,
+        artifactRevision: { select: { status: true, producerExecutedAt: true } },
         totalStocks: true,
         evaluated: true,
         skippedNoData: true,
       },
     });
 
-    // DailyScanSummary is written only after snapshot ingestion completes, so
-    // its presence is the repository's current publication-complete marker.
-    if (!summary) {
+    // Revised publications are visible only after atomic completion. Legacy
+    // summaries remain readable, with unknown publication/execution times.
+    if (!summary || (summary.artifactRevision && summary.artifactRevision.status !== "PUBLISHED")) {
       return {
         status: "UNAVAILABLE",
         asOf: null,
         publishedAt: null,
+        executedAt: null,
         freshness: null,
         coverage: null,
         socialPublication: null,
@@ -304,7 +308,8 @@ export function createPumpRadarService(
     return {
       status: "AVAILABLE",
       asOf: summary.scanDate.toISOString(),
-      publishedAt: summary.createdAt.toISOString(),
+      publishedAt: summary.artifactRevision ? summary.publishedAt?.toISOString() ?? null : null,
+      executedAt: summary.artifactRevision?.producerExecutedAt?.toISOString() ?? null,
       freshness: isFreshMarketPublication(summary.scanDate, now)
         ? "FRESH"
         : "STALE",
@@ -325,7 +330,9 @@ export function createPumpRadarService(
           }
         : null,
       rows,
-      notice: "Checked after the trading day closes — not live.",
+      notice: expectedMarketDate(now)
+        ? "Checked after the trading day closes — not live."
+        : "Market data is not live. Freshness cannot be confirmed outside the supported 2026–2028 market calendar.",
     };
   }
 

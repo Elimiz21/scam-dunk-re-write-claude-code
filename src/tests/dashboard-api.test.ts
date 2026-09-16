@@ -194,7 +194,7 @@ describe("public Pump Radar privacy", () => {
     expect(payload).toMatchObject({
       status: "AVAILABLE",
       asOf: "2026-08-25T00:00:00.000Z",
-      publishedAt: "2026-08-25T22:15:00.000Z",
+      publishedAt: null,
       freshness: "FRESH",
       coverage: { total: 5000, evaluated: 4920, skipped: 80 },
     });

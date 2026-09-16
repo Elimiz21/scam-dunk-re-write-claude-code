@@ -25,6 +25,7 @@ interface PumpRadarProps {
   rows: PumpRadarRow[];
   asOf: string | null;
   publishedAt: string | null;
+  executedAt?: string | null;
   coverage: PumpRadarCoverage | null;
   socialSummary: Omit<SocialSummary, "maxPromotionScore"> | null;
   socialPublication?: {
@@ -125,6 +126,7 @@ export function PumpRadar({
   rows,
   asOf,
   publishedAt,
+  executedAt = null,
   coverage,
   socialSummary,
   socialPublication = null,
@@ -173,6 +175,8 @@ export function PumpRadar({
             state={status === "LOADING" ? "LOADING" : status === "UNAVAILABLE" ? "UNAVAILABLE" : freshness || "FRESH"}
             asOf={asOf}
             publishedAt={publishedAt}
+            executedAt={executedAt}
+            socialPublication={socialPublication}
             notice={notice}
           />
         </CardHeader>

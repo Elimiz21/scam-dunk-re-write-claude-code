@@ -53,6 +53,7 @@ export type PumpRadarPayload =
       status: "UNAVAILABLE";
       asOf: null;
       publishedAt: null;
+      executedAt?: null;
       freshness: null;
       coverage: null;
       socialPublication?: null;
@@ -62,7 +63,8 @@ export type PumpRadarPayload =
   | {
       status: "AVAILABLE";
       asOf: string;
-      publishedAt: string;
+      publishedAt: string | null;
+      executedAt?: string | null;
       freshness: "FRESH" | "STALE";
       coverage: PumpRadarCoverage;
       socialPublication?: {
