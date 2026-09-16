@@ -14,8 +14,8 @@ Run with: uvicorn api_server:app --host 0.0.0.0 --port 8000
 import os
 import sys
 import secrets
-from typing import Optional, Dict, Any, List, Literal
-from datetime import datetime
+from typing import Optional, Dict, Any, List, Literal, Tuple
+from datetime import date, datetime
 import logging
 import asyncio
 
@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AI_API_SECRET = os.environ.get("AI_API_SECRET")
 
@@ -131,18 +131,89 @@ async def shutdown_event():
 pipeline_lock = asyncio.Lock()
 
 
+class HistoricalBar(BaseModel):
+    """One real daily OHLCV observation supplied by the evaluation pipeline."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: date
+    open: float = Field(gt=0)
+    high: float = Field(gt=0)
+    low: float = Field(gt=0)
+    close: float = Field(gt=0)
+    volume: float = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_ohlc(self):
+        if self.high < max(self.open, self.close) or self.low > min(self.open, self.close):
+            raise ValueError("historical bar has inconsistent OHLC bounds")
+        return self
+
+
+class ProvidedFundamentals(BaseModel):
+    """Market context already fetched by the daily evaluator."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    company_name: Optional[str] = None
+    exchange: Optional[str] = None
+    current_price: Optional[float] = Field(default=None, ge=0)
+    market_cap: Optional[float] = Field(default=None, ge=0)
+    avg_daily_volume: Optional[float] = Field(default=None, ge=0)
+    is_otc: bool = False
+    on_watchlist: bool = False
+
+
 class AnalysisRequest(BaseModel):
     """Request model for scam analysis.
 
     Matches the TS↔Python contract:
     { ticker, asset_type, use_live_data, days, sec_flagged, news_flag }
     """
-    ticker: str = Field(..., max_length=10, description="Stock ticker or crypto symbol")
+    model_config = ConfigDict(extra="forbid")
+
+    ticker: str = Field(..., min_length=1, max_length=10, description="Stock ticker or crypto symbol")
     asset_type: Literal["stock", "crypto"] = Field(default="stock", description="Asset type: 'stock' or 'crypto'")
     days: int = Field(default=90, ge=1, le=365, description="Days of historical data to analyze (1-365)")
     use_live_data: bool = Field(default=True, description="Use live API data (real market data from yfinance)")
     sec_flagged: Optional[bool] = Field(default=None, description="SEC flag result from upstream regulatory database check. Overrides internal SEC list when provided.")
     news_flag: bool = Field(default=False, description="Whether the upstream layer found a legitimate news catalyst for recent price/volume activity (reduces false positives).")
+    analysis_mode: Literal[
+        "interactive", "production_evaluation", "synthetic_test"
+    ] = "interactive"
+    historical_bars: Optional[List[HistoricalBar]] = Field(default=None, min_length=30, max_length=365)
+    fundamentals: Optional[ProvidedFundamentals] = None
+
+    @model_validator(mode="after")
+    def validate_analysis_source(self):
+        if self.analysis_mode == "production_evaluation":
+            if self.asset_type != "stock":
+                raise ValueError("production evaluation supports stock bars only")
+            if self.use_live_data:
+                raise ValueError("production evaluation must use the supplied real bars")
+            if self.historical_bars is None or self.fundamentals is None:
+                raise ValueError(
+                    "production evaluation requires historical_bars and fundamentals"
+                )
+            dates = [bar.date for bar in self.historical_bars]
+            if dates != sorted(dates) or len(set(dates)) != len(dates):
+                raise ValueError("historical_bars must have unique ascending dates")
+        elif self.analysis_mode == "synthetic_test":
+            if _IS_PRODUCTION:
+                raise ValueError("synthetic_test mode is disabled in production")
+            if self.use_live_data:
+                raise ValueError("synthetic_test mode requires use_live_data=false")
+            if self.historical_bars is not None or self.fundamentals is not None:
+                raise ValueError("synthetic_test mode cannot accept provided real data")
+        elif not self.use_live_data:
+            raise ValueError(
+                "use_live_data=false requires production_evaluation with real inputs"
+            )
+        elif self.historical_bars is not None or self.fundamentals is not None:
+            raise ValueError(
+                "provided bars and fundamentals require production_evaluation mode"
+            )
+        return self
 
 
 def _severity_from_weight(weight: int) -> str:
@@ -192,9 +263,9 @@ class AnalysisResponse(BaseModel):
     rf_probability: Optional[float] = None
     lstm_probability: Optional[float] = None
     anomaly_score: float = 0.0
-    signals: List[SignalDetail] = []
-    features: Dict[str, Any] = {}
-    explanations: List[str] = []
+    signals: List[SignalDetail] = Field(default_factory=list)
+    features: Dict[str, Any] = Field(default_factory=dict)
+    explanations: List[str] = Field(default_factory=list)
     sec_flagged: bool = False
     is_otc: bool = False
     is_micro_cap: bool = False
@@ -204,6 +275,10 @@ class AnalysisResponse(BaseModel):
     stock_info: Optional[StockInfo] = None
     # News verification result (only present for initially-HIGH risk)
     news_verification: Optional[NewsVerificationResult] = None
+    input_source: Literal["live", "provided_real_bars", "synthetic"]
+    layers_applied: List[Literal[
+        "rule_signals", "anomaly_detection", "random_forest", "lstm"
+    ]]
 
 
 class HealthResponse(BaseModel):
@@ -315,6 +390,41 @@ async def health_check():
     return body
 
 
+@app.get("/auth-check")
+async def auth_check():
+    """Cheap protected proof that the caller's shared secret is accepted."""
+    return {"authenticated": True}
+
+
+def _analysis_inputs(request: AnalysisRequest) -> Tuple[Any, Optional[Dict[str, Any]], bool, str]:
+    """Resolve trusted inputs and provenance without fetching or fabricating data."""
+    if request.analysis_mode != "production_evaluation":
+        use_synthetic = request.analysis_mode == "synthetic_test"
+        return None, None, use_synthetic, ("synthetic" if use_synthetic else "live")
+
+    import pandas as pd
+
+    rows = [
+        {
+            "Date": pd.Timestamp(bar.date),
+            "Open": bar.open,
+            "High": bar.high,
+            "Low": bar.low,
+            "Close": bar.close,
+            "Volume": bar.volume,
+            "Ticker": request.ticker.upper(),
+        }
+        for bar in request.historical_bars or []
+    ]
+    fundamentals = request.fundamentals.model_dump() if request.fundamentals else {}
+    fundamentals.update({
+        "long_name": fundamentals.get("company_name"),
+        "short_name": fundamentals.get("company_name"),
+        "fundamentals_available": True,
+    })
+    return pd.DataFrame(rows), fundamentals, False, "provided_real_bars"
+
+
 @app.post("/analyze", response_model=AnalysisResponse)
 async def analyze_asset(request: AnalysisRequest):
     """Run full hybrid AI analysis on an asset"""
@@ -329,6 +439,7 @@ async def analyze_asset(request: AnalysisRequest):
         )
 
     try:
+        price_data, fundamentals, use_synthetic, input_source = _analysis_inputs(request)
         # Run the full pipeline analysis in a thread pool to avoid blocking the event loop
         loop = asyncio.get_running_loop()
         assessment = await loop.run_in_executor(
@@ -336,7 +447,9 @@ async def analyze_asset(request: AnalysisRequest):
             lambda: p.analyze(
                 ticker=request.ticker,
                 asset_type=request.asset_type,
-                use_synthetic=not request.use_live_data,
+                price_data=price_data,
+                fundamentals=fundamentals,
+                use_synthetic=use_synthetic,
                 is_scam_scenario=False,
                 # Plumb the upstream news flag through so the news-aware
                 # false-positive reduction can actually activate (PY-H7).
@@ -398,14 +511,27 @@ async def analyze_asset(request: AnalysisRequest):
                 recommended_level=nv.get('recommended_level', 'HIGH'),
             )
 
+        layers_applied = ["rule_signals"]
+        if assessment.data_available:
+            layers_applied.append("anomaly_detection")
+        if getattr(p, "ml_enabled", False) and getattr(p, "rf_available", False):
+            layers_applied.append("random_forest")
+        if getattr(p, "ml_enabled", False) and getattr(p, "lstm_available", False):
+            layers_applied.append("lstm")
+
         return AnalysisResponse(
             ticker=request.ticker.upper(),
             asset_type=request.asset_type,
             risk_level=assessment.risk_level,
             risk_probability=assessment.combined_probability,
             risk_score=total_score,
-            rf_probability=assessment.rf_probability,
-            lstm_probability=assessment.lstm_probability,
+            rf_probability=(
+                assessment.rf_probability
+                if "random_forest" in layers_applied else None
+            ),
+            lstm_probability=(
+                assessment.lstm_probability if "lstm" in layers_applied else None
+            ),
             anomaly_score=assessment.anomaly_score,
             signals=signals,
             features=features,
@@ -421,7 +547,9 @@ async def analyze_asset(request: AnalysisRequest):
             data_available=assessment.data_available,
             analysis_timestamp=assessment.timestamp,
             stock_info=stock_info,
-            news_verification=news_ver
+            news_verification=news_ver,
+            input_source=input_source,
+            layers_applied=layers_applied,
         )
 
     except Exception as e:

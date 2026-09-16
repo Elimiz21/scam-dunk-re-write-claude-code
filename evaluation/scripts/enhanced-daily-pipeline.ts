@@ -50,6 +50,12 @@ import {
   getTickerCoverage,
   type SocialRunMetadata,
 } from "./social-coverage";
+import {
+  acceptedLayerLabels,
+  buildProductionEvaluationRequest,
+  preflightPythonAIBackend,
+  requestPythonAnalysis,
+} from "./python-ai-client";
 
 // Deployed app URL and API key for triggering the production social scan
 const SOCIAL_SCAN_APP_URL = process.env.SOCIAL_SCAN_APP_URL || "";
@@ -564,126 +570,57 @@ interface PythonAIResult {
   is_otc: boolean;
   is_micro_cap: boolean;
   stock_info?: {
-    company_name?: string;
-    exchange?: string;
-    last_price?: number;
-    market_cap?: number;
-    avg_volume?: number;
+    company_name?: string | null;
+    exchange?: string | null;
+    last_price?: number | null;
+    market_cap?: number | null;
+    avg_volume?: number | null;
   };
+  acceptedLayers: string[];
   error?: string;
 }
 
 async function callPythonAIBackend(
   symbol: string,
+  marketData: MarketData,
   options?: { onWatchlist?: boolean },
 ): Promise<PythonAIResult | null> {
-  if (!AI_BACKEND_URL) {
+  const result = await requestPythonAnalysis({
+    baseUrl: AI_BACKEND_URL,
+    apiSecret: AI_API_SECRET,
+    request: buildProductionEvaluationRequest(
+      symbol,
+      marketData,
+      options?.onWatchlist ?? false,
+    ),
+  });
+  if ("failure" in result) {
+    console.log(
+      `     Python AI result rejected for ${symbol}: ${result.failure}${result.detail ? ` (${result.detail})` : ""}`,
+    );
     return null;
   }
 
-  try {
-    // Build auth header if API secret is configured
-    const authHeader = AI_API_SECRET ? `-H "X-API-Key: ${AI_API_SECRET}" ` : "";
-
-    // Build request body with optional watchlist context
-    // use_live_data=false avoids redundant yfinance fetches — the TypeScript
-    // pipeline already has real FMP data; the Python backend only needs to run
-    // its ML models (anomaly detection, RF, LSTM) on synthetic/cached data.
-    const requestBody: Record<string, any> = {
-      ticker: symbol,
-      asset_type: "stock",
-      use_live_data: false,
-    };
-    if (options?.onWatchlist) {
-      requestBody.on_watchlist = true;
-    }
-    const bodyJson = JSON.stringify(requestBody).replace(/'/g, "'\\''");
-
-    // Single retry for transient 503s (worker busy) — kept minimal to
-    // avoid ballooning runtime across 7,000 stocks
-    const MAX_RETRIES = 1;
-    let httpStatus = 0;
-    let body = "";
-
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      if (attempt > 0) {
-        execSync(`sleep 1`);
-      }
-
-      // Use -w to append HTTP status code, separated by newline
-      const cmd =
-        `curl -s --max-time 30 -w '\\n%{http_code}' -X POST "${AI_BACKEND_URL}/analyze" ` +
-        `-H "Content-Type: application/json" ` +
-        authHeader +
-        `-d '${bodyJson}'`;
-
-      const result = execSync(cmd, {
-        encoding: "utf-8",
-        maxBuffer: 10 * 1024 * 1024,
-      });
-
-      if (!result) return null;
-
-      const lines = result.trim().split("\n");
-      httpStatus = parseInt(lines[lines.length - 1], 10);
-      body = lines.slice(0, -1).join("\n");
-
-      if (httpStatus === 200) break;
-      if (httpStatus !== 503) break; // Only retry on 503
-    }
-
-    // Reject non-200 responses instead of silently treating them as LOW
-    if (httpStatus !== 200) {
-      console.log(
-        `     Python AI backend returned HTTP ${httpStatus} for ${symbol}`,
-      );
-      return null;
-    }
-
-    if (!body) return null;
-
-    const data = JSON.parse(body);
-
-    // Validate that the response has the expected structure
-    // (prevents error responses like {"detail":"..."} from being misinterpreted)
-    if (!data.ticker && !data.risk_level) {
-      console.log(
-        `     Python AI backend returned unexpected response for ${symbol}`,
-      );
-      return null;
-    }
-
-    return {
-      success: true,
-      riskLevel: data.risk_level || "LOW",
-      riskProbability: data.risk_probability || 0,
-      rf_probability: data.rf_probability || null,
-      lstm_probability: data.lstm_probability || null,
-      anomaly_score: data.anomaly_score || 0,
-      signals: data.signals || [],
-      sec_flagged: data.sec_flagged || false,
-      is_otc: data.is_otc || false,
-      is_micro_cap: data.is_micro_cap || false,
-      stock_info: data.stock_info,
-    };
-  } catch (error: any) {
-    // Python backend not available or error
-    return null;
-  }
-}
-
-// Check if Python AI Backend is available
-async function checkPythonAIHealth(): Promise<boolean> {
-  if (!AI_BACKEND_URL) return false;
-
-  try {
-    const result = curlFetch(`${AI_BACKEND_URL}/health`);
-    if (!result) return false;
-    const data = JSON.parse(result);
-    return data.status === "healthy";
-  } catch {
-    return false;
-  }
+  const data = result.data;
+  return {
+    success: true,
+    riskLevel: data.risk_level,
+    riskProbability: data.risk_probability,
+    rf_probability: data.rf_probability ?? null,
+    lstm_probability: data.lstm_probability ?? null,
+    anomaly_score: data.anomaly_score,
+    signals: data.signals.map((signal) => ({
+      code: signal.code,
+      category: signal.category ?? "PATTERN",
+      weight: signal.weight,
+      description: signal.description,
+    })),
+    sec_flagged: data.sec_flagged ?? false,
+    is_otc: data.is_otc ?? false,
+    is_micro_cap: data.is_micro_cap ?? false,
+    stock_info: data.stock_info ?? undefined,
+    acceptedLayers: acceptedLayerLabels(data),
+  };
 }
 
 // FMP API functions
@@ -1093,6 +1030,10 @@ interface ScanStatus {
     configured: boolean;
     available: boolean;
     layersUsed: string[];
+    preflightFailure?: string;
+    scoringMode?: string;
+    attempted: number;
+    accepted: number;
   };
   phases: {
     phase0_socialEarlyWarning: PhaseStatus;
@@ -1158,7 +1099,13 @@ function createInitialScanStatus(date: string): ScanStatus {
     durationMinutes: null,
     error: null,
     failedAtPhase: null,
-    aiBackend: { configured: false, available: false, layersUsed: [] },
+    aiBackend: {
+      configured: false,
+      available: false,
+      layersUsed: ["Layer 1: TypeScript deterministic"],
+      attempted: 0,
+      accepted: 0,
+    },
     phases: {
       phase0_socialEarlyWarning: emptyPhase(
         "Social Early Warning & Pre-Pump Scan",
@@ -1453,37 +1400,35 @@ async function runEnhancedPipeline(): Promise<void> {
   scanStatus.phases.phase1_riskScoring.status = "running";
   scanStatus.phases.phase1_riskScoring.startedAt = new Date().toISOString();
 
-  // Check Python AI Backend availability for full 4-layer analysis
-  const pythonAIAvailable = await checkPythonAIHealth();
+  // Prove readiness and the shared secret once before any per-symbol requests.
+  // A failed authenticated preflight disables the engine for this entire run.
+  const pythonAIPreflight = await preflightPythonAIBackend({
+    baseUrl: AI_BACKEND_URL,
+    apiSecret: AI_API_SECRET,
+  });
+  const pythonAIAvailable = pythonAIPreflight.available;
   scanStatus.aiBackend = {
     configured: !!AI_BACKEND_URL,
     available: pythonAIAvailable,
-    layersUsed: pythonAIAvailable
-      ? [
-          "Layer 1: Deterministic",
-          "Layer 2: Anomaly Detection",
-          "Layer 3: Random Forest",
-          "Layer 4: LSTM",
-        ]
-      : ["Layer 1: Deterministic"],
+    layersUsed: ["Layer 1: TypeScript deterministic"],
+    preflightFailure: pythonAIPreflight.failure,
+    scoringMode: pythonAIPreflight.scoringMode,
+    attempted: 0,
+    accepted: 0,
   };
   if (pythonAIAvailable) {
-    console.log("✅ Python AI Backend ONLINE - Using ALL 4 AI Layers:");
-    console.log("   Layer 1: Deterministic Signal Detection (rule-based)");
     console.log(
-      "   Layer 2: Statistical Anomaly Detection (Z-scores, Keltner, ATR)",
+      `✅ Python AI Backend authenticated (${pythonAIPreflight.scoringMode ?? "mode unknown"})`,
     );
-    console.log("   Layer 3: Machine Learning Classification (Random Forest)");
-    console.log("   Layer 4: Deep Learning Sequence Analysis (LSTM)");
+    console.log("   Result layers will be recorded only after accepted responses.");
   } else {
     console.log(
-      "⚠️  Python AI Backend OFFLINE - Using Layer 1 only (TypeScript scorer)",
-    );
-    console.log(
-      "   Set AI_BACKEND_URL environment variable to enable full 4-layer analysis",
+      `⚠️  Python AI Backend unavailable (${pythonAIPreflight.failure ?? "unknown"}) - using TypeScript scorer`,
     );
   }
   console.log("");
+
+  const acceptedPythonLayers = new Set<string>();
 
   // For testing, limit to first 100 stocks (remove this for production)
   const stocksToProcess =
@@ -1538,10 +1483,17 @@ async function runEnhancedPipeline(): Promise<void> {
         !scoringResult.isInsufficient
       ) {
         const onWatchlist = watchlistTickers.has(stock.symbol);
-        const pyResult = await callPythonAIBackend(stock.symbol, {
-          onWatchlist,
-        });
+        scanStatus.aiBackend.attempted++;
+        const pyResult = await callPythonAIBackend(
+          stock.symbol,
+          marketData,
+          { onWatchlist },
+        );
         if (pyResult && pyResult.success) {
+          scanStatus.aiBackend.accepted++;
+          pyResult.acceptedLayers.forEach((layer) =>
+            acceptedPythonLayers.add(layer),
+          );
           // Cast signals to the expected type (Python backend returns compatible structure)
           const typedSignals = pyResult.signals.map((s) => ({
             code: s.code,
@@ -1773,7 +1725,17 @@ async function runEnhancedPipeline(): Promise<void> {
     },
     riskCounts: { ...riskCounts },
     highRiskFound: highRiskBeforeFilter.length,
+    pythonBackend: {
+      attempted: scanStatus.aiBackend.attempted,
+      accepted: scanStatus.aiBackend.accepted,
+      acceptedLayers: Array.from(acceptedPythonLayers),
+      preflightFailure: scanStatus.aiBackend.preflightFailure ?? null,
+    },
   };
+  scanStatus.aiBackend.layersUsed = [
+    "Layer 1: TypeScript deterministic",
+    ...Array.from(acceptedPythonLayers),
+  ];
   scanStatus.summary.processed = processedCount;
   scanStatus.summary.skippedNoData = skippedNoData;
   scanStatus.summary.riskCounts = { ...riskCounts };
