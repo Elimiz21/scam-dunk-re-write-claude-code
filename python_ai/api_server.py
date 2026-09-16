@@ -33,12 +33,48 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AI_API_SECRET = os.environ.get("AI_API_SECRET")
 
+_TRUE_VALUES = ("1", "true", "yes", "on")
+
+
+def _first_nonempty_environment(*names: str) -> str:
+    """Return the first non-empty normalized environment value."""
+    for name in names:
+        value = os.environ.get(name, "").strip().lower()
+        if value:
+            return value
+    return ""
+
 # In production we MUST NOT fail open. If the secret is unset we refuse to start
 # unless explicitly opted out (ALLOW_UNAUTHENTICATED=true for local/dev only).
 # When that opt-out is set without a secret, every non-health route is 403'd.
-_ENVIRONMENT = os.environ.get("ENVIRONMENT", os.environ.get("RAILWAY_ENVIRONMENT", "")).strip().lower()
-_IS_PRODUCTION = _ENVIRONMENT in ("production", "prod") or os.environ.get("AI_REQUIRE_AUTH", "").strip().lower() in ("1", "true", "yes")
-_ALLOW_UNAUTHENTICATED = os.environ.get("ALLOW_UNAUTHENTICATED", "").strip().lower() in ("1", "true", "yes")
+_ENVIRONMENT_NAMES = (
+    "ENVIRONMENT", "RAILWAY_ENVIRONMENT", "RAILWAY_ENVIRONMENT_NAME"
+)
+_ENVIRONMENT = _first_nonempty_environment(*_ENVIRONMENT_NAMES)
+_IS_PRODUCTION = (
+    any(
+        os.environ.get(name, "").strip().lower() in ("production", "prod")
+        for name in _ENVIRONMENT_NAMES
+    )
+    or os.environ.get("AI_REQUIRE_AUTH", "").strip().lower() in _TRUE_VALUES
+)
+_ALLOW_UNAUTHENTICATED = (
+    os.environ.get("ALLOW_UNAUTHENTICATED", "").strip().lower() in _TRUE_VALUES
+)
+
+# Synthetic fixtures are a local test facility. They are disabled by default
+# and cannot be enabled on any Railway runtime, including staging/preview.
+_RAILWAY_MARKERS = (
+    "RAILWAY_ENVIRONMENT", "RAILWAY_ENVIRONMENT_NAME",
+    "RAILWAY_ENVIRONMENT_ID", "RAILWAY_PROJECT_ID", "RAILWAY_SERVICE_ID",
+)
+_IS_RAILWAY = any(os.environ.get(name, "").strip() for name in _RAILWAY_MARKERS)
+_SYNTHETIC_TESTS_ENABLED = (
+    os.environ.get("ALLOW_SYNTHETIC_TESTS", "").strip().lower() in _TRUE_VALUES
+    and not _IS_PRODUCTION
+    and not _IS_RAILWAY
+    and _ENVIRONMENT in ("", "local", "development", "dev", "test")
+)
 
 if not AI_API_SECRET:
     if _IS_PRODUCTION and not _ALLOW_UNAUTHENTICATED:
@@ -199,8 +235,10 @@ class AnalysisRequest(BaseModel):
             if dates != sorted(dates) or len(set(dates)) != len(dates):
                 raise ValueError("historical_bars must have unique ascending dates")
         elif self.analysis_mode == "synthetic_test":
-            if _IS_PRODUCTION:
-                raise ValueError("synthetic_test mode is disabled in production")
+            if not _SYNTHETIC_TESTS_ENABLED:
+                raise ValueError(
+                    "synthetic_test mode requires explicit local opt-in"
+                )
             if self.use_live_data:
                 raise ValueError("synthetic_test mode requires use_live_data=false")
             if self.historical_bars is not None or self.fundamentals is not None:
@@ -425,6 +463,18 @@ def _analysis_inputs(request: AnalysisRequest) -> Tuple[Any, Optional[Dict[str, 
     return pd.DataFrame(rows), fundamentals, False, "provided_real_bars"
 
 
+def _applied_layers(assessment: Any) -> List[str]:
+    """Report layers that completed for this assessment, not model readiness."""
+    layers = ["rule_signals"]
+    if assessment.data_available:
+        layers.append("anomaly_detection")
+    if getattr(assessment, "rf_applied", False):
+        layers.append("random_forest")
+    if getattr(assessment, "lstm_applied", False):
+        layers.append("lstm")
+    return layers
+
+
 @app.post("/analyze", response_model=AnalysisResponse)
 async def analyze_asset(request: AnalysisRequest):
     """Run full hybrid AI analysis on an asset"""
@@ -454,7 +504,10 @@ async def analyze_asset(request: AnalysisRequest):
                 # Plumb the upstream news flag through so the news-aware
                 # false-positive reduction can actually activate (PY-H7).
                 news_flag=request.news_flag,
-                sec_flagged_override=request.sec_flagged
+                sec_flagged_override=request.sec_flagged,
+                # Supplied evaluation bars must remain deterministic and
+                # offline; live news and SEC lookups are interactive-only.
+                allow_external_news=request.analysis_mode == "interactive",
             )
         )
 
@@ -511,13 +564,7 @@ async def analyze_asset(request: AnalysisRequest):
                 recommended_level=nv.get('recommended_level', 'HIGH'),
             )
 
-        layers_applied = ["rule_signals"]
-        if assessment.data_available:
-            layers_applied.append("anomaly_detection")
-        if getattr(p, "ml_enabled", False) and getattr(p, "rf_available", False):
-            layers_applied.append("random_forest")
-        if getattr(p, "ml_enabled", False) and getattr(p, "lstm_available", False):
-            layers_applied.append("lstm")
+        layers_applied = _applied_layers(assessment)
 
         return AnalysisResponse(
             ticker=request.ticker.upper(),

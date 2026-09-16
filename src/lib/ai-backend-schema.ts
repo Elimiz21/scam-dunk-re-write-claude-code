@@ -146,3 +146,34 @@ export function parseAIBackendResponse(raw: unknown): AIBackendResponse | null {
   }
   return result.data;
 }
+
+export interface AIBackendAcceptanceOptions {
+  expectedSource: "live" | "provided_real_bars" | "synthetic";
+  requireDataAvailable?: boolean;
+}
+
+/**
+ * Validate both the response shape and the caller-specific trust boundary.
+ * Interactive callers may only accept an available result derived from live
+ * inputs; a schema-valid synthetic or supplied-bar response must still fall
+ * back rather than being presented as a live scan.
+ */
+export function acceptAIBackendResponse(
+  raw: unknown,
+  options: AIBackendAcceptanceOptions,
+): AIBackendResponse | null {
+  const response = parseAIBackendResponse(raw);
+  if (!response) return null;
+
+  if (response.input_source !== options.expectedSource) {
+    console.error(
+      `AI backend response used ${response.input_source}; expected ${options.expectedSource}`,
+    );
+    return null;
+  }
+  if (options.requireDataAvailable && !response.data_available) {
+    console.error("AI backend response reported unavailable input data");
+    return null;
+  }
+  return response;
+}

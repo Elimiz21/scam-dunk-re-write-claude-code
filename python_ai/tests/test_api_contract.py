@@ -13,12 +13,22 @@ network and no ML models (disabled by default).
 
 import os
 import sys
+import json
+import subprocess
 from datetime import date, timedelta
 
 sys.path.insert(0, '.')
 
 # Ensure auth is configured before importing the app.
 os.environ.setdefault('AI_API_SECRET', 'test-secret')
+os.environ['ALLOW_SYNTHETIC_TESTS'] = 'true'
+os.environ['ENVIRONMENT'] = 'test'
+os.environ.pop('AI_REQUIRE_AUTH', None)
+for _railway_name in (
+    'RAILWAY_ENVIRONMENT', 'RAILWAY_ENVIRONMENT_NAME',
+    'RAILWAY_ENVIRONMENT_ID', 'RAILWAY_PROJECT_ID', 'RAILWAY_SERVICE_ID',
+):
+    os.environ.pop(_railway_name, None)
 
 import pytest
 from pydantic import ValidationError
@@ -125,6 +135,70 @@ def test_use_live_data_false_cannot_implicitly_select_synthetic_data():
         })
 
 
+def _isolated_synthetic_contract(environment):
+    child_environment = {'PATH': os.environ.get('PATH', '')}
+    child_environment.update(environment)
+    child_environment['AI_API_SECRET'] = 'isolated-test-secret'
+    code = """
+import json, sys
+sys.path.insert(0, 'python_ai')
+import api_server
+accepted = True
+try:
+    api_server.AnalysisRequest.model_validate({
+        'ticker': 'TEST',
+        'analysis_mode': 'synthetic_test',
+        'use_live_data': False,
+    })
+except Exception:
+    accepted = False
+print(json.dumps({
+    'is_production': api_server._IS_PRODUCTION,
+    'synthetic_enabled': api_server._SYNTHETIC_TESTS_ENABLED,
+    'accepted': accepted,
+}))
+"""
+    result = subprocess.run(
+        [sys.executable, '-c', code],
+        cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        env=child_environment,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(result.stdout.strip())
+
+
+@pytest.mark.parametrize(
+    ('environment', 'expected'),
+    [
+        ({}, {'is_production': False, 'synthetic_enabled': False, 'accepted': False}),
+        (
+            {'ALLOW_SYNTHETIC_TESTS': 'true'},
+            {'is_production': False, 'synthetic_enabled': True, 'accepted': True},
+        ),
+        (
+            {
+                'ENVIRONMENT': '',
+                'RAILWAY_ENVIRONMENT_NAME': 'production',
+                'ALLOW_SYNTHETIC_TESTS': 'true',
+            },
+            {'is_production': True, 'synthetic_enabled': False, 'accepted': False},
+        ),
+        (
+            {
+                'RAILWAY_ENVIRONMENT_NAME': 'staging',
+                'RAILWAY_PROJECT_ID': 'project',
+                'ALLOW_SYNTHETIC_TESTS': 'true',
+            },
+            {'is_production': False, 'synthetic_enabled': False, 'accepted': False},
+        ),
+    ],
+)
+def test_synthetic_mode_is_local_opt_in_only(environment, expected):
+    assert _isolated_synthetic_contract(environment) == expected
+
+
 def test_production_evaluation_accepts_bounded_real_inputs_without_synthetic_mode():
     request = AnalysisRequest.model_validate({
         'ticker': 'TEST',
@@ -191,6 +265,75 @@ def test_provided_real_bars_produce_deterministic_offline_scoring():
     assert first.anomaly_score == second.anomaly_score
     assert [signal.code for signal in first.signals] == [
         signal.code for signal in second.signals
+    ]
+
+
+def test_production_evaluation_high_risk_never_calls_live_news(client, monkeypatch):
+    import live_data
+
+    calls = []
+    monkeypatch.setattr(
+        live_data,
+        'verify_legitimate_catalysts',
+        lambda ticker: calls.append(ticker),
+    )
+    request_body = {
+        'ticker': 'TEST',
+        'analysis_mode': 'production_evaluation',
+        'use_live_data': False,
+        'sec_flagged': True,
+        'historical_bars': _bars(),
+        'fundamentals': {
+            'company_name': 'Test Corp',
+            'exchange': 'NASDAQ',
+            'current_price': 49.5,
+            'market_cap': 1_000_000_000,
+            'avg_daily_volume': 1_000,
+            'is_otc': False,
+            'on_watchlist': False,
+        },
+    }
+    first_response = client.post(
+        '/analyze', headers={'X-API-Key': API_KEY}, json=request_body,
+    )
+    second_response = client.post(
+        '/analyze', headers={'X-API-Key': API_KEY}, json=request_body,
+    )
+    assert first_response.status_code == second_response.status_code == 200
+    first = first_response.json()
+    second = second_response.json()
+
+    assert first['risk_level'] == second['risk_level'] == 'HIGH'
+    assert first['risk_score'] == second['risk_score']
+    assert first['signals'] == second['signals']
+    assert first['input_source'] == second['input_source'] == 'provided_real_bars'
+    assert calls == []
+
+
+def test_layers_applied_reflect_prediction_success_not_model_readiness():
+    from types import SimpleNamespace
+    from api_server import _applied_layers
+
+    failed_predictions = SimpleNamespace(
+        data_available=True,
+        rf_applied=False,
+        lstm_applied=False,
+        rf_probability=0.0,
+        lstm_probability=None,
+    )
+    successful_predictions = SimpleNamespace(
+        data_available=True,
+        rf_applied=True,
+        lstm_applied=True,
+        rf_probability=0.4,
+        lstm_probability=0.5,
+    )
+
+    assert _applied_layers(failed_predictions) == [
+        'rule_signals', 'anomaly_detection'
+    ]
+    assert _applied_layers(successful_predictions) == [
+        'rule_signals', 'anomaly_detection', 'random_forest', 'lstm'
     ]
 
 

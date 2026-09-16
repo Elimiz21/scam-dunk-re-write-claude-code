@@ -1,4 +1,5 @@
 import {
+  acceptAIBackendResponse,
   buildAIBackendRequest,
   parseAIBackendResponse,
 } from "./ai-backend-schema";
@@ -78,6 +79,28 @@ describe("Python AI boundary contract", () => {
     expect(parseAIBackendResponse(withoutOptionalObjects)).toEqual(
       withoutOptionalObjects,
     );
+  });
+
+  it.each([
+    ["synthetic provenance", { input_source: "synthetic" }],
+    ["provided-bar provenance", { input_source: "provided_real_bars" }],
+    ["unavailable data", { data_available: false }],
+  ])("rejects %s at an interactive boundary", (_name, override) => {
+    expect(
+      acceptAIBackendResponse(
+        { ...validResponse, ...override },
+        { expectedSource: "live", requireDataAvailable: true },
+      ),
+    ).toBeNull();
+  });
+
+  it("accepts live available data at an interactive boundary", () => {
+    expect(
+      acceptAIBackendResponse(validResponse, {
+        expectedSource: "live",
+        requireDataAvailable: true,
+      }),
+    ).toEqual(validResponse);
   });
 
   it.each([

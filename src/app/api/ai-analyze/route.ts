@@ -21,9 +21,10 @@ import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
 import { sendAPIFailureAlert } from "@/lib/email";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import {
+  acceptAIBackendResponse,
   buildAIBackendRequest,
-  parseAIBackendResponse,
 } from "@/lib/ai-backend-schema";
+import type { AIBackendResponse } from "@/lib/ai-backend-schema";
 
 // Allow up to 30 seconds for the full AI pipeline
 export const maxDuration = 30;
@@ -58,7 +59,7 @@ interface ServiceUnavailableInfo {
 
 interface AIBackendCallResult {
   ok: boolean;
-  data?: NonNullable<ReturnType<typeof parseAIBackendResponse>>;
+  data?: AIBackendResponse;
   /** Present when the backend returned 503 — route should alert + fall back. */
   serviceUnavailable?: ServiceUnavailableInfo;
 }
@@ -121,7 +122,10 @@ async function callAIBackend(
     }
 
     const raw = await response.json();
-    const data = parseAIBackendResponse(raw);
+    const data = acceptAIBackendResponse(raw, {
+      expectedSource: "live",
+      requireDataAvailable: true,
+    });
     if (!data) return { ok: false };
     return { ok: true, data };
   } catch (error) {

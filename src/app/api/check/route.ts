@@ -15,8 +15,8 @@ import { logScanHistory } from "@/lib/admin/metrics";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { sendAPIFailureAlert } from "@/lib/email";
 import {
+  acceptAIBackendResponse,
   buildAIBackendRequest,
-  parseAIBackendResponse,
 } from "@/lib/ai-backend-schema";
 import { normalizeSupportedTicker } from "@/lib/stock-universe";
 import {
@@ -197,7 +197,10 @@ async function callPythonAIBackend(
     }
 
     const raw = await response.json();
-    const data = parseAIBackendResponse(raw);
+    const data = acceptAIBackendResponse(raw, {
+      expectedSource: "live",
+      requireDataAvailable: true,
+    });
     if (!data) {
       // Payload failed the contract — fall back to TS scoring.
       return {
