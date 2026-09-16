@@ -5,10 +5,11 @@
  */
 import { buildHistoricalReconciliation } from "../src/lib/admin/artifact-reconciliation";
 import { listAllEvaluationFiles } from "../src/lib/admin/evaluation-storage-listing";
-import { EVALUATION_BUCKET } from "../src/lib/supabase";
 import { getEvaluationStorageServerClient } from "../src/lib/server/evaluation-storage";
 import * as fs from "fs";
 import * as path from "path";
+
+const EVALUATION_BUCKET = "evaluation-data";
 
 async function main(): Promise<void> {
   const filesFromIndex = process.argv.indexOf("--files-from");

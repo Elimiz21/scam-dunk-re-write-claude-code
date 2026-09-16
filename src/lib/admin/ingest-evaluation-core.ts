@@ -13,6 +13,7 @@ import {
   loadPublishedArtifactRevision,
   readArtifactPointer,
 } from "@/lib/admin/artifact-storage";
+import { assessPublicationQuality } from "@/lib/admin/artifact-quality";
 import { PrismaIngestionStore } from "@/lib/admin/prisma-ingestion-store";
 
 // Batch size for createMany operations to avoid overwhelming the DB
@@ -444,15 +445,34 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const summaryFilename = `fmp-summary-${date}.json`;
     const promotedFilename = `promoted-stocks-${date}.json`;
 
+    const authoritativeHead = await prisma.evaluationArtifactPublicationHead.findUnique({
+      where: { scanDate: new Date(`${date}T00:00:00.000Z`) },
+      select: { revisionHash: true },
+    });
     const publishedRevision = await loadPublishedArtifactRevision(
       date,
       readStorageObject,
+      authoritativeHead?.revisionHash,
     );
     let evaluationData: EvaluationStock[] | null = null;
     let summaryData: EvaluationSummary | null = null;
     let promotedData: PromotedStocksReport | null = null;
     let evaluationError: string | undefined;
     if (publishedRevision) {
+      if (publishedRevision.manifest.producerKind === "DAILY_PIPELINE") {
+        const qualityNames = [
+          `scan-status-${date}.json`,
+          `pipeline-validation-${date}.json`,
+        ];
+        if (!qualityNames.every((name) => publishedRevision.manifest.requiredArtifacts.includes(name))) {
+          throw new Error("Daily pipeline quality artifacts must be required by the manifest");
+        }
+        const qualityFiles = Object.fromEntries(publishedRevision.files);
+        const assessed = assessPublicationQuality(date, qualityFiles);
+        if (assessed !== publishedRevision.manifest.qualityStatus) {
+          throw new Error("Artifact quality status does not match verified pipeline evidence");
+        }
+      }
       evaluationData =
         parseArtifactJson<EvaluationStock[]>(
           publishedRevision.files.get(enhancedEvalFilename),
@@ -573,6 +593,66 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       `[ingest-core] ${validStocks.length} valid stocks (${skippedCount} skipped) for ${date}`,
     );
 
+    // Pointer-backed revisions are all-or-nothing. Resolve identity conflicts
+    // before any TrackedStock, snapshot, alert, promotion, or summary mutation.
+    if (publishedRevision && revisionContext) {
+      const preflightSymbols = Array.from(new Set(validStocks.map((stock) => stock.symbol)));
+      const incomingBySymbol = new Map<string, EvaluationStock[]>();
+      for (const stock of validStocks) {
+        const group = incomingBySymbol.get(stock.symbol) ?? [];
+        group.push(stock);
+        incomingBySymbol.set(stock.symbol, group);
+      }
+      for (let i = 0; i < preflightSymbols.length; i += BATCH_SIZE) {
+        const existingStocks = await prisma.trackedStock.findMany({
+          where: { symbol: { in: preflightSymbols.slice(i, i + BATCH_SIZE) } },
+          select: { id: true, symbol: true, name: true, exchange: true, isOTC: true },
+        });
+        for (const existing of existingStocks) {
+          const incoming = incomingBySymbol.get(existing.symbol)?.find(
+            (candidate) =>
+              (isOTCExchange(candidate.exchange) || existing.isOTC || isOTCExchange(existing.exchange)) &&
+              normalizedIssuerName(existing.name) !== normalizedIssuerName(candidate.name),
+          );
+          if (!incoming || quarantinedSymbols.has(existing.symbol)) continue;
+          quarantinedSymbols.add(existing.symbol);
+          identityQuarantines.push({
+            symbol: existing.symbol,
+            existingName: existing.name,
+            incomingName: incoming.name,
+            securityIdentifier: incoming.securityIdentifier ?? null,
+            reason: "OTC_ISSUER_NAME_CONFLICT",
+          });
+        }
+      }
+      if (identityQuarantines.length > 0) {
+        const error = `${identityQuarantines.length} OTC issuer identity conflicts quarantined; canonical publication blocked`;
+        await revisionContext.store.failPhase(
+          revisionContext.revisionHash,
+          revisionContext.phase,
+          revisionContext.leaseToken,
+          error,
+        );
+        revisionContext = null;
+        return {
+          success: false,
+          partial: true,
+          identityQuarantines,
+          error,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: evaluationData.length,
+          durationMs: Date.now() - startTime,
+        };
+      }
+    }
+
     // Step 1: Get all existing stocks in batches
     const symbols = Array.from(new Set(validStocks.map((s) => s.symbol)));
     const existingStockMap = new Map<string, string>();
@@ -581,6 +661,10 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const incomingStocks = new Map(
       validStocks.map((stock) => [stock.symbol, stock]),
     );
+    const trackedStockUpdates: Array<{
+      id: string;
+      data: { exchange: string; isOTC: boolean };
+    }> = [];
     const incomingBySymbol = new Map<string, EvaluationStock[]>();
     for (const stock of validStocks) {
       const group = incomingBySymbol.get(stock.symbol) ?? [];
@@ -668,11 +752,18 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           isCurrent &&
           (existing.exchange !== incoming.exchange || existing.isOTC !== isOTC)
         ) {
-          await prisma.trackedStock.update({
-            where: { id: existing.id },
-            data: { exchange: incoming.exchange, isOTC },
-          });
-          stocksUpdated++;
+          if (publishedRevision) {
+            trackedStockUpdates.push({
+              id: existing.id,
+              data: { exchange: incoming.exchange, isOTC },
+            });
+          } else {
+            await prisma.trackedStock.update({
+              where: { id: existing.id },
+              data: { exchange: incoming.exchange, isOTC },
+            });
+            stocksUpdated++;
+          }
         }
       }
     }
@@ -689,7 +780,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
     // Step 3: Batch create new stocks
     let stocksCreated = 0;
-    if (stocksToCreate.length > 0) {
+    if (!publishedRevision && stocksToCreate.length > 0) {
       console.log(
         `[ingest-core] Creating ${stocksToCreate.length} new stocks for ${date}...`,
       );
@@ -739,11 +830,10 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const snapshotsToCreate = validStocks
       .filter((stock) => {
         const stockId = existingStockMap.get(stock.symbol);
-        return stockId &&
-          (publishedRevision !== null || !existingSnapshotSet.has(stockId));
+        return publishedRevision !== null || (!!stockId && !existingSnapshotSet.has(stockId));
       })
       .map((stock) => {
-        const stockId = existingStockMap.get(stock.symbol)!;
+        const stockId = existingStockMap.get(stock.symbol) ?? "";
         const observation = normalizeMarketObservation(stock);
         let evaluatedAt: Date;
         try {
@@ -757,6 +847,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
         return {
           stockId,
+          stockSymbol: stock.symbol,
           scanDate,
           riskLevel: stock.riskLevel || "UNKNOWN",
           totalScore: toInt(stock.totalScore) ?? 0,
@@ -807,6 +898,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     let alertsCreated = 0;
     let alertsToCreate: Array<{
       stockId: string;
+      stockSymbol?: string;
       alertDate: Date;
       alertType: string;
       newRiskLevel: string;
@@ -835,12 +927,12 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         .filter((stock) => {
           const stockId = existingStockMap.get(stock.symbol);
           return (
-            stockId &&
-            (publishedRevision !== null || !existingAlertSet.has(stockId))
+            (publishedRevision !== null || (!!stockId && !existingAlertSet.has(stockId)))
           );
         })
         .map((stock) => ({
-          stockId: existingStockMap.get(stock.symbol)!,
+          stockId: existingStockMap.get(stock.symbol) ?? "",
+          stockSymbol: stock.symbol,
           alertDate: scanDate,
           alertType: "NEW_HIGH_RISK",
           newRiskLevel: stock.riskLevel,
@@ -1038,6 +1130,15 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         phase: revisionContext.phase,
         leaseToken: revisionContext.leaseToken,
         scanDate,
+        newStocks: stocksToCreate.map((stock) => ({
+          symbol: stock.symbol,
+          name: stock.name,
+          exchange: stock.exchange,
+          sector: stock.sector || null,
+          industry: stock.industry || null,
+          isOTC: isOTCExchange(stock.exchange),
+        })),
+        trackedStockUpdates,
         snapshots: snapshotsToCreate,
         alerts: alertsToCreate,
         promotedStocks: promotedRows,
@@ -1046,6 +1147,8 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       snapshotsCreated = publication.snapshotsCreated;
       alertsCreated = publication.alertsCreated;
       promotedStocksCreated = publication.promotedStocksCreated;
+      stocksCreated = publication.stocksCreated;
+      stocksUpdated = trackedStockUpdates.length;
       revisionContext = null;
     }
 

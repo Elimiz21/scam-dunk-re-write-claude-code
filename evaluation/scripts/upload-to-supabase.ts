@@ -25,8 +25,10 @@ import {
   createRevisionUploadPlan,
   executeRevisionUploadPlan,
   extractProducerExecutedAt,
+  assertPublicationQuality,
   requireStoragePublisherConfig,
 } from "./storage-publisher";
+import { assertPostScanReportParent } from "./post-scan-artifact-source";
 import {
   LoadedArtifactRevision,
   loadPublishedArtifactRevision,
@@ -110,6 +112,14 @@ async function uploadDateFiles(date: string) {
 
   let previous: LoadedArtifactRevision | null = null;
   const client = getSupabaseClient();
+  const { data: publicationHead, error: publicationHeadError } = await client
+    .from("EvaluationArtifactPublicationHead")
+    .select("revisionHash")
+    .eq("scanDate", `${date}T00:00:00.000Z`)
+    .maybeSingle();
+  if (publicationHeadError) {
+    throw new Error(`Failed to read authoritative publication head: ${publicationHeadError.message}`);
+  }
   previous = await loadPublishedArtifactRevision(date, async (objectPath) => {
     const { data, error } = await client.storage
       .from(BUCKET_NAME)
@@ -119,11 +129,21 @@ async function uploadDateFiles(date: string) {
       throw new Error(`Failed to read ${objectPath}: ${error.message}`);
     }
     return Buffer.from(await data.arrayBuffer());
-  });
+  }, publicationHead?.revisionHash);
   if (previous) {
     for (const [logicalName, bytes] of previous.files) {
       if (!(logicalName in files)) files[logicalName] = bytes;
     }
+  }
+
+  const postScanReportName = `post-scan-report-${date}.json`;
+  if (files[postScanReportName]) {
+    assertPostScanReportParent({
+      scanDate: date,
+      candidate: files[postScanReportName],
+      previousBytes: previous?.files.get(postScanReportName),
+      previousRevisionHash: previous?.manifest.revisionHash,
+    });
   }
 
   const evaluationName = [
@@ -136,6 +156,11 @@ async function uploadDateFiles(date: string) {
       `Publication blocked for ${date}: evaluation and summary artifacts are required`,
     );
   }
+  const qualityStatus = assertPublicationQuality(date, files);
+  const qualityArtifacts = [
+    `scan-status-${date}.json`,
+    `pipeline-validation-${date}.json`,
+  ];
   const producerRunId =
     process.env.ARTIFACT_PRODUCER_RUN_ID ||
     (process.env.GITHUB_RUN_ID
@@ -149,12 +174,17 @@ async function uploadDateFiles(date: string) {
   const plan = createRevisionUploadPlan({
     scanDate: date,
     producerRunId,
-    producerExecutedAt:
-      extractProducerExecutedAt(files[summaryName]) ??
-      previous?.manifest.producerExecutedAt ??
-      null,
+    producerExecutedAt: extractProducerExecutedAt(files[summaryName]),
+    publicationGeneration:
+      (previous?.manifest.publicationGeneration ?? 0) + 1,
+    parentRevisionHash: previous?.manifest.revisionHash ?? null,
+    producerKind: "DAILY_PIPELINE",
+    qualityStatus,
     files,
-    required: previous?.manifest.requiredArtifacts ?? [evaluationName, summaryName],
+    required: Array.from(new Set([
+      ...(previous?.manifest.requiredArtifacts ?? [evaluationName, summaryName]),
+      ...qualityArtifacts,
+    ])),
   });
   await executeRevisionUploadPlan({
     config: requireStoragePublisherConfig(process.env),

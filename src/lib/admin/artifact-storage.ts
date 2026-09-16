@@ -1,13 +1,15 @@
 import {
   ArtifactManifest,
   buildArtifactManifest,
-} from "@/lib/admin/artifact-ingestion";
+} from "./artifact-ingestion";
 
-interface ArtifactPointer {
-  schemaVersion: "scamdunk.artifact-pointer/v1";
+export interface ArtifactPointer {
+  schemaVersion: "scamdunk.artifact-pointer/v1" | "scamdunk.artifact-pointer/v2";
   scanDate: string;
   revisionHash: string;
   manifestPath: string;
+  publicationGeneration: number;
+  parentRevisionHash: string | null;
 }
 
 export interface LoadedArtifactRevision {
@@ -36,6 +38,12 @@ export async function readPublishedArtifactManifest(
   ) {
     throw new Error(`Manifest does not match pointer for ${scanDate}`);
   }
+  if (
+    declared.publicationGeneration !== pointer.publicationGeneration ||
+    declared.parentRevisionHash !== pointer.parentRevisionHash
+  ) {
+    throw new Error(`Manifest publication lineage does not match pointer for ${scanDate}`);
+  }
   return declared;
 }
 
@@ -46,13 +54,21 @@ export async function readArtifactPointer(
   const pointerPath = `revisions/${scanDate}/current.json`;
   const pointerBytes = await readObject(pointerPath);
   if (!pointerBytes) return null;
-  const pointer = parseJson<ArtifactPointer>(pointerBytes, pointerPath);
+  const raw = parseJson<Partial<ArtifactPointer>>(pointerBytes, pointerPath);
+  const pointer = {
+    ...raw,
+    publicationGeneration: raw.publicationGeneration ?? 1,
+    parentRevisionHash: raw.parentRevisionHash ?? null,
+  } as ArtifactPointer;
   if (
-    pointer.schemaVersion !== "scamdunk.artifact-pointer/v1" ||
+    !["scamdunk.artifact-pointer/v1", "scamdunk.artifact-pointer/v2"].includes(pointer.schemaVersion) ||
     pointer.scanDate !== scanDate ||
     !/^[a-f0-9]{64}$/.test(pointer.revisionHash) ||
     pointer.manifestPath !==
-      `revisions/${scanDate}/${pointer.revisionHash}/manifest.json`
+      `revisions/${scanDate}/${pointer.revisionHash}/manifest.json` ||
+    !Number.isSafeInteger(pointer.publicationGeneration) ||
+    pointer.publicationGeneration < 1 ||
+    (pointer.parentRevisionHash !== null && !/^[a-f0-9]{64}$/.test(pointer.parentRevisionHash))
   ) {
     throw new Error(`Invalid artifact pointer for ${scanDate}`);
   }
@@ -70,8 +86,11 @@ function parseJson<T>(bytes: Buffer, label: string): T {
 export async function loadPublishedArtifactRevision(
   scanDate: string,
   readObject: (path: string) => Promise<Buffer | null>,
+  authoritativeRevisionHash?: string,
 ): Promise<LoadedArtifactRevision | null> {
-  const declared = await readPublishedArtifactManifest(scanDate, readObject);
+  const declared = authoritativeRevisionHash
+    ? await readArtifactManifestByHash(scanDate, authoritativeRevisionHash, readObject)
+    : await readPublishedArtifactManifest(scanDate, readObject);
   if (!declared) return null;
 
   const files: Record<string, Buffer> = {};
@@ -89,6 +108,10 @@ export async function loadPublishedArtifactRevision(
     scanDate,
     producerRunId: declared.producerRunId,
     producerExecutedAt: declared.producerExecutedAt,
+    publicationGeneration: declared.publicationGeneration,
+    parentRevisionHash: declared.parentRevisionHash,
+    producerKind: declared.producerKind,
+    qualityStatus: declared.qualityStatus,
     files,
     required: declared.requiredArtifacts,
     declaredArtifacts: declared.artifacts.filter(
@@ -99,4 +122,20 @@ export async function loadPublishedArtifactRevision(
     throw new Error(`Artifact revision hash mismatch for ${scanDate}`);
   }
   return { manifest: verified, files: new Map(Object.entries(files)) };
+}
+
+async function readArtifactManifestByHash(
+  scanDate: string,
+  revisionHash: string,
+  readObject: (path: string) => Promise<Buffer | null>,
+): Promise<ArtifactManifest> {
+  if (!/^[a-f0-9]{64}$/.test(revisionHash)) throw new Error("Invalid authoritative revision hash");
+  const manifestPath = `revisions/${scanDate}/${revisionHash}/manifest.json`;
+  const bytes = await readObject(manifestPath);
+  if (!bytes) throw new Error(`Missing manifest: ${manifestPath}`);
+  const manifest = parseJson<ArtifactManifest>(bytes, manifestPath);
+  if (manifest.scanDate !== scanDate || manifest.revisionHash !== revisionHash) {
+    throw new Error(`Manifest does not match authoritative date head for ${scanDate}`);
+  }
+  return manifest;
 }

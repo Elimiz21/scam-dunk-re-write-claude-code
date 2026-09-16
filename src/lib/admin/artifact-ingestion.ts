@@ -1,11 +1,12 @@
 import { createHash } from "crypto";
-import { normalizeStrictIsoTimestamp } from "@/lib/strict-timestamp";
+import { normalizeStrictIsoTimestamp } from "../strict-timestamp";
 
 export type ArtifactRevisionStatus =
   | "DISCOVERED"
   | "INGESTING"
   | "FAILED"
-  | "PUBLISHED";
+  | "PUBLISHED"
+  | "SUPERSEDED";
 export type ArtifactPhaseStatus =
   | "PENDING"
   | "RUNNING"
@@ -26,6 +27,10 @@ export interface ArtifactManifest {
   producerRunId: string;
   /** Completion time reported by the producer run; null when not evidenced. */
   producerExecutedAt: string | null;
+  publicationGeneration: number;
+  parentRevisionHash: string | null;
+  producerKind: "DAILY_PIPELINE" | "LEGACY_RETAINED";
+  qualityStatus: "VERIFIED" | "DEGRADED" | "UNKNOWN";
   revisionHash: string;
   requiredArtifacts: string[];
   artifacts: ArtifactDescriptor[];
@@ -35,6 +40,10 @@ export interface BuildArtifactManifestInput {
   scanDate: string;
   producerRunId: string;
   producerExecutedAt?: string | null;
+  publicationGeneration?: number;
+  parentRevisionHash?: string | null;
+  producerKind?: "DAILY_PIPELINE" | "LEGACY_RETAINED";
+  qualityStatus?: "VERIFIED" | "DEGRADED" | "UNKNOWN";
   files: Record<string, Buffer>;
   required: string[];
   declaredArtifacts?: ArtifactDescriptor[];
@@ -65,6 +74,25 @@ export function buildArtifactManifest(
     if (!producerExecutedAt) {
       throw new Error("Invalid producerExecutedAt");
     }
+  }
+  const publicationGeneration = input.publicationGeneration ?? 1;
+  if (!Number.isSafeInteger(publicationGeneration) || publicationGeneration < 1) {
+    throw new Error("publicationGeneration must be a positive integer");
+  }
+  const parentRevisionHash = input.parentRevisionHash ?? null;
+  if (parentRevisionHash !== null && !/^[a-f0-9]{64}$/.test(parentRevisionHash)) {
+    throw new Error("Invalid parentRevisionHash");
+  }
+  if (publicationGeneration === 1 && parentRevisionHash !== null) {
+    throw new Error("First publication cannot have a parent revision");
+  }
+  if (publicationGeneration > 1 && parentRevisionHash === null) {
+    throw new Error("Replacement publication requires a parent revision");
+  }
+  const producerKind = input.producerKind ?? "LEGACY_RETAINED";
+  const qualityStatus = input.qualityStatus ?? "UNKNOWN";
+  if (producerKind === "DAILY_PIPELINE" && qualityStatus === "UNKNOWN") {
+    throw new Error("Daily pipeline publication quality cannot be unknown");
   }
 
   const required = Array.from(new Set(input.required)).sort();
@@ -105,6 +133,10 @@ export function buildArtifactManifest(
       scanDate: input.scanDate,
       producerRunId: input.producerRunId,
       producerExecutedAt,
+      publicationGeneration,
+      parentRevisionHash,
+      producerKind,
+      qualityStatus,
       requiredArtifacts: required,
       artifacts,
     }),
@@ -115,6 +147,10 @@ export function buildArtifactManifest(
     scanDate: input.scanDate,
     producerRunId: input.producerRunId,
     producerExecutedAt,
+    publicationGeneration,
+    parentRevisionHash,
+    producerKind,
+    qualityStatus,
     revisionHash,
     requiredArtifacts: required,
     artifacts,

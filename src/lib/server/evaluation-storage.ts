@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { requireSupabaseServiceConfig } from "@/lib/server/supabase-service-config";
+import { requireSupabaseServiceConfig } from "./supabase-service-config";
 
 let cachedClient: SupabaseClient | null = null;
 

@@ -4,7 +4,7 @@ import {
   ArtifactManifest,
   IngestionStore,
   PhaseClaim,
-} from "@/lib/admin/artifact-ingestion";
+} from "./artifact-ingestion";
 
 /** PostgreSQL-backed phase store. Unique keys and lease-token comparisons make
  * retries and concurrent workers converge on one published revision. */
@@ -31,22 +31,113 @@ export class PrismaIngestionStore implements IngestionStore {
     throw lastError;
   }
 
+  private async assertPublicationFence(
+    tx: Prisma.TransactionClient,
+    revision: {
+      id: string;
+      scanDate: Date;
+      revisionHash: string;
+      publicationGeneration: number;
+      parentRevisionHash: string | null;
+    },
+  ): Promise<void> {
+    const desired = await tx.evaluationArtifactPublicationHead.findUnique({
+      where: { scanDate: revision.scanDate },
+      select: { revisionHash: true, publicationGeneration: true },
+    });
+    if (
+      desired?.revisionHash !== revision.revisionHash ||
+      desired.publicationGeneration !== revision.publicationGeneration
+    ) {
+      throw new Error(`Refusing stale publication ${revision.revisionHash}: revision is not the desired date head`);
+    }
+    const newer = await tx.evaluationArtifactRevision.findFirst({
+      where: {
+        scanDate: revision.scanDate,
+        publicationGeneration: { gt: revision.publicationGeneration },
+      },
+      select: { revisionHash: true },
+    });
+    if (newer) {
+      throw new Error(`Refusing stale publication ${revision.revisionHash}: newer revision is registered`);
+    }
+    const current = await tx.evaluationArtifactRevision.findFirst({
+      where: { scanDate: revision.scanDate, status: "PUBLISHED" },
+      select: { revisionHash: true, publicationGeneration: true },
+    });
+    if (current?.revisionHash === revision.revisionHash) return;
+    const expectedGeneration = (current?.publicationGeneration ?? 0) + 1;
+    const expectedParent = current?.revisionHash ?? null;
+    if (
+      revision.publicationGeneration !== expectedGeneration ||
+      revision.parentRevisionHash !== expectedParent
+    ) {
+      throw new Error(
+        `Refusing stale publication ${revision.revisionHash}: expected generation ${expectedGeneration} after ${expectedParent ?? "none"}`,
+      );
+    }
+  }
+
   async ensureRevision(
     manifest: ArtifactManifest,
     phases: readonly string[],
   ): Promise<void> {
     const manifestJson = JSON.stringify(manifest);
     const manifestPath = `revisions/${manifest.scanDate}/${manifest.revisionHash}/manifest.json`;
+    const scanDate = new Date(`${manifest.scanDate}T00:00:00.000Z`);
+    await this.serializable(() =>
+      this.client.$transaction(async (tx) => {
+        const head = await tx.evaluationArtifactPublicationHead.findUnique({
+          where: { scanDate },
+        });
+        if (
+          head?.revisionHash === manifest.revisionHash &&
+          head.publicationGeneration === manifest.publicationGeneration
+        ) return;
+        if (!head) {
+          if (manifest.publicationGeneration !== 1 || manifest.parentRevisionHash !== null) {
+            throw new Error("Refusing stale publication parent");
+          }
+          await tx.evaluationArtifactPublicationHead.create({
+            data: {
+              scanDate,
+              publicationGeneration: manifest.publicationGeneration,
+              revisionHash: manifest.revisionHash,
+              parentRevisionHash: null,
+            },
+          });
+          return;
+        }
+        if (
+          head.revisionHash !== manifest.parentRevisionHash ||
+          manifest.publicationGeneration !== head.publicationGeneration + 1
+        ) {
+          throw new Error("Refusing stale publication parent");
+        }
+        await tx.evaluationArtifactPublicationHead.update({
+          where: { scanDate },
+          data: {
+            publicationGeneration: manifest.publicationGeneration,
+            revisionHash: manifest.revisionHash,
+            parentRevisionHash: manifest.parentRevisionHash,
+          },
+        });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }),
+    );
     let revision: { id: string; manifestJson: string };
     try {
       revision = await this.client.evaluationArtifactRevision.upsert({
         where: { revisionHash: manifest.revisionHash },
         create: {
-          scanDate: new Date(`${manifest.scanDate}T00:00:00.000Z`),
+          scanDate,
           producerRunId: manifest.producerRunId,
           producerExecutedAt: manifest.producerExecutedAt
             ? new Date(manifest.producerExecutedAt)
             : null,
+          publicationGeneration: manifest.publicationGeneration,
+          parentRevisionHash: manifest.parentRevisionHash,
+          producerKind: manifest.producerKind,
+          qualityStatus: manifest.qualityStatus,
           revisionHash: manifest.revisionHash,
           manifestPath,
           manifestJson,
@@ -74,6 +165,20 @@ export class PrismaIngestionStore implements IngestionStore {
       ) {
         throw error;
       }
+      const generationOwner = await this.client.evaluationArtifactRevision.findUnique({
+        where: {
+          scanDate_publicationGeneration: {
+            scanDate,
+            publicationGeneration: manifest.publicationGeneration,
+          },
+        },
+        select: { revisionHash: true },
+      });
+      if (generationOwner && generationOwner.revisionHash !== manifest.revisionHash) {
+        throw new Error(
+          `Publication generation ${manifest.publicationGeneration} already belongs to another revision`,
+        );
+      }
       revision = await this.client.evaluationArtifactRevision.findUniqueOrThrow({
         where: { revisionHash: manifest.revisionHash },
         select: { id: true, manifestJson: true },
@@ -99,13 +204,37 @@ export class PrismaIngestionStore implements IngestionStore {
         async (tx) => {
         const revision = await tx.evaluationArtifactRevision.findUniqueOrThrow({
           where: { revisionHash },
-          select: { id: true },
+          select: {
+            id: true,
+            status: true,
+            scanDate: true,
+            revisionHash: true,
+            publicationGeneration: true,
+          },
         });
+        const desired = await tx.evaluationArtifactPublicationHead.findUnique({
+          where: { scanDate: revision.scanDate },
+          select: { revisionHash: true, publicationGeneration: true },
+        });
+        if (
+          desired?.revisionHash !== revision.revisionHash ||
+          desired.publicationGeneration !== revision.publicationGeneration
+        ) {
+          throw new Error(`Refusing stale publication ${revision.revisionHash}: revision is not the desired date head`);
+        }
         const current = await tx.evaluationIngestionPhase.findUniqueOrThrow({
           where: { revisionId_phase: { revisionId: revision.id, phase } },
           select: { status: true },
         });
-        if (current.status === "COMPLETE") return { state: "COMPLETE" };
+        if (current.status === "COMPLETE" && revision.status === "PUBLISHED") {
+          return { state: "COMPLETE" };
+        }
+        if (current.status === "COMPLETE") {
+          await tx.evaluationIngestionPhase.update({
+            where: { revisionId_phase: { revisionId: revision.id, phase } },
+            data: { status: "PENDING", completedAt: null },
+          });
+        }
 
         const now = new Date();
         const leaseToken = randomUUID();
@@ -201,8 +330,16 @@ export class PrismaIngestionStore implements IngestionStore {
         async (tx) => {
         const revision = await tx.evaluationArtifactRevision.findUniqueOrThrow({
           where: { revisionHash },
-          select: { id: true, scanDate: true, status: true },
+          select: {
+            id: true,
+            scanDate: true,
+            status: true,
+            revisionHash: true,
+            publicationGeneration: true,
+            parentRevisionHash: true,
+          },
         });
+        await this.assertPublicationFence(tx, revision);
         const complete = await tx.evaluationIngestionPhase.count({
           where: {
             revisionId: revision.id,
@@ -236,8 +373,13 @@ export class PrismaIngestionStore implements IngestionStore {
     phase: string;
     leaseToken: string;
     scanDate: Date;
-    snapshots: Prisma.StockDailySnapshotCreateManyInput[];
-    alerts: Prisma.StockRiskAlertCreateManyInput[];
+    newStocks?: Prisma.TrackedStockCreateManyInput[];
+    trackedStockUpdates?: Array<{
+      id: string;
+      data: Pick<Prisma.TrackedStockUpdateInput, "exchange" | "isOTC">;
+    }>;
+    snapshots: Array<Prisma.StockDailySnapshotCreateManyInput & { stockSymbol?: string }>;
+    alerts: Array<Prisma.StockRiskAlertCreateManyInput & { stockSymbol?: string }>;
     promotedStocks: Prisma.PromotedStockCreateManyInput[];
     summary: Omit<
       Prisma.DailyScanSummaryUncheckedCreateInput,
@@ -247,17 +389,25 @@ export class PrismaIngestionStore implements IngestionStore {
     snapshotsCreated: number;
     alertsCreated: number;
     promotedStocksCreated: number;
+    stocksCreated: number;
   }> {
     return this.serializable(() =>
       this.client.$transaction(
         async (tx) => {
           const revision = await tx.evaluationArtifactRevision.findUniqueOrThrow({
             where: { revisionHash: input.revisionHash },
-            select: { id: true, scanDate: true },
+            select: {
+              id: true,
+              scanDate: true,
+              revisionHash: true,
+              publicationGeneration: true,
+              parentRevisionHash: true,
+            },
           });
           if (revision.scanDate.getTime() !== input.scanDate.getTime()) {
             throw new Error("Revision scan date mismatch");
           }
+          await this.assertPublicationFence(tx, revision);
           const lease = await tx.evaluationIngestionPhase.findUniqueOrThrow({
             where: {
               revisionId_phase: {
@@ -271,12 +421,36 @@ export class PrismaIngestionStore implements IngestionStore {
             throw new Error(`Lost lease for ${input.phase}`);
           }
 
+          const createdStocks = input.newStocks?.length
+            ? await tx.trackedStock.createMany({ data: input.newStocks, skipDuplicates: true })
+            : { count: 0 };
+          for (const update of input.trackedStockUpdates ?? []) {
+            await tx.trackedStock.update({ where: { id: update.id }, data: update.data });
+          }
+          const unresolvedSymbols = Array.from(new Set([
+            ...input.snapshots.map((row) => row.stockSymbol).filter((value): value is string => !!value),
+            ...input.alerts.map((row) => row.stockSymbol).filter((value): value is string => !!value),
+          ]));
+          const resolvedStocks = unresolvedSymbols.length
+            ? await tx.trackedStock.findMany({
+                where: { symbol: { in: unresolvedSymbols } },
+                select: { id: true, symbol: true },
+              })
+            : [];
+          const resolvedIds = new Map(resolvedStocks.map((row) => [row.symbol, row.id]));
+          const resolveStockId = (stockId: string, stockSymbol?: string) => {
+            const resolved = stockSymbol ? resolvedIds.get(stockSymbol) : stockId;
+            if (!resolved) throw new Error(`Could not resolve tracked stock ${stockSymbol ?? stockId}`);
+            return resolved;
+          };
+
           await tx.stockDailySnapshot.deleteMany({
             where: { scanDate: input.scanDate },
           });
           const snapshots = await tx.stockDailySnapshot.createMany({
-            data: input.snapshots.map((snapshot) => ({
+            data: input.snapshots.map(({ stockSymbol, ...snapshot }) => ({
               ...snapshot,
+              stockId: resolveStockId(snapshot.stockId, stockSymbol),
               artifactRevisionId: revision.id,
             })),
           });
@@ -284,12 +458,16 @@ export class PrismaIngestionStore implements IngestionStore {
           // acknowledgement, notes, stable IDs, and creation timestamps.
           const retainedAlertIds: string[] = [];
           let alertsCreated = 0;
-          for (const alert of input.alerts) {
+          for (const { stockSymbol, ...alert } of input.alerts) {
+            const resolvedAlert = {
+              ...alert,
+              stockId: resolveStockId(alert.stockId, stockSymbol),
+            };
             const existing = await tx.stockRiskAlert.findFirst({
               where: {
-                stockId: alert.stockId,
-                alertDate: alert.alertDate,
-                alertType: alert.alertType,
+                stockId: resolvedAlert.stockId,
+                alertDate: resolvedAlert.alertDate,
+                alertType: resolvedAlert.alertType,
               },
               orderBy: { createdAt: "asc" },
               select: { id: true },
@@ -298,19 +476,19 @@ export class PrismaIngestionStore implements IngestionStore {
               await tx.stockRiskAlert.update({
                 where: { id: existing.id },
                 data: {
-                  previousRiskLevel: alert.previousRiskLevel,
-                  newRiskLevel: alert.newRiskLevel,
-                  previousScore: alert.previousScore,
-                  newScore: alert.newScore,
-                  triggeringSignals: alert.triggeringSignals,
-                  priceAtAlert: alert.priceAtAlert,
-                  volumeAtAlert: alert.volumeAtAlert,
+                  previousRiskLevel: resolvedAlert.previousRiskLevel,
+                  newRiskLevel: resolvedAlert.newRiskLevel,
+                  previousScore: resolvedAlert.previousScore,
+                  newScore: resolvedAlert.newScore,
+                  triggeringSignals: resolvedAlert.triggeringSignals,
+                  priceAtAlert: resolvedAlert.priceAtAlert,
+                  volumeAtAlert: resolvedAlert.volumeAtAlert,
                 },
               });
               retainedAlertIds.push(existing.id);
             } else {
               const created = await tx.stockRiskAlert.create({
-                data: alert,
+                data: resolvedAlert,
                 select: { id: true },
               });
               retainedAlertIds.push(created.id);
@@ -401,6 +579,7 @@ export class PrismaIngestionStore implements IngestionStore {
             snapshotsCreated: snapshots.count,
             alertsCreated,
             promotedStocksCreated,
+            stocksCreated: createdStocks.count,
           };
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
