@@ -83,11 +83,64 @@ interface EvaluationStock {
   priceDataSource?: string;
 }
 
+// Provider exchange codes and OTC market-tier labels describe the same market
+// classification. Keep the original exchange label for reporting.
+function isOTCExchange(exchange: string): boolean {
+  const normalized = exchange.trim().toUpperCase();
+  return (
+    normalized.startsWith("OTC") ||
+    [
+      "PNK",
+      "PINK",
+      "PINK SHEETS",
+      "GREY",
+      "GRAY",
+      "GREY MARKET",
+      "GRAY MARKET",
+      "EXPERT",
+      "EXPERT MARKET",
+    ].includes(normalized)
+  );
+}
+
+function hasEvaluationTimestamp(value: string): boolean {
+  if (typeof value !== "string") return false;
+  const parts =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.exec(
+      value,
+    );
+  if (!parts) return false;
+  const [, year, month, day, hour, minute, second] = parts.map(Number);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+  // Date.parse normalizes impossible dates and 24:00 into another day.
+  return (
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= daysInMonth[month - 1] &&
+    hour < 24 &&
+    minute < 60 &&
+    second < 60 &&
+    Number.isFinite(new Date(value).getTime())
+  );
+}
+
 type IngestionErrorType =
-  | "MISSING_FILE"
-  | "BAD_JSON"
-  | "INVALID_SUPABASE_CONFIG"
-  | "FETCH_ERROR";
+  "MISSING_FILE" | "BAD_JSON" | "INVALID_SUPABASE_CONFIG" | "FETCH_ERROR";
 
 interface EvaluationSummary {
   totalStocks: number;
@@ -426,6 +479,18 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const validStocks = evaluationData.filter(
       (stock) => stock.symbol && stock.name && stock.exchange,
     );
+    // Validate OTC provenance before any writes. A scan date is not the time
+    // an evaluation actually occurred, including for historical reconstructions.
+    for (const stock of validStocks) {
+      if (
+        isOTCExchange(stock.exchange) &&
+        !hasEvaluationTimestamp(stock.evaluatedAt)
+      ) {
+        throw new Error(
+          `Invalid or missing evaluatedAt for OTC security ${stock.symbol}`,
+        );
+      }
+    }
     const skippedCount = evaluationData.length - validStocks.length;
     console.log(
       `[ingest-core] ${validStocks.length} valid stocks (${skippedCount} skipped) for ${date}`,
@@ -435,13 +500,71 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const symbols = validStocks.map((s) => s.symbol);
     const existingStockMap = new Map<string, string>();
 
+    let stocksUpdated = 0;
+    const incomingStocks = new Map(
+      validStocks.map((stock) => [stock.symbol, stock]),
+    );
     for (let i = 0; i < symbols.length; i += BATCH_SIZE) {
       const batch = symbols.slice(i, i + BATCH_SIZE);
       const existingStocks = await prisma.trackedStock.findMany({
         where: { symbol: { in: batch } },
-        select: { id: true, symbol: true },
+        select: {
+          id: true,
+          symbol: true,
+          exchange: true,
+          isOTC: true,
+        },
       });
-      existingStocks.forEach((s) => existingStockMap.set(s.symbol, s.id));
+      const changedStockIds = existingStocks
+        .filter((existing) => {
+          const incoming = incomingStocks.get(existing.symbol)!;
+          return (
+            existing.exchange !== incoming.exchange ||
+            existing.isOTC !== isOTCExchange(incoming.exchange)
+          );
+        })
+        .map((existing) => existing.id);
+      // The latest scan and latest evaluation can belong to different rows.
+      // Aggregate both independently so out-of-order replays cannot weaken the guard.
+      const provenance =
+        changedStockIds.length > 0
+          ? await prisma.stockDailySnapshot.groupBy({
+              by: ["stockId"],
+              where: { stockId: { in: changedStockIds } },
+              _max: { scanDate: true, evaluatedAt: true },
+            })
+          : [];
+      const latestByStock = new Map(
+        provenance.map((row) => [row.stockId, row._max]),
+      );
+      for (const existing of existingStocks) {
+        existingStockMap.set(existing.symbol, existing.id);
+        const incoming = incomingStocks.get(existing.symbol)!;
+        const isOTC = isOTCExchange(incoming.exchange);
+        // Historical artifact replays may create missing snapshots, but cannot
+        // roll current security metadata back to an earlier market listing.
+        const latestSnapshot = latestByStock.get(existing.id);
+        const incomingEvaluationTime = hasEvaluationTimestamp(
+          incoming.evaluatedAt,
+        )
+          ? new Date(incoming.evaluatedAt).getTime()
+          : scanDate.getTime();
+        const isCurrent =
+          !latestSnapshot ||
+          (scanDate.getTime() >= (latestSnapshot.scanDate?.getTime() ?? 0) &&
+            incomingEvaluationTime >=
+              (latestSnapshot.evaluatedAt?.getTime() ?? 0));
+        if (
+          isCurrent &&
+          (existing.exchange !== incoming.exchange || existing.isOTC !== isOTC)
+        ) {
+          await prisma.trackedStock.update({
+            where: { id: existing.id },
+            data: { exchange: incoming.exchange, isOTC },
+          });
+          stocksUpdated++;
+        }
+      }
     }
 
     // Step 2: Identify stocks to create
@@ -464,7 +587,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
               exchange: stock.exchange,
               sector: stock.sector || null,
               industry: stock.industry || null,
-              isOTC: stock.exchange === "OTC",
+              isOTC: isOTCExchange(stock.exchange),
             })),
             skipDuplicates: true,
           }),
@@ -507,7 +630,9 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         const stockId = existingStockMap.get(stock.symbol)!;
         let evaluatedAt: Date;
         try {
-          evaluatedAt = stock.evaluatedAt ? new Date(stock.evaluatedAt) : scanDate;
+          evaluatedAt = stock.evaluatedAt
+            ? new Date(stock.evaluatedAt)
+            : scanDate;
           if (isNaN(evaluatedAt.getTime())) evaluatedAt = scanDate;
         } catch {
           evaluatedAt = scanDate;
@@ -518,8 +643,12 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           scanDate,
           riskLevel: stock.riskLevel || "UNKNOWN",
           totalScore: toInt(stock.totalScore) ?? 0,
-          isLegitimate: stock.isLegitimate ?? true,
-          isInsufficient: stock.isInsufficient || false,
+          isLegitimate:
+            stock.riskLevel === "INSUFFICIENT" || stock.isInsufficient
+              ? false
+              : (stock.isLegitimate ?? true),
+          isInsufficient:
+            stock.riskLevel === "INSUFFICIENT" || stock.isInsufficient === true,
           lastPrice: stock.lastPrice || null,
           previousClose: stock.previousClose || null,
           priceChangePct: stock.priceChangePct || null,
@@ -643,9 +772,13 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           evaluated: validStocks.length,
           skippedNoData: skippedCount,
           lowRiskCount: validStocks.filter((s) => s.riskLevel === "LOW").length,
-          mediumRiskCount: validStocks.filter((s) => s.riskLevel === "MEDIUM").length,
-          highRiskCount: validStocks.filter((s) => s.riskLevel === "HIGH").length,
-          insufficientCount: validStocks.filter((s) => s.riskLevel === "INSUFFICIENT").length,
+          mediumRiskCount: validStocks.filter((s) => s.riskLevel === "MEDIUM")
+            .length,
+          highRiskCount: validStocks.filter((s) => s.riskLevel === "HIGH")
+            .length,
+          insufficientCount: validStocks.filter(
+            (s) => s.riskLevel === "INSUFFICIENT",
+          ).length,
           byExchange: JSON.stringify({}),
         },
         update: {},
@@ -743,7 +876,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       success: true,
       date,
       stocksCreated,
-      stocksUpdated: validStocks.length - stocksCreated,
+      stocksUpdated,
       snapshotsCreated,
       alertsCreated,
       promotedStocksCreated,

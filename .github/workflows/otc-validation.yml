@@ -1,0 +1,42 @@
+name: OTC Coverage Validation
+on:
+  workflow_dispatch:
+    inputs:
+      evaluation_date:
+        description: "Price date (YYYY-MM-DD); evaluation timestamps remain actual wall time"
+        required: true
+        type: string
+      test_limit:
+        description: "Optional candidate limit; blank scans entire refreshed provider universe"
+        required: false
+        default: ""
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: otc-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 165
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Acquire and evaluate OTC universe without publication
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          EVALUATION_DATE: ${{ inputs.evaluation_date }}
+          OTC_TEST_LIMIT: ${{ inputs.test_limit }}
+          OTC_OUTPUT_DIR: otc-validation-results
+        run: npx tsx evaluation/scripts/run-otc-scan.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: otc-validation-${{ github.run_id }}
+          path: otc-validation-results/*.json
+          retention-days: 30

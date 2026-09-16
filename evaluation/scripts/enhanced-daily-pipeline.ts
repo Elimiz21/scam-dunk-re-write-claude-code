@@ -19,6 +19,12 @@ dotenv.config({ path: path.join(__dirname, "..", "..", ".env.local") });
 dotenv.config({ path: path.join(__dirname, "..", "..", ".env") });
 
 import * as fs from "fs";
+import {
+  OtcClient,
+  runOtcScan,
+  isOtcExchange,
+  reconcileListedResults,
+} from "./otc-daily";
 import { execSync } from "child_process";
 
 // Import scoring modules
@@ -166,6 +172,8 @@ interface EnhancedStockResult {
   schemeStatus: "NEW" | "ONGOING" | "RESOLVED" | null;
 
   evaluatedAt: string;
+  isInsufficient?: boolean;
+  isLegitimate?: boolean;
 }
 
 interface DailyReport {
@@ -738,10 +746,7 @@ async function fetchStockData(symbol: string): Promise<MarketData | null> {
   await sleep(FMP_DELAY_MS);
 
   const priceHistory = fetchFMPHistory(symbol);
-  const otcExchanges = ["OTC", "OTCQX", "OTCQB", "PINK", "OTC Markets"];
-  const isOTC = otcExchanges.some((exc) =>
-    quote.exchange.toUpperCase().includes(exc.toUpperCase()),
-  );
+  const isOTC = isOtcExchange(quote.exchange);
 
   return {
     quote,
@@ -910,9 +915,7 @@ function formatNewsEvidence(item: NewsEvidence): string {
   return `SYMBOL: ${item.key}\nNAME: ${item.result.name}\nSIGNALS: ${item.result.signals.map((signal) => signal?.description || "").join("; ")}\nRECENT NEWS:\n${newsText || "None"}\nSEC FILINGS:\n${filingsText || "None"}\nPRESS RELEASES:\n${releasesText || "None"}`;
 }
 
-async function analyzeNewsLegitimacyBatch(
-  batch: NewsEvidence[],
-): Promise<{
+async function analyzeNewsLegitimacyBatch(batch: NewsEvidence[]): Promise<{
   results: Map<string, NewsLegitimacyResult>;
   promptTokens: number;
   completionTokens: number;
@@ -935,7 +938,9 @@ async function analyzeNewsLegitimacyBatch(
   });
 
   if (!OPENAI_API_KEY) {
-    return skipped("SKIPPED: OpenAI API key not configured — retained as suspicious");
+    return skipped(
+      "SKIPPED: OpenAI API key not configured — retained as suspicious",
+    );
   }
 
   const prompt = `For each instrument below, decide whether verified news, SEC filings, or a press release provides a LEGITIMATE explanation for unusual trading activity.
@@ -963,9 +968,14 @@ ${batch.map(formatNewsEvidence).join("\n\n---\n\n")}`;
     const parsed = new Map<string, NewsLegitimacyResult>();
 
     for (const row of rows) {
-      const symbol = String(row?.symbol || "").trim().toUpperCase().replace(/\s+/g, "");
+      const symbol = String(row?.symbol || "")
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, "");
       if (!expectedSymbols.has(symbol) || parsed.has(symbol)) {
-        throw new Error(`OpenAI returned an unexpected or duplicate symbol: ${symbol || "empty"}`);
+        throw new Error(
+          `OpenAI returned an unexpected or duplicate symbol: ${symbol || "empty"}`,
+        );
       }
       parsed.set(symbol, {
         hasLegitimateNews: row?.hasLegitimateNews === true,
@@ -1052,12 +1062,7 @@ function tickerResultToComprehensiveScan(
 interface PhaseStatus {
   name: string;
   status:
-    | "pending"
-    | "running"
-    | "completed"
-    | "degraded"
-    | "failed"
-    | "skipped";
+    "pending" | "running" | "completed" | "degraded" | "failed" | "skipped";
   startedAt: string | null;
   completedAt: string | null;
   durationMs: number | null;
@@ -1485,6 +1490,9 @@ async function runEnhancedPipeline(): Promise<void> {
         continue;
       }
 
+      // Current OTC profiles must pass the dedicated freshness/identity gates,
+      // even if this symbol remains in the legacy listed universe.
+      if (marketData.isOTC) continue;
       const extendedQuote = marketData.quote as ExtendedQuote;
 
       // Run risk scoring
@@ -1507,7 +1515,11 @@ async function runEnhancedPipeline(): Promise<void> {
         scoringResult.riskLevel === "HIGH" ||
         scoringResult.riskLevel === "MEDIUM" ||
         watchlistTickers.has(stock.symbol);
-      if (pythonAIAvailable && needsDeepAnalysis) {
+      if (
+        pythonAIAvailable &&
+        needsDeepAnalysis &&
+        !scoringResult.isInsufficient
+      ) {
         const onWatchlist = watchlistTickers.has(stock.symbol);
         const pyResult = await callPythonAIBackend(stock.symbol, {
           onWatchlist,
@@ -1517,11 +1529,7 @@ async function runEnhancedPipeline(): Promise<void> {
           const typedSignals = pyResult.signals.map((s) => ({
             code: s.code,
             category: s.category as
-              | "STRUCTURAL"
-              | "PATTERN"
-              | "ALERT"
-              | "BEHAVIORAL"
-              | "SOCIAL",
+              "STRUCTURAL" | "PATTERN" | "ALERT" | "BEHAVIORAL" | "SOCIAL",
             weight: s.weight,
             description: s.description,
           }));
@@ -1548,10 +1556,7 @@ async function runEnhancedPipeline(): Promise<void> {
           };
           const tsRiskRank = riskOrder[scoringResult.riskLevel] ?? 0;
           const pyRiskLevel = (pyResult.riskLevel || "LOW") as
-            | "LOW"
-            | "MEDIUM"
-            | "HIGH"
-            | "INSUFFICIENT";
+            "LOW" | "MEDIUM" | "HIGH" | "INSUFFICIENT";
           const pyRiskRank = riskOrder[pyRiskLevel] ?? 0;
 
           if (pyRiskRank >= tsRiskRank) {
@@ -1581,6 +1586,8 @@ async function runEnhancedPipeline(): Promise<void> {
         lastPrice: extendedQuote?.lastPrice || null,
         avgDailyVolume: extendedQuote?.avgVolume30d || null,
         avgDollarVolume: extendedQuote?.avgDollarVolume30d || null,
+        isInsufficient: scoringResult.isInsufficient,
+        isLegitimate: scoringResult.isLegitimate,
         riskLevel: scoringResult.riskLevel,
         totalScore: scoringResult.totalScore,
         signals: scoringResult.signals,
@@ -1617,6 +1624,77 @@ async function runEnhancedPipeline(): Promise<void> {
       );
     }
   }
+
+  // OTC uses a fresh paginated directory and bounded acquisition. Never reuse
+  // checked-in OTC labels as proof of coverage or let an OTC outage stop listed scans.
+  console.log("\nRefreshing and evaluating the FMP OTC universe...");
+  const otcClient = new OtcClient(FMP_API_KEY);
+  const otcCoveragePath = path.join(
+    RESULTS_DIR,
+    `otc-coverage-${evaluationDate}.json`,
+  );
+  const otcScan = await runOtcScan(evaluationDate, otcClient.request, {
+    limit: process.env.TEST_MODE === "true" ? 100 : undefined,
+    checkpoint: (coverage) =>
+      fs.writeFileSync(
+        otcCoveragePath,
+        JSON.stringify({ ...coverage, apiCalls: otcClient.calls }, null, 2),
+      ),
+  });
+  const retained = reconcileListedResults(
+    allResults,
+    otcScan.coverage.directorySymbols,
+  );
+  const retainedSymbols = new Set(retained.map((result) => result.symbol));
+  for (const previous of allResults) {
+    if (!retainedSymbols.has(previous.symbol)) {
+      riskCounts[previous.riskLevel as keyof typeof riskCounts]--;
+      processedCount--;
+    }
+  }
+  allResults.splice(0, allResults.length, ...retained);
+  const retainedHigh = highRiskBeforeFilter.filter((result) =>
+    retainedSymbols.has(result.symbol),
+  );
+  highRiskBeforeFilter.splice(0, highRiskBeforeFilter.length, ...retainedHigh);
+  for (const otc of otcScan.results) {
+    const result: EnhancedStockResult = {
+      ...otc,
+      aiLayers: {
+        layer1_deterministic: otc.totalScore,
+        layer2_anomaly: null,
+        layer3_rf: null,
+        layer4_lstm: null,
+        combined: null,
+        usedPythonBackend: false,
+      },
+      isFiltered: false,
+      filterReason: null,
+      hasLegitimateNews: false,
+      newsAnalysis: null,
+      recentNews: [],
+      secFilings: [],
+      socialMediaScanned: false,
+      socialMediaFindings: null,
+      prePumpBasePrice: null,
+      schemeId: null,
+      schemeStatus: null,
+    };
+    allResults.push(result);
+    riskCounts[otc.riskLevel as keyof typeof riskCounts]++;
+    processedCount++;
+    if (otc.riskLevel === "HIGH") highRiskBeforeFilter.push(result);
+  }
+  skippedNoData += otcScan.coverage.outcomes.filter(
+    (outcome) => outcome.status === "failed",
+  ).length;
+  const listedSymbols = new Set(stocks.map((stock) => stock.symbol));
+  scanStatus.summary.totalStocks += otcScan.coverage.eligibleSymbols.filter(
+    (symbol) => !listedSymbols.has(symbol),
+  ).length;
+  console.log(
+    `OTC: ${otcScan.results.length}/${otcScan.coverage.eligibleCount} evaluated; ${otcScan.coverage.status}; ${otcClient.calls} provider calls`,
+  );
 
   console.log("\n\nPhase 1 Complete!");
   console.log(`  Processed: ${processedCount}`);
@@ -1658,7 +1736,8 @@ async function runEnhancedPipeline(): Promise<void> {
     }
   }
 
-  scanStatus.phases.phase1_riskScoring.status = "completed";
+  scanStatus.phases.phase1_riskScoring.status =
+    otcScan.coverage.status === "completed" ? "completed" : "degraded";
   scanStatus.phases.phase1_riskScoring.completedAt = new Date().toISOString();
   scanStatus.phases.phase1_riskScoring.durationMs =
     Date.now() -
@@ -1666,6 +1745,12 @@ async function runEnhancedPipeline(): Promise<void> {
   scanStatus.phases.phase1_riskScoring.details = {
     processed: processedCount,
     skippedNoData,
+    otcCoverage: {
+      status: otcScan.coverage.status,
+      eligible: otcScan.coverage.eligibleCount,
+      evaluated: otcScan.results.length,
+      artifact: path.basename(otcCoveragePath),
+    },
     riskCounts: { ...riskCounts },
     highRiskFound: highRiskBeforeFilter.length,
   };
@@ -1751,11 +1836,13 @@ async function runEnhancedPipeline(): Promise<void> {
         source: news?.site || "",
         url: news?.url || "",
       }));
-      result.secFilings = evidence.secFilings.slice(0, 5).map((filing: any) => ({
-        type: filing?.type || "",
-        date: filing?.fillingDate || filing?.date || "",
-        url: filing?.finalLink || filing?.link || "",
-      }));
+      result.secFilings = evidence.secFilings
+        .slice(0, 5)
+        .map((filing: any) => ({
+          type: filing?.type || "",
+          date: filing?.fillingDate || filing?.date || "",
+          url: filing?.finalLink || filing?.link || "",
+        }));
     }
   };
 
@@ -1797,7 +1884,9 @@ async function runEnhancedPipeline(): Promise<void> {
           result: group.representative,
           news: Array.isArray(newsRaw) ? newsRaw : [],
           secFilings: Array.isArray(secFilingsRaw) ? secFilingsRaw : [],
-          pressReleases: Array.isArray(pressReleasesRaw) ? pressReleasesRaw : [],
+          pressReleases: Array.isArray(pressReleasesRaw)
+            ? pressReleasesRaw
+            : [],
         };
         applyNewsEvidence(group, item);
         return { group, item };
@@ -1840,7 +1929,8 @@ async function runEnhancedPipeline(): Promise<void> {
     for (const { group } of withEvidence) {
       const analysis = batchAnalysis.results.get(group.key) || {
         hasLegitimateNews: false,
-        analysis: "ERROR: OpenAI batch response omitted this instrument; retained as suspicious",
+        analysis:
+          "ERROR: OpenAI batch response omitted this instrument; retained as suspicious",
         skipped: true,
       };
       if (analysis.skipped) {
@@ -1856,7 +1946,9 @@ async function runEnhancedPipeline(): Promise<void> {
         console.log(`  ✓ ${group.key}: Legitimate news found`);
       } else {
         retainAsSuspicious(group, analysis.analysis);
-        console.log(`  ⚠ ${group.key}: No legitimate news - remains suspicious`);
+        console.log(
+          `  ⚠ ${group.key}: No legitimate news - remains suspicious`,
+        );
       }
     }
 
@@ -1865,9 +1957,11 @@ async function runEnhancedPipeline(): Promise<void> {
   }
 
   newsMetrics.estimatedCostUsd = Number(
-    ((newsMetrics.promptTokens / 1_000_000) * OPENAI_INPUT_COST_PER_MILLION +
+    (
+      (newsMetrics.promptTokens / 1_000_000) * OPENAI_INPUT_COST_PER_MILLION +
       (newsMetrics.completionTokens / 1_000_000) *
-        OPENAI_OUTPUT_COST_PER_MILLION).toFixed(6),
+        OPENAI_OUTPUT_COST_PER_MILLION
+    ).toFixed(6),
   );
 
   if (newsFilterSkipped > 0) {
@@ -1877,8 +1971,7 @@ async function runEnhancedPipeline(): Promise<void> {
     console.error(
       `  ⚠ filteredByNews does not include unclassified stocks; they were not cleared as legitimate`,
     );
-    scanStatus.phases.phase3_newsAnalysis.error =
-      `${newsFilterSkipped} records were retained as suspicious without a completed news classification`;
+    scanStatus.phases.phase3_newsAnalysis.error = `${newsFilterSkipped} records were retained as suspicious without a completed news classification`;
   }
   console.log(`\n  Filtered by legitimate news: ${filteredByNews}`);
   console.log(`  Remaining suspicious stocks: ${afterNewsFilter.length}`);
@@ -2063,8 +2156,7 @@ async function runEnhancedPipeline(): Promise<void> {
       if (usedDeployedAPI) {
         result.socialMediaScanned = true;
         const mentionsByTicker = (scanRunResult as any)._mentionsByTicker as
-          | Map<string, any[]>
-          | undefined;
+          Map<string, any[]> | undefined;
         const tickerMentions = mentionsByTicker?.get(
           result.symbol.toUpperCase(),
         );
@@ -2702,7 +2794,8 @@ async function runEnhancedPipeline(): Promise<void> {
   }
 
   const summary = {
-    totalStocks: stocks.length,
+    totalStocks: scanStatus.summary.totalStocks,
+    otcCoverage: otcScan.coverage,
     evaluated: processedCount,
     skippedNoData: skippedNoData,
     byRiskLevel: riskCounts,
@@ -2856,9 +2949,15 @@ async function runEnhancedPipeline(): Promise<void> {
   console.log(`  └─ Filtered by volume: ${filteredByVolume}`);
   console.log(`  └─ Filtered by legitimate news: ${filteredByNews}`);
   console.log(`  └─ Remaining suspicious: ${suspiciousStocks.length}`);
-  console.log(`  └─ OpenAI calls: ${newsMetrics.modelCallsMade}/${newsMetrics.plannedModelCallUpperBound} planned upper bound`);
-  console.log(`  └─ OpenAI tokens: ${newsMetrics.promptTokens} input, ${newsMetrics.completionTokens} output`);
-  console.log(`  └─ Estimated OpenAI cost: $${newsMetrics.estimatedCostUsd.toFixed(6)}`);
+  console.log(
+    `  └─ OpenAI calls: ${newsMetrics.modelCallsMade}/${newsMetrics.plannedModelCallUpperBound} planned upper bound`,
+  );
+  console.log(
+    `  └─ OpenAI tokens: ${newsMetrics.promptTokens} input, ${newsMetrics.completionTokens} output`,
+  );
+  console.log(
+    `  └─ Estimated OpenAI cost: $${newsMetrics.estimatedCostUsd.toFixed(6)}`,
+  );
   console.log(`\nScheme Tracking:`);
   console.log(`  New schemes detected: ${newSchemes}`);
   console.log(`  Ongoing schemes: ${ongoingSchemes}`);
@@ -2909,7 +3008,9 @@ async function runEnhancedPipeline(): Promise<void> {
 // Run pipeline
 runEnhancedPipeline()
   .then(() => {
-    console.log("\nEnhanced daily pipeline finished; inspect scan-status.json before promotion.");
+    console.log(
+      "\nEnhanced daily pipeline finished; inspect scan-status.json before promotion.",
+    );
     process.exit(0);
   })
   .catch((error) => {
