@@ -123,6 +123,22 @@ describe("ingestion target identity", () => {
     ).toEqual({ ok: true, projectRef: previewRef });
   });
 
+  test("rejects when runtime Preview identity disagrees with the URL used by the storage client", () => {
+    const previewRef = "cccccccccccccccccccc";
+    expect(
+      verifyIngestionTarget(
+        {
+          VERCEL_ENV: "preview",
+          VERCEL_PROJECT_ID: PRODUCTION_VERCEL_PROJECT_ID,
+          EXPECTED_PREVIEW_SUPABASE_PROJECT_REF: previewRef,
+          DATABASE_URL: `postgresql://postgres.${previewRef}:secret@aws-0-us-east-1.pooler.supabase.com:6543/postgres`,
+          NEXT_PUBLIC_SUPABASE_URL: `https://${previewRef}.supabase.co`,
+        },
+        `https://${PRODUCTION_SUPABASE_PROJECT_REF}.supabase.co`,
+      ),
+    ).toEqual({ ok: false, code: "PROJECT_MISMATCH" });
+  });
+
   test("accepts an explicit loopback fixture outside Vercel", () => {
     expect(
       verifyIngestionTarget({
