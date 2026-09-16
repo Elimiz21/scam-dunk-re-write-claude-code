@@ -2,6 +2,12 @@ import { execFileSync } from "child_process";
 import * as path from "path";
 
 const databaseUrl = process.env.ARTIFACT_INTEGRATION_DATABASE_URL;
+if (databaseUrl) {
+  const target = new URL(databaseUrl);
+  if (!["localhost", "127.0.0.1", "[::1]"].includes(target.hostname)) {
+    throw new Error("Destructive policy fixtures require a loopback test database");
+  }
+}
 const describePostgres = databaseUrl ? describe : describe.skip;
 
 describePostgres("evaluation storage write-policy cutover", () => {

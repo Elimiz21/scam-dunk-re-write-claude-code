@@ -32,7 +32,7 @@ jobs:
       - name: Build read-only reconciliation plan
         run: |
           find data-repo -type f \( -name "*.json" -o -name "*.md" \) -print | sort > /tmp/retained-artifacts.txt
-          npx ts-node scripts/reconcile-evaluation-artifacts.ts \
+          npx ts-node --project scripts/tsconfig.cli.json scripts/reconcile-evaluation-artifacts.ts \
             --files-from /tmp/retained-artifacts.txt \
             > historical-artifact-reconciliation.json
           cat historical-artifact-reconciliation.json

@@ -177,7 +177,7 @@ jobs:
         run: |
           npm ci
           find recovered-results -type f \( -name "*.json" -o -name "*.md" \) -print | sort > /tmp/recovered-artifacts.txt
-          npx ts-node scripts/reconcile-evaluation-artifacts.ts \
+          npx ts-node --project scripts/tsconfig.cli.json scripts/reconcile-evaluation-artifacts.ts \
             --files-from /tmp/recovered-artifacts.txt \
             > recovered-artifact-reconciliation.json
           cat recovered-artifact-reconciliation.json
