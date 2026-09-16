@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 
 const mockGetAdminSession = jest.fn();
+const mockHasRole = jest.fn();
 const mockUpdateMany = jest.fn();
+const mockRunSocialScanAndStore = jest.fn();
 const mockPrisma = {
   socialScanRun: {
     updateMany: mockUpdateMany,
@@ -13,20 +15,25 @@ const mockPrisma = {
     aggregate: jest.fn(),
     groupBy: jest.fn(),
   },
+  adminAuditLog: { create: jest.fn() },
+  $transaction: jest.fn(),
 };
 
 jest.mock("@/lib/admin/auth", () => ({
   getAdminSession: mockGetAdminSession,
-  hasRole: jest.fn(),
+  hasRole: mockHasRole,
 }));
 
 jest.mock("@/lib/db", () => ({ prisma: mockPrisma }));
 
 jest.mock("@/lib/social-scan/orchestrate", () => ({
-  runSocialScanAndStore: jest.fn(),
+  runSocialScanAndStore: mockRunSocialScanAndStore,
 }));
 
-import { GET as getSocialScans } from "@/app/api/admin/social-scan/route";
+import {
+  GET as getSocialScans,
+  POST as startSocialScan,
+} from "@/app/api/admin/social-scan/route";
 import { GET as cleanupSocialScans } from "@/app/api/cron/social-scan-cleanup/route";
 
 const originalEnv = { ...process.env };
@@ -46,6 +53,7 @@ describe("social scan cleanup separation", () => {
     jest.clearAllMocks();
     setSafeEnvironment();
     mockGetAdminSession.mockResolvedValue({ id: "admin-1" });
+    mockHasRole.mockReturnValue(true);
     mockPrisma.socialScanRun.findMany.mockResolvedValue([]);
     mockPrisma.socialMention.findMany.mockResolvedValue([]);
     mockPrisma.socialMention.count.mockResolvedValue(0);
@@ -55,6 +63,7 @@ describe("social scan cleanup separation", () => {
     });
     mockPrisma.socialMention.groupBy.mockResolvedValue([]);
     mockUpdateMany.mockResolvedValue({ count: 2 });
+    mockPrisma.adminAuditLog.create.mockResolvedValue({});
   });
 
   afterAll(() => {
@@ -68,6 +77,81 @@ describe("social scan cleanup separation", () => {
 
     expect(response.status).toBe(200);
     expect(mockUpdateMany).not.toHaveBeenCalled();
+  });
+
+  test("social GET uses a stable id tie-breaker and degrades corrupt legacy JSON", async () => {
+    mockPrisma.socialMention.findMany.mockResolvedValue([
+      {
+        id: "mention-1",
+        engagement: '{"views":',
+        redFlags: '["truncated"',
+      },
+    ]);
+    mockPrisma.socialMention.count.mockResolvedValue(1);
+
+    const response = await getSocialScans(
+      new NextRequest("http://localhost/api/admin/social-scan"),
+    );
+    const body = await response.json();
+
+    expect(body.readback).toEqual({ complete: false, corruptJsonFields: 2 });
+    expect(body.mentions[0]).toMatchObject({ engagement: {}, redFlags: [] });
+    expect(mockPrisma.socialMention.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [
+          { createdAt: "desc" },
+          { promotionScore: "desc" },
+          { id: "asc" },
+        ],
+      }),
+    );
+  });
+
+  test("serializes active-run admission with a transaction advisory lock", async () => {
+    const lock = jest.fn().mockResolvedValue([]);
+    const findFirst = jest.fn().mockResolvedValue(null);
+    const create = jest.fn().mockResolvedValue({
+      id: "run-locked",
+      createdAt: new Date("2026-09-17T00:00:00.000Z"),
+    });
+    mockPrisma.$transaction.mockImplementation(async (callback) =>
+      callback({
+        $queryRawUnsafe: lock,
+        socialScanRun: { findFirst, create },
+      }),
+    );
+    mockRunSocialScanAndStore.mockResolvedValue({
+      status: "COMPLETED",
+      tickersScanned: 0,
+      tickersWithMentions: 0,
+      totalMentions: 0,
+      platformsUsed: [],
+      submittedTickers: [],
+      searchedTickers: [],
+      coverage: [],
+      persistence: null,
+      errors: [],
+      duration: 1,
+    });
+
+    const response = await startSocialScan(
+      new NextRequest("http://localhost/api/admin/social-scan", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tickers: [], date: "2026-09-17" }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(lock).toHaveBeenCalledWith(
+      "SELECT pg_advisory_xact_lock(hashtext('scamdunk_social_scan_singleton'))",
+    );
+    expect(lock.mock.invocationCallOrder[2]).toBeLessThan(
+      findFirst.mock.invocationCallOrder[0],
+    );
+    expect(findFirst.mock.invocationCallOrder[0]).toBeLessThan(
+      create.mock.invocationCallOrder[0],
+    );
   });
 
   test("cleanup rejects invalid credentials before database work", async () => {

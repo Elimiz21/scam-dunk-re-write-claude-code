@@ -19,6 +19,30 @@ import { parseRunMetadata } from "@/lib/social-scan/coverage";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes — scanning takes time
 
+async function markSocialRunFailed(
+  scanRunId: string,
+  createdAt: Date,
+  message: string,
+): Promise<void> {
+  const timeoutMs = 4_000;
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.$queryRawUnsafe(
+        `SET LOCAL statement_timeout = ${timeoutMs}`,
+      );
+      await tx.socialScanRun.updateMany({
+        where: { id: scanRunId, status: "RUNNING" },
+        data: {
+          status: "FAILED",
+          errors: JSON.stringify([message]),
+          duration: Date.now() - createdAt.getTime(),
+        },
+      });
+    },
+    { maxWait: 1_000, timeout: timeoutMs },
+  );
+}
+
 // GET - Fetch social scan runs and mentions
 export async function GET(request: NextRequest) {
   try {
@@ -96,7 +120,11 @@ export async function GET(request: NextRequest) {
       }),
       prisma.socialMention.findMany({
         where: mentionWhere,
-        orderBy: [{ createdAt: "desc" }, { promotionScore: "desc" }],
+        orderBy: [
+          { createdAt: "desc" },
+          { promotionScore: "desc" },
+          { id: "asc" },
+        ],
         skip: (page - 1) * limit,
         take: limit,
         select: {
@@ -173,6 +201,22 @@ export async function GET(request: NextRequest) {
     const uniqueTickers = settledVal(results[5], [] as any[]);
     const platformBreakdown = settledVal(results[6], [] as any[]);
 
+    let corruptJsonFields = 0;
+    const parseJsonField = (value: unknown, fallback: unknown) => {
+      if (typeof value !== "string" || value.length === 0) return fallback;
+      try {
+        return JSON.parse(value);
+      } catch {
+        corruptJsonFields += 1;
+        return fallback;
+      }
+    };
+    const serializedMentions = mentions.map((m: any) => ({
+      ...m,
+      engagement: parseJsonField(m.engagement, {}),
+      redFlags: parseJsonField(m.redFlags, []),
+    }));
+
     return NextResponse.json({
       definitions: {
         totalMentions:
@@ -220,11 +264,14 @@ export async function GET(request: NextRequest) {
           errors,
         };
       }),
-      mentions: mentions.map((m: any) => ({
-        ...m,
-        engagement: m.engagement ? JSON.parse(m.engagement as string) : {},
-        redFlags: m.redFlags ? JSON.parse(m.redFlags as string) : [],
-      })),
+      mentions: serializedMentions,
+      readback: {
+        complete:
+          corruptJsonFields === 0 &&
+          results[1].status === "fulfilled" &&
+          results[2].status === "fulfilled",
+        corruptJsonFields,
+      },
       pagination: {
         page,
         limit,
@@ -263,6 +310,11 @@ export async function GET(request: NextRequest) {
       },
       scanRuns: [],
       mentions: [],
+      readback: {
+        complete: false,
+        corruptJsonFields: 0,
+        error: "Social mention readback unavailable",
+      },
       pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
       stats: {
         totalMentions: 0,
@@ -335,33 +387,44 @@ export async function POST(request: NextRequest) {
     // has shown progress (heartbeat) within the last 10 minutes. Prevents a
     // double-click or cron+manual collision from launching two full paid scans.
     const RUNNING_WINDOW_MS = 10 * 60 * 1000;
-    const activeRun = await prisma.socialScanRun.findFirst({
-      where: {
-        status: "RUNNING",
-        updatedAt: { gt: new Date(Date.now() - RUNNING_WINDOW_MS) },
-      },
-      orderBy: { updatedAt: "desc" },
-      select: { id: true, createdAt: true },
-    });
-    if (activeRun) {
+    const admission = await prisma.$transaction(async (tx) => {
+      // Serialize only the active-run check + insert. The transaction-scoped
+      // advisory lock releases immediately after the RUNNING row is created.
+      await tx.$queryRawUnsafe("SET LOCAL lock_timeout = '4000ms'");
+      await tx.$queryRawUnsafe("SET LOCAL statement_timeout = '4500ms'");
+      await tx.$queryRawUnsafe(
+        "SELECT pg_advisory_xact_lock(hashtext('scamdunk_social_scan_singleton'))",
+      );
+      const activeRun = await tx.socialScanRun.findFirst({
+        where: {
+          status: "RUNNING",
+          updatedAt: { gt: new Date(Date.now() - RUNNING_WINDOW_MS) },
+        },
+        orderBy: { updatedAt: "desc" },
+        select: { id: true, createdAt: true },
+      });
+      if (activeRun) return { activeRun, scanRun: null };
+      const scanRun = await tx.socialScanRun.create({
+        data: {
+          scanDate: new Date(scanDate),
+          status: "RUNNING",
+          triggeredBy,
+        },
+      });
+      return { activeRun: null, scanRun };
+    }, { maxWait: 1_000, timeout: 5_000 });
+    if (admission.activeRun) {
       return NextResponse.json(
         {
           error: "A social scan is already running. Try again shortly.",
           code: "scan_in_progress",
-          scanRunId: activeRun.id,
+          scanRunId: admission.activeRun.id,
         },
         { status: 409 },
       );
     }
 
-    // Create scan run record
-    const scanRun = await prisma.socialScanRun.create({
-      data: {
-        scanDate: new Date(scanDate),
-        status: "RUNNING",
-        triggeredBy,
-      },
-    });
+    const scanRun = admission.scanRun!;
 
     // Log the action (only if admin session — pipeline calls don't need audit logs)
     if (session) {
@@ -392,14 +455,11 @@ export async function POST(request: NextRequest) {
       // Ensure the scan record doesn't stay stuck as RUNNING
       console.error("Social scan execution failed:", scanError);
       try {
-        await prisma.socialScanRun.update({
-          where: { id: scanRun.id },
-          data: {
-            status: "FAILED",
-            errors: JSON.stringify([scanError?.message || "Unknown error"]),
-            duration: Date.now() - scanRun.createdAt.getTime(),
-          },
-        });
+        await markSocialRunFailed(
+          scanRun.id,
+          scanRun.createdAt,
+          scanError?.message || "Unknown error",
+        );
       } catch {
         /* best-effort cleanup */
       }
@@ -424,6 +484,7 @@ export async function POST(request: NextRequest) {
       searchedTickers: result.searchedTickers || [],
       coverage: result.coverage || [],
       persistence: result.persistence || null,
+      readbackComplete: result.readbackComplete !== false,
       errors: result.errors,
       duration: result.duration,
       message:

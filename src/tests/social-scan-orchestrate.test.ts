@@ -4,7 +4,7 @@ const mockPrisma = {
     count: jest.fn(),
     updateMany: jest.fn(),
   },
-  socialScanRun: { update: jest.fn() },
+  socialScanRun: { update: jest.fn(), updateMany: jest.fn() },
 };
 const mockGetConfiguredFreeScanners = jest.fn();
 const mockGetPerplexityScanner = jest.fn();
@@ -23,7 +23,10 @@ jest.mock("@/lib/social-scan/get-scan-targets", () => ({
 }));
 
 import { parseRunMetadata } from "@/lib/social-scan/coverage";
-import { runSocialScanAndStore } from "@/lib/social-scan/orchestrate";
+import {
+  runScannerSafely,
+  runSocialScanAndStore,
+} from "@/lib/social-scan/orchestrate";
 import type { SocialMention } from "@/lib/social-scan/types";
 
 function mention(overrides: Partial<SocialMention> = {}): SocialMention {
@@ -51,6 +54,7 @@ describe("social scan orchestration durability", () => {
     mockGetPerplexityScanner.mockReturnValue(null);
     mockScreenMentionsWithAI.mockImplementation(async (mentions) => mentions);
     mockPrisma.socialScanRun.update.mockResolvedValue({});
+    mockPrisma.socialScanRun.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.socialMention.count.mockResolvedValue(1);
     mockPrisma.socialMention.updateMany.mockResolvedValue({ count: 1 });
   });
@@ -113,7 +117,7 @@ describe("social scan orchestration durability", () => {
     const validRow = persistedRows.find((row) => row.title?.endsWith("😀"));
     expect(validRow?.content).toBe("AAPL bad�text preserved");
 
-    const finalUpdate = mockPrisma.socialScanRun.update.mock.calls.at(-1)?.[0];
+    const finalUpdate = mockPrisma.socialScanRun.updateMany.mock.calls.at(-1)?.[0];
     expect(finalUpdate.data.status).toBe("PARTIAL");
     const metadata = parseRunMetadata(finalUpdate.data.platformsUsed);
     expect(metadata.submittedTickers).toEqual(["AAPL", "MSFT"]);
@@ -125,13 +129,88 @@ describe("social scan orchestration durability", () => {
       inserted: 1,
       rejected: 1,
       unprocessed: 0,
+      lossTickers: ["AAPL"],
     });
+    expect(result.results.find((entry) => entry.ticker === "AAPL")?.coverage)
+      .toMatchObject({ status: "PARTIAL", evidenceIncomplete: true });
+    expect(
+      mockPrisma.socialScanRun.updateMany.mock.calls.every(
+        ([input]) => input.where.status === "RUNNING",
+      ),
+    ).toBe(true);
     expect(JSON.parse(finalUpdate.data.errors)).toEqual(
       expect.arrayContaining([
         expect.stringContaining("MSFT rate limited"),
         expect.stringContaining("1 mention row rejected"),
       ]),
     );
+  });
+
+  test("stores bounded red flags as valid JSON at the truncation boundary", async () => {
+    mockPrisma.socialMention.count.mockResolvedValue(1);
+    mockPrisma.socialMention.createMany.mockResolvedValue({ count: 1 });
+    mockGetConfiguredFreeScanners.mockReturnValue([
+      {
+        name: "json_fixture_scanner",
+        platform: "StockTwits",
+        scan: jest.fn().mockResolvedValue([
+          {
+            platform: "StockTwits",
+            scanner: "json_fixture_scanner",
+            success: true,
+            mentionsFound: 1,
+            mentions: [mention({ redFlags: ["x".repeat(10_001)] })],
+            activityLevel: "low",
+            promotionRisk: "low",
+            scanDuration: 1,
+            coverage: {
+              scanner: "json_fixture_scanner",
+              platform: "StockTwits",
+              status: "COMPLETED",
+              submittedTickers: ["AAPL"],
+              attemptedTickers: ["AAPL"],
+              searchedTickers: ["AAPL"],
+              failedTickers: [],
+              rateLimitedTickers: [],
+              skippedTickers: [],
+            },
+          },
+        ]),
+      },
+    ]);
+
+    await runSocialScanAndStore({
+      scanRunId: "run-json",
+      triggeredBy: "test",
+      manualTickers: [
+        { ticker: "AAPL", name: "Apple", riskScore: 90, riskLevel: "HIGH", signals: [] },
+      ],
+    });
+
+    const stored = mockPrisma.socialMention.createMany.mock.calls[0][0].data[0];
+    expect(() => JSON.parse(stored.redFlags)).not.toThrow();
+    expect(JSON.parse(stored.redFlags)[0]).toHaveLength(500);
+    expect(() => JSON.parse(stored.engagement)).not.toThrow();
+  });
+
+  test("aborts cooperative scanner work when its bounded window expires", async () => {
+    const providerCallAfterTimeout = jest.fn();
+    const scanner = {
+      name: "cooperative_scanner",
+      scan: jest.fn(async (_targets, context) => {
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        if (!context.signal.aborted) providerCallAfterTimeout();
+        return [];
+      }),
+    };
+
+    await expect(
+      runScannerSafely(scanner, [], Date.now() + 5),
+    ).rejects.toThrow(/bounded execution window|deadline/);
+    await new Promise((resolve) => setTimeout(resolve, 35));
+
+    expect(providerCallAfterTimeout).not.toHaveBeenCalled();
+    expect(scanner.scan.mock.calls[0][1].signal.aborted).toBe(true);
   });
 
   test("finalizes FAILED when every scanner times out instead of leaving RUNNING", async () => {
@@ -151,9 +230,9 @@ describe("social scan orchestration durability", () => {
     });
 
     expect(result.status).toBe("FAILED");
-    expect(mockPrisma.socialScanRun.update.mock.calls.at(-1)?.[0]).toEqual(
+    expect(mockPrisma.socialScanRun.updateMany.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({
-        where: { id: "run-timeout" },
+        where: { id: "run-timeout", status: "RUNNING" },
         data: expect.objectContaining({ status: "FAILED" }),
       }),
     );

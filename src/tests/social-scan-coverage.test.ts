@@ -128,4 +128,35 @@ describe("social ticker/platform coverage", () => {
       [4, 200],
     ]);
   });
+
+  test("downgrades searched coverage when persistence lost evidence for the ticker", () => {
+    const withLoss: SocialRunMetadata = {
+      ...metadata,
+      submittedTickers: ["AAPL"],
+      coverage: [
+        {
+          scanner: "stocktwits",
+          platform: "StockTwits",
+          status: "COMPLETED",
+          submittedTickers: ["AAPL"],
+          attemptedTickers: ["AAPL"],
+          searchedTickers: ["AAPL"],
+          failedTickers: [],
+          rateLimitedTickers: [],
+          skippedTickers: [],
+        },
+      ],
+      persistence: {
+        ...metadata.persistence,
+        submitted: 1,
+        rejected: 1,
+        lossTickers: ["AAPL"],
+      },
+    };
+
+    expect(getTickerCoverage(withLoss, "AAPL")).toMatchObject({
+      status: "PARTIAL",
+      evidenceIncomplete: true,
+    });
+  });
 });

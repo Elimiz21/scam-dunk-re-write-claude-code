@@ -1,5 +1,7 @@
 import {
+  assessSocialPhase,
   fetchAllMentionPages,
+  fetchMentionPagesWithStatus,
   getTickerCoverage,
   type SocialRunMetadata,
 } from "./social-coverage";
@@ -41,5 +43,51 @@ describe("daily pipeline social coverage readback", () => {
 
     expect(mentions).toHaveLength(613);
     expect(fetchPage.mock.calls).toEqual([[1, 500], [2, 500]]);
+  });
+
+  test("retains completed pages and marks readback incomplete when a later page fails", async () => {
+    const result = await fetchMentionPagesWithStatus(
+      async (page) => {
+        if (page === 2) throw new Error("page 2 unavailable");
+        return {
+          mentions: [{ id: 1 }],
+          pagination: { totalPages: 2 },
+          readback: { complete: true },
+        };
+      },
+      { pageSize: 500 },
+    );
+
+    expect(result).toMatchObject({
+      mentions: [{ id: 1 }],
+      complete: false,
+      failedPage: 2,
+    });
+  });
+
+  test("degrades phase 4 when the run is partial despite full ticker search union", () => {
+    expect(
+      assessSocialPhase({
+        runStatus: "PARTIAL",
+        submitted: 50,
+        searched: 50,
+        persistence: {
+          rejected: 0,
+          unprocessed: 0,
+          timedOut: false,
+        },
+        readbackComplete: true,
+        coverage: [
+          {
+            platform: "YouTube",
+            submittedTickers: ["AAPL"],
+            searchedTickers: [],
+            failedTickers: ["AAPL"],
+            rateLimitedTickers: ["AAPL"],
+            skippedTickers: [],
+          },
+        ],
+      }),
+    ).toBe("degraded");
   });
 });

@@ -7,6 +7,7 @@ export interface PersistenceResult {
   timedOut: boolean;
   transientRetries: number;
   rejectedRows: Array<{ index: number; reason: string }>;
+  unprocessedRows: Array<{ index: number; reason: string }>;
 }
 
 export function sanitizeAndTruncateUnicode(
@@ -59,16 +60,23 @@ function isTransientError(error: unknown): boolean {
   );
 }
 
+function isRunFencedError(error: unknown): boolean {
+  return (error as { code?: string } | null)?.code === "RUN_FENCED";
+}
+
 export async function persistRowsBounded<T>(
   rows: T[],
   options: {
-    createMany: (rows: T[]) => Promise<{ count: number }>;
+    createMany: (rows: T[], signal: AbortSignal) => Promise<{ count: number }>;
     chunkSize: number;
     maxTransientRetries: number;
     deadlineAt: number;
     now?: () => number;
     sleep?: (ms: number) => Promise<void>;
-    onProgress?: (result: PersistenceResult) => Promise<void> | void;
+    onProgress?: (
+      result: PersistenceResult,
+      signal: AbortSignal,
+    ) => Promise<void> | void;
   },
 ): Promise<PersistenceResult> {
   const now = options.now || Date.now;
@@ -84,36 +92,108 @@ export async function persistRowsBounded<T>(
     timedOut: false,
     transientRetries: 0,
     rejectedRows: [],
+    unprocessedRows: [],
   };
 
   type IndexedRow = { row: T; index: number };
-  const markUnprocessed = (batch: IndexedRow[]) => {
-    result.timedOut = true;
+  let stopAll = false;
+  const markUnprocessed = (
+    batch: IndexedRow[],
+    reason: string,
+    timedOut: boolean,
+  ) => {
+    result.timedOut = result.timedOut || timedOut;
     result.unprocessed += batch.length;
+    result.unprocessedRows.push(
+      ...batch.map(({ index }) => ({ index, reason })),
+    );
   };
-  const reportProgress = async () => {
-    await options.onProgress?.({
-      ...result,
-      rejectedRows: [...result.rejectedRows],
+  const runWithinDeadline = async <R>(
+    operation: (signal: AbortSignal) => Promise<R> | R,
+    label: string,
+  ): Promise<R> => {
+    const remaining = options.deadlineAt - now();
+    if (remaining <= 0) {
+      const error = new Error(`${label} exceeded the persistence deadline`);
+      (error as Error & { code?: string }).code = "DEADLINE_EXCEEDED";
+      throw error;
+    }
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      if (!Number.isFinite(remaining)) return;
+      timer = setTimeout(() => {
+        const error = new Error(`${label} exceeded the persistence deadline`);
+        (error as Error & { code?: string }).code = "DEADLINE_EXCEEDED";
+        controller.abort(error);
+        reject(error);
+      }, Math.max(1, remaining));
     });
+    try {
+      return await Promise.race([
+        Promise.resolve(operation(controller.signal)),
+        timeout,
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+  const reportProgress = async (): Promise<boolean> => {
+    if (!options.onProgress) return true;
+    try {
+      await runWithinDeadline(
+        (signal) =>
+          options.onProgress?.(
+            {
+              ...result,
+              rejectedRows: [...result.rejectedRows],
+              unprocessedRows: [...result.unprocessedRows],
+            },
+            signal,
+          ),
+        "Persistence progress update",
+      );
+      return true;
+    } catch {
+      result.timedOut = true;
+      stopAll = true;
+      return false;
+    }
   };
 
   const writeBatch = async (batch: IndexedRow[]): Promise<void> => {
     if (batch.length === 0) return;
     if (now() >= options.deadlineAt) {
-      markUnprocessed(batch);
+      markUnprocessed(batch, "Persistence deadline reached", true);
+      stopAll = true;
       return;
     }
 
     let attempt = 0;
     while (true) {
       try {
-        const write = await options.createMany(batch.map(({ row }) => row));
+        const write = await runWithinDeadline(
+          (signal) => options.createMany(batch.map(({ row }) => row), signal),
+          "Persistence write",
+        );
         result.inserted += write.count;
         result.duplicates += Math.max(0, batch.length - write.count);
         await reportProgress();
         return;
       } catch (error) {
+        const code = (error as { code?: string } | null)?.code;
+        if (code === "DEADLINE_EXCEEDED") {
+          markUnprocessed(batch, errorMessage(error), true);
+          stopAll = true;
+          await reportProgress();
+          return;
+        }
+        if (isRunFencedError(error)) {
+          markUnprocessed(batch, errorMessage(error), false);
+          stopAll = true;
+          await reportProgress();
+          return;
+        }
         if (
           isTransientError(error) &&
           attempt < options.maxTransientRetries &&
@@ -122,7 +202,28 @@ export async function persistRowsBounded<T>(
           attempt += 1;
           result.transientRetries += 1;
           await sleep(Math.min(250 * 2 ** (attempt - 1), 1000));
+          if (now() >= options.deadlineAt) {
+            markUnprocessed(
+              batch,
+              "Persistence deadline reached after transient backoff",
+              true,
+            );
+            stopAll = true;
+            await reportProgress();
+            return;
+          }
           continue;
+        }
+
+        if (isTransientError(error)) {
+          markUnprocessed(
+            batch,
+            `Transient persistence failure after retry budget: ${errorMessage(error)}`,
+            false,
+          );
+          stopAll = true;
+          await reportProgress();
+          return;
         }
 
         if (batch.length === 1) {
@@ -146,8 +247,14 @@ export async function persistRowsBounded<T>(
   const indexedRows = rows.map((row, index) => ({ row, index }));
   for (let offset = 0; offset < indexedRows.length; offset += chunkSize) {
     const chunk = indexedRows.slice(offset, offset + chunkSize);
-    if (now() >= options.deadlineAt) {
-      markUnprocessed(indexedRows.slice(offset));
+    if (stopAll || now() >= options.deadlineAt) {
+      markUnprocessed(
+        indexedRows.slice(offset),
+        stopAll
+          ? "Persistence stopped after an unresolved batch"
+          : "Persistence deadline reached",
+        now() >= options.deadlineAt,
+      );
       await reportProgress();
       break;
     }
@@ -155,5 +262,6 @@ export async function persistRowsBounded<T>(
   }
 
   result.rejectedRows.sort((left, right) => left.index - right.index);
+  result.unprocessedRows.sort((left, right) => left.index - right.index);
   return result;
 }

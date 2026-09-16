@@ -76,6 +76,7 @@ export interface TickerScanResult {
     searchedPlatforms: string[];
     incompletePlatforms: string[];
     rateLimitedPlatforms: string[];
+    evidenceIncomplete?: boolean;
   };
 }
 
@@ -101,14 +102,24 @@ export interface ScanRunResult {
     unprocessed: number;
     timedOut: boolean;
     transientRetries: number;
+    lossTickers?: string[];
   };
+  readbackComplete?: boolean;
 }
 
 export interface SocialScanner {
   name: string;
   platform: string;
   isConfigured(): boolean;
-  scan(targets: ScanTarget[]): Promise<PlatformScanResult[]>;
+  scan(
+    targets: ScanTarget[],
+    context?: SocialScanContext,
+  ): Promise<PlatformScanResult[]>;
+}
+
+export interface SocialScanContext {
+  signal: AbortSignal;
+  deadlineAt: number;
 }
 
 // ─── Weighted promotional pattern categories ───────────────

@@ -46,7 +46,8 @@ import {
   NewsAnalysisCandidateGroup,
 } from "./news-analysis-plan";
 import {
-  fetchAllMentionPages,
+  assessSocialPhase,
+  fetchMentionPagesWithStatus,
   getTickerCoverage,
   type SocialRunMetadata,
 } from "./social-coverage";
@@ -186,6 +187,7 @@ interface EnhancedStockResult {
     searchedPlatforms: string[];
     incompletePlatforms: string[];
     rateLimitedPlatforms: string[];
+    evidenceIncomplete?: boolean;
   };
 
   // Pre-pump baseline price (lowest close in 30 days before spike)
@@ -2008,6 +2010,7 @@ async function runEnhancedPipeline(): Promise<void> {
   console.log("-".repeat(50));
   scanStatus.phases.phase4_socialMedia.status = "running";
   scanStatus.phases.phase4_socialMedia.startedAt = new Date().toISOString();
+  let scanRunResult: any = null;
 
   if (afterNewsFilter.length > 0) {
     // Convert pipeline stocks to ScanTarget format
@@ -2026,7 +2029,6 @@ async function runEnhancedPipeline(): Promise<void> {
 
     // Prefer deployed API (stores to Supabase, includes AI screening)
     // Falls back to local scan if APP_URL or API_KEY not configured
-    let scanRunResult: any;
     let usedDeployedAPI = false;
 
     if (SOCIAL_SCAN_APP_URL && SOCIAL_SCAN_API_KEY) {
@@ -2091,6 +2093,7 @@ async function runEnhancedPipeline(): Promise<void> {
           searchedTickers: apiResult.searchedTickers || [],
           coverage: apiResult.coverage || [],
           persistence: apiResult.persistence || null,
+          readbackComplete: apiResult.readbackComplete !== false,
           results: [], // Will be populated from DB fetch below
         };
 
@@ -2101,7 +2104,7 @@ async function runEnhancedPipeline(): Promise<void> {
             console.log(
               "  Fetching per-ticker mention data from DB for scheme tracking...",
             );
-            const mentions = await fetchAllMentionPages<any>(
+            const readback = await fetchMentionPagesWithStatus<any>(
               async (page, limit) => {
                 const mentionsRes = await fetch(
                   `${SOCIAL_SCAN_APP_URL}/api/admin/social-scan?scanRunId=${apiResult.scanRunId}&page=${page}&limit=${limit}`,
@@ -2121,6 +2124,16 @@ async function runEnhancedPipeline(): Promise<void> {
               },
               { pageSize: 500 },
             );
+            const mentions = readback.mentions;
+            scanRunResult.readbackComplete = readback.complete;
+            if (!readback.complete) {
+              scanRunResult.errors.push(
+                `Mention readback incomplete at page ${readback.failedPage}: ${readback.error || "unknown error"}`,
+              );
+              console.log(
+                `  ⚠️  Retained ${mentions.length} mentions before readback failed at page ${readback.failedPage}`,
+              );
+            }
 
             // Group mentions by ticker
             const byTicker = new Map<string, any[]>();
@@ -2170,6 +2183,8 @@ async function runEnhancedPipeline(): Promise<void> {
       ? {
           submittedTickers: scanRunResult.submittedTickers || [],
           coverage: scanRunResult.coverage || [],
+          persistence: scanRunResult.persistence || null,
+          readbackComplete: scanRunResult.readbackComplete !== false,
         }
       : null;
 
@@ -2398,14 +2413,18 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log("  No suspicious stocks to scan.");
   }
 
-  const socialCoverageDegraded =
-    scanStatus.socialMediaDetails.tickersActuallySearched <
-      scanStatus.socialMediaDetails.tickersSubmitted ||
-    (scanStatus.socialMediaDetails.tickersSubmitted > 0 &&
-      scanStatus.socialMediaDetails.tickersActuallySearched === 0);
-  scanStatus.phases.phase4_socialMedia.status = socialCoverageDegraded
-    ? "degraded"
+  const socialPhaseStatus = afterNewsFilter.length > 0
+    ? assessSocialPhase({
+        runStatus: scanRunResult?.status || "FAILED",
+        submitted: scanStatus.socialMediaDetails.tickersSubmitted,
+        searched: scanStatus.socialMediaDetails.tickersActuallySearched,
+        persistence: scanRunResult?.persistence || null,
+        readbackComplete: scanRunResult?.readbackComplete !== false,
+        coverage: scanRunResult?.coverage || [],
+      })
     : "completed";
+  const socialCoverageDegraded = socialPhaseStatus === "degraded";
+  scanStatus.phases.phase4_socialMedia.status = socialPhaseStatus;
   if (socialCoverageDegraded) {
     scanStatus.phases.phase4_socialMedia.error =
       `${scanStatus.socialMediaDetails.tickersActuallySearched}/${scanStatus.socialMediaDetails.tickersSubmitted} submitted tickers have verified search coverage; partial evidence was retained`;

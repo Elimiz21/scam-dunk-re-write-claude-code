@@ -15,11 +15,10 @@ import {
   calculatePlatformSpecificScore,
   textMentionsTicker,
   buildTickerMatcher,
+  type SocialScanContext,
 } from "./types";
 import type { PlatformName } from "./platform-patterns";
 import { CoverageTracker } from "./coverage";
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ─────────────────────────────────────────────────────────────
 // Shared fetch + budget helpers (SOC-H1, SOC-H2, SOC-C1)
@@ -42,33 +41,50 @@ async function fetchWithTimeout(
   init: RequestInit = {},
   deadline?: Deadline,
 ): Promise<Response> {
-  const controller = new AbortController();
   const remaining = deadline ? deadline.remaining() : FETCH_TIMEOUT_MS;
   const timeoutMs = Math.max(1, Math.min(FETCH_TIMEOUT_MS, remaining));
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
+  const signals = [AbortSignal.timeout(timeoutMs)];
+  if (deadline?.signal) signals.push(deadline.signal);
+  if (init.signal) signals.push(init.signal);
+  return fetch(input, { ...init, signal: AbortSignal.any(signals) });
 }
 
 /** Tracks a wall-clock deadline so a scanner stops making (paid) calls once
  * its time budget is exhausted, then returns whatever it has accumulated. */
 class Deadline {
   private readonly end: number;
-  constructor(budgetMs: number = SCANNER_BUDGET_MS) {
-    this.end = Date.now() + budgetMs;
+  readonly signal?: AbortSignal;
+  constructor(
+    context?: SocialScanContext,
+    budgetMs: number = SCANNER_BUDGET_MS,
+  ) {
+    this.end = Math.min(
+      Date.now() + budgetMs,
+      context?.deadlineAt ?? Number.POSITIVE_INFINITY,
+    );
+    this.signal = context?.signal;
   }
   remaining(): number {
     return this.end - Date.now();
   }
   expired(): boolean {
-    return Date.now() >= this.end;
+    return Date.now() >= this.end || this.signal?.aborted === true;
   }
   /** Sleep `ms`, but never past the deadline. */
   async sleep(ms: number): Promise<void> {
-    await sleep(Math.max(0, Math.min(ms, this.remaining())));
+    const duration = Math.max(0, Math.min(ms, this.remaining()));
+    if (duration === 0 || this.signal?.aborted) return;
+    await new Promise<void>((resolve) => {
+      const onAbort = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(() => {
+        this.signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, duration);
+      this.signal?.addEventListener("abort", onAbort, { once: true });
+    });
   }
 }
 
@@ -118,7 +134,8 @@ async function redditGet(url: string, deadline?: Deadline): Promise<any> {
       let response = await fetchWithTimeout(tryUrl, fetchOpts, deadline);
 
       if (response.status === 429) {
-        await sleep(10000);
+        await deadline?.sleep(10000);
+        if (deadline?.expired()) return null;
         response = await fetchWithTimeout(tryUrl, fetchOpts, deadline);
       }
 
@@ -190,9 +207,9 @@ export class RedditScanner implements SocialScanner {
     return isRedditDirectEnabled();
   }
 
-  async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
+  async scan(targets: ScanTarget[], context?: SocialScanContext): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
-    const deadline = new Deadline();
+    const deadline = new Deadline(context);
     const coverageTracker = new CoverageTracker(
       this.name,
       this.platform,
@@ -415,9 +432,9 @@ export class YouTubeScanner implements SocialScanner {
     return !!process.env.YOUTUBE_API_KEY;
   }
 
-  async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
+  async scan(targets: ScanTarget[], context?: SocialScanContext): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
-    const deadline = new Deadline();
+    const deadline = new Deadline(context);
     const coverageTracker = new CoverageTracker(
       this.name,
       this.platform,
@@ -605,9 +622,9 @@ export class StockTwitsScanner implements SocialScanner {
     return true;
   }
 
-  async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
+  async scan(targets: ScanTarget[], context?: SocialScanContext): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
-    const deadline = new Deadline();
+    const deadline = new Deadline(context);
     const coverageTracker = new CoverageTracker(
       this.name,
       this.platform,
@@ -810,9 +827,9 @@ export class SerperScanner implements SocialScanner {
     return !!process.env.SERPER_API_KEY;
   }
 
-  async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
+  async scan(targets: ScanTarget[], context?: SocialScanContext): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
-    const deadline = new Deadline();
+    const deadline = new Deadline(context);
     const coverageTracker = new CoverageTracker(
       this.name,
       this.platform,
@@ -1001,9 +1018,9 @@ export class PerplexityScanner implements SocialScanner {
     return !!process.env.PERPLEXITY_API_KEY;
   }
 
-  async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
+  async scan(targets: ScanTarget[], context?: SocialScanContext): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
-    const deadline = new Deadline();
+    const deadline = new Deadline(context);
     const coverageTracker = new CoverageTracker(
       this.name,
       this.platform,
@@ -1344,9 +1361,9 @@ export class DiscordBotScanner implements SocialScanner {
     return !!process.env.DISCORD_BOT_TOKEN;
   }
 
-  async scan(targets: ScanTarget[]): Promise<PlatformScanResult[]> {
+  async scan(targets: ScanTarget[], context?: SocialScanContext): Promise<PlatformScanResult[]> {
     const startTime = Date.now();
-    const deadline = new Deadline();
+    const deadline = new Deadline(context);
     const coverageTracker = new CoverageTracker(
       this.name,
       this.platform,

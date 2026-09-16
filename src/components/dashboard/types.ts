@@ -24,6 +24,7 @@ export interface SocialTickerCoverage {
   searchedPlatforms: string[];
   incompletePlatforms: string[];
   rateLimitedPlatforms: string[];
+  evidenceIncomplete?: boolean;
 }
 
 export interface PumpRadarCoverage {

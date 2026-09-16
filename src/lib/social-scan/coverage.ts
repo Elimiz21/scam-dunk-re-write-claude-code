@@ -120,7 +120,9 @@ export interface SocialRunMetadata {
     unprocessed: number;
     timedOut: boolean;
     transientRetries: number;
+    lossTickers?: string[];
   };
+  readbackComplete?: boolean;
   coverage: PlatformCoverage[];
 }
 
@@ -136,6 +138,7 @@ export interface TickerCoverage {
   searchedPlatforms: string[];
   incompletePlatforms: string[];
   rateLimitedPlatforms: string[];
+  evidenceIncomplete?: boolean;
 }
 
 function emptyMetadata(): SocialRunMetadata {
@@ -152,6 +155,7 @@ function emptyMetadata(): SocialRunMetadata {
       unprocessed: 0,
       timedOut: false,
       transientRetries: 0,
+      lossTickers: [],
     },
     coverage: [],
   };
@@ -252,8 +256,10 @@ export function parseRunMetadata(value: unknown): SocialRunMetadata {
       unprocessed: numberValue("unprocessed"),
       timedOut: persistenceSource.timedOut === true,
       transientRetries: numberValue("transientRetries"),
+      lossTickers: stringArray(persistenceSource.lossTickers),
     },
     coverage,
+    readbackComplete: source.readbackComplete !== false,
   };
 }
 
@@ -308,10 +314,19 @@ export function getTickerCoverage(
         .map((entry) => entry.platform),
     ),
   );
+  const hasPersistenceLoss =
+    metadata.persistence.rejected > 0 ||
+    metadata.persistence.unprocessed > 0 ||
+    metadata.persistence.timedOut;
+  const evidenceIncomplete =
+    (hasPersistenceLoss &&
+      ((metadata.persistence.lossTickers?.length || 0) === 0 ||
+        metadata.persistence.lossTickers?.includes(normalized) === true)) ||
+    metadata.readbackComplete === false;
   const status: TickerCoverageStatus =
     searchedPlatforms.length === 0
       ? "NOT_SEARCHED"
-      : incompletePlatforms.length > 0
+      : incompletePlatforms.length > 0 || evidenceIncomplete
         ? "PARTIAL"
         : "COMPLETE";
   return {
@@ -319,6 +334,7 @@ export function getTickerCoverage(
     searchedPlatforms,
     incompletePlatforms,
     rateLimitedPlatforms,
+    ...(evidenceIncomplete ? { evidenceIncomplete: true } : {}),
   };
 }
 

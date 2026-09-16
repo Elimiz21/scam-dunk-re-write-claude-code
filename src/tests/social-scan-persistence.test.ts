@@ -125,4 +125,83 @@ describe("social mention persistence safety", () => {
     ]);
     expect(result.inserted).toBe(121);
   });
+
+  test("bounds a pending write and aborts it before returning unprocessed evidence", async () => {
+    let aborted = false;
+    const startedAt = Date.now();
+    const result = await persistRowsBounded([{ id: "pending" }], {
+      createMany: async (_rows, signal) =>
+        new Promise<{ count: number }>((_resolve, reject) => {
+          signal.addEventListener("abort", () => {
+            aborted = true;
+            reject(signal.reason);
+          });
+        }),
+      chunkSize: 1,
+      maxTransientRetries: 0,
+      deadlineAt: Date.now() + 15,
+    });
+
+    expect(Date.now() - startedAt).toBeLessThan(250);
+    expect(aborted).toBe(true);
+    expect(result).toMatchObject({
+      inserted: 0,
+      rejected: 0,
+      unprocessed: 1,
+      timedOut: true,
+    });
+  });
+
+  test("stops after the transient retry budget instead of recursively retrying every row", async () => {
+    const createMany = jest.fn(async () => {
+      const error = new Error("database unavailable");
+      (error as Error & { code?: string }).code = "P1001";
+      throw error;
+    });
+
+    const result = await persistRowsBounded(
+      Array.from({ length: 8 }, (_, index) => ({ id: index })),
+      {
+        createMany,
+        chunkSize: 8,
+        maxTransientRetries: 2,
+        deadlineAt: Date.now() + 5_000,
+        sleep: async () => undefined,
+      },
+    );
+
+    expect(createMany).toHaveBeenCalledTimes(3);
+    expect(result).toMatchObject({
+      inserted: 0,
+      rejected: 0,
+      unprocessed: 8,
+      transientRetries: 2,
+    });
+  });
+
+  test("bounds a stalled progress write and does not start another data chunk", async () => {
+    const createMany = jest.fn(async (rows: Array<{ id: number }>) => ({
+      count: rows.length,
+    }));
+    const result = await persistRowsBounded(
+      [{ id: 1 }, { id: 2 }],
+      {
+        createMany,
+        chunkSize: 1,
+        maxTransientRetries: 0,
+        deadlineAt: Date.now() + 15,
+        onProgress: async (_progress, signal) =>
+          new Promise<void>((_resolve, reject) => {
+            signal.addEventListener("abort", () => reject(signal.reason));
+          }),
+      },
+    );
+
+    expect(createMany).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      inserted: 1,
+      unprocessed: 1,
+      timedOut: true,
+    });
+  });
 });
