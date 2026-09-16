@@ -258,6 +258,7 @@ export function PublicPumpRadar({
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/pump-radar?limit=8", {
+      cache: "no-store",
       signal: controller.signal,
       headers: { Accept: "application/json" },
     })
