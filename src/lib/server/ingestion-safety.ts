@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
+import { getConfiguredSupabaseUrl } from "@/lib/supabase-config";
 
 export const PRODUCTION_SUPABASE_PROJECT_REF = "gwzcluijtbuglznwdqqk";
 export const PRODUCTION_VERCEL_PROJECT_ID =
@@ -68,6 +69,10 @@ function isLoopbackUrl(value: string | undefined, protocols: string[]): boolean 
 
 export function verifyIngestionTarget(
   env: Environment = process.env,
+  configuredStorageUrl: string | undefined =
+    env === process.env
+      ? getConfiguredSupabaseUrl()
+      : env.NEXT_PUBLIC_SUPABASE_URL,
 ): IngestionTargetVerification {
   const vercelEnv = env.VERCEL_ENV;
 
@@ -93,7 +98,7 @@ export function verifyIngestionTarget(
     }
 
     const databaseRef = databaseProjectRef(env.DATABASE_URL);
-    const storageRef = storageProjectRef(env.NEXT_PUBLIC_SUPABASE_URL);
+    const storageRef = storageProjectRef(configuredStorageUrl);
     if (!databaseRef || !storageRef) {
       return { ok: false, code: "UNPARSEABLE_IDENTITY" };
     }
@@ -111,7 +116,7 @@ export function verifyIngestionTarget(
   }
   if (
     !isLoopbackUrl(env.DATABASE_URL, ["postgres:", "postgresql:"]) ||
-    !isLoopbackUrl(env.NEXT_PUBLIC_SUPABASE_URL, ["http:", "https:"])
+    !isLoopbackUrl(configuredStorageUrl, ["http:", "https:"])
   ) {
     return { ok: false, code: "UNPARSEABLE_IDENTITY" };
   }
