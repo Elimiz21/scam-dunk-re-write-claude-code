@@ -13,6 +13,7 @@ PY-C2  ML models are disabled by default (rule-based scoring only).
 import sys
 import numpy as np
 import pandas as pd
+import pytest
 
 sys.path.insert(0, '.')
 
@@ -59,6 +60,76 @@ def test_training_and_serving_vectors_are_aligned():
     det = ScamDetectorRF()
     _, _, train_names = det.generate_synthetic_training_data(n_scam_samples=2, n_normal_samples=2)
     assert train_names == serve_names
+
+
+@pytest.mark.parametrize(
+    'fundamentals',
+    [
+        {},
+        {
+            'market_cap': None,
+            'float_shares': None,
+            'avg_daily_volume': None,
+            'exchange': None,
+            'is_otc': False,
+            'holder_count': None,
+            'top_10_concentration': None,
+        },
+        {
+            'market_cap': None,
+            'float_shares': 1_000_000_000,
+            'avg_daily_volume': 10_000_000,
+            'exchange': 'NASDAQ',
+        },
+        {
+            'market_cap': 1_000_000_000,
+            'float_shares': None,
+            'avg_daily_volume': 10_000_000,
+            'exchange': 'NASDAQ',
+        },
+        {
+            'market_cap': 1_000_000_000,
+            'float_shares': 1_000_000_000,
+            'avg_daily_volume': None,
+            'exchange': 'NASDAQ',
+        },
+        {
+            'market_cap': 1_000_000_000,
+            'float_shares': 1_000_000_000,
+            'avg_daily_volume': 10_000_000,
+            'exchange': None,
+        },
+    ],
+)
+def test_unknown_context_is_numeric_without_fabricated_risk_flags(fundamentals):
+    context = fe.extract_contextual_features(
+        fundamentals,
+        {'is_flagged': False},
+    )
+
+    assert np.isfinite(context['market_cap'])
+    assert np.isfinite(context['float_shares'])
+    assert np.isfinite(context['avg_daily_volume'])
+    assert np.isfinite(context['log_market_cap'])
+    assert np.isfinite(context['float_turnover'])
+    if fundamentals.get('market_cap') is None:
+        assert context['market_cap'] == 0
+        assert context['log_market_cap'] == 0
+    if fundamentals.get('float_shares') is None:
+        assert context['float_shares'] == 0
+        assert context['float_turnover'] == 0
+    if fundamentals.get('avg_daily_volume') is None:
+        assert context['avg_daily_volume'] == 0
+        assert context['float_turnover'] == 0
+    assert context['is_micro_cap'] == 0
+    assert context['is_small_cap'] == 0
+    assert context['is_micro_liquidity'] == 0
+    assert context['is_low_liquidity'] == 0
+    assert context['is_otc'] == 0
+    if 'holder_count' in fundamentals:
+        assert context['holder_count'] == 0
+        assert context['top_10_concentration'] == 0
+        assert context['is_concentrated'] == 0
 
 
 def test_trained_rf_predicts_on_serving_vector_without_mismatch():

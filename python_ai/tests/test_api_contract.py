@@ -16,6 +16,7 @@ import sys
 import json
 import subprocess
 from datetime import date, timedelta
+from pathlib import Path
 
 sys.path.insert(0, '.')
 
@@ -54,6 +55,11 @@ def _bars(count=40):
         }
         for index in range(count)
     ]
+
+
+def _captured_aapl_bars():
+    fixture = Path(__file__).parent / 'fixtures' / 'aapl-real-bars-2026-09-16.json'
+    return json.loads(fixture.read_text())['bars']
 
 
 @pytest.fixture(scope='module')
@@ -219,6 +225,48 @@ def test_production_evaluation_accepts_bounded_real_inputs_without_synthetic_mod
     assert len(request.historical_bars) == 40
     assert request.historical_bars[0].volume == 0
     assert request.fundamentals.market_cap == 0
+
+
+def test_production_evaluation_with_real_bars_and_null_quote_fails_closed(client):
+    """Production canary: real bars plus quote:null must not crash or invent context."""
+    response = client.post(
+        '/analyze',
+        headers={'X-API-Key': API_KEY},
+        json={
+            'ticker': 'AAPL',
+            'asset_type': 'stock',
+            'analysis_mode': 'production_evaluation',
+            'use_live_data': False,
+            'days': 40,
+            'sec_flagged': None,
+            'news_flag': False,
+            'historical_bars': _captured_aapl_bars(),
+            'fundamentals': {
+                'company_name': None,
+                'exchange': None,
+                'current_price': None,
+                'market_cap': None,
+                'avg_daily_volume': None,
+                'is_otc': False,
+                'on_watchlist': False,
+            },
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['input_source'] == 'provided_real_bars'
+    assert body['data_available'] is False
+    assert body['layers_applied'] == ['rule_signals']
+    assert body['is_micro_cap'] is False
+    assert body['rf_probability'] is None
+    assert body['lstm_probability'] is None
+    assert body['stock_info']['exchange'] is None
+    assert body['stock_info']['market_cap'] is None
+    assert body['stock_info']['avg_volume'] is None
+    assert not ({'SMALL_MARKET_CAP', 'MICRO_LIQUIDITY'} & {
+        signal['code'] for signal in body['signals']
+    })
 
 
 def test_provided_real_bars_produce_deterministic_offline_scoring():

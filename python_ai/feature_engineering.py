@@ -309,20 +309,40 @@ def extract_contextual_features(
     """
     features = {}
 
+    def known_nonnegative(value) -> Optional[float]:
+        """Normalize optional provider numerics without treating missing as zero-risk data."""
+        if isinstance(value, bool) or not isinstance(value, (int, float, np.number)):
+            return None
+        numeric = float(value)
+        if not np.isfinite(numeric) or numeric < 0:
+            return None
+        return numeric
+
     # Market cap features
-    market_cap = fundamentals.get('market_cap', 0)
+    known_market_cap = known_nonnegative(fundamentals.get('market_cap'))
+    market_cap = known_market_cap if known_market_cap is not None else 0.0
     features['market_cap'] = market_cap
-    features['is_micro_cap'] = int(market_cap < MARKET_THRESHOLDS['micro_cap'])
-    features['is_small_cap'] = int(market_cap < MARKET_THRESHOLDS['small_cap'])
+    features['is_micro_cap'] = int(
+        market_cap > 0 and market_cap < MARKET_THRESHOLDS['micro_cap']
+    )
+    features['is_small_cap'] = int(
+        market_cap > 0 and market_cap < MARKET_THRESHOLDS['small_cap']
+    )
     features['log_market_cap'] = np.log1p(market_cap)
 
     # Float and liquidity
-    float_shares = fundamentals.get('float_shares', 0)
-    avg_volume = fundamentals.get('avg_daily_volume', 0)
+    known_float_shares = known_nonnegative(fundamentals.get('float_shares'))
+    known_avg_volume = known_nonnegative(fundamentals.get('avg_daily_volume'))
+    float_shares = known_float_shares if known_float_shares is not None else 0.0
+    avg_volume = known_avg_volume if known_avg_volume is not None else 0.0
     features['float_shares'] = float_shares
     features['avg_daily_volume'] = avg_volume
-    features['is_micro_liquidity'] = int(avg_volume < MARKET_THRESHOLDS['micro_liquidity'])
-    features['is_low_liquidity'] = int(avg_volume < MARKET_THRESHOLDS['low_liquidity'])
+    features['is_micro_liquidity'] = int(
+        avg_volume > 0 and avg_volume < MARKET_THRESHOLDS['micro_liquidity']
+    )
+    features['is_low_liquidity'] = int(
+        avg_volume > 0 and avg_volume < MARKET_THRESHOLDS['low_liquidity']
+    )
 
     # Float turnover (if volume data available)
     if float_shares > 0:
@@ -331,7 +351,7 @@ def extract_contextual_features(
         features['float_turnover'] = 0
 
     # Exchange type
-    exchange = fundamentals.get('exchange', 'UNKNOWN')
+    exchange = fundamentals.get('exchange') or 'UNKNOWN'
     features['exchange'] = exchange
     features['is_otc'] = int(exchange.upper() in OTC_EXCHANGES or fundamentals.get('is_otc', False))
 
@@ -344,9 +364,15 @@ def extract_contextual_features(
 
     # Crypto-specific features (if available)
     if 'holder_count' in fundamentals:
-        features['holder_count'] = fundamentals.get('holder_count', 0)
-        features['top_10_concentration'] = fundamentals.get('top_10_concentration', 0)
-        features['is_concentrated'] = int(fundamentals.get('top_10_concentration', 0) > 0.5)
+        holder_count = known_nonnegative(fundamentals.get('holder_count'))
+        concentration = known_nonnegative(fundamentals.get('top_10_concentration'))
+        features['holder_count'] = holder_count if holder_count is not None else 0.0
+        features['top_10_concentration'] = (
+            concentration if concentration is not None else 0.0
+        )
+        features['is_concentrated'] = int(
+            concentration is not None and concentration > 0.5
+        )
 
     return features
 
