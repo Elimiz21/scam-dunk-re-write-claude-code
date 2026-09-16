@@ -9,12 +9,15 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
-import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
+import { EVALUATION_BUCKET } from "@/lib/supabase";
+import { getEvaluationStorageServerClient } from "@/lib/server/evaluation-storage";
 import { ingestDate } from "@/lib/admin/ingest-evaluation-core";
 import {
   unsafeIngestionTargetResponse,
   verifyIngestionTarget,
 } from "@/lib/server/ingestion-safety";
+import { listAllEvaluationFiles } from "@/lib/admin/evaluation-storage-listing";
+import { readPublishedArtifactManifest } from "@/lib/admin/artifact-storage";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 600; // 10 minutes for large imports (enhanced pipeline produces ~6,500 stocks)
@@ -135,38 +138,48 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // List files in Supabase Storage bucket
-    // Requires RLS policy: CREATE POLICY "Allow public read access to evaluation-data" ON storage.objects FOR SELECT USING (bucket_id = 'evaluation-data');
-    let files: { name: string }[] | null = null;
-    let storageError: { message: string } | null = null;
+    // List with the server-only client so this also works with a private bucket.
+    let files: { name: string }[] = [];
     try {
-      const storageResult = await supabase.storage
-        .from(EVALUATION_BUCKET)
-        .list("", {
-          limit: 500,
-          sortBy: { column: "name", order: "desc" },
-        });
-      files = storageResult.data;
-      storageError = storageResult.error;
+      const bucket = getEvaluationStorageServerClient().storage.from(
+        EVALUATION_BUCKET,
+      );
+      files = await listAllEvaluationFiles((path, options) =>
+        bucket.list(path, options),
+      );
+      if (files.some((file) => file.name === "revisions")) {
+        const dateFolders = await listAllEvaluationFiles(
+          (path, options) => bucket.list(path, options),
+          "revisions",
+        );
+        for (const folder of dateFolders) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(folder.name)) continue;
+          const manifest = await readPublishedArtifactManifest(
+            folder.name,
+            async (objectPath) => {
+              const { data, error } = await bucket.download(objectPath);
+              if (error) {
+                if (/not.?found|404/i.test(error.message)) return null;
+                throw new Error(
+                  `Failed to read ${objectPath}: ${error.message}`,
+                );
+              }
+              return Buffer.from(await data.arrayBuffer());
+            },
+          );
+          for (const artifact of manifest?.artifacts ?? []) {
+            if (!files.some((file) => file.name === artifact.logicalName)) {
+              files.push({ name: artifact.logicalName });
+            }
+          }
+        }
+      }
     } catch (error) {
       return NextResponse.json(
         {
-          error: "Invalid Supabase configuration",
+          error: "Storage listing error",
           details: error instanceof Error ? error.message : String(error),
-          errorType: "INVALID_SUPABASE_CONFIG",
-        },
-        { status: 500 },
-      );
-    }
-
-    if (storageError) {
-      console.error("Supabase storage error:", storageError);
-      return NextResponse.json(
-        {
-          error: "Storage listing error - RLS policy may be missing",
-          details: storageError.message,
           errorType: "FETCH_ERROR",
-          hint: "Run this SQL in Supabase: CREATE POLICY \"Allow public read access to evaluation-data\" ON storage.objects FOR SELECT USING (bucket_id = 'evaluation-data');",
         },
         { status: 500 },
       );
@@ -175,7 +188,7 @@ export async function GET() {
     // Extract dates from evaluation files
     // Supports both enhanced format (enhanced-evaluation-YYYY-MM-DD.json)
     // and legacy format (fmp-evaluation-YYYY-MM-DD.json)
-    const evaluationFiles = (files || [])
+    const evaluationFiles = files
       .filter(
         (f) =>
           (f.name.startsWith("fmp-evaluation-") ||
@@ -193,7 +206,7 @@ export async function GET() {
       .filter((f, i, arr) => arr.findIndex((x) => x.date === f.date) === i);
 
     // Extract dates from summary files (format: fmp-summary-YYYY-MM-DD.json)
-    const summaryFiles = (files || [])
+    const summaryFiles = files
       .filter(
         (f) => f.name.startsWith("fmp-summary-") && f.name.endsWith(".json"),
       )
@@ -203,7 +216,7 @@ export async function GET() {
       }));
 
     // Extract dates from promoted stocks files (format: promoted-stocks-YYYY-MM-DD.json)
-    const promotedFiles = (files || [])
+    const promotedFiles = files
       .filter(
         (f) =>
           f.name.startsWith("promoted-stocks-") && f.name.endsWith(".json"),
@@ -214,7 +227,7 @@ export async function GET() {
       }));
 
     // Extract dates from comparison files (format: comparison-YYYY-MM-DD.json)
-    const comparisonFiles = (files || [])
+    const comparisonFiles = files
       .filter(
         (f) => f.name.startsWith("comparison-") && f.name.endsWith(".json"),
       )
@@ -276,18 +289,18 @@ export async function GET() {
           }
         : null,
       debug: {
-        filesFound: files?.length || 0,
+        filesFound: files.length,
         evaluationFiles: evaluationFiles.length,
-        enhancedEvaluationFiles: (files || []).filter((f) =>
+        enhancedEvaluationFiles: files.filter((f) =>
           f.name.startsWith("enhanced-evaluation-"),
         ).length,
-        legacyEvaluationFiles: (files || []).filter((f) =>
+        legacyEvaluationFiles: files.filter((f) =>
           f.name.startsWith("fmp-evaluation-"),
         ).length,
         summaryFiles: summaryFiles.length,
         promotedFiles: promotedFiles.length,
         comparisonFiles: comparisonFiles.length,
-        allFileNames: files?.map((f) => f.name) || [],
+        allFileNames: files.map((f) => f.name),
       },
     });
   } catch (error) {

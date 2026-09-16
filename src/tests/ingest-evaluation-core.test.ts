@@ -2,11 +2,19 @@ const list = jest.fn();
 const getPublicUrl = jest.fn((filename: string) => ({
   data: { publicUrl: `https://storage.test/${filename}` },
 }));
-const from = jest.fn(() => ({ list, getPublicUrl }));
+const download = jest.fn().mockResolvedValue({
+  data: null,
+  error: { message: "not found" },
+});
+const from = jest.fn(() => ({ list, getPublicUrl, download }));
 
 jest.mock("@/lib/supabase", () => ({
   EVALUATION_BUCKET: "evaluation-data",
   supabase: { storage: { from } },
+}));
+
+jest.mock("@/lib/server/evaluation-storage", () => ({
+  getEvaluationStorageServerClient: () => ({ storage: { from } }),
 }));
 
 jest.mock("@/lib/db", () => ({
@@ -128,6 +136,16 @@ describe("ingestDate OTC records", () => {
             : rows,
         ),
     })) as unknown as typeof fetch;
+    download.mockImplementation(async (filename: string) => {
+      const response = await global.fetch(`https://storage.test/${filename}`);
+      if (!response.ok) {
+        return { data: null, error: { message: "not found" } };
+      }
+      return {
+        data: new Blob([await response.text()], { type: "application/json" }),
+        error: null,
+      };
+    });
     (prisma.trackedStock.findMany as jest.Mock).mockResolvedValue([
       {
         id: "stock-1",
@@ -448,8 +466,40 @@ describe("ingestDate OTC records", () => {
     expect(snapshot).toMatchObject({
       evaluatedAt: new Date("2026-09-16T23:12:34.567Z"),
       isInsufficient: true,
-      isLegitimate: false,
+      isLegitimate: null,
     });
+  });
+  it("preserves zero summary measurements instead of replacing them with unknown", async () => {
+    download.mockImplementation(async (filename: string) => {
+      if (filename === "fmp-summary-2026-09-16.json") {
+        return {
+          data: new Blob([
+            JSON.stringify({
+              totalStocks: 1,
+              evaluated: 1,
+              skippedNoData: 0,
+              byRiskLevel: { INSUFFICIENT: 1 },
+              byExchange: {},
+              durationMinutes: 0,
+              apiCallsMade: 0,
+            }),
+          ]),
+          error: null,
+        };
+      }
+      const response = await global.fetch(`https://storage.test/${filename}`);
+      return response.ok
+        ? {
+            data: new Blob([await response.text()], {
+              type: "application/json",
+            }),
+            error: null,
+          }
+        : { data: null, error: { message: "not found" } };
+    });
+    await ingestDate("2026-09-16");
+    expect((prisma.dailyScanSummary.upsert as jest.Mock).mock.calls[0][0].update)
+      .toMatchObject({ scanDurationMins: 0, apiCallsMade: 0 });
   });
   it.each([
     undefined,

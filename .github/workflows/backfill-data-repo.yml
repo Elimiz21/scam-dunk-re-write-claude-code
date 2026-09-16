@@ -172,59 +172,16 @@ jobs:
           echo "Dates recovered:"
           find data-repo -type f -name "*.json" -o -name "*.md" | grep -oP '\d{4}-\d{2}-\d{2}' | sort -u
 
-      - name: Upload recovered results to Supabase
+      - name: Build Supabase reconciliation dry run
         if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.skip_supabase != 'true' }}
-        continue-on-error: true
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
-          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
-            echo "::warning::Supabase credentials not configured, skipping upload"
-            echo "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY secrets to enable"
-            exit 0
-          fi
-
-          BUCKET="evaluation-data"
-          UPLOADED=0
-          FAILED=0
-
-          echo "=========================================="
-          echo "UPLOADING TO SUPABASE (bucket: $BUCKET)"
-          echo "=========================================="
-
-          # Upload all recovered JSON and MD files to Supabase storage
-          for run_dir in recovered-results/run-*/; do
-            [ -d "$run_dir" ] || continue
-
-            while IFS= read -r file; do
-              FILENAME=$(basename "$file")
-              CONTENT_TYPE="application/json"
-              if echo "$FILENAME" | grep -q '\.md$'; then
-                CONTENT_TYPE="text/markdown"
-              fi
-
-              echo "  Uploading $FILENAME..."
-              HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/upload-response.txt \
-                -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${BUCKET}/${FILENAME}" \
-                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
-                -H "Content-Type: ${CONTENT_TYPE}" \
-                -H "x-upsert: true" \
-                --data-binary @"$file")
-
-              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-                echo "    OK ($HTTP_CODE)"
-                UPLOADED=$((UPLOADED + 1))
-              else
-                BODY=$(cat /tmp/upload-response.txt 2>/dev/null || echo "no response body")
-                echo "    FAILED ($HTTP_CODE): $BODY"
-                FAILED=$((FAILED + 1))
-              fi
-            done < <(find "$run_dir" -type f \( -name "*.json" -o -name "*.md" \))
-          done
-
-          echo ""
-          echo "Supabase upload complete: $UPLOADED succeeded, $FAILED failed"
+          npm ci
+          find recovered-results -type f \( -name "*.json" -o -name "*.md" \) -print | sort > /tmp/recovered-artifacts.txt
+          npx ts-node scripts/reconcile-evaluation-artifacts.ts \
+            --files-from /tmp/recovered-artifacts.txt \
+            > recovered-artifact-reconciliation.json
+          cat recovered-artifact-reconciliation.json
+          echo "::notice::No Supabase writes were made. Apply a reviewed canary plan before replay."
 
       - name: Show diff (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' }}

@@ -496,8 +496,8 @@ model StockDailySnapshot {
   // Risk Assessment
   riskLevel      String // LOW, MEDIUM, HIGH, INSUFFICIENT
   totalScore     Int
-  isLegitimate   Boolean
-  isInsufficient Boolean @default(false)
+  isLegitimate   Boolean?
+  isInsufficient Boolean?
 
   // Price Data
   lastPrice      Float?
@@ -517,8 +517,13 @@ model StockDailySnapshot {
   signalSummary String?
   signalCount   Int     @default(0)
 
-  dataSource  String // FMP, etc.
-  evaluatedAt DateTime
+  dataSource       String? // FMP, etc.; null means source is not evidenced
+  sourceObservedAt DateTime?
+  sourceVersion    String?
+  evaluatedAt      DateTime
+
+  artifactRevisionId String?
+  artifactRevision   EvaluationArtifactRevision? @relation(fields: [artifactRevisionId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -526,6 +531,7 @@ model StockDailySnapshot {
   @@index([scanDate])
   @@index([riskLevel])
   @@index([riskLevel, scanDate])
+  @@index([artifactRevisionId])
 }
 
 model DailyScanSummary {
@@ -547,9 +553,70 @@ model DailyScanSummary {
   scanDurationMins Int?
   apiCallsMade     Int?
 
-  createdAt DateTime @default(now())
+  artifactRevisionId String?                     @unique
+  artifactRevision   EvaluationArtifactRevision? @relation(fields: [artifactRevisionId], references: [id], onDelete: SetNull)
+  publishedAt        DateTime?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
 
   @@index([scanDate])
+}
+
+model EvaluationArtifactRevision {
+  id                 String    @id @default(cuid())
+  scanDate           DateTime
+  producerRunId      String
+  producerExecutedAt DateTime?
+  revisionHash       String    @unique
+  manifestPath       String    @unique
+  manifestJson       String    @db.Text
+  status             String    @default("DISCOVERED")
+  requiredPhases     String    @db.Text
+  publishedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  artifacts EvaluationArtifactObject[]
+  phases    EvaluationIngestionPhase[]
+  snapshots StockDailySnapshot[]
+  summary   DailyScanSummary?
+
+  @@index([scanDate, status])
+}
+
+model EvaluationArtifactObject {
+  id          String                     @id @default(cuid())
+  revisionId  String
+  revision    EvaluationArtifactRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  logicalName String
+  storagePath String                     @unique
+  sha256      String
+  byteLength  Int
+  required    Boolean                    @default(false)
+  createdAt   DateTime                   @default(now())
+
+  @@unique([revisionId, logicalName])
+  @@index([sha256])
+}
+
+model EvaluationIngestionPhase {
+  id             String                     @id @default(cuid())
+  revisionId     String
+  revision       EvaluationArtifactRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  phase          String
+  status         String                     @default("PENDING")
+  attemptCount   Int                        @default(0)
+  leaseToken     String?
+  leaseOwner     String?
+  leaseExpiresAt DateTime?
+  lastError      String?                    @db.Text
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@unique([revisionId, phase])
+  @@index([status, leaseExpiresAt])
 }
 
 model StockRiskAlert {

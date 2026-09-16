@@ -131,6 +131,13 @@ interface EnhancedStockResult {
   lastPrice: number | null;
   avgDailyVolume: number | null;
   avgDollarVolume: number | null;
+  previousClose: number | null;
+  priceChangePct: number | null;
+  volume: number | null;
+  volumeRatio: number | null;
+  priceDataSource: string;
+  sourceObservedAt: string | null;
+  sourceVersion: string;
 
   // Risk scoring
   riskLevel: string;
@@ -1545,16 +1552,36 @@ async function runEnhancedPipeline(): Promise<void> {
       // Increment risk count
       riskCounts[scoringResult.riskLevel as keyof typeof riskCounts]++;
 
+      const latestBar = marketData.priceHistory.at(-1);
+      const previousBar = marketData.priceHistory.at(-2);
+      const previousClose = previousBar?.close ?? null;
+      const priceChangePct =
+        latestBar && previousClose !== null && previousClose !== 0
+          ? ((latestBar.close - previousClose) / previousClose) * 100
+          : null;
+      const currentVolume = latestBar?.volume ?? null;
+      const averageVolume = extendedQuote?.avgVolume30d ?? null;
+
       const result: EnhancedStockResult = {
         symbol: stock.symbol,
         name: extendedQuote?.companyName || stock.name,
         exchange: extendedQuote?.exchange || stock.exchange,
         sector: extendedQuote?.sector || "Unknown",
         industry: extendedQuote?.industry || "Unknown",
-        marketCap: extendedQuote?.marketCap || null,
-        lastPrice: extendedQuote?.lastPrice || null,
-        avgDailyVolume: extendedQuote?.avgVolume30d || null,
-        avgDollarVolume: extendedQuote?.avgDollarVolume30d || null,
+        marketCap: extendedQuote?.marketCap ?? null,
+        lastPrice: extendedQuote?.lastPrice ?? latestBar?.close ?? null,
+        avgDailyVolume: averageVolume,
+        avgDollarVolume: extendedQuote?.avgDollarVolume30d ?? null,
+        previousClose,
+        priceChangePct,
+        volume: currentVolume,
+        volumeRatio:
+          currentVolume !== null && averageVolume !== null && averageVolume > 0
+            ? currentVolume / averageVolume
+            : null,
+        priceDataSource: "FMP",
+        sourceObservedAt: latestBar ? `${latestBar.date}T00:00:00.000Z` : null,
+        sourceVersion: "fmp-stable/profile+historical-price-eod/full",
         isInsufficient: scoringResult.isInsufficient,
         isLegitimate: scoringResult.isLegitimate,
         riskLevel: scoringResult.riskLevel,

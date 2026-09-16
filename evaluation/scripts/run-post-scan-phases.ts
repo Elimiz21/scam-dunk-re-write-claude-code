@@ -12,7 +12,7 @@
  *
  * Required env vars:
  *   - NEXT_PUBLIC_SUPABASE_URL
- *   - NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY)
+ *   - SUPABASE_SERVICE_ROLE_KEY (server-side only)
  *   - FMP_API_KEY (for news/filings)
  *   - OPENAI_API_KEY (for news analysis)
  *   - EVALUATION_DATE (defaults to today)
@@ -54,13 +54,11 @@ const VOLUME_THRESHOLD = 10_000_000; // $10M daily volume
 // Supabase setup
 function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
     throw new Error(
-      "Missing Supabase credentials. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "Missing server-side Supabase credentials. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
     );
   }
 

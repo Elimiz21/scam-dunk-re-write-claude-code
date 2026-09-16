@@ -21,6 +21,10 @@ jest.mock("@/lib/supabase", () => ({
   supabase: { storage: { from: jest.fn() } },
 }));
 
+jest.mock("@/lib/server/evaluation-storage", () => ({
+  getEvaluationStorageServerClient: jest.fn(),
+}));
+
 import { POST as manualIngest } from "@/app/api/admin/ingest-evaluation/route";
 import { GET as cronIngest } from "@/app/api/cron/ingest-evaluation/route";
 import {

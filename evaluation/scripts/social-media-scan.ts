@@ -493,37 +493,7 @@ async function runSocialMediaScan(date?: string): Promise<void> {
     });
   }
 
-  // Auto-upload to Supabase
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    console.log("\n" + "=".repeat(70));
-    console.log("UPLOADING TO SUPABASE");
-    console.log("=".repeat(70));
-
-    try {
-      const { execSync } = require("child_process");
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      const fileName = `social-media-scan-${targetDate}.json`;
-
-      const uploadResponse = execSync(
-        `curl -s -X POST "${supabaseUrl}/storage/v1/object/evaluation-data/${fileName}" ` +
-          `-H "Authorization: Bearer ${supabaseKey}" ` +
-          `-H "Content-Type: application/json" ` +
-          `-H "x-upsert: true" ` +
-          `--data-binary @"${outputPath}"`,
-        { encoding: "utf-8", maxBuffer: 50 * 1024 * 1024 },
-      );
-
-      console.log(`Uploaded ${fileName} to Supabase`);
-      console.log(`Response: ${uploadResponse}`);
-    } catch (error: any) {
-      console.error("Failed to upload to Supabase:", error?.message || error);
-      // Don't throw - upload failure shouldn't crash the scan
-    }
-  }
+  // Publication is performed by the workflow's immutable, pointer-last uploader.
 }
 
 // CLI entry point

@@ -57,13 +57,13 @@ jobs:
       - name: Validate required secrets
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           MISSING=""
           if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then MISSING="$MISSING NEXT_PUBLIC_SUPABASE_URL"; fi
-          if [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then MISSING="$MISSING NEXT_PUBLIC_SUPABASE_ANON_KEY"; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then MISSING="$MISSING SUPABASE_SERVICE_ROLE_KEY"; fi
           if [ -z "$FMP_API_KEY" ]; then MISSING="$MISSING FMP_API_KEY"; fi
 
           if [ -n "$MISSING" ]; then
@@ -80,7 +80,6 @@ jobs:
       - name: Run Post-Scan Processing
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -107,42 +106,20 @@ jobs:
           echo "Post-scan processing complete"
 
       - name: Upload to Supabase
-        continue-on-error: true
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           EVALUATION_DATE: ${{ github.event.inputs.evaluation_date }}
+          ARTIFACT_PRODUCER_RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
-            echo "Supabase not configured, skipping upload"
-            exit 0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Server-side Supabase upload credentials are required"
+            exit 1
           fi
 
           cd evaluation
           DATE="$EVALUATION_DATE"
-          UPLOADED=0
-
-          # Upload result files
-          for file in results/*${DATE}*.json; do
-            if [ -f "$file" ]; then
-              FILENAME=$(basename "$file")
-              echo "Uploading $FILENAME..."
-              HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -X POST \
-                "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
-                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
-                -H "Content-Type: application/json" \
-                -H "x-upsert: true" \
-                --data-binary @"$file")
-              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-                echo "  OK ($HTTP_CODE)"
-                UPLOADED=$((UPLOADED + 1))
-              else
-                echo "  Warning: HTTP $HTTP_CODE"
-              fi
-            fi
-          done
-
-          echo "Uploaded $UPLOADED files to Supabase"
+          npx ts-node scripts/upload-to-supabase.ts "$DATE"
 
       - name: Checkout data repository
         continue-on-error: true

@@ -411,66 +411,19 @@ jobs:
         if: ${{ github.event.inputs.test_mode != 'true' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ARTIFACT_PRODUCER_RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           DATE="${{ steps.date.outputs.date }}"
 
-          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::error::Supabase credentials not configured; publication failed"
-            echo "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY secrets to enable"
+            echo "Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY secrets to enable"
             exit 1
           fi
 
           cd evaluation
-          UPLOADED=0
-          FAILED=0
-
-          # Upload all result files
-          for file in results/*-${DATE}*.json results/*-${DATE}*.md; do
-            if [ -f "$file" ]; then
-              FILENAME=$(basename "$file")
-              echo "Uploading $FILENAME to Supabase..."
-              RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
-                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
-                -H "Content-Type: application/json" \
-                -H "x-upsert: true" \
-                --data-binary @"$file") || true
-              HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-              BODY=$(echo "$RESPONSE" | head -n -1)
-              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-                echo "  OK ($HTTP_CODE)"
-                UPLOADED=$((UPLOADED + 1))
-              else
-                echo "::error::Upload failed for $FILENAME (HTTP $HTTP_CODE)"
-                FAILED=$((FAILED + 1))
-              fi
-            fi
-          done
-
-          # Upload scheme database
-          if [ -f "scheme-database/scheme-database.json" ]; then
-            echo "Uploading scheme database..."
-            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/scheme-database.json" \
-              -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
-              -H "Content-Type: application/json" \
-              -H "x-upsert: true" \
-              --data-binary @"scheme-database/scheme-database.json" || true
-            UPLOADED=$((UPLOADED + 1))
-          fi
-
-          # Upload promoter database
-          if [ -f "scheme-database/promoter-database.json" ]; then
-            echo "Uploading promoter database..."
-            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/promoter-database.json" \
-              -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
-              -H "Content-Type: application/json" \
-              -H "x-upsert: true" \
-              --data-binary @"scheme-database/promoter-database.json" || true
-            UPLOADED=$((UPLOADED + 1))
-          fi
-
-          echo "Uploaded $UPLOADED files to Supabase"
-          if [ "$FAILED" -gt 0 ]; then exit 1; fi
+          npx ts-node scripts/upload-to-supabase.ts "$DATE"
 
       - name: Checkout data repository
         if: ${{ github.event.inputs.test_mode != 'true' }}
