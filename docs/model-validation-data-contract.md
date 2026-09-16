@@ -37,7 +37,7 @@ timestamps are ISO 8601 and include a UTC offset; `Z` is accepted.
 |---|---|---|
 | `schema_version` | string | Exactly `scamdunk-model-evaluation/v1`. |
 | `evaluation_run_id` | string | Non-empty immutable run identifier. |
-| `data_classification` | enum | `REAL_WORLD` or `FIXTURE`. Fixtures can exercise the evaluator but cannot validate efficacy. |
+| `data_classification` | string enum | `REAL_WORLD` or `FIXTURE`. Arrays, objects, and other malformed shapes are rejected. Fixtures can exercise the evaluator but cannot validate efficacy. |
 | `holdout_cutoff` | timestamp | Training observations precede it. Holdout observations occur at or after it. |
 | `manifest` | object | Release artifact and dataset bindings below. |
 | `evaluation_config` | object | Fixed decision thresholds selected before evaluation. |
@@ -109,7 +109,7 @@ provenance.
 
 | Field | Type | Contract |
 |---|---|---|
-| `source_type` | enum | `observed`, `synthetic`, or `fixture`. `REAL_WORLD` accepts only `observed`; `FIXTURE` rejects `observed`. |
+| `source_type` | string enum | `observed`, `synthetic`, or `fixture`. Arrays, objects, and other malformed shapes are rejected. `REAL_WORLD` accepts only `observed`; `FIXTURE` rejects `observed`. |
 | `source_id` | string | Non-empty stable source/dataset identifier. |
 | `source_uri` | URI | Absolute immutable or version-addressed source location, such as `db://`, `s3://`, or `file://`. |
 | `retrieved_at` | timestamp | When the record was retrieved, with UTC offset. |
@@ -127,6 +127,12 @@ non-empty `reason_code`, `source_provenance`, and `row_sha256`. Its hash follows
 the same rule as a prediction row. Exclusions are part of the evaluation dataset
 hash so they cannot be silently removed to improve coverage.
 
+Each exclusion must be at or after `holdout_cutoff`. Its canonical observation
+identity is the trimmed, uppercased ticker plus the timestamp normalized to UTC.
+That identity must be unique among exclusions and must not overlap any training
+or holdout row. A row cannot therefore appear in both the coverage numerator and
+the exclusion denominator.
+
 Coverage is:
 
 ```text
@@ -134,7 +140,13 @@ evaluated holdout rows / (evaluated holdout rows + exclusions)
 ```
 
 The report includes `exclusions_by_reason`. Invalid prediction rows are contract
-failures, not exclusions, and produce no metrics.
+failures, not exclusions, and produce no metrics. When the data contract is
+invalid, `holdout_candidate_count` and `coverage` are `null` because there is no
+accepted cohort denominator.
+
+Hashes prove that the supplied cohort did not change after sealing. They do not
+prove that the intended real-world cohort is complete. Independent approval must
+reconcile the declared cohort against its authoritative source population.
 
 ### Evaluation thresholds and approval criteria
 
@@ -180,6 +192,9 @@ this report into the runtime pipeline. `evaluation_artifact_sha256` is the
 canonical SHA-256 of the complete report with that one field omitted. A later
 approval record must bind this exact evaluation artifact rather than an
 unidentified metrics file.
+
+Malformed but valid JSON field shapes produce a newly sealed `NOT_VALIDATED`
+report and command exit code `2`; they do not preserve a previous output file.
 
 For the candidate and rules baseline, the report gives positive/negative counts,
 TP/FP/FN/TN, precision, recall, false-positive rate, Brier score, and PR-AUC.

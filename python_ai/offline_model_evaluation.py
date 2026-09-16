@@ -77,6 +77,17 @@ def _is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
+def _is_binary_label(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value in (0, 1)
+
+
+def _observation_key(ticker: str, observed: datetime) -> tuple[str, str]:
+    return (
+        ticker.strip().upper(),
+        observed.astimezone(timezone.utc).isoformat(),
+    )
+
+
 def _parse_timestamp(
     value: Any,
     path: str,
@@ -130,7 +141,7 @@ def _validate_provenance(
         return
 
     source_type = provenance.get("source_type")
-    if source_type not in ALLOWED_SOURCE_TYPES:
+    if not isinstance(source_type, str) or source_type not in ALLOWED_SOURCE_TYPES:
         issues.append(
             _issue(
                 "INVALID_PROVENANCE",
@@ -162,7 +173,10 @@ def _validate_provenance(
         )
 
     source_uri = provenance.get("source_uri")
-    parsed_uri = urlparse(source_uri) if isinstance(source_uri, str) else None
+    try:
+        parsed_uri = urlparse(source_uri) if isinstance(source_uri, str) else None
+    except ValueError:
+        parsed_uri = None
     if parsed_uri is None or not parsed_uri.scheme or not (parsed_uri.netloc or parsed_uri.path):
         issues.append(
             _issue("INVALID_PROVENANCE", f"{path}.source_uri", "must be an absolute source URI")
@@ -223,6 +237,8 @@ def _validate_manifest(
 
 def _validate_exclusions(
     exclusions: Any,
+    cutoff: datetime | None,
+    evaluated_observations: Mapping[tuple[str, str], str],
     classification: str,
     issues: list[dict[str, str]],
 ) -> list[Mapping[str, Any]]:
@@ -231,6 +247,7 @@ def _validate_exclusions(
         return []
     valid: list[Mapping[str, Any]] = []
     seen_ids: set[str] = set()
+    seen_observations: dict[tuple[str, str], str] = {}
     for index, exclusion in enumerate(exclusions):
         path = f"exclusions[{index}]"
         if not isinstance(exclusion, Mapping):
@@ -247,7 +264,40 @@ def _validate_exclusions(
         for field in ("ticker", "reason_code"):
             if not isinstance(exclusion.get(field), str) or not exclusion[field].strip():
                 issues.append(_issue("INVALID_EXCLUSION", f"{path}.{field}", "must be non-empty"))
-        _parse_timestamp(exclusion.get("observation_timestamp"), f"{path}.observation_timestamp", issues)
+        observed = _parse_timestamp(
+            exclusion.get("observation_timestamp"),
+            f"{path}.observation_timestamp",
+            issues,
+        )
+        ticker = exclusion.get("ticker")
+        if isinstance(ticker, str) and ticker.strip() and observed is not None:
+            natural_key = _observation_key(ticker, observed)
+            if natural_key in evaluated_observations:
+                issues.append(
+                    _issue(
+                        "EXCLUSION_EVALUATED_OVERLAP",
+                        path,
+                        f"overlaps evaluated {evaluated_observations[natural_key]}",
+                    )
+                )
+            if natural_key in seen_observations:
+                issues.append(
+                    _issue(
+                        "DUPLICATE_EXCLUSION_OBSERVATION",
+                        path,
+                        f"duplicates {seen_observations[natural_key]}",
+                    )
+                )
+            else:
+                seen_observations[natural_key] = path
+        if cutoff is not None and observed is not None and observed < cutoff:
+            issues.append(
+                _issue(
+                    "EXCLUSION_BEFORE_HOLDOUT_CUTOFF",
+                    f"{path}.observation_timestamp",
+                    "exclusion observation must be on or after the holdout cutoff",
+                )
+            )
         _validate_provenance(
             exclusion.get("source_provenance"),
             f"{path}.source_provenance",
@@ -270,10 +320,14 @@ def _validate_rows(
     manifest: Mapping[str, Any],
     classification: str,
     issues: list[dict[str, str]],
-) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]]:
+) -> tuple[
+    list[Mapping[str, Any]],
+    list[Mapping[str, Any]],
+    dict[tuple[str, str], str],
+]:
     if not isinstance(rows, list):
         issues.append(_issue("INVALID_ROWS", "rows", "must be an array"))
-        return [], []
+        return [], [], {}
 
     training_rows: list[Mapping[str, Any]] = []
     holdout_rows: list[Mapping[str, Any]] = []
@@ -307,9 +361,8 @@ def _validate_rows(
             row.get("label_available_timestamp"), f"{path}.label_available_timestamp", issues
         )
 
-        if isinstance(ticker, str) and observed is not None:
-            normalized_observation = observed.astimezone(timezone.utc).isoformat()
-            natural_key = (ticker.upper(), normalized_observation)
+        if isinstance(ticker, str) and ticker.strip() and observed is not None:
+            natural_key = _observation_key(ticker, observed)
             if natural_key in seen_observations:
                 issues.append(
                     _issue(
@@ -329,7 +382,7 @@ def _validate_rows(
         else:
             issues.append(_issue("INVALID_PARTITION", f"{path}.partition", "must be TRAIN or HOLDOUT"))
 
-        if row.get("label") not in (0, 1) or isinstance(row.get("label"), bool):
+        if not _is_binary_label(row.get("label")):
             issues.append(_issue("INVALID_LABEL", f"{path}.label", "must be integer 0 or 1"))
         for field in ("model_score", "rules_score", "uncertainty"):
             _validate_probability(row.get(field), f"{path}.{field}", issues)
@@ -420,7 +473,7 @@ def _validate_rows(
                     )
                 )
 
-    return training_rows, holdout_rows
+    return training_rows, holdout_rows, seen_observations
 
 
 def _average_precision(labels: Sequence[int], scores: Sequence[float]) -> float:
@@ -541,7 +594,7 @@ def _difference(left: Any, right: Any) -> float | None:
 
 def _approval_result(
     criteria: Any,
-    coverage: float,
+    coverage: float | None,
     metrics: Mapping[str, Any] | None,
 ) -> tuple[dict[str, Any], list[str]]:
     if not isinstance(criteria, Mapping):
@@ -650,7 +703,7 @@ def evaluate(payload: Mapping[str, Any]) -> dict[str, Any]:
         issues.append(_issue("INVALID_RUN_ID", "evaluation_run_id", "must be non-empty"))
 
     classification = payload.get("data_classification")
-    if classification not in {"REAL_WORLD", "FIXTURE"}:
+    if not isinstance(classification, str) or classification not in {"REAL_WORLD", "FIXTURE"}:
         issues.append(
             _issue(
                 "INVALID_DATA_CLASSIFICATION",
@@ -662,9 +715,15 @@ def evaluate(payload: Mapping[str, Any]) -> dict[str, Any]:
 
     cutoff = _parse_timestamp(payload.get("holdout_cutoff"), "holdout_cutoff", issues)
     manifest = _validate_manifest(payload.get("manifest"), issues, classification)
-    exclusions = _validate_exclusions(payload.get("exclusions", []), classification, issues)
-    training_rows, holdout_rows = _validate_rows(
+    training_rows, holdout_rows, evaluated_observations = _validate_rows(
         payload.get("rows"), cutoff, manifest, classification, issues
+    )
+    exclusions = _validate_exclusions(
+        payload.get("exclusions", []),
+        cutoff,
+        evaluated_observations,
+        classification,
+        issues,
     )
 
     rows_for_hash = payload.get("rows") if isinstance(payload.get("rows"), list) else []
@@ -699,7 +758,17 @@ def evaluate(payload: Mapping[str, Any]) -> dict[str, Any]:
         issues.append(_issue("MISSING_TRAINING_ROWS", "rows", "at least one TRAIN row is required"))
     if not holdout_rows:
         issues.append(_issue("MISSING_HOLDOUT_ROWS", "rows", "at least one HOLDOUT row is required"))
-    elif {row.get("label") for row in holdout_rows} != {0, 1}:
+    else:
+        valid_holdout_labels = [
+            row.get("label")
+            for row in holdout_rows
+            if _is_binary_label(row.get("label"))
+        ]
+    if (
+        holdout_rows
+        and len(valid_holdout_labels) == len(holdout_rows)
+        and set(valid_holdout_labels) != {0, 1}
+    ):
         issues.append(
             _issue(
                 "HOLDOUT_CLASS_MISSING",
@@ -716,7 +785,11 @@ def evaluate(payload: Mapping[str, Any]) -> dict[str, Any]:
         _validate_probability(config.get(field), f"evaluation_config.{field}", issues)
 
     candidate_count = len(holdout_rows) + len(exclusions)
-    coverage = len(holdout_rows) / candidate_count if candidate_count else 0.0
+    coverage = (
+        len(holdout_rows) / candidate_count
+        if not issues and candidate_count
+        else None
+    )
     metrics: dict[str, Any] | None = None
     if not issues:
         labels = [int(row["label"]) for row in holdout_rows]
@@ -770,7 +843,7 @@ def evaluate(payload: Mapping[str, Any]) -> dict[str, Any]:
         "data_quality": {
             "classification": classification,
             "training_count": len(training_rows),
-            "holdout_candidate_count": candidate_count,
+            "holdout_candidate_count": candidate_count if not issues else None,
             "evaluated_count": len(holdout_rows) if metrics is not None else 0,
             "excluded_count": len(exclusions),
             "coverage": coverage,
@@ -842,7 +915,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
         report = evaluate(payload)
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, json.JSONDecodeError, TypeError, ValueError, OverflowError) as exc:
         report = _invalid_input_report(str(exc))
 
     Path(args.output).write_text(

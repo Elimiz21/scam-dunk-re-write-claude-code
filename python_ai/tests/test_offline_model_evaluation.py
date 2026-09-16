@@ -72,13 +72,18 @@ def _row(
     return row
 
 
-def _exclusion():
+def _exclusion(
+    exclusion_id="excluded-1",
+    ticker="MISS",
+    observed_at="2026-07-05T16:00:00Z",
+    provenance_kind="fixture",
+):
     exclusion = {
-        "exclusion_id": "excluded-1",
-        "ticker": "MISS",
-        "observation_timestamp": "2026-07-05T16:00:00Z",
+        "exclusion_id": exclusion_id,
+        "ticker": ticker,
+        "observation_timestamp": observed_at,
         "reason_code": "NO_LABEL_WITHIN_WINDOW",
-        "source_provenance": _provenance("fixture", "excluded-1"),
+        "source_provenance": _provenance(provenance_kind, exclusion_id),
     }
     exclusion["row_sha256"] = _sha256(exclusion)
     return exclusion
@@ -300,6 +305,36 @@ def test_missing_and_invalid_provenance_are_rejected():
     assert "INVALID_PROVENANCE" in _issue_codes(invalid_report)
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda payload: payload.update({"data_classification": []}),
+        lambda payload: payload["rows"][2]["prediction_provenance"].update(
+            {"source_type": []}
+        ),
+        lambda payload: payload["rows"][2].update({"label": []}),
+        lambda payload: payload["rows"][2]["prediction_provenance"].update(
+            {"source_uri": {}}
+        ),
+        lambda payload: payload["rows"][2]["prediction_provenance"].update(
+            {"source_uri": "http://["}
+        ),
+    ],
+)
+def test_malformed_json_field_shapes_return_not_validated(mutation):
+    """Catches unhashable or parser-invalid JSON values escaping validation."""
+    payload = _payload("REAL_WORLD")
+    mutation(payload)
+    _reseal(payload)
+
+    report = evaluate(payload)
+
+    assert report["status"] == "NOT_VALIDATED"
+    assert report["metrics"] is None
+    assert report["data_quality"]["issues"]
+    assert report["auto_enable_allowed"] is False
+
+
 def test_synthetic_data_presented_as_real_is_rejected():
     """Catches relabeling synthetic predictions or labels as empirical evidence."""
     payload = _payload("REAL_WORLD")
@@ -325,6 +360,57 @@ def test_duplicate_observation_across_train_and_holdout_is_rejected():
 
     assert report["metrics"] is None
     assert "DUPLICATE_OBSERVATION" in _issue_codes(report)
+
+
+def test_exclusion_cannot_overlap_an_evaluated_holdout_observation():
+    """Catches one observation appearing in both coverage numerator and exclusions."""
+    payload = _payload("REAL_WORLD")
+    payload["exclusions"] = [
+        _exclusion(
+            "overlap-1",
+            "new1",
+            "2026-07-01T12:00:00-04:00",
+            "observed",
+        )
+    ]
+    _reseal(payload)
+
+    report = evaluate(payload)
+
+    assert report["status"] == "NOT_VALIDATED"
+    assert report["metrics"] is None
+    assert report["data_quality"]["holdout_candidate_count"] is None
+    assert report["data_quality"]["coverage"] is None
+    assert "EXCLUSION_EVALUATED_OVERLAP" in _issue_codes(report)
+
+
+def test_exclusions_require_distinct_post_cutoff_observations():
+    """Catches offset-equivalent duplicate exclusions from the training-era window."""
+    payload = _payload("REAL_WORLD")
+    payload["exclusions"] = [
+        _exclusion(
+            "precutoff-1",
+            "oldx",
+            "2020-01-01T00:00:00Z",
+            "observed",
+        ),
+        _exclusion(
+            "precutoff-2",
+            "OLDX",
+            "2019-12-31T19:00:00-05:00",
+            "observed",
+        ),
+    ]
+    _reseal(payload)
+
+    report = evaluate(payload)
+
+    assert report["status"] == "NOT_VALIDATED"
+    assert report["metrics"] is None
+    assert report["data_quality"]["holdout_candidate_count"] is None
+    assert report["data_quality"]["coverage"] is None
+    assert "DUPLICATE_EXCLUSION_OBSERVATION" in _issue_codes(report)
+    assert "EXCLUSION_BEFORE_HOLDOUT_CUTOFF" in _issue_codes(report)
 
 
 @pytest.mark.parametrize(
@@ -448,3 +534,32 @@ def test_cli_writes_machine_readable_report_and_never_enables(tmp_path: Path):
     assert report["status"] == "NOT_VALIDATED"
     assert report["models_enabled"] is False
     assert report["auto_enable_allowed"] is False
+
+
+def test_cli_replaces_stale_output_for_malformed_but_valid_json(tmp_path: Path):
+    """Catches a traceback leaving a prior successful report on disk."""
+    payload = _payload("REAL_WORLD")
+    payload["rows"][2]["label"] = []
+    _reseal(payload)
+    input_path = tmp_path / "malformed-shape.json"
+    output_path = tmp_path / "report.json"
+    input_path.write_text(json.dumps(payload), encoding="utf-8")
+    output_path.write_text(
+        json.dumps({"status": "EVALUATED_NOT_APPROVED", "stale": True}),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["--input", str(input_path), "--output", str(output_path)])
+
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert exit_code == 2
+    assert report["status"] == "NOT_VALIDATED"
+    assert "stale" not in report
+    assert report["metrics"] is None
+    assert report["evaluation_artifact_sha256"] == _sha256(
+        {
+            key: value
+            for key, value in report.items()
+            if key != "evaluation_artifact_sha256"
+        }
+    )
