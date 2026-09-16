@@ -8,6 +8,7 @@ import {
 import {
   ALERT_DERIVED_COLUMNS, PROMOTED_SOURCE_COLUMNS, definedPatch,
   publicationBatches, publicationKey, trackedStockPatches, updatePublicationRows,
+  restoreInsertedPublicationFloats,
   type PublicationPatch,
 } from "./publication-batches";
 
@@ -457,11 +458,14 @@ export class PrismaIngestionStore implements IngestionStore {
           });
           let snapshotsCreated = 0;
           for (const batch of publicationBatches(input.snapshots)) {
-            snapshotsCreated += (await tx.stockDailySnapshot.createMany({ data: batch.map(({ stockSymbol, ...snapshot }) => ({
+            const rows = batch.map(({ stockSymbol, ...snapshot }) => ({
               ...snapshot,
+              id: snapshot.id ?? randomUUID(),
               stockId: resolveStockId(snapshot.stockId, stockSymbol),
               artifactRevisionId: revision.id,
-            })) })).count;
+            }));
+            snapshotsCreated += (await tx.stockDailySnapshot.createMany({ data: rows })).count;
+            await restoreInsertedPublicationFloats(tx, "StockDailySnapshot", rows);
           }
           // Reconcile derived alert fields while retaining operator-owned
           // acknowledgement, notes, stable IDs, and creation timestamps.
@@ -502,7 +506,11 @@ export class PrismaIngestionStore implements IngestionStore {
             else alertCreates.push({ ...group.first, ...group.derived, id });
           }
           let alertsCreated = 0;
-          for (const batch of publicationBatches(alertCreates)) alertsCreated += (await tx.stockRiskAlert.createMany({ data: batch })).count;
+          for (const batch of publicationBatches(alertCreates)) {
+            const rows = batch.map((row) => ({ ...row, id: row.id ?? randomUUID() }));
+            alertsCreated += (await tx.stockRiskAlert.createMany({ data: rows })).count;
+            await restoreInsertedPublicationFloats(tx, "StockRiskAlert", rows);
+          }
           await updatePublicationRows(tx, "StockRiskAlert", alertUpdates);
           // Remove obsolete machine-only rows from a superseded revision, but
           // keep any row that carries operator acknowledgement or notes.
@@ -541,7 +549,11 @@ export class PrismaIngestionStore implements IngestionStore {
             if (id) promotedUpdates.push({ id, data: group.source });
             else promotedCreates.push({ ...group.first, ...group.source });
           }
-          for (const batch of publicationBatches(promotedCreates)) await tx.promotedStock.createMany({ data: batch });
+          for (const batch of publicationBatches(promotedCreates)) {
+            const rows = batch.map((row) => ({ ...row, id: row.id ?? randomUUID() }));
+            await tx.promotedStock.createMany({ data: rows });
+            await restoreInsertedPublicationFloats(tx, "PromotedStock", rows);
+          }
           await updatePublicationRows(tx, "PromotedStock", promotedUpdates);
           // Preserve the API's existing count of reconciled promoted inputs.
           const promotedStocksCreated = input.promotedStocks.length;

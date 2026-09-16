@@ -57,29 +57,81 @@ export function trackedStockPatches(
   return Array.from(byId.values());
 }
 
-/** Identifiers/types come only from this module's whitelist; values are bound.
- * Do not add operator-owned fields or promoted outcome fields to the whitelist. */
-export async function updatePublicationRows(
+// First-create fields include outcome floats only for brand-new promoted rows.
+// Existing outcome rows still use the narrower source-only update whitelist.
+const INSERT_FLOAT_COLUMNS = {
+  StockDailySnapshot: {
+    lastPrice: "double precision", previousClose: "double precision",
+    priceChangePct: "double precision", volumeRatio: "double precision", marketCap: "double precision",
+  },
+  StockRiskAlert: { priceAtAlert: "double precision" },
+  PromotedStock: {
+    entryPrice: "double precision", entryMarketCap: "double precision",
+    peakPrice: "double precision", currentPrice: "double precision",
+    maxGainPct: "double precision", currentGainPct: "double precision",
+  },
+} as const;
+
+/** Bind float values as round-trip decimal strings. Prisma numeric parameters
+ * can lose one ULP before PostgreSQL receives them; strings avoid that ingress.
+ * Encoding -0 explicitly also avoids JSON.stringify normalizing its sign. */
+function exactFloatTransport(rows: PublicationPatch[], columns: Record<string, string>): string {
+  return JSON.stringify(rows.map(({ id, data }) => ({ id, data: Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [key,
+      columns[key] === "double precision" && typeof value === "number"
+        ? Object.is(value, -0) ? "-0" : String(value)
+        : value,
+    ]),
+  ) })));
+}
+
+/** Identifiers/types come only from this module's whitelists; values are bound. */
+async function executePublicationPatches(
   tx: Prisma.TransactionClient,
-  table: keyof typeof TABLE_COLUMNS,
+  table: keyof typeof TABLE_COLUMNS | keyof typeof INSERT_FLOAT_COLUMNS,
+  columns: Record<string, string>,
   rows: PublicationPatch[],
+  updateTimestamp: boolean,
 ): Promise<void> {
-  const assignments = Object.entries(TABLE_COLUMNS[table]).map(([column, type]) => {
+  const assignments = Object.entries(columns).map(([column, type]) => {
     const identifier = Prisma.raw(`"${column}"`);
     return Prisma.sql`${identifier} = CASE WHEN incoming."data" ? ${column}
       THEN (incoming."data" ->> ${column})::${Prisma.raw(type)}
       ELSE target.${identifier} END`;
   });
-  if (table !== "StockRiskAlert") assignments.push(Prisma.sql`"updatedAt" = CURRENT_TIMESTAMP`);
+  if (updateTimestamp) assignments.push(Prisma.sql`"updatedAt" = CURRENT_TIMESTAMP`);
   for (const batch of publicationBatches(rows)) {
     const count = await tx.$executeRaw(Prisma.sql`
       UPDATE ${Prisma.raw(`"${table}"`)} AS target
       SET ${Prisma.join(assignments)}
-      FROM jsonb_to_recordset(${JSON.stringify(batch)}::jsonb) AS incoming("id" text, "data" jsonb)
+      FROM jsonb_to_recordset(${exactFloatTransport(batch, columns)}::jsonb) AS incoming("id" text, "data" jsonb)
       WHERE target."id" = incoming."id"
     `);
     if (count !== batch.length) throw new Error(`Publication ${table} update lost a target row`);
   }
+}
+
+/** Never add operator-owned or promoted outcome fields to TABLE_COLUMNS. */
+export async function updatePublicationRows(
+  tx: Prisma.TransactionClient,
+  table: keyof typeof TABLE_COLUMNS,
+  rows: PublicationPatch[],
+): Promise<void> {
+  await executePublicationPatches(tx, table, TABLE_COLUMNS[table], rows, table !== "StockRiskAlert");
+}
+
+/** Must run immediately after createMany in the same transaction. Preserve
+ * Prisma defaults/timestamps and correct only explicitly supplied float fields
+ * on these newly inserted IDs before the revision becomes visible. */
+export async function restoreInsertedPublicationFloats(
+  tx: Prisma.TransactionClient,
+  table: keyof typeof INSERT_FLOAT_COLUMNS,
+  rows: Array<{ id: string }>,
+): Promise<void> {
+  const columns = INSERT_FLOAT_COLUMNS[table];
+  const patches = rows.map((row) => ({ id: row.id, data: definedPatch(row, columns) }))
+    .filter((row) => Object.keys(row.data).length > 0);
+  await executePublicationPatches(tx, table, columns, patches, false);
 }
 
 export function publicationKey(...values: Array<string | Date>): string {

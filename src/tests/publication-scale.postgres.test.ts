@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { buildArtifactManifest } from "@/lib/admin/artifact-ingestion";
 import { PrismaIngestionStore } from "@/lib/admin/prisma-ingestion-store";
 
@@ -167,4 +167,64 @@ describePostgres("bounded full-date publication on PostgreSQL", () => {
     expect(await client.trackedStock.findUnique({ where: { id: stocks[0].id } })).toMatchObject({ exchange: "NYSE" });
     expect(await client.evaluationArtifactRevision.findUnique({ where: { revisionHash: input.revisionHash } })).toMatchObject({ status: "PUBLISHED" });
   });
+  test("retains source IEEE bits for every publication float insert and source update", async () => {
+    const input = await inputFor("2092-05-05", 8);
+    const values = [3965061512412.9995, 3562492932151.0005, 0, null, -0, 0.10000000000000002, 1e-300, undefined];
+    const suppliedTimestamp = new Date("2091-01-01T00:00:00Z");
+    const snapshotFields = ["lastPrice", "previousClose", "priceChangePct", "volumeRatio", "marketCap"];
+    const promotedFields = ["entryPrice", "entryMarketCap", "peakPrice", "currentPrice", "maxGainPct", "currentGainPct"];
+    const snapshots = input.snapshots.map((row, i) => ({ ...row, id: `float-snapshot-${i}`, createdAt: suppliedTimestamp, ...Object.fromEntries(snapshotFields.map((field) => [field, values[i]])) }));
+    const alerts = snapshots.map((row, i) => ({ id: `float-alert-${i}`, createdAt: suppliedTimestamp, stockId: row.stockId, alertDate: input.scanDate, alertType: "FLOAT_TEST", newRiskLevel: "HIGH", newScore: 70, priceAtAlert: values[i] }));
+    const promoted = snapshots.map((row, i) => ({ id: `float-promoted-${i}`, createdAt: suppliedTimestamp, updatedAt: suppliedTimestamp, symbol: stocks[i].symbol, addedDate: input.scanDate, promoterName: "Float fixture", promotionPlatform: "Offline", entryRiskScore: 70, entryPrice: values[i] ?? 0, ...Object.fromEntries(promotedFields.filter((field) => field !== "entryPrice").map((field) => [field, values[i]])) }));
+    const bits = (value: number | null | undefined) => {
+      if (value == null) return null;
+      const bytes = Buffer.alloc(8); bytes.writeDoubleBE(value); return bytes.toString("hex");
+    };
+    const assertBits = async (table: string, id: string, fields: string[], expected: Array<number | null | undefined>) => {
+      const rows = await client.$queryRaw<Array<Record<string, string | null>>>(Prisma.sql`
+        SELECT ${Prisma.join(fields.map((field) => Prisma.sql`encode(float8send(${Prisma.raw(`"${field}"`)}), 'hex') AS ${Prisma.raw(`"${field}"`)}`))}
+        FROM ${Prisma.raw(`"${table}"`)} WHERE "id" = ${id}`);
+      expect(rows[0]).toEqual(Object.fromEntries(fields.map((field, i) => [field, bits(expected[i])])));
+    };
+    await new PrismaIngestionStore(client).publishEvaluationRevision({ ...input, snapshots, alerts, promotedStocks: promoted });
+    for (let i = 0; i < values.length; i++) {
+      const snapshot = await client.stockDailySnapshot.findUniqueOrThrow({ where: { stockId_scanDate: { stockId: stocks[i].id, scanDate: input.scanDate } } });
+      const alert = await client.stockRiskAlert.findFirstOrThrow({ where: { stockId: stocks[i].id, alertDate: input.scanDate } });
+      const promotion = await client.promotedStock.findUniqueOrThrow({ where: { symbol_addedDate: { symbol: stocks[i].symbol, addedDate: input.scanDate } } });
+      expect(snapshot).toMatchObject({ id: `float-snapshot-${i}`, createdAt: suppliedTimestamp });
+      expect(alert).toMatchObject({ id: `float-alert-${i}`, createdAt: suppliedTimestamp });
+      expect(promotion).toMatchObject({ id: `float-promoted-${i}`, createdAt: suppliedTimestamp, updatedAt: suppliedTimestamp });
+      await assertBits("StockDailySnapshot", snapshot.id, snapshotFields, snapshotFields.map(() => values[i]));
+      await assertBits("StockRiskAlert", alert.id, ["priceAtAlert"], [values[i]]);
+      await assertBits("PromotedStock", promotion.id, promotedFields, promotedFields.map((field) => field === "entryPrice" ? values[i] ?? 0 : values[i]));
+    }
+    // A fresh date with pre-existing rows exercises source updates separately;
+    // omitted source fields and independently tracked outcomes must survive.
+    const next = await inputFor("2092-05-06");
+    const existingAlert = await client.stockRiskAlert.create({ data: { ...alerts[0], id: "float-update-alert", alertDate: next.scanDate, priceAtAlert: 10, notes: "retain float operator note" } });
+    const existingPromoted = await client.promotedStock.create({ data: { ...promoted[0], id: "float-update-promoted", addedDate: next.scanDate, entryPrice: 10, entryMarketCap: 20, peakPrice: 99 } });
+    await new PrismaIngestionStore(client).publishEvaluationRevision({ ...next,
+      alerts: [{ ...alerts[0], alertDate: next.scanDate, priceAtAlert: -0 }],
+      promotedStocks: [{ symbol: stocks[0].symbol, addedDate: next.scanDate, promoterName: "Updated", promotionPlatform: "Offline", entryRiskScore: 70, entryPrice: values[0]!, peakPrice: 1 }],
+    });
+    await assertBits("StockRiskAlert", existingAlert.id, ["priceAtAlert"], [-0]);
+    await assertBits("PromotedStock", existingPromoted.id, ["entryPrice", "entryMarketCap", "peakPrice"], [values[0], 20, 99]);
+    expect(await client.stockRiskAlert.findUnique({ where: { id: existingAlert.id } })).toMatchObject({ notes: "retain float operator note" });
+  });
+
+  test("rolls back inserted rows when exact float restoration fails", async () => {
+    const input = await inputFor("2092-05-07");
+    input.snapshots[0].marketCap = 3965061512412.9995;
+    const failing = client.$extends({ query: { $allOperations: async ({ operation, args, query }) => {
+      if (operation === "$executeRaw" && JSON.stringify(args).includes("StockDailySnapshot")) {
+        throw new Error("Injected exact float transport failure");
+      }
+      return query(args);
+    } } });
+    await expect(new PrismaIngestionStore(failing as unknown as PrismaClient).publishEvaluationRevision(input)).rejects.toThrow("Injected exact float transport failure");
+    expect(await client.stockDailySnapshot.count({ where: { scanDate: input.scanDate } })).toBe(0);
+    expect(await client.dailyScanSummary.count({ where: { scanDate: input.scanDate } })).toBe(0);
+    expect(await client.evaluationArtifactRevision.findUnique({ where: { revisionHash: input.revisionHash } })).toMatchObject({ status: "INGESTING", publishedAt: null });
+  });
+
 });
