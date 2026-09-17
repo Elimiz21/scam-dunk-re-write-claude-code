@@ -26,16 +26,19 @@ export async function GET() {
         SELECT
           (SELECT COUNT(DISTINCT symbol) FROM "PromotedStock"
             WHERE outcome IN ('DUMPED','DELISTED')
+              AND "entryPrice" > 0 AND "entryPrice" < 'Infinity'::double precision
               AND "addedDate" > now() - interval '6 months') AS dump_symbols_6mo,
           (SELECT COUNT(DISTINCT symbol) FROM "PromotedStock"
             WHERE outcome IN ('DUMPED','DELISTED')
+              AND "entryPrice" > 0 AND "entryPrice" < 'Infinity'::double precision
               AND "addedDate" > now() - interval '30 days') AS dump_symbols_30d,
           (SELECT COUNT(DISTINCT symbol) FROM "PromotedStock"
             WHERE "addedDate" > now() - interval '7 days') AS flag_symbols_7d,
           (SELECT COUNT(DISTINCT symbol) FROM "PromotedStock"
             WHERE "addedDate" > now() - interval '30 days') AS flag_symbols_30d,
           (SELECT COUNT(DISTINCT symbol) FROM "PromotedStock"
-            WHERE outcome = 'PUMPING' AND "isActive") AS pumping_now
+            WHERE outcome = 'PUMPING' AND "isActive"
+              AND "entryPrice" > 0 AND "entryPrice" < 'Infinity'::double precision) AS pumping_now
       `,
     ]);
 

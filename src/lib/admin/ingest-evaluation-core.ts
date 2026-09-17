@@ -1,3 +1,4 @@
+import { normalizeEntryPrice } from "@/lib/promoted-stocks/entry-price";
 /**
  * Core ingestion logic for daily evaluation files.
  * Shared between the admin manual ingest route and the cron auto-ingest route.
@@ -533,6 +534,11 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         error: evaluationError ?? "Evaluation file not found",
       };
     }
+    // Validate before any legacy write or canonical phase claim. Unknown is
+    // valid source evidence; invalid numeric values must not enter storage.
+    for (const promoted of promotedData?.promotedStocks ?? []) {
+      normalizeEntryPrice(promoted.price);
+    }
     console.log(
       `[ingest-core] Loaded ${evaluationData.length} stocks for ${date}`,
     );
@@ -1029,7 +1035,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       promoterName: string;
       promotionPlatform: string;
       promotionGroup: string;
-      entryPrice: number;
+      entryPrice: number | null;
       entryMarketCap: number | null;
       entryRiskScore: number;
       evidenceLinks: string;
@@ -1058,11 +1064,6 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
       for (const promoted of promotedData.promotedStocks) {
         if (quarantinedSymbols.has(promoted.symbol)) continue;
-        if (publishedRevision && promoted.price == null) {
-          throw new Error(
-            `Published promoted artifact has no evidenced entry price for ${promoted.symbol}`,
-          );
-        }
         if (staleBySymbol.get(promoted.symbol)) {
           promotedStocksSkippedStale++;
           console.warn(
@@ -1089,7 +1090,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
             promoted.tier === "HIGH" ? "Social Media Alert" : "Risk Flag",
           promotionPlatform: platform,
           promotionGroup: promoted.platforms.join(", "),
-          entryPrice: promoted.price ?? 0,
+          entryPrice: normalizeEntryPrice(promoted.price),
           entryMarketCap: marketCapNum,
           entryRiskScore: promoted.riskScore ?? 0,
           evidenceLinks: promoted.sources.join("\n"),
@@ -1114,7 +1115,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
             update: {
               promotionPlatform: platform,
               promotionGroup: promoted.platforms.join(", "),
-              entryPrice: promoted.price ?? undefined,
+              entryPrice: normalizeEntryPrice(promoted.price),
               entryMarketCap: marketCapNum ?? undefined,
               entryRiskScore: promoted.riskScore ?? undefined,
               evidenceLinks: promoted.sources.join("\n"),

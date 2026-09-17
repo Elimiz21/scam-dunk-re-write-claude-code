@@ -1,3 +1,4 @@
+import { visiblePromotion } from "@/lib/promoted-stocks/entry-price";
 /**
  * Admin Stock Lookup API - Search and get stock history
  */
@@ -78,12 +79,14 @@ export async function GET(request: Request) {
     });
 
     // Check if promoted
-    const promotion = await prisma.promotedStock.findFirst({
+    const storedPromotion = await prisma.promotedStock.findFirst({
       where: {
         symbol,
         isActive: true,
       },
     });
+
+    const promotion = storedPromotion ? visiblePromotion(storedPromotion) : null;
 
     // Calculate statistics
     const latestSnapshot = snapshots[0];

@@ -190,6 +190,41 @@ describe("ingestDate OTC records", () => {
     global.fetch = originalFetch;
   });
 
+  it.each([false, true].flatMap((canonical) => [null, undefined, 0, 2, -1, "bad"].map((price) => ({ canonical, price }))))(
+    "preserves unknown/zero promoted entry or rejects invalid input ($canonical/$price)", async ({ canonical, price }) => {
+      const date = "2026-09-16";
+      promoted = [{ symbol: "EXAMPLE", name: "Example Corp", price, riskScore: 10, platforms: [], sources: [], tier: "HIGH" }];
+      let publish: jest.SpyInstance | undefined;
+      if (canonical) {
+        const evaluationName = `enhanced-evaluation-${date}.json`, summaryName = `fmp-summary-${date}.json`, promotedName = `promoted-stocks-${date}.json`;
+        const plan = createRevisionUploadPlan({ scanDate: date, producerRunId: "unknown-entry",
+          files: { [evaluationName]: Buffer.from(JSON.stringify(rows)), [summaryName]: Buffer.from(JSON.stringify({ totalStocks: 1, evaluated: 1, skippedNoData: 0, byRiskLevel: { INSUFFICIENT: 1 }, byExchange: {} })), [promotedName]: Buffer.from(JSON.stringify({ date, promotedStocks: promoted })) }, required: [evaluationName, summaryName] });
+        const objects = new Map(plan.operations.map((op) => [op.path, op.content]));
+        download.mockImplementation(async (name: string) => objects.has(name) ? { data: new Blob([new Uint8Array(objects.get(name)!)]), error: null } : { data: null, error: { message: "not found" } });
+        jest.spyOn(PrismaIngestionStore.prototype, "ensureRevision").mockResolvedValue();
+        jest.spyOn(PrismaIngestionStore.prototype, "claimPhase").mockResolvedValue({ state: "CLAIMED", leaseToken: "lease" });
+        jest.spyOn(PrismaIngestionStore.prototype, "failPhase").mockResolvedValue();
+        publish = jest.spyOn(PrismaIngestionStore.prototype, "publishEvaluationRevision").mockResolvedValue({ snapshotsCreated: 1, alertsCreated: 0, promotedStocksCreated: 1, stocksCreated: 0 });
+      }
+      const result = await ingestDate(date);
+      if (price === -1 || price === "bad") {
+        expect(result).toMatchObject({ success: false, error: expect.stringContaining("Invalid promoted entry price") });
+        expect(prisma.stockDailySnapshot.createMany).not.toHaveBeenCalled();
+        expect(prisma.promotedStock.upsert).not.toHaveBeenCalled();
+        if (publish) expect(publish).not.toHaveBeenCalled();
+      } else {
+        expect(result.success).toBe(true);
+        if (publish) expect(publish.mock.calls[0][0].promotedStocks[0].entryPrice).toBe(price ?? null);
+        else {
+          expect(prisma.promotedStock.upsert).toHaveBeenCalled();
+          const payload = (prisma.promotedStock.upsert as jest.Mock).mock.calls[0][0];
+          expect(payload.create.entryPrice).toBe(price ?? null);
+          expect(payload.update.entryPrice).toBe(price ?? null);
+        }
+      }
+    },
+  );
+
   it("fails a pointer revision with an identity conflict before any canonical or metadata write", async () => {
     const date = "2026-09-16";
     rows[0] = { ...row, name: "Different Issuer Ltd", riskLevel: "HIGH" };

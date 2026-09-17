@@ -226,7 +226,7 @@ export async function POST() {
         "promoterName" TEXT NOT NULL,
         "promotionPlatform" TEXT NOT NULL,
         "promotionGroup" TEXT,
-        "entryPrice" DOUBLE PRECISION NOT NULL,
+        "entryPrice" DOUBLE PRECISION,
         "entryMarketCap" DOUBLE PRECISION,
         "entryRiskScore" INTEGER NOT NULL,
         "peakPrice" DOUBLE PRECISION,

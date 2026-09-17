@@ -1,3 +1,4 @@
+import { visiblePromotion } from "@/lib/promoted-stocks/entry-price";
 /**
  * Admin Market Analysis API - Get daily scan summaries and trends
  */
@@ -151,7 +152,7 @@ async function buildMarketAnalysis(days: number) {
     stats,
     riskTrend: riskTrend.reverse(),
     highRiskStocks,
-    promotedStocks,
+    promotedStocks: promotedStocks.map(visiblePromotion),
     summaries: summaries.slice(0, 7),
   };
 }
