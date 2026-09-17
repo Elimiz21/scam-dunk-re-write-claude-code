@@ -26,6 +26,7 @@ import {
   executeRevisionUploadPlan,
   extractProducerExecutedAt,
   assertPublicationQuality,
+  readSupabaseStorageObject,
   requireStoragePublisherConfig,
 } from "./storage-publisher";
 import { assertPostScanReportParent } from "./post-scan-artifact-source";
@@ -121,14 +122,10 @@ async function uploadDateFiles(date: string) {
     throw new Error(`Failed to read authoritative publication head: ${publicationHeadError.message}`);
   }
   previous = await loadPublishedArtifactRevision(date, async (objectPath) => {
-    const { data, error } = await client.storage
-      .from(BUCKET_NAME)
-      .download(objectPath);
-    if (error) {
-      if (/not.?found|404/i.test(error.message)) return null;
-      throw new Error(`Failed to read ${objectPath}: ${error.message}`);
-    }
-    return Buffer.from(await data.arrayBuffer());
+    return readSupabaseStorageObject(
+      objectPath,
+      (pathToDownload) => client.storage.from(BUCKET_NAME).download(pathToDownload),
+    );
   }, publicationHead?.revisionHash);
   if (previous) {
     for (const [logicalName, bytes] of previous.files) {

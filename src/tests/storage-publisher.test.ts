@@ -3,8 +3,10 @@ import {
   executeRevisionUploadPlan,
   extractProducerExecutedAt,
   assertPublicationQuality,
+  readSupabaseStorageObject,
   requireStoragePublisherConfig,
 } from "../../evaluation/scripts/storage-publisher";
+import { loadPublishedArtifactRevision } from "@/lib/admin/artifact-storage";
 
 describe("server-side evaluation artifact publication", () => {
   const jwt = (payload: Record<string, unknown>) =>
@@ -15,6 +17,75 @@ describe("server-side evaluation artifact publication", () => {
       Buffer.from(JSON.stringify(payload)).toString("base64url"),
       "test-signature",
     ].join(".");
+
+  const unknownStorageError = (response: Response) => ({
+    name: "StorageUnknownError",
+    message: "{}",
+    status: undefined,
+    statusCode: undefined,
+    originalError: response,
+  });
+
+  const missingKeyResponse = () => new Response(JSON.stringify({
+    statusCode: "404",
+    error: "not_found",
+    message: "Object not found",
+    code: "NoSuchKey",
+  }), { status: 400, headers: { "content-type": "application/json" } });
+
+  it("recognizes the verified SDK missing-key response without consuming its body", async () => {
+    const originalResponse = missingKeyResponse();
+    const download = jest.fn(async () => ({
+      data: null,
+      error: unknownStorageError(originalResponse),
+    }));
+
+    await expect(readSupabaseStorageObject("revisions/2026-09-16/current.json", download))
+      .resolves.toBeNull();
+    expect(await originalResponse.json()).toEqual({
+      statusCode: "404",
+      error: "not_found",
+      message: "Object not found",
+      code: "NoSuchKey",
+    });
+  });
+
+  it("fails closed for auth, transport, ambiguous legacy, and message-only errors", async () => {
+    const cases: unknown[] = [
+      unknownStorageError(new Response(JSON.stringify({
+        statusCode: "403", error: "unauthorized", message: "Invalid JWT", code: "InvalidJWT",
+      }), { status: 400 })),
+      { name: "StorageUnknownError", message: "network failed", originalError: new Error("ECONNRESET") },
+      unknownStorageError(new Response(JSON.stringify({
+        statusCode: "404", error: "not_found", message: "Object not found",
+      }), { status: 400 })),
+      { name: "StorageUnknownError", message: "Object not found" },
+    ];
+    for (const error of cases) {
+      await expect(readSupabaseStorageObject("revisions/2026-09-16/current.json", async () => ({
+        data: null, error,
+      }))).rejects.toThrow("Failed to read revisions/2026-09-16/current.json");
+    }
+  });
+
+  it("accepts the documented new missing-key API error shape", async () => {
+    await expect(readSupabaseStorageObject("revisions/2026-09-16/current.json", async () => ({
+      data: null,
+      error: {
+        name: "StorageApiError", message: "Object not found", status: 404, statusCode: "NoSuchKey",
+      },
+    }))).resolves.toBeNull();
+  });
+
+  it("keeps an authoritative database head fail closed when its manifest is missing", async () => {
+    const revisionHash = "a".repeat(64);
+    const readObject = (objectPath: string) => readSupabaseStorageObject(objectPath, async () => ({
+      data: null,
+      error: unknownStorageError(missingKeyResponse()),
+    }));
+    await expect(loadPublishedArtifactRevision("2026-09-16", readObject, revisionHash))
+      .rejects.toThrow(`Missing manifest: revisions/2026-09-16/${revisionHash}/manifest.json`);
+  });
 
   it("uses only a real run-summary end time as the producer execution time", () => {
     expect(
