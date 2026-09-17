@@ -41,6 +41,7 @@ import {
   PlatformScanResult as RealPlatformScanResult,
 } from "./real-social-scanner";
 import { runSocialScan } from "./social-scan/index";
+import { retainAndPublishSocialFallback, type FallbackPublication } from "./social-fallback-publication";
 import { ScanTarget, TickerScanResult } from "./social-scan/types";
 import {
   createNewsAnalysisPlan,
@@ -62,6 +63,7 @@ import {
 // Deployed app URL and API key for triggering the production social scan
 const SOCIAL_SCAN_APP_URL = process.env.SOCIAL_SCAN_APP_URL || "";
 const SOCIAL_SCAN_API_KEY = process.env.SOCIAL_SCAN_API_KEY || "";
+const SOCIAL_SCAN_INGEST_KEY = process.env.SOCIAL_SCAN_INGEST_KEY || "";
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 const RESULTS_DIR = path.join(__dirname, "..", "results");
@@ -2030,6 +2032,7 @@ async function runEnhancedPipeline(): Promise<void> {
   scanStatus.phases.phase4_socialMedia.status = "running";
   scanStatus.phases.phase4_socialMedia.startedAt = new Date().toISOString();
   let scanRunResult: any = null;
+  let fallbackPublication: FallbackPublication | null = null;
 
   if (afterNewsFilter.length > 0) {
     // Convert pipeline stocks to ScanTarget format
@@ -2181,12 +2184,38 @@ async function runEnhancedPipeline(): Promise<void> {
 
     // Fallback: run local social scan if API not configured or failed
     if (!usedDeployedAPI) {
-      console.log("  Using local social scan (results saved to JSON only)");
+      console.log("  Using local social scan; retaining evidence before publication");
       scanRunResult = await runSocialScan({
         tickers: top50Targets,
         date: evaluationDate,
         scanId: `pipeline-${evaluationDate}-${Date.now()}`,
       });
+
+      fallbackPublication = await retainAndPublishSocialFallback(
+        scanRunResult,
+        top50Targets.map((target) => target.ticker),
+        {
+          appUrl: SOCIAL_SCAN_APP_URL,
+          ingestKey: SOCIAL_SCAN_INGEST_KEY,
+          retain: (source, requestBody) => {
+            fs.writeFileSync(path.join(RESULTS_DIR, `social-scan-${evaluationDate}.json`), JSON.stringify(source, null, 2));
+            fs.writeFileSync(path.join(RESULTS_DIR, `social-ingest-request-${evaluationDate}.json`), requestBody);
+          },
+        },
+      );
+      fs.writeFileSync(
+        path.join(RESULTS_DIR, `social-ingest-publication-${evaluationDate}.json`),
+        JSON.stringify(fallbackPublication, null, 2),
+      );
+      console.log(`  Fallback publication: ${fallbackPublication.state}; run ${fallbackPublication.scanRunId}; attempts ${fallbackPublication.attempts}`);
+      if (fallbackPublication.state === "PUBLISHED") {
+        console.log(`  Server confirmed ${fallbackPublication.totalMentions} retained mentions; status ${fallbackPublication.status}; verified searched tickers ${fallbackPublication.tickersScanned}`);
+      } else {
+        console.log(`  ⚠️  ${fallbackPublication.error}`);
+      }
+      // Keep local mention evidence for downstream artifacts. Without a local
+      // search ledger, neither upload success nor scanner success proves coverage.
+      scanRunResult.status = fallbackPublication.status || "PARTIAL";
 
       console.log(`\n  Orchestrator status: ${scanRunResult.status}`);
       console.log(
@@ -2453,6 +2482,7 @@ async function runEnhancedPipeline(): Promise<void> {
     Date.now() -
     new Date(scanStatus.phases.phase4_socialMedia.startedAt!).getTime();
   scanStatus.phases.phase4_socialMedia.details = {
+    publication: fallbackPublication,
     eligibleCandidates: afterNewsFilter.length,
     tickersSubmitted: scanStatus.socialMediaDetails.tickersSubmitted,
     tickersActuallySearched:
@@ -2965,6 +2995,7 @@ async function runEnhancedPipeline(): Promise<void> {
   ).length;
   const socialScanData = {
     scanDate: evaluationDate,
+    publication: fallbackPublication,
     eligibleCandidates: suspiciousStocks.length,
     tickersSubmitted: scanStatus.socialMediaDetails.tickersSubmitted,
     tickersActuallySearched:
