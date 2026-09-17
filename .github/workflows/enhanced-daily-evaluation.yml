@@ -213,6 +213,7 @@ jobs:
           AI_API_SECRET: ${{ secrets.AI_API_SECRET }}
           SOCIAL_SCAN_APP_URL: ${{ secrets.SOCIAL_SCAN_APP_URL }}
           SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
+          SOCIAL_SCAN_INGEST_KEY: ${{ secrets.SOCIAL_SCAN_INGEST_KEY }}
         run: |
           MISSING=""
           if [ -z "$FMP_API_KEY" ]; then MISSING="$MISSING FMP_API_KEY"; fi
@@ -230,7 +231,12 @@ jobs:
           if [ -n "$SOCIAL_SCAN_APP_URL" ] && [ -n "$SOCIAL_SCAN_API_KEY" ]; then
             echo "Social scan: Deployed API configured → results go to Supabase + AI screening"
           else
-            echo "::warning::SOCIAL_SCAN_APP_URL or SOCIAL_SCAN_API_KEY not set - social scan will use local fallback (JSON only, no AI screening)"
+            echo "::warning::SOCIAL_SCAN_APP_URL or SOCIAL_SCAN_API_KEY not set - social scan will use local fallback (no AI screening; publication checked separately)"
+          fi
+          if [ -n "$SOCIAL_SCAN_APP_URL" ] && [ -n "$SOCIAL_SCAN_INGEST_KEY" ]; then
+            echo "Local fallback publication configured; server-confirmed receipt will be retained"
+          else
+            echo "::warning::Local social fallback publication unavailable; raw evidence will be retained with degraded publication status"
           fi
           if [ -n "$AI_BACKEND_URL" ] && [ -z "$AI_API_SECRET" ]; then
             echo "::warning::AI_BACKEND_URL is set but AI_API_SECRET is missing - Python AI backend requests will fail auth"
@@ -258,6 +264,7 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           SOCIAL_SCAN_APP_URL: ${{ secrets.SOCIAL_SCAN_APP_URL }}
           SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
+          SOCIAL_SCAN_INGEST_KEY: ${{ secrets.SOCIAL_SCAN_INGEST_KEY }}
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
         run: |
@@ -475,6 +482,9 @@ jobs:
 
           # Copy social media scans
           cp evaluation/results/social-media-scan-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
+          cp evaluation/results/social-scan-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
+          cp evaluation/results/social-ingest-request-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
+          cp evaluation/results/social-ingest-publication-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
           cp evaluation/results/social-media-scan-*.md data-repo/social-media-scans/ 2>/dev/null || true
 
           # Copy comparison reports
