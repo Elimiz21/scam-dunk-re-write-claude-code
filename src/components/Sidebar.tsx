@@ -77,7 +77,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan: _onNewScan, refreshKey = 
       <aside
         id="dashboard-sidebar"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-[#29445d] bg-[#19324b] text-white transition-transform duration-300",
+          "fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-dashboard-border bg-dashboard text-dashboard-foreground transition-transform duration-300",
           persistent
             ? "lg:sticky lg:top-[108px] lg:z-20 lg:h-[calc(100vh-108px)] lg:w-64 lg:shrink-0 lg:translate-x-0"
             : "lg:top-[108px] lg:h-[calc(100vh-108px)]",
@@ -105,8 +105,8 @@ export function Sidebar({ isOpen, onToggle, onNewScan: _onNewScan, refreshKey = 
                   className={cn(
                     "flex min-h-11 items-center gap-2.5 rounded-xl px-3 text-[14px] font-medium transition-colors",
                     active
-                      ? "bg-[#204f7d] text-white ring-1 ring-inset ring-brand-blue"
-                      : "text-white/60 hover:bg-white/10 hover:text-white",
+                      ? "bg-dashboard-active text-dashboard-foreground ring-1 ring-inset ring-dashboard-border"
+                      : "text-dashboard-foreground/60 hover:bg-white/10 hover:text-dashboard-foreground",
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />

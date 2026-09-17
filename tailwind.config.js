@@ -84,6 +84,12 @@ module.exports = {
           DEFAULT: "hsl(var(--teal))",
           soft: "hsl(var(--teal-soft))",
         },
+        dashboard: {
+          DEFAULT: "hsl(var(--dashboard-shell))",
+          foreground: "hsl(var(--dashboard-shell-foreground))",
+          active: "hsl(var(--dashboard-shell-active))",
+          border: "hsl(var(--dashboard-shell-border))",
+        },
         "brand-blue": "hsl(var(--brand-blue))",
       },
       borderRadius: {

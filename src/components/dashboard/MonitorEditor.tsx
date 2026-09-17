@@ -101,7 +101,7 @@ export function MonitorEditor({
         </p>
       </div>
         <form onSubmit={submit} className="mt-4 space-y-4">
-          <div className="rounded-xl border border-brand-blue/20 bg-brand-blue/5 px-4 py-3">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
             <p className="text-sm font-semibold">Monitoring</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               Every scheduled check runs the full ScamDunk risk analysis. {view.slotLabel}.

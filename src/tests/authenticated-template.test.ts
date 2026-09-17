@@ -61,6 +61,24 @@ describe("approved authenticated Paper & Ink shell", () => {
     expect(dashboard).toContain("font-editorial");
   });
 
+  test("keeps the authenticated experience on the teal dashboard palette", () => {
+    const globals = readProjectFile("src/app/globals.css");
+    const tailwind = readProjectFile("tailwind.config.js");
+    const sidebar = readProjectFile("src/components/Sidebar.tsx");
+    const home = readProjectFile("src/app/HomeContent.tsx");
+    const monitorEditor = readProjectFile("src/components/dashboard/MonitorEditor.tsx");
+    const marketTable = readProjectFile("src/components/dashboard/UnifiedMarketTable.tsx");
+    const authenticatedSources = [sidebar, home, monitorEditor, marketTable].join("\n");
+
+    expect(globals).toContain("--dashboard-shell: 191 46% 24%;");
+    expect(globals).toContain("--dashboard-shell-active: 191 46% 31%;");
+    expect(tailwind).toContain('dashboard: {');
+    expect(sidebar).toContain("border-dashboard-border bg-dashboard text-dashboard-foreground");
+    expect(sidebar).toContain("bg-dashboard-active");
+    expect(home).toContain("border-dashboard-border bg-dashboard");
+    expect(authenticatedSources).not.toMatch(/#19324b|#204f7d|#193650|brand-blue/);
+  });
+
   test("allows the approved landing hero to shrink on narrow screens", () => {
     const landing = readProjectFile("src/components/landing/LandingOptionA.tsx");
 

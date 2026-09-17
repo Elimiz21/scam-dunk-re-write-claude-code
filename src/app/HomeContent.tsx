@@ -574,7 +574,7 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
               {session ? (
                   <div className="flex-1 overflow-y-auto bg-background">
                     <section className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-                      <div className="rounded-3xl border border-brand-blue/25 bg-[#193650] px-6 py-7 text-white sm:px-9">
+                      <div className="rounded-3xl border border-dashboard-border bg-dashboard px-6 py-7 text-dashboard-foreground sm:px-9">
                         <p className="text-[11px] font-semibold uppercase tracking-widest text-white/65">New scan</p>
                         <h1 className="mt-2 font-editorial text-[clamp(2rem,4vw,3rem)] leading-tight">
                           Paste a ticker, get the truth.

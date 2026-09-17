@@ -32,6 +32,11 @@
     --teal: 191 46% 24%;
     --teal-soft: 189 30% 69%;
     --brand-blue: 212 100% 48%;
+    /* Authenticated dashboard — stable dark teal surfaces in both themes */
+    --dashboard-shell: 191 46% 24%;
+    --dashboard-shell-active: 191 46% 31%;
+    --dashboard-shell-border: 191 34% 34%;
+    --dashboard-shell-foreground: 48 37% 98%;
     --brand-gradient-from: 191 46% 24%;
     --brand-gradient-to: 191 46% 24%;
     --brand-mid: 191 46% 24%;
