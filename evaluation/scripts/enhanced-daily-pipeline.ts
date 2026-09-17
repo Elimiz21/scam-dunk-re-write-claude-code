@@ -27,6 +27,13 @@ import {
 } from "./otc-daily";
 import { execSync } from "child_process";
 import { assessRiskScoringCoverage } from "./risk-scoring-coverage";
+import {
+  buildRiskScoringAccounting,
+  completeFailedOtcOutcomes,
+  createListedRiskScoringOutcome,
+  type RiskScoringAccounting,
+  type RiskScoringOutcome,
+} from "./risk-scoring-accounting";
 
 // Import scoring modules
 import {
@@ -1060,6 +1067,9 @@ interface ScanStatus {
     totalStocks: number;
     processed: number;
     skippedNoData: number;
+    excluded: number;
+    unprocessed: number;
+    coverageAccounting: RiskScoringAccounting | null;
     riskCounts: {
       LOW: number;
       MEDIUM: number;
@@ -1133,6 +1143,9 @@ function createInitialScanStatus(date: string): ScanStatus {
       totalStocks: 0,
       processed: 0,
       skippedNoData: 0,
+      excluded: 0,
+      unprocessed: 0,
+      coverageAccounting: null,
       riskCounts: { LOW: 0, MEDIUM: 0, HIGH: 0, INSUFFICIENT: 0 },
       highRiskBeforeFilters: 0,
       filteredByMarketCap: 0,
@@ -1262,7 +1275,7 @@ async function runEnhancedPipeline(): Promise<void> {
   // Counters
   let processedCount = 0;
   let skippedNoData = 0;
-  const listedNoData: Array<{ symbol: string }> = [];
+  const listedOutcomes: RiskScoringOutcome[] = [];
   let filteredByMarketCap = 0;
   let filteredByVolume = 0;
   let filteredByNews = 0;
@@ -1463,13 +1476,23 @@ async function runEnhancedPipeline(): Promise<void> {
 
       if (!marketData || !marketData.dataAvailable) {
         skippedNoData++;
-        listedNoData.push({ symbol: stock.symbol });
+        listedOutcomes.push(
+          createListedRiskScoringOutcome(stock.symbol, "no_data"),
+        );
         continue;
       }
 
       // Current OTC profiles must pass the dedicated freshness/identity gates,
       // even if this symbol remains in the legacy listed universe.
-      if (marketData.isOTC) continue;
+      if (marketData.isOTC) {
+        listedOutcomes.push(
+          createListedRiskScoringOutcome(
+            stock.symbol,
+            "profile_otc_not_in_directory",
+          ),
+        );
+        continue;
+      }
       const extendedQuote = marketData.quote as ExtendedQuote;
 
       // Run risk scoring
@@ -1612,6 +1635,9 @@ async function runEnhancedPipeline(): Promise<void> {
       };
 
       allResults.push(result);
+      listedOutcomes.push(
+        createListedRiskScoringOutcome(stock.symbol, "evaluated"),
+      );
       processedCount++;
 
       if (scoringResult.riskLevel === "HIGH") {
@@ -1620,7 +1646,9 @@ async function runEnhancedPipeline(): Promise<void> {
 
       await sleep(FMP_DELAY_MS);
     } catch (error: any) {
-      listedNoData.push({ symbol: stock.symbol });
+      listedOutcomes.push(
+        createListedRiskScoringOutcome(stock.symbol, "processing_error"),
+      );
       console.error(
         `\nError processing ${stock.symbol}:`,
         error?.message || error,
@@ -1688,15 +1716,28 @@ async function runEnhancedPipeline(): Promise<void> {
     processedCount++;
     if (otc.riskLevel === "HIGH") highRiskBeforeFilter.push(result);
   }
-  skippedNoData =
-    reconcileListedResults(listedNoData, otcScan.coverage.directorySymbols)
-      .length +
-    otcScan.coverage.outcomes.filter((outcome) => outcome.status === "failed")
-      .length;
-  const listedSymbols = new Set(stocks.map((stock) => stock.symbol));
-  scanStatus.summary.totalStocks += otcScan.coverage.eligibleSymbols.filter(
-    (symbol) => !listedSymbols.has(symbol),
-  ).length;
+  const reconciledListedOutcomes = reconcileListedResults(
+    listedOutcomes,
+    otcScan.coverage.directorySymbols,
+  );
+  const completeOtcOutcomes = completeFailedOtcOutcomes(
+    otcScan.coverage.eligibleSymbols,
+    otcScan.coverage.outcomes,
+    otcScan.results.map((result) => result.symbol),
+    otcScan.coverage.status,
+  );
+  const coverageAccounting = buildRiskScoringAccounting({
+    listedRawSymbols: stocks.map((stock) => stock.symbol),
+    otcProviderRawCount: otcScan.coverage.rawCount,
+    otcDirectorySymbols: otcScan.coverage.directorySymbols,
+    otcEligibleSymbols: otcScan.coverage.eligibleSymbols,
+    listedOutcomes: reconciledListedOutcomes,
+    otcOutcomes: completeOtcOutcomes,
+    publishedResultCount: allResults.length,
+  });
+  processedCount = coverageAccounting.processing.processed.total;
+  skippedNoData = coverageAccounting.processing.skippedNoData.total;
+  scanStatus.summary.totalStocks = coverageAccounting.eligibility.total;
   console.log(
     `OTC: ${otcScan.results.length}/${otcScan.coverage.eligibleCount} evaluated; ${otcScan.coverage.status}; ${otcClient.calls} provider calls`,
   );
@@ -1704,6 +1745,12 @@ async function runEnhancedPipeline(): Promise<void> {
   console.log("\n\nPhase 1 Complete!");
   console.log(`  Processed: ${processedCount}`);
   console.log(`  Skipped (no data): ${skippedNoData}`);
+  console.log(
+    `  Excluded: ${coverageAccounting.processing.excluded.total}`,
+  );
+  console.log(
+    `  Unprocessed: ${coverageAccounting.processing.unprocessed.total}`,
+  );
   console.log(
     `  Risk Distribution: LOW=${riskCounts.LOW} MEDIUM=${riskCounts.MEDIUM} HIGH=${riskCounts.HIGH}`,
   );
@@ -1742,11 +1789,8 @@ async function runEnhancedPipeline(): Promise<void> {
   }
 
   const scoringCoverage = assessRiskScoringCoverage({
-    listedExpected: reconcileListedResults(
-      stocks,
-      otcScan.coverage.directorySymbols,
-    ).length,
-    listedEvaluated: retained.length,
+    listedExpected: coverageAccounting.eligibility.listed,
+    listedEvaluated: coverageAccounting.processing.processed.listed,
     otcStatus: otcScan.coverage.status,
   });
   scanStatus.phases.phase1_riskScoring.status = scoringCoverage.status;
@@ -1760,6 +1804,9 @@ async function runEnhancedPipeline(): Promise<void> {
     listedMissing: scoringCoverage.listedMissing,
     processed: processedCount,
     skippedNoData,
+    excluded: coverageAccounting.processing.excluded.total,
+    unprocessed: coverageAccounting.processing.unprocessed.total,
+    coverageAccounting,
     otcCoverage: {
       status: otcScan.coverage.status,
       eligible: otcScan.coverage.eligibleCount,
@@ -1781,13 +1828,27 @@ async function runEnhancedPipeline(): Promise<void> {
   ];
   scanStatus.summary.processed = processedCount;
   scanStatus.summary.skippedNoData = skippedNoData;
+  scanStatus.summary.excluded = coverageAccounting.processing.excluded.total;
+  scanStatus.summary.unprocessed =
+    coverageAccounting.processing.unprocessed.total;
+  scanStatus.summary.coverageAccounting = coverageAccounting;
   scanStatus.summary.riskCounts = { ...riskCounts };
   scanStatus.summary.highRiskBeforeFilters = highRiskBeforeFilter.length;
 
-  if (scoringCoverage.status === "failed") {
+  if (
+    scoringCoverage.status === "failed" ||
+    !coverageAccounting.processing.reconciles
+  ) {
+    if (!coverageAccounting.processing.reconciles) {
+      scanStatus.phases.phase1_riskScoring.status = "failed";
+      scanStatus.phases.phase1_riskScoring.error =
+        "risk_scoring_accounting_mismatch";
+    }
     saveScanStatus(scanStatus);
     throw new Error(
-      "Mandatory listed risk scoring failed: no valid listed coverage",
+      !coverageAccounting.processing.reconciles
+        ? "Risk scoring accounting failed: eligible outcomes do not reconcile"
+        : "Mandatory listed risk scoring failed: no valid listed coverage",
     );
   }
 
@@ -2938,6 +2999,9 @@ async function runEnhancedPipeline(): Promise<void> {
     otcCoverage: { ...otcScan.coverage, apiCalls: otcClient.calls },
     evaluated: processedCount,
     skippedNoData: skippedNoData,
+    excluded: coverageAccounting.processing.excluded.total,
+    unprocessed: coverageAccounting.processing.unprocessed.total,
+    coverageAccounting,
     byRiskLevel: riskCounts,
     byExchange,
     startTime: new Date(startTime).toISOString(),
