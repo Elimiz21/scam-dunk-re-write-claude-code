@@ -68,30 +68,19 @@ jobs:
           npx ts-node scripts/scan-specific-stocks.ts
 
       - name: Upload to Supabase
-        continue-on-error: true
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ARTIFACT_PRODUCER_RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
-            echo "Supabase not configured, skipping upload"
-            exit 0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Server-side Supabase upload credentials are required"
+            exit 1
           fi
 
           DATE=$(date +%Y-%m-%d)
           cd evaluation
-
-          for file in results/real-social-scan-*.json results/real-social-scan-*.md; do
-            if [ -f "$file" ]; then
-              FILENAME=$(basename "$file")
-              echo "Uploading $FILENAME..."
-              curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
-                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
-                -H "Content-Type: application/json" \
-                -H "x-upsert: true" \
-                --data-binary @"$file" || echo "Upload failed for $file"
-            fi
-          done
+          npx ts-node scripts/upload-to-supabase.ts "$DATE"
 
       - name: Checkout data repository
         continue-on-error: true

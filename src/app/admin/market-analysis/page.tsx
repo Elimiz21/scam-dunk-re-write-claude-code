@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEntryPrice, visiblePromotion } from "@/lib/promoted-stocks/entry-price";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -47,7 +49,7 @@ interface MarketAnalysisData {
     symbol: string;
     promoterName: string;
     promotionPlatform: string;
-    entryPrice: number;
+    entryPrice: number | null;
     currentPrice: number | null;
     outcome: string | null;
     currentGainPct: number | null;
@@ -64,6 +66,7 @@ export default function MarketAnalysisPage() {
     fetchData,
   } = useAdminFetch<MarketAnalysisData>();
   const [days, setDays] = useState(30);
+  const promotedStocks = data?.promotedStocks.map(visiblePromotion) ?? [];
 
   useEffect(() => {
     fetchData(`/api/admin/market-analysis?days=${days}`);
@@ -439,7 +442,7 @@ export default function MarketAnalysisPage() {
         </div>
 
         {/* Promoted Stocks */}
-        {data.promotedStocks.length > 0 && (
+        {promotedStocks.length > 0 && (
           <div className="bg-card rounded-2xl shadow">
             <div className="px-6 py-4 border-b border-border">
               <h3 className="text-lg font-medium text-foreground">
@@ -471,7 +474,7 @@ export default function MarketAnalysisPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-card divide-y divide-border">
-                  {data.promotedStocks.map((stock, idx) => (
+                  {promotedStocks.map((stock, idx) => (
                     <tr
                       key={idx}
                       className="hover:bg-secondary cursor-pointer"
@@ -491,19 +494,19 @@ export default function MarketAnalysisPage() {
                         {stock.promotionPlatform}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                        ${stock.entryPrice.toFixed(2)}
+                        {formatEntryPrice(stock.entryPrice)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {stock.currentPrice ? (
+                        {stock.currentPrice != null ? (
                           <span
                             className={
-                              stock.currentGainPct && stock.currentGainPct >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
+                              stock.currentGainPct == null
+                                ? "text-foreground"
+                                : stock.currentGainPct >= 0 ? "text-green-600" : "text-red-600"
                             }
                           >
                             ${stock.currentPrice.toFixed(2)}
-                            {stock.currentGainPct &&
+                            {stock.currentGainPct != null &&
                               ` (${stock.currentGainPct >= 0 ? "+" : ""}${stock.currentGainPct.toFixed(1)}%)`}
                           </span>
                         ) : (
@@ -511,7 +514,7 @@ export default function MarketAnalysisPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {stock.outcome && (
+                        {stock.outcome ? (
                           <span
                             className={`px-2 py-1 text-xs font-medium rounded ${
                               stock.outcome === "DUMPED"
@@ -525,7 +528,7 @@ export default function MarketAnalysisPage() {
                           >
                             {stock.outcome}
                           </span>
-                        )}
+                        ) : "Unknown"}
                       </td>
                     </tr>
                   ))}

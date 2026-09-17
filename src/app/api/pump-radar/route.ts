@@ -5,6 +5,9 @@ import { auth } from "@/lib/auth";
 import { getPumpRadar } from "@/lib/pump-radar";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const NO_STORE_HEADERS = { "Cache-Control": "private, no-store" } as const;
 
 const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10),
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
           message: "Limit must be an integer from 1 through 50.",
         },
       },
-      { status: 400 },
+      { status: 400, headers: NO_STORE_HEADERS },
     );
   }
 
@@ -33,11 +36,7 @@ export async function GET(request: NextRequest) {
       viewer: session?.user?.id ? "AUTHENTICATED" : "PUBLIC",
     });
     return NextResponse.json(payload, {
-      headers: {
-        "Cache-Control": session?.user?.id
-          ? "private, no-store"
-          : "public, s-maxage=300, stale-while-revalidate=900",
-      },
+      headers: NO_STORE_HEADERS,
     });
   } catch (error) {
     console.error("Pump Radar API error:", error);
@@ -51,7 +50,7 @@ export async function GET(request: NextRequest) {
         rows: [],
         notice: "Published end-of-day findings are temporarily unavailable.",
       },
-      { status: 503, headers: { "Cache-Control": "no-store" } },
+      { status: 503, headers: NO_STORE_HEADERS },
     );
   }
 }

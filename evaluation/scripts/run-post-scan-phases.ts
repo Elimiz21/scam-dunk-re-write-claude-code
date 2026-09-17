@@ -12,7 +12,7 @@
  *
  * Required env vars:
  *   - NEXT_PUBLIC_SUPABASE_URL
- *   - NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY)
+ *   - SUPABASE_SERVICE_ROLE_KEY (server-side only)
  *   - FMP_API_KEY (for news/filings)
  *   - OPENAI_API_KEY (for news analysis)
  *   - EVALUATION_DATE (defaults to today)
@@ -26,6 +26,7 @@ dotenv.config({ path: path.join(__dirname, "..", "..", ".env") });
 import * as fs from "fs";
 import { execSync } from "child_process";
 import { createClient } from "@supabase/supabase-js";
+import { loadPostScanHighRiskSource } from "./post-scan-artifact-source";
 
 // Import social scanner
 import {
@@ -54,13 +55,11 @@ const VOLUME_THRESHOLD = 10_000_000; // $10M daily volume
 // Supabase setup
 function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
     throw new Error(
-      "Missing Supabase credentials. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "Missing server-side Supabase credentials. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
     );
   }
 
@@ -128,109 +127,46 @@ function getEvaluationDate(): string {
   return process.env.EVALUATION_DATE || new Date().toISOString().split("T")[0];
 }
 
-// Fetch HIGH risk stocks from Supabase database
-async function fetchHighRiskStocksFromDB(
-  date: string,
-): Promise<HighRiskStock[]> {
-  console.log(`Fetching HIGH risk stocks for ${date} from Supabase...`);
-
-  const supabase = getSupabaseClient();
-
-  // Supabase has a default limit of 1000 rows - we need to paginate to get all records
-  const allData: any[] = [];
-  const pageSize = 1000;
-  let offset = 0;
-  let hasMore = true;
-
-  while (hasMore) {
-    const { data, error } = await supabase
-      .from("StockDailySnapshot")
-      .select("*")
-      .eq("riskLevel", "HIGH")
-      .gte("scanDate", `${date}T00:00:00`)
-      .lt("scanDate", `${date}T23:59:59`)
-      .order("totalScore", { ascending: false })
-      .range(offset, offset + pageSize - 1);
-
-    if (error) {
-      console.error("Error fetching from Supabase:", error);
-      throw error;
-    }
-
-    if (data && data.length > 0) {
-      allData.push(...data);
-      console.log(
-        `  Fetched ${data.length} records (total: ${allData.length})...`,
-      );
-      offset += pageSize;
-      hasMore = data.length === pageSize; // If we got a full page, there might be more
-    } else {
-      hasMore = false;
-    }
-  }
-
-  if (allData.length === 0) {
-    console.log(
-      "No HIGH risk stocks found in database. Trying storage bucket...",
-    );
-    return await fetchHighRiskStocksFromStorage(date);
-  }
-
-  console.log(`Found ${allData.length} HIGH risk stocks in database`);
-
-  // Map database fields to our interface
-  // Schema: stockId, totalScore, riskLevel, marketCap, lastPrice, avgVolume, signals, evaluatedAt, scanDate
-  return allData.map((row: any) => ({
-    symbol: row.stockId,
-    name: row.stockId, // No companyName in table, use stockId
-    exchange: "Unknown", // Not in table
-    sector: undefined,
-    industry: undefined,
-    marketCap: row.marketCap,
-    lastPrice: row.lastPrice,
-    avgDailyVolume: row.avgVolume,
-    avgDollarVolume:
-      row.avgVolume && row.lastPrice ? row.avgVolume * row.lastPrice : null,
-    riskLevel: row.riskLevel,
-    totalScore: row.totalScore,
-    signals:
-      typeof row.signals === "string"
-        ? JSON.parse(row.signals)
-        : row.signals || [],
-    evaluatedAt: row.evaluatedAt || row.scanDate,
-  }));
-}
-
-// Fallback: fetch from Supabase Storage
+// Read only the hash-verified immutable artifacts selected by the authoritative
+// publication head. Database snapshot rows may be replaced concurrently and
+// cannot safely establish the parent revision for provider work.
 async function fetchHighRiskStocksFromStorage(
   date: string,
 ): Promise<HighRiskStock[]> {
   console.log(`Trying to fetch from Supabase Storage for ${date}...`);
 
-  const supabase = getSupabaseClient();
-  const fileName = `fmp-high-risk-${date}.json`;
-
-  const { data, error } = await supabase.storage
-    .from("evaluation-data")
-    .download(fileName);
-
-  if (error || !data) {
-    // Try enhanced format
-    const enhancedFileName = `enhanced-high-risk-${date}.json`;
-    const { data: enhancedData, error: enhancedError } = await supabase.storage
-      .from("evaluation-data")
-      .download(enhancedFileName);
-
-    if (enhancedError || !enhancedData) {
-      throw new Error(`Could not find evaluation data for ${date} in storage`);
-    }
-
-    const text = await enhancedData.text();
-    return JSON.parse(text);
+  const bucket = getSupabaseClient().storage.from("evaluation-data");
+  const { data: head, error: headError } = await getSupabaseClient()
+    .from("EvaluationArtifactPublicationHead")
+    .select("revisionHash")
+    .eq("scanDate", `${date}T00:00:00.000Z`)
+    .maybeSingle();
+  if (headError) throw new Error(`Failed to read authoritative publication head: ${headError.message}`);
+  if (!head?.revisionHash) {
+    throw new Error(`No authoritative publication head exists for ${date}`);
   }
-
-  const text = await data.text();
-  return JSON.parse(text);
+  const { data: revision, error: revisionError } = await getSupabaseClient()
+    .from("EvaluationArtifactRevision")
+    .select("status")
+    .eq("revisionHash", head.revisionHash)
+    .maybeSingle();
+  if (revisionError || revision?.status !== "PUBLISHED") {
+    throw new Error(`Authoritative revision ${head.revisionHash} is not published`);
+  }
+  const source = await loadPostScanHighRiskSource<HighRiskStock>(
+    date,
+    async (objectPath) => {
+      const { data, error } = await bucket.download(objectPath);
+      if (error || !data) {
+        if (/not.?found|404/i.test(error?.message ?? "")) return null;
+        throw new Error(`Failed to read ${objectPath}: ${error?.message ?? "no data"}`);
+      }
+      return Buffer.from(await data.arrayBuffer());
+    },
+    head.revisionHash,
+  );
+  process.env.POST_SCAN_PARENT_REVISION_HASH = source.parentRevisionHash ?? "";
+  return source.stocks;
 }
 
 // FMP API functions (using stable API - v3 deprecated Aug 31, 2025)
@@ -460,7 +396,7 @@ async function runPostScanPhases(): Promise<void> {
   console.log("PHASE 1: Loading HIGH Risk Stocks");
   console.log("-".repeat(50));
 
-  const highRiskStocks = await fetchHighRiskStocksFromDB(evaluationDate);
+  const highRiskStocks = await fetchHighRiskStocksFromStorage(evaluationDate);
   console.log(`Loaded ${highRiskStocks.length} HIGH risk stocks`);
 
   if (highRiskStocks.length === 0) {
@@ -674,6 +610,7 @@ async function runPostScanPhases(): Promise<void> {
   const report = {
     date: evaluationDate,
     processingType: "post-scan",
+    parentRevisionHash: process.env.POST_SCAN_PARENT_REVISION_HASH || null,
     totalHighRiskInput: highRiskStocks.length,
     filteredByMarketCap,
     filteredByVolume,

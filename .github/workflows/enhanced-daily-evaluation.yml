@@ -37,6 +37,10 @@ on:
         type: boolean
 
 # Grant write permissions for issue creation on failure
+concurrency:
+  group: enhanced-daily-evaluation
+  cancel-in-progress: false
+
 permissions:
   contents: write
   issues: write
@@ -194,7 +198,10 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npx prisma generate
+          npm run typecheck:pipeline
 
       - name: Validate required secrets
         env:
@@ -206,6 +213,7 @@ jobs:
           AI_API_SECRET: ${{ secrets.AI_API_SECRET }}
           SOCIAL_SCAN_APP_URL: ${{ secrets.SOCIAL_SCAN_APP_URL }}
           SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
+          SOCIAL_SCAN_INGEST_KEY: ${{ secrets.SOCIAL_SCAN_INGEST_KEY }}
         run: |
           MISSING=""
           if [ -z "$FMP_API_KEY" ]; then MISSING="$MISSING FMP_API_KEY"; fi
@@ -223,7 +231,12 @@ jobs:
           if [ -n "$SOCIAL_SCAN_APP_URL" ] && [ -n "$SOCIAL_SCAN_API_KEY" ]; then
             echo "Social scan: Deployed API configured → results go to Supabase + AI screening"
           else
-            echo "::warning::SOCIAL_SCAN_APP_URL or SOCIAL_SCAN_API_KEY not set - social scan will use local fallback (JSON only, no AI screening)"
+            echo "::warning::SOCIAL_SCAN_APP_URL or SOCIAL_SCAN_API_KEY not set - social scan will use local fallback (no AI screening; publication checked separately)"
+          fi
+          if [ -n "$SOCIAL_SCAN_APP_URL" ] && [ -n "$SOCIAL_SCAN_INGEST_KEY" ]; then
+            echo "Local fallback publication configured; server-confirmed receipt will be retained"
+          else
+            echo "::warning::Local social fallback publication unavailable; raw evidence will be retained with degraded publication status"
           fi
           if [ -n "$AI_BACKEND_URL" ] && [ -z "$AI_API_SECRET" ]; then
             echo "::warning::AI_BACKEND_URL is set but AI_API_SECRET is missing - Python AI backend requests will fail auth"
@@ -251,6 +264,7 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           SOCIAL_SCAN_APP_URL: ${{ secrets.SOCIAL_SCAN_APP_URL }}
           SOCIAL_SCAN_API_KEY: ${{ secrets.SOCIAL_SCAN_API_KEY }}
+          SOCIAL_SCAN_INGEST_KEY: ${{ secrets.SOCIAL_SCAN_INGEST_KEY }}
           EVALUATION_DATE: ${{ steps.date.outputs.date }}
           TEST_MODE: ${{ github.event.inputs.test_mode }}
         run: |
@@ -259,7 +273,7 @@ jobs:
           echo "Test Mode: $TEST_MODE"
 
           if [ -n "$AI_BACKEND_URL" ]; then
-            echo "Python AI Backend: $AI_BACKEND_URL (full 4-layer analysis)"
+            echo "Python AI Backend: $AI_BACKEND_URL (accepted layers reported per result)"
           else
             echo "Python AI Backend: Not configured (using Layer 1 only)"
           fi
@@ -303,6 +317,7 @@ jobs:
             ["social-media-scan"]="results/social-media-scan-${DATE}.json"
             ["promoted-stocks"]="results/promoted-stocks-${DATE}.json"
             ["scan-status"]="results/scan-status-${DATE}.json"
+            ["otc-coverage"]="results/otc-coverage-${DATE}.json"
             ["scheme-database"]="scheme-database/scheme-database.json"
           )
 
@@ -403,68 +418,25 @@ jobs:
           echo "Validation report written to results/pipeline-validation-${DATE}.json"
 
       - name: Upload to Supabase
-        continue-on-error: true
+        if: ${{ github.event.inputs.test_mode != 'true' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ARTIFACT_PRODUCER_RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           DATE="${{ steps.date.outputs.date }}"
 
-          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
-            echo "Warning: Supabase credentials not configured, skipping upload"
-            echo "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY secrets to enable"
-            exit 0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Supabase credentials not configured; publication failed"
+            echo "Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY secrets to enable"
+            exit 1
           fi
 
           cd evaluation
-          UPLOADED=0
-
-          # Upload all result files
-          for file in results/*-${DATE}*.json results/*-${DATE}*.md; do
-            if [ -f "$file" ]; then
-              FILENAME=$(basename "$file")
-              echo "Uploading $FILENAME to Supabase..."
-              RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/${FILENAME}" \
-                -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
-                -H "Content-Type: application/json" \
-                -H "x-upsert: true" \
-                --data-binary @"$file") || true
-              HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-              BODY=$(echo "$RESPONSE" | head -n -1)
-              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-                echo "  OK ($HTTP_CODE)"
-                UPLOADED=$((UPLOADED + 1))
-              else
-                echo "  Warning: Upload returned $HTTP_CODE - $BODY"
-              fi
-            fi
-          done
-
-          # Upload scheme database
-          if [ -f "scheme-database/scheme-database.json" ]; then
-            echo "Uploading scheme database..."
-            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/scheme-database.json" \
-              -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
-              -H "Content-Type: application/json" \
-              -H "x-upsert: true" \
-              --data-binary @"scheme-database/scheme-database.json" || true
-            UPLOADED=$((UPLOADED + 1))
-          fi
-
-          # Upload promoter database
-          if [ -f "scheme-database/promoter-database.json" ]; then
-            echo "Uploading promoter database..."
-            curl -s -X POST "${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evaluation-data/promoter-database.json" \
-              -H "Authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
-              -H "Content-Type: application/json" \
-              -H "x-upsert: true" \
-              --data-binary @"scheme-database/promoter-database.json" || true
-            UPLOADED=$((UPLOADED + 1))
-          fi
-
-          echo "Uploaded $UPLOADED files to Supabase"
+          npx ts-node scripts/upload-to-supabase.ts "$DATE"
 
       - name: Checkout data repository
+        if: ${{ github.event.inputs.test_mode != 'true' }}
         continue-on-error: true
         id: checkout-data
         uses: actions/checkout@v4
@@ -488,6 +460,8 @@ jobs:
           mkdir -p data-repo/scheme-tracking
           mkdir -p data-repo/reports
 
+          cp evaluation/results/otc-coverage-${DATE}.json data-repo/reports/ 2>/dev/null || true
+
           # Copy enhanced evaluation results
           cp evaluation/results/enhanced-evaluation-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
           cp evaluation/results/enhanced-high-risk-${DATE}.json data-repo/evaluation-results/ 2>/dev/null || true
@@ -508,6 +482,9 @@ jobs:
 
           # Copy social media scans
           cp evaluation/results/social-media-scan-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
+          cp evaluation/results/social-scan-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
+          cp evaluation/results/social-ingest-request-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
+          cp evaluation/results/social-ingest-publication-${DATE}.json data-repo/social-media-scans/ 2>/dev/null || true
           cp evaluation/results/social-media-scan-*.md data-repo/social-media-scans/ 2>/dev/null || true
 
           # Copy comparison reports

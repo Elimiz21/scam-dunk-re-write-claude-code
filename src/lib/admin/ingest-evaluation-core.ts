@@ -1,11 +1,21 @@
+import { normalizeEntryPrice } from "@/lib/promoted-stocks/entry-price";
 /**
  * Core ingestion logic for daily evaluation files.
  * Shared between the admin manual ingest route and the cron auto-ingest route.
  */
 
 import { prisma } from "@/lib/db";
-import { supabase, EVALUATION_BUCKET } from "@/lib/supabase";
+import { EVALUATION_BUCKET } from "@/lib/supabase";
+import { getEvaluationStorageServerClient } from "@/lib/server/evaluation-storage";
 import { fetchDailyCloses } from "@/lib/promoted-stocks/tracker";
+import { normalizeMarketObservation } from "@/lib/admin/market-observation";
+import { listAllEvaluationFiles } from "@/lib/admin/evaluation-storage-listing";
+import {
+  loadPublishedArtifactRevision,
+  readArtifactPointer,
+} from "@/lib/admin/artifact-storage";
+import { assessPublicationQuality } from "@/lib/admin/artifact-quality";
+import { PrismaIngestionStore } from "@/lib/admin/prisma-ingestion-store";
 
 // Batch size for createMany operations to avoid overwhelming the DB
 const BATCH_SIZE = 1000;
@@ -17,7 +27,17 @@ const BATCH_SIZE = 1000;
 // date is required when the price feed covers the symbol at all.
 const PROMOTED_MAX_QUOTE_AGE_DAYS = 10;
 
+export interface IdentityQuarantine {
+  symbol: string;
+  existingName: string;
+  incomingName: string;
+  securityIdentifier: string | null;
+  reason: "OTC_ISSUER_NAME_CONFLICT";
+}
+
 export interface IngestResult {
+  partial?: boolean;
+  identityQuarantines?: IdentityQuarantine[];
   success: boolean;
   date: string;
   stocksCreated: number;
@@ -81,13 +101,77 @@ interface EvaluationStock {
   signalSummary?: string;
   evaluatedAt: string;
   priceDataSource?: string;
+  sourceObservedAt?: string;
+  sourceVersion?: string;
+  securityIdentifier?: string;
+}
+
+// Provider exchange codes and OTC market-tier labels describe the same market
+// classification. Keep the original exchange label for reporting.
+function isOTCExchange(exchange: string): boolean {
+  const normalized = exchange.trim().toUpperCase();
+  return (
+    normalized.startsWith("OTC") ||
+    [
+      "OTHER OTC",
+      "PNK",
+      "PINK",
+      "PINK SHEETS",
+      "GREY",
+      "GRAY",
+      "GREY MARKET",
+      "GRAY MARKET",
+      "EXPERT",
+      "EXPERT MARKET",
+    ].includes(normalized)
+  );
+}
+
+function normalizedIssuerName(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toUpperCase()
+    .replace(new RegExp("[^\\p{L}\\p{N}]", "gu"), "");
+}
+
+function hasEvaluationTimestamp(value: string): boolean {
+  if (typeof value !== "string") return false;
+  const parts =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.exec(
+      value,
+    );
+  if (!parts) return false;
+  const [, year, month, day, hour, minute, second] = parts.map(Number);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+  // Date.parse normalizes impossible dates and 24:00 into another day.
+  return (
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= daysInMonth[month - 1] &&
+    hour < 24 &&
+    minute < 60 &&
+    second < 60 &&
+    Number.isFinite(new Date(value).getTime())
+  );
 }
 
 type IngestionErrorType =
-  | "MISSING_FILE"
-  | "BAD_JSON"
-  | "INVALID_SUPABASE_CONFIG"
-  | "FETCH_ERROR";
+  "MISSING_FILE" | "BAD_JSON" | "INVALID_SUPABASE_CONFIG" | "FETCH_ERROR";
 
 interface EvaluationSummary {
   totalStocks: number;
@@ -96,7 +180,13 @@ interface EvaluationSummary {
   byRiskLevel: Record<string, number>;
   byExchange: Record<
     string,
-    { total: number; LOW: number; MEDIUM: number; HIGH: number }
+    {
+      total: number;
+      LOW: number;
+      MEDIUM: number;
+      HIGH: number;
+      identityQuarantines?: IdentityQuarantine[];
+    }
   >;
   startTime?: string;
   endTime?: string;
@@ -153,56 +243,14 @@ async function fetchEvaluationFile(filename: string): Promise<{
   error?: string;
   errorType?: IngestionErrorType;
 }> {
-  let urlData: { publicUrl: string };
   try {
-    ({ data: urlData } = supabase.storage
-      .from(EVALUATION_BUCKET)
-      .getPublicUrl(filename));
-  } catch (error) {
-    return {
-      data: null,
-      errorType: "INVALID_SUPABASE_CONFIG",
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-
-  try {
-    const response = await fetch(urlData.publicUrl);
-    if (!response.ok) {
-      return {
-        data: null,
-        errorType: response.status === 404 ? "MISSING_FILE" : "FETCH_ERROR",
-        error: `HTTP ${response.status}: ${response.statusText}`,
-      };
+    const bytes = await readStorageObject(filename);
+    if (!bytes) {
+      return { data: null, errorType: "MISSING_FILE", error: "HTTP 404" };
     }
-
-    const contentType = response.headers.get("content-type") || "";
-    const isJsonLike =
-      contentType.includes("application/json") ||
-      contentType.includes("application/octet-stream") ||
-      contentType.includes("text/plain");
-
-    if (!isJsonLike) {
-      const text = await response.text();
-      try {
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) {
-          return { data: parsed as EvaluationStock[] };
-        }
-      } catch {
-        // Not valid JSON
-      }
-      return {
-        data: null,
-        errorType: "BAD_JSON",
-        error: `Expected JSON but got ${contentType}: ${text.substring(0, 100)}`,
-      };
-    }
-
-    const text = await response.text();
     let data: unknown;
     try {
-      data = JSON.parse(text);
+      data = JSON.parse(bytes.toString("utf8"));
     } catch (error) {
       return {
         data: null,
@@ -233,28 +281,11 @@ async function fetchSummaryFile(filename: string): Promise<{
   error?: string;
   errorType?: IngestionErrorType;
 }> {
-  let urlData: { publicUrl: string };
   try {
-    ({ data: urlData } = supabase.storage
-      .from(EVALUATION_BUCKET)
-      .getPublicUrl(filename));
-  } catch (error) {
-    return {
-      data: null,
-      errorType: "INVALID_SUPABASE_CONFIG",
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-
-  try {
-    const response = await fetch(urlData.publicUrl);
-    if (!response.ok) {
-      return { data: null, error: `HTTP ${response.status}` };
-    }
-
-    const text = await response.text();
+    const bytes = await readStorageObject(filename);
+    if (!bytes) return { data: null, errorType: "MISSING_FILE", error: "HTTP 404" };
     try {
-      const data = JSON.parse(text);
+      const data = JSON.parse(bytes.toString("utf8"));
       return { data };
     } catch {
       return {
@@ -273,28 +304,11 @@ async function fetchPromotedStocksFile(filename: string): Promise<{
   error?: string;
   errorType?: IngestionErrorType;
 }> {
-  let urlData: { publicUrl: string };
   try {
-    ({ data: urlData } = supabase.storage
-      .from(EVALUATION_BUCKET)
-      .getPublicUrl(filename));
-  } catch (error) {
-    return {
-      data: null,
-      errorType: "INVALID_SUPABASE_CONFIG",
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-
-  try {
-    const response = await fetch(urlData.publicUrl);
-    if (!response.ok) {
-      return { data: null, error: `HTTP ${response.status}` };
-    }
-
-    const text = await response.text();
+    const bytes = await readStorageObject(filename);
+    if (!bytes) return { data: null, errorType: "MISSING_FILE", error: "HTTP 404" };
     try {
-      const data = JSON.parse(text);
+      const data = JSON.parse(bytes.toString("utf8"));
       return { data };
     } catch {
       return {
@@ -308,6 +322,26 @@ async function fetchPromotedStocksFile(filename: string): Promise<{
   }
 }
 
+async function readStorageObject(path: string): Promise<Buffer | null> {
+  const { data, error } = await getEvaluationStorageServerClient().storage
+    .from(EVALUATION_BUCKET)
+    .download(path);
+  if (error) {
+    if (/not.?found|404/i.test(error.message)) return null;
+    throw new Error(`Failed to read ${path}: ${error.message}`);
+  }
+  return Buffer.from(await data.arrayBuffer());
+}
+
+function parseArtifactJson<T>(bytes: Buffer | undefined, name: string): T | null {
+  if (!bytes) return null;
+  try {
+    return JSON.parse(bytes.toString("utf8")) as T;
+  } catch {
+    throw new Error(`Invalid JSON in verified artifact ${name}`);
+  }
+}
+
 /**
  * Returns the list of dates that have evaluation files in Supabase Storage
  * but have NOT yet been ingested into DailyScanSummary, sorted oldest-first.
@@ -316,25 +350,28 @@ export async function getPendingDates(): Promise<string[]> {
   // Supabase Storage caps a list request at 500 objects. Walk every page so
   // recent pipeline files remain discoverable after the bucket grows beyond
   // that cap.
-  const files: { name: string }[] = [];
-  const pageSize = 500;
-  for (let offset = 0; ; offset += pageSize) {
-    const { data, error: storageError } = await supabase.storage
-      .from(EVALUATION_BUCKET)
-      .list("", {
-        limit: pageSize,
-        offset,
-        sortBy: { column: "name", order: "asc" },
-      });
+  const bucket = getEvaluationStorageServerClient().storage.from(EVALUATION_BUCKET);
+  const files = await listAllEvaluationFiles((path, options) =>
+    bucket.list(path, options),
+  );
 
-    if (storageError || !data) {
-      throw new Error(
-        `Failed to list storage files: ${storageError?.message ?? "No data returned"}`,
-      );
+  const heads = await prisma.evaluationArtifactPublicationHead.findMany({
+    select: { scanDate: true, revisionHash: true },
+  });
+  const revisionPointers = new Map<string, string>(heads.map((head) => [
+    head.scanDate.toISOString().slice(0, 10), head.revisionHash,
+  ]));
+  if (files.some((file) => file.name === "revisions")) {
+    const revisionDates = await listAllEvaluationFiles(
+      (path, options) => bucket.list(path, options),
+      "revisions",
+    );
+    for (const entry of revisionDates) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(entry.name)) continue;
+      if (revisionPointers.has(entry.name)) continue;
+      const pointer = await readArtifactPointer(entry.name, readStorageObject);
+      if (pointer) revisionPointers.set(entry.name, pointer.revisionHash);
     }
-
-    files.push(...data);
-    if (data.length < pageSize) break;
   }
 
   // Extract unique dates from evaluation files (enhanced and legacy formats)
@@ -351,14 +388,39 @@ export async function getPendingDates(): Promise<string[]> {
       if (/^\d{4}-\d{2}-\d{2}$/.test(date)) dateSet.add(date);
     }
   }
+  for (const date of Array.from(revisionPointers.keys())) dateSet.add(date);
 
   // Get all already-ingested dates from DailyScanSummary
   const ingested = await prisma.dailyScanSummary.findMany({
-    select: { scanDate: true },
+    select: { scanDate: true, byExchange: true },
   });
   const ingestedDates = new Set(
-    ingested.map((row) => row.scanDate.toISOString().split("T")[0]),
+    ingested
+      .filter((row) => {
+        if (!row.byExchange) return true;
+        try {
+          return !JSON.parse(row.byExchange)?.OTC?.identityQuarantines?.length;
+        } catch {
+          return false; // unreadable completion metadata must remain retryable
+        }
+      })
+      .map((row) => row.scanDate.toISOString().split("T")[0]),
   );
+
+  if (revisionPointers.size > 0) {
+    const published = await prisma.evaluationArtifactRevision.findMany({
+      where: {
+        revisionHash: { in: Array.from(revisionPointers.values()) },
+        status: "PUBLISHED",
+      },
+      select: { revisionHash: true },
+    });
+    const publishedHashes = new Set(published.map((row) => row.revisionHash));
+    for (const [date, revisionHash] of Array.from(revisionPointers.entries())) {
+      if (publishedHashes.has(revisionHash)) ingestedDates.add(date);
+      else ingestedDates.delete(date);
+    }
+  }
 
   // Return pending dates sorted oldest-first
   return Array.from(dateSet)
@@ -375,6 +437,14 @@ export async function getPendingDates(): Promise<string[]> {
  */
 export async function ingestDate(date: string): Promise<IngestResult> {
   const startTime = Date.now();
+  const identityQuarantines: IdentityQuarantine[] = [];
+  const quarantinedSymbols = new Set<string>();
+  let revisionContext: {
+    store: PrismaIngestionStore;
+    revisionHash: string;
+    phase: string;
+    leaseToken: string;
+  } | null = null;
 
   try {
     const enhancedEvalFilename = `enhanced-evaluation-${date}.json`;
@@ -382,16 +452,73 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const summaryFilename = `fmp-summary-${date}.json`;
     const promotedFilename = `promoted-stocks-${date}.json`;
 
-    // Try enhanced format first, fall back to legacy
-    let evaluationResult = await fetchEvaluationFile(enhancedEvalFilename);
-    if (!evaluationResult.data) {
-      console.log(
-        `[ingest-core] Enhanced file not found for ${date}, trying legacy format...`,
+    const authoritativeHead = await prisma.evaluationArtifactPublicationHead.findUnique({
+      where: { scanDate: new Date(`${date}T00:00:00.000Z`) },
+      select: { revisionHash: true },
+    });
+    const publishedRevision = await loadPublishedArtifactRevision(
+      date,
+      readStorageObject,
+      authoritativeHead?.revisionHash,
+    );
+    let evaluationData: EvaluationStock[] | null = null;
+    let summaryData: EvaluationSummary | null = null;
+    let promotedData: PromotedStocksReport | null = null;
+    let evaluationError: string | undefined;
+    if (publishedRevision) {
+      if (publishedRevision.manifest.producerKind === "DAILY_PIPELINE") {
+        const qualityNames = [
+          `scan-status-${date}.json`,
+          `pipeline-validation-${date}.json`,
+        ];
+        if (!qualityNames.every((name) => publishedRevision.manifest.requiredArtifacts.includes(name))) {
+          throw new Error("Daily pipeline quality artifacts must be required by the manifest");
+        }
+        const qualityFiles = Object.fromEntries(publishedRevision.files);
+        const assessed = assessPublicationQuality(date, qualityFiles);
+        if (assessed !== publishedRevision.manifest.qualityStatus) {
+          throw new Error("Artifact quality status does not match verified pipeline evidence");
+        }
+      }
+      evaluationData =
+        parseArtifactJson<EvaluationStock[]>(
+          publishedRevision.files.get(enhancedEvalFilename),
+          enhancedEvalFilename,
+        ) ??
+        parseArtifactJson<EvaluationStock[]>(
+          publishedRevision.files.get(legacyEvalFilename),
+          legacyEvalFilename,
+        );
+      summaryData = parseArtifactJson<EvaluationSummary>(
+        publishedRevision.files.get(summaryFilename),
+        summaryFilename,
       );
-      evaluationResult = await fetchEvaluationFile(legacyEvalFilename);
+      promotedData = parseArtifactJson<PromotedStocksReport>(
+        publishedRevision.files.get(promotedFilename),
+        promotedFilename,
+      );
+      if (!Array.isArray(evaluationData)) {
+        throw new Error("Published revision has no valid evaluation array");
+      }
+      if (!summaryData) {
+        throw new Error("Published revision has no required summary artifact");
+      }
+    } else {
+      // Legacy fallback is allowed only when the canonical revision pointer is absent.
+      let evaluationResult = await fetchEvaluationFile(enhancedEvalFilename);
+      if (!evaluationResult.data) {
+        console.log(
+          `[ingest-core] Enhanced file not found for ${date}, trying legacy format...`,
+        );
+        evaluationResult = await fetchEvaluationFile(legacyEvalFilename);
+      }
+      evaluationData = evaluationResult.data;
+      evaluationError = evaluationResult.error;
+      summaryData = (await fetchSummaryFile(summaryFilename)).data;
+      promotedData = (await fetchPromotedStocksFile(promotedFilename)).data;
     }
 
-    if (!evaluationResult.data) {
+    if (!evaluationData) {
       return {
         success: false,
         date,
@@ -404,45 +531,259 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         totalProcessed: 0,
         skipped: 0,
         durationMs: Date.now() - startTime,
-        error: evaluationResult.error ?? "Evaluation file not found",
+        error: evaluationError ?? "Evaluation file not found",
       };
     }
-
-    const evaluationData = evaluationResult.data;
+    // Validate before any legacy write or canonical phase claim. Unknown is
+    // valid source evidence; invalid numeric values must not enter storage.
+    for (const promoted of promotedData?.promotedStocks ?? []) {
+      normalizeEntryPrice(promoted.price);
+    }
     console.log(
       `[ingest-core] Loaded ${evaluationData.length} stocks for ${date}`,
     );
 
-    const summaryResult = await fetchSummaryFile(summaryFilename);
-    const summaryData = summaryResult.data;
-
-    const promotedResult = await fetchPromotedStocksFile(promotedFilename);
-    const promotedData = promotedResult.data;
 
     const scanDate = new Date(date);
     scanDate.setHours(0, 0, 0, 0);
 
+    if (publishedRevision) {
+      const store = new PrismaIngestionStore(prisma);
+      const phase = "CANONICAL_PUBLISH";
+      await store.ensureRevision(publishedRevision.manifest, [phase]);
+      const claim = await store.claimPhase(
+        publishedRevision.manifest.revisionHash,
+        phase,
+        `ingest-${process.pid}`,
+        10 * 60_000,
+      );
+      if (claim.state === "BUSY") {
+        throw new Error("Artifact revision is already leased by another worker");
+      }
+      if (claim.state === "COMPLETE") {
+        return {
+          success: true,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: evaluationData.length,
+          skipped: 0,
+          durationMs: Date.now() - startTime,
+        };
+      }
+      revisionContext = {
+        store,
+        revisionHash: publishedRevision.manifest.revisionHash,
+        phase,
+        leaseToken: claim.leaseToken!,
+      };
+    }
+
     // Filter valid stocks
-    const validStocks = evaluationData.filter(
+    let validStocks = evaluationData.filter(
       (stock) => stock.symbol && stock.name && stock.exchange,
     );
-    const skippedCount = evaluationData.length - validStocks.length;
+    // Validate OTC provenance before any writes. A scan date is not the time
+    // an evaluation actually occurred, including for historical reconstructions.
+    for (const stock of validStocks) {
+      if (
+        isOTCExchange(stock.exchange) &&
+        !hasEvaluationTimestamp(stock.evaluatedAt)
+      ) {
+        throw new Error(
+          `Invalid or missing evaluatedAt for OTC security ${stock.symbol}`,
+        );
+      }
+    }
+    const invalidStockCount = evaluationData.length - validStocks.length;
+    let skippedCount = invalidStockCount;
     console.log(
       `[ingest-core] ${validStocks.length} valid stocks (${skippedCount} skipped) for ${date}`,
     );
 
+    // Pointer-backed revisions are all-or-nothing. Resolve identity conflicts
+    // before any TrackedStock, snapshot, alert, promotion, or summary mutation.
+    if (publishedRevision && revisionContext) {
+      const preflightSymbols = Array.from(new Set(validStocks.map((stock) => stock.symbol)));
+      const incomingBySymbol = new Map<string, EvaluationStock[]>();
+      for (const stock of validStocks) {
+        const group = incomingBySymbol.get(stock.symbol) ?? [];
+        group.push(stock);
+        incomingBySymbol.set(stock.symbol, group);
+      }
+      for (let i = 0; i < preflightSymbols.length; i += BATCH_SIZE) {
+        const existingStocks = await prisma.trackedStock.findMany({
+          where: { symbol: { in: preflightSymbols.slice(i, i + BATCH_SIZE) } },
+          select: { id: true, symbol: true, name: true, exchange: true, isOTC: true },
+        });
+        for (const existing of existingStocks) {
+          const incoming = incomingBySymbol.get(existing.symbol)?.find(
+            (candidate) =>
+              (isOTCExchange(candidate.exchange) || existing.isOTC || isOTCExchange(existing.exchange)) &&
+              normalizedIssuerName(existing.name) !== normalizedIssuerName(candidate.name),
+          );
+          if (!incoming || quarantinedSymbols.has(existing.symbol)) continue;
+          quarantinedSymbols.add(existing.symbol);
+          identityQuarantines.push({
+            symbol: existing.symbol,
+            existingName: existing.name,
+            incomingName: incoming.name,
+            securityIdentifier: incoming.securityIdentifier ?? null,
+            reason: "OTC_ISSUER_NAME_CONFLICT",
+          });
+        }
+      }
+      if (identityQuarantines.length > 0) {
+        const error = `${identityQuarantines.length} OTC issuer identity conflicts quarantined; canonical publication blocked`;
+        await revisionContext.store.failPhase(
+          revisionContext.revisionHash,
+          revisionContext.phase,
+          revisionContext.leaseToken,
+          error,
+        );
+        revisionContext = null;
+        return {
+          success: false,
+          partial: true,
+          identityQuarantines,
+          error,
+          date,
+          stocksCreated: 0,
+          stocksUpdated: 0,
+          snapshotsCreated: 0,
+          alertsCreated: 0,
+          promotedStocksCreated: 0,
+          promotedStocksSkippedStale: 0,
+          totalProcessed: 0,
+          skipped: evaluationData.length,
+          durationMs: Date.now() - startTime,
+        };
+      }
+    }
+
     // Step 1: Get all existing stocks in batches
-    const symbols = validStocks.map((s) => s.symbol);
+    const symbols = Array.from(new Set(validStocks.map((s) => s.symbol)));
     const existingStockMap = new Map<string, string>();
 
+    let stocksUpdated = 0;
+    const incomingStocks = new Map(
+      validStocks.map((stock) => [stock.symbol, stock]),
+    );
+    const trackedStockUpdates: Array<{
+      id: string;
+      data: { exchange: string; isOTC: boolean };
+    }> = [];
+    const incomingBySymbol = new Map<string, EvaluationStock[]>();
+    for (const stock of validStocks) {
+      const group = incomingBySymbol.get(stock.symbol) ?? [];
+      group.push(stock);
+      incomingBySymbol.set(stock.symbol, group);
+    }
     for (let i = 0; i < symbols.length; i += BATCH_SIZE) {
       const batch = symbols.slice(i, i + BATCH_SIZE);
       const existingStocks = await prisma.trackedStock.findMany({
         where: { symbol: { in: batch } },
-        select: { id: true, symbol: true },
+        select: {
+          id: true,
+          symbol: true,
+          name: true,
+          exchange: true,
+          isOTC: true,
+        },
       });
-      existingStocks.forEach((s) => existingStockMap.set(s.symbol, s.id));
+      for (const existing of existingStocks) {
+        const incoming = incomingBySymbol
+          .get(existing.symbol)!
+          .find(
+            (candidate) =>
+              (isOTCExchange(candidate.exchange) ||
+                existing.isOTC ||
+                isOTCExchange(existing.exchange)) &&
+              normalizedIssuerName(existing.name) !==
+                normalizedIssuerName(candidate.name),
+          );
+        if (incoming) {
+          quarantinedSymbols.add(existing.symbol);
+          identityQuarantines.push({
+            symbol: existing.symbol,
+            existingName: existing.name,
+            incomingName: incoming.name,
+            securityIdentifier: incoming.securityIdentifier ?? null,
+            reason: "OTC_ISSUER_NAME_CONFLICT",
+          });
+        }
+      }
+      const changedStockIds = existingStocks
+        .filter((existing) => {
+          if (quarantinedSymbols.has(existing.symbol)) return false;
+          const incoming = incomingStocks.get(existing.symbol)!;
+          return (
+            existing.exchange !== incoming.exchange ||
+            existing.isOTC !== isOTCExchange(incoming.exchange)
+          );
+        })
+        .map((existing) => existing.id);
+      // The latest scan and latest evaluation can belong to different rows.
+      // Aggregate both independently so out-of-order replays cannot weaken the guard.
+      const provenance =
+        changedStockIds.length > 0
+          ? await prisma.stockDailySnapshot.groupBy({
+              by: ["stockId"],
+              where: { stockId: { in: changedStockIds } },
+              _max: { scanDate: true, evaluatedAt: true },
+            })
+          : [];
+      const latestByStock = new Map(
+        provenance.map((row) => [row.stockId, row._max]),
+      );
+      for (const existing of existingStocks) {
+        if (quarantinedSymbols.has(existing.symbol)) continue;
+        existingStockMap.set(existing.symbol, existing.id);
+        const incoming = incomingStocks.get(existing.symbol)!;
+        const isOTC = isOTCExchange(incoming.exchange);
+        // Historical artifact replays may create missing snapshots, but cannot
+        // roll current security metadata back to an earlier market listing.
+        const latestSnapshot = latestByStock.get(existing.id);
+        const incomingEvaluationTime = hasEvaluationTimestamp(
+          incoming.evaluatedAt,
+        )
+          ? new Date(incoming.evaluatedAt).getTime()
+          : scanDate.getTime();
+        // Same-day snapshots are immutable below. Do not update metadata from
+        // a newer same-day observation whose provenance would not be persisted.
+        const isCurrent =
+          !latestSnapshot ||
+          (scanDate.getTime() > (latestSnapshot.scanDate?.getTime() ?? 0) &&
+            incomingEvaluationTime >=
+              (latestSnapshot.evaluatedAt?.getTime() ?? 0));
+        if (
+          isCurrent &&
+          (existing.exchange !== incoming.exchange || existing.isOTC !== isOTC)
+        ) {
+          if (publishedRevision) {
+            trackedStockUpdates.push({
+              id: existing.id,
+              data: { exchange: incoming.exchange, isOTC },
+            });
+          } else {
+            await prisma.trackedStock.update({
+              where: { id: existing.id },
+              data: { exchange: incoming.exchange, isOTC },
+            });
+            stocksUpdated++;
+          }
+        }
+      }
     }
+
+    validStocks = validStocks.filter(
+      (stock) => !quarantinedSymbols.has(stock.symbol),
+    );
+    skippedCount = evaluationData.length - validStocks.length;
 
     // Step 2: Identify stocks to create
     const stocksToCreate = validStocks.filter(
@@ -451,7 +792,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
     // Step 3: Batch create new stocks
     let stocksCreated = 0;
-    if (stocksToCreate.length > 0) {
+    if (!publishedRevision && stocksToCreate.length > 0) {
       console.log(
         `[ingest-core] Creating ${stocksToCreate.length} new stocks for ${date}...`,
       );
@@ -464,7 +805,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
               exchange: stock.exchange,
               sector: stock.sector || null,
               industry: stock.industry || null,
-              isOTC: stock.exchange === "OTC",
+              isOTC: isOTCExchange(stock.exchange),
             })),
             skipDuplicates: true,
           }),
@@ -501,13 +842,16 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     const snapshotsToCreate = validStocks
       .filter((stock) => {
         const stockId = existingStockMap.get(stock.symbol);
-        return stockId && !existingSnapshotSet.has(stockId);
+        return publishedRevision !== null || (!!stockId && !existingSnapshotSet.has(stockId));
       })
       .map((stock) => {
-        const stockId = existingStockMap.get(stock.symbol)!;
+        const stockId = existingStockMap.get(stock.symbol) ?? "";
+        const observation = normalizeMarketObservation(stock);
         let evaluatedAt: Date;
         try {
-          evaluatedAt = stock.evaluatedAt ? new Date(stock.evaluatedAt) : scanDate;
+          evaluatedAt = stock.evaluatedAt
+            ? new Date(stock.evaluatedAt)
+            : scanDate;
           if (isNaN(evaluatedAt.getTime())) evaluatedAt = scanDate;
         } catch {
           evaluatedAt = scanDate;
@@ -515,29 +859,38 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
         return {
           stockId,
+          stockSymbol: stock.symbol,
           scanDate,
           riskLevel: stock.riskLevel || "UNKNOWN",
           totalScore: toInt(stock.totalScore) ?? 0,
-          isLegitimate: stock.isLegitimate ?? true,
-          isInsufficient: stock.isInsufficient || false,
-          lastPrice: stock.lastPrice || null,
-          previousClose: stock.previousClose || null,
-          priceChangePct: stock.priceChangePct || null,
-          volume: toInt(stock.volume),
-          avgVolume: toInt(stock.avgVolume || stock.avgDailyVolume),
-          volumeRatio: stock.volumeRatio || null,
-          marketCap: stock.marketCap || null,
+          isLegitimate:
+            stock.riskLevel === "INSUFFICIENT"
+              ? null
+              : observation.isLegitimate,
+          isInsufficient:
+            stock.riskLevel === "INSUFFICIENT"
+              ? true
+              : observation.isInsufficient,
+          lastPrice: observation.lastPrice,
+          previousClose: observation.previousClose,
+          priceChangePct: observation.priceChangePct,
+          volume: observation.volume,
+          avgVolume: observation.avgVolume,
+          volumeRatio: observation.volumeRatio,
+          marketCap: stock.marketCap ?? null,
           signals: JSON.stringify(stock.signals || []),
           signalSummary: stock.signalSummary || null,
           signalCount: stock.signals?.length || 0,
-          dataSource: stock.priceDataSource || "FMP",
+          dataSource: observation.dataSource,
+          sourceObservedAt: observation.sourceObservedAt,
+          sourceVersion: observation.sourceVersion,
           evaluatedAt,
         };
       });
 
     // Step 6: Batch create snapshots
     let snapshotsCreated = 0;
-    if (snapshotsToCreate.length > 0) {
+    if (!publishedRevision && snapshotsToCreate.length > 0) {
       console.log(
         `[ingest-core] Creating ${snapshotsToCreate.length} snapshots for ${date}...`,
       );
@@ -555,6 +908,17 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     // Step 7: Create alerts for HIGH risk stocks
     const highRiskStocks = validStocks.filter((s) => s.riskLevel === "HIGH");
     let alertsCreated = 0;
+    let alertsToCreate: Array<{
+      stockId: string;
+      stockSymbol?: string;
+      alertDate: Date;
+      alertType: string;
+      newRiskLevel: string;
+      newScore: number;
+      priceAtAlert: number | null;
+      volumeAtAlert: number | null;
+      triggeringSignals: string | null;
+    }> = [];
 
     if (highRiskStocks.length > 0) {
       const highRiskStockIds = highRiskStocks
@@ -571,13 +935,16 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         existingAlerts.forEach((a) => existingAlertSet.add(a.stockId));
       }
 
-      const alertsToCreate = highRiskStocks
+      alertsToCreate = highRiskStocks
         .filter((stock) => {
           const stockId = existingStockMap.get(stock.symbol);
-          return stockId && !existingAlertSet.has(stockId);
+          return (
+            (publishedRevision !== null || (!!stockId && !existingAlertSet.has(stockId)))
+          );
         })
         .map((stock) => ({
-          stockId: existingStockMap.get(stock.symbol)!,
+          stockId: existingStockMap.get(stock.symbol) ?? "",
+          stockSymbol: stock.symbol,
           alertDate: scanDate,
           alertType: "NEW_HIGH_RISK",
           newRiskLevel: stock.riskLevel,
@@ -587,7 +954,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           triggeringSignals: stock.signalSummary || null,
         }));
 
-      if (alertsToCreate.length > 0) {
+      if (!publishedRevision && alertsToCreate.length > 0) {
         console.log(
           `[ingest-core] Creating ${alertsToCreate.length} risk alerts for ${date}...`,
         );
@@ -603,65 +970,87 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       }
     }
 
-    // Step 8: Create/update daily summary
-    if (summaryData) {
+    // Persist accepted counts and the explicit quarantine without a schema change.
+    // Existing consumers read total/LOW/MEDIUM/HIGH; extra OTC metadata is additive.
+    let effectiveSummary = summaryData;
+    if (!effectiveSummary || identityQuarantines.length > 0) {
+      const byExchange: EvaluationSummary["byExchange"] = {};
+      const byRiskLevel: Record<string, number> = {};
+      for (const stock of validStocks) {
+        byRiskLevel[stock.riskLevel] = (byRiskLevel[stock.riskLevel] || 0) + 1;
+        const exchange = isOTCExchange(stock.exchange) ? "OTC" : stock.exchange;
+        const counts = (byExchange[exchange] ||= {
+          total: 0,
+          LOW: 0,
+          MEDIUM: 0,
+          HIGH: 0,
+        });
+        counts.total++;
+        if (
+          stock.riskLevel === "LOW" ||
+          stock.riskLevel === "MEDIUM" ||
+          stock.riskLevel === "HIGH"
+        )
+          counts[stock.riskLevel]++;
+      }
+      if (identityQuarantines.length > 0) {
+        byExchange.OTC ||= { total: 0, LOW: 0, MEDIUM: 0, HIGH: 0 };
+        byExchange.OTC.identityQuarantines = identityQuarantines;
+      }
+      effectiveSummary = {
+        ...summaryData,
+        totalStocks: summaryData?.totalStocks ?? evaluationData.length,
+        evaluated: validStocks.length,
+        skippedNoData: summaryData?.skippedNoData ?? invalidStockCount,
+        byRiskLevel,
+        byExchange,
+      };
+    }
+    const summaryValues = {
+      totalStocks: effectiveSummary.totalStocks,
+      evaluated: effectiveSummary.evaluated,
+      skippedNoData: effectiveSummary.skippedNoData,
+      lowRiskCount: effectiveSummary.byRiskLevel?.LOW || 0,
+      mediumRiskCount: effectiveSummary.byRiskLevel?.MEDIUM || 0,
+      highRiskCount: effectiveSummary.byRiskLevel?.HIGH || 0,
+      insufficientCount: effectiveSummary.byRiskLevel?.INSUFFICIENT || 0,
+      byExchange: JSON.stringify(effectiveSummary.byExchange || {}),
+      scanDurationMins: effectiveSummary.durationMinutes ?? null,
+      apiCallsMade: effectiveSummary.apiCallsMade ?? null,
+    };
+    if (!publishedRevision) {
       await prisma.dailyScanSummary.upsert({
         where: { scanDate },
-        create: {
-          scanDate,
-          totalStocks: summaryData.totalStocks,
-          evaluated: summaryData.evaluated,
-          skippedNoData: summaryData.skippedNoData,
-          lowRiskCount: summaryData.byRiskLevel?.LOW || 0,
-          mediumRiskCount: summaryData.byRiskLevel?.MEDIUM || 0,
-          highRiskCount: summaryData.byRiskLevel?.HIGH || 0,
-          insufficientCount: summaryData.byRiskLevel?.INSUFFICIENT || 0,
-          byExchange: JSON.stringify(summaryData.byExchange || {}),
-          scanDurationMins: summaryData.durationMinutes || null,
-          apiCallsMade: summaryData.apiCallsMade || null,
-        },
-        update: {
-          totalStocks: summaryData.totalStocks,
-          evaluated: summaryData.evaluated,
-          skippedNoData: summaryData.skippedNoData,
-          lowRiskCount: summaryData.byRiskLevel?.LOW || 0,
-          mediumRiskCount: summaryData.byRiskLevel?.MEDIUM || 0,
-          highRiskCount: summaryData.byRiskLevel?.HIGH || 0,
-          insufficientCount: summaryData.byRiskLevel?.INSUFFICIENT || 0,
-          byExchange: JSON.stringify(summaryData.byExchange || {}),
-          scanDurationMins: summaryData.durationMinutes || null,
-          apiCallsMade: summaryData.apiCallsMade || null,
-        },
-      });
-    } else {
-      // No summary file: upsert a minimal record so this date is marked ingested
-      await prisma.dailyScanSummary.upsert({
-        where: { scanDate },
-        create: {
-          scanDate,
-          totalStocks: validStocks.length,
-          evaluated: validStocks.length,
-          skippedNoData: skippedCount,
-          lowRiskCount: validStocks.filter((s) => s.riskLevel === "LOW").length,
-          mediumRiskCount: validStocks.filter((s) => s.riskLevel === "MEDIUM").length,
-          highRiskCount: validStocks.filter((s) => s.riskLevel === "HIGH").length,
-          insufficientCount: validStocks.filter((s) => s.riskLevel === "INSUFFICIENT").length,
-          byExchange: JSON.stringify({}),
-        },
-        update: {},
+        create: { scanDate, ...summaryValues },
+        update: summaryValues,
       });
     }
 
     // Step 9: Ingest promoted stocks
     let promotedStocksCreated = 0;
     let promotedStocksSkippedStale = 0;
+    const promotedRows: Array<{
+      symbol: string;
+      addedDate: Date;
+      promoterName: string;
+      promotionPlatform: string;
+      promotionGroup: string;
+      entryPrice: number | null;
+      entryMarketCap: number | null;
+      entryRiskScore: number;
+      evidenceLinks: string;
+      outcome: string;
+      isActive: boolean;
+    }> = [];
     if (promotedData && promotedData.promotedStocks?.length > 0) {
       // One staleness verdict per distinct symbol (a handful of FMP calls
       // per day) — flags on instruments that stopped trading before the
       // scan date are dropped instead of polluting the outcome ledger.
       const staleBySymbol = new Map<string, boolean>();
-      for (const promoted of promotedData.promotedStocks) {
-        if (!staleBySymbol.has(promoted.symbol)) {
+      if (!publishedRevision) {
+        for (const promoted of promotedData.promotedStocks) {
+          if (quarantinedSymbols.has(promoted.symbol)) continue;
+          if (staleBySymbol.has(promoted.symbol)) continue;
           try {
             staleBySymbol.set(
               promoted.symbol,
@@ -674,6 +1063,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       }
 
       for (const promoted of promotedData.promotedStocks) {
+        if (quarantinedSymbols.has(promoted.symbol)) continue;
         if (staleBySymbol.get(promoted.symbol)) {
           promotedStocksSkippedStale++;
           console.warn(
@@ -693,6 +1083,24 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         }
 
         const platform = promoted.platforms[0] || "Unknown";
+        const promotedRow = {
+          symbol: promoted.symbol,
+          addedDate: scanDate,
+          promoterName:
+            promoted.tier === "HIGH" ? "Social Media Alert" : "Risk Flag",
+          promotionPlatform: platform,
+          promotionGroup: promoted.platforms.join(", "),
+          entryPrice: normalizeEntryPrice(promoted.price),
+          entryMarketCap: marketCapNum,
+          entryRiskScore: promoted.riskScore ?? 0,
+          evidenceLinks: promoted.sources.join("\n"),
+          outcome: "MONITORING",
+          isActive: true,
+        };
+        if (publishedRevision) {
+          promotedRows.push(promotedRow);
+          continue;
+        }
         try {
           await prisma.promotedStock.upsert({
             where: {
@@ -702,25 +1110,14 @@ export async function ingestDate(date: string): Promise<IngestResult> {
               },
             },
             create: {
-              symbol: promoted.symbol,
-              addedDate: scanDate,
-              promoterName:
-                promoted.tier === "HIGH" ? "Social Media Alert" : "Risk Flag",
-              promotionPlatform: platform,
-              promotionGroup: promoted.platforms.join(", "),
-              entryPrice: promoted.price || 0,
-              entryMarketCap: marketCapNum,
-              entryRiskScore: promoted.riskScore || 0,
-              evidenceLinks: promoted.sources.join("\n"),
-              outcome: "MONITORING",
-              isActive: true,
+              ...promotedRow,
             },
             update: {
               promotionPlatform: platform,
               promotionGroup: promoted.platforms.join(", "),
-              entryPrice: promoted.price || undefined,
-              entryMarketCap: marketCapNum || undefined,
-              entryRiskScore: promoted.riskScore || undefined,
+              entryPrice: normalizeEntryPrice(promoted.price),
+              entryMarketCap: marketCapNum ?? undefined,
+              entryRiskScore: promoted.riskScore ?? undefined,
               evidenceLinks: promoted.sources.join("\n"),
             },
           });
@@ -734,16 +1131,51 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       }
     }
 
+    if (publishedRevision && revisionContext) {
+      const publication = await revisionContext.store.publishEvaluationRevision({
+        revisionHash: revisionContext.revisionHash,
+        phase: revisionContext.phase,
+        leaseToken: revisionContext.leaseToken,
+        scanDate,
+        newStocks: stocksToCreate.map((stock) => ({
+          symbol: stock.symbol,
+          name: stock.name,
+          exchange: stock.exchange,
+          sector: stock.sector || null,
+          industry: stock.industry || null,
+          isOTC: isOTCExchange(stock.exchange),
+        })),
+        trackedStockUpdates,
+        snapshots: snapshotsToCreate,
+        alerts: alertsToCreate,
+        promotedStocks: promotedRows,
+        summary: summaryValues,
+      });
+      snapshotsCreated = publication.snapshotsCreated;
+      alertsCreated = publication.alertsCreated;
+      promotedStocksCreated = publication.promotedStocksCreated;
+      stocksCreated = publication.stocksCreated;
+      stocksUpdated = trackedStockUpdates.length;
+      revisionContext = null;
+    }
+
     const durationMs = Date.now() - startTime;
     console.log(
-      `[ingest-core] Completed ${date} in ${Math.round(durationMs / 1000)}s`,
+      `[ingest-core] ${identityQuarantines.length ? "Partial ingestion" : "Completed"} ${date} in ${Math.round(durationMs / 1000)}s`,
     );
 
     return {
-      success: true,
+      success: identityQuarantines.length === 0,
+      partial: identityQuarantines.length > 0,
+      identityQuarantines,
+      ...(identityQuarantines.length
+        ? {
+            error: `${identityQuarantines.length} OTC issuer identity conflicts quarantined; date remains pending`,
+          }
+        : {}),
       date,
       stocksCreated,
-      stocksUpdated: validStocks.length - stocksCreated,
+      stocksUpdated,
       snapshotsCreated,
       alertsCreated,
       promotedStocksCreated,
@@ -753,6 +1185,18 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       durationMs,
     };
   } catch (error) {
+    if (revisionContext) {
+      await revisionContext.store
+        .failPhase(
+          revisionContext.revisionHash,
+          revisionContext.phase,
+          revisionContext.leaseToken,
+          error instanceof Error ? error.message : String(error),
+        )
+        .catch((phaseError) =>
+          console.error("[ingest-core] Failed to persist phase failure", phaseError),
+        );
+    }
     console.error(`[ingest-core] Error ingesting ${date}:`, error);
     return {
       success: false,

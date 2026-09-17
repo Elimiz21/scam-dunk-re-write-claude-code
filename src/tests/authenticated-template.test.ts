@@ -61,6 +61,14 @@ describe("approved authenticated Paper & Ink shell", () => {
     expect(dashboard).toContain("font-editorial");
   });
 
+  test("forwards publication safety metadata to the authenticated Pump Radar", () => {
+    const dashboard = readProjectFile("src/components/dashboard/DashboardHome.tsx");
+
+    expect(dashboard).toContain("executedAt={state.data.pumpRadar.executedAt}");
+    expect(dashboard).toContain("publicationQuality={state.data.pumpRadar.publicationQuality}");
+    expect(dashboard).toContain("socialPublication={state.data.pumpRadar.socialPublication}");
+  });
+
   test("keeps the authenticated experience on the teal dashboard palette", () => {
     const globals = readProjectFile("src/app/globals.css");
     const tailwind = readProjectFile("tailwind.config.js");

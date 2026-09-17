@@ -81,8 +81,11 @@ export function DashboardHome() {
             rows={state.data.pumpRadar.rows.slice(0, 4)}
             asOf={state.data.pumpRadar.asOf}
             publishedAt={state.data.pumpRadar.publishedAt}
+            executedAt={state.data.pumpRadar.executedAt}
+            publicationQuality={state.data.pumpRadar.publicationQuality}
             coverage={state.data.pumpRadar.coverage}
             socialSummary={aggregateSocialSummary(state.data.pumpRadar.rows)}
+            socialPublication={state.data.pumpRadar.socialPublication}
             freshness={state.data.pumpRadar.freshness}
             notice={state.data.pumpRadar.notice}
             compact

@@ -107,6 +107,7 @@ describe("Pump Radar privacy for every viewer", () => {
       stockDailySnapshot: {
         findMany: jest.fn().mockResolvedValue([
           {
+            id: "partial-snapshot-aapl",
             riskLevel: "HIGH",
             totalScore: 99,
             signalCount: 4,
@@ -140,6 +141,7 @@ describe("Pump Radar privacy for every viewer", () => {
             },
           },
           {
+            id: "partial-snapshot-msft",
             riskLevel: "HIGH",
             totalScore: 90,
             signalCount: 3,
@@ -157,7 +159,13 @@ describe("Pump Radar privacy for every viewer", () => {
         ]),
       },
       socialScanRun: {
-        findFirst: jest.fn().mockResolvedValue({ id: "social-run-1" }),
+        findFirst: jest.fn().mockResolvedValue({
+          id: "social-run-1",
+          status: "COMPLETED",
+          scanDate: new Date("2026-08-25T00:00:00.000Z"),
+          updatedAt: new Date("2026-08-25T22:30:00.000Z"),
+          platformsUsed: null,
+        }),
       },
       socialMention: {
         findMany: jest.fn().mockResolvedValue([
@@ -192,7 +200,7 @@ describe("Pump Radar privacy for every viewer", () => {
     expect(payload).toMatchObject({
       status: "AVAILABLE",
       asOf: "2026-08-25T00:00:00.000Z",
-      publishedAt: "2026-08-25T22:15:00.000Z",
+      publishedAt: null,
       freshness: "FRESH",
       coverage: { total: 5000, evaluated: 4920, skipped: 80 },
     });
@@ -235,6 +243,119 @@ describe("Pump Radar privacy for every viewer", () => {
     expect(unknownSector.rows[0]).toMatchObject({sector: "Sector unavailable", marketCapBand: "Cap unavailable"});
     expect(unknownSector.rows[0].displayTicker).not.toEqual(payload.rows[0].displayTicker);
     expect(JSON.stringify(unknownSector)).not.toContain("AAPL");
+  });
+
+  test("retains partial social evidence and exposes freshness without claiming an unsearched ticker was negative", async () => {
+    const scanDate = new Date("2026-09-16T00:00:00.000Z");
+    const updatedAt = new Date("2026-09-17T02:08:00.000Z");
+    const client = {
+      dailyScanSummary: {
+        findFirst: jest.fn().mockResolvedValue({
+          scanDate,
+          createdAt: new Date("2026-09-17T01:00:00.000Z"),
+          totalStocks: 2,
+          evaluated: 2,
+          skippedNoData: 0,
+        }),
+      },
+      stockDailySnapshot: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: "partial-social-aapl-row",
+            riskLevel: "HIGH",
+            totalScore: 90,
+            signalCount: 3,
+            signalSummary: "AAPL signal",
+            lastPrice: 1,
+            priceChangePct: 1,
+            volumeRatio: 2,
+            stock: { symbol: "AAPL", name: "Apple", exchange: "NASDAQ", isOTC: false },
+          },
+          {
+            id: "partial-social-msft-row",
+            riskLevel: "HIGH",
+            totalScore: 80,
+            signalCount: 2,
+            signalSummary: "MSFT signal",
+            lastPrice: 1,
+            priceChangePct: 1,
+            volumeRatio: 2,
+            stock: { symbol: "MSFT", name: "Microsoft", exchange: "NASDAQ", isOTC: false },
+          },
+        ]),
+      },
+      socialScanRun: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: "social-partial",
+          status: "PARTIAL",
+          scanDate,
+          updatedAt,
+          platformsUsed: JSON.stringify({
+            version: 2,
+            scanners: ["stocktwits"],
+            submittedTickers: ["AAPL", "MSFT"],
+            persistence: {},
+            coverage: [
+              {
+                scanner: "stocktwits",
+                platform: "StockTwits",
+                status: "PARTIAL",
+                submittedTickers: ["AAPL", "MSFT"],
+                attemptedTickers: ["AAPL", "MSFT"],
+                searchedTickers: ["AAPL"],
+                failedTickers: ["MSFT"],
+                rateLimitedTickers: ["MSFT"],
+                skippedTickers: [],
+              },
+            ],
+          }),
+        }),
+      },
+      socialMention: {
+        findMany: jest.fn().mockResolvedValue([
+          { ticker: "AAPL", platform: "StockTwits", isPromotional: true, promotionScore: 70 },
+        ]),
+      },
+    };
+    const service = createPumpRadarService(client as never);
+
+    const payload = await service.getPumpRadar({
+      limit: 10,
+      viewer: "AUTHENTICATED",
+      now: updatedAt,
+    });
+
+    expect(payload).toMatchObject({
+      status: "AVAILABLE",
+      socialPublication: {
+        status: "PARTIAL",
+        scanDate: "2026-09-16T00:00:00.000Z",
+        updatedAt: "2026-09-17T02:08:00.000Z",
+      },
+      rows: [
+        expect.objectContaining({
+          displayTicker: expect.stringMatching(/^Case [A-F0-9]{10}$/),
+          socialCoverage: expect.objectContaining({ status: "COMPLETE", searchedPlatforms: ["StockTwits"] }),
+          socialSummary: expect.objectContaining({ mentionCount: 1 }),
+        }),
+        expect.objectContaining({
+          displayTicker: expect.stringMatching(/^Case [A-F0-9]{10}$/),
+          socialCoverage: expect.objectContaining({
+            status: "NOT_SEARCHED",
+            searchedPlatforms: [],
+            rateLimitedPlatforms: ["StockTwits"],
+          }),
+          socialSummary: null,
+        }),
+      ],
+    });
+    expect(JSON.stringify(payload)).not.toContain("AAPL");
+    expect(JSON.stringify(payload)).not.toContain("MSFT");
+    expect(client.socialScanRun.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: { in: ["COMPLETED", "PARTIAL"] } }),
+      }),
+    );
   });
 });
 

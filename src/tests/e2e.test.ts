@@ -23,6 +23,14 @@ import {
   PriceHistory,
 } from "../lib/types";
 
+// These scenarios supply fixture market data and do not test remote regulatory
+// discovery. Keep all scoring/calculation code real, but freeze that external
+// lookup so an unavailable database/OTC endpoint cannot change fixture outcomes.
+jest.mock("../lib/marketData", () => ({
+  ...jest.requireActual("../lib/marketData"),
+  checkAlertList: jest.fn().mockResolvedValue(false),
+}));
+
 // Mock market data for testing
 const MOCK_AAPL: MarketData = {
   quote: {
@@ -349,7 +357,7 @@ describe("End-to-End Integration Tests", () => {
       expect(signalCodes).toContain(SIGNAL_CODES.URGENCY);
     });
 
-    it("should trigger alert list signal for ALRT ticker", async () => {
+    it("should preserve structural signals for the ALRT fixture without a live alert lookup", async () => {
       const marketData: MarketData = {
         quote: {
           ticker: "ALRT",
@@ -380,7 +388,7 @@ describe("End-to-End Integration Tests", () => {
 
       const result = await computeRiskScore(input);
 
-      // Note: Alert list check requires network access, so we test the structural signals
+      // Regulatory discovery is frozen at the external boundary; assert structural signals.
       expect(
         result.signals.some((s) => s.code === SIGNAL_CODES.MICROCAP_PRICE),
       ).toBe(true);

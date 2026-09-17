@@ -13,6 +13,7 @@ jest.mock("@/lib/mobile-auth", () => ({
 
 jest.mock("@/lib/usage", () => ({
   reserveScanSlot: mockReserveScanSlot,
+  refundScanSlot: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("@/lib/rate-limit", () => ({
@@ -28,6 +29,7 @@ jest.mock("@/lib/marketData", () => ({
 
 jest.mock("@/lib/scoring", () => ({
   computeRiskScore: jest.fn(),
+  computeIsLegitimate: jest.fn().mockReturnValue(false),
 }));
 
 jest.mock("@/lib/narrative", () => ({
@@ -86,7 +88,7 @@ describe("completed scan persistence", () => {
     mockReserveScanSlot.mockResolvedValue({ reserved: true, usage: { scansUsedThisMonth: 1, scansLimitThisMonth: 10 } });
     const market = jest.requireMock("@/lib/marketData");
     market.checkAlertList.mockResolvedValue(false);
-    market.fetchMarketData.mockResolvedValue({ dataAvailable: true, isOTC: false, quote: { companyName: "Apple", marketCap: 100_000_000 } });
+    market.fetchMarketData.mockResolvedValue({ dataAvailable: true, isOTC: false, priceHistory: [], quote: { companyName: "Apple", marketCap: 100_000_000 } });
     jest.requireMock("@/lib/scoring").computeRiskScore.mockResolvedValue({ riskLevel: "LOW", totalScore: 0, signals: [], isInsufficient: false, isLegitimate: true });
     jest.requireMock("@/lib/narrative").generateNarrative.mockResolvedValue({ disclaimers: [] });
   });
@@ -125,5 +127,32 @@ describe("completed scan persistence", () => {
     const response = await POST(scanRequest());
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ riskLevel: "LOW", stockSummary: { ticker: "AAPL" } });
+  });
+
+  test("rejects a synthetic AI result and falls back to deterministic scoring", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        risk_level: "HIGH",
+        risk_score: 90,
+        risk_probability: 0.9,
+        signals: [],
+        data_available: true,
+        anomaly_score: 0.9,
+        input_source: "synthetic",
+        layers_applied: ["rule_signals"],
+      }),
+    });
+    mockLogScanHistory.mockResolvedValueOnce(undefined);
+
+    const response = await POST(scanRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      riskLevel: "LOW",
+      stockSummary: { ticker: "AAPL" },
+    });
+    expect(jest.requireMock("@/lib/scoring").computeRiskScore).toHaveBeenCalled();
   });
 });

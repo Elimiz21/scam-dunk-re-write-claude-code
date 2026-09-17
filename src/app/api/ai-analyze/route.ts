@@ -20,7 +20,11 @@ import { MIN_HISTORY_POINTS } from "@/lib/scoring/engine";
 import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
 import { sendAPIFailureAlert } from "@/lib/email";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
-import { parseAIBackendResponse } from "@/lib/ai-backend-schema";
+import {
+  acceptAIBackendResponse,
+  buildAIBackendRequest,
+} from "@/lib/ai-backend-schema";
+import type { AIBackendResponse } from "@/lib/ai-backend-schema";
 
 // Allow up to 30 seconds for the full AI pipeline
 export const maxDuration = 30;
@@ -55,7 +59,7 @@ interface ServiceUnavailableInfo {
 
 interface AIBackendCallResult {
   ok: boolean;
-  data?: NonNullable<ReturnType<typeof parseAIBackendResponse>>;
+  data?: AIBackendResponse;
   /** Present when the backend returned 503 — route should alert + fall back. */
   serviceUnavailable?: ServiceUnavailableInfo;
 }
@@ -88,12 +92,11 @@ async function callAIBackend(
     const response = await fetch(`${AI_BACKEND_URL}/analyze`, {
       method: "POST",
       headers,
-      body: JSON.stringify({
+      body: JSON.stringify(buildAIBackendRequest({
         ticker,
-        asset_type: assetType,
-        use_live_data: useLiveData,
-        days: 90,
-      }),
+        assetType: assetType as "stock",
+        useLiveData,
+      })),
       signal: controller.signal,
     });
 
@@ -119,7 +122,10 @@ async function callAIBackend(
     }
 
     const raw = await response.json();
-    const data = parseAIBackendResponse(raw);
+    const data = acceptAIBackendResponse(raw, {
+      expectedSource: "live",
+      requireDataAvailable: true,
+    });
     if (!data) return { ok: false };
     return { ok: true, data };
   } catch (error) {
@@ -145,7 +151,7 @@ async function checkAIBackendHealth(): Promise<boolean> {
 
     if (response.ok) {
       const data = await response.json();
-      return data.status === "healthy" && data.rf_ready && data.lstm_ready;
+      return data.status === "healthy" && data.ready === true;
     }
     return false;
   } catch {
@@ -228,6 +234,7 @@ export async function POST(request: NextRequest) {
             rfProbability: aiResult.rf_probability ?? null,
             lstmProbability: aiResult.lstm_probability ?? null,
             anomalyScore: aiResult.anomaly_score ?? 0,
+            layersApplied: aiResult.layers_applied,
           },
           signals: aiResult.signals,
           features: aiResult.features ?? {},

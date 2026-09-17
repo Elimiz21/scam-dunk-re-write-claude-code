@@ -14,6 +14,19 @@ export interface SocialSummary {
   platforms: string[];
 }
 
+export interface SocialTickerCoverage {
+  status:
+    | "COMPLETE"
+    | "PARTIAL"
+    | "NOT_SEARCHED"
+    | "NOT_TARGETED"
+    | "UNKNOWN";
+  searchedPlatforms: string[];
+  incompletePlatforms: string[];
+  rateLimitedPlatforms: string[];
+  evidenceIncomplete?: boolean;
+}
+
 export interface PumpRadarCoverage {
   total: number;
   evaluated: number;
@@ -35,6 +48,7 @@ export interface PumpRadarRow {
   priceChangePct: number | null;
   volumeRatio: number | null;
   socialSummary: SocialSummary | null;
+  socialCoverage?: SocialTickerCoverage;
 }
 
 export type PumpRadarPayload =
@@ -42,17 +56,27 @@ export type PumpRadarPayload =
       status: "UNAVAILABLE";
       asOf: null;
       publishedAt: null;
+      executedAt?: null;
+      publicationQuality?: "UNKNOWN";
       freshness: null;
       coverage: null;
+      socialPublication?: null;
       rows: [];
       notice: string;
     }
   | {
       status: "AVAILABLE";
       asOf: string;
-      publishedAt: string;
+      publishedAt: string | null;
+      executedAt?: string | null;
+      publicationQuality?: "VERIFIED" | "DEGRADED" | "UNKNOWN";
       freshness: "FRESH" | "STALE";
       coverage: PumpRadarCoverage;
+      socialPublication?: {
+        status: "COMPLETED" | "PARTIAL";
+        scanDate: string;
+        updatedAt: string;
+      } | null;
       rows: PumpRadarRow[];
       notice: string;
     };
@@ -204,8 +228,10 @@ export interface SocialEvidenceItem {
 export type ScanSocialDto =
   | { status: "NOT_ANALYZED"; asOf: null; evidence: [] }
   | {
-      status: "ANALYZED";
+      status: "ANALYZED" | "PARTIAL";
       asOf: string;
+      updatedAt?: string;
+      coverage?: SocialTickerCoverage;
       evidence: SocialEvidenceItem[];
     };
 

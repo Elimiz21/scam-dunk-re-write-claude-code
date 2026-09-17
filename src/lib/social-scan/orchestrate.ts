@@ -25,8 +25,19 @@ import {
   TickerScanResult,
   ScanRunResult,
   textMentionsTicker,
+  type SocialScanContext,
 } from "./types";
 import { screenMentionsWithAI } from "./ai-screener";
+import {
+  persistRowsBounded,
+  sanitizeAndTruncateUnicode,
+  type PersistenceResult,
+} from "./persistence";
+import {
+  getTickerCoverage,
+  type PlatformCoverage,
+  type SocialRunMetadata,
+} from "./coverage";
 
 /** Per-scanner hard timeout. Scanners own an internal budget (~100s) and
  * return partial results before this fires; this is a safety net only. */
@@ -39,6 +50,104 @@ const AI_SCREEN_TIMEOUT = 120_000;
  * (paid) Perplexity call on it (SOC-CO4). */
 const PERPLEXITY_MIN_FLAGGED = 2;
 
+/** Leave enough of Vercel's 300-second ceiling to reconcile counts and write a
+ * terminal run state even when scanners or persistence are degraded. */
+const RUN_TOTAL_BUDGET_MS = 285_000;
+const FINALIZATION_RESERVE_MS = 15_000;
+const PERSISTENCE_CHUNK_SIZE = 50;
+const PERSISTENCE_TRANSIENT_RETRIES = 2;
+const DB_OPERATION_MAX_MS = 5_000;
+const DB_FINALIZATION_MAX_MS = 7_500;
+
+function deadlineError(label: string): Error & { code: string } {
+  const error = new Error(`${label} exceeded its database deadline`) as Error & {
+    code: string;
+  };
+  error.code = "DEADLINE_EXCEEDED";
+  return error;
+}
+
+async function runWithDeadline<T>(
+  operation: (signal: AbortSignal) => Promise<T>,
+  options: { deadlineAt: number; label: string; maxMs?: number },
+): Promise<T> {
+  const remaining = Math.min(
+    options.maxMs ?? DB_OPERATION_MAX_MS,
+    options.deadlineAt - Date.now(),
+  );
+  if (remaining <= 0) throw deadlineError(options.label);
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation(controller.signal),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          const error = deadlineError(options.label);
+          controller.abort(error);
+          reject(error);
+        }, Math.max(1, remaining));
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function runBoundedTransaction<T>(
+  deadlineAt: number,
+  label: string,
+  operation: (client: any, signal: AbortSignal) => Promise<T>,
+  maxMs: number = DB_OPERATION_MAX_MS,
+): Promise<T> {
+  return runWithDeadline(
+    async (signal) => {
+      const remaining = Math.max(
+        1,
+        Math.min(maxMs, deadlineAt - Date.now()),
+      );
+      const transaction = (prisma as any).$transaction;
+      if (typeof transaction !== "function") {
+        return operation(prisma, signal);
+      }
+      return transaction.call(
+        prisma,
+        async (tx: any) => {
+          if (typeof tx.$executeRawUnsafe === "function") {
+            await tx.$executeRawUnsafe(
+              `SET LOCAL statement_timeout = ${Math.max(1, Math.floor(remaining))}`,
+            );
+          }
+          if (signal.aborted) throw signal.reason;
+          return operation(tx, signal);
+        },
+        { maxWait: Math.min(1_000, remaining), timeout: remaining },
+      );
+    },
+    { deadlineAt, label, maxMs },
+  );
+}
+
+async function lockRunningRun(
+  client: any,
+  scanRunId: string,
+  signal: AbortSignal,
+): Promise<void> {
+  if (signal.aborted) throw signal.reason;
+  if (typeof client.$queryRawUnsafe !== "function") return;
+  const rows = await client.$queryRawUnsafe(
+    'SELECT "id" FROM "SocialScanRun" WHERE "id" = $1 AND "status" = \'RUNNING\' FOR UPDATE',
+    scanRunId,
+  );
+  if (!Array.isArray(rows) || rows.length !== 1) {
+    const error = new Error(
+      "Social scan write fenced because the run is no longer RUNNING",
+    ) as Error & { code: string };
+    error.code = "RUN_FENCED";
+    throw error;
+  }
+}
+
 /**
  * Content hash used for in-run dedup. Mirrors the DB unique key
  * `@@unique([scanRunId, ticker, contentHash])`: sha256(url || title || content).
@@ -50,6 +159,14 @@ function computeContentHash(m: {
 }): string {
   const basis = m.url || m.title || m.content || "";
   return createHash("sha256").update(basis).digest("hex");
+}
+
+function computeStoredContentHash(mention: SocialMention): string {
+  return computeContentHash({
+    url: sanitizeAndTruncateUnicode(mention.url || "", 2000) || null,
+    title: sanitizeAndTruncateUnicode(mention.title || "", 500) || null,
+    content: sanitizeAndTruncateUnicode(mention.content || "", 2000) || null,
+  });
 }
 
 /**
@@ -107,26 +224,36 @@ function buildMentionRow(
   stockName: string | null,
   mention: SocialMention,
 ) {
-  const title = (mention.title || "").substring(0, 500) || null;
-  const content = (mention.content || "").substring(0, 2000) || null;
-  const url = (mention.url || "").substring(0, 2000) || null;
+  const title = sanitizeAndTruncateUnicode(mention.title || "", 500) || null;
+  const content =
+    sanitizeAndTruncateUnicode(mention.content || "", 2000) || null;
+  const url = sanitizeAndTruncateUnicode(mention.url || "", 2000) || null;
+  const engagement = Object.fromEntries(
+    Object.entries(mention.engagement || {})
+      .filter(([, value]) => typeof value === "number" && Number.isFinite(value))
+      .slice(0, 20),
+  );
+  const redFlags = (mention.redFlags || [])
+    .slice(0, 50)
+    .map((flag) => sanitizeAndTruncateUnicode(String(flag), 500));
   return {
     scanRunId,
     ticker,
     stockName,
-    platform: mention.platform,
-    source: mention.source,
-    discoveredVia: mention.discoveredVia,
+    platform: sanitizeAndTruncateUnicode(mention.platform, 100),
+    source: sanitizeAndTruncateUnicode(mention.source, 500),
+    discoveredVia: sanitizeAndTruncateUnicode(mention.discoveredVia, 100),
     title,
     content,
     url,
-    author: mention.author || null,
+    author: sanitizeAndTruncateUnicode(mention.author || "", 500) || null,
     postDate: parsePostDate(mention.postDate),
-    engagement: JSON.stringify(mention.engagement || {}),
-    sentiment: mention.sentiment || null,
+    engagement: JSON.stringify(engagement),
+    sentiment:
+      sanitizeAndTruncateUnicode(mention.sentiment || "", 50) || null,
     isPromotional: mention.isPromotional || false,
     promotionScore: mention.promotionScore || 0,
-    redFlags: JSON.stringify(mention.redFlags || []),
+    redFlags: JSON.stringify(redFlags),
     contentHash: computeContentHash({ url, title, content }),
   };
 }
@@ -139,43 +266,66 @@ function buildMentionRow(
 async function persistMentionsIncrementally(
   scanRunId: string,
   rows: ReturnType<typeof buildMentionRow>[],
-): Promise<number> {
+  options: {
+    deadlineAt: number;
+    onProgress?: (
+      progress: PersistenceResult,
+      signal: AbortSignal,
+    ) => Promise<void>;
+  },
+): Promise<PersistenceResult> {
   if (rows.length === 0) {
-    await bumpHeartbeat(scanRunId);
-    return 0;
+    await bumpHeartbeat(scanRunId, options.deadlineAt);
+    return {
+      submitted: 0,
+      inserted: 0,
+      duplicates: 0,
+      rejected: 0,
+      unprocessed: 0,
+      timedOut: false,
+      transientRetries: 0,
+      rejectedRows: [],
+      unprocessedRows: [],
+    };
   }
-  let inserted = 0;
-  try {
-    const result = await prisma.socialMention.createMany({
-      data: rows,
-      skipDuplicates: true,
-    });
-    inserted = result.count;
-  } catch (error: any) {
-    console.error(
-      `[Social Scan] Incremental write failed, falling back to per-row:`,
-      error.message,
-    );
-    for (const row of rows) {
-      try {
-        await prisma.socialMention.create({ data: row });
-        inserted++;
-      } catch {
-        /* skip duplicate / failed row */
-      }
-    }
-  }
-  await bumpHeartbeat(scanRunId);
-  return inserted;
+  const result = await persistRowsBounded(rows, {
+    createMany: async (data, signal) =>
+      runBoundedTransaction(
+        options.deadlineAt,
+        "Social mention persistence",
+        async (client, transactionSignal) => {
+          if (signal.aborted) throw signal.reason;
+          await lockRunningRun(client, scanRunId, transactionSignal);
+          return client.socialMention.createMany({
+            data,
+            skipDuplicates: true,
+          });
+        },
+      ),
+    chunkSize: PERSISTENCE_CHUNK_SIZE,
+    maxTransientRetries: PERSISTENCE_TRANSIENT_RETRIES,
+    deadlineAt: options.deadlineAt,
+    onProgress: options.onProgress,
+  });
+  await bumpHeartbeat(scanRunId, options.deadlineAt);
+  return result;
 }
 
 /** Touch the run so dashboards / stale-run cleanup see forward progress. */
-async function bumpHeartbeat(scanRunId: string): Promise<void> {
+async function bumpHeartbeat(
+  scanRunId: string,
+  deadlineAt: number,
+): Promise<void> {
   try {
-    await prisma.socialScanRun.update({
-      where: { id: scanRunId },
-      data: { updatedAt: new Date() },
-    });
+    await runBoundedTransaction(
+      deadlineAt,
+      "Social scan heartbeat",
+      (client) =>
+        client.socialScanRun.updateMany({
+          where: { id: scanRunId, status: "RUNNING" },
+          data: { updatedAt: new Date() },
+        }),
+    );
   } catch {
     /* heartbeat is best-effort */
   }
@@ -184,28 +334,51 @@ async function bumpHeartbeat(scanRunId: string): Promise<void> {
 /** Run a scanner with a hard-timeout safety net. The scanner internally returns
  * partial results before this fires; on the rare timeout we lose only that one
  * scanner's output, not the whole run. */
-async function runScannerSafely(
-  scanner: { name: string; scan(t: ScanTarget[]): Promise<PlatformScanResult[]> },
+export async function runScannerSafely(
+  scanner: {
+    name: string;
+    scan(
+      t: ScanTarget[],
+      context?: SocialScanContext,
+    ): Promise<PlatformScanResult[]>;
+  },
   targets: ScanTarget[],
+  deadlineAt: number,
+  parentSignal?: AbortSignal,
 ): Promise<PlatformScanResult[]> {
+  const controller = new AbortController();
+  const abortFromParent = () =>
+    controller.abort(parentSignal?.reason || new Error("Social scan cancelled"));
+  if (parentSignal?.aborted) abortFromParent();
+  else parentSignal?.addEventListener("abort", abortFromParent, { once: true });
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const remaining = deadlineAt - Date.now();
+  if (remaining <= 0) {
+    throw new Error(`${scanner.name} skipped because the run deadline was reached`);
+  }
   try {
+    const work = scanner.scan(targets, {
+      signal: controller.signal,
+      deadlineAt,
+    });
     return await Promise.race([
-      scanner.scan(targets),
+      work,
       new Promise<PlatformScanResult[]>((_, reject) => {
         timer = setTimeout(
-          () =>
-            reject(
-              new Error(
-                `${scanner.name} exceeded hard timeout ${SCANNER_HARD_TIMEOUT / 1000}s`,
-              ),
-            ),
-          SCANNER_HARD_TIMEOUT,
+          () => {
+            const error = new Error(
+              `${scanner.name} exceeded its bounded execution window`,
+            );
+            controller.abort(error);
+            reject(error);
+          },
+          Math.max(1, Math.min(SCANNER_HARD_TIMEOUT, remaining)),
         );
       }),
     ]);
   } finally {
     if (timer) clearTimeout(timer);
+    parentSignal?.removeEventListener("abort", abortFromParent);
   }
 }
 
@@ -377,6 +550,10 @@ export async function runSocialScanAndStore(options: {
   manualTickers?: ScanTarget[];
 }): Promise<ScanRunResult> {
   const startTime = Date.now();
+  const workDeadlineAt =
+    startTime + RUN_TOTAL_BUDGET_MS - FINALIZATION_RESERVE_MS;
+  const finalizationDeadlineAt = startTime + RUN_TOTAL_BUDGET_MS;
+  const runController = new AbortController();
   const { scanRunId, manualTickers } = options;
 
   // Step 1: Get targets (from DB or manual list)
@@ -394,17 +571,23 @@ export async function runSocialScanAndStore(options: {
   }
 
   if (targets.length === 0) {
-    await prisma.socialScanRun.update({
-      where: { id: scanRunId },
-      data: {
-        status: "COMPLETED",
-        tickersScanned: 0,
-        errors: JSON.stringify([
-          "No high-risk tickers found in the latest daily scan to scan for social media promotion.",
-        ]),
-        duration: Date.now() - startTime,
-      },
-    });
+    await runBoundedTransaction(
+      finalizationDeadlineAt,
+      "Empty social scan terminal update",
+      (client) =>
+        client.socialScanRun.updateMany({
+          where: { id: scanRunId, status: "RUNNING" },
+          data: {
+            status: "COMPLETED",
+            tickersScanned: 0,
+            errors: JSON.stringify([
+              "No high-risk tickers found in the latest daily scan to scan for social media promotion.",
+            ]),
+            duration: Date.now() - startTime,
+          },
+        }),
+      DB_FINALIZATION_MAX_MS,
+    );
 
     return {
       scanId: scanRunId,
@@ -421,25 +604,40 @@ export async function runSocialScanAndStore(options: {
   }
 
   // Step 2: Update scan run with target count
-  await prisma.socialScanRun.update({
-    where: { id: scanRunId },
-    data: { tickersScanned: targets.length },
-  });
+  const targetProgress = await runBoundedTransaction<{ count: number }>(
+    workDeadlineAt,
+    "Social scan target progress update",
+    (client) =>
+      client.socialScanRun.updateMany({
+        where: { id: scanRunId, status: "RUNNING" },
+        data: { tickersScanned: targets.length },
+      }),
+  );
+  if (targetProgress.count !== 1) {
+    runController.abort(new Error("Social scan was terminal before provider work"));
+    throw new Error("Social scan is no longer RUNNING");
+  }
 
   // Step 3: Get configured scanners (free scanners first; Perplexity is tiered)
   const freeScanners = getConfiguredFreeScanners();
   const perplexity = getPerplexityScanner();
   if (freeScanners.length === 0 && !perplexity) {
-    await prisma.socialScanRun.update({
-      where: { id: scanRunId },
-      data: {
-        status: "FAILED",
-        errors: JSON.stringify([
-          "No scanners configured. Set up API keys for YouTube, Serper, Perplexity, or Discord Bot.",
-        ]),
-        duration: Date.now() - startTime,
-      },
-    });
+    await runBoundedTransaction(
+      finalizationDeadlineAt,
+      "Unconfigured social scan terminal update",
+      (client) =>
+        client.socialScanRun.updateMany({
+          where: { id: scanRunId, status: "RUNNING" },
+          data: {
+            status: "FAILED",
+            errors: JSON.stringify([
+              "No scanners configured. Set up API keys for YouTube, Serper, Perplexity, or Discord Bot.",
+            ]),
+            duration: Date.now() - startTime,
+          },
+        }),
+      DB_FINALIZATION_MAX_MS,
+    );
 
     return {
       scanId: scanRunId,
@@ -461,6 +659,19 @@ export async function runSocialScanAndStore(options: {
 
   const errors: string[] = [];
   const platformsUsed: string[] = [];
+  const coverage: PlatformCoverage[] = [];
+  const submittedTickers = targets.map((target) => target.ticker.toUpperCase());
+  const persistence = {
+    submitted: 0,
+    inserted: 0,
+    duplicates: 0,
+    rejected: 0,
+    unprocessed: 0,
+    timedOut: false,
+    transientRetries: 0,
+    lossTickers: [] as string[],
+  };
+  const persistenceLossTickers = new Set<string>();
   const scannerStats: Record<
     string,
     { mentions: number; success: boolean; error?: string }
@@ -472,6 +683,72 @@ export async function runSocialScanAndStore(options: {
   // Best-effort fallback count of rows written; the authoritative total comes
   // from a DB count() at the end, so concurrent updates here don't matter.
   let mentionsStored = 0;
+  let readbackComplete = true;
+
+  const buildMetadata = (): SocialRunMetadata => ({
+    version: 2,
+    scanners: Array.from(new Set(platformsUsed)),
+    stats: scannerStats,
+    submittedTickers,
+    persistence: { ...persistence },
+    coverage: [...coverage],
+    readbackComplete,
+  });
+  let terminalizing = false;
+  let progressWrite = Promise.resolve();
+  const queueProgressUpdate = (signal?: AbortSignal): Promise<void> => {
+    if (terminalizing || signal?.aborted) return progressWrite;
+    progressWrite = progressWrite
+      .then(async () => {
+        if (terminalizing || signal?.aborted) return;
+        const progress = await runBoundedTransaction<{ count: number }>(
+          workDeadlineAt,
+          "Social scan progress update",
+          (client, transactionSignal) => {
+            if (terminalizing || signal?.aborted || transactionSignal.aborted) {
+              return Promise.resolve({ count: 0 });
+            }
+            return client.socialScanRun.updateMany({
+              where: { id: scanRunId, status: "RUNNING" },
+              data: {
+                tickersScanned: targets.length,
+                totalMentions: mentionsStored,
+                platformsUsed: JSON.stringify(buildMetadata()),
+                errors: JSON.stringify(errors),
+              },
+            });
+          },
+        );
+        if (progress.count !== 1) {
+          const error = new Error(
+            "Social scan progress was fenced because the run is no longer RUNNING",
+          );
+          runController.abort(error);
+          throw error;
+        }
+      })
+      .catch((error) => {
+        errors.push(`Progress update unavailable: ${error.message || error}`);
+        console.error("[Social Scan] Progress update failed:", error);
+      });
+    return progressWrite;
+  };
+
+  const mergePersistenceProgress = (
+    current: PersistenceResult,
+    previous: PersistenceResult,
+  ) => {
+    persistence.submitted += current.submitted - previous.submitted;
+    persistence.inserted += current.inserted - previous.inserted;
+    persistence.duplicates += current.duplicates - previous.duplicates;
+    persistence.rejected += current.rejected - previous.rejected;
+    persistence.unprocessed += current.unprocessed - previous.unprocessed;
+    persistence.transientRetries +=
+      current.transientRetries - previous.transientRetries;
+    persistence.timedOut = persistence.timedOut || current.timedOut;
+    persistence.lossTickers = Array.from(persistenceLossTickers).sort();
+    mentionsStored = persistence.inserted;
+  };
 
   const mergeAttribution = (perScanner: Map<string, SocialMention[]>) => {
     for (const [ticker, list] of Array.from(perScanner.entries())) {
@@ -486,6 +763,7 @@ export async function runSocialScanAndStore(options: {
   const writeScannerOutput = async (
     scannerName: string,
     platformResults: PlatformScanResult[],
+    scannerTargets: ScanTarget[],
   ): Promise<void> => {
     platformsUsed.push(scannerName);
     let scannerMentions = 0;
@@ -493,6 +771,22 @@ export async function runSocialScanAndStore(options: {
     let allSuccess = true;
     for (const r of platformResults) {
       scannerMentions += r.mentionsFound;
+      const resultCoverage = r.coverage || {
+        scanner: scannerName,
+        platform: r.platform,
+        status: "PARTIAL" as const,
+        submittedTickers: scannerTargets.map((target) => target.ticker),
+        attemptedTickers: [],
+        searchedTickers: [],
+        failedTickers: [],
+        rateLimitedTickers: [],
+        skippedTickers: scannerTargets.map((target) => target.ticker),
+        error: "Scanner did not report ticker-level coverage",
+      };
+      coverage.push(resultCoverage);
+      if (!r.coverage) {
+        errors.push(`${scannerName}: ${resultCoverage.error}`);
+      }
       if (!r.success) {
         allSuccess = false;
         if (r.error) {
@@ -517,16 +811,70 @@ export async function runSocialScanAndStore(options: {
       for (const m of list)
         rows.push(buildMentionRow(scanRunId, ticker, stockName, m));
     }
-    mentionsStored += await persistMentionsIncrementally(scanRunId, rows);
+    let previousProgress: PersistenceResult = {
+      submitted: 0,
+      inserted: 0,
+      duplicates: 0,
+      rejected: 0,
+      unprocessed: 0,
+      timedOut: false,
+      transientRetries: 0,
+      rejectedRows: [],
+      unprocessedRows: [],
+    };
+    const persistenceResult = await persistMentionsIncrementally(
+      scanRunId,
+      rows,
+      {
+        deadlineAt: workDeadlineAt,
+        onProgress: async (current, signal) => {
+          for (const loss of [
+            ...current.rejectedRows,
+            ...current.unprocessedRows,
+          ]) {
+            const ticker = rows[loss.index]?.ticker;
+            if (ticker) persistenceLossTickers.add(ticker);
+          }
+          mergePersistenceProgress(current, previousProgress);
+          previousProgress = current;
+          await queueProgressUpdate(signal);
+        },
+      },
+    );
+    mergePersistenceProgress(persistenceResult, previousProgress);
+    if (persistenceResult.rejected > 0) {
+      errors.push(
+        `${scannerName}: ${persistenceResult.rejected} mention row rejected during bounded persistence`,
+      );
+    }
+    if (persistenceResult.unprocessed > 0) {
+      errors.push(
+        `${scannerName}: ${persistenceResult.unprocessed} mention rows left unprocessed during bounded persistence`,
+      );
+    }
+    for (const loss of [
+      ...persistenceResult.rejectedRows,
+      ...persistenceResult.unprocessedRows,
+    ]) {
+      const ticker = rows[loss.index]?.ticker;
+      if (ticker) persistenceLossTickers.add(ticker);
+    }
+    persistence.lossTickers = Array.from(persistenceLossTickers).sort();
+    await queueProgressUpdate();
     console.log(
-      `[Social Scan] ${scannerName}: ${scannerMentions} mentions found, ${rows.length} attributed rows written`,
+      `[Social Scan] ${scannerName}: ${scannerMentions} mentions found, ${persistenceResult.inserted} inserted, ${persistenceResult.duplicates} duplicate, ${persistenceResult.rejected} rejected`,
     );
   };
 
   const freeSettled = await Promise.allSettled(
     freeScanners.map(async (scanner) => {
-      const platformResults = await runScannerSafely(scanner, targets);
-      await writeScannerOutput(scanner.name, platformResults);
+      const platformResults = await runScannerSafely(
+        scanner,
+        targets,
+        workDeadlineAt,
+        runController.signal,
+      );
+      await writeScannerOutput(scanner.name, platformResults, targets);
     }),
   );
   for (let i = 0; i < freeSettled.length; i++) {
@@ -535,6 +883,18 @@ export async function runSocialScanAndStore(options: {
       const msg = `Scanner failed: ${freeScanners[i].name}: ${outcome.reason?.message || outcome.reason}`;
       console.error(`[Social Scan] ${msg}`);
       errors.push(msg);
+      coverage.push({
+        scanner: freeScanners[i].name,
+        platform: freeScanners[i].platform,
+        status: "FAILED",
+        submittedTickers,
+        attemptedTickers: [],
+        searchedTickers: [],
+        failedTickers: submittedTickers,
+        rateLimitedTickers: [],
+        skippedTickers: [],
+        error: outcome.reason?.message || String(outcome.reason),
+      });
     }
   }
 
@@ -560,12 +920,30 @@ export async function runSocialScanAndStore(options: {
         const platformResults = await runScannerSafely(
           perplexity,
           perplexityTargets,
+          workDeadlineAt,
+          runController.signal,
         );
-        await writeScannerOutput(perplexity.name, platformResults);
+        await writeScannerOutput(
+          perplexity.name,
+          platformResults,
+          perplexityTargets,
+        );
       } catch (error: any) {
         const msg = `Scanner failed: ${perplexity.name}: ${error?.message || error}`;
         console.error(`[Social Scan] ${msg}`);
         errors.push(msg);
+        coverage.push({
+          scanner: perplexity.name,
+          platform: perplexity.platform,
+          status: "FAILED",
+          submittedTickers: perplexityTargets.map((target) => target.ticker),
+          attemptedTickers: [],
+          searchedTickers: [],
+          failedTickers: perplexityTargets.map((target) => target.ticker),
+          rateLimitedTickers: [],
+          skippedTickers: [],
+          error: error?.message || String(error),
+        });
       }
     }
   }
@@ -577,6 +955,20 @@ export async function runSocialScanAndStore(options: {
 
   // Step 5: Aggregate results per ticker from all attributions
   const tickerResults = aggregateResults(targets, attributions);
+  const currentMetadata = buildMetadata();
+  for (const tickerResult of tickerResults) {
+    const tickerCoverage = getTickerCoverage(
+      currentMetadata,
+      tickerResult.ticker,
+    );
+    tickerResult.coverage = tickerCoverage;
+    if (tickerResult.totalMentions === 0) {
+      tickerResult.summary =
+        tickerCoverage.status === "COMPLETE"
+          ? `No social media mentions were found for ${tickerResult.ticker} across the completed configured platform searches.`
+          : `No mentions were retained for ${tickerResult.ticker}. Coverage is incomplete, so this does not establish that promotion was absent.`;
+    }
+  }
 
   // Step 5b: AI Screening — classify high-scoring mentions as scam vs legitimate.
   // Dedupe GLOBALLY by contentHash first (SOC-CO3) so a post matching several
@@ -593,22 +985,48 @@ export async function runSocialScanAndStore(options: {
     }
     const uniqueMentions = Array.from(uniqueByHash.values());
 
-    if (uniqueMentions.length > 0) {
+    const aiBudgetMs = Math.min(
+      AI_SCREEN_TIMEOUT,
+      workDeadlineAt - Date.now(),
+    );
+    if (uniqueMentions.length > 0 && aiBudgetMs > 0) {
       console.log(
         `[Social Scan] Running AI screening on ${uniqueMentions.length} unique mentions (deduped from attributions)...`,
       );
       let timer: ReturnType<typeof setTimeout> | undefined;
+      let aiTimedOut = false;
+      const aiController = new AbortController();
+      const abortAiFromRun = () =>
+        aiController.abort(
+          runController.signal.reason || new Error("Social scan cancelled"),
+        );
+      if (runController.signal.aborted) abortAiFromRun();
+      else runController.signal.addEventListener("abort", abortAiFromRun, {
+        once: true,
+      });
+      const aiWork = screenMentionsWithAI(uniqueMentions, {
+        signal: aiController.signal,
+        deadlineAt: workDeadlineAt,
+      });
       const screenedMentions = await Promise.race([
-        screenMentionsWithAI(uniqueMentions),
+        aiWork,
         new Promise<SocialMention[]>((resolve) => {
           // On overrun, resolve with the un-screened set so partial work survives.
           timer = setTimeout(() => {
+            aiTimedOut = true;
+            aiController.abort(new Error("AI screening deadline reached"));
             console.warn("[Social Scan] AI screening timed out — keeping pattern scores");
             resolve(uniqueMentions);
-          }, AI_SCREEN_TIMEOUT);
+          }, aiBudgetMs);
         }),
       ]);
       if (timer) clearTimeout(timer);
+      runController.signal.removeEventListener("abort", abortAiFromRun);
+      if (aiTimedOut) {
+        errors.push(
+          "AI screening reached its deadline; pattern scores were retained",
+        );
+      }
 
       // Map screened results back by contentHash and apply to every attribution.
       const screenedByHash = new Map<string, SocialMention>();
@@ -636,7 +1054,21 @@ export async function runSocialScanAndStore(options: {
       }
 
       // Persist the adjusted scores onto the already-written rows (best-effort).
-      await applyScreenedScores(scanRunId, tickerResults);
+      const skippedScoreUpdates = await applyScreenedScores(
+        scanRunId,
+        tickerResults,
+        workDeadlineAt,
+        runController.signal,
+      );
+      if (skippedScoreUpdates > 0) {
+        errors.push(
+          `${skippedScoreUpdates} AI score updates were skipped to preserve finalization time`,
+        );
+      }
+    } else if (uniqueMentions.length > 0) {
+      errors.push(
+        "AI screening skipped because the run reached its reserved finalization window",
+      );
     }
   } catch (error: any) {
     // AI screening is non-blocking — if it fails, we keep pattern-based scores
@@ -648,33 +1080,77 @@ export async function runSocialScanAndStore(options: {
     (r) => r.totalMentions > 0,
   ).length;
 
+  terminalizing = true;
+  runController.abort(new Error("Social scan entering terminal finalization"));
+  await progressWrite;
+  const searchedTickers = Array.from(
+    new Set(coverage.flatMap((entry) => entry.searchedTickers)),
+  );
+  const hasIncompleteCoverage = coverage.some(
+    (entry) => entry.status !== "COMPLETED",
+  );
+  const hasPersistenceLoss =
+    persistence.rejected > 0 ||
+    persistence.unprocessed > 0 ||
+    persistence.timedOut;
+  let finalCount = mentionsStored;
+  try {
+    finalCount = await runBoundedTransaction(
+      finalizationDeadlineAt,
+      "Social mention final count",
+      (client) => client.socialMention.count({ where: { scanRunId } }),
+      DB_FINALIZATION_MAX_MS,
+    );
+  } catch (error: any) {
+    readbackComplete = false;
+    errors.push(
+      `Final mention reconciliation unavailable: ${error?.message || error}`,
+    );
+  }
+  if (!readbackComplete) {
+    const finalMetadata = buildMetadata();
+    for (const tickerResult of tickerResults) {
+      tickerResult.coverage = getTickerCoverage(
+        finalMetadata,
+        tickerResult.ticker,
+      );
+      if (tickerResult.totalMentions === 0) {
+        tickerResult.summary = `No mentions were retained for ${tickerResult.ticker}. Evidence readback is incomplete, so this does not establish that promotion was absent.`;
+      }
+    }
+  }
   const status =
-    errors.length > 0 && platformsUsed.length === 0
+    searchedTickers.length === 0 && persistence.inserted === 0
       ? "FAILED"
-      : errors.length > 0
+      : errors.length > 0 || hasIncompleteCoverage || hasPersistenceLoss
         ? "PARTIAL"
         : "COMPLETED";
 
   // Step 6: Final run update (mentions were written incrementally above).
   const duration = Date.now() - startTime;
-  const finalCount = await prisma.socialMention
-    .count({ where: { scanRunId } })
-    .catch(() => mentionsStored);
-  await prisma.socialScanRun.update({
-    where: { id: scanRunId },
-    data: {
-      status: status as string,
-      tickersScanned: targets.length,
-      tickersWithMentions,
-      totalMentions: finalCount,
-      platformsUsed: JSON.stringify({
-        scanners: platformsUsed,
-        stats: scannerStats,
+  const finalized = await runBoundedTransaction<{ count: number }>(
+    finalizationDeadlineAt,
+    "Social scan terminal update",
+    (client) =>
+      client.socialScanRun.updateMany({
+        where: { id: scanRunId, status: "RUNNING" },
+        data: {
+          status: status as string,
+          tickersScanned: targets.length,
+          tickersWithMentions,
+          totalMentions: finalCount,
+          platformsUsed: JSON.stringify(buildMetadata()),
+          duration,
+          errors: JSON.stringify(errors),
+        },
       }),
-      duration,
-      errors: JSON.stringify(errors),
-    },
-  });
+    DB_FINALIZATION_MAX_MS,
+  );
+  if (finalized.count !== 1) {
+    throw new Error(
+      "Social scan terminal update was fenced because the run was no longer RUNNING",
+    );
+  }
 
   console.log(
     `[Social Scan] Complete: ${finalCount} mentions stored, ${tickersWithMentions}/${targets.length} tickers with mentions, ${status}`,
@@ -691,6 +1167,11 @@ export async function runSocialScanAndStore(options: {
     results: tickerResults,
     errors,
     duration,
+    submittedTickers,
+    searchedTickers,
+    coverage,
+    persistence,
+    readbackComplete,
   };
 }
 
@@ -703,28 +1184,70 @@ export async function runSocialScanAndStore(options: {
 async function applyScreenedScores(
   scanRunId: string,
   tickerResults: TickerScanResult[],
-): Promise<void> {
-  const updates: Promise<unknown>[] = [];
+  deadlineAt: number,
+  signal: AbortSignal,
+): Promise<number> {
+  const updates: Array<(client: any) => Promise<unknown>> = [];
   for (const tr of tickerResults) {
     for (const platform of tr.platforms) {
       for (const m of platform.mentions) {
-        const contentHash = computeContentHash(m);
+        const contentHash = computeStoredContentHash(m);
         updates.push(
-          prisma.socialMention
-            .updateMany({
-              where: { scanRunId, ticker: tr.ticker, contentHash },
+          (client) =>
+            client.socialMention.updateMany({
+              where: {
+                scanRunId,
+                ticker: tr.ticker,
+                contentHash,
+              },
               data: {
                 promotionScore: m.promotionScore || 0,
                 isPromotional: m.isPromotional || false,
-                redFlags: JSON.stringify(m.redFlags || []),
+                redFlags: JSON.stringify(
+                  (m.redFlags || [])
+                    .slice(0, 50)
+                    .map((flag) =>
+                      sanitizeAndTruncateUnicode(String(flag), 500),
+                    ),
+                ),
               },
-            })
-            .catch(() => undefined),
+            }),
         );
       }
     }
   }
-  if (updates.length > 0) {
-    await Promise.allSettled(updates);
+  const chunkSize = 25;
+  for (let index = 0; index < updates.length; index += chunkSize) {
+    if (signal.aborted || Date.now() >= deadlineAt) {
+      return updates.length - index;
+    }
+    try {
+      await runBoundedTransaction(
+        deadlineAt,
+        "Social AI score update",
+        (client, transactionSignal) => {
+          if (signal.aborted || transactionSignal.aborted) {
+            throw signal.reason || transactionSignal.reason;
+          }
+          return lockRunningRun(client, scanRunId, transactionSignal).then(
+            async () => {
+              const settled = await Promise.allSettled(
+                updates
+                  .slice(index, index + chunkSize)
+                  .map((update) => update(client)),
+              );
+              const rejected = settled.find(
+                (outcome) => outcome.status === "rejected",
+              );
+              if (rejected?.status === "rejected") throw rejected.reason;
+              return settled;
+            },
+          );
+        },
+      );
+    } catch {
+      return updates.length - index;
+    }
   }
+  return 0;
 }

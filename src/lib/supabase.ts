@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { getConfiguredSupabaseUrl } from "@/lib/supabase-config";
 
 // Storage bucket name for evaluation data
 export const EVALUATION_BUCKET = "evaluation-data";
@@ -12,7 +13,7 @@ let _supabase: SupabaseClient | null = null;
 export function getSupabaseClient(): SupabaseClient {
   if (_supabase) return _supabase;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl = getConfiguredSupabaseUrl();
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {

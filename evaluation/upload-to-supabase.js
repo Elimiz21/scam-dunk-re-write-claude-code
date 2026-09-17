@@ -4,7 +4,7 @@
  *
  * Required environment variables:
  *   NEXT_PUBLIC_SUPABASE_URL - Your Supabase project URL
- *   NEXT_PUBLIC_SUPABASE_ANON_KEY - Your Supabase anon/public key
+ *   SUPABASE_SERVICE_ROLE_KEY - Server-side Supabase service credential
  *   SUPABASE_BUCKET_NAME - Optional bucket name (defaults to 'analysis-results')
  */
 
@@ -14,7 +14,7 @@ const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET_NAME = process.env.SUPABASE_BUCKET_NAME || "analysis-results";
 
 // Files to upload (dated analysis files from Jan 2026)
@@ -49,7 +49,7 @@ async function uploadFiles() {
     console.error(
       '  NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"',
     );
-    console.error('  NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"');
+    console.error('  SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"');
     console.error('  SUPABASE_BUCKET_NAME="analysis-results" (optional)');
     console.error(
       "\nYou can find these values in your Supabase project settings:",

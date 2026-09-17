@@ -3,6 +3,10 @@ import { prisma } from "@/lib/db";
 import { getMonitorCreditEstimate, getPlanEntitlements, getRiskLabel } from "@/lib/entitlements";
 import { createPumpRadarService } from "@/lib/pump-radar";
 import type { RiskLevel } from "@/lib/types";
+import {
+  getTickerCoverage,
+  parseRunMetadata,
+} from "@/lib/social-scan/coverage";
 
 export const HISTORY_ORDERS = [
   "MOST_RECENT",
@@ -188,7 +192,7 @@ export function createDashboardDataService(
           where: {
             ticker: { in: tickers },
             scanRun: {
-              status: "COMPLETED",
+              status: { in: ["COMPLETED", "PARTIAL"] },
               OR: publicationRanges,
             },
           },
@@ -305,14 +309,21 @@ export function createDashboardDataService(
     const socialRun = client.socialScanRun && publicationDate
       ? await client.socialScanRun.findFirst({
           where: {
-            status: "COMPLETED",
+            status: { in: ["COMPLETED", "PARTIAL"] },
             scanDate: {
               gte: publicationDate,
               lt: endOfUtcDayExclusive(publicationDate),
             },
           },
           orderBy: { createdAt: "desc" },
-          select: { id: true, scanDate: true, createdAt: true },
+          select: {
+            id: true,
+            status: true,
+            scanDate: true,
+            createdAt: true,
+            updatedAt: true,
+            platformsUsed: true,
+          },
         })
       : null;
     const socialEvidence = socialRun
@@ -336,6 +347,18 @@ export function createDashboardDataService(
           },
         })
       : [];
+    const socialCoverage = getTickerCoverage(
+      parseRunMetadata(socialRun?.platformsUsed),
+      String(scan.ticker).toUpperCase(),
+    );
+    const socialStatus = !socialRun
+      ? "NOT_ANALYZED"
+      : socialRun.status === "COMPLETED" &&
+          socialCoverage.status === "COMPLETE"
+        ? "ANALYZED"
+        : socialCoverage.status === "NOT_TARGETED"
+          ? "NOT_ANALYZED"
+          : "PARTIAL";
 
     return {
       id: scan.id,
@@ -349,7 +372,11 @@ export function createDashboardDataService(
       evidenceProvided: {
         pitch: scan.pitchProvided,
         context: scan.contextProvided,
-        social: socialRun !== null,
+        social:
+          socialEvidence.length > 0 ||
+          socialCoverage.status === "COMPLETE" ||
+          socialCoverage.status === "PARTIAL" ||
+          socialCoverage.status === "NOT_SEARCHED",
       },
       market: trackedStock
         ? {
@@ -368,10 +395,12 @@ export function createDashboardDataService(
             signals: parseJsonArray(marketSnapshot?.signals),
           }
         : null,
-      social: socialRun
+      social: socialRun && socialStatus !== "NOT_ANALYZED"
         ? {
-            status: "ANALYZED" as const,
+            status: socialStatus as "ANALYZED" | "PARTIAL",
             asOf: socialRun.scanDate.toISOString(),
+            updatedAt: socialRun.updatedAt.toISOString(),
+            coverage: socialCoverage,
             evidence: socialEvidence.map((mention) => ({
               id: mention.id,
               platform: mention.platform,

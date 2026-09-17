@@ -38,6 +38,25 @@ export function ScanSocialEvidence({ social }: ScanSocialEvidenceProps) {
     );
   }
 
+  if (social.status === "PARTIAL" && social.evidence.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex items-start gap-3 p-4 sm:p-5">
+          <ShieldAlert
+            className="mt-0.5 h-4 w-4 shrink-0 text-warning"
+            aria-hidden="true"
+          />
+          <div>
+            <p className="text-sm font-semibold">{view.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {view.detail}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -50,6 +69,14 @@ export function ScanSocialEvidence({ social }: ScanSocialEvidenceProps) {
         </div>
       </CardHeader>
       <CardContent>
+        {social.status === "PARTIAL" && (
+          <div className="mb-4 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3">
+            <p className="text-sm font-semibold">{view.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {view.detail}
+            </p>
+          </div>
+        )}
         {social.evidence.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center">
             <p className="text-sm font-semibold">Analyzed — no matching promotional evidence found</p>

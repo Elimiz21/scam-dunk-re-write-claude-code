@@ -2,7 +2,7 @@
 Tests for domain_monitor module.
 
 Covers pattern generation, signal evaluation, and graceful degradation.
-DNS-live and API-live tests are skipped in CI (no network assumptions).
+DNS and provider responses are isolated fixtures; this suite makes no live calls.
 """
 
 import pytest
@@ -18,6 +18,20 @@ from domain_monitor import (
     PROMOTIONAL_TLD_PATTERNS,
 )
 from pre_pump_signals import PrePumpSignal
+
+
+@pytest.fixture(autouse=True)
+def offline_domain_lookups(monkeypatch):
+    """Keep fake-ticker assertions independent of live DNS and host API keys."""
+    import socket
+    import domain_monitor
+
+    monkeypatch.delenv('WHOISXML_API_KEY', raising=False)
+
+    def no_such_domain(*args, **kwargs):
+        raise socket.gaierror(socket.EAI_NONAME, 'fixture domain does not exist')
+
+    monkeypatch.setattr(domain_monitor.socket, 'getaddrinfo', no_such_domain)
 
 
 # ---------------------------------------------------------------------------

@@ -88,6 +88,8 @@ class RiskAssessment:
     signal_total_score: int = 0
     news_verification: Optional[Dict] = None
     data_available: bool = True
+    rf_applied: bool = False
+    lstm_applied: bool = False
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
 
@@ -761,7 +763,8 @@ class ScamDetectionPipeline:
         news_flag: bool = False,
         use_synthetic: bool = True,
         is_scam_scenario: bool = False,
-        sec_flagged_override: bool = None
+        sec_flagged_override: bool = None,
+        allow_external_news: bool = True,
     ) -> RiskAssessment:
         """
         Main analysis function - runs the complete pipeline.
@@ -776,6 +779,8 @@ class ScamDetectionPipeline:
             is_scam_scenario: Generate scam-like test data
             sec_flagged_override: If provided, overrides internal SEC list check
                 with result from upstream regulatory database
+            allow_external_news: Whether HIGH results may call live news/SEC
+                verification. Disabled for supplied production evaluations.
 
         Returns:
             RiskAssessment with complete analysis
@@ -867,11 +872,13 @@ class ScamDetectionPipeline:
         # rule-based-only score (rf_prob = 0.0) rather than retraining.
         print("\n[Step 4] Running Random Forest prediction...")
         rf_prob = 0.0
+        rf_applied = False
         if not self.ml_enabled:
             print("   RF disabled (ML_MODELS_ENABLED is false) - rule-based scoring only")
         elif self.rf_available:
             try:
                 rf_prob, rf_pred = self.rf_detector.predict_scam_probability(features)
+                rf_applied = True
                 print(f"   RF Probability: {rf_prob:.3f}")
             except Exception as e:
                 # Degrade gracefully — do NOT retrain in the request path.
@@ -883,12 +890,14 @@ class ScamDetectionPipeline:
         # Step 5: LSTM prediction (if available)
         print("\n[Step 5] Running LSTM prediction...")
         lstm_prob = None
+        lstm_applied = False
         if not self.ml_enabled:
             print("   LSTM disabled (ML_MODELS_ENABLED is false)")
         elif self.lstm_available:
             try:
                 sequence = self.lstm_detector.prepare_sequence_from_df(price_data_fe)
                 lstm_prob, lstm_pred = self.lstm_detector.predict_lstm_probability(sequence[0])
+                lstm_applied = True
                 print(f"   LSTM Probability: {lstm_prob:.3f}")
             except Exception as e:
                 print(f"   LSTM prediction failed: {e}")
@@ -967,7 +976,7 @@ class ScamDetectionPipeline:
         # Step 9: News verification for HIGH risk results
         # Check if legitimate news catalysts explain suspicious activity
         news_verification = None
-        if risk_level == 'HIGH' and not use_synthetic:
+        if risk_level == 'HIGH' and not use_synthetic and allow_external_news:
             print("\n[Step 9] Verifying HIGH risk - checking for legitimate catalysts...")
             try:
                 from live_data import verify_legitimate_catalysts
@@ -988,7 +997,8 @@ class ScamDetectionPipeline:
                 print(f"   Warning: News verification failed: {e}")
                 # Don't block the assessment if news verification fails
         elif risk_level == 'HIGH':
-            print("\n[Step 9] Skipping news verification (synthetic data mode)")
+            reason = "synthetic data mode" if use_synthetic else "external verification disabled"
+            print(f"\n[Step 9] Skipping news verification ({reason})")
 
         # Build detailed report
         detailed_report = {
@@ -1058,6 +1068,8 @@ class ScamDetectionPipeline:
             signal_total_score=signal_total_score,
             news_verification=news_verification,
             data_available=data_available,
+            rf_applied=rf_applied,
+            lstm_applied=lstm_applied,
         )
 
         return assessment
