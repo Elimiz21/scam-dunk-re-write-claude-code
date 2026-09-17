@@ -32,6 +32,87 @@ interface PublicationPointer {
   manifestPath: string;
 }
 
+interface StorageDownloadResult {
+  data: Blob | null;
+  error: unknown;
+}
+
+type StorageDownload = (
+  objectPath: string,
+) => PromiseLike<StorageDownloadResult>;
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object"
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function isExactMissingKeyBody(value: unknown): boolean {
+  const body = asRecord(value);
+  if (!body) return false;
+  const keys = Object.keys(body).sort();
+  return keys.length === 4 &&
+    keys.join(",") === "code,error,message,statusCode" &&
+    String(body.statusCode) === "404" &&
+    body.error === "not_found" &&
+    body.message === "Object not found" &&
+    body.code === "NoSuchKey";
+}
+
+/**
+ * Recognizes only a concrete Storage missing-key response. The current SDK can
+ * wrap a Storage HTTP response in StorageUnknownError and reduce its message to
+ * "{}", so the response body is inspected through clone() without consuming the
+ * original. Ambiguous legacy not_found, authentication, and transport failures
+ * remain errors.
+ */
+export async function isVerifiedMissingStorageObject(
+  error: unknown,
+): Promise<boolean> {
+  const storageError = asRecord(error);
+  if (!storageError) return false;
+
+  if (storageError.name === "StorageApiError") {
+    return storageError.status === 404 &&
+      storageError.statusCode === "NoSuchKey" &&
+      storageError.message === "Object not found";
+  }
+  if (storageError.name !== "StorageUnknownError") return false;
+
+  const originalError = asRecord(storageError.originalError);
+  if (!originalError || ![400, 404].includes(Number(originalError.status)) ||
+      typeof originalError.clone !== "function") return false;
+  try {
+    const cloned = (originalError.clone as () => Response).call(
+      storageError.originalError,
+    );
+    const declaredLength = cloned.headers.get("content-length");
+    if (declaredLength !== null &&
+        (!/^\d+$/.test(declaredLength) || Number(declaredLength) > 1024)) {
+      return false;
+    }
+    return isExactMissingKeyBody(await cloned.json());
+  } catch {
+    return false;
+  }
+}
+
+export async function readSupabaseStorageObject(
+  objectPath: string,
+  download: StorageDownload,
+): Promise<Buffer | null> {
+  const { data, error } = await download(objectPath);
+  if (error) {
+    if (await isVerifiedMissingStorageObject(error)) return null;
+    const message = asRecord(error)?.message;
+    throw new Error(
+      `Failed to read ${objectPath}: ${typeof message === "string" ? message : "unknown storage error"}`,
+    );
+  }
+  if (!data) throw new Error(`Failed to read ${objectPath}: empty storage response`);
+  return Buffer.from(await data.arrayBuffer());
+}
+
 async function isMissingStorageObject(response: Response): Promise<boolean> {
   if (response.status === 404) return true;
   if (response.status !== 400) return false;
