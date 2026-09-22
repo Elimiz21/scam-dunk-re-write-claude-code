@@ -113,9 +113,27 @@ describe("Alon's authenticated dashboard journey", () => {
 
     expect(marketTable).not.toContain("<FreshnessNote");
     expect(marketTable).not.toContain("needsPublicationNotice");
-    expect(pumpPage).toContain('<h1 className="font-editorial');
+    expect(pumpPage).toContain('<h1 id="pump-radar-title" className="font-editorial');
     expect(pumpPage).toContain("Pump Radar");
     expect(pumpRadar).toContain("compact");
+  });
+
+  test("lets the Home tracking entry create a watchlist item before opening its Watching filter", () => {
+    const scanEntry = read("src/components/dashboard/DashboardScanEntry.tsx");
+    const dashboard = read("src/components/dashboard/DashboardHome.tsx");
+
+    expect(scanEntry).toContain('fetch("/api/watchlist",');
+    expect(scanEntry).toContain('method: "POST"');
+    expect(scanEntry).toContain('router.push("/dashboard?filter=watching")');
+    expect(scanEntry).toContain("onAdded");
+    expect(dashboard).toContain("<DashboardScanEntry onAdded={load}");
+  });
+
+  test("keeps manual rescans available from the inline tracked-stock details", () => {
+    const marketTable = read("src/components/dashboard/UnifiedMarketTable.tsx");
+
+    expect(marketTable).toContain("Rescan now");
+    expect(marketTable).toContain("focus=scan&auto=1");
   });
 
   test("keeps the approved recent-scan ordering control", () => {

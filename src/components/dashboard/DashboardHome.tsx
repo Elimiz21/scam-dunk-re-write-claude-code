@@ -58,7 +58,7 @@ export function DashboardHome() {
           Market-wide · completed end-of-day
         </p>
         <h1 className="mt-1.5 font-editorial text-[clamp(1.4rem,2vw,1.85rem)] leading-tight">Welcome back, {firstName}</h1>
-        <DashboardScanEntry />
+        <DashboardScanEntry onAdded={load} />
       </header>
 
       {(state.status === "idle" || state.status === "loading") && (

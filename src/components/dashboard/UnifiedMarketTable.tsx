@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
@@ -51,6 +52,12 @@ function numberLabel(value: number | null, style: "price" | "percent" | "score")
   if (style === "price") return `$${value.toFixed(2)}`;
   if (style === "percent") return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
   return String(Math.round(value));
+}
+
+function isManualOnly(row: UnifiedMarketRow) {
+  return Boolean(row.watchlistEntry) && !row.watchlistEntry!.monitors.some(
+    (monitor) => monitor.status === "ACTIVE" || monitor.status === "PAUSED",
+  );
 }
 
 export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: UnifiedMarketTableProps) {
@@ -255,7 +262,7 @@ export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: U
                 <div><dt className="text-[10px] uppercase tracking-wider text-muted-foreground">Price</dt><dd className="mt-1 font-medium">{numberLabel(row.lastPrice, "price")}</dd></div>
               </dl>
               <div className="mt-3 flex justify-end gap-1 border-t border-border/60 pt-2"><Button type="button" variant="ghost" size="icon" className={cn("h-11 w-11", isExpanded && "bg-primary/10 text-primary")} onClick={() => setExpandedKey(isExpanded ? null : row.key)} aria-label={`${isExpanded ? "Hide" : "Show"} ${row.displayTicker} details`}><ChartNoAxesCombined className="h-4 w-4" /></Button>{row.watchlistEntry && <><Button type="button" variant="ghost" size="icon" className="h-11 w-11" onClick={() => { setMonitorError(null); setMonitorKey(editing ? null : row.key); }} aria-label={`Monitoring settings for ${row.ticker}`}><Settings className="h-4 w-4" /></Button><Button type="button" variant="ghost" size="icon" className="h-11 w-11 hover:text-destructive" onClick={() => void remove(row)} disabled={pendingKey === row.key} aria-label={`Remove ${row.ticker} from watchlist`}>{pendingKey === row.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}</Button></>}</div>
-              {isExpanded && <div className="mt-3 rounded-xl border border-border bg-card p-4 text-sm"><strong>Latest market signal</strong><p className="mt-1 text-muted-foreground">{numberLabel(row.lastPrice, "price")} · {numberLabel(row.priceChangePct, "percent")} · {row.riskLabel}. End-of-day data, not live.</p></div>}
+              {isExpanded && <div className="mt-3 rounded-xl border border-border bg-card p-4 text-sm"><strong>Latest market signal</strong><p className="mt-1 text-muted-foreground">{numberLabel(row.lastPrice, "price")} · {numberLabel(row.priceChangePct, "percent")} · {row.riskLabel}. End-of-day data, not live.</p>{isManualOnly(row) && <Button asChild variant="outline" size="sm" className="mt-3 min-h-9 rounded-full"><Link href={`/?ticker=${encodeURIComponent(row.ticker)}&focus=scan&auto=1`}>Rescan now</Link></Button>}</div>}
               {editing && row.watchlistEntry && <MonitorEditor entry={row.watchlistEntry} slots={data.monitorSlots} creditEstimate={data.monitorCreditEstimate} error={monitorError} isSaving={pendingKey === row.key} onSubmit={saveMonitor} onCancel={() => { setMonitorError(null); setMonitorKey(null); }} />}
             </article>
           );
@@ -291,7 +298,7 @@ export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: U
                     <td className="px-4 text-sm text-muted-foreground">—</td>
                     <td className="px-4"><div className="flex justify-end gap-1"><Button type="button" variant="ghost" size="icon" className={cn("h-10 w-10", isExpanded && "bg-primary/10 text-primary")} onClick={() => setExpandedKey(isExpanded ? null : row.key)} aria-label={`${isExpanded ? "Hide" : "Show"} ${row.displayTicker} details`}><ChartNoAxesCombined className="h-4 w-4" /></Button>{row.watchlistEntry && <><Button type="button" variant="ghost" size="icon" className="h-10 w-10" onClick={() => { setMonitorError(null); setMonitorKey(editing ? null : row.key); }} aria-label={`Monitoring settings for ${row.ticker}`}><Settings className="h-4 w-4" /></Button><Button type="button" variant="ghost" size="icon" className="h-10 w-10 hover:text-destructive" onClick={() => void remove(row)} disabled={pendingKey === row.key} aria-label={`Remove ${row.ticker} from watchlist`}>{pendingKey === row.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}</Button></>}</div></td>
                   </tr>
-                  {(isExpanded || editing) && <tr key={`${row.key}:detail`} className="border-b border-border bg-primary/5"><td colSpan={6} className="px-5 py-5">{isExpanded && <div className="grid gap-4 md:grid-cols-2"><div className="rounded-xl border border-border bg-card p-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Latest market signal</p><p className="mt-3 text-2xl font-semibold">{numberLabel(row.lastPrice, "price")}</p><p className="mt-1 text-sm text-muted-foreground">{numberLabel(row.priceChangePct, "percent")} in the latest end-of-day publication. Not live.</p></div><div className="rounded-xl border border-border bg-card p-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Risk analysis</p><p className="mt-3 text-2xl font-semibold">{row.pumpScore ?? "—"}</p><p className="mt-1 text-sm text-muted-foreground">{row.riskLabel}{row.signalSummary ? ` · ${row.signalSummary}` : ""}</p></div></div>}{editing && row.watchlistEntry && <MonitorEditor entry={row.watchlistEntry} slots={data.monitorSlots} creditEstimate={data.monitorCreditEstimate} error={monitorError} isSaving={pendingKey === row.key} onSubmit={saveMonitor} onCancel={() => { setMonitorError(null); setMonitorKey(null); }} />}</td></tr>}
+                  {(isExpanded || editing) && <tr key={`${row.key}:detail`} className="border-b border-border bg-primary/5"><td colSpan={6} className="px-5 py-5">{isExpanded && <><div className="grid gap-4 md:grid-cols-2"><div className="rounded-xl border border-border bg-card p-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Latest market signal</p><p className="mt-3 text-2xl font-semibold">{numberLabel(row.lastPrice, "price")}</p><p className="mt-1 text-sm text-muted-foreground">{numberLabel(row.priceChangePct, "percent")} in the latest end-of-day publication. Not live.</p></div><div className="rounded-xl border border-border bg-card p-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Risk analysis</p><p className="mt-3 text-2xl font-semibold">{row.pumpScore ?? "—"}</p><p className="mt-1 text-sm text-muted-foreground">{row.riskLabel}{row.signalSummary ? ` · ${row.signalSummary}` : ""}</p></div></div>{isManualOnly(row) && <Button asChild variant="outline" size="sm" className="mt-3 min-h-9 rounded-full"><Link href={`/?ticker=${encodeURIComponent(row.ticker)}&focus=scan&auto=1`}>Rescan now</Link></Button>}</>}{editing && row.watchlistEntry && <MonitorEditor entry={row.watchlistEntry} slots={data.monitorSlots} creditEstimate={data.monitorCreditEstimate} error={monitorError} isSaving={pendingKey === row.key} onSubmit={saveMonitor} onCancel={() => { setMonitorError(null); setMonitorKey(null); }} />}</td></tr>}
                 </Fragment>
               );
             })}
