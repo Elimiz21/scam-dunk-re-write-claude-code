@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -14,55 +14,34 @@ import { NavigationLogo } from "./Logo";
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
-  onNewScan: () => void;
+  /** Retained for public-page callers; the final dashboard sidebar has no scan CTA. */
+  onNewScan?: () => void;
+  /** Retained for compatibility with public-page callers. */
   refreshKey?: number;
   persistent?: boolean;
 }
 
-export function Sidebar({ isOpen, onToggle, onNewScan: _onNewScan, refreshKey = 0, persistent = false }: SidebarProps) {
+export function Sidebar({ isOpen, onToggle, persistent = false }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [watchlistCount, setWatchlistCount] = useState<number | null>(null);
   const [pumpRadarCount, setPumpRadarCount] = useState<number | null>(null);
 
-  const loadWatchlistCount = useCallback(async (signal?: AbortSignal) => {
+  useEffect(() => {
     if (!session?.user) return;
-    try {
-      const [response, radarResponse] = await Promise.all([
-        fetch("/api/watchlist?countOnly=1", { cache: "no-store", signal }),
-        fetch("/api/pump-radar?limit=50", { cache: "no-store", signal }),
-      ]);
-      if (!response.ok) return;
-      const data = (await response.json()) as { watchlistCount?: number; entries?: unknown[] };
-      setWatchlistCount(
-        typeof data.watchlistCount === "number"
-          ? data.watchlistCount
-          : Array.isArray(data.entries)
-            ? data.entries.length
-            : 0,
-      );
-      if (radarResponse.ok) {
-        const radar = (await radarResponse.json()) as { rows?: unknown[] };
-        setPumpRadarCount(Array.isArray(radar.rows) ? radar.rows.length : 0);
-      }
-    } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) {
-        console.error("Failed to load watchlist count", error);
-      }
-    }
-  }, [session?.user]);
-
-  useEffect(() => {
     const controller = new AbortController();
-    void loadWatchlistCount(controller.signal);
+    fetch("/api/pump-radar?limit=50", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const radar = (await response.json()) as { rows?: unknown[] };
+        setPumpRadarCount(Array.isArray(radar.rows) ? radar.rows.length : 0);
+      })
+      .catch((error) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error("Failed to load Pump Radar count", error);
+        }
+      });
     return () => controller.abort();
-  }, [loadWatchlistCount, refreshKey]);
-
-  useEffect(() => {
-    const refresh = () => void loadWatchlistCount();
-    window.addEventListener("scamdunk:watchlist-updated", refresh);
-    return () => window.removeEventListener("scamdunk:watchlist-updated", refresh);
-  }, [loadWatchlistCount]);
+  }, [session?.user]);
 
   return (
     <>
@@ -103,7 +82,7 @@ export function Sidebar({ isOpen, onToggle, onNewScan: _onNewScan, refreshKey = 
                   onClick={() => isOpen && onToggle()}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex min-h-11 items-center gap-2.5 rounded-xl px-3 text-[14px] font-medium transition-colors",
+                    "flex min-h-10 items-center gap-2.5 rounded-xl px-3 text-[13px] font-medium transition-colors",
                     active
                       ? "bg-dashboard-active text-dashboard-foreground ring-1 ring-inset ring-dashboard-border"
                       : "text-dashboard-foreground/60 hover:bg-white/10 hover:text-dashboard-foreground",
@@ -111,15 +90,6 @@ export function Sidebar({ isOpen, onToggle, onNewScan: _onNewScan, refreshKey = 
                 >
                   <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="flex-1">{label}</span>
-                  {label === "Watchlist" && (
-                    <span
-                      id="watchlist-count"
-                      className="min-w-6 rounded-full bg-white/10 px-2 py-0.5 text-center text-[11px] font-semibold text-white shadow-sm"
-                      aria-label={`${watchlistCount ?? 0} stocks in watchlist`}
-                    >
-                      {watchlistCount ?? "…"}
-                    </span>
-                  )}
                   {label === "Pump Radar" && (
                     <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">{pumpRadarCount ?? "…"}</span>
                   )}

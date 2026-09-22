@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2, RefreshCw } from "lucide-react";
 
@@ -19,6 +20,7 @@ const initialState: DashboardResourceState<DashboardPayload> = {
 };
 
 export function DashboardHome() {
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [state, dispatch] = useReducer(dashboardResourceReducer<DashboardPayload>, initialState);
 
@@ -46,15 +48,16 @@ export function DashboardHome() {
   }, [load]);
 
   const firstName = (session?.user?.name || session?.user?.email?.split("@")[0] || "there").split(" ")[0];
+  const initialFilter = searchParams.get("filter") === "watching" ? "WATCHING" : "ALL";
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-7">
       <header className="max-w-3xl">
-        <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          <span className="h-2.5 w-2.5 rounded-full bg-primary" aria-hidden="true" />
+        <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
           Market-wide · completed end-of-day
         </p>
-        <h1 className="mt-1.5 font-editorial text-[clamp(1.5rem,2.2vw,2rem)] leading-tight">Welcome back, {firstName}</h1>
+        <h1 className="mt-1.5 font-editorial text-[clamp(1.4rem,2vw,1.85rem)] leading-tight">Welcome back, {firstName}</h1>
         <DashboardScanEntry />
       </header>
 
@@ -76,7 +79,7 @@ export function DashboardHome() {
       )}
 
       {state.data && (
-        <UnifiedMarketTable data={state.data} onRefresh={load} />
+        <UnifiedMarketTable data={state.data} initialFilter={initialFilter} onRefresh={load} />
       )}
     </div>
   );

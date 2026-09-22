@@ -61,16 +61,18 @@ describe("approved authenticated Paper & Ink shell", () => {
     expect(dashboard).toContain("font-editorial");
   });
 
-  test("preserves publication safety metadata in the table-first dashboard", () => {
+  test("keeps publication safety metadata on the separate Pump Radar surface", () => {
     const marketTable = readProjectFile("src/components/dashboard/UnifiedMarketTable.tsx");
+    const pumpRadar = readProjectFile("src/components/dashboard/PumpRadar.tsx");
 
-    expect(marketTable).toContain("<FreshnessNote");
-    expect(marketTable).toContain("executedAt={data.pumpRadar.executedAt}");
-    expect(marketTable).toContain("publicationQuality={data.pumpRadar.publicationQuality}");
-    expect(marketTable).toContain("socialPublication={data.pumpRadar.socialPublication}");
+    expect(marketTable).not.toContain("<FreshnessNote");
+    expect(pumpRadar).toContain("<FreshnessNote");
+    expect(pumpRadar).toContain("executedAt={executedAt}");
+    expect(pumpRadar).toContain("publicationQuality={publicationQuality}");
+    expect(pumpRadar).toContain("socialPublication={socialPublication}");
   });
 
-  test("keeps the authenticated experience on the teal dashboard palette", () => {
+  test("uses Alon's navy dashboard rail while preserving teal as the interaction accent", () => {
     const globals = readProjectFile("src/app/globals.css");
     const tailwind = readProjectFile("tailwind.config.js");
     const sidebar = readProjectFile("src/components/Sidebar.tsx");
@@ -79,13 +81,13 @@ describe("approved authenticated Paper & Ink shell", () => {
     const marketTable = readProjectFile("src/components/dashboard/UnifiedMarketTable.tsx");
     const authenticatedSources = [sidebar, home, monitorEditor, marketTable].join("\n");
 
-    expect(globals).toContain("--dashboard-shell: 191 46% 24%;");
-    expect(globals).toContain("--dashboard-shell-active: 191 46% 31%;");
+    expect(globals).toContain("--dashboard-shell: 211 51% 22%;");
+    expect(globals).toContain("--dashboard-shell-active: 214 57% 30%;");
     expect(tailwind).toContain('dashboard: {');
     expect(sidebar).toContain("border-dashboard-border bg-dashboard text-dashboard-foreground");
     expect(sidebar).toContain("bg-dashboard-active");
     expect(home).toContain("border-dashboard-border bg-dashboard");
-    expect(authenticatedSources).not.toMatch(/#19324b|#204f7d|#193650|brand-blue/);
+    expect(authenticatedSources).not.toContain("brand-blue");
   });
 
   test("allows the approved landing hero to shrink on narrow screens", () => {

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ActivityTicker } from "./ActivityTicker";
 
@@ -16,7 +15,6 @@ export function PageLayout({
   dashboardShell?: boolean;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const router = useRouter();
   const { data: session } = useSession();
   const showDashboardShell = dashboardShell || Boolean(session?.user);
 
@@ -28,7 +26,6 @@ export function PageLayout({
         <Sidebar
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen((open) => !open)}
-          onNewScan={() => router.push("/?focus=scan")}
           persistent={showDashboardShell}
         />
         <div className="min-w-0 flex-1">

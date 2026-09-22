@@ -12,11 +12,11 @@ describe("Alon prototype workflow integration", () => {
     expect(source).toContain("Market feed preview");
   });
 
-  test("shows a functional watchlist count in the sidebar", () => {
-    const source = read("src/components/Sidebar.tsx");
-    expect(source).toContain("watchlistCount");
-    expect(source).toContain("/api/watchlist");
-    expect(source).toContain("watchlist-count");
+  test("keeps Watchlist in Home's unified market filters", () => {
+    const navigation = read("src/components/dashboard/navigation.ts");
+    const marketTable = read("src/components/dashboard/UnifiedMarketTable.tsx");
+    expect(navigation).not.toContain("Watchlist");
+    expect(marketTable).toContain('["WATCHING", "Watching"]');
   });
 
   test("supports last-scan status and manual rescans", () => {

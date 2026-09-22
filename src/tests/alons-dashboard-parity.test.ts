@@ -7,10 +7,9 @@ const root = process.cwd();
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 
 describe("Alon's authenticated dashboard journey", () => {
-  test("keeps only the three approved primary destinations in order", () => {
+  test("keeps only Alon's two final primary destinations in order", () => {
     expect(DASHBOARD_NAV_ITEMS.map(({ label, href }) => ({ label, href }))).toEqual([
       { label: "Home", href: "/dashboard" },
-      { label: "Watchlist", href: "/watchlist" },
       { label: "Pump Radar", href: "/pump-radar" },
     ]);
   });
@@ -40,8 +39,8 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(dashboard).toContain("UnifiedMarketTable");
     expect(dashboard).not.toContain("PersonalDashboardPreviews");
     expect(dashboard).not.toContain("<PumpRadar");
-    expect(dashboard).toContain("text-[clamp(1.5rem,2.2vw,2rem)]");
-    expect(dashboard).toContain("<UnifiedMarketTable data={state.data} onRefresh={load}");
+    expect(dashboard).toContain("text-[clamp(1.4rem,2vw,1.85rem)]");
+    expect(dashboard).toContain("<UnifiedMarketTable data={state.data} initialFilter={initialFilter} onRefresh={load}");
   });
 
   test("matches the prototype's compact add bar and green heading accent", () => {
@@ -50,7 +49,7 @@ describe("Alon's authenticated dashboard journey", () => {
     const news = read("src/app/news/news-client.tsx");
 
     expect(scanEntry).toContain('placeholder="Add a ticker to track (e.g., AAPL, TSLA)"');
-    expect(scanEntry).toContain('className="mt-5 flex min-h-11');
+    expect(scanEntry).toContain('className="mt-4 flex min-h-10');
     expect(styles).toContain(".text-brand-accent");
     expect(styles).toContain("color: hsl(var(--teal))");
     expect(news).toContain('text-brand-accent">updates.');
@@ -96,9 +95,27 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(watchlist).toContain("Cancel");
   });
 
-  test("refreshes the sidebar count immediately after a watchlist change", () => {
-    expect(read("src/components/Sidebar.tsx")).toContain("scamdunk:watchlist-updated");
-    expect(read("src/app/(protected)/watchlist/page.tsx")).toContain("scamdunk:watchlist-updated");
+  test("keeps Watchlist as a Home filter rather than a sidebar destination", () => {
+    const sidebar = read("src/components/Sidebar.tsx");
+    const marketTable = read("src/components/dashboard/UnifiedMarketTable.tsx");
+    const watchlistRoute = read("src/app/(protected)/watchlist/page.tsx");
+
+    expect(sidebar).not.toContain('label === "Watchlist"');
+    expect(sidebar).not.toContain('"/api/watchlist?countOnly=1"');
+    expect(marketTable).toContain('["WATCHING", "Watching"]');
+    expect(watchlistRoute).toContain('redirect("/dashboard?filter=watching")');
+  });
+
+  test("keeps Pump Radar publication details out of the Home table and gives the separate page a heading", () => {
+    const marketTable = read("src/components/dashboard/UnifiedMarketTable.tsx");
+    const pumpPage = read("src/app/(protected)/pump-radar/page.tsx");
+    const pumpRadar = read("src/components/dashboard/PumpRadar.tsx");
+
+    expect(marketTable).not.toContain("<FreshnessNote");
+    expect(marketTable).not.toContain("needsPublicationNotice");
+    expect(pumpPage).toContain('<h1 className="font-editorial');
+    expect(pumpPage).toContain("Pump Radar");
+    expect(pumpRadar).toContain("compact");
   });
 
   test("keeps the approved recent-scan ordering control", () => {

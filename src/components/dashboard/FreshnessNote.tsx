@@ -12,6 +12,7 @@ interface FreshnessNoteProps extends PublicationTimelineInput {
   publishedAt?: string | null;
   notice?: string;
   className?: string;
+  compact?: boolean;
 }
 
 export function FreshnessNote({
@@ -23,6 +24,7 @@ export function FreshnessNote({
   publicationQuality,
   notice,
   className,
+  compact = false,
 }: FreshnessNoteProps) {
   const isStale = state === "STALE";
   const needsAttention = isStale || publicationQuality === "DEGRADED";
@@ -44,21 +46,21 @@ export function FreshnessNote({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-2xl border px-4 py-3 ",
-        isUnavailable
+        compact ? "flex flex-col gap-1 px-0 py-0" : "flex flex-col gap-2 rounded-2xl border px-4 py-3",
+        !compact && (isUnavailable
           ? "border-destructive/20 bg-destructive/5"
           : needsAttention
             ? "border-amber-500/25 bg-amber-500/5"
-            : "border-primary/15 bg-primary/5",
+            : "border-primary/15 bg-primary/5"),
         className,
       )}
       role={isUnavailable ? "alert" : "status"}
       aria-live="polite"
     >
-      <div className="flex min-w-0 items-start gap-3">
+      <div className={cn("flex min-w-0 items-start", compact ? "gap-2" : "gap-3")}>
         <Icon
           className={cn(
-            "mt-0.5 h-4 w-4 shrink-0",
+            compact ? "mt-0.5 h-3.5 w-3.5 shrink-0" : "mt-0.5 h-4 w-4 shrink-0",
             isLoading && "animate-spin motion-reduce:animate-none",
             isUnavailable
               ? "text-destructive"
@@ -69,13 +71,13 @@ export function FreshnessNote({
           aria-hidden="true"
         />
         <div className="min-w-0">
-          <p className="text-sm font-semibold">{view.title}</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+          <p className={cn(compact ? "text-xs font-medium" : "text-sm font-semibold")}>{view.title}</p>
+          <p className={cn("mt-0.5 leading-relaxed text-muted-foreground", compact ? "text-[11px]" : "text-xs")}>
             {view.notice}
           </p>
         </div>
       </div>
-      {!isLoading && !isUnavailable && (
+      {!compact && !isLoading && !isUnavailable && (
         <dl className="grid min-w-0 gap-x-6 gap-y-2 pl-7 text-xs sm:grid-cols-2 lg:grid-cols-3">
           {timeline.map(({ label, value }) => (
             <div key={label} className="min-w-0">

@@ -42,6 +42,7 @@ interface PumpRadarProps {
   showDashboardLink?: boolean;
   showFullPageLink?: boolean;
   fullPage?: boolean;
+  showHeading?: boolean;
 }
 
 function riskVariant(label: PumpRadarRow["riskLabel"]) {
@@ -132,6 +133,7 @@ export function PumpRadar({
   showDashboardLink = false,
   showFullPageLink = false,
   fullPage = false,
+  showHeading = true,
 }: PumpRadarProps) {
   const [filter, setFilter] = useState<PumpRadarFilter>("ALL");
   const view = buildPumpRadarView({ status, rows, coverage, socialSummary });
@@ -143,7 +145,7 @@ export function PumpRadar({
     <section aria-labelledby="pump-radar-title" className="w-full">
       <Card className="overflow-hidden shadow-sm shadow-black/[0.02]">
         <CardHeader className={cn("gap-4", compact && "p-4 sm:p-5")}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          {showHeading && <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Radar className="h-5 w-5" aria-hidden="true" />
@@ -180,7 +182,7 @@ export function PumpRadar({
                 </Link>
               </Button>
             )}
-          </div>
+          </div>}
           <FreshnessNote
             state={status === "LOADING" ? "LOADING" : status === "UNAVAILABLE" ? "UNAVAILABLE" : freshness || "FRESH"}
             asOf={asOf}
@@ -189,6 +191,7 @@ export function PumpRadar({
             publicationQuality={publicationQuality}
             socialPublication={socialPublication}
             notice={notice}
+            compact={fullPage}
           />
           {fullPage && view.state === "ready" && (
             <>
@@ -302,9 +305,11 @@ export function PumpRadar({
 export function PublicPumpRadar({
   showDashboardLink = false,
   fullPage = false,
+  showHeading = true,
 }: {
   showDashboardLink?: boolean;
   fullPage?: boolean;
+  showHeading?: boolean;
 }) {
   const [payload, setPayload] = useState<PumpRadarPayload | null>(null);
 
@@ -351,6 +356,7 @@ export function PublicPumpRadar({
         notice="Retrieving the latest completed end-of-day scan."
         showDashboardLink={showDashboardLink}
         fullPage={fullPage}
+        showHeading={showHeading}
       />
     );
   }
@@ -361,6 +367,7 @@ export function PublicPumpRadar({
       socialSummary={aggregateSocialSummary(payload.rows)}
       showDashboardLink={showDashboardLink}
       fullPage={fullPage}
+      showHeading={showHeading}
     />
   );
 }

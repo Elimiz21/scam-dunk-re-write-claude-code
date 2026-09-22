@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import { MonitorEditor, type MonitorSaveRequest } from "@/components/dashboard/MonitorEditor";
-import { FreshnessNote } from "@/components/dashboard/FreshnessNote";
 import { ScanSocialEvidence } from "@/components/dashboard/ScanSocialEvidence";
 import type {
   ApiErrorShape,
@@ -37,6 +36,7 @@ import { cn, formatRelativeDate } from "@/lib/utils";
 
 interface UnifiedMarketTableProps {
   data: DashboardPayload;
+  initialFilter?: UnifiedMarketFilter;
   onRefresh: () => void | Promise<void>;
 }
 
@@ -53,8 +53,8 @@ function numberLabel(value: number | null, style: "price" | "percent" | "score")
   return String(Math.round(value));
 }
 
-export function UnifiedMarketTable({ data, onRefresh }: UnifiedMarketTableProps) {
-  const [filter, setFilter] = useState<UnifiedMarketFilter>("ALL");
+export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: UnifiedMarketTableProps) {
+  const [filter, setFilter] = useState<UnifiedMarketFilter>(initialFilter);
   const [sort, setSort] = useState<UnifiedMarketSort>("DEFAULT");
   const [direction, setDirection] = useState<SortDirection>("DESC");
   const [showHistory, setShowHistory] = useState(false);
@@ -89,9 +89,9 @@ export function UnifiedMarketTable({ data, onRefresh }: UnifiedMarketTableProps)
     RADAR: allRows.filter((row) => row.source === "RADAR").length,
     HIGH: allRows.filter((row) => row.riskLabel === "High risk").length,
   };
-  const needsPublicationNotice = data.freshness.state !== "FRESH"
-    || data.pumpRadar.status === "UNAVAILABLE"
-    || data.pumpRadar.publicationQuality === "DEGRADED";
+  useEffect(() => {
+    setFilter(initialFilter);
+  }, [initialFilter]);
 
   function changeSort(next: UnifiedMarketSort) {
     if (sort === next) setDirection((current) => current === "ASC" ? "DESC" : "ASC");
@@ -227,10 +227,10 @@ export function UnifiedMarketTable({ data, onRefresh }: UnifiedMarketTableProps)
       <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter stocks">
           {filterLabels.map(([value, label]) => (
-            <button key={value} type="button" role="tab" aria-selected={filter === value} onClick={() => setFilter(value)} className={cn("min-h-10 rounded-full border px-4 text-sm transition-colors", filter === value ? "border-foreground bg-foreground text-background" : "border-border bg-card hover:bg-secondary")}>{label} <span className="text-current/55">({counts[value]})</span></button>
+            <button key={value} type="button" role="tab" aria-selected={filter === value} onClick={() => setFilter(value)} className={cn("min-h-10 rounded-full border px-3 text-[13px] transition-colors", filter === value ? "border-foreground bg-foreground text-background" : "border-border bg-card hover:bg-secondary")}>{label} <span className="text-current/55">({counts[value]})</span></button>
           ))}
         </div>
-        <button type="button" onClick={() => setShowHistory(true)} className="flex min-h-10 items-center gap-2 self-start rounded-full border border-dashed border-border bg-card px-4 text-sm hover:bg-secondary xl:self-auto"><Clock3 className="h-4 w-4" aria-hidden="true" />Scan history <span className="text-muted-foreground">({data.recentScans.length})</span></button>
+        <button type="button" onClick={() => setShowHistory(true)} className="flex min-h-10 items-center gap-2 self-start rounded-full border border-dashed border-border bg-card px-3 text-[13px] hover:bg-secondary xl:self-auto"><Clock3 className="h-3.5 w-3.5" aria-hidden="true" />Scan history <span className="text-muted-foreground">({data.recentScans.length})</span></button>
       </div>
 
       {actionError && <div className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">{actionError}</div>}
@@ -265,7 +265,7 @@ export function UnifiedMarketTable({ data, onRefresh }: UnifiedMarketTableProps)
       <div className="hidden overflow-x-auto rounded-2xl border border-border bg-card md:block">
         <table className="w-full min-w-[900px] border-collapse text-left">
           <thead>
-            <tr className="h-11 border-b border-border text-[11px] uppercase tracking-wider text-muted-foreground">
+            <tr className="h-10 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="px-5 font-semibold">Instrument</th>
               {[["CHANGE", "Change"], ["PRICE", "Price"], ["PUMP_SCORE", "Pump score"]].map(([key, label]) => (
                 <th key={key} aria-sort={sort === key ? (direction === "ASC" ? "ascending" : "descending") : "none"} className="px-4 font-semibold"><button type="button" onClick={() => changeSort(key as UnifiedMarketSort)} className="inline-flex min-h-10 items-center gap-1 hover:text-foreground">{label}{sort === key && (direction === "ASC" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}</button></th>
@@ -281,7 +281,7 @@ export function UnifiedMarketTable({ data, onRefresh }: UnifiedMarketTableProps)
               const editing = monitorKey === row.key && row.watchlistEntry;
               return (
                 <Fragment key={row.key}>
-                  <tr className={cn("h-[72px] border-b border-border/70", (isExpanded || editing) && "bg-primary/5")}>
+                  <tr className={cn("h-[68px] border-b border-border/70", (isExpanded || editing) && "bg-primary/5")}>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3"><span className={cn("rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold", row.source === "RADAR" && "border-dashed text-muted-foreground")}>{row.displayTicker}</span><div><p className="text-sm font-medium">{row.companyName || (row.source === "RADAR" ? row.signalSummary || "Radar suspect" : row.ticker)} {row.tracked && <span className="ml-1 rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">TRACKED</span>}</p><p className="mt-1 text-xs text-muted-foreground">{row.tracked ? (row.lastScannedAt ? `Last scanned ${formatRelativeDate(row.lastScannedAt)}` : "Not scanned yet") : row.signalSummary || "Flagged by the latest market-wide scan"}</p></div></div>
                     </td>
@@ -298,19 +298,7 @@ export function UnifiedMarketTable({ data, onRefresh }: UnifiedMarketTableProps)
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">Market prices and risk scores come from the latest completed end-of-day publication — this is not live monitoring.</p>
-      {needsPublicationNotice && (
-        <FreshnessNote
-          className="mt-4"
-          state={data.freshness.state}
-          asOf={data.freshness.asOf}
-          publishedAt={data.freshness.publishedAt}
-          executedAt={data.pumpRadar.executedAt}
-          publicationQuality={data.pumpRadar.publicationQuality}
-          socialPublication={data.pumpRadar.socialPublication}
-          notice={data.pumpRadar.notice || data.freshness.notice}
-        />
-      )}
+      <p className="mt-3 text-[11px] text-muted-foreground">Market prices and risk scores use the latest completed end-of-day publication — not live.</p>
     </section>
   );
 }
