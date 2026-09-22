@@ -8,9 +8,7 @@ import { dashboardResourceReducer, type DashboardResourceState } from "@/compone
 import { DashboardScanEntry } from "@/components/dashboard/DashboardScanEntry";
 import type { DashboardPayload } from "@/components/dashboard/types";
 import { readApiError } from "@/components/dashboard/types";
-import { PersonalDashboardPreviews } from "@/components/dashboard/PersonalDashboardPreviews";
-import { PumpRadar } from "@/components/dashboard/PumpRadar";
-import { aggregateSocialSummary } from "@/components/dashboard/view-model";
+import { UnifiedMarketTable } from "@/components/dashboard/UnifiedMarketTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -50,9 +48,13 @@ export function DashboardHome() {
   const firstName = (session?.user?.name || session?.user?.email?.split("@")[0] || "there").split(" ")[0];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <header className="max-w-3xl">
-        <h1 className="font-editorial text-[clamp(2.2rem,4vw,3.2rem)] leading-tight">Welcome back, {firstName}</h1>
+        <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <span className="h-2.5 w-2.5 rounded-full bg-primary" aria-hidden="true" />
+          Market-wide · completed end-of-day
+        </p>
+        <h1 className="mt-1.5 font-editorial text-[clamp(1.5rem,2.2vw,2rem)] leading-tight">Welcome back, {firstName}</h1>
         <DashboardScanEntry />
       </header>
 
@@ -74,24 +76,7 @@ export function DashboardHome() {
       )}
 
       {state.data && (
-        <>
-          <PersonalDashboardPreviews watchlist={state.data.watchlist} recentScans={state.data.recentScans} />
-          <PumpRadar
-            status={state.data.pumpRadar.status}
-            rows={state.data.pumpRadar.rows.slice(0, 4)}
-            asOf={state.data.pumpRadar.asOf}
-            publishedAt={state.data.pumpRadar.publishedAt}
-            executedAt={state.data.pumpRadar.executedAt}
-            publicationQuality={state.data.pumpRadar.publicationQuality}
-            coverage={state.data.pumpRadar.coverage}
-            socialSummary={aggregateSocialSummary(state.data.pumpRadar.rows)}
-            socialPublication={state.data.pumpRadar.socialPublication}
-            freshness={state.data.pumpRadar.freshness}
-            notice={state.data.pumpRadar.notice}
-            compact
-            showFullPageLink
-          />
-        </>
+        <UnifiedMarketTable data={state.data} onRefresh={load} />
       )}
     </div>
   );

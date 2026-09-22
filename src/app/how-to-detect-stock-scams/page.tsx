@@ -57,7 +57,7 @@ export default function HowToDetectStockScamsPage() {
               </p>
               <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
                 How to detect{" "}
-                <span className="text-brand-blue">stock scams.</span>
+                <span className="text-brand-accent">stock scams.</span>
               </h1>
               <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
                 A step-by-step guide to identifying pump-and-dump schemes,
@@ -328,7 +328,7 @@ export default function HowToDetectStockScamsPage() {
             <section className="mt-14 border-t border-border/70 pt-12 pb-4 text-center">
               <h2 className="font-editorial text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.15] text-foreground mb-4">
                 Let ScamDunk do the{" "}
-                <span className="text-brand-blue">heavy lifting.</span>
+                <span className="text-brand-accent">heavy lifting.</span>
               </h2>
               <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground mb-7">
                 Our AI-powered analysis scans for pump-and-dump signals,

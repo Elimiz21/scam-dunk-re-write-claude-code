@@ -103,7 +103,7 @@ export function LandingOptionA({
               ) : (
                 <>
                   That tip came from someone you trust. That&apos;s exactly why{" "}
-                  <span className="text-brand-blue">you should check it.</span>
+                  <span className="text-brand-accent">you should check it.</span>
                 </>
               )}
             </h1>
@@ -248,7 +248,7 @@ export function LandingOptionA({
           </p>
           <h2 className="font-editorial mt-6 text-[clamp(1.75rem,3.5vw,2.75rem)] leading-[1.2] text-foreground">
             Seeking Alpha and Motley Fool tell you if a stock is{" "}
-            <span className="text-brand-blue">a good pick.</span> We tell you if
+            <span className="text-brand-accent">a good pick.</span> We tell you if
             it&apos;s <em>real</em>, before you decide anything else.
           </h2>
           <div className="mx-auto mt-10 h-px w-16 bg-border" />
@@ -371,7 +371,7 @@ export function LandingOptionA({
               Pricing
             </p>
             <h2 className="font-editorial mt-6 text-[clamp(1.75rem,3.5vw,2.75rem)] leading-[1.2] text-foreground">
-              Checking one tip is <span className="text-brand-blue">free.</span>
+              Checking one tip is <span className="text-brand-accent">free.</span>
             </h2>
           </div>
 

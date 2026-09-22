@@ -57,7 +57,7 @@ export default function InvestmentScamsPage() {
               </p>
               <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
                 Types of investment fraud:{" "}
-                <span className="text-brand-blue">a complete guide.</span>
+                <span className="text-brand-accent">a complete guide.</span>
               </h1>
               <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
                 Understand the most common investment scams, how they work, and
@@ -220,7 +220,7 @@ export default function InvestmentScamsPage() {
             <section className="mt-14 border-t border-border/70 pt-12 pb-4 text-center">
               <h2 className="font-editorial text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.15] text-foreground mb-4">
                 Protect your investments{" "}
-                <span className="text-brand-blue">today.</span>
+                <span className="text-brand-accent">today.</span>
               </h2>
               <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground mb-7">
                 Use ScamDunk to analyze any stock and get instant risk

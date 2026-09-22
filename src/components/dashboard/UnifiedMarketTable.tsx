@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { MonitorEditor, type MonitorSaveRequest } from "@/components/dashboard/MonitorEditor";
+import { FreshnessNote } from "@/components/dashboard/FreshnessNote";
 import { ScanSocialEvidence } from "@/components/dashboard/ScanSocialEvidence";
 import type {
   ApiErrorShape,
@@ -88,6 +89,9 @@ export function UnifiedMarketTable({ data, onRefresh }: UnifiedMarketTableProps)
     RADAR: allRows.filter((row) => row.source === "RADAR").length,
     HIGH: allRows.filter((row) => row.riskLabel === "High risk").length,
   };
+  const needsPublicationNotice = data.freshness.state !== "FRESH"
+    || data.pumpRadar.status === "UNAVAILABLE"
+    || data.pumpRadar.publicationQuality === "DEGRADED";
 
   function changeSort(next: UnifiedMarketSort) {
     if (sort === next) setDirection((current) => current === "ASC" ? "DESC" : "ASC");
@@ -295,6 +299,18 @@ export function UnifiedMarketTable({ data, onRefresh }: UnifiedMarketTableProps)
         </table>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">Market prices and risk scores come from the latest completed end-of-day publication — this is not live monitoring.</p>
+      {needsPublicationNotice && (
+        <FreshnessNote
+          className="mt-4"
+          state={data.freshness.state}
+          asOf={data.freshness.asOf}
+          publishedAt={data.freshness.publishedAt}
+          executedAt={data.pumpRadar.executedAt}
+          publicationQuality={data.pumpRadar.publicationQuality}
+          socialPublication={data.pumpRadar.socialPublication}
+          notice={data.pumpRadar.notice || data.freshness.notice}
+        />
+      )}
     </section>
   );
 }

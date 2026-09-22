@@ -26,7 +26,7 @@ export default function NotFound() {
 
           <h1 className="font-editorial mt-4 text-[clamp(2.5rem,7vw,4rem)] leading-[1.05] text-foreground">
             This page doesn&apos;t{" "}
-            <span className="text-brand-blue">check out.</span>
+            <span className="text-brand-accent">check out.</span>
           </h1>
 
           <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground">

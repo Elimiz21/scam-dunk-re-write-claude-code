@@ -51,7 +51,7 @@ export default function SocialMediaScamsPage() {
               </p>
               <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
                 Social media{" "}
-                <span className="text-brand-blue">investment scams.</span>
+                <span className="text-brand-accent">investment scams.</span>
               </h1>
               <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
                 Learn how fraudsters use Telegram, Discord, and Reddit to
@@ -263,7 +263,7 @@ export default function SocialMediaScamsPage() {
             <section className="mt-14 border-t border-border/70 pt-12 pb-4 text-center">
               <h2 className="font-editorial text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.15] text-foreground mb-4">
                 Never fall for a social media scam{" "}
-                <span className="text-brand-blue">again.</span>
+                <span className="text-brand-accent">again.</span>
               </h2>
               <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground mb-7">
                 Before buying any stock mentioned on social media, run it

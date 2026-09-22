@@ -25,8 +25,7 @@
     --input: 44 14% 83%;
     --ring: 191 46% 24%;
     --radius: 0.5rem;
-    /* Brand — ink for emphasis, teal as the single brand hue, blue for
-       highlighted words in editorial headlines */
+    /* Brand — ink for emphasis and teal as the single brand hue. */
     --ink: 206 13% 7%;
     --paper: 0 0% 100%;
     --teal: 191 46% 24%;
@@ -166,8 +165,8 @@
   letter-spacing: -0.035em;
 }
 
-.text-brand-blue {
-  color: hsl(var(--brand-blue));
+.text-brand-accent {
+  color: hsl(var(--teal));
 }
 
 .market-bar {

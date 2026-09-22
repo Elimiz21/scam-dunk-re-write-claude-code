@@ -197,7 +197,7 @@ export default function PricingPage() {
             Pricing
           </p>
           <h1 className="font-editorial mt-6 text-[clamp(2rem,4.5vw,3.25rem)] leading-[1.12] text-foreground">
-            Checking one tip is free. <span className="text-brand-blue">Monitoring what matters</span> stays simple.
+            Checking one tip is free. <span className="text-brand-accent">Monitoring what matters</span> stays simple.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
             Every plan includes an unlimited watchlist. Plans differ by manual
@@ -271,7 +271,7 @@ export default function PricingPage() {
                 return (
                   <div key={detail.title} className="rounded-2xl border border-border bg-card p-5">
                     <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 shrink-0 text-brand-blue" aria-hidden="true" />
+                      <Icon className="h-4 w-4 shrink-0 text-brand-accent" aria-hidden="true" />
                       <h3 className="text-[14px] font-semibold text-foreground">{detail.title}</h3>
                     </div>
                     <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">

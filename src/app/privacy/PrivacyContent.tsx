@@ -29,7 +29,7 @@ export default function PrivacyContent() {
                 Legal
               </p>
               <h1 className="font-editorial mt-4 max-w-2xl text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.1] text-foreground">
-                Privacy <span className="text-brand-blue">Policy</span>
+                Privacy <span className="text-brand-accent">Policy</span>
               </h1>
               <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
                 Your privacy matters. This policy explains how we collect, use,

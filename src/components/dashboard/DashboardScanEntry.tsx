@@ -17,8 +17,8 @@ export function DashboardScanEntry() {
   }
 
   return (
-    <form autoComplete="off" onSubmit={submit} className="mt-7 flex min-h-16 items-center rounded-full border border-border bg-card p-2 shadow-sm" aria-label="Start a stock scan">
-      <span className="hidden items-center gap-2 border-r border-border px-4 text-[13px] font-medium text-foreground sm:flex">
+    <form autoComplete="off" onSubmit={submit} className="mt-5 flex min-h-11 max-w-xl items-center rounded-full border border-border bg-card p-1.5 shadow-sm focus-within:border-teal" aria-label="Start a stock scan">
+      <span className="hidden items-center gap-1.5 rounded-full bg-secondary px-3.5 py-2 text-[13px] font-medium text-foreground/80 sm:flex">
         <TrendingUp className="h-4 w-4" aria-hidden="true" />
         Stock
       </span>
@@ -37,18 +37,18 @@ export function DashboardScanEntry() {
         spellCheck={false}
         value={ticker}
         onChange={(event) => setTicker(event.target.value.toUpperCase())}
-        placeholder="Enter stock ticker (e.g., AAPL, TSLA)"
+        placeholder="Add a ticker to track (e.g., AAPL, TSLA)"
         autoCapitalize="characters"
         autoComplete="off"
         maxLength={16}
-        className="min-w-0 flex-1 bg-transparent px-4 text-[15px] text-foreground outline-none placeholder:text-muted-foreground"
+        className="min-w-0 flex-1 bg-transparent px-2 text-[14px] text-foreground outline-none placeholder:text-muted-foreground/60"
       />
       <button
         type="submit"
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white transition-colors hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-        aria-label="Continue to scan"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+        aria-label="Add ticker and continue to scan"
       >
-        <Plus className="h-5 w-5" aria-hidden="true" />
+        <Plus className="h-4 w-4" aria-hidden="true" />
       </button>
     </form>
   );

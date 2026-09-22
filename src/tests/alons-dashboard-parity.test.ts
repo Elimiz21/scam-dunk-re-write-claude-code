@@ -30,17 +30,30 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(read("src/app/(protected)/dashboard/page.tsx")).toContain("<PageLayout dashboardShell>");
   });
 
-  test("restores personal previews ahead of a separate compact Pump Radar", () => {
+  test("uses Alon's compact, table-first dashboard as the signed-in home", () => {
     const dashboard = read("src/components/dashboard/DashboardHome.tsx");
 
     expect(dashboard).toContain("Welcome back");
+    expect(dashboard).toContain("Market-wide · completed end-of-day");
+    expect(dashboard).not.toContain("Live · scanning market-wide");
     expect(dashboard).toContain("DashboardScanEntry");
-    expect(dashboard).not.toContain("UnifiedMarketTable");
-    expect(dashboard).toContain("PersonalDashboardPreviews");
-    expect(dashboard).toContain("<PumpRadar");
-    expect(dashboard.indexOf("<PersonalDashboardPreviews")).toBeLessThan(dashboard.indexOf("<PumpRadar"));
-    expect(dashboard).toContain("rows={state.data.pumpRadar.rows.slice(0, 4)}");
-    expect(dashboard).toContain("showFullPageLink");
+    expect(dashboard).toContain("UnifiedMarketTable");
+    expect(dashboard).not.toContain("PersonalDashboardPreviews");
+    expect(dashboard).not.toContain("<PumpRadar");
+    expect(dashboard).toContain("text-[clamp(1.5rem,2.2vw,2rem)]");
+    expect(dashboard).toContain("<UnifiedMarketTable data={state.data} onRefresh={load}");
+  });
+
+  test("matches the prototype's compact add bar and green heading accent", () => {
+    const scanEntry = read("src/components/dashboard/DashboardScanEntry.tsx");
+    const styles = read("src/app/globals.css");
+    const news = read("src/app/news/news-client.tsx");
+
+    expect(scanEntry).toContain('placeholder="Add a ticker to track (e.g., AAPL, TSLA)"');
+    expect(scanEntry).toContain('className="mt-5 flex min-h-11');
+    expect(styles).toContain(".text-brand-accent");
+    expect(styles).toContain("color: hsl(var(--teal))");
+    expect(news).toContain('text-brand-accent">updates.');
   });
 
   test("opens scan-history details in place instead of linking to a missing route", () => {
