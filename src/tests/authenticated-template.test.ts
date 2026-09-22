@@ -20,7 +20,8 @@ describe("approved authenticated Paper & Ink shell", () => {
     const header = readProjectFile("src/components/Header.tsx");
 
     expect(header).toContain('import { NavigationLogo } from "./Logo";');
-    expect(header).toContain("<NavigationLogo");
+    expect(header).toContain('const logoHref = session?.user ? "/dashboard" : "/";');
+    expect(header).toContain("<NavigationLogo href={logoHref}");
   });
 
   test("keeps the activity strip inside the viewport without a horizontal scrollbar", () => {
@@ -72,7 +73,7 @@ describe("approved authenticated Paper & Ink shell", () => {
     expect(pumpRadar).toContain("socialPublication={socialPublication}");
   });
 
-  test("uses Alon's navy dashboard rail while preserving teal as the interaction accent", () => {
+  test("uses the teal dashboard rail and keeps tracking status in the brand color", () => {
     const globals = readProjectFile("src/app/globals.css");
     const tailwind = readProjectFile("tailwind.config.js");
     const sidebar = readProjectFile("src/components/Sidebar.tsx");
@@ -81,11 +82,15 @@ describe("approved authenticated Paper & Ink shell", () => {
     const marketTable = readProjectFile("src/components/dashboard/UnifiedMarketTable.tsx");
     const authenticatedSources = [sidebar, home, monitorEditor, marketTable].join("\n");
 
-    expect(globals).toContain("--dashboard-shell: 211 51% 22%;");
-    expect(globals).toContain("--dashboard-shell-active: 214 57% 30%;");
+    expect(globals).toContain("--dashboard-shell: 191 46% 24%;");
+    expect(globals).toContain("--dashboard-shell-active: 191 46% 31%;");
     expect(tailwind).toContain('dashboard: {');
     expect(sidebar).toContain("border-dashboard-border bg-dashboard text-dashboard-foreground");
     expect(sidebar).toContain("bg-dashboard-active");
+    expect(sidebar).toContain('label === "Pump Radar" && "mt-6 border-t border-dashboard-border pt-5"');
+    expect(marketTable).toContain('bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary');
+    expect(marketTable).toContain('text-[13px] font-medium');
+    expect(marketTable).toContain('text-[11px] text-muted-foreground');
     expect(home).toContain("border-dashboard-border bg-dashboard");
     expect(authenticatedSources).not.toContain("brand-blue");
   });

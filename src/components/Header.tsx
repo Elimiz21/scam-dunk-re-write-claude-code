@@ -50,6 +50,7 @@ export function Header({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [loadedUsage, setLoadedUsage] = useState<UsageInfo | null>(null);
   const effectiveUsage = usage ?? loadedUsage;
+  const logoHref = session?.user ? "/dashboard" : "/";
 
   useEffect(() => {
     if (!session?.user || usage) return;
@@ -76,7 +77,7 @@ export function Header({
         {/* Left side - Brand */}
         <div className="flex items-center gap-3">
           {session && <SidebarToggle onClick={onSidebarToggle} />}
-          <NavigationLogo className="ml-1" priority />
+          <NavigationLogo href={logoHref} className="ml-1" priority />
         </div>
 
         {/* Alon's shell keeps the public navigation visible after login. */}

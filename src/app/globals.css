@@ -31,10 +31,10 @@
     --teal: 191 46% 24%;
     --teal-soft: 189 30% 69%;
     --brand-blue: 212 100% 48%;
-    /* Authenticated dashboard — Alon's deep-navy rail, with teal kept for product accents. */
-    --dashboard-shell: 211 51% 22%;
-    --dashboard-shell-active: 214 57% 30%;
-    --dashboard-shell-border: 212 39% 33%;
+    /* Authenticated dashboard — the same deep teal as the ScamDunk identity. */
+    --dashboard-shell: 191 46% 24%;
+    --dashboard-shell-active: 191 46% 31%;
+    --dashboard-shell-border: 191 34% 34%;
     --dashboard-shell-foreground: 48 37% 98%;
     --brand-gradient-from: 191 46% 24%;
     --brand-gradient-to: 191 46% 24%;

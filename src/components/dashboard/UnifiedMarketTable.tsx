@@ -251,9 +251,9 @@ export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: U
             <article key={`mobile:${row.key}`} className={cn("rounded-2xl border border-border bg-card p-4", (isExpanded || editing) && "border-primary/30 bg-primary/5")}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2"><span className={cn("rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold", row.source === "RADAR" && "border-dashed text-muted-foreground")}>{row.displayTicker}</span>{row.tracked && <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">TRACKED</span>}</div>
-                  <p className="mt-2 truncate text-sm font-medium">{row.companyName || row.signalSummary || row.ticker}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{row.tracked ? (row.lastScannedAt ? `Last scanned ${formatRelativeDate(row.lastScannedAt)}` : "Not scanned yet") : row.signalSummary || "Flagged by the latest market-wide scan"}</p>
+                  <div className="flex flex-wrap items-center gap-2"><span className={cn("rounded-lg border px-2.5 py-1 font-mono text-[11px] font-semibold", row.source === "RADAR" && "border-dashed text-muted-foreground")}>{row.displayTicker}</span>{row.tracked && <span className="rounded-md bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">TRACKED</span>}</div>
+                  <p className="mt-2 truncate text-[13px] font-medium">{row.companyName || row.signalSummary || row.ticker}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{row.tracked ? (row.lastScannedAt ? `Last scanned ${formatRelativeDate(row.lastScannedAt)}` : "Not scanned yet") : row.signalSummary || "Flagged by the latest market-wide scan"}</p>
                 </div>
                 <Badge variant={riskVariant(row.riskLabel)}>{row.pumpScore ?? "—"}</Badge>
               </div>
@@ -288,9 +288,9 @@ export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: U
               const editing = monitorKey === row.key && row.watchlistEntry;
               return (
                 <Fragment key={row.key}>
-                  <tr className={cn("h-[68px] border-b border-border/70", (isExpanded || editing) && "bg-primary/5")}>
+                  <tr className={cn("h-[64px] border-b border-border/70", (isExpanded || editing) && "bg-primary/5")}>
                     <td className="px-5 py-3">
-                      <div className="flex items-center gap-3"><span className={cn("rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold", row.source === "RADAR" && "border-dashed text-muted-foreground")}>{row.displayTicker}</span><div><p className="text-sm font-medium">{row.companyName || (row.source === "RADAR" ? row.signalSummary || "Radar suspect" : row.ticker)} {row.tracked && <span className="ml-1 rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">TRACKED</span>}</p><p className="mt-1 text-xs text-muted-foreground">{row.tracked ? (row.lastScannedAt ? `Last scanned ${formatRelativeDate(row.lastScannedAt)}` : "Not scanned yet") : row.signalSummary || "Flagged by the latest market-wide scan"}</p></div></div>
+                      <div className="flex items-center gap-3"><span className={cn("rounded-lg border px-2.5 py-1 font-mono text-[11px] font-semibold", row.source === "RADAR" && "border-dashed text-muted-foreground")}>{row.displayTicker}</span><div><p className="text-[13px] font-medium">{row.companyName || (row.source === "RADAR" ? row.signalSummary || "Radar suspect" : row.ticker)} {row.tracked && <span className="ml-1 rounded-md bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">TRACKED</span>}</p><p className="mt-1 text-[11px] text-muted-foreground">{row.tracked ? (row.lastScannedAt ? `Last scanned ${formatRelativeDate(row.lastScannedAt)}` : "Not scanned yet") : row.signalSummary || "Flagged by the latest market-wide scan"}</p></div></div>
                     </td>
                     <td className={cn("px-4 text-sm", row.priceChangePct !== null && (row.priceChangePct < 0 ? "text-destructive" : "text-emerald-600"))}>{numberLabel(row.priceChangePct, "percent")}</td>
                     <td className="px-4 text-sm">{numberLabel(row.lastPrice, "price")}</td>

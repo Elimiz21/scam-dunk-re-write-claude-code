@@ -71,32 +71,36 @@ export function Sidebar({ isOpen, onToggle, persistent = false }: SidebarProps) 
           </Button>
         </div>
 
-        <div className="flex h-full flex-col p-4">
-          <nav className="flex-1 space-y-1">
-            {DASHBOARD_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => isOpen && onToggle()}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex min-h-10 items-center gap-2.5 rounded-xl px-3 text-[13px] font-medium transition-colors",
-                    active
-                      ? "bg-dashboard-active text-dashboard-foreground ring-1 ring-inset ring-dashboard-border"
-                      : "text-dashboard-foreground/60 hover:bg-white/10 hover:text-dashboard-foreground",
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span className="flex-1">{label}</span>
-                  {label === "Pump Radar" && (
-                    <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">{pumpRadarCount ?? "…"}</span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+            <div className="flex h-full flex-col p-4">
+              <nav className="flex-1 space-y-1">
+                {DASHBOARD_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+                  const active = pathname === href;
+                  return (
+                    <div
+                      key={href}
+                      className={cn(label === "Pump Radar" && "mt-6 border-t border-dashboard-border pt-5")}
+                    >
+                      <Link
+                        href={href}
+                        onClick={() => isOpen && onToggle()}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex min-h-10 items-center gap-2.5 rounded-xl px-3 text-[13px] font-medium transition-colors",
+                          active
+                            ? "bg-dashboard-active text-dashboard-foreground ring-1 ring-inset ring-dashboard-border"
+                            : "text-dashboard-foreground/60 hover:bg-white/10 hover:text-dashboard-foreground",
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span className="flex-1">{label}</span>
+                        {label === "Pump Radar" && (
+                          <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">{pumpRadarCount ?? "…"}</span>
+                        )}
+                      </Link>
+                    </div>
+                  );
+                })}
+              </nav>
         </div>
       </aside>
     </>

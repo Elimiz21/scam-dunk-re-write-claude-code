@@ -25,6 +25,7 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(sidebar).toContain("lg:translate-x-0");
     expect(sidebar).not.toContain("New Scan");
     expect(sidebar).not.toContain("Account &amp; billing");
+    expect(sidebar).toContain('label === "Pump Radar" && "mt-6 border-t border-dashboard-border pt-5"');
     expect(scanWorkspace).toContain("persistent");
     expect(read("src/app/(protected)/dashboard/page.tsx")).toContain("<PageLayout dashboardShell>");
   });
@@ -114,6 +115,7 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(marketTable).not.toContain("<FreshnessNote");
     expect(marketTable).not.toContain("needsPublicationNotice");
     expect(pumpPage).toContain('<h1 id="pump-radar-title" className="font-editorial');
+    expect(pumpPage).toContain('className="mb-8 max-w-3xl pt-3"');
     expect(pumpPage).toContain("Pump Radar");
     expect(pumpRadar).toContain("compact");
   });
