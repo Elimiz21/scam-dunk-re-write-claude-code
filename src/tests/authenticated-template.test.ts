@@ -47,7 +47,7 @@ describe("approved authenticated Paper & Ink shell", () => {
     expect(home).toContain("max-w-[1600px]");
     expect(home).toContain("persistent");
     expect(home).toContain("Paste a ticker, get the truth.");
-    expect(home).toContain("Checked after the trading day closes — not live.");
+    expect(home).not.toContain("Pump Radar shows market-wide findings");
   });
 
   test("takes a normal login to the feature dashboard unless a safe callback is supplied", () => {

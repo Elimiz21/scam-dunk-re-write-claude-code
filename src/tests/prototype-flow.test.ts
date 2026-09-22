@@ -12,11 +12,14 @@ describe("Alon prototype workflow integration", () => {
     expect(source).toContain("Market feed preview");
   });
 
-  test("keeps Watchlist in Home's unified market filters", () => {
+  test("keeps Home's watchlist separate from Pump Radar findings", () => {
     const navigation = read("src/components/dashboard/navigation.ts");
     const marketTable = read("src/components/dashboard/UnifiedMarketTable.tsx");
     expect(navigation).not.toContain("Watchlist");
     expect(marketTable).toContain('["WATCHING", "Watching"]');
+    expect(marketTable).toContain("includeRadarRows: false");
+    expect(marketTable).not.toContain('["RADAR", "Radar suspects"]');
+    expect(marketTable).toContain('["PUMP_SCORE", "Risk score"]');
   });
 
   test("supports last-scan status and manual rescans", () => {
@@ -48,5 +51,14 @@ describe("Alon prototype workflow integration", () => {
     expect(read("src/components/ActivityTicker.tsx")).toContain(
       "/api/activity-ticker",
     );
+  });
+
+  test("keeps publication-status wording off the public Pump Radar landing section", () => {
+    const home = read("src/app/HomeContent.tsx");
+    const radar = read("src/components/dashboard/PumpRadar.tsx");
+
+    expect(home).not.toContain("Pump Radar shows market-wide findings");
+    expect(radar).toContain("showPublicationStatus = fullPage");
+    expect(radar).toContain("showPublicationStatus && <FreshnessNote");
   });
 });

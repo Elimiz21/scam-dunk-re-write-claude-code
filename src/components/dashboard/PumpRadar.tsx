@@ -43,6 +43,7 @@ interface PumpRadarProps {
   showFullPageLink?: boolean;
   fullPage?: boolean;
   showHeading?: boolean;
+  showPublicationStatus?: boolean;
 }
 
 function riskVariant(label: PumpRadarRow["riskLabel"]) {
@@ -52,66 +53,20 @@ function riskVariant(label: PumpRadarRow["riskLabel"]) {
 }
 
 function RadarRow({ row }: { row: PumpRadarRow }) {
-  const socialLabel = row.socialSummary
-    ? `${row.socialSummary.promotionalMentions} flagged`
-    : row.socialCoverage?.status === "COMPLETE"
-      ? "No indexed mentions"
-      : row.socialCoverage?.status === "PARTIAL"
-        ? "Partial coverage"
-        : row.socialCoverage?.status === "NOT_SEARCHED"
-          ? "Search incomplete"
-          : row.socialCoverage?.status === "NOT_TARGETED"
-            ? "Not targeted"
-            : row.socialCoverage?.status === "UNKNOWN"
-              ? "Coverage unknown"
-              : "Not analyzed";
   return (
-    <div className="grid min-w-0 grid-cols-[minmax(0,1.2fr)_auto] gap-3 border-b border-border/60 px-4 py-4 last:border-b-0 md:grid-cols-[minmax(0,1.3fr)_auto_auto_auto] md:items-center">
-      <div className="min-w-0">
+    <div role="row" className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/60 px-4 py-3 last:border-b-0">
+      <div role="cell" className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold tracking-tight">{row.displayTicker}</span>
+          <span className="text-[13px] font-medium">{row.displayTicker}</span>
           <Badge variant={riskVariant(row.riskLabel)}>{row.riskLabel}</Badge>
         </div>
-        {(row.sector || row.marketCapBand) && (
-          <p className="mt-1 truncate text-xs text-muted-foreground">
-            {[row.sector, row.marketCapBand].filter(Boolean).join(" · ")}
-          </p>
-        )}
-        {row.signalSummary && (
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-            {row.signalSummary}
-          </p>
-        )}
-      </div>
-      <div className="text-right">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          Score
-        </p>
-        <p className="mt-0.5 font-semibold tabular-nums">{row.score}</p>
-      </div>
-      <div className="hidden text-right md:block">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          Signals
-        </p>
-        <p className="mt-0.5 text-sm font-semibold tabular-nums">
-          {row.signalCount}
+        <p className="mt-1 truncate text-[11px] text-muted-foreground">
+          {[row.sector, row.marketCapBand, row.signalSummary].filter(Boolean).join(" · ")}
         </p>
       </div>
-      <div className="hidden text-right md:block">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          Social
-        </p>
-        <p className="mt-0.5 text-sm font-semibold tabular-nums">
-          {socialLabel}
-        </p>
-      </div>
-      <div className="col-span-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground md:hidden">
-        <span>{row.signalCount} signals</span>
-        <span>
-          {row.socialSummary
-            ? `${row.socialSummary.promotionalMentions} promotional mentions`
-            : `Social: ${socialLabel.toLowerCase()}`}
-        </span>
+      <div role="cell" className="text-right">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:hidden">Risk score</p>
+        <p className="text-[13px] font-semibold tabular-nums">{row.score}</p>
       </div>
     </div>
   );
@@ -134,6 +89,7 @@ export function PumpRadar({
   showFullPageLink = false,
   fullPage = false,
   showHeading = true,
+  showPublicationStatus = fullPage,
 }: PumpRadarProps) {
   const [filter, setFilter] = useState<PumpRadarFilter>("ALL");
   const view = buildPumpRadarView({ status, rows, coverage, socialSummary });
@@ -183,7 +139,7 @@ export function PumpRadar({
               </Button>
             )}
           </div>}
-          <FreshnessNote
+          {showPublicationStatus && <FreshnessNote
             state={status === "LOADING" ? "LOADING" : status === "UNAVAILABLE" ? "UNAVAILABLE" : freshness || "FRESH"}
             asOf={asOf}
             publishedAt={publishedAt}
@@ -192,7 +148,7 @@ export function PumpRadar({
             socialPublication={socialPublication}
             notice={notice}
             compact={fullPage}
-          />
+          />}
           {fullPage && view.state === "ready" && (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -202,8 +158,8 @@ export function PumpRadar({
                   [cautionCount, "caution"],
                   [coverage?.evaluated ?? "—", "stocks evaluated"],
                 ].map(([value, label]) => (
-                  <div key={label} className="rounded-2xl border border-border bg-secondary/35 p-4 text-center">
-                    <p className="font-editorial text-2xl tabular-nums text-foreground">{value}</p>
+                  <div key={label} className="rounded-2xl border border-border bg-secondary/35 p-3 text-center">
+                    <p className="text-[18px] font-medium tabular-nums text-foreground">{value}</p>
                     <p className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
                   </div>
                 ))}
@@ -267,17 +223,19 @@ export function PumpRadar({
           </CardContent>
         ) : (
           <CardContent className="p-0">
-            <div className="border-y border-border/60" role="list" aria-label="Pump Radar findings">
+            <div className="border-y border-border/60" role="table" aria-label="Pump Radar findings">
+              <div role="row" className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border/60 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div role="columnheader">Instrument</div>
+                <div role="columnheader" className="text-right">Risk score</div>
+              </div>
               {filteredRows.map((row, index) => (
-                <div role="listitem" key={`${row.displayTicker}-${index}`}>
-                  <RadarRow row={row} />
-                </div>
+                <RadarRow key={`${row.displayTicker}-${index}`} row={row} />
               ))}
               {filteredRows.length === 0 && (
                 <p className="px-5 py-10 text-center text-sm text-muted-foreground">No findings match this filter.</p>
               )}
             </div>
-            <div className="flex flex-col gap-2 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 px-4 py-3 text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>{view.coverageLabel}</span>
               <span className="flex items-center gap-1.5">
                 <Megaphone className="h-3.5 w-3.5" aria-hidden="true" />

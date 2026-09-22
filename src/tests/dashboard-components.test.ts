@@ -350,6 +350,23 @@ describe("Alon's unified market table", () => {
     });
   });
 
+  test("can keep Radar-only findings out of the watchlist while retaining watchlist enrichment", () => {
+    const rows = buildUnifiedMarketRows({
+      watchlist: [watching],
+      recentScans: [],
+      pumpRadarRows: radarRows,
+      includeRadarRows: false,
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      ticker: "NVAX",
+      source: "WATCHING",
+      lastPrice: 8.15,
+      pumpScore: 46,
+    });
+  });
+
   test("filters the unified table by watching, radar, and high risk", () => {
     const rows = buildUnifiedMarketRows({
       watchlist: [watching],

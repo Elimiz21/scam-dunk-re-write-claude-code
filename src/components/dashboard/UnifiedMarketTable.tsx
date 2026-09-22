@@ -80,6 +80,7 @@ export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: U
       watchlist: data.watchlist,
       recentScans: data.recentScans,
       pumpRadarRows: data.pumpRadar.rows,
+      includeRadarRows: false,
     }),
     [data],
   );
@@ -93,7 +94,6 @@ export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: U
   const counts = {
     ALL: allRows.length,
     WATCHING: allRows.filter((row) => row.tracked).length,
-    RADAR: allRows.filter((row) => row.source === "RADAR").length,
     HIGH: allRows.filter((row) => row.riskLabel === "High risk").length,
   };
   useEffect(() => {
@@ -190,7 +190,6 @@ export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: U
   const filterLabels: Array<[UnifiedMarketFilter, string]> = [
     ["ALL", "All"],
     ["WATCHING", "Watching"],
-    ["RADAR", "Radar suspects"],
     ["HIGH", "High risk"],
   ];
 
@@ -274,7 +273,7 @@ export function UnifiedMarketTable({ data, initialFilter = "ALL", onRefresh }: U
           <thead>
             <tr className="h-10 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="px-5 font-semibold">Instrument</th>
-              {[["CHANGE", "Change"], ["PRICE", "Price"], ["PUMP_SCORE", "Pump score"]].map(([key, label]) => (
+              {[["CHANGE", "Change"], ["PRICE", "Price"], ["PUMP_SCORE", "Risk score"]].map(([key, label]) => (
                 <th key={key} aria-sort={sort === key ? (direction === "ASC" ? "ascending" : "descending") : "none"} className="px-4 font-semibold"><button type="button" onClick={() => changeSort(key as UnifiedMarketSort)} className="inline-flex min-h-10 items-center gap-1 hover:text-foreground">{label}{sort === key && (direction === "ASC" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}</button></th>
               ))}
               <th className="px-4 font-semibold">24H range</th>

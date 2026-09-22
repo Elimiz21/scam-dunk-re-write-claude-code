@@ -10,6 +10,8 @@ import { DashboardScanEntry } from "@/components/dashboard/DashboardScanEntry";
 import type { DashboardPayload } from "@/components/dashboard/types";
 import { readApiError } from "@/components/dashboard/types";
 import { UnifiedMarketTable } from "@/components/dashboard/UnifiedMarketTable";
+import { PumpRadar } from "@/components/dashboard/PumpRadar";
+import { aggregateSocialSummary } from "@/components/dashboard/view-model";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -79,7 +81,17 @@ export function DashboardHome() {
       )}
 
       {state.data && (
-        <UnifiedMarketTable data={state.data} initialFilter={initialFilter} onRefresh={load} />
+        <>
+          <UnifiedMarketTable data={state.data} initialFilter={initialFilter} onRefresh={load} />
+          <section className="border-t border-border/70 pt-7">
+            <PumpRadar
+              {...state.data.pumpRadar}
+              socialSummary={aggregateSocialSummary(state.data.pumpRadar.rows)}
+              compact
+              showPublicationStatus={false}
+            />
+          </section>
+        </>
       )}
     </div>
   );

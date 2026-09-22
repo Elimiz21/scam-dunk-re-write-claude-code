@@ -605,9 +605,6 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
                     </div>
                     <section className="bg-background px-4 pb-12 sm:px-6" aria-label="Pump Radar market-wide findings">
                       <div className="mx-auto w-full max-w-[1200px]">
-                        <p className="mx-auto mb-4 max-w-[1200px] text-center text-xs text-muted-foreground">
-                          Pump Radar shows market-wide findings from the latest completed scan. Checked after the trading day closes — not live.
-                        </p>
                         <PublicPumpRadar showDashboardLink />
                       </div>
                     </section>

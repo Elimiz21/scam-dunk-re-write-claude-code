@@ -39,7 +39,8 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(dashboard).toContain("DashboardScanEntry");
     expect(dashboard).toContain("UnifiedMarketTable");
     expect(dashboard).not.toContain("PersonalDashboardPreviews");
-    expect(dashboard).not.toContain("<PumpRadar");
+    expect(dashboard).toContain("<PumpRadar");
+    expect(dashboard).toContain("showPublicationStatus={false}");
     expect(dashboard).toContain("text-[clamp(1.4rem,2vw,1.85rem)]");
     expect(dashboard).toContain("<UnifiedMarketTable data={state.data} initialFilter={initialFilter} onRefresh={load}");
   });
@@ -118,6 +119,11 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(pumpPage).toContain('className="mb-8 max-w-3xl pt-3"');
     expect(pumpPage).toContain("Pump Radar");
     expect(pumpRadar).toContain("compact");
+    expect(pumpRadar).toContain("Risk score");
+    expect(pumpRadar).toContain('text-[13px] font-semibold tabular-nums');
+    expect(pumpRadar).toContain('text-[11px] text-muted-foreground');
+    expect(pumpRadar).not.toContain(">Signals<");
+    expect(pumpRadar).not.toContain(">Social<");
   });
 
   test("lets the Home tracking entry create a watchlist item before opening its Watching filter", () => {

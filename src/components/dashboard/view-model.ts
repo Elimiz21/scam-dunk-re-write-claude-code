@@ -244,6 +244,7 @@ export function buildUnifiedMarketRows(input: {
   watchlist: WatchlistEntryDto[];
   recentScans: RecentScanDto[];
   pumpRadarRows: PumpRadarRow[];
+  includeRadarRows?: boolean;
 }): UnifiedMarketRow[] {
   const radarByTicker = new Map(
     input.pumpRadarRows
@@ -278,23 +279,25 @@ export function buildUnifiedMarketRows(input: {
     };
   });
 
-  const radarRows: UnifiedMarketRow[] = input.pumpRadarRows
-    .filter((row) => !row.ticker || !trackedTickers.has(row.ticker.toUpperCase()))
-    .map((row, index) => ({
-      key: `radar:${row.ticker ?? row.displayTicker}:${index}`,
-      ticker: row.ticker?.toUpperCase() ?? row.displayTicker,
-      displayTicker: row.displayTicker,
-      companyName: row.companyName ?? null,
-      source: "RADAR",
-      tracked: false,
-      watchlistEntry: null,
-      lastScannedAt: null,
-      signalSummary: row.signalSummary,
-      riskLabel: row.riskLabel,
-      priceChangePct: row.priceChangePct,
-      lastPrice: row.lastPrice,
-      pumpScore: row.score,
-    }));
+  const radarRows: UnifiedMarketRow[] = input.includeRadarRows === false
+    ? []
+    : input.pumpRadarRows
+        .filter((row) => !row.ticker || !trackedTickers.has(row.ticker.toUpperCase()))
+        .map((row, index) => ({
+          key: `radar:${row.ticker ?? row.displayTicker}:${index}`,
+          ticker: row.ticker?.toUpperCase() ?? row.displayTicker,
+          displayTicker: row.displayTicker,
+          companyName: row.companyName ?? null,
+          source: "RADAR",
+          tracked: false,
+          watchlistEntry: null,
+          lastScannedAt: null,
+          signalSummary: row.signalSummary,
+          riskLabel: row.riskLabel,
+          priceChangePct: row.priceChangePct,
+          lastPrice: row.lastPrice,
+          pumpScore: row.score,
+        }));
 
   return [...watchingRows, ...radarRows];
 }
