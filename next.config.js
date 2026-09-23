@@ -8,9 +8,9 @@ const ContentSecurityPolicy = [
   // Next.js requires 'unsafe-inline'/'unsafe-eval' for its runtime; the third
   // parties below are the script origins actually loaded by the app.
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.paypal.com https://www.paypalobjects.com https://*.vercel-scripts.com https://va.vercel-scripts.com",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "frame-src 'self' https://challenges.cloudflare.com https://www.paypal.com https://www.youtube.com https://www.youtube-nocookie.com",
   "connect-src 'self' https://challenges.cloudflare.com https://www.paypal.com https://api.paypal.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://vitals.vercel-insights.com",
   "object-src 'none'",

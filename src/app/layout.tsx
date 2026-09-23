@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -7,20 +6,6 @@ import { ToastProvider } from "@/components/ui/toast";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { JsonLd } from "@/components/JsonLd";
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const interTight = Inter_Tight({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-display",
-  display: "swap",
-});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
 
@@ -106,12 +91,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${inter.variable} ${interTight.variable}`}
-    >
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&family=Inter+Tight:wght@300;400;500;600&display=swap"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem("scamdunk-theme");var d=t==="dark"||(t!=="light"&&(t==="auto"||!t)&&(new Date().getHours()>=19||new Date().getHours()<6));document.documentElement.classList.add(d?"dark":"light");}catch(e){}})();`,
