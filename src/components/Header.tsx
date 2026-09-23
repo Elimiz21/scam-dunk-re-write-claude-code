@@ -99,7 +99,7 @@ export function Header({
             <div className="flex items-center gap-2.5 rounded-full border border-border/70 bg-secondary/80 px-3 py-1.5">
               <div className="flex items-center gap-1.5">
                 <Zap className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-primary">
                   {String(effectiveUsage.plan).replaceAll("_", " ")}
                 </span>
               </div>
@@ -111,7 +111,7 @@ export function Header({
                     style={{ width: `${Math.min(usagePercent, 100)}%` }}
                   />
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+                <span className="text-[11px] font-semibold text-muted-foreground tabular-nums">
                   {effectiveUsage.scansUsedThisMonth}/{effectiveUsage.scansLimitThisMonth}
                 </span>
               </div>

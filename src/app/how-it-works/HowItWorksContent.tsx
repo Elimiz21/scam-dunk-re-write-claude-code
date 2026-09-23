@@ -207,7 +207,7 @@ export default function HowItWorksContent() {
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                     <h3 className="text-[15px] font-semibold text-red-600 dark:text-red-400">
-                      HIGH Risk
+                      High risk
                     </h3>
                   </div>
                   <p className="text-[13px] leading-relaxed text-muted-foreground">
@@ -221,7 +221,7 @@ export default function HowItWorksContent() {
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
                     <h3 className="text-[15px] font-semibold text-yellow-600 dark:text-yellow-400">
-                      MEDIUM Risk
+                      Caution
                     </h3>
                   </div>
                   <p className="text-[13px] leading-relaxed text-muted-foreground">
@@ -235,7 +235,7 @@ export default function HowItWorksContent() {
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
                     <h3 className="text-[15px] font-semibold text-green-600 dark:text-green-400">
-                      LOW Risk
+                      Low risk
                     </h3>
                   </div>
                   <p className="text-[13px] leading-relaxed text-muted-foreground">
