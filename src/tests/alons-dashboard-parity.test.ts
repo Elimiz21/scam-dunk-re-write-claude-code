@@ -30,6 +30,44 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(read("src/app/(protected)/dashboard/page.tsx")).toContain("<PageLayout dashboardShell>");
   });
 
+  test("keeps the authenticated navigation rail visible on every shared page shell", () => {
+    const layout = read("src/components/PageLayout.tsx");
+    const sharedPageShells = [
+      "src/app/about/AboutContent.tsx",
+      "src/app/contact/ContactContent.tsx",
+      "src/app/disclaimer/DisclaimerContent.tsx",
+      "src/app/help/HelpContent.tsx",
+      "src/app/how-it-works/HowItWorksContent.tsx",
+      "src/app/news/news-client.tsx",
+      "src/app/news/post-client.tsx",
+      "src/app/privacy/PrivacyContent.tsx",
+      "src/app/terms/TermsContent.tsx",
+    ];
+
+    expect(layout).toContain("const showDashboardShell = dashboardShell || Boolean(session?.user);");
+    expect(layout).toContain("persistent={showDashboardShell}");
+    expect(layout).toContain("max-w-[1600px] flex-1 items-start");
+
+    for (const page of sharedPageShells) {
+      const source = read(page);
+      expect(source).toContain('import { PageLayout } from "@/components/PageLayout";');
+      expect(source).toContain("<PageLayout");
+      expect(source).not.toContain('import { Sidebar } from "@/components/Sidebar";');
+    }
+
+    expect(read("src/app/news/post-client.tsx")).toContain(
+      "headerProps={{ onShare: handleShare, showShare: true }}",
+    );
+  });
+
+  test("uses the compact dashboard type scale in the shared footer", () => {
+    const footer = read("src/components/Footer.tsx");
+
+    expect(footer).toContain("<Logo size={40}");
+    expect(footer).toContain("text-[12px] text-muted-foreground");
+    expect(footer).toContain("text-[11px] leading-relaxed text-muted-foreground");
+  });
+
   test("uses Alon's compact, table-first dashboard as the signed-in home", () => {
     const dashboard = read("src/components/dashboard/DashboardHome.tsx");
 

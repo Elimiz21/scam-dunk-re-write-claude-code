@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Sidebar } from "@/components/Sidebar";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { PageLayout } from "@/components/PageLayout";
 import {
   TrendingUp,
   AlertTriangle,
@@ -18,20 +15,9 @@ import {
 } from "lucide-react";
 
 export default function HowItWorksContent() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onNewScan={() => {}}
-      />
-
-      <div className="flex flex-col min-h-screen">
-        <Header onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} />
-
-        <main className="flex-1">
+    <PageLayout>
+      <main className="flex-1">
           <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
             {/* Hero Section */}
             <div className="mb-14 md:mb-20">
@@ -314,10 +300,7 @@ export default function HowItWorksContent() {
               </Link>
             </div>
           </div>
-        </main>
-
-        <Footer />
-      </div>
-    </div>
+      </main>
+    </PageLayout>
   );
 }

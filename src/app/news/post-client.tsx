@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import DOMPurify from "isomorphic-dompurify";
-import { Header } from "@/components/Header";
-import { Sidebar } from "@/components/Sidebar";
-import { Footer } from "@/components/Footer";
+import { PageLayout } from "@/components/PageLayout";
 import { JsonLd } from "@/components/JsonLd";
 import { ArrowLeft, Calendar, User, Tag, Share2, Clock } from "lucide-react";
 import { formatDate, slugify } from "@/lib/utils";
@@ -43,8 +40,6 @@ export default function BlogPostClient({
   articleSchema,
   relatedPosts = [],
 }: BlogPostClientProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   function estimateReadTime(content: string): number {
     const wordsPerMinute = 200;
     const words = content.trim().split(/\s+/).length;
@@ -72,25 +67,10 @@ export default function BlogPostClient({
     }
   }
 
-  const handleNewScan = () => {
-    window.location.href = "/";
-  };
-
   return (
-    <div className="min-h-screen bg-background">
+    <>
       {articleSchema && <JsonLd data={articleSchema} />}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onNewScan={handleNewScan}
-      />
-      <div className="flex flex-col min-h-screen">
-        <Header
-          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-          usage={null}
-          onShare={handleShare}
-          showShare
-        />
+      <PageLayout headerProps={{ onShare: handleShare, showShare: true }}>
         <main className="flex-1 px-4 py-12 md:py-16 max-w-4xl mx-auto w-full">
           <div className="mb-8">
             <Link
@@ -221,9 +201,7 @@ export default function BlogPostClient({
             </section>
           )}
         </main>
-
-        <Footer />
-      </div>
-    </div>
+      </PageLayout>
+    </>
   );
 }

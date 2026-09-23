@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Header } from "@/components/Header";
-import { Sidebar } from "@/components/Sidebar";
-import { Footer } from "@/components/Footer";
+import { PageLayout } from "@/components/PageLayout";
 import {
   FileText,
   Calendar,
@@ -62,7 +60,6 @@ export default function NewsClient({
   blogPosts,
   mediaMentions,
 }: NewsClientProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const categories = useMemo(
@@ -95,27 +92,9 @@ export default function NewsClient({
     });
   }
 
-  const handleNewScan = () => {
-    window.location.href = "/";
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onNewScan={handleNewScan}
-      />
-
-      <div className="flex flex-col min-h-screen">
-        <Header
-          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-          usage={null}
-          onShare={() => {}}
-          showShare={false}
-        />
-
-        <main className="flex-1 px-4 py-12 md:py-16 max-w-6xl mx-auto w-full">
+    <PageLayout>
+      <main className="flex-1 px-4 py-12 md:py-16 max-w-6xl mx-auto w-full">
           <div className="mb-12 md:mb-16">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               Newsroom
@@ -353,10 +332,7 @@ export default function NewsClient({
               )}
             </section>
           </div>
-        </main>
-
-        <Footer />
-      </div>
-    </div>
+      </main>
+    </PageLayout>
   );
 }
