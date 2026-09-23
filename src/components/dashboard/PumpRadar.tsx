@@ -52,13 +52,13 @@ function riskVariant(label: PumpRadarRow["riskLabel"]) {
   return "low" as const;
 }
 
-function RadarRow({ row }: { row: PumpRadarRow }) {
+function RadarRow({ row, compact }: { row: PumpRadarRow; compact: boolean }) {
   return (
     <div role="row" className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/60 px-4 py-3 last:border-b-0">
       <div role="cell" className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[13px] font-medium">{row.displayTicker}</span>
-          <Badge variant={riskVariant(row.riskLabel)}>{row.riskLabel}</Badge>
+          <span className={cn(compact ? "text-[11px] font-medium" : "text-[13px] font-medium")}>{row.displayTicker}</span>
+          <Badge className={cn(compact && "px-2 py-0.5 text-[10px] tracking-wide")} variant={riskVariant(row.riskLabel)}>{row.riskLabel}</Badge>
         </div>
         <p className="mt-1 truncate text-[11px] text-muted-foreground">
           {[row.sector, row.marketCapBand, row.signalSummary].filter(Boolean).join(" · ")}
@@ -66,7 +66,7 @@ function RadarRow({ row }: { row: PumpRadarRow }) {
       </div>
       <div role="cell" className="text-right">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:hidden">Risk score</p>
-        <p className="text-[13px] font-semibold tabular-nums">{row.score}</p>
+        <p className={cn("font-semibold tabular-nums", compact ? "text-[11px]" : "text-[13px]")}>{row.score}</p>
       </div>
     </div>
   );
@@ -96,27 +96,30 @@ export function PumpRadar({
   const filteredRows = filterPumpRadarRows(rows, filter);
   const highRiskCount = rows.filter((row) => row.riskLabel === "High risk").length;
   const cautionCount = rows.filter((row) => row.riskLabel === "Caution").length;
+  const statusTextClass = compact
+    ? "text-[11px] text-muted-foreground"
+    : "text-sm text-muted-foreground";
 
   return (
     <section aria-labelledby="pump-radar-title" className="w-full">
       <Card className="overflow-hidden shadow-sm shadow-black/[0.02]">
-        <CardHeader className={cn("gap-4", compact && "p-4 sm:p-5")}>
+        <CardHeader className={cn("gap-4", compact && "gap-3 p-4 sm:p-5")}>
           {showHeading && <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Radar className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-primary">
                   Market-wide findings
                 </p>
                 <h2
                   id="pump-radar-title"
-                  className="mt-1 font-editorial text-xl sm:text-2xl"
+                  className={cn("mt-1", compact ? "text-[13px] font-medium" : "font-editorial text-xl sm:text-2xl")}
                 >
                   Pump Radar
                 </h2>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                <p className={cn("mt-1 max-w-2xl text-muted-foreground", compact ? "text-[11px] leading-4" : "text-sm leading-relaxed")}>
                   Anonymous cases and risk patterns from the latest completed
                   US market scan. Company names and tickers stay hidden, including after login.
                 </p>
@@ -206,8 +209,8 @@ export function PumpRadar({
           <CardContent>
             <div className="rounded-xl border border-dashed border-border px-5 py-8 text-center">
               <Activity className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
-              <p className="mt-3 font-semibold">{view.title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className={cn("mt-3", compact ? "text-[11px] font-medium" : "font-semibold")}>{view.title}</p>
+              <p className={cn("mt-1", statusTextClass)}>
                 Try again after the next end-of-day publication.
               </p>
             </div>
@@ -215,8 +218,8 @@ export function PumpRadar({
         ) : view.state === "empty" ? (
           <CardContent>
             <div className="rounded-xl border border-dashed border-border px-5 py-8 text-center">
-              <p className="font-semibold">{view.title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className={cn(compact ? "text-[11px] font-medium" : "font-semibold")}>{view.title}</p>
+              <p className={cn("mt-1", statusTextClass)}>
                 The completed market scan did not publish any rows for this view.
               </p>
             </div>
@@ -229,7 +232,7 @@ export function PumpRadar({
                 <div role="columnheader" className="text-right">Risk score</div>
               </div>
               {filteredRows.map((row, index) => (
-                <RadarRow key={`${row.displayTicker}-${index}`} row={row} />
+                <RadarRow key={`${row.displayTicker}-${index}`} row={row} compact={compact} />
               ))}
               {filteredRows.length === 0 && (
                 <p className="px-5 py-10 text-center text-sm text-muted-foreground">No findings match this filter.</p>

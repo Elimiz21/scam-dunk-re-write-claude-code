@@ -120,8 +120,13 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(pumpPage).toContain("Pump Radar");
     expect(pumpRadar).toContain("compact");
     expect(pumpRadar).toContain("Risk score");
-    expect(pumpRadar).toContain('text-[13px] font-semibold tabular-nums');
+    expect(pumpRadar).toContain('compact ? "text-[11px]" : "text-[13px]"');
     expect(pumpRadar).toContain('text-[11px] text-muted-foreground');
+    expect(pumpRadar).toContain('compact ? "text-[13px] font-medium"');
+    expect(pumpRadar).toContain('px-2 py-0.5 text-[10px]');
+    expect(pumpRadar).toContain("function RadarRow({ row, compact }");
+    expect(pumpRadar).toContain('compact ? "text-[11px] font-medium" : "text-[13px] font-medium"');
+    expect(pumpRadar).toContain("const statusTextClass = compact");
     expect(pumpRadar).not.toContain(">Signals<");
     expect(pumpRadar).not.toContain(">Social<");
   });
