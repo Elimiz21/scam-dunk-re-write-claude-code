@@ -70,6 +70,13 @@ export function Header({
   const usagePercent = effectiveUsage?.scansLimitThisMonth
     ? Math.round((effectiveUsage.scansUsedThisMonth / effectiveUsage.scansLimitThisMonth) * 100)
     : 0;
+  const planLabel = effectiveUsage
+    ? effectiveUsage.plan === "PRO_MAX"
+      ? "Pro Max"
+      : effectiveUsage.plan === "PAID"
+        ? "Pro"
+        : "Free"
+    : "Free";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
@@ -99,8 +106,8 @@ export function Header({
             <div className="flex items-center gap-2.5 rounded-full border border-border/70 bg-secondary/80 px-3 py-1.5">
               <div className="flex items-center gap-1.5">
                 <Zap className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-                  {String(effectiveUsage.plan).replaceAll("_", " ")}
+                <span className="text-[11px] font-semibold tracking-wide text-primary">
+                  {planLabel}
                 </span>
               </div>
               <div className="h-3 w-px bg-border" />

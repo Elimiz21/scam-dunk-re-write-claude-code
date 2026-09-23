@@ -11,10 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
-  Shield,
   User,
   CreditCard,
-  LogOut,
   Zap,
   Check,
   Loader2,
@@ -31,6 +29,7 @@ import { UsageInfo } from "@/lib/types";
 import { usagePercent } from "@/lib/account-usage";
 import { useToast } from "@/components/ui/toast";
 import { PayPalButton } from "@/components/PayPalButton";
+import { PageLayout } from "@/components/PageLayout";
 
 interface SubscriptionInfo {
   plan: "FREE" | "PAID" | "PRO_MAX";
@@ -530,10 +529,6 @@ function AccountContent() {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/" });
-  };
-
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -547,34 +542,10 @@ function AccountContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Shield className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-            <span className="text-xl sm:text-2xl font-bold font-display italic">
-              ScamDunk
-            </span>
-          </Link>
-          <nav className="flex items-center gap-2 sm:gap-4">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/">
-                <span className="hidden sm:inline">New Scan</span>
-                <span className="sm:hidden">Scan</span>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Log out</span>
-            </Button>
-          </nav>
-        </div>
-      </header>
-
+    <PageLayout dashboardShell>
       <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
-          <h1 className="text-2xl sm:text-3xl font-bold font-display italic">
+          <h1 className="font-editorial text-2xl sm:text-3xl">
             Account Settings
           </h1>
 
@@ -1230,7 +1201,7 @@ function AccountContent() {
           </Card>
         </div>
       </main>
-    </div>
+    </PageLayout>
   );
 }
 

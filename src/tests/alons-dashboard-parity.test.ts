@@ -72,7 +72,8 @@ describe("Alon's authenticated dashboard journey", () => {
     const header = read("src/components/Header.tsx");
     const howItWorks = read("src/app/how-it-works/HowItWorksContent.tsx");
 
-    expect(header).toContain("text-[11px] font-semibold uppercase tracking-wide text-primary");
+    expect(header).toContain("text-[11px] font-semibold tracking-wide text-primary");
+    expect(header).not.toContain("text-[11px] font-semibold uppercase tracking-wide text-primary");
     expect(header).toContain("text-[11px] font-semibold text-muted-foreground tabular-nums");
     expect(howItWorks).toContain("High risk");
     expect(howItWorks).toContain("Caution");

@@ -24,6 +24,26 @@ describe("approved authenticated Paper & Ink shell", () => {
     expect(header).toContain("<NavigationLogo href={logoHref}");
   });
 
+  test("uses customer-facing plan names in the shared account badge", () => {
+    const header = readProjectFile("src/components/Header.tsx");
+
+    expect(header).toContain('effectiveUsage.plan === "PRO_MAX"');
+    expect(header).toContain('effectiveUsage.plan === "PAID"');
+    expect(header).toContain('? "Pro"');
+    expect(header).toContain(': "Free"');
+    expect(header).not.toContain('String(effectiveUsage.plan).replaceAll("_", " ")');
+    expect(header).not.toContain('font-semibold uppercase tracking-wide text-primary');
+  });
+
+  test("keeps account and subscription screens inside the current authenticated shell", () => {
+    const account = readProjectFile("src/app/(protected)/account/page.tsx");
+
+    expect(account).toContain('import { PageLayout } from "@/components/PageLayout";');
+    expect(account).toContain("<PageLayout dashboardShell>");
+    expect(account).not.toContain('<Shield className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />');
+    expect(account).not.toContain('<Link href="/" className="flex items-center gap-2">');
+  });
+
   test("keeps the activity strip inside the viewport without a horizontal scrollbar", () => {
     const ticker = readProjectFile("src/components/ActivityTicker.tsx");
 
