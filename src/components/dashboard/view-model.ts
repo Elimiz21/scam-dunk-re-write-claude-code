@@ -100,10 +100,6 @@ export function buildPumpRadarView(input: {
   coverage: PumpRadarCoverage | null;
   socialSummary: Omit<SocialSummary, "maxPromotionScore"> | null;
 }) {
-  const coverageLabel =
-    input.coverage?.evaluatedPercent === null || !input.coverage
-      ? "Coverage unavailable"
-      : `${input.coverage.evaluatedPercent}% coverage`;
   const socialStatuses = input.rows
     .map((row) => row.socialCoverage?.status)
     .filter((status): status is NonNullable<typeof status> => Boolean(status));
@@ -125,13 +121,12 @@ export function buildPumpRadarView(input: {
           : "Social media not analyzed for this publication";
 
   if (input.status === "LOADING") {
-    return { state: "loading" as const, coverageLabel, socialLabel };
+    return { state: "loading" as const, socialLabel };
   }
   if (input.status === "UNAVAILABLE") {
     return {
       state: "unavailable" as const,
       title: "Pump Radar is temporarily unavailable",
-      coverageLabel,
       socialLabel,
     };
   }
@@ -139,13 +134,11 @@ export function buildPumpRadarView(input: {
     return {
       state: "empty" as const,
       title: "No flagged stocks in this publication",
-      coverageLabel,
       socialLabel,
     };
   }
   return {
     state: "ready" as const,
-    coverageLabel,
     socialLabel,
     riskLabels: input.rows.map((row) => row.riskLabel),
   };

@@ -238,8 +238,7 @@ export function PumpRadar({
                 <p className="px-5 py-10 text-center text-sm text-muted-foreground">No findings match this filter.</p>
               )}
             </div>
-            <div className="flex flex-col gap-2 px-4 py-3 text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>{view.coverageLabel}</span>
+            <div className="flex flex-col gap-2 px-4 py-3 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Megaphone className="h-3.5 w-3.5" aria-hidden="true" />
                 {view.socialLabel}

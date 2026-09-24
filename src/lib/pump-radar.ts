@@ -7,6 +7,7 @@ import {
   getTickerCoverage,
   parseRunMetadata,
 } from "@/lib/social-scan/coverage";
+import { normalizeRiskScore } from "@/lib/utils";
 
 export type PumpRadarViewer = "PUBLIC" | "AUTHENTICATED";
 export type PumpRadarFreshness = "FRESH" | "STALE";
@@ -316,7 +317,7 @@ export function createPumpRadarService(
         marketCapBand: marketCapBand(snapshot.marketCap),
         signalSummary: patternSummary(snapshot),
         riskLabel: getRiskLabel(snapshot.riskLevel as RiskLevel),
-        score: snapshot.totalScore,
+        score: normalizeRiskScore(Number(snapshot.totalScore) || 0),
         signalCount: snapshot.signalCount,
         // Precise market observations can identify a stock by matching public quotes.
         // Retain nullable keys for API compatibility; publish only broad patterns.

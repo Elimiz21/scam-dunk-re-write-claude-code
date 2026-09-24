@@ -218,6 +218,7 @@ describe("Pump Radar privacy for every viewer", () => {
         },
       }),
     ]);
+    expect(payload.rows[0].score).toBe(100);
     expect(payload.rows[0]).toMatchObject({ lastPrice: null, priceChangePct: null, volumeRatio: null });
     expect(payload.rows[0]).not.toHaveProperty("ticker");
     expect(payload.rows[0]).not.toHaveProperty("companyName");

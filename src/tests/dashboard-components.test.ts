@@ -173,10 +173,10 @@ describe("Pump Radar render state", () => {
 
     expect(view).toMatchObject({
       state: "ready",
-      coverageLabel: "95% coverage",
       socialLabel: "4 promotional mentions across 2 platforms",
       riskLabels: ["High risk", "Caution", "Low risk"],
     });
+    expect(view).not.toHaveProperty("coverageLabel");
   });
 
   test("labels incomplete social coverage without turning missing evidence into a negative result", () => {
