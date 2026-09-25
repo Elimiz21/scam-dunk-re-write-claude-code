@@ -10,5 +10,6 @@ describe("Google Analytics", () => {
     expect(layout).toContain("googletagmanager.com/gtag/js");
     expect(layout).toContain("gtag('config'");
     expect(layout).toContain('id="google-analytics"');
+    expect(layout).toContain('strategy="beforeInteractive"');
   });
 });

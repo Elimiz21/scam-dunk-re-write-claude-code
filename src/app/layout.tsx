@@ -96,9 +96,9 @@ export default function RootLayout({
       <head>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-377T7N93Q6"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="beforeInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){window.dataLayer.push(arguments);}
