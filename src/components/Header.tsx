@@ -285,13 +285,13 @@ export function Header({
             <div className="flex items-center gap-3 ml-1">
               <Link
                 href="/login"
-                className="hidden text-[13px] font-medium text-foreground/70 hover:text-foreground md:inline-block"
+                className="inline-block text-[13px] font-medium text-foreground/70 hover:text-foreground"
               >
                 Log in
               </Link>
               <Link
                 href="/signup"
-                className="btn-pill btn-pill-primary px-5 py-2 text-[13px]"
+                className="btn-pill btn-pill-primary px-3 py-2 text-[13px] sm:px-5"
               >
                 Sign up
               </Link>

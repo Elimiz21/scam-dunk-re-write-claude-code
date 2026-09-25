@@ -25,6 +25,7 @@ export default function SignupPage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [marketingOptIn, setMarketingOptIn] = useState(true);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -67,7 +68,13 @@ export default function SignupPage() {
       const registerResponse = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name, turnstileToken }),
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+          marketingOptIn,
+          turnstileToken,
+        }),
         signal: controller.signal,
       });
 
@@ -207,6 +214,21 @@ export default function SignupPage() {
                 uppercase, lowercase, and a number
               </p>
             </div>
+            <label className="flex items-start gap-3 rounded-xl border border-border/70 bg-secondary/30 p-3 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={marketingOptIn}
+                onChange={(e) => setMarketingOptIn(e.target.checked)}
+                disabled={isLoading}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+              />
+              <span>
+                Email me ScamDunk updates, product news, and security tips.
+                <span className="block text-xs mt-1">
+                  You can opt out at any time.
+                </span>
+              </span>
+            </label>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input

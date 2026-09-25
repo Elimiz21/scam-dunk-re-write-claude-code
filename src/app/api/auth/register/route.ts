@@ -18,6 +18,7 @@ const registerSchema = z.object({
     if (error) ctx.addIssue({ code: z.ZodIssueCode.custom, message: error });
   }),
   name: z.string().optional(),
+  marketingOptIn: z.boolean().optional().default(true),
   turnstileToken: z.string().min(1, "CAPTCHA verification is required"),
 });
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { password, name, turnstileToken } = validation.data;
+    const { password, name, marketingOptIn, turnstileToken } = validation.data;
     // Normalize email before the uniqueness check and insert. Login lowercases
     // the email, so a MixedCase registration would otherwise create an account
     // the user can never log into, plus case-variant duplicate accounts (SEC-M1).
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
         email,
         hashedPassword,
         name: name || null,
+        marketingOptIn,
         plan: "FREE",
       },
     });
