@@ -10,6 +10,10 @@ const form = readFileSync(
   join(process.cwd(), "src/components/BotInterestForm.tsx"),
   "utf8",
 );
+const landing = readFileSync(
+  join(process.cwd(), "src/components/landing/LandingOptionA.tsx"),
+  "utf8",
+);
 
 describe("messenger bot launch list", () => {
   test("stores one email per feature and exposes a public signup route", () => {
@@ -21,5 +25,11 @@ describe("messenger bot launch list", () => {
     expect(route).toContain("featureInterest.upsert");
     expect(form).toContain("Get launch updates");
     expect(form).toContain("/api/feature-interest");
+  });
+
+  test("supports a public combined signup for Telegram and WhatsApp updates", () => {
+    expect(route).toContain("MESSENGER_UPDATES");
+    expect(landing).toContain("Get updates when our Telegram and WhatsApp channels launch.");
+    expect(landing).toContain("MESSENGER_UPDATES");
   });
 });

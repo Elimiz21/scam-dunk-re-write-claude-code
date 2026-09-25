@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const interestSchema = z.object({
   email: z.string().email("Enter a valid email address").max(255),
-  feature: z.enum(["WHATSAPP_BOT", "TELEGRAM_BOT"]),
+  feature: z.enum(["WHATSAPP_BOT", "TELEGRAM_BOT", "MESSENGER_UPDATES"]),
 });
 
 export async function POST(request: NextRequest) {

@@ -479,6 +479,22 @@ export function LandingOptionA({
             ))}
           </div>
 
+          <div className="mt-8 rounded-2xl border border-teal/30 bg-teal/5 px-6 py-7 text-center md:px-8">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
+              Stay in the loop
+            </p>
+            <h3 className="font-editorial mt-3 text-2xl text-foreground">
+              Get updates when our Telegram and WhatsApp channels launch.
+            </h3>
+            <p className="mx-auto mt-2 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
+              We&apos;ll email you when ScamDunk becomes available in the channels
+              where stock tips actually spread. No extra marketing noise.
+            </p>
+            <div className="mx-auto max-w-md text-left">
+              <BotInterestForm feature="MESSENGER_UPDATES" />
+            </div>
+          </div>
+
           <div className="mt-8 text-center">
             <Link href="/pricing" className="btn-pill btn-pill-ghost gap-1.5">
               Full pricing details

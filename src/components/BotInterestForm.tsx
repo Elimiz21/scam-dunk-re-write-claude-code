@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type BotFeature = "WHATSAPP_BOT" | "TELEGRAM_BOT";
+type BotFeature = "WHATSAPP_BOT" | "TELEGRAM_BOT" | "MESSENGER_UPDATES";
 
 export function BotInterestForm({ feature }: { feature: BotFeature }) {
   const [email, setEmail] = useState("");
