@@ -216,6 +216,24 @@ export function LandingOptionA({
         </div>
       </section>
 
+      <section
+        aria-label="Press mention"
+        className="border-y border-border/60 bg-background py-7"
+      >
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 text-center">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            As seen in
+          </span>
+          <Image
+            src="/images/press/wsj-logo.svg"
+            alt="The Wall Street Journal"
+            width={301}
+            height={28}
+            className="h-auto w-[220px] max-w-full"
+          />
+        </div>
+      </section>
+
       {/* ================= STATS STRIP (live, refreshed daily) ================= */}
       <section className="bg-background py-12 md:py-16">
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-x-6 gap-y-10 px-4 text-center lg:grid-cols-4">

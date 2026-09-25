@@ -17,6 +17,16 @@ describe("approved Paper & Ink landing template", () => {
     expect(landing).toContain("Not another stock picker");
   });
 
+  test("shows the Wall Street Journal mention between the hero and stats", () => {
+    const landing = readProjectFile("src/components/landing/LandingOptionA.tsx");
+
+    expect(landing).toContain('aria-label="Press mention"');
+    expect(landing).toContain("As seen in");
+    expect(landing).toContain("The Wall Street Journal");
+    expect(landing).toContain('/images/press/wsj-logo.svg');
+    expect(readProjectFile("public/images/press/wsj-logo.svg")).not.toHaveLength(0);
+  });
+
   test("uses the approved logo asset in the shared brand component", () => {
     const logo = readProjectFile("src/components/Logo.tsx");
 
