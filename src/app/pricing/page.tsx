@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/PageLayout";
 import { JsonLd } from "@/components/JsonLd";
+import { BotInterestForm } from "@/components/BotInterestForm";
 import { formatUsdCents, getPublicBillingPrices } from "@/lib/billing/pricing";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
@@ -308,10 +309,12 @@ export default function PricingPage() {
               {[
                 {
                   name: "WhatsApp bot",
+                  feature: "WHATSAPP_BOT" as const,
                   desc: "Link your number once. When a ticker lands in a group chat, forward it to your ScamDunk contact — the verdict comes back before the conversation moves on.",
                 },
                 {
                   name: "Telegram bot",
+                  feature: "TELEGRAM_BOT" as const,
                   desc: "Message a ticker to the ScamDunk bot and get the verdict with the signals found — inside the platform where many pump groups actually operate.",
                 },
               ].map((bot) => (
@@ -324,6 +327,7 @@ export default function PricingPage() {
                     </span>
                   </div>
                   <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">{bot.desc}</p>
+                  <BotInterestForm feature={bot.feature} />
                 </div>
               ))}
             </div>

@@ -48,6 +48,16 @@ model User {
   billingEvents            BillingEvent[]
 }
 
+model FeatureInterest {
+  id        String   @id @default(cuid())
+  email     String
+  feature   String
+  createdAt DateTime @default(now())
+
+  @@unique([email, feature])
+  @@index([feature, createdAt])
+}
+
 // TODO [H-11]: OAuth tokens (refresh_token, access_token, id_token) are stored in plain text.
 // A future migration should add field-level encryption for these sensitive fields.
 // This requires a data migration script to encrypt existing tokens in place.

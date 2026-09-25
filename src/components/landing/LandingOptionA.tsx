@@ -14,6 +14,7 @@ import { Footer } from "@/components/Footer";
 import { AssetType } from "@/lib/types";
 import { SITE_STATS } from "@/lib/site-stats";
 import { useLiveSiteStats } from "@/lib/use-site-stats";
+import { BotInterestForm } from "@/components/BotInterestForm";
 
 interface LandingOptionAProps {
   onSubmit: (data: {
@@ -448,10 +449,12 @@ export function LandingOptionA({
             {[
               {
                 name: "WhatsApp bot",
+                feature: "WHATSAPP_BOT" as const,
                 desc: "Link your number once. When a ticker lands in a group chat, forward it to your ScamDunk contact — the fraud verdict comes back as a reply before the conversation moves on.",
               },
               {
                 name: "Telegram bot",
+                feature: "TELEGRAM_BOT" as const,
                 desc: "The same 15-second check inside Telegram, where many pump groups actually operate. Message a ticker to the ScamDunk bot and get the verdict with the signals found.",
               },
             ].map((bot) => (
@@ -471,6 +474,7 @@ export function LandingOptionA({
                 <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
                   {bot.desc}
                 </p>
+                <BotInterestForm feature={bot.feature} />
               </div>
             ))}
           </div>
