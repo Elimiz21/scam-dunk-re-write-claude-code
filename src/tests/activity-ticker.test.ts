@@ -1,6 +1,21 @@
 import { createActivityTickerService } from "@/lib/activity-ticker";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const activityTickerComponent = readFileSync(
+  join(process.cwd(), "src/components/ActivityTicker.tsx"),
+  "utf8",
+);
 
 describe("activity ticker service", () => {
+  test("keeps the mobile ticker content inside the viewport", () => {
+    expect(activityTickerComponent).toContain(
+      "min-w-0 flex-1 truncate text-right",
+    );
+    expect(activityTickerComponent).toContain("text-[10px]");
+    expect(activityTickerComponent).toContain("sm:text-[11px]");
+  });
+
   test("uses the latest completed market-wide publication instead of sparse customer scans", async () => {
     const findFirst = jest.fn().mockResolvedValue({
       scanDate: new Date("2026-08-29T00:00:00.000Z"),

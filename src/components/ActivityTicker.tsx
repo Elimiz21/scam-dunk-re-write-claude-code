@@ -115,7 +115,7 @@ export function ActivityTicker() {
       aria-label="ScamDunk activity ticker"
       className="sticky top-16 z-30 overflow-hidden border-b border-border/60 bg-card/95 backdrop-blur"
     >
-      <div className="mx-auto flex min-h-11 w-full max-w-[1600px] items-center gap-1.5 overflow-hidden px-2 py-2 text-[11px] sm:gap-3 sm:px-4">
+      <div className="mx-auto flex min-h-11 w-full max-w-[1600px] items-center gap-1.5 overflow-hidden px-2 py-2 text-[10px] sm:gap-3 sm:px-4 sm:text-[11px]">
         <div className="hidden shrink-0 items-center gap-1.5 font-semibold uppercase tracking-widest text-primary sm:flex">
           <Activity className="h-3.5 w-3.5" aria-hidden="true" />
           <span className="hidden sm:inline">Activity</span>
@@ -176,7 +176,7 @@ export function ActivityTicker() {
               value={formatCount(state.data.allTimeEvaluations)}
               className="hidden lg:inline-flex"
             />
-            <span className="shrink-0 whitespace-nowrap text-muted-foreground/70 xl:hidden">
+            <span className="min-w-0 flex-1 truncate text-right text-muted-foreground/70 xl:hidden">
               {formatScanDate(state.data.latestScan.scanDate)} · not live
             </span>
             <span className="hidden shrink-0 whitespace-nowrap text-muted-foreground/70 xl:inline">
