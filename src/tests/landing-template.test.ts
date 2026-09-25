@@ -24,6 +24,9 @@ describe("approved Paper & Ink landing template", () => {
     expect(landing).toContain("As seen in");
     expect(landing).toContain("The Wall Street Journal");
     expect(landing).toContain('/images/press/wsj-logo.svg');
+    const pressCopy = landing.replace(/\s+/g, " ");
+    expect(pressCopy).toContain("ScamDunk uses a proprietary algorithm to scan sites daily for surges in mentions of stocks that could be suspicious.");
+    expect(pressCopy).toContain("It&apos;s the 15-second check most people wish they&apos;d done.");
     expect(readProjectFile("public/images/press/wsj-logo.svg")).not.toHaveLength(0);
   });
 

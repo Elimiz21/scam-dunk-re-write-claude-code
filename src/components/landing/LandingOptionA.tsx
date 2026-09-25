@@ -232,6 +232,15 @@ export function LandingOptionA({
             className="h-auto w-[220px] max-w-full"
           />
         </div>
+        <div className="mx-auto mt-5 max-w-2xl px-4 text-center">
+          <blockquote className="font-editorial text-xl leading-snug text-foreground md:text-2xl">
+            “ScamDunk uses a proprietary algorithm to scan sites daily for surges
+            in mentions of stocks that could be suspicious.”
+          </blockquote>
+          <p className="mt-2 text-sm text-muted-foreground">
+            It&apos;s the 15-second check most people wish they&apos;d done.
+          </p>
+        </div>
       </section>
 
       {/* ================= STATS STRIP (live, refreshed daily) ================= */}
