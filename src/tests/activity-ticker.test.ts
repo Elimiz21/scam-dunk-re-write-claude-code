@@ -57,6 +57,46 @@ describe("activity ticker service", () => {
     });
   });
 
+  test("skips a malformed newest summary and uses the newest complete one", async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      {
+        scanDate: new Date("2026-09-18T00:00:00.000Z"),
+        totalStocks: 16928,
+        evaluated: 9230,
+        skippedNoData: 7690,
+        lowRiskCount: 2635,
+        mediumRiskCount: 1213,
+        highRiskCount: 5382,
+        insufficientCount: 0,
+      },
+      {
+        scanDate: new Date("2026-09-17T00:00:00.000Z"),
+        totalStocks: 16920,
+        evaluated: 9211,
+        skippedNoData: 7709,
+        lowRiskCount: 2423,
+        mediumRiskCount: 1281,
+        highRiskCount: 5507,
+        insufficientCount: 0,
+      },
+    ]);
+    const service = createActivityTickerService({
+      dailyScanSummary: {
+        findFirst: jest.fn(),
+        findMany,
+        aggregate: jest.fn().mockResolvedValue({ _sum: { evaluated: 1000000 } }),
+      },
+    } as never);
+
+    const result = await service.getActivityTicker();
+
+    expect(result.status).toBe("AVAILABLE");
+    if (result.status === "AVAILABLE") {
+      expect(result.latestScan.scanDate).toBe("2026-09-17T00:00:00.000Z");
+      expect(result.latestScan.evaluated).toBe(9211);
+    }
+  });
+
   test("reports unavailable instead of presenting zeros when no market publication exists", async () => {
     const service = createActivityTickerService({
       dailyScanSummary: {

@@ -41,6 +41,7 @@ type DailyScanSummaryRow = {
 type ActivityTickerClient = {
   dailyScanSummary: {
     findFirst: (args: unknown) => Promise<DailyScanSummaryRow | null>;
+    findMany?: (args: unknown) => Promise<DailyScanSummaryRow[]>;
     aggregate: (args: unknown) => Promise<{ _sum: { evaluated: number | null } }>;
   };
 };
@@ -67,27 +68,53 @@ export function createActivityTickerService(
   }: {
     now?: Date;
   } = {}): Promise<ActivityTickerPayload> {
-    const [latest, allTime] = await Promise.all([
-      client.dailyScanSummary.findFirst({
-        orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
-        select: {
-          scanDate: true,
-          totalStocks: true,
-          evaluated: true,
-          skippedNoData: true,
-          lowRiskCount: true,
-          mediumRiskCount: true,
-          highRiskCount: true,
-          insufficientCount: true,
-        },
-      }),
+    const summaryQuery = {
+      orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
+      select: {
+        scanDate: true,
+        totalStocks: true,
+        evaluated: true,
+        skippedNoData: true,
+        lowRiskCount: true,
+        mediumRiskCount: true,
+        highRiskCount: true,
+        insufficientCount: true,
+      },
+    };
+    const [summaries, allTime] = await Promise.all([
+      client.dailyScanSummary.findMany
+        ? client.dailyScanSummary.findMany({ ...summaryQuery, take: 30 })
+        : client.dailyScanSummary
+            .findFirst(summaryQuery)
+            .then((summary) => (summary ? [summary] : [])),
       client.dailyScanSummary.aggregate({ _sum: { evaluated: true } }),
     ]);
+
+    const latest = summaries.find((summary) => {
+      const totalStocks = safeCount(summary.totalStocks);
+      const evaluated = safeCount(summary.evaluated);
+      const skipped = safeCount(summary.skippedNoData);
+      const highRisk = safeCount(summary.highRiskCount);
+      const caution =
+        safeCount(summary.mediumRiskCount) + safeCount(summary.insufficientCount);
+      const lowRisk = safeCount(summary.lowRiskCount);
+      return (
+        summary.scanDate instanceof Date &&
+        !Number.isNaN(summary.scanDate.getTime()) &&
+        totalStocks > 0 &&
+        evaluated > 0 &&
+        evaluated <= totalStocks &&
+        evaluated + skipped === totalStocks &&
+        highRisk + caution + lowRisk === evaluated
+      );
+    });
 
     if (!latest) {
       return unavailable(
         now.toISOString(),
-        "No completed market-wide scan is available yet.",
+        summaries.length
+          ? "The latest market-wide scan publication is incomplete."
+          : "No completed market-wide scan is available yet.",
       );
     }
 
@@ -99,16 +126,7 @@ export function createActivityTickerService(
       safeCount(latest.mediumRiskCount) + safeCount(latest.insufficientCount);
     const lowRisk = safeCount(latest.lowRiskCount);
     const allTimeEvaluations = safeCount(allTime._sum.evaluated);
-    const scanDateValid =
-      latest.scanDate instanceof Date && !Number.isNaN(latest.scanDate.getTime());
-    const publicationIsComplete =
-      scanDateValid &&
-      totalStocks > 0 &&
-      evaluated > 0 &&
-      evaluated <= totalStocks &&
-      evaluated + skipped === totalStocks &&
-      highRisk + caution + lowRisk === evaluated &&
-      allTimeEvaluations >= evaluated;
+    const publicationIsComplete = allTimeEvaluations >= evaluated;
 
     if (!publicationIsComplete) {
       return unavailable(
