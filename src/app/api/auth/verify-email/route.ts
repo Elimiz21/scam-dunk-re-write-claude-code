@@ -56,9 +56,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user's emailVerified field
-    await prisma.user.update({
-      where: { email: result.email },
-      data: { emailVerified: new Date() },
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { email: result.email },
+        data: { emailVerified: new Date() },
+        select: { id: true },
+      });
+      await tx.authFunnelEvent.create({
+        data: {
+          userId: user.id,
+          eventType: "EMAIL_VERIFIED",
+          method: "email",
+        },
+      });
     });
 
     return NextResponse.json({ success: true });

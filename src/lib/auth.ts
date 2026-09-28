@@ -16,6 +16,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { authConfig } from "./auth.config";
 import { logAuthError } from "./auth-error-tracking";
+import { recordAuthFunnelEvent } from "./auth-funnel";
 import { rateLimit } from "./rate-limit";
 import { findCredentialsUser } from "./auth-user";
 
@@ -281,6 +282,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  events: {
+    async signIn({ user, account }) {
+      if (!user.id) return;
+      await recordAuthFunnelEvent({
+        userId: user.id,
+        eventType: "LOGIN_SUCCESS",
+        method: account?.provider ?? "credentials",
+      });
+    },
+  },
   callbacks: {
     ...authConfig.callbacks,
     async jwt({
@@ -361,13 +372,23 @@ export async function registerUser(
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        hashedPassword,
-        name,
-        plan: "FREE",
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          hashedPassword,
+          name,
+          plan: "FREE",
+        },
+      });
+      await tx.authFunnelEvent.create({
+        data: {
+          userId: createdUser.id,
+          eventType: "SIGNUP_COMPLETED",
+          method: "email",
+        },
+      });
+      return createdUser;
     });
 
     return { success: true, userId: user.id };

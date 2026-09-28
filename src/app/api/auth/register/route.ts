@@ -108,14 +108,24 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user (emailVerified is null - requires verification)
-    const user = await prisma.user.create({
-      data: {
-        email,
-        hashedPassword,
-        name: name || null,
-        marketingOptIn,
-        plan: "FREE",
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email,
+          hashedPassword,
+          name: name || null,
+          marketingOptIn,
+          plan: "FREE",
+        },
+      });
+      await tx.authFunnelEvent.create({
+        data: {
+          userId: createdUser.id,
+          eventType: "SIGNUP_COMPLETED",
+          method: "email",
+        },
+      });
+      return createdUser;
     });
 
     // Create verification token and send email

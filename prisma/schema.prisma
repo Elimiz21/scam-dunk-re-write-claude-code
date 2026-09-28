@@ -46,6 +46,20 @@ model User {
   watchlistEntries         WatchlistEntry[]
   notificationDeliveries   NotificationDelivery[]
   billingEvents            BillingEvent[]
+  authFunnelEvents         AuthFunnelEvent[]
+}
+
+model AuthFunnelEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  eventType  String
+  method     String?
+  occurredAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, eventType, occurredAt])
+  @@index([eventType, occurredAt])
 }
 
 model FeatureInterest {
