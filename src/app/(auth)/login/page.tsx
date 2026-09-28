@@ -18,6 +18,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { trackEvent } from "@/lib/analytics";
 
 function LoginForm() {
   const router = useRouter();
@@ -87,6 +88,7 @@ function LoginForm() {
         return;
       }
 
+      trackEvent("login_success", { method: "email" });
       router.push(callbackUrl);
       router.refresh();
     } catch (err) {

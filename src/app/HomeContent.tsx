@@ -31,6 +31,7 @@ import type {
   ScanDetailDto,
   ScanSocialDto,
 } from "@/components/dashboard/types";
+import { trackEvent } from "@/lib/analytics";
 
 interface HomeContentProps {
   billingPrices: {
@@ -173,6 +174,11 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
     setIsLoading(true);
     setCurrentTicker(data.ticker);
     setHasChatData(!!data.pitchText?.trim());
+    trackEvent("scan_started", {
+      asset_type: data.assetType,
+      has_context: Boolean(data.context),
+      has_pitch_text: Boolean(data.pitchText?.trim()),
+    });
 
     // Reset steps with enhanced granular progress
     const initialSteps: Step[] = [
@@ -377,6 +383,10 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
       } else {
         setResult(responseData as RiskResponse);
         setUsage(responseData.usage);
+        trackEvent("scan_completed", {
+          ticker: responseData.stockSummary?.ticker || data.ticker,
+          risk_level: responseData.riskLevel || "UNKNOWN",
+        });
         setScanRefreshKey((k) => k + 1);
         setSidebarOpen(false);
         void fetchLatestScanSocial(data.ticker);

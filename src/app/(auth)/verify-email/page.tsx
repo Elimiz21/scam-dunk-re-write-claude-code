@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Loader2, Check, XCircle, Mail } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { trackEvent } from "@/lib/analytics";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -39,6 +40,7 @@ function VerifyEmailContent() {
         const data = await response.json();
 
         if (response.ok) {
+          trackEvent("email_verified", { method: "email" });
           setStatus("success");
         } else {
           setStatus("error");
