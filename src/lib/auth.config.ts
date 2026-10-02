@@ -6,6 +6,7 @@
  */
 
 import type { NextAuthConfig } from "next-auth";
+import { isWebSessionExpired } from "./session-policy";
 
 export const authConfig: NextAuthConfig = {
   // Explicitly set secret - NextAuth v5 uses AUTH_SECRET by default
@@ -69,6 +70,28 @@ export const authConfig: NextAuthConfig = {
         // callback in auth.ts performs the DB revalidation; the Edge runtime
         // can't query Prisma, so it just preserves the claim (SEC-M10).
         token.sessionVersion = user.sessionVersion ?? 0;
+      }
+      if (token.id) {
+        const now = Date.now();
+        const createdAt =
+          typeof token.authSessionCreatedAt === "number"
+            ? token.authSessionCreatedAt
+            : now;
+        const lastActivityAt =
+          typeof token.authLastActivityAt === "number"
+            ? token.authLastActivityAt
+            : createdAt;
+        if (
+          isWebSessionExpired({
+            createdAt,
+            lastActivityAt,
+            now,
+          })
+        ) {
+          return null;
+        }
+        token.authSessionCreatedAt = createdAt;
+        token.authLastActivityAt = now;
       }
       return token;
     },

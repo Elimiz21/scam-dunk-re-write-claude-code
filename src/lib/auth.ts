@@ -19,6 +19,9 @@ import { logAuthError } from "./auth-error-tracking";
 import { recordAuthFunnelEvent } from "./auth-funnel";
 import { rateLimit } from "./rate-limit";
 import { findCredentialsUser } from "./auth-user";
+import {
+  isWebSessionExpired,
+} from "./session-policy";
 
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
@@ -93,6 +96,8 @@ declare module "next-auth" {
   interface User {
     plan?: "FREE" | "PAID" | "PRO_MAX";
     sessionVersion?: number;
+    authSessionCreatedAt?: number;
+    authLastActivityAt?: number;
   }
 }
 
@@ -305,6 +310,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.plan = user.plan;
         token.sessionVersion = user.sessionVersion ?? 0;
+      }
+      if (token.id) {
+        const now = Date.now();
+        const createdAt =
+          typeof token.authSessionCreatedAt === "number"
+            ? token.authSessionCreatedAt
+            : now;
+        const lastActivityAt =
+          typeof token.authLastActivityAt === "number"
+            ? token.authLastActivityAt
+            : createdAt;
+        if (
+          isWebSessionExpired({
+            createdAt,
+            lastActivityAt,
+            now,
+          })
+        ) {
+          return null;
+        }
+        token.authSessionCreatedAt = createdAt;
+        token.authLastActivityAt = now;
       }
       // On every authenticated request (and on the "update" trigger) revalidate
       // against the DB. This refreshes the plan after an upgrade AND enforces
