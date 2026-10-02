@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { googleCredentials } from "@/lib/google-auth";
+import { isTelegramConfigured } from "@/lib/telegram/provider";
 
 // Resets on cold start, so cleanup may run more often than every 24h on serverless.
 // This is acceptable — the queries are idempotent DELETEs of already-expired rows.
@@ -45,6 +47,15 @@ export async function GET(request: Request) {
     };
     // WhatsApp launch checklist — flips the feature from "coming soon" to
     // live once every var is present (see isWhatsAppConfigured).
+    checks.google = { configured: !!googleCredentials() };
+    checks.telegram = {
+      configured: isTelegramConfigured(),
+      TELEGRAM_BOT_TOKEN: !!process.env.TELEGRAM_BOT_TOKEN,
+      TELEGRAM_BOT_USERNAME: !!process.env.TELEGRAM_BOT_USERNAME,
+      TELEGRAM_WEBHOOK_SECRET: !!process.env.TELEGRAM_WEBHOOK_SECRET,
+      TELEGRAM_ENCRYPTION_KEY: !!process.env.TELEGRAM_ENCRYPTION_KEY,
+      TELEGRAM_IDENTITY_HASH_KEY: !!process.env.TELEGRAM_IDENTITY_HASH_KEY,
+    };
     checks.whatsapp = {
       WHATSAPP_ACCESS_TOKEN: !!process.env.WHATSAPP_ACCESS_TOKEN,
       WHATSAPP_PHONE_NUMBER_ID: !!process.env.WHATSAPP_PHONE_NUMBER_ID,

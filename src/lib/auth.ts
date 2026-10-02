@@ -1,16 +1,17 @@
 /**
  * Authentication Configuration
  *
- * Uses NextAuth v5 (Auth.js) with credentials provider for email/password auth.
- * Can be extended to support OAuth providers.
+ * Uses Auth.js with email/password and verified Google OAuth identities.
  */
 
 import NextAuth, { CredentialsSignin } from "next-auth";
 import type { Session, User } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
+import { googleCredentials, isVerifiedGoogleProfile } from "./google-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import type { Adapter } from "next-auth/adapters";
+import type { Adapter, AdapterUser } from "next-auth/adapters";
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
@@ -112,11 +113,45 @@ declare module "next-auth/jwt" {
   }
 }
 
+const google = googleCredentials();
+const baseAdapter = PrismaAdapter(prisma) as Adapter;
+const oauthAdapter: Adapter = {
+  ...baseAdapter,
+  // Google is used for identity only. Do not retain provider access/refresh tokens.
+  async linkAccount(account) {
+    const { access_token, refresh_token, id_token, ...identity } = account;
+    await baseAdapter.linkAccount!(identity);
+  },
+  async createUser({ id, ...user }) {
+    const created = await prisma.user.create({ data: {
+      ...user,
+      email: user.email.toLowerCase().trim(),
+      marketingOptIn: false,
+      emailVerified: new Date(),
+    } });
+    return { ...created, plan: created.plan as AdapterUser["plan"] };
+  },
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   trustHost: true, // Required for Vercel deployments
-  adapter: PrismaAdapter(prisma) as Adapter,
+  adapter: oauthAdapter,
   providers: [
+    ...(google ? [Google({
+      ...google,
+      // Existing password accounts must authenticate before linking Google.
+      allowDangerousEmailAccountLinking: false,
+      authorization: { params: { scope: "openid email profile", prompt: "select_account" } },
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email?.toLowerCase().trim(),
+          image: profile.picture,
+        };
+      },
+    })] : []),
     Credentials({
       name: "credentials",
       credentials: {
@@ -173,10 +208,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           console.error(
             "[AUTH] DATABASE_URL defined:",
             !!process.env.DATABASE_URL,
-          );
-          console.error(
-            "[AUTH] DATABASE_URL prefix:",
-            process.env.DATABASE_URL?.substring(0, 20) + "...",
           );
 
           // Detect common Supabase/Postgres failure modes
@@ -288,7 +319,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   events: {
+    async createUser({ user }) {
+      if (!user.id) return;
+      await recordAuthFunnelEvent({ userId: user.id, eventType: "SIGNUP_COMPLETED", method: "google" });
+    },
     async signIn({ user, account }) {
+      if (account?.provider === "google" && user.id) {
+        await prisma.user.update({ where: { id: user.id }, data: { emailVerified: new Date() } });
+      }
       if (!user.id) return;
       await recordAuthFunnelEvent({
         userId: user.id,
@@ -299,6 +337,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     ...authConfig.callbacks,
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "google") return true;
+      if (!isVerifiedGoogleProfile(profile)) return false;
+      const existing = await prisma.user.findUnique({
+        where: { email: user.email!.toLowerCase().trim() },
+        select: { deletedAt: true },
+      });
+      return !existing?.deletedAt;
+    },
     async jwt({
       token,
       user,
@@ -338,24 +385,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // session invalidation: if the user's sessionVersion has advanced past the
       // one captured in this token (e.g. a password reset), reject the session
       // by returning null, which signs the holder out (SEC-M10).
-      if (token.id && !user) {
+      if (token.id) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { plan: true, sessionVersion: true },
+            select: { plan: true, sessionVersion: true, deletedAt: true },
           });
-          if (!dbUser) {
+          if (!dbUser || dbUser.deletedAt) {
             // User deleted — drop the session.
             return null;
           }
           if (
-            typeof token.sessionVersion === "number" &&
+            !user && typeof token.sessionVersion === "number" &&
             dbUser.sessionVersion > token.sessionVersion
           ) {
             // Token predates a credential change — invalidate it.
             return null;
           }
           token.plan = dbUser.plan as "FREE" | "PAID" | "PRO_MAX";
+          if (user) token.sessionVersion = dbUser.sessionVersion;
         } catch (error) {
           // DB unavailable — fail open and keep the existing token rather than
           // logging every user out during a transient outage.

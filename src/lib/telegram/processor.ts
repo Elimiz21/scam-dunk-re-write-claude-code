@@ -1,16 +1,17 @@
+import { confirmTelegramBinding } from "./binding";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
-import { decryptWhatsAppData, encryptWhatsAppData } from "./crypto";
-import { resolveWhatsAppScanEntitlement } from "./entitlement";
-import { WHATSAPP_INVALID_INPUT_REPLY, parseWhatsAppStockScan } from "./parser";
-import { sendWhatsAppTextReply } from "./provider";
-import { runAuthorizedStockScan } from "./scan";
+import { decryptTelegramData, encryptTelegramData } from "./crypto";
+import { resolveTelegramScanEntitlement } from "./entitlement";
+import { WHATSAPP_INVALID_INPUT_REPLY, parseWhatsAppStockScan } from "@/lib/whatsapp/parser";
+import { sendTelegramTextReply } from "./provider";
+import { runAuthorizedStockScan } from "@/lib/check-scan";
 
 const UNBOUND_REPLY =
-  "This WhatsApp number is not eligible for ScamDunk scans. Manage WhatsApp access from your ScamDunk account.";
+  "This Telegram number is not eligible for ScamDunk scans. Manage Telegram access from your ScamDunk account.";
 const ENTITLEMENT_REPLY =
-  "WhatsApp scans require an active ScamDunk subscription. Manage your subscription in your ScamDunk account.";
+  "Telegram scans require an active ScamDunk subscription. Manage your subscription in your ScamDunk account.";
 const QUOTA_REPLY =
   "Your ScamDunk scan limit has been reached for this month. Manage your plan in your ScamDunk account.";
 const RATE_LIMIT_REPLY = "Too many scan requests. Please try again later.";
@@ -18,7 +19,7 @@ const UNAVAILABLE_REPLY = "ScamDunk is temporarily unavailable. Please try again
 const FAILED_SCAN_REPLY = "ScamDunk could not complete that scan. Please try again later.";
 
 function rateLimitRequest(identifier: string): NextRequest {
-  return new NextRequest("http://internal/whatsapp-rate-limit", {
+  return new NextRequest("http://internal/telegram-rate-limit", {
     headers: { "x-real-ip": identifier },
   });
 }
@@ -26,9 +27,9 @@ function rateLimitRequest(identifier: string): NextRequest {
 async function isAllowed(identityHash: string, userId: string): Promise<boolean> {
   try {
     const [hourly, daily, global] = await Promise.all([
-      rateLimit(rateLimitRequest(`whatsapp-identity:${identityHash}`), "whatsappHourly"),
-      rateLimit(rateLimitRequest(`whatsapp-user:${userId}`), "whatsappDaily"),
-      rateLimit(rateLimitRequest("whatsapp-global"), "whatsappGlobal"),
+      rateLimit(rateLimitRequest(`telegram-identity:${identityHash}`), "whatsappHourly"),
+      rateLimit(rateLimitRequest(`telegram-user:${userId}`), "whatsappDaily"),
+      rateLimit(rateLimitRequest("telegram-global"), "whatsappGlobal"),
     ]);
     return hourly.success && daily.success && global.success;
   } catch {
@@ -52,24 +53,24 @@ async function respond(
   try {
     // Persist the exact response before network delivery. A retry can then
     // resend the reply without ever running another scan or consuming quota.
-    await prisma.whatsAppInboundEvent.update({
+    await prisma.telegramInboundEvent.update({
       where: { id: eventId },
-      data: { status: "DELIVERING", reasonCode, encryptedReply: encryptWhatsAppData(body) },
+      data: { status: "DELIVERING", reasonCode, encryptedReply: encryptTelegramData(body) },
     });
     replyPersisted = true;
-    const providerReplyMessageId = await sendWhatsAppTextReply(recipientWaId, body);
-    await prisma.whatsAppInboundEvent.update({
+    const providerReplyMessageId = await sendTelegramTextReply(recipientWaId, body);
+    await prisma.telegramInboundEvent.update({
       where: { id: eventId },
       data: {
         status,
         reasonCode,
-        encryptedReply: encryptWhatsAppData(body),
+        encryptedReply: encryptTelegramData(body),
         providerReplyMessageId,
         processedAt: new Date(),
       },
     });
   } catch {
-    await prisma.whatsAppInboundEvent.update({
+    await prisma.telegramInboundEvent.update({
       where: { id: eventId },
       data: replyPersisted
         ? { status: "RETRY", reasonCode: "PROVIDER_UNAVAILABLE", attemptCount: { increment: 1 } }
@@ -79,11 +80,11 @@ async function respond(
 }
 
 /** Process one previously deduplicated provider event. Raw input never enters scan history. */
-export async function processWhatsAppInboundEvent(
+export async function processTelegramInboundEvent(
   eventId: string,
   recipientWaId?: string,
 ): Promise<void> {
-  const event = await prisma.whatsAppInboundEvent.findUnique({
+  const event = await prisma.telegramInboundEvent.findUnique({
     where: { id: eventId },
     include: { binding: true },
   });
@@ -92,9 +93,9 @@ export async function processWhatsAppInboundEvent(
   let recipient = recipientWaId;
   if (!recipient && event.senderIdentityEncrypted) {
     try {
-      recipient = decryptWhatsAppData(event.senderIdentityEncrypted).slice(1);
+      recipient = decryptTelegramData(event.senderIdentityEncrypted);
     } catch {
-      await prisma.whatsAppInboundEvent.update({
+      await prisma.telegramInboundEvent.update({
         where: { id: eventId },
         data: { status: "FAILED", reasonCode: "IDENTITY_DECRYPT_FAILED" },
       });
@@ -105,20 +106,20 @@ export async function processWhatsAppInboundEvent(
 
   if (event.status === "RETRY" || event.status === "SENDING") {
     if (!event.encryptedReply) return;
-    const deliveryClaim = await prisma.whatsAppInboundEvent.updateMany({
+    const deliveryClaim = await prisma.telegramInboundEvent.updateMany({
       where: { id: eventId, status: event.status, updatedAt: event.updatedAt },
       data: { status: "DELIVERING" },
     });
     if (deliveryClaim.count !== 1) return;
     try {
-      await respond(eventId, recipient, decryptWhatsAppData(event.encryptedReply), "REPLIED", event.reasonCode || "RETRY");
+      await respond(eventId, recipient, decryptTelegramData(event.encryptedReply), "REPLIED", event.reasonCode || "RETRY");
     } catch {
       // respond records the retry state and attempt count.
     }
     return;
   }
 
-  const claimed = await prisma.whatsAppInboundEvent.updateMany({
+  const claimed = await prisma.telegramInboundEvent.updateMany({
     where: { id: eventId, status: "RECEIVED" },
     data: { status: "PROCESSING", attemptCount: { increment: 1 } },
   });
@@ -128,11 +129,29 @@ export async function processWhatsAppInboundEvent(
     await respond(eventId, recipient, WHATSAPP_INVALID_INPUT_REPLY, "REPLIED", "INVALID_INPUT");
     return;
   }
+  let input: string;
+  try { input = decryptTelegramData(event.encryptedText); }
+  catch {
+    await respond(eventId, recipient, UNAVAILABLE_REPLY, "FAILED", "DECRYPT_FAILED");
+    return;
+  }
+  if (input.startsWith("/start ")) {
+    const linked = await confirmTelegramBinding(input.slice(7).trim(), recipient);
+    await prisma.telegramInboundEvent.update({ where: { id: eventId }, data: { encryptedText: null } });
+    await respond(eventId, recipient, linked
+      ? "Telegram linked to ScamDunk. Send AAPL or scan AAPL to scan a stock using your monthly allowance."
+      : "This link is expired or unavailable. Generate a new Telegram link from your ScamDunk account.", "REPLIED", linked ? "LINKED" : "LINK_FAILED");
+    return;
+  }
+  if (input === "/start" || input === "/help") {
+    await respond(eventId, recipient, "Link Telegram from your ScamDunk account, then send AAPL or scan AAPL. Scans require an active subscription and use your monthly allowance.", "REPLIED", "HELP");
+    return;
+  }
   if (!event.binding?.active || event.binding.revokedAt) {
     await respond(eventId, recipient, UNBOUND_REPLY, "REPLIED", "UNBOUND");
     return;
   }
-  const entitlement = await resolveWhatsAppScanEntitlement(event.binding.userId, event.senderIdentityHash);
+  const entitlement = await resolveTelegramScanEntitlement(event.binding.userId, event.senderIdentityHash);
   if (entitlement.allowed === false) {
     await respond(eventId, recipient, ENTITLEMENT_REPLY, "REPLIED", entitlement.reason);
     return;
@@ -144,7 +163,7 @@ export async function processWhatsAppInboundEvent(
 
   let text: string;
   try {
-    text = decryptWhatsAppData(event.encryptedText);
+    text = decryptTelegramData(event.encryptedText);
   } catch {
     await respond(eventId, recipient, UNAVAILABLE_REPLY, "FAILED", "DECRYPT_FAILED");
     return;
@@ -155,7 +174,7 @@ export async function processWhatsAppInboundEvent(
     return;
   }
 
-  await prisma.whatsAppInboundEvent.update({
+  await prisma.telegramInboundEvent.update({
     where: { id: eventId },
     data: { status: "SCANNING" },
   });
