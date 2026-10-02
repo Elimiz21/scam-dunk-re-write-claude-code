@@ -14,6 +14,7 @@ import { createEmailVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { validatePasswordStrength } from "@/lib/config";
+import { recordAuthFunnelEvent } from "@/lib/auth-funnel";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -78,20 +79,30 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user with FREE plan (email not verified)
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        hashedPassword,
-        name: name || null,
-        plan: "FREE",
-        emailVerified: null,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        plan: true,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          hashedPassword,
+          name: name || null,
+          plan: "FREE",
+          emailVerified: null,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          plan: true,
+        },
+      });
+      await tx.authFunnelEvent.create({
+        data: {
+          userId: createdUser.id,
+          eventType: "SIGNUP_COMPLETED",
+          method: "mobile",
+        },
+      });
+      return createdUser;
     });
 
     // Send verification email (don't block registration if this fails)

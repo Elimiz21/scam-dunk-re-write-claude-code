@@ -16,6 +16,7 @@ import {
 } from "@/lib/mobile-auth";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { recordAuthFunnelEvent } from "@/lib/auth-funnel";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -106,6 +107,11 @@ export async function POST(request: NextRequest) {
       user.email,
       user.sessionVersion,
     );
+    await recordAuthFunnelEvent({
+      userId: user.id,
+      eventType: "LOGIN_SUCCESS",
+      method: "mobile",
+    });
 
     // Return user data and tokens
     return NextResponse.json({

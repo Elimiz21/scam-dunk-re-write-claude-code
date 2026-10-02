@@ -19,6 +19,7 @@ import { Loader2, Mail } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Turnstile } from "@/components/turnstile";
 import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/config";
+import { trackEvent } from "@/lib/analytics";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    trackEvent("signup_started", { method: "email" });
     setError("");
 
     if (password !== confirmPassword) {
@@ -85,6 +87,8 @@ export default function SignupPage() {
         return;
       }
 
+      trackEvent("registration_completed", { method: "email" });
+      trackEvent("sign_up", { method: "email" });
       // Show success state - user needs to verify email
       setIsSuccess(true);
     } catch (err) {

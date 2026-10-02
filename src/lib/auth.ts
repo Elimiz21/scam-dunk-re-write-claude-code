@@ -16,8 +16,12 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { authConfig } from "./auth.config";
 import { logAuthError } from "./auth-error-tracking";
+import { recordAuthFunnelEvent } from "./auth-funnel";
 import { rateLimit } from "./rate-limit";
 import { findCredentialsUser } from "./auth-user";
+import {
+  isWebSessionExpired,
+} from "./session-policy";
 
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
@@ -92,6 +96,8 @@ declare module "next-auth" {
   interface User {
     plan?: "FREE" | "PAID" | "PRO_MAX";
     sessionVersion?: number;
+    authSessionCreatedAt?: number;
+    authLastActivityAt?: number;
   }
 }
 
@@ -281,6 +287,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  events: {
+    async signIn({ user, account }) {
+      if (!user.id) return;
+      await recordAuthFunnelEvent({
+        userId: user.id,
+        eventType: "LOGIN_SUCCESS",
+        method: account?.provider ?? "credentials",
+      });
+    },
+  },
   callbacks: {
     ...authConfig.callbacks,
     async jwt({
@@ -294,6 +310,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.plan = user.plan;
         token.sessionVersion = user.sessionVersion ?? 0;
+      }
+      if (token.id) {
+        const now = Date.now();
+        const createdAt =
+          typeof token.authSessionCreatedAt === "number"
+            ? token.authSessionCreatedAt
+            : now;
+        const lastActivityAt =
+          typeof token.authLastActivityAt === "number"
+            ? token.authLastActivityAt
+            : createdAt;
+        if (
+          isWebSessionExpired({
+            createdAt,
+            lastActivityAt,
+            now,
+          })
+        ) {
+          return null;
+        }
+        token.authSessionCreatedAt = createdAt;
+        token.authLastActivityAt = now;
       }
       // On every authenticated request (and on the "update" trigger) revalidate
       // against the DB. This refreshes the plan after an upgrade AND enforces
@@ -361,13 +399,23 @@ export async function registerUser(
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        hashedPassword,
-        name,
-        plan: "FREE",
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          hashedPassword,
+          name,
+          plan: "FREE",
+        },
+      });
+      await tx.authFunnelEvent.create({
+        data: {
+          userId: createdUser.id,
+          eventType: "SIGNUP_COMPLETED",
+          method: "email",
+        },
+      });
+      return createdUser;
     });
 
     return { success: true, userId: user.id };
