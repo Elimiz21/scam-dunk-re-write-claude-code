@@ -18,6 +18,7 @@ import { fetchMarketData, runAnomalyDetection } from "@/lib/marketData";
 import { computeRiskScore } from "@/lib/scoring";
 import { MIN_HISTORY_POINTS } from "@/lib/scoring/engine";
 import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
+import { logScanHistory } from "@/lib/admin/metrics";
 import { sendAPIFailureAlert } from "@/lib/email";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import {
@@ -163,6 +164,7 @@ export async function POST(request: NextRequest) {
   // Tracks whether a quota slot has been reserved, so the error path can refund
   // it (and only it) on failure without refunding requests that never reserved.
   let userIdForRefund: string | null = null;
+  const startTime = Date.now();
 
   try {
     // Rate limit: strict for AI analysis (5 requests per minute)
@@ -215,6 +217,11 @@ export async function POST(request: NextRequest) {
     // A slot is now reserved — the error path below must refund it on failure.
     userIdForRefund = userId;
 
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    const ipAddress = forwardedFor
+      ? forwardedFor.split(",")[0].trim()
+      : undefined;
+
     // Try the Python AI backend first
     const aiBackendAvailable = await checkAIBackendHealth();
 
@@ -223,6 +230,27 @@ export async function POST(request: NextRequest) {
 
       if (result.ok && result.data) {
         const aiResult = result.data;
+
+        // Record the scan so admin all-time totals and model-efficacy stats
+        // include it; a reserved ScanUsage slot alone leaves no history row.
+        // Awaited (not fire-and-forget) because a serverless runtime may
+        // freeze pending work once the response is sent.
+        await logScanHistory({
+          userId,
+          ticker: aiResult.ticker ?? ticker.toUpperCase(),
+          assetType,
+          riskLevel: aiResult.risk_level,
+          totalScore: Math.round(aiResult.risk_score),
+          signalsCount: aiResult.signals.length,
+          processingTime: Date.now() - startTime,
+          pitchProvided: !!pitchText,
+          contextProvided: Object.values(context ?? {}).some(Boolean),
+          ipAddress,
+          isOtc: aiResult.is_otc ?? false,
+          isMicroCap: aiResult.is_micro_cap ?? false,
+          usedAiBackend: true,
+        });
+
         return NextResponse.json({
           source: "ai_backend",
           ticker: aiResult.ticker ?? ticker.toUpperCase(),
@@ -297,6 +325,35 @@ export async function POST(request: NextRequest) {
         ? runAnomalyDetection(marketData.priceHistory)
         : { hasAnomalies: false, anomalyScore: 0, signals: [] };
 
+    const isMicroCapScan = (marketData.quote?.marketCap ?? 0) < 50_000_000;
+
+    // Same reasoning as the AI-backend path above.
+    await logScanHistory({
+      userId,
+      ticker: ticker.toUpperCase(),
+      assetType,
+      riskLevel: scoringResult.riskLevel,
+      totalScore: scoringResult.totalScore,
+      signalsCount: scoringResult.signals.length,
+      processingTime: Date.now() - startTime,
+      isLegitimate: scoringResult.isLegitimate,
+      pitchProvided: !!pitchText,
+      contextProvided: Object.values(context ?? {}).some(Boolean),
+      ipAddress,
+      isOtc:
+        marketData.isOTC ||
+        scoringResult.signals.some((s) => s.code === "OTC_EXCHANGE"),
+      isMicroCap:
+        isMicroCapScan ||
+        scoringResult.signals.some(
+          (s) => s.code === "SMALL_MARKET_CAP" || s.code === "MICRO_CAP",
+        ),
+      isHighVolume: scoringResult.signals.some(
+        (s) => s.code === "VOLUME_EXPLOSION" || s.code === "VOLUME_ANOMALY",
+      ),
+      usedAiBackend: false,
+    });
+
     return NextResponse.json({
       source: "typescript_fallback",
       ticker: ticker.toUpperCase(),
@@ -318,7 +375,7 @@ export async function POST(request: NextRequest) {
           (s) => s.code === "ALERT_LIST_HIT",
         ),
         isOtc: marketData.isOTC,
-        isMicroCap: (marketData.quote?.marketCap ?? 0) < 50_000_000,
+        isMicroCap: isMicroCapScan,
         dataAvailable: marketData.dataAvailable,
         dataCompleteness: scoringResult.dataCompleteness,
         analysisTimestamp: new Date().toISOString(),
