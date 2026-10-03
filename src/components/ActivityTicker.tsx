@@ -15,14 +15,6 @@ function formatCount(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function formatScanDate(value: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value));
-}
-
 function Stat({
   label,
   value,
@@ -176,12 +168,6 @@ export function ActivityTicker() {
               value={formatCount(state.data.allTimeEvaluations)}
               className="hidden lg:inline-flex"
             />
-            <span className="min-w-0 flex-1 truncate text-right text-muted-foreground/70 xl:hidden">
-              {formatScanDate(state.data.latestScan.scanDate)} · not live
-            </span>
-            <span className="hidden shrink-0 whitespace-nowrap text-muted-foreground/70 xl:inline">
-              Data {formatScanDate(state.data.latestScan.scanDate)} · end-of-day, not live
-            </span>
           </div>
         )}
       </div>

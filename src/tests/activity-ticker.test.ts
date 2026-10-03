@@ -10,10 +10,16 @@ const activityTickerComponent = readFileSync(
 describe("activity ticker service", () => {
   test("keeps the mobile ticker content inside the viewport", () => {
     expect(activityTickerComponent).toContain(
-      "min-w-0 flex-1 truncate text-right",
+      "flex min-w-0 flex-1 items-center justify-end",
     );
     expect(activityTickerComponent).toContain("text-[10px]");
     expect(activityTickerComponent).toContain("sm:text-[11px]");
+  });
+
+  test("does not show scan date or live-status metadata in the ticker", () => {
+    expect(activityTickerComponent).not.toContain("formatScanDate");
+    expect(activityTickerComponent).not.toContain("not live");
+    expect(activityTickerComponent).not.toContain("Data {state.data.latestScan.scanDate}");
   });
 
   test("uses the latest completed market-wide publication instead of sparse customer scans", async () => {
