@@ -34,6 +34,15 @@ BOT_ACTIVATION_ENV=preview node scripts/check-messaging-integrations.mjs \
 
 Keep Vercel's hourly retention crons and `CRON_SECRET` enabled. Vercel preview deployments do not automatically run production cron schedules; exercise the two authenticated cron endpoints manually in preview tests or arrange a preview-only scheduler.
 
+When the token is already stored in Vercel, an operator can POST to
+`/api/webhooks/telegram/activate-preview` with the existing
+`X-Telegram-Bot-Api-Secret-Token` header. This uses server-side credentials,
+requires `VERCEL_ENV=preview` and an identifiable non-production Supabase
+database, uses Vercel's branch URL, checks the bot identity, and preserves a
+different existing webhook. The endpoint returns 404 in production. Verify
+the preview webhook is reachable before invoking it; it does not replace
+the live acceptance tests below.
+
 ## Live acceptance tests still required
 
 1. Google: finish real consent and callback for a new user, log out/in, verify a paid existing account connects only after password login, and verify an incorrect/expired OAuth callback is rejected.
@@ -44,7 +53,15 @@ Keep Vercel's hourly retention crons and `CRON_SECRET` enabled. Vercel preview d
 
 ## Access limitation in this session
 
-GitHub code access is available. The managed environment reports no application credentials; the connected Vercel account lists no teams. Google OAuth credentials, the Meta business account/approved template, Telegram bot credentials, and writable preview deployment/database access are unavailable. Implementation and local automated tests can be completed; live activation and real provider acceptance cannot be claimed until those accounts/credentials are accessible.
+Vercel reads work with the `eli-2324` scope, which resolves to the same team as
+`eli-mizrochs-projects`. Direct environment-variable writes and the connector's
+deployment tool are unavailable. The owner has saved all five Telegram
+settings to Preview and confirmed its database points to staging
+`iwbewmdeotcnqtpazezi`; the staging auth and Telegram prerequisites have been
+applied. The Telegram webhook readiness probe passed after redeployment.
+Google OAuth credentials and Meta business configuration are still pending.
+Live activation and provider acceptance must be verified separately from
+configuration readiness.
 
 ## Verification performed in this session (2026-10-02)
 
