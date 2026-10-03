@@ -38,6 +38,7 @@ async function postMessage(body: object): Promise<string | null> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ messaging_product: "whatsapp", ...body }),
+      signal: AbortSignal.timeout(10_000),
     },
   );
   if (!response.ok) throw new Error("WHATSAPP_PROVIDER_SEND_FAILED");
@@ -56,10 +57,16 @@ export async function sendWhatsAppVerificationCode(
     type: "template",
     template: {
       name: templateName,
-      language: { code: "en_US" },
+      language: { code: process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en_US" },
       components: [
         {
           type: "body",
+          parameters: [{ type: "text", text: code }],
+        },
+        {
+          type: "button",
+          sub_type: "url",
+          index: "0",
           parameters: [{ type: "text", text: code }],
         },
       ],

@@ -78,3 +78,41 @@ jobs:
           pip install -r requirements.txt
       - name: Run tests
         run: pytest -q
+
+  messaging-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: local-test-only
+          POSTGRES_DB: scamdunk_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: "postgresql://postgres:local-test-only@127.0.0.1:5432/scamdunk_test?connection_limit=5"
+      DIRECT_URL: "postgresql://postgres:local-test-only@127.0.0.1:5432/scamdunk_test"
+      BOT_TEST_DATABASE: "local"
+      NEXTAUTH_SECRET: "ci-placeholder-secret-not-used-in-prod"
+      NODE_ENV: "test"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Add Supabase client roles to disposable PostgreSQL
+        run: docker exec "${{ job.services.postgres.id }}" psql -U postgres -d scamdunk_test -c 'CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;'
+      - name: Generate client and apply migrations to disposable PostgreSQL
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+      - name: Test Google and messaging integrations including real DB concurrency
+        run: npm test -- --ci --runInBand src/tests/telegram-binding.postgres.test.ts src/tests/google-oauth.test.ts src/tests/messaging-bots.test.ts src/tests/whatsapp-delivery.test.ts

@@ -29,6 +29,8 @@ import { UsageInfo } from "@/lib/types";
 import { usagePercent } from "@/lib/account-usage";
 import { useToast } from "@/components/ui/toast";
 import { PayPalButton } from "@/components/PayPalButton";
+import { TelegramAccountCard } from "@/components/TelegramAccountCard";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { PageLayout } from "@/components/PageLayout";
 
 interface SubscriptionInfo {
@@ -969,6 +971,8 @@ function AccountContent() {
             </CardContent>
           </Card>
 
+          <Card><CardHeader><CardTitle>Google sign-in</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-muted-foreground">Connect Google while signed in to use it for future logins.</p><GoogleSignInButton callbackUrl="/account" /></CardContent></Card>
+          <TelegramAccountCard />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

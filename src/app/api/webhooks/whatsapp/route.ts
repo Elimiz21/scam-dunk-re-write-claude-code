@@ -8,6 +8,7 @@ import { processWhatsAppInboundEvent } from "@/lib/whatsapp/processor";
 import { hashWhatsAppIdentity, verifyWhatsAppWebhookSignature } from "@/lib/whatsapp/security";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const payloadSchema = z.object({
   object: z.literal("whatsapp_business_account"),
@@ -28,7 +29,7 @@ const payloadSchema = z.object({
 });
 
 function sameSecret(value: string | null, expected: string | undefined): boolean {
-  if (!value || !expected || value.length !== expected.length) return false;
+  if (!value || !expected || Buffer.byteLength(value) !== Buffer.byteLength(expected)) return false;
   return crypto.timingSafeEqual(Buffer.from(value), Buffer.from(expected));
 }
 
@@ -98,6 +99,8 @@ export async function POST(request: NextRequest) {
             await processWhatsAppInboundEvent(event.id, message.from);
           } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+              const existing = await prisma.whatsAppInboundEvent.findUnique({ where: { providerMessageId: message.id } });
+              if (existing) await processWhatsAppInboundEvent(existing.id, message.from);
               continue;
             }
             throw error;

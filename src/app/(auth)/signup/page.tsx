@@ -17,6 +17,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { Turnstile } from "@/components/turnstile";
 import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/config";
 import { trackEvent } from "@/lib/analytics";
@@ -122,6 +123,7 @@ export default function SignupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+        <GoogleSignInButton />
             <div className="p-4 rounded-xl bg-secondary/50">
               <h3 className="font-medium mb-2">Next steps:</h3>
               <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
@@ -170,6 +172,7 @@ export default function SignupPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+        <GoogleSignInButton />
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
