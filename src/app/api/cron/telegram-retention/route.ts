@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { processWhatsAppInboundEvent } from "@/lib/whatsapp/processor";
+import { processTelegramInboundEvent } from "@/lib/telegram/processor";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +17,11 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   const retryBefore = new Date(now.getTime() - 60_000);
   const scanBefore = new Date(now.getTime() - 5 * 60_000);
-  await prisma.whatsAppInboundEvent.updateMany({
+  await prisma.telegramInboundEvent.updateMany({
     where: { status: { in: ["DELIVERING", "SENDING"] }, updatedAt: { lte: retryBefore }, encryptedReply: { not: null } },
     data: { status: "RETRY" },
   });
-  const retryEvents = await prisma.whatsAppInboundEvent.findMany({
+  const retryEvents = await prisma.telegramInboundEvent.findMany({
     where: {
       OR: [
         { status: "RECEIVED", createdAt: { lte: retryBefore } },
@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
     take: 25,
     orderBy: { updatedAt: "asc" },
   });
-  for (const event of retryEvents) await processWhatsAppInboundEvent(event.id);
-  const deadLettered = await prisma.whatsAppInboundEvent.updateMany({
+  for (const event of retryEvents) await processTelegramInboundEvent(event.id);
+  const deadLettered = await prisma.telegramInboundEvent.updateMany({
     where: {
       OR: [
         { status: "RETRY", attemptCount: { gte: 3 } },
@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
     },
     data: { status: "FAILED", reasonCode: "RETRY_EXHAUSTED" },
   });
-  const purged = await prisma.whatsAppInboundEvent.updateMany({
+  await prisma.telegramLinkToken.deleteMany({ where: { expiresAt: { lte: now } } });
+  const purged = await prisma.telegramInboundEvent.updateMany({
     where: { purgeAt: { lte: now } },
     data: { encryptedText: null, encryptedReply: null, senderIdentityEncrypted: null },
   });

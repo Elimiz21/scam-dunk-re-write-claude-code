@@ -33,7 +33,10 @@ function AuthErrorContent() {
       case "OAuthSignin":
       case "OAuthCallback":
       case "OAuthCreateAccount":
+        return "There was a problem with the authentication provider. Please try again.";
       case "OAuthAccountNotLinked":
+        return "This email already has a ScamDunk account. Log in with your existing password first, then connect Google from your account.";
+      case "OAuthError":
         return "There was a problem with the authentication provider. Please try again.";
       case "EmailCreateAccount":
         return "Could not create account with this email. Please try a different method.";
