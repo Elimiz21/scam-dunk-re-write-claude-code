@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
 import { getPlanEntitlements } from "@/lib/entitlements";
+import { getCurrentMonthKey } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -62,8 +63,8 @@ export async function GET(
         : 0;
 
     // Get current month usage
-    const now = new Date();
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    // UTC month key, matching what the scan path writes.
+    const currentMonthKey = getCurrentMonthKey();
     const currentMonthUsage = user.scanUsages.find(
       (u) => u.monthKey === currentMonthKey,
     );

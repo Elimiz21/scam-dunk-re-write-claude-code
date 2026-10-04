@@ -51,8 +51,8 @@ describe("approved authenticated Paper & Ink shell", () => {
     expect(ticker).not.toContain("overflow-x-auto");
     expect(ticker).not.toContain("Other users");
     expect(ticker).not.toContain("community");
-    expect(ticker).toContain("not live");
-    expect(ticker).toContain("xl:hidden");
+    expect(ticker).not.toContain("not live");
+    expect(ticker).not.toContain("formatScanDate");
     expect(ticker).toContain("text-primary sm:flex");
     expect(ticker).toContain('compactLabel="Latest"');
     expect(ticker).toContain('compactLabel="High"');

@@ -33,6 +33,8 @@ interface User {
   billingCustomerId: string | null;
   createdAt: string;
   scansThisMonth: number;
+  totalScans: number;
+  totalSessions: number;
   totalMonthsActive: number;
 }
 
@@ -281,9 +283,19 @@ export default function UsersPage() {
     },
     {
       key: "scansThisMonth",
-      header: "Scans (Month)",
+      header: "Scans (Month / Total)",
       render: (item: User) => (
-        <span className="text-foreground">{item.scansThisMonth}</span>
+        <span className="text-foreground">
+          {item.scansThisMonth}
+          <span className="text-muted-foreground"> / {item.totalScans}</span>
+        </span>
+      ),
+    },
+    {
+      key: "totalSessions",
+      header: "Sessions (Total)",
+      render: (item: User) => (
+        <span className="text-foreground">{item.totalSessions}</span>
       ),
     },
     {

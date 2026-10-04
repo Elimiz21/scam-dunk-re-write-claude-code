@@ -10,6 +10,7 @@ import {
   createEmailVerificationToken,
 } from "@/lib/tokens";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
+import { getCurrentMonthKey } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -79,9 +80,36 @@ export async function GET(request: NextRequest) {
       prisma.user.count({ where }),
     ]);
 
-    // Get current month key
-    const now = new Date();
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    // All-time scans and logins for the users on this page. ScanHistory has no
+    // Prisma relation to User (userId is nullable, no FK), so it can't ride on
+    // _count; group it by userId instead. "Sessions" = LOGIN_SUCCESS funnel
+    // events: NextAuth runs in JWT mode, so the Session table is always empty.
+    const pageUserIds = users.map((u) => u.id);
+    const [scanTotals, loginTotals] = pageUserIds.length
+      ? await Promise.all([
+          prisma.scanHistory.groupBy({
+            by: ["userId"],
+            where: { userId: { in: pageUserIds } },
+            _count: { _all: true },
+          }),
+          prisma.authFunnelEvent.groupBy({
+            by: ["userId"],
+            where: { userId: { in: pageUserIds }, eventType: "LOGIN_SUCCESS" },
+            _count: { _all: true },
+          }),
+        ])
+      : [[], []];
+    const totalScansByUser = new Map(
+      scanTotals.map((row) => [row.userId, row._count._all]),
+    );
+    const totalSessionsByUser = new Map(
+      loginTotals.map((row) => [row.userId, row._count._all]),
+    );
+
+    // Current month key in UTC — must match the key the scan path writes
+    // (reserveScanSlot uses getCurrentMonthKey), otherwise the admin view
+    // reads the wrong row around month boundaries on non-UTC servers.
+    const currentMonthKey = getCurrentMonthKey();
 
     // Format users with additional data
     const formattedUsers = users.map((user) => {
@@ -99,6 +127,8 @@ export async function GET(request: NextRequest) {
         updatedAt: user.updatedAt,
         emailVerified: user.emailVerified,
         scansThisMonth: currentUsage?.scanCount || 0,
+        totalScans: totalScansByUser.get(user.id) ?? 0,
+        totalSessions: totalSessionsByUser.get(user.id) ?? 0,
         totalMonthsActive: user._count.scanUsages,
       };
     });
@@ -193,9 +223,7 @@ export async function PATCH(request: NextRequest) {
         break;
 
       case "resetScans":
-        // Get current month key
-        const now = new Date();
-        const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        const monthKey = getCurrentMonthKey();
 
         await prisma.scanUsage.updateMany({
           where: { userId, monthKey },
@@ -211,8 +239,7 @@ export async function PATCH(request: NextRequest) {
             { status: 400 },
           );
         }
-        const nowForSet = new Date();
-        const monthKeyForSet = `${nowForSet.getFullYear()}-${String(nowForSet.getMonth() + 1).padStart(2, "0")}`;
+        const monthKeyForSet = getCurrentMonthKey();
 
         await prisma.scanUsage.upsert({
           where: { userId_monthKey: { userId, monthKey: monthKeyForSet } },
