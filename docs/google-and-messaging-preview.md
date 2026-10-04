@@ -54,12 +54,15 @@ the live acceptance tests below.
 ## Access limitation in this session
 
 Vercel reads work with the `eli-2324` scope, which resolves to the same team as
-`eli-mizrochs-projects`. Direct environment-variable writes and the connector's
-deployment tool are unavailable. The owner has saved all five Telegram
+`eli-mizrochs-projects`. The direct deployment tool is unavailable; pushing the
+draft PR branch triggers a preview deployment. Environment-variable tools
+became available on 2026-10-04. The owner has saved all five Telegram
 settings to Preview and confirmed its database points to staging
 `iwbewmdeotcnqtpazezi`; the staging auth and Telegram prerequisites have been
 applied. The Telegram webhook readiness probe passed after redeployment.
-Google OAuth credentials and Meta business configuration are still pending.
+The owner created the Google web OAuth client and saved `AUTH_GOOGLE_ID` and
+`AUTH_GOOGLE_SECRET` to Preview only. Real Google consent/callback acceptance
+and Meta business configuration are still pending.
 Live activation and provider acceptance must be verified separately from
 configuration readiness.
 
@@ -74,3 +77,20 @@ configuration readiness.
 - Chromium desktop and mobile: verified Google login/signup controls, existing password login, authenticated account bot controls, and Telegram link generation. Browser console reported no application errors during these checks.
 - Built server Google initiation: verified the authorization redirect goes to `accounts.google.com`, uses PKCE, and sets `/api/auth/callback/google` as the callback path. This used fixture client credentials; real Google consent/token exchange was not tested. Node in this managed environment needed `NODE_USE_ENV_PROXY=1` for OIDC discovery.
 - Provider send/scan outcomes were mocked in automated tests. Live WhatsApp OTP delivery, real bot responses, and real OAuth token exchange remain the acceptance checks listed above.
+
+## Live preview verification (2026-10-04)
+
+- Telegram operator activation confirmed the actual bot identity and registered
+  the stable preview webhook. An unauthenticated activation request returned 401.
+- The owner received `/start`, successful account linking, and an AAPL MEDIUM
+  scan reply. Staging records confirmed each event was replied to, exactly one
+  monthly scan allowance was consumed, exactly one AAPL scan-history row was
+  written, and the single-use link token was consumed.
+- Browser password login and the Account linking controls passed against a
+  dedicated staging fixture with a temporary MANUAL entitlement. No production
+  account or billing subscription was modified.
+- Updated app checks: 634 tests passed, 27 database-dependent cases skipped in
+  the default suite. The separate messaging PostgreSQL CI job, Python AI job,
+  app build/typecheck/lint job, and Vercel preview build passed.
+- Google variables are confirmed Preview-only. Google live acceptance is the
+  next check after the preview refreshes its environment.
