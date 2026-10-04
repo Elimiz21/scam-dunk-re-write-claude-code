@@ -18,6 +18,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { trackEvent } from "@/lib/analytics";
 
 function LoginForm() {
@@ -104,6 +105,7 @@ function LoginForm() {
   return (
     <form onSubmit={handleSubmit}>
       <CardContent className="space-y-4">
+        <GoogleSignInButton callbackUrl={callbackUrl} />
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
