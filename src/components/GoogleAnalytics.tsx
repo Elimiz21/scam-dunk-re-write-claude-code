@@ -1,22 +1,34 @@
-import Script from "next/script";
+"use client";
 
-const MEASUREMENT_ID = "G-377T7N93Q6";
+import { useEffect } from "react";
 
+const MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-377T7N93Q6";
+const SCRIPT_ID = "scamdunk-google-analytics-script";
+
+type AnalyticsWindow = Window & {
+  dataLayer?: unknown[][];
+  gtag?: (...args: unknown[]) => void;
+};
+
+/** Initializes GA4 after hydration so the executable code always runs. */
 export function GoogleAnalytics() {
-  return (
-    <>
-      <Script id="scamdunk-google-analytics-init" strategy="afterInteractive">
-        {`window.dataLayer = window.dataLayer || [];
-function gtag(){window.dataLayer.push(arguments);}
-window.gtag = window.gtag || gtag;
-gtag('js', new Date());
-gtag('config', '${MEASUREMENT_ID}');`}
-      </Script>
-      <Script
-        id="scamdunk-google-analytics-script"
-        strategy="afterInteractive"
-        src={`https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`}
-      />
-    </>
-  );
+  useEffect(() => {
+    const analyticsWindow = window as AnalyticsWindow;
+    analyticsWindow.dataLayer = analyticsWindow.dataLayer || [];
+    function gtag(...args: unknown[]) {
+      analyticsWindow.dataLayer?.push(args);
+    }
+    analyticsWindow.gtag = analyticsWindow.gtag || gtag;
+    analyticsWindow.gtag("js", new Date());
+    analyticsWindow.gtag("config", MEASUREMENT_ID);
+
+    if (document.getElementById(SCRIPT_ID)) return;
+    const script = document.createElement("script");
+    script.id = SCRIPT_ID;
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
+    document.head.appendChild(script);
+  }, []);
+
+  return null;
 }

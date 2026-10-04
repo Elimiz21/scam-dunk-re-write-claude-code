@@ -49,6 +49,7 @@ model User {
   notificationDeliveries   NotificationDelivery[]
   billingEvents            BillingEvent[]
   authFunnelEvents         AuthFunnelEvent[]
+  conversionFunnelEvents   ConversionFunnelEvent[]
 }
 
 model AuthFunnelEvent {
@@ -62,6 +63,29 @@ model AuthFunnelEvent {
 
   @@index([userId, eventType, occurredAt])
   @@index([eventType, occurredAt])
+}
+
+// First-party, aggregate-safe conversion events. This is the source for the
+// ScamDunk funnel dashboards; GA4 receives the matching non-sensitive events.
+model ConversionFunnelEvent {
+  id             String   @id @default(cuid())
+  userId         String?
+  eventType      String
+  source         String
+  plan           String?
+  provider       String?
+  transactionId  String?
+  valueCents     Int?
+  currency       String?
+  clientId       String?
+  idempotencyKey String   @unique
+  occurredAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, occurredAt])
+  @@index([userId, eventType, occurredAt])
+  @@index([plan, occurredAt])
 }
 
 model FeatureInterest {

@@ -7,6 +7,7 @@ import {
   getStripeClient,
   shouldApplyStripeSubscriptionEvent,
 } from "@/lib/stripe";
+import { recordStripePurchase } from "@/lib/conversion-funnel-server";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    let confirmedPurchase: {
+      userId: string;
+      checkoutSessionId: string;
+      plan: "PAID" | "PRO_MAX";
+      valueCents: number;
+      currency: string;
+      clientId?: string;
+      occurredAt: Date;
+    } | null = null;
     await prisma.$transaction(async (transaction) => {
       try {
         await transaction.billingEvent.create({
@@ -53,6 +63,9 @@ export async function POST(request: NextRequest) {
           : session.subscription;
         const actualPlan = subscription && typeof subscription !== "string"
           ? getPlanForStripePrice(subscription.items.data[0]?.price?.id)
+          : null;
+        const purchasedPlan = actualPlan === "PAID" || actualPlan === "PRO_MAX"
+          ? actualPlan
           : null;
         const requestedPlan = session.metadata?.plan;
         const subscriptionActive = subscription && typeof subscription !== "string"
@@ -82,8 +95,8 @@ export async function POST(request: NextRequest) {
             currentUser.plan === "FREE" || currentUser.billingProvider !== "STRIPE",
           ) &&
           session.mode === "subscription" &&
-          actualPlan &&
-          actualPlan === requestedPlan &&
+          purchasedPlan &&
+          purchasedPlan === requestedPlan &&
           subscriptionActive
         ) {
           const trialStart = subscription.trial_start;
@@ -91,7 +104,7 @@ export async function POST(request: NextRequest) {
           await transaction.user.update({
             where: { id: userId },
             data: {
-              plan: actualPlan,
+              plan: purchasedPlan,
               billingProvider: "STRIPE",
               billingCustomerId: typeof session.customer === "string" ? session.customer : null,
               trialStartedAt: trialStart ? new Date(trialStart * 1000) : null,
@@ -102,6 +115,15 @@ export async function POST(request: NextRequest) {
               billingSubscriptionEventAt: eventCreatedAt,
             },
           });
+          confirmedPurchase = {
+            userId,
+            checkoutSessionId: session.id,
+            plan: purchasedPlan,
+            valueCents: session.amount_total ?? subscription.items.data[0]?.price.unit_amount ?? 0,
+            currency: session.currency || subscription.currency || "USD",
+            clientId: session.metadata?.analyticsClientId || subscription.metadata?.analyticsClientId || undefined,
+            occurredAt: eventCreatedAt,
+          };
         }
       }
 
@@ -143,6 +165,9 @@ export async function POST(request: NextRequest) {
         }
       }
     });
+    if (confirmedPurchase) {
+      await recordStripePurchase(confirmedPurchase);
+    }
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("Stripe webhook processing failed", error instanceof Error ? error.name : "unknown");

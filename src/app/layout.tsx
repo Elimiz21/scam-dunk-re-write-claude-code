@@ -7,6 +7,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { JsonLd } from "@/components/JsonLd";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { AnalyticsIdentity } from "@/components/AnalyticsIdentity";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
 
@@ -110,7 +111,10 @@ export default function RootLayout({
         <JsonLd data={[websiteSchema, organizationSchema]} />
         <SessionProvider>
           <ThemeProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <AnalyticsIdentity />
+              {children}
+            </ToastProvider>
           </ThemeProvider>
         </SessionProvider>
         <GoogleAnalytics />
