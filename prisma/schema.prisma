@@ -23,7 +23,7 @@ model User {
   formerPro                  Boolean   @default(false) // true if user ever cancelled a Pro subscription
   billingProvider            String    @default("NONE") // NONE, PAYPAL, STRIPE, APPLE, MANUAL
   billingCustomerId          String?
-  billingSubscriptionId      String?   // current Stripe subscription identity, when applicable
+  billingSubscriptionId      String? // current Stripe subscription identity, when applicable
   billingSubscriptionEventAt DateTime? // newest Stripe event timestamp applied to the subscription
   trialStartedAt             DateTime?
   trialEndsAt                DateTime?
@@ -42,6 +42,8 @@ model User {
   sessions                 Session[]
   scanUsages               ScanUsage[]
   whatsAppIdentityBindings WhatsAppIdentityBinding[]
+  telegramIdentityBindings TelegramIdentityBinding[]
+  telegramLinkTokens       TelegramLinkToken[]
   watchlistItems           WatchlistItem[]
   watchlistEntries         WatchlistEntry[]
   notificationDeliveries   NotificationDelivery[]
@@ -211,8 +213,8 @@ model NotificationDelivery {
   userId            String
   executionId       String
   channel           String
-  status            String   @default("PENDING")
-  attemptCount      Int      @default(0)
+  status            String    @default("PENDING")
+  attemptCount      Int       @default(0)
   providerMessageId String?
   errorReason       String?   @db.Text
   attemptedAt       DateTime?
@@ -1373,4 +1375,54 @@ model PrePumpWatchlist {
   @@index([isActive, ticker])
   @@index([addedDate])
   @@map("pre_pump_watchlist")
+}
+
+model TelegramIdentityBinding {
+  id                String                 @id @default(cuid())
+  userId            String
+  identityHash      String                 @unique
+  identityEncrypted String                 @db.Text
+  active            Boolean                @default(false)
+  boundAt           DateTime?
+  revokedAt         DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inboundEvents     TelegramInboundEvent[]
+
+  @@index([userId, active])
+}
+
+model TelegramLinkToken {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  tokenHash String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+model TelegramInboundEvent {
+  id                      String    @id @default(cuid())
+  providerMessageId       String    @unique
+  senderIdentityHash      String
+  bindingId               String?
+  messageType             String
+  status                  String    @default("RECEIVED")
+  reasonCode              String?
+  encryptedText           String?   @db.Text
+  encryptedReply          String?   @db.Text
+  senderIdentityEncrypted String?   @db.Text
+  providerReplyMessageId  String?
+  attemptCount            Int       @default(0)
+  processedAt             DateTime?
+  purgeAt                 DateTime
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  binding TelegramIdentityBinding? @relation(fields: [bindingId], references: [id], onDelete: SetNull)
+
+  @@index([senderIdentityHash, createdAt])
+  @@index([status, purgeAt])
 }
