@@ -15,7 +15,7 @@ Use an isolated preview PostgreSQL database and distinct preview bots/phone numb
 
 Apply `npm run db:migrate:deploy` to the preview database. The Telegram migration adds three server-only tables with RLS enabled and revokes Supabase client-role access. The existing WhatsApp migrations must also be present.
 
-Google: create a Web application OAuth client in Google Cloud Console, configure the consent screen and preview test users, and allow the exact URI `https://<stable-preview-host>/api/auth/callback/google`. Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` (legacy `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are also supported). Configure the correct external auth URL/host for the preview.
+Google: create a Web application OAuth client in Google Cloud Console, configure the consent screen and preview test users, and allow the exact URI `https://<stable-preview-host>/api/auth/callback/google`. Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` (legacy `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are also supported). Set Preview `AUTH_URL` to `https://<stable-preview-host>`; Auth.js gives this precedence over a shared `NEXTAUTH_URL` that may otherwise send preview callbacks to production. Scope the override to the bot feature branch and redeploy after saving it.
 
 WhatsApp: provision a Meta WhatsApp business phone, a permanent System User token, and an approved Authentication template with a copy-code button. Set the seven required WhatsApp variables. Register `https://<stable-preview-host>/api/webhooks/whatsapp` with the matching verify token and subscribe to `messages`. The Meta console/account approval and template approval cannot be completed using GitHub repository access alone.
 
@@ -94,3 +94,6 @@ configuration readiness.
   app build/typecheck/lint job, and Vercel preview build passed.
 - Google variables are confirmed Preview-only. Google live acceptance is the
   next check after the preview refreshes its environment.
+- Preview reports Google configuration present. The feature branch has an
+  explicit `AUTH_URL` matching the Google client's registered preview callback;
+  the production auth URL is preserved.
