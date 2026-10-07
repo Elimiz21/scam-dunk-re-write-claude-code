@@ -140,8 +140,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     ...(google ? [Google({
       ...google,
-      // Existing password accounts must authenticate before linking Google.
-      allowDangerousEmailAccountLinking: false,
+      // The signIn callback below permits linking only a Google-verified email.
+      // This lets existing password users sign in with the same Google account.
+      allowDangerousEmailAccountLinking: true,
       authorization: { params: { scope: "openid email profile", prompt: "select_account" } },
       profile(profile) {
         return {
@@ -339,7 +340,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async signIn({ user, account, profile }) {
       if (account?.provider !== "google") return true;
-      if (!isVerifiedGoogleProfile(profile)) return false;
+      if (!isVerifiedGoogleProfile(profile) ||
+        profile.email.toLowerCase().trim() !== user.email?.toLowerCase().trim()) return false;
       const existing = await prisma.user.findUnique({
         where: { email: user.email!.toLowerCase().trim() },
         select: { deletedAt: true },
