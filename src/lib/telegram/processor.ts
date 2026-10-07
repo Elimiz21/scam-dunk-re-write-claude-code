@@ -37,9 +37,12 @@ async function isAllowed(identityHash: string, userId: string): Promise<boolean>
   }
 }
 
-function conciseResult(ticker: string, riskLevel: string, header: string): string {
+function conciseResult(ticker: string, riskLevel: string, header: string, signals: Array<{ description: string; weight: number }>): string {
   const summary = header.replace(/\s+/g, " ").trim().slice(0, 360);
-  return `ScamDunk scan: ${ticker} — ${riskLevel}. ${summary} This is risk-signal analysis, not investment advice.`;
+  const strongest = [...signals].sort((a, b) => b.weight - a.weight)[0];
+  const signal = strongest ? ` Leading signal: ${strongest.description.replace(/\s+/g, " ").trim().slice(0, 220)}.` : "";
+  const context = strongest ? " A market signal alone does not establish company fraud." : "";
+  return `ScamDunk scan: ${ticker} — ${riskLevel}. ${summary}${signal}${context} This is risk-signal analysis, not investment advice.`;
 }
 
 async function respond(
@@ -206,7 +209,7 @@ export async function processTelegramInboundEvent(
   await respond(
     eventId,
     recipient,
-    conciseResult(parsed.ticker, scan.body.riskLevel, scan.body.narrative.header),
+    conciseResult(parsed.ticker, scan.body.riskLevel, scan.body.narrative.header, scan.body.signals),
     "REPLIED",
     "SCAN_COMPLETED",
   );
