@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
-import { beginTelegramBinding, revokeTelegramBinding } from "@/lib/telegram/binding";
+import { beginTelegramBinding, isTelegramSubscriber, revokeTelegramBinding } from "@/lib/telegram/binding";
 import { isTelegramConfigured } from "@/lib/telegram/provider";
 export const dynamic = "force-dynamic";
 
@@ -10,8 +10,11 @@ export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const binding = await prisma.telegramIdentityBinding.findFirst({ where: { userId: session.user.id, active: true, revokedAt: null } });
-    return NextResponse.json({ active: !!binding, available: isTelegramConfigured() });
+    const [binding, eligible] = await Promise.all([
+      prisma.telegramIdentityBinding.findFirst({ where: { userId: session.user.id, active: true, revokedAt: null } }),
+      isTelegramSubscriber(session.user.id),
+    ]);
+    return NextResponse.json({ active: !!binding, available: isTelegramConfigured(), eligible });
   } catch { return NextResponse.json({ error: "Unable to load Telegram access" }, { status: 503 }); }
 }
 export async function POST(request: NextRequest) {

@@ -1040,7 +1040,7 @@ function AccountContent() {
 
           {/* Upgrade options for Free users */}
           {currentPlan !== "PRO_MAX" && (
-            <Card className="border-primary gradient-brand-subtle">
+            <Card id="plans" className="border-primary gradient-brand-subtle">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display italic">
                   <span className="inline-flex items-center justify-center w-8 h-8 gradient-brand rounded-2xl">

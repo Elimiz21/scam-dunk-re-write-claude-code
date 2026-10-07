@@ -29,7 +29,9 @@ export function decideTelegramScanEntitlement(
     user.plan === "FREE" ||
     (user.subscriptionExpiresAt
       ? user.subscriptionExpiresAt <= now
-      : !["PAYPAL", "STRIPE", "MANUAL"].includes(user.billingProvider || "")) ||
+      // Admin-granted legacy paid accounts retain billingProvider=NONE.
+      // Billing displays these accounts as MANUAL; honor the same entitlement.
+      : !["PAYPAL", "STRIPE", "MANUAL", "NONE"].includes(user.billingProvider || "")) ||
     !binding.active ||
     binding.revokedAt
   ) {
