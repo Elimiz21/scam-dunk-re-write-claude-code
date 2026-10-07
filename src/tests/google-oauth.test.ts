@@ -26,8 +26,8 @@ describe("Google OAuth integration", () => {
     jest.clearAllMocks();
     mockPrisma.user.findUnique.mockResolvedValue({ plan: "PAID", sessionVersion: 4, deletedAt: null });
   });
-  it("registers Google alongside credentials without unsafe email auto-linking", () => {
-    expect(mockConfig.providers).toEqual(expect.arrayContaining([expect.objectContaining({ id: "google", allowDangerousEmailAccountLinking: false }), expect.objectContaining({ id: "credentials" })]));
+  it("registers Google alongside credentials and links matching verified emails", () => {
+    expect(mockConfig.providers).toEqual(expect.arrayContaining([expect.objectContaining({ id: "google", allowDangerousEmailAccountLinking: true }), expect.objectContaining({ id: "credentials" })]));
   });
   it("denies unverified profiles and deleted users", async () => {
     const signIn = mockConfig.callbacks!.signIn!;
@@ -35,6 +35,9 @@ describe("Google OAuth integration", () => {
     expect(await signIn(params as never)).toBe(false);
     params.profile.email_verified = true;
     expect(await signIn(params as never)).toBe(true);
+    params.profile.email = "other@example.test";
+    expect(await signIn(params as never)).toBe(false);
+    params.profile.email = "person@example.test";
     mockPrisma.user.findUnique.mockResolvedValue({ deletedAt: new Date() });
     expect(await signIn(params as never)).toBe(false);
   });
