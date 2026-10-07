@@ -1065,6 +1065,44 @@ export function calculateRiskLevel(
 }
 
 /**
+ * The nightly shortlist excludes highly capitalized or highly liquid stocks
+ * from pump-and-dump findings. Apply the same thresholds to customer scans,
+ * but only to ticker-only market evidence. A regulatory alert, promotional
+ * signal, or user-supplied pitch must never be erased by company size.
+ */
+export function applyPumpDumpFeasibilityFilter(
+  result: ScoringResult,
+  marketData: MarketData,
+  options: { secFlagged: boolean; hasUserTip: boolean },
+): { result: ScoringResult; excludedSignals: RiskSignal[]; applied: boolean } {
+  const quote = marketData.quote;
+  if (
+    !marketData.dataAvailable || !quote || getMarketCategory(marketData) !== "MAJOR" || result.isInsufficient ||
+    result.riskLevel === "INSUFFICIENT" || result.riskLevel === "LOW" ||
+    options.secFlagged || options.hasUserTip ||
+    result.signals.some((signal) => signal.category !== "PATTERN" && signal.category !== "STRUCTURAL") ||
+    !(
+      (Number.isFinite(quote.marketCap) && quote.marketCap > 10_000_000_000) ||
+      (Number.isFinite(quote.avgDollarVolume30d) && quote.avgDollarVolume30d > 10_000_000)
+    )
+  ) {
+    return { result, excludedSignals: [], applied: false };
+  }
+
+  return {
+    applied: true,
+    excludedSignals: result.signals,
+    result: {
+      ...result,
+      riskLevel: "LOW",
+      totalScore: 0,
+      signals: [],
+      isLegitimate: checkIsLegitimate(marketData, [], "LOW"),
+    },
+  };
+}
+
+/**
  * Shared legitimacy check used by BOTH the AI and TS paths (audit TS-H6/H9).
  *
  * A ticker is only "well-established / blue-chip" when it is a large-cap,

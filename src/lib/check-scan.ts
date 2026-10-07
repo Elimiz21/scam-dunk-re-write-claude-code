@@ -8,6 +8,7 @@ import {
   dedupeSignalScore,
   calculateRiskLevel,
   getDataCompleteness,
+  applyPumpDumpFeasibilityFilter,
 } from "@/lib/scoring/engine";
 import { generateFallbackNarrative, generateNarrative } from "@/lib/narrative";
 import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
@@ -26,6 +27,7 @@ import {
   StockSummary,
   RiskSignal,
   SignalCategory,
+  ScoringResult,
 } from "@/lib/types";
 
 // Python AI backend URL (must match ai-analyze/route.ts and config.ts default)
@@ -401,14 +403,7 @@ export async function processCheckRequest(
       });
     }
 
-    let scoringResult: {
-      riskLevel: RiskLevel;
-      totalScore: number;
-      signals: RiskSignal[];
-      isInsufficient: boolean;
-      isLegitimate: boolean;
-      dataCompleteness?: RiskResponse["dataCompleteness"];
-    };
+    let scoringResult: ScoringResult;
     let marketData;
     let usedAIBackend = false;
     let aiStockInfo: typeof aiResult.stockInfo | undefined;
@@ -514,6 +509,15 @@ export async function processCheckRequest(
       });
     }
 
+    // The nightly size/liquidity rule also protects ticker-only customer scans
+    // from treating ordinary market activity in very large/liquid stocks as a
+    // pump-and-dump warning. Keep regulatory and user-tip evidence intact.
+    const filtered = applyPumpDumpFeasibilityFilter(scoringResult, marketData, {
+      secFlagged,
+      hasUserTip: !!checkRequest.pitchText || Object.values(context).some(Boolean),
+    });
+    scoringResult = filtered.result;
+
     // Build stock summary - prefer API-derived company name over user-supplied
     // (audit TS-M8: user-supplied name is untrusted and could carry injection).
     const stockSummary: StockSummary = {
@@ -539,6 +543,11 @@ export async function processCheckRequest(
       stockSummary,
       scoringResult.isLegitimate,
     );
+
+    if (filtered.applied) {
+      // A zero-signal backend verdict can also be downgraded by this filter.
+      narrative.header = `${supportedTicker} is above the nightly market-cap or liquidity threshold. Market activity alone is not counted as pump-and-dump risk for this stock. This does not rule out other investment scams.`;
+    }
 
     if (usedAIBackend) {
       const appliedLabels = (aiResult.layersApplied ?? []).map((layer) => ({
@@ -606,6 +615,7 @@ export async function processCheckRequest(
       riskLevel: scoringResult.riskLevel,
       totalScore: scoringResult.totalScore,
       signals: scoringResult.signals,
+      excludedMarketSignals: filtered.excludedSignals,
       stockSummary,
       narrative,
       usage: updatedUsage,
@@ -613,7 +623,7 @@ export async function processCheckRequest(
       dataCompleteness: scoringResult.dataCompleteness,
       // Only attach news verification if the AI result actually drove this
       // response (not when the no-downgrade guard replaced it — audit TS-L7).
-      ...(usedAIBackend && aiResult.newsVerification
+      ...(usedAIBackend && !filtered.applied && aiResult.newsVerification
         ? { newsVerification: aiResult.newsVerification }
         : {}),
     };

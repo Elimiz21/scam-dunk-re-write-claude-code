@@ -141,6 +141,17 @@ describe("completed scan persistence", () => {
     expect(jest.requireMock("@/lib/narrative").generateNarrative).not.toHaveBeenCalled();
   });
 
+  test("recalculates a large-cap ticker-only customer result and preserves excluded evidence", async () => {
+    const market = jest.requireMock("@/lib/marketData");
+    market.fetchMarketData.mockResolvedValueOnce({ dataAvailable: true, isOTC: false, priceHistory: [], quote: { ticker: "AAPL", companyName: "Apple", exchange: "NASDAQ", marketCap: 20_000_000_000, avgDollarVolume30d: 30_000_000 } });
+    jest.requireMock("@/lib/scoring").computeRiskScore.mockResolvedValueOnce({ riskLevel: "MEDIUM", totalScore: 2, signals: [{ code: "PRICE_ANOMALY", category: "PATTERN", weight: 2, description: "Moderate price anomaly" }], isInsufficient: false, isLegitimate: false, dataCompleteness: "full" });
+    mockLogScanHistory.mockResolvedValueOnce(undefined);
+    const response = await POST(scanRequest());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ riskLevel: "LOW", totalScore: 0, signals: [], excludedMarketSignals: [{ code: "PRICE_ANOMALY" }], narrative: { header: expect.stringContaining("above the nightly") } });
+    expect(mockLogScanHistory).toHaveBeenCalledWith(expect.objectContaining({ riskLevel: "LOW", totalScore: 0 }));
+  });
+
   test("rejects a synthetic AI result and falls back to deterministic scoring", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
