@@ -20,15 +20,14 @@ to dashboard layout, root styles, or the production ticker.
 4. Deploy this isolated release and verify the login page, Google callback,
    existing password login, and authenticated Telegram linking. The Telegram
    webhook will still point to preview until the next step.
-5. Invoke the temporary `activate-production` route with the separately scoped
-   `TELEGRAM_ACTIVATION_SECRET`. It verifies the production database, bot
-   identity, and existing preview callback before changing the Telegram webhook
-   to `https://scamdunk.com/api/webhooks/telegram`; pending updates are retained.
-   An unknown callback returns 409 and remains untouched.
+5. The guarded cutover verified the production database, bot identity, and
+   existing preview callback before registering
+   `https://scamdunk.com/api/webhooks/telegram`; pending updates were retained.
 6. From a subscribed production account, generate a new link and send
    `/start <token>` and `AAPL` to @Scamdunkagentbot. Check the web allowance,
-   one scan history entry, and the Telegram reply. Then remove the temporary
-   activation route and secret in a follow-up deployment.
+   one scan history entry, and the Telegram reply. The temporary activation
+   route is removed in the follow-up release; its secret must be deleted from
+   Production configuration.
 
 Do not merge the broader draft PR #267 to perform this release; it contains
 unfinished WhatsApp work. Preview and production accounts and binding records

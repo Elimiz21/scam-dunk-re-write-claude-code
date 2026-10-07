@@ -115,4 +115,4 @@ jobs:
           npx prisma generate
           npx prisma migrate deploy
       - name: Test Google and Telegram integrations including real DB concurrency
-        run: npm test -- --ci --runInBand src/tests/telegram-binding.postgres.test.ts src/tests/google-oauth.test.ts src/tests/messaging-bots.test.ts src/tests/telegram-production-activation.test.ts
+        run: npm test -- --ci --runInBand src/tests/telegram-binding.postgres.test.ts src/tests/google-oauth.test.ts src/tests/messaging-bots.test.ts
