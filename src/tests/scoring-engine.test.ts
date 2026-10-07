@@ -17,6 +17,7 @@ import {
   checkIsLegitimate,
   getDataCompleteness,
   SIGNAL_CODES,
+  applyPumpDumpFeasibilityFilter,
 } from "../lib/scoring/engine";
 import {
   MarketData,
@@ -88,6 +89,40 @@ describe("dedupeSignalScore (TS-C1)", () => {
     ];
     expect(signals.length).toBe(2);
     expect(dedupeSignalScore(signals)).toBe(4);
+  });
+});
+
+describe("customer pump-and-dump feasibility filter", () => {
+  const signal: RiskSignal = { code: "PRICE_ANOMALY", category: "PATTERN", description: "Moderate price anomaly", weight: 2 };
+  const market: MarketData = {
+    quote: { ticker: "AAPL", companyName: "Apple", exchange: "NASDAQ", marketCap: 20_000_000_000, lastPrice: 100, avgVolume30d: 10_000, avgDollarVolume30d: 1_000_000 },
+    priceHistory: flatHistory(100, 30), isOTC: false, dataAvailable: true,
+  };
+  const result = { riskLevel: "MEDIUM" as const, totalScore: 2, signals: [signal], isInsufficient: false, isLegitimate: false, dataCompleteness: "full" as const };
+  const normal = { secFlagged: false, hasUserTip: false };
+
+  it("makes a market-only medium or high verdict LOW above the nightly market-cap cutoff", () => {
+    for (const riskLevel of ["MEDIUM", "HIGH"] as const) {
+      const filtered = applyPumpDumpFeasibilityFilter({ ...result, riskLevel }, market, normal);
+      expect(filtered).toMatchObject({ applied: true, result: { riskLevel: "LOW", totalScore: 0, signals: [] }, excludedSignals: [signal] });
+    }
+  });
+  it("applies the nightly dollar-volume cutoff independently of market cap", () => {
+    const liquid = { ...market, quote: { ...market.quote!, marketCap: 500_000_000, avgDollarVolume30d: 11_000_000 } };
+    expect(applyPumpDumpFeasibilityFilter(result, liquid, normal).result.riskLevel).toBe("LOW");
+  });
+  it("keeps regulatory, behavioral, social, and user-tip warnings", () => {
+    const alert: RiskSignal = { code: "ALERT_LIST_HIT", category: "ALERT", description: "Regulatory alert", weight: 5 };
+    for (const candidate of [
+      { result: { ...result, signals: [signal, alert] }, options: normal },
+      { result, options: { secFlagged: true, hasUserTip: false } },
+      { result, options: { secFlagged: false, hasUserTip: true } },
+      { result: { ...result, signals: [{ ...signal, category: "SOCIAL" as const }] }, options: normal },
+    ]) expect(applyPumpDumpFeasibilityFilter(candidate.result, market, candidate.options).applied).toBe(false);
+  });
+  it("does not manufacture a low-risk verdict from missing quote data", () => {
+    expect(applyPumpDumpFeasibilityFilter(result, { ...market, quote: null }, normal).applied).toBe(false);
+    expect(applyPumpDumpFeasibilityFilter(result, { ...market, isOTC: true }, normal).applied).toBe(false);
   });
 });
 
