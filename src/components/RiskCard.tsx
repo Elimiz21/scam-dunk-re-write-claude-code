@@ -377,6 +377,11 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
               {riskFactorSummary}
             </p>
           )}
+          {!!result.excludedMarketSignals?.length && (
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Market indicators observed but excluded from this score: {result.excludedMarketSignals.map((signal) => signal.description).join("; ")}.
+            </p>
+          )}
         </div>
       </CardHeader>
 
