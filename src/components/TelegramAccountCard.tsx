@@ -33,7 +33,7 @@ export function TelegramAccountCard() {
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to update Telegram access."); }
     finally { setBusy(false); }
   }
-  return <Card><CardHeader><CardTitle>Telegram scans</CardTitle></CardHeader>
+  return <Card id="telegram"><CardHeader><CardTitle>Telegram scans</CardTitle></CardHeader>
     <CardContent className="space-y-4">
       <p className="text-sm text-muted-foreground">Link your private Telegram chat, then send AAPL or scan AAPL. An active subscription is required. Scans use your monthly ScamDunk allowance.</p>
       {error && <p role="alert" className="text-sm text-destructive">{error} <button type="button" className="underline" onClick={() => void load()}>Retry</button></p>}
