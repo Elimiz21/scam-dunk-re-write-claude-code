@@ -40,7 +40,7 @@ beforeEach(() => {
   mockPrisma.telegramInboundEvent.update.mockResolvedValue({});
   mockPrisma.telegramInboundEvent.updateMany.mockResolvedValue({ count: 1 });
   jest.mocked(resolveTelegramScanEntitlement).mockResolvedValue({ allowed: true });
-  jest.mocked(runAuthorizedStockScan).mockResolvedValue({ ok: true, status: 200, body: { riskLevel: "LOW", narrative: { header: "No elevated signals." } } } as never);
+  jest.mocked(runAuthorizedStockScan).mockResolvedValue({ ok: true, status: 200, body: { riskLevel: "LOW", signals: [], narrative: { header: "No elevated signals." } } } as never);
 });
 afterAll(() => { process.env = originalEnv; global.fetch = originalFetch; });
 
@@ -102,6 +102,13 @@ describe("Telegram webhook and scan flow", () => {
     expect(progress.text).toContain("Scanning AAPL");
     const body = JSON.parse(jest.mocked(fetch).mock.calls[1][1]!.body as string);
     expect(body.chat_id).toBe("456"); expect(body.text).toContain("AAPL — LOW");
+  });
+  it("explains the leading signal without treating a market flag as proof of fraud", async () => {
+    jest.mocked(runAuthorizedStockScan).mockResolvedValue({ ok: true, body: { riskLevel: "MEDIUM", signals: [{ description: "Unusual price movement", weight: 2 }], narrative: { header: "Some risk signals detected." } } } as never);
+    await processTelegramInboundEvent("event");
+    const reply = JSON.parse(jest.mocked(fetch).mock.calls[1][1]!.body as string).text;
+    expect(reply).toContain("Leading signal: Unusual price movement");
+    expect(reply).toContain("does not establish company fraud");
   });
   it("still delivers the verdict if the progress message fails", async () => {
     jest.mocked(fetch).mockRejectedValueOnce(new Error("progress unavailable"));

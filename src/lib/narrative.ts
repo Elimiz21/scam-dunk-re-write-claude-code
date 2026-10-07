@@ -275,7 +275,7 @@ IMPORTANT:
  * Generate fallback narrative without LLM
  * Used when OpenAI is not configured or fails
  */
-function generateFallbackNarrative(
+export function generateFallbackNarrative(
   riskLevel: RiskLevel,
   totalScore: number,
   signals: RiskSignal[],

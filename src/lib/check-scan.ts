@@ -9,7 +9,7 @@ import {
   calculateRiskLevel,
   getDataCompleteness,
 } from "@/lib/scoring/engine";
-import { generateNarrative } from "@/lib/narrative";
+import { generateFallbackNarrative, generateNarrative } from "@/lib/narrative";
 import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
 import { logScanHistory } from "@/lib/admin/metrics";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
@@ -269,6 +269,7 @@ export type AuthorizedStockScanRequest = {
 export async function processCheckRequest(
   request: NextRequest,
   authenticatedUserId?: string,
+  fastNarrative = false,
 ) {
   const startTime = Date.now();
   let currentStep = "INIT";
@@ -531,7 +532,7 @@ export async function processCheckRequest(
 
     // Generate narrative (LLM or fallback)
     currentStep = "NARRATIVE";
-    const narrative = await generateNarrative(
+    const narrative = await (fastNarrative ? generateFallbackNarrative : generateNarrative)(
       scoringResult.riskLevel,
       scoringResult.totalScore,
       scoringResult.signals,
@@ -657,7 +658,7 @@ export async function runAuthorizedStockScan(
     },
     body: JSON.stringify({ ticker: input.ticker, assetType: input.assetType }),
   });
-  const response = await processCheckRequest(request, input.userId);
+  const response = await processCheckRequest(request, input.userId, true);
   const body = await response.json();
   if (!response.ok) {
     return { ok: false as const, status: response.status, body };

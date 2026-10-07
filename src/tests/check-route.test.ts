@@ -34,6 +34,7 @@ jest.mock("@/lib/scoring", () => ({
 
 jest.mock("@/lib/narrative", () => ({
   generateNarrative: jest.fn(),
+  generateFallbackNarrative: jest.fn(),
 }));
 
 jest.mock("@/lib/admin/metrics", () => ({
@@ -45,6 +46,7 @@ jest.mock("@/lib/email", () => ({
 }));
 
 import { POST } from "../app/api/check/route";
+import { runAuthorizedStockScan } from "@/lib/check-scan";
 
 describe("POST /api/check request eligibility", () => {
   beforeEach(() => {
@@ -91,6 +93,7 @@ describe("completed scan persistence", () => {
     market.fetchMarketData.mockResolvedValue({ dataAvailable: true, isOTC: false, priceHistory: [], quote: { companyName: "Apple", marketCap: 100_000_000 } });
     jest.requireMock("@/lib/scoring").computeRiskScore.mockResolvedValue({ riskLevel: "LOW", totalScore: 0, signals: [], isInsufficient: false, isLegitimate: true });
     jest.requireMock("@/lib/narrative").generateNarrative.mockResolvedValue({ disclaimers: [] });
+    jest.requireMock("@/lib/narrative").generateFallbackNarrative.mockReturnValue({ header: "Immediate verdict", disclaimers: [] });
   });
 
   afterEach(() => {
@@ -127,6 +130,15 @@ describe("completed scan persistence", () => {
     const response = await POST(scanRequest());
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ riskLevel: "LOW", stockSummary: { ticker: "AAPL" } });
+  });
+
+  test("uses immediate narrative for a messaging scan without calling the LLM", async () => {
+    mockLogScanHistory.mockResolvedValueOnce(undefined);
+    const result = await runAuthorizedStockScan({ userId: "user-1", ticker: "AAPL", assetType: "stock" });
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) expect(result.body.narrative.header).toBe("Immediate verdict");
+    expect(jest.requireMock("@/lib/narrative").generateFallbackNarrative).toHaveBeenCalled();
+    expect(jest.requireMock("@/lib/narrative").generateNarrative).not.toHaveBeenCalled();
   });
 
   test("rejects a synthetic AI result and falls back to deterministic scoring", async () => {
