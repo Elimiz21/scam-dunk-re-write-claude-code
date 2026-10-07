@@ -98,8 +98,16 @@ describe("Telegram webhook and scan flow", () => {
   it("scans only for a linked subscriber and replies with a concise verdict", async () => {
     expect((await POST(request())).status).toBe(200);
     expect(runAuthorizedStockScan).toHaveBeenCalledWith({ userId: "user", ticker: "AAPL", assetType: "stock" });
-    const body = JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string);
+    const progress = JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string);
+    expect(progress.text).toContain("Scanning AAPL");
+    const body = JSON.parse(jest.mocked(fetch).mock.calls[1][1]!.body as string);
     expect(body.chat_id).toBe("456"); expect(body.text).toContain("AAPL — LOW");
+  });
+  it("still delivers the verdict if the progress message fails", async () => {
+    jest.mocked(fetch).mockRejectedValueOnce(new Error("progress unavailable"));
+    await processTelegramInboundEvent("event");
+    expect(runAuthorizedStockScan).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(jest.mocked(fetch).mock.calls[1][1]!.body as string).text).toContain("AAPL — LOW");
   });
   it("declines unlinked and expired accounts without consuming quota", async () => {
     mockPrisma.telegramInboundEvent.findUnique.mockResolvedValueOnce(event({ binding: null }));

@@ -179,6 +179,14 @@ export async function processTelegramInboundEvent(
     data: { status: "SCANNING" },
   });
 
+  // Full scans can take tens of seconds. Acknowledge immediately so the chat
+  // does not appear stalled; the final verdict remains the persisted reply.
+  try {
+    await sendTelegramTextReply(recipient, `Scanning ${parsed.ticker}… I'll reply here when it's ready.`);
+  } catch {
+    // A failed progress message must not prevent the final verdict.
+  }
+
   const scan = await runAuthorizedStockScan({
     userId: event.binding.userId,
     ticker: parsed.ticker,
