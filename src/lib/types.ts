@@ -105,6 +105,8 @@ export interface RiskResponse {
   riskLevel: RiskLevel;
   totalScore: number;
   signals: RiskSignal[];
+  /** Market indicators excluded from pump-and-dump scoring by size/liquidity. */
+  excludedMarketSignals?: RiskSignal[];
   stockSummary: StockSummary;
   narrative: Narrative;
   usage: UsageInfo;
