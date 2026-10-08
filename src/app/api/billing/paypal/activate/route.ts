@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { activateSubscription } from "@/lib/paypal";
+import { getBillingPlanCatalog } from "@/lib/billing/provider";
+import {
+  isAnalyticsClientId,
+  recordPurchase,
+} from "@/lib/conversion-funnel-server";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 /**
@@ -24,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { subscriptionId, plan } = body;
+    const { subscriptionId, plan, analyticsClientId } = body;
 
     if (!subscriptionId) {
       return NextResponse.json(
@@ -33,10 +38,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const resolvedPlan = plan === "PRO_MAX" ? "PRO_MAX" : "PAID";
     const result = await activateSubscription(
       session.user.id,
       subscriptionId,
-      plan === "PRO_MAX" ? "PRO_MAX" : "PAID",
+      resolvedPlan,
     );
 
     if (!result.success) {
@@ -44,6 +50,24 @@ export async function POST(req: NextRequest) {
         { error: result.error || "Failed to activate subscription" },
         { status: 400 },
       );
+    }
+
+    const billingPlan = getBillingPlanCatalog()[resolvedPlan];
+    try {
+      await recordPurchase({
+        userId: session.user.id,
+        transactionId: subscriptionId,
+        plan: resolvedPlan,
+        provider: "PAYPAL",
+        valueCents: billingPlan.monthlyPriceCents ?? 0,
+        currency: billingPlan.currency,
+        clientId: isAnalyticsClientId(analyticsClientId) ? analyticsClientId : undefined,
+        occurredAt: new Date(),
+      });
+    } catch (analyticsError) {
+      // Subscription activation has already been verified and applied. Retrying
+      // analytics must never make a paid customer appear to have failed.
+      console.error("PayPal purchase analytics recording failed", analyticsError instanceof Error ? analyticsError.name : "unknown");
     }
 
     return NextResponse.json({ success: true });

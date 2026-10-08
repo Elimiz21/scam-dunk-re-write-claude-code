@@ -37,7 +37,7 @@ const productSchema = {
       price: "0",
       priceCurrency: "USD",
       description:
-        "5 manual scan credits per month, an unlimited watchlist, and 1 active monitor.",
+        "1 manual scan credit per month, an unlimited watchlist, and 1 active monitor.",
     },
     {
       "@type": "Offer",
@@ -67,7 +67,7 @@ const faqSchema = {
       name: "What does the free plan include?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Five manual scan credits per month, an unlimited watchlist, and one active monitor. Every check returns the full verdict and the exact signals we found — the free plan is not a teaser.",
+        text: "One manual scan credit per month, an unlimited watchlist, and one active monitor. Every check returns the full verdict and the exact signals we found — the free plan is not a teaser.",
       },
     },
     {
@@ -120,7 +120,7 @@ const PLAN_CARDS = [
     cadence: "/ forever",
     description: "For the tip that’s nagging at you right now.",
     features: [
-      "5 manual scan credits per month",
+      "1 manual scan credit per month",
       "Unlimited watchlist saves",
       "1 active monitor",
       "Daily or Weekly scheduled checks",

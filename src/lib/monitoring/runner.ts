@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/db";
-import { getPlanEntitlements } from "@/lib/entitlements";
+import {
+  getMonthlyScanCreditLimit,
+  getPlanEntitlements,
+} from "@/lib/entitlements";
 import { isFreshMarketPublication } from "@/lib/pump-radar";
 import { normalizeSupportedTicker } from "@/lib/stock-universe";
 
@@ -252,11 +255,15 @@ export function createMonitoringRunner(
 
         const user = await transaction.user.findUnique({
           where: { id: monitor.watchlistEntry.userId },
-          select: { plan: true },
+          select: { plan: true, freeMonthlyScanCredits: true },
         });
         if (!user) throw new Error("MONITOR_USER_NOT_FOUND");
 
         const entitlements = getPlanEntitlements(user.plan);
+        const scanCreditLimit = getMonthlyScanCreditLimit(
+          user.plan,
+          user.freeMonthlyScanCredits,
+        );
         const usageKey = monthKey(now);
         const usage = await transaction.scanUsage.findUnique({
           where: {
@@ -267,7 +274,7 @@ export function createMonitoringRunner(
           },
           select: { scanCount: true },
         });
-        if ((usage?.scanCount ?? 0) >= entitlements.manualScanCredits) {
+        if ((usage?.scanCount ?? 0) >= scanCreditLimit) {
           await repository.skipExecution(
             monitor.watchlistEntry.userId,
             execution.id,

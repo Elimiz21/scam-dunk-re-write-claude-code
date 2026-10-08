@@ -22,7 +22,7 @@ export async function getUserUsage(userId: string): Promise<{
   // Get user with their plan
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true },
+    select: { plan: true, freeMonthlyScanCredits: true },
   });
 
   if (!user) {
@@ -30,7 +30,7 @@ export async function getUserUsage(userId: string): Promise<{
   }
 
   const plan = user.plan as Plan;
-  const limit = getScanLimit(plan);
+  const limit = getScanLimit(plan, user.freeMonthlyScanCredits);
 
   // Get or create usage record for this month
   const usage = await prisma.scanUsage.findUnique({
@@ -65,7 +65,7 @@ export async function canUserScan(userId: string): Promise<{
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({
       where: { id: userId },
-      select: { plan: true },
+      select: { plan: true, freeMonthlyScanCredits: true },
     });
 
     if (!user) {
@@ -73,7 +73,7 @@ export async function canUserScan(userId: string): Promise<{
     }
 
     const plan = user.plan as Plan;
-    const limit = getScanLimit(plan);
+    const limit = getScanLimit(plan, user.freeMonthlyScanCredits);
 
     const usage = await tx.scanUsage.findUnique({
       where: {
@@ -111,7 +111,7 @@ export async function incrementScanCount(userId: string): Promise<UsageInfo> {
   return await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({
       where: { id: userId },
-      select: { plan: true },
+      select: { plan: true, freeMonthlyScanCredits: true },
     });
 
     if (!user) {
@@ -119,7 +119,7 @@ export async function incrementScanCount(userId: string): Promise<UsageInfo> {
     }
 
     const plan = user.plan as Plan;
-    const limit = getScanLimit(plan);
+    const limit = getScanLimit(plan, user.freeMonthlyScanCredits);
 
     const usage = await tx.scanUsage.upsert({
       where: {
@@ -172,7 +172,7 @@ export async function reserveScanSlot(userId: string): Promise<{
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true },
+    select: { plan: true, freeMonthlyScanCredits: true },
   });
 
   if (!user) {
@@ -180,7 +180,7 @@ export async function reserveScanSlot(userId: string): Promise<{
   }
 
   const plan = user.plan as Plan;
-  const limit = getScanLimit(plan);
+  const limit = getScanLimit(plan, user.freeMonthlyScanCredits);
 
   // Conditional atomic increment: only succeeds while still under the limit.
   // Returns the number of rows affected (1 = reserved, 0 = at limit or no row).

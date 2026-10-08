@@ -20,7 +20,7 @@ import { Logo } from "@/components/Logo";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { Turnstile } from "@/components/turnstile";
 import { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/config";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackEventOnce } from "@/lib/analytics";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -89,7 +89,12 @@ export default function SignupPage() {
       }
 
       trackEvent("registration_completed", { method: "email" });
-      trackEvent("sign_up", { method: "email" });
+      trackEventOnce("sign_up", `signup:${email.toLowerCase()}`, {
+        method: "email",
+        user_type: "free",
+        subscription_plan: "free",
+        funnel_stage: "signed_up",
+      });
       // Show success state - user needs to verify email
       setIsSuccess(true);
     } catch (err) {
@@ -167,7 +172,7 @@ export default function SignupPage() {
             Create your account
           </CardTitle>
           <CardDescription>
-            Start checking stocks for red flags - 5 manual scan credits per month
+            Start checking stocks for red flags - 1 manual scan credit per month
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

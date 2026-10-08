@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getAnalyticsClientId, trackEventOnce } from "@/lib/analytics";
 
 declare global {
   interface Window {
@@ -106,6 +107,32 @@ export function PayPalButton({
             createSubscription: function (data: any, actions: any) {
               return actions.subscription.create({
                 plan_id: config.planId,
+              }).then((subscriptionId: string) => {
+                const price = (config.monthlyPriceCents ?? 0) / 100;
+                const itemId = plan === "PRO_MAX" ? "scamdunk_pro_max" : "scamdunk_pro";
+                const itemName = plan === "PRO_MAX" ? "ScamDunk Pro Max" : "ScamDunk Pro";
+                if (trackEventOnce("begin_checkout", `paypal:${subscriptionId}`, {
+                  currency: "USD",
+                  value: price,
+                  items: [{ item_id: itemId, item_name: itemName, item_category: "subscription", price, quantity: 1 }],
+                })) {
+                  void fetch("/api/analytics/events", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      eventType: "BEGIN_CHECKOUT",
+                      idempotencyKey: `paypal:${subscriptionId}`,
+                      plan,
+                      provider: "PAYPAL",
+                      transactionId: subscriptionId,
+                      clientId: getAnalyticsClientId(),
+                      ...(config.monthlyPriceCents !== null
+                        ? { valueCents: config.monthlyPriceCents }
+                        : {}),
+                    }),
+                  });
+                }
+                return subscriptionId;
               });
             },
             onApprove: async function (data: any, actions: any) {
@@ -119,6 +146,7 @@ export function PayPalButton({
                   body: JSON.stringify({
                     subscriptionId: data.subscriptionID,
                     plan,
+                    analyticsClientId: getAnalyticsClientId(),
                   }),
                 });
 

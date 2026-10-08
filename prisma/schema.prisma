@@ -20,6 +20,8 @@ model User {
   image                      String?
   marketingOptIn             Boolean   @default(true)
   plan                       String    @default("FREE") // FREE, PAID (Pro), or PRO_MAX
+  // Stored at signup so free-scan promises remain stable if product defaults change.
+  freeMonthlyScanCredits     Int       @default(1)
   formerPro                  Boolean   @default(false) // true if user ever cancelled a Pro subscription
   billingProvider            String    @default("NONE") // NONE, PAYPAL, STRIPE, APPLE, MANUAL
   billingCustomerId          String?
@@ -37,6 +39,12 @@ model User {
   deletedAt                  DateTime?
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
+  // Safe first-touch attribution. No email, referrer path, or query string is stored.
+  firstTouchSource           String?
+  firstTouchMedium           String?
+  firstTouchCampaign         String?
+  firstTouchReferrerHost     String?
+  firstTouchClientId         String?
 
   accounts                 Account[]
   sessions                 Session[]
@@ -49,6 +57,9 @@ model User {
   notificationDeliveries   NotificationDelivery[]
   billingEvents            BillingEvent[]
   authFunnelEvents         AuthFunnelEvent[]
+  conversionFunnelEvents   ConversionFunnelEvent[]
+
+  @@index([firstTouchSource, firstTouchMedium])
 }
 
 model AuthFunnelEvent {
@@ -62,6 +73,29 @@ model AuthFunnelEvent {
 
   @@index([userId, eventType, occurredAt])
   @@index([eventType, occurredAt])
+}
+
+// First-party, aggregate-safe conversion events. This is the source for the
+// ScamDunk funnel dashboards; GA4 receives the matching non-sensitive events.
+model ConversionFunnelEvent {
+  id             String   @id @default(cuid())
+  userId         String?
+  eventType      String
+  source         String
+  plan           String?
+  provider       String?
+  transactionId  String?
+  valueCents     Int?
+  currency       String?
+  clientId       String?
+  idempotencyKey String   @unique
+  occurredAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, occurredAt])
+  @@index([userId, eventType, occurredAt])
+  @@index([plan, occurredAt])
 }
 
 model FeatureInterest {

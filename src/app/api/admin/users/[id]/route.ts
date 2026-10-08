@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
-import { getPlanEntitlements } from "@/lib/entitlements";
+import { getMonthlyScanCreditLimit } from "@/lib/entitlements";
 import { getCurrentMonthKey } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -70,7 +70,10 @@ export async function GET(
     );
 
     // Determine scan limit based on plan
-    const scanLimit = getPlanEntitlements(user.plan).manualScanCredits;
+    const scanLimit = getMonthlyScanCreditLimit(
+      user.plan,
+      user.freeMonthlyScanCredits,
+    );
 
     return NextResponse.json({
       user: {

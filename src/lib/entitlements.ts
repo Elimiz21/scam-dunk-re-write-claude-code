@@ -28,7 +28,7 @@ const PLAN_ENTITLEMENTS: Record<Plan | "PRO_MAX", PlanEntitlements> = {
   FREE: {
     plan: "FREE",
     displayName: "Free",
-    manualScanCredits: 5,
+    manualScanCredits: 1,
     fullMonitorSlots: 1,
     priceMonitorSlots: 0,
     savedWatchlistLimit: null,
@@ -53,6 +53,23 @@ const PLAN_ENTITLEMENTS: Record<Plan | "PRO_MAX", PlanEntitlements> = {
 
 export function getPlanEntitlements(plan: Plan | string): PlanEntitlements {
   return PLAN_ENTITLEMENTS[plan as Plan | "PRO_MAX"] ?? PLAN_ENTITLEMENTS.FREE;
+}
+
+/**
+ * Free scan credits are a signup-time promise, rather than a mutable product
+ * default. Existing users are migrated to five; new users receive the schema
+ * default of one. Paid-plan allowances remain plan-based.
+ */
+export function getMonthlyScanCreditLimit(
+  plan: Plan | string,
+  freeMonthlyScanCredits?: number | null,
+): number {
+  const entitlements = getPlanEntitlements(plan);
+  if (entitlements.plan !== "FREE") return entitlements.manualScanCredits;
+
+  return Number.isInteger(freeMonthlyScanCredits) && freeMonthlyScanCredits! > 0
+    ? freeMonthlyScanCredits!
+    : entitlements.manualScanCredits;
 }
 
 export function getMonitorSlotKey(

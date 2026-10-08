@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getBillingPlanCatalog } from "@/lib/billing/provider";
 import { getPlanForStripePrice, getStripeClient, getStripePriceId } from "@/lib/stripe";
 import { prisma } from "@/lib/db";
+import { isAnalyticsClientId, recordConversionFunnelEvent } from "@/lib/conversion-funnel-server";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,10 @@ export async function POST(request: NextRequest) {
   let body: unknown;
   try { body = await request.json(); } catch { body = null; }
   const plan = body && typeof body === "object" && "plan" in body ? (body as { plan?: unknown }).plan : null;
+  const requestedClientId = body && typeof body === "object" && "analyticsClientId" in body
+    ? (body as { analyticsClientId?: unknown }).analyticsClientId
+    : undefined;
+  const analyticsClientId = isAnalyticsClientId(requestedClientId) ? requestedClientId : undefined;
   if (plan !== "PAID" && plan !== "PRO_MAX") {
     return NextResponse.json({ error: "A supported billing plan is required.", code: "INVALID_PLAN" }, { status: 400 });
   }
@@ -41,7 +46,7 @@ export async function POST(request: NextRequest) {
     const stripe = getStripeClient();
     const trialDays = Number.parseInt(process.env.BILLING_FREE_TRIAL_DAYS || "0", 10);
     const subscriptionData: { metadata: Record<string, string>; trial_period_days?: number } = {
-      metadata: { userId: session.user.id, plan },
+      metadata: { userId: session.user.id, plan, ...(analyticsClientId ? { analyticsClientId } : {}) },
     };
     if (Number.isInteger(trialDays) && trialDays > 0) subscriptionData.trial_period_days = trialDays;
     const baseUrl = process.env.NEXTAUTH_URL || "https://scamdunk.com";
@@ -54,10 +59,28 @@ export async function POST(request: NextRequest) {
       subscription_data: subscriptionData,
       success_url: `${baseUrl}/account?billing=success`,
       cancel_url: `${baseUrl}/account?billing=cancelled`,
-      metadata: { userId: session.user.id, plan },
+      metadata: { userId: session.user.id, plan, ...(analyticsClientId ? { analyticsClientId } : {}) },
     }, {
       idempotencyKey: `checkout:${session.user.id}:${plan}:${Math.floor(Date.now() / 300000)}`,
     });
+    try {
+      await recordConversionFunnelEvent({
+        userId: session.user.id,
+        eventType: "BEGIN_CHECKOUT",
+        source: "web",
+        idempotencyKey: `stripe:checkout:${checkout.id}`,
+        plan,
+        provider: "STRIPE",
+        transactionId: checkout.id,
+        valueCents: catalog.monthlyPriceCents ?? 0,
+        currency: catalog.currency,
+        clientId: analyticsClientId,
+      });
+    } catch (error) {
+      // The checkout is already valid. Never strand a customer because an
+      // analytics write failed; the Stripe webhook still records purchase.
+      console.error("Checkout analytics persistence failed", error instanceof Error ? error.name : "unknown");
+    }
     return NextResponse.json({ url: checkout.url, id: checkout.id });
   } catch (error) {
     console.error("Stripe checkout creation failed", error instanceof Error ? error.name : "unknown");

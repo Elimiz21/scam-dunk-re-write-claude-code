@@ -13,7 +13,8 @@ describe("Google Analytics", () => {
     expect(layout).toContain("<GoogleAnalytics />");
     expect(analytics).toContain("G-377T7N93Q6");
     expect(analytics).toContain("googletagmanager.com/gtag/js");
-    expect(analytics).toContain('strategy="afterInteractive"');
-    expect(analytics).toContain("window.gtag = window.gtag || gtag");
+    expect(analytics).toContain('useEffect');
+    expect(analytics).toContain('document.head.appendChild');
+    expect(analytics).toContain("analyticsWindow.gtag = analyticsWindow.gtag || gtag");
   });
 });

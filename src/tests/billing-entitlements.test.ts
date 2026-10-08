@@ -56,7 +56,7 @@ describe("billing plan catalog", () => {
     expect(catalog.FREE).toMatchObject({
       displayName: "Free",
       monthlyPriceCents: 0,
-      manualScanCredits: 5,
+      manualScanCredits: 1,
       fullMonitorSlots: 1,
       priceMonitorSlots: 0,
     });
@@ -105,6 +105,19 @@ describe("billing plan catalog", () => {
       requiresPaymentMethod: true,
       startsAt: null,
       endsAt: null,
+    });
+  });
+
+  test("shows grandfathered users their stored five-scan free allowance", () => {
+    const billing = resolveBillingEntitlements({
+      plan: "FREE",
+      freeMonthlyScanCredits: 5,
+    });
+
+    expect(billing).toMatchObject({
+      plan: "FREE",
+      displayName: "Free",
+      manualScanCredits: 5,
     });
   });
 

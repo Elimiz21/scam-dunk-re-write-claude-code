@@ -31,7 +31,7 @@ import type {
   ScanDetailDto,
   ScanSocialDto,
 } from "@/components/dashboard/types";
-import { trackEvent } from "@/lib/analytics";
+import { setAnalyticsIdentity, trackEvent, trackEventOnce } from "@/lib/analytics";
 
 interface HomeContentProps {
   billingPrices: {
@@ -174,8 +174,8 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
     setIsLoading(true);
     setCurrentTicker(data.ticker);
     setHasChatData(!!data.pitchText?.trim());
-    trackEvent("scan_started", {
-      asset_type: data.assetType,
+    trackEvent("run_scan", {
+      scan_type: data.assetType,
       has_context: Boolean(data.context),
       has_pitch_text: Boolean(data.pitchText?.trim()),
     });
@@ -376,6 +376,18 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
           scansLimitThisMonth: responseData.usage.scansLimitThisMonth,
           limitReached: true,
         });
+        const plan = responseData.usage.plan === "PRO_MAX" ? "pro_max" : responseData.usage.plan === "PAID" ? "pro" : "free";
+        const paywallKey = `paywall:${plan}:${responseData.usage.scansLimitThisMonth}`;
+        if (trackEventOnce("paywall_view", paywallKey, {
+          plan,
+          scan_limit: responseData.usage.scansLimitThisMonth,
+        })) {
+          void fetch("/api/analytics/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ eventType: "PAYWALL_VIEW", idempotencyKey: paywallKey }),
+          });
+        }
       } else if (!response.ok) {
         setError(
           responseData.message || responseData.error || "An error occurred",
@@ -383,6 +395,21 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
       } else {
         setResult(responseData as RiskResponse);
         setUsage(responseData.usage);
+        if (session?.user?.id) {
+          const plan = responseData.usage?.plan === "PRO_MAX"
+            ? "pro_max"
+            : responseData.usage?.plan === "PAID"
+              ? "pro"
+              : "free";
+          setAnalyticsIdentity({
+            userId: session.user.id,
+            userProperties: {
+              user_type: plan === "free" ? "free" : "paid",
+              subscription_plan: plan,
+              funnel_stage: "started_scanning",
+            },
+          });
+        }
         trackEvent("scan_completed", {
           ticker: responseData.stockSummary?.ticker || data.ticker,
           risk_level: responseData.riskLevel || "UNKNOWN",

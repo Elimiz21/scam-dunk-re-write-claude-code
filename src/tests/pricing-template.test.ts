@@ -47,7 +47,7 @@ describe("public pricing disclosure", () => {
     expect(pricingPage).toContain("10 active monitors");
     expect(pricingPage).toContain("50 manual scan credits");
     expect(pricingPage).toContain("2 active monitors");
-    expect(pricingPage).toContain("5 manual scan credits");
+    expect(pricingPage).toContain("1 manual scan credit");
     expect(pricingPage).toContain("1 active monitor");
   });
 
@@ -85,7 +85,7 @@ describe("public pricing disclosure", () => {
     expect(llms).toContain("Pro Max plan");
     expect(llms).toContain("10 active monitors");
     expect(llms).toContain("daily or weekly");
-    expect(signup).toContain("5 manual scan credits per month");
+    expect(signup).toContain("1 manual scan credit per month");
   });
 
   test("does not present a misleading upgrade for current Pro or Pro Max users", () => {

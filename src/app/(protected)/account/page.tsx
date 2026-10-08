@@ -32,6 +32,7 @@ import { PayPalButton } from "@/components/PayPalButton";
 import { TelegramAccountCard } from "@/components/TelegramAccountCard";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { PageLayout } from "@/components/PageLayout";
+import { getAnalyticsClientId, trackEventOnce } from "@/lib/analytics";
 
 interface SubscriptionInfo {
   plan: "FREE" | "PAID" | "PRO_MAX";
@@ -187,7 +188,7 @@ function AccountContent() {
     currentPlan === "PRO_MAX" ? "Pro Max" : currentPlan === "PAID" ? "Pro" : "Free"
   );
   const monthlyCredits =
-    billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 5;
+    billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 1;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -384,13 +385,22 @@ function AccountContent() {
       const response = await fetch("/api/billing/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, analyticsClientId: getAnalyticsClientId() }),
       });
       const data = await response.json();
       if (!response.ok || !data.url) {
         setError(data.error || "Stripe checkout is unavailable.");
         return;
       }
+      const selectedPlan = subscriptionInfo?.plans?.find((item) => item.plan === plan);
+      const price = (selectedPlan?.monthlyPriceCents ?? 0) / 100;
+      const itemId = plan === "PRO_MAX" ? "scamdunk_pro_max" : "scamdunk_pro";
+      const itemName = plan === "PRO_MAX" ? "ScamDunk Pro Max" : "ScamDunk Pro";
+      trackEventOnce("begin_checkout", `stripe:${data.id}`, {
+        currency: "USD",
+        value: price,
+        items: [{ item_id: itemId, item_name: itemName, item_category: "subscription", price, quantity: 1 }],
+      });
       window.location.assign(data.url);
     } catch {
       setError("Stripe checkout is temporarily unavailable. Please try again.");

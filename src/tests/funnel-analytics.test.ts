@@ -10,12 +10,12 @@ describe("conversion funnel analytics", () => {
   test("records signup, verification, and login milestones", () => {
     expect(signup).toContain('trackEvent("signup_started"');
     expect(signup).toContain('trackEvent("registration_completed"');
-    expect(verify).toContain('trackEvent("email_verified"');
+    expect(verify).toContain('trackEventOnce("email_verified"');
     expect(login).toContain('trackEvent("login_success"');
   });
 
   test("records scan start and completion without personal data", () => {
-    expect(home).toContain('trackEvent("scan_started"');
+    expect(home).toContain('trackEvent("run_scan"');
     expect(home).toContain('trackEvent("scan_completed"');
     expect(home).not.toContain("email:");
   });
