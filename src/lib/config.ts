@@ -3,7 +3,7 @@
 // time). This ensures runtime env vars injected by Vercel are always picked up,
 // even if they were absent during `next build`.
 
-import { getPlanEntitlements } from "./entitlements";
+import { getMonthlyScanCreditLimit } from "./entitlements";
 
 function env(key: string, fallback = ""): string {
   return process.env[key] || fallback;
@@ -205,8 +205,11 @@ export function validateRequiredEnvVars(): void {
 }
 
 // Get scan limit based on plan
-export function getScanLimit(plan: string): number {
-  return getPlanEntitlements(plan).manualScanCredits;
+export function getScanLimit(
+  plan: string,
+  freeMonthlyScanCredits?: number | null,
+): number {
+  return getMonthlyScanCreditLimit(plan, freeMonthlyScanCredits);
 }
 
 /**

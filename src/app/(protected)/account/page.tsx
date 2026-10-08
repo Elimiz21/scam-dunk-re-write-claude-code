@@ -188,7 +188,7 @@ function AccountContent() {
     currentPlan === "PRO_MAX" ? "Pro Max" : currentPlan === "PAID" ? "Pro" : "Free"
   );
   const monthlyCredits =
-    billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 5;
+    billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 1;
 
   useEffect(() => {
     if (status === "unauthenticated") {

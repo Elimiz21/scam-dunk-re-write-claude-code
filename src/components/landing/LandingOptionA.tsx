@@ -416,7 +416,7 @@ export function LandingOptionA({
                 </span>
               </p>
               <ul className="mt-5 flex-1 space-y-2 text-[14px] text-foreground/90">
-                <li>5 manual scan credits per month</li>
+                <li>1 manual scan credit per month</li>
                 <li>Unlimited watchlist saves</li>
                 <li>1 active monitor</li>
                 <li>Daily or Weekly scheduled checks</li>

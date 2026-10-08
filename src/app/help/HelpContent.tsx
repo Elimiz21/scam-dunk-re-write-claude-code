@@ -38,7 +38,7 @@ const faqs: FAQItem[] = [
     category: "Getting Started",
     question: "Is ScamDunk free to use?",
     answer:
-      "Yes! Free includes 5 manual scan credits per month, an unlimited watchlist, and 1 active monitor. Pro includes 50 credits and 2 active monitors. Pro Max includes 200 credits and 10 active monitors. Every monitor runs the full ScamDunk risk analysis.",
+      "Yes! Free includes 1 manual scan credit per month, an unlimited watchlist, and 1 active monitor. Pro includes 50 credits and 2 active monitors. Pro Max includes 200 credits and 10 active monitors. Every monitor runs the full ScamDunk risk analysis.",
   },
   {
     category: "Getting Started",

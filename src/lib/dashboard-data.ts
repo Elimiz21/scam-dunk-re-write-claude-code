@@ -1,6 +1,11 @@
 import { getCurrentMonthKey } from "@/lib/config";
 import { prisma } from "@/lib/db";
-import { getMonitorCreditEstimate, getPlanEntitlements, getRiskLabel } from "@/lib/entitlements";
+import {
+  getMonthlyScanCreditLimit,
+  getMonitorCreditEstimate,
+  getPlanEntitlements,
+  getRiskLabel,
+} from "@/lib/entitlements";
 import { createPumpRadarService } from "@/lib/pump-radar";
 import type { RiskLevel } from "@/lib/types";
 import {
@@ -439,7 +444,7 @@ export function createDashboardDataService(
       await Promise.all([
         client.user.findUnique({
           where: { id: userId },
-          select: { plan: true },
+          select: { plan: true, freeMonthlyScanCredits: true },
         }),
         client.scanUsage.findUnique({
           where: { userId_monthKey: { userId, monthKey } },
@@ -498,6 +503,10 @@ export function createDashboardDataService(
       : [];
 
     const entitlements = getPlanEntitlements(user.plan);
+    const scanCreditLimit = getMonthlyScanCreditLimit(
+      user.plan,
+      user.freeMonthlyScanCredits,
+    );
     const latestWatchlistScans = watchlist.length
       ? await client.scanHistory.findMany({
           where: {
@@ -527,9 +536,9 @@ export function createDashboardDataService(
       usage: {
         monthKey,
         creditsUsed,
-        creditsLimit: entitlements.manualScanCredits,
+        creditsLimit: scanCreditLimit,
         creditsRemaining: Math.max(
-          entitlements.manualScanCredits - creditsUsed,
+          scanCreditLimit - creditsUsed,
           0,
         ),
       },

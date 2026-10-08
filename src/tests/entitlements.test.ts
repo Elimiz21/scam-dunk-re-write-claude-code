@@ -1,4 +1,5 @@
 import {
+  getMonthlyScanCreditLimit,
   getMonitorSlotKey,
   getPlanEntitlements,
   getRiskLabel,
@@ -7,7 +8,7 @@ import { getScanLimit } from "../lib/config";
 
 describe("plan entitlements", () => {
   test.each([
-    ["FREE", 5, 1, 0, "Free"],
+    ["FREE", 1, 1, 0, "Free"],
     ["PAID", 50, 2, 0, "Pro"],
     ["PRO_MAX", 200, 10, 0, "Pro Max"],
   ])(
@@ -48,6 +49,17 @@ describe("plan entitlements", () => {
         process.env.PAID_CHECKS_PER_MONTH = originalValue;
       }
     }
+  });
+
+  test("keeps the five-scan promise for existing free users while new free users receive one", () => {
+    expect(getMonthlyScanCreditLimit("FREE", 5)).toBe(5);
+    expect(getMonthlyScanCreditLimit("FREE", 1)).toBe(1);
+    expect(getMonthlyScanCreditLimit("FREE")).toBe(1);
+  });
+
+  test("does not let a stored free allowance override a paid plan", () => {
+    expect(getMonthlyScanCreditLimit("PAID", 5)).toBe(50);
+    expect(getMonthlyScanCreditLimit("PRO_MAX", 1)).toBe(200);
   });
 });
 

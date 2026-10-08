@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/db";
-import { getPlanEntitlements } from "@/lib/entitlements";
+import {
+  getMonthlyScanCreditLimit,
+  getPlanEntitlements,
+} from "@/lib/entitlements";
 import {
   configuredPrice,
   DEFAULT_BILLING_MONTHLY_PRICE_CENTS,
@@ -34,6 +37,7 @@ export interface BillingEntitlements extends BillingPlanConfig {
 
 interface BillingUserRecord {
   plan: string;
+  freeMonthlyScanCredits?: number | null;
   billingCustomerId?: string | null;
   billingProvider?: string | null;
   trialStartedAt?: Date | null;
@@ -127,6 +131,10 @@ export function resolveBillingEntitlements(
 
   return {
     ...planConfig,
+    manualScanCredits: getMonthlyScanCreditLimit(
+      plan,
+      user.freeMonthlyScanCredits,
+    ),
     provider,
     subscriptionId,
     trial,
@@ -145,6 +153,7 @@ export async function getBillingEntitlements(
     where: { id: userId },
     select: {
       plan: true,
+      freeMonthlyScanCredits: true,
       billingCustomerId: true,
       billingProvider: true,
       trialStartedAt: true,

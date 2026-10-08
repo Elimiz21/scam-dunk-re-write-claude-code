@@ -96,7 +96,7 @@ export default function TermsContent() {
                     Free plan
                   </h3>
                   <p className="text-[13px] leading-relaxed text-muted-foreground">
-                    5 manual scan credits per month, an unlimited watchlist,
+                    1 manual scan credit per month, an unlimited watchlist,
                     and 1 active monitor. Every monitor runs the full ScamDunk
                     risk analysis. Scheduled checks are not live.
                   </p>

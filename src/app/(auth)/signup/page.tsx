@@ -172,7 +172,7 @@ export default function SignupPage() {
             Create your account
           </CardTitle>
           <CardDescription>
-            Start checking stocks for red flags - 5 manual scan credits per month
+            Start checking stocks for red flags - 1 manual scan credit per month
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
