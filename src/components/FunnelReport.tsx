@@ -88,6 +88,30 @@ export function FunnelReport({ endpoint, compact = false }: { endpoint: string; 
           </div>
         )}
       </section>
+
+      {!compact && (
+        <section className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Acquisition sources</h2>
+              <p className="mt-1 text-sm text-muted-foreground">First-touch source captured when an account is created. No email addresses are included.</p>
+            </div>
+            <p className="text-xs text-muted-foreground">{formatNumber.format(report.acquisition.capturedSignUps)} attributed signups</p>
+          </div>
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead className="border-b border-border text-xs text-muted-foreground">
+                <tr><th className="pb-3 font-medium">Source</th><th className="pb-3 font-medium">Medium</th><th className="pb-3 font-medium">Campaign</th><th className="pb-3 text-right font-medium">Signups</th></tr>
+              </thead>
+              <tbody>
+                {report.acquisition.sources.map((source) => (
+                  <tr key={`${source.source}-${source.medium}-${source.campaign ?? ""}`} className="border-b border-border/70 last:border-0"><td className="py-3 font-medium text-foreground">{source.source}</td><td className="py-3 text-muted-foreground">{source.medium}</td><td className="py-3 text-muted-foreground">{source.campaign ?? "—"}</td><td className="py-3 text-right tabular-nums">{formatNumber.format(source.signUps)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { sendVerificationEmail } from "@/lib/email";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 import { logAuthError } from "@/lib/auth-error-tracking";
 import { validatePasswordStrength } from "@/lib/config";
+import { deserializeFirstTouchAttribution, FIRST_TOUCH_COOKIE, userAttributionData } from "@/lib/first-touch-attribution";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -116,6 +117,11 @@ export async function POST(request: NextRequest) {
           name: name || null,
           marketingOptIn,
           plan: "FREE",
+          ...userAttributionData(
+            deserializeFirstTouchAttribution(request.cookies.get(FIRST_TOUCH_COOKIE)?.value) ?? {
+              source: "direct", medium: "none", campaign: null, referrerHost: null, clientId: null,
+            },
+          ),
         },
       });
       await tx.authFunnelEvent.create({

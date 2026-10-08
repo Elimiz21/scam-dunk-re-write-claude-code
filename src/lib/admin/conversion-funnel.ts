@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { buildAcquisitionBreakdown, type AcquisitionRow } from "@/lib/admin/acquisition-report";
 
 const EVENT_TYPES = ["PAYWALL_VIEW", "BEGIN_CHECKOUT", "PURCHASE"] as const;
 
@@ -49,6 +50,10 @@ export type ConversionFunnelReport = {
     purchaseFromCheckout: number;
   };
   planBreakdown: { free: number; pro: number; proMax: number };
+  acquisition: {
+    capturedSignUps: number;
+    sources: AcquisitionRow[];
+  };
   daily: Array<{
     date: string;
     signUps: number;
@@ -75,6 +80,7 @@ export async function getConversionFunnelReport(days = 30): Promise<ConversionFu
     periodVerifiedUsers,
     periodScans,
     periodEvents,
+    attributionUsers,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { emailVerified: { not: null } } }),
@@ -94,6 +100,13 @@ export async function getConversionFunnelReport(days = 30): Promise<ConversionFu
     prisma.conversionFunnelEvent.findMany({
       where: { eventType: { in: [...EVENT_TYPES] }, occurredAt: { gte: since } },
       select: { eventType: true, occurredAt: true },
+    }),
+    prisma.user.findMany({
+      select: {
+        firstTouchSource: true,
+        firstTouchMedium: true,
+        firstTouchCampaign: true,
+      },
     }),
   ]);
 
@@ -149,6 +162,16 @@ export async function getConversionFunnelReport(days = 30): Promise<ConversionFu
       free: planCounts.get("FREE") ?? 0,
       pro: planCounts.get("PAID") ?? 0,
       proMax: planCounts.get("PRO_MAX") ?? 0,
+    },
+    acquisition: {
+      capturedSignUps: attributionUsers.filter((user) => user.firstTouchSource !== null).length,
+      sources: buildAcquisitionBreakdown(
+        attributionUsers.map((user) => ({
+          source: user.firstTouchSource,
+          medium: user.firstTouchMedium,
+          campaign: user.firstTouchCampaign,
+        })),
+      ).slice(0, 10),
     },
     daily,
   };

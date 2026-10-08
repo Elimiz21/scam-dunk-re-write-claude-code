@@ -39,6 +39,12 @@ model User {
   deletedAt                  DateTime?
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
+  // Safe first-touch attribution. No email, referrer path, or query string is stored.
+  firstTouchSource           String?
+  firstTouchMedium           String?
+  firstTouchCampaign         String?
+  firstTouchReferrerHost     String?
+  firstTouchClientId         String?
 
   accounts                 Account[]
   sessions                 Session[]
@@ -52,6 +58,8 @@ model User {
   billingEvents            BillingEvent[]
   authFunnelEvents         AuthFunnelEvent[]
   conversionFunnelEvents   ConversionFunnelEvent[]
+
+  @@index([firstTouchSource, firstTouchMedium])
 }
 
 model AuthFunnelEvent {
