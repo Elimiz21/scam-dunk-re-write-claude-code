@@ -1,0 +1,309 @@
+// ScamDunk Historical Database Schema
+// Tracks daily stock risk evaluations and social media scan results
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// STOCK MASTER DATA
+// ============================================================
+
+model Stock {
+  id        String   @id @default(cuid())
+  symbol    String   @unique
+  name      String
+  exchange  String   // NASDAQ, NYSE, AMEX, OTC
+  sector    String?
+  industry  String?
+  isOTC     Boolean  @default(false)
+
+  // Relationships
+  dailySnapshots     StockDailySnapshot[]
+  socialMediaScans   SocialMediaScan[]
+  riskAlerts         RiskAlert[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([exchange])
+  @@index([sector])
+  @@index([industry])
+}
+
+// ============================================================
+// DAILY STOCK SNAPSHOT
+// Core table for tracking daily risk scores and prices
+// ============================================================
+
+model StockDailySnapshot {
+  id        String   @id @default(cuid())
+  stockId   String
+  stock     Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  scanDate  DateTime  // Just the date, no time
+
+  // === RISK ASSESSMENT ===
+  riskLevel       String   // LOW, MEDIUM, HIGH, INSUFFICIENT
+  totalScore      Int
+  isLegitimate    Boolean
+  isInsufficient  Boolean  @default(false)
+
+  // === PRICE DATA ===
+  openPrice       Float?   // Daily open
+  closePrice      Float?   // Daily close (same as lastPrice from scan)
+  highPrice       Float?   // Daily high
+  lowPrice        Float?   // Daily low
+  lastPrice       Float?   // Last traded price at scan time
+  previousClose   Float?   // Previous day's close (for change calculation)
+  priceChange     Float?   // Dollar change from previous close
+  priceChangePct  Float?   // Percent change from previous close
+
+  // === VOLUME DATA ===
+  volume           Int?  // Daily volume
+  avgVolume        Int?  // Average volume (30-day or as available)
+  volumeRatio      Float?   // Current volume / avg volume
+  dollarVolume     Float?   // volume * closePrice (liquidity indicator)
+
+  // === MARKET DATA ===
+  marketCap        Float?
+
+  // === TECHNICAL INDICATORS ===
+  rsi              Float?   // RSI value if available
+  volatility       Float?   // Daily volatility percentage
+
+  // === SIGNALS ===
+  // Stored as JSON array: [{code, category, weight, description}]
+  signals          String   @default("[]")
+  signalSummary    String?  // Comma-separated signal codes
+  signalCount      Int      @default(0)
+
+  // === METADATA ===
+  dataSource       String   // FMP, yahoo, etc.
+  evaluatedAt      DateTime // Timestamp of evaluation
+
+  createdAt        DateTime @default(now())
+
+  @@unique([stockId, scanDate])
+  @@index([scanDate])
+  @@index([riskLevel])
+  @@index([riskLevel, scanDate])
+  @@index([totalScore])
+  @@index([signalSummary])
+}
+
+// ============================================================
+// DAILY SCAN SUMMARY
+// Aggregate statistics for each daily scan
+// ============================================================
+
+model DailyScanSummary {
+  id        String   @id @default(cuid())
+  scanDate  DateTime @unique 
+  // === COUNTS ===
+  totalStocks       Int
+  evaluated         Int
+  skippedNoData     Int
+
+  // === RISK DISTRIBUTION ===
+  lowRiskCount      Int
+  mediumRiskCount   Int
+  highRiskCount     Int
+  insufficientCount Int
+
+  // === EXCHANGE BREAKDOWN (stored as JSON) ===
+  // {NASDAQ: {total, LOW, MEDIUM, HIGH}, NYSE: {...}, ...}
+  byExchange        String
+
+  // === SECTOR BREAKDOWN (stored as JSON) ===
+  // {Healthcare: {total, LOW, MEDIUM, HIGH}, Technology: {...}, ...}
+  bySector          String?
+
+  // === SIGNAL STATISTICS ===
+  spikeDropCount    Int?     // Stocks with SPIKE_THEN_DROP
+  activePumpCount   Int?     // Stocks with spike but no drop yet
+  volumeAnomalyCount Int?    // Stocks with volume explosion
+  overboughtCount   Int?     // Stocks with overbought RSI
+
+  // === TIMING ===
+  scanStartTime     DateTime?
+  scanEndTime       DateTime?
+  scanDurationMins  Int?
+  apiCallsMade      Int?
+
+  createdAt         DateTime @default(now())
+
+  @@index([scanDate])
+}
+
+// ============================================================
+// SOCIAL MEDIA SCAN RESULTS
+// Track social media promotion activity for stocks
+// ============================================================
+
+model SocialMediaScan {
+  id        String   @id @default(cuid())
+  stockId   String
+  stock     Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  scanDate  DateTime 
+  // === PROMOTION EVIDENCE ===
+  isPromoted         Boolean  @default(false)
+  promotionScore     Int      @default(0)  // 0-10 scale
+  promotionSource    String?  // Discord, Twitter, Reddit, StockTwits, etc.
+  promoterName       String?  // e.g., "Grandmaster-Obi"
+  promoterHandle     String?  // e.g., "@ObiMem"
+  promotionGroup     String?  // e.g., "Making Easy Money Discord"
+  promotionDate      DateTime?
+  promotionPrice     Float?   // Price when promoted
+
+  // === SOCIAL SENTIMENT ===
+  stocktwitsActivity   String?  // bullish, bearish, neutral
+  stocktwitsMentions   Int?
+  redditMentions       Int?
+  twitterMentions      Int?
+  discordMentions      Int?
+
+  // === PRICE AFTER PROMOTION ===
+  priceAtScan        Float?
+  pricePeakAfter     Float?   // Peak price after promotion
+  priceDropAfter     Float?   // Current/lowest price after peak
+  gainFromPromotion  Float?   // Percentage gain from promotion price
+
+  // === INVESTIGATION NOTES ===
+  evidenceLinks      String?    // Array of URLs
+  notes              String?  // Free-form notes
+
+  // === FLAGS ===
+  pumpAndDumpConfirmed Boolean @default(false)
+  matchesAtlasPattern  Boolean @default(false)  // Matches SEC Atlas Trading pattern
+  missingDisclosures   Boolean @default(false)  // Section 17(b) violation suspected
+
+  createdAt          DateTime @default(now())
+
+  @@unique([stockId, scanDate])
+  @@index([scanDate])
+  @@index([isPromoted])
+  @@index([promoterName])
+  @@index([promotionSource])
+}
+
+// ============================================================
+// RISK ALERTS
+// Track when stocks cross risk thresholds
+// ============================================================
+
+model RiskAlert {
+  id        String   @id @default(cuid())
+  stockId   String
+  stock     Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  alertDate DateTime 
+  // === ALERT TYPE ===
+  alertType String   // NEW_HIGH_RISK, RISK_INCREASED, RISK_DECREASED, PUMP_DETECTED, DUMP_DETECTED
+
+  // === BEFORE/AFTER ===
+  previousRiskLevel String?
+  newRiskLevel      String
+  previousScore     Int?
+  newScore          Int
+
+  // === CONTEXT ===
+  triggeringSignals String?    // What signals triggered the change
+  priceAtAlert      Float?
+  volumeAtAlert     Int?
+
+  // === FLAGS ===
+  isAcknowledged    Boolean  @default(false)
+  notes             String?
+
+  createdAt         DateTime @default(now())
+
+  @@index([alertDate])
+  @@index([alertType])
+  @@index([stockId, alertDate])
+}
+
+// ============================================================
+// PROMOTED STOCKS WATCHLIST
+// Curated list of stocks being actively promoted
+// ============================================================
+
+model PromotedStockWatchlist {
+  id        String   @id @default(cuid())
+  symbol    String
+
+  // === PROMOTION DETAILS ===
+  addedDate         DateTime
+  promoterName      String
+  promotionPlatform String   // Discord, Twitter, Reddit, etc.
+  promotionGroup    String?
+
+  // === ENTRY PRICE ===
+  entryPrice        Float    // Price when added to watchlist
+  entryMarketCap    Float?
+  entryRiskScore    Int
+
+  // === TRACKING ===
+  peakPrice         Float?
+  peakDate          DateTime?
+  currentPrice      Float?
+  lastUpdateDate    DateTime?
+
+  // === OUTCOME ===
+  outcome           String?  // PUMPING, PEAKED, DUMPED, STABLE
+  maxGainPct        Float?   // Maximum gain from entry
+  currentGainPct    Float?   // Current gain/loss from entry
+
+  // === LINKS ===
+  evidenceLinks     String?
+
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([symbol, addedDate])
+  @@index([promoterName])
+  @@index([isActive])
+}
+
+// ============================================================
+// STOCK RISK HISTORY VIEW HELPER
+// For easy querying of risk changes over time
+// ============================================================
+
+model StockRiskChange {
+  id        String   @id @default(cuid())
+  symbol    String
+
+  fromDate  DateTime
+  toDate    DateTime
+
+  // === CHANGES ===
+  fromRiskLevel     String
+  toRiskLevel       String
+  scoreChange       Int      // New score - old score
+
+  // === PRICE CHANGES ===
+  fromPrice         Float?
+  toPrice           Float?
+  priceChangePct    Float?
+
+  // === NEW SIGNALS ===
+  newSignals        String?    // Signals that appeared
+  removedSignals    String?    // Signals that disappeared
+
+  createdAt         DateTime @default(now())
+
+  @@unique([symbol, fromDate, toDate])
+  @@index([symbol])
+  @@index([fromDate])
+  @@index([toDate])
+  @@index([fromRiskLevel, toRiskLevel])
+}
