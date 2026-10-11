@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -33,6 +33,10 @@ import { TelegramAccountCard } from "@/components/TelegramAccountCard";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { PageLayout } from "@/components/PageLayout";
 import { getAnalyticsClientId, trackEventOnce } from "@/lib/analytics";
+import {
+  availablePaymentMethods,
+  createCheckoutAttemptLock,
+} from "@/lib/billing/payment-methods";
 
 interface SubscriptionInfo {
   plan: "FREE" | "PAID" | "PRO_MAX";
@@ -165,6 +169,8 @@ function AccountContent() {
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isStartingStripeCheckout, setIsStartingStripeCheckout] = useState(false);
+  const stripeCheckoutLock = useRef(createCheckoutAttemptLock());
 
   const [whatsAppBinding, setWhatsAppBinding] =
     useState<WhatsAppBindingStatus | null>(null);
@@ -380,6 +386,9 @@ function AccountContent() {
   };
 
   const handleStripeCheckout = async (plan: "PAID" | "PRO_MAX") => {
+    if (!stripeCheckoutLock.current.tryAcquire()) return;
+
+    setIsStartingStripeCheckout(true);
     setError("");
     try {
       const response = await fetch("/api/billing/stripe/checkout", {
@@ -390,6 +399,8 @@ function AccountContent() {
       const data = await response.json();
       if (!response.ok || !data.url) {
         setError(data.error || "Stripe checkout is unavailable.");
+        setIsStartingStripeCheckout(false);
+        stripeCheckoutLock.current.release();
         return;
       }
       const selectedPlan = subscriptionInfo?.plans?.find((item) => item.plan === plan);
@@ -404,6 +415,8 @@ function AccountContent() {
       window.location.assign(data.url);
     } catch {
       setError("Stripe checkout is temporarily unavailable. Please try again.");
+      setIsStartingStripeCheckout(false);
+      stripeCheckoutLock.current.release();
     }
   };
 
@@ -1067,43 +1080,67 @@ function AccountContent() {
                 <div className="grid gap-4 md:grid-cols-3">
                   {subscriptionInfo?.plans
                     ?.filter((plan) => plan.plan !== "FREE" && plan.plan !== currentPlan)
-                    .map((plan) => (
-                    <div
-                      key={plan.plan}
-                      className="rounded-xl border border-border bg-card p-4 space-y-3"
-                    >
-                      <div>
-                        <p className="font-semibold">{plan.displayName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatMonthlyPrice(plan.monthlyPriceCents)}
-                          {plan.monthlyPriceCents ? "/month" : ""}
-                        </p>
-                      </div>
-                      <ul className="text-sm space-y-1 text-muted-foreground">
-                        <li>{plan.manualScanCredits} monthly scan credits</li>
-                        <li>{plan.fullMonitorSlots} active monitor{plan.fullMonitorSlots === 1 ? "" : "s"}</li>
-                      </ul>
-                      {currentPlan === "PAID" && plan.plan === "PRO_MAX" ? (
-                        <p className="text-sm text-muted-foreground">
-                          Contact support to change from Pro to Pro Max.
-                        </p>
-                      ) : plan.paypalPlanId ? (
-                        <PayPalButton
-                          plan={plan.plan as "PAID" | "PRO_MAX"}
-                          onSuccess={handlePayPalSuccess}
-                          onError={handlePayPalError}
-                        />
-                      ) : plan.stripePriceId && subscriptionInfo?.stripe?.checkout ? (
-                        <Button className="w-full" onClick={() => handleStripeCheckout(plan.plan as "PAID" | "PRO_MAX")}>
-                          Start with card
-                        </Button>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          This option is not configured for checkout yet.
-                        </p>
-                      )}
-                    </div>
-                    ))}
+                    .map((plan) => {
+                      const paymentMethods = availablePaymentMethods(
+                        plan,
+                        Boolean(subscriptionInfo?.stripe?.checkout),
+                      );
+
+                      return (
+                        <div
+                          key={plan.plan}
+                          className="rounded-xl border border-border bg-card p-4 space-y-3"
+                        >
+                          <div>
+                            <p className="font-semibold">{plan.displayName}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatMonthlyPrice(plan.monthlyPriceCents)}
+                              {plan.monthlyPriceCents ? "/month" : ""}
+                            </p>
+                          </div>
+                          <ul className="text-sm space-y-1 text-muted-foreground">
+                            <li>{plan.manualScanCredits} monthly scan credits</li>
+                            <li>{plan.fullMonitorSlots} active monitor{plan.fullMonitorSlots === 1 ? "" : "s"}</li>
+                          </ul>
+                          {currentPlan === "PAID" && plan.plan === "PRO_MAX" ? (
+                            <p className="text-sm text-muted-foreground">
+                              Contact support to change from Pro to Pro Max.
+                            </p>
+                          ) : paymentMethods.paypal || paymentMethods.stripe ? (
+                            <div className="space-y-2" aria-label={`${plan.displayName} payment options`}>
+                              <p className="text-xs font-medium text-muted-foreground">Choose a payment method</p>
+                              {paymentMethods.paypal && (
+                                <div className="rounded-lg border border-border/70 p-2">
+                                  <p className="mb-2 px-1 text-xs font-medium text-muted-foreground">PayPal</p>
+                                  <PayPalButton
+                                    plan={plan.plan as "PAID" | "PRO_MAX"}
+                                    onSuccess={handlePayPalSuccess}
+                                    onError={handlePayPalError}
+                                  />
+                                </div>
+                              )}
+                              {paymentMethods.stripe && (
+                                <Button
+                                  className="w-full"
+                                  onClick={() => handleStripeCheckout(plan.plan as "PAID" | "PRO_MAX")}
+                                  disabled={isStartingStripeCheckout}
+                                >
+                                  {isStartingStripeCheckout ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Opening secure checkout…</>
+                                  ) : (
+                                    <><CreditCard className="mr-2 h-4 w-4" aria-hidden="true" />Pay by card with Stripe</>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              This option is not configured for checkout yet.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
                 <div className="rounded-lg border border-border bg-background/60 p-4 text-sm text-muted-foreground space-y-1">
                   <p>
