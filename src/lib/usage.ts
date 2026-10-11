@@ -6,8 +6,37 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
-import { getCurrentMonthKey, getScanLimit } from "./config";
+import { getCurrentMonthKey } from "./config";
+import { getFreeScanAllowance } from "./entitlements";
 import { UsageInfo, Plan } from "./types";
+
+type ScanAllowanceUser = {
+  plan: string;
+  freeMonthlyScanCredits: number | null;
+  freeScanAllowancePeriod: string;
+  freeLifetimeScansUsed: number;
+};
+
+function allowanceForUser(user: ScanAllowanceUser) {
+  return getFreeScanAllowance(user.plan, {
+    period: user.freeScanAllowancePeriod,
+    monthlyCredits: user.freeMonthlyScanCredits,
+    lifetimeCredits: 1,
+  });
+}
+
+function isLifetimeFreeAllowance(user: ScanAllowanceUser): boolean {
+  return user.plan === "FREE" && allowanceForUser(user).period === "LIFETIME";
+}
+
+function usageInfo(plan: Plan, used: number, limit: number): UsageInfo {
+  return {
+    plan,
+    scansUsedThisMonth: used,
+    scansLimitThisMonth: limit,
+    limitReached: used >= limit,
+  };
+}
 
 /**
  * Get current usage for a user
@@ -22,7 +51,12 @@ export async function getUserUsage(userId: string): Promise<{
   // Get user with their plan
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, freeMonthlyScanCredits: true },
+    select: {
+      plan: true,
+      freeMonthlyScanCredits: true,
+      freeScanAllowancePeriod: true,
+      freeLifetimeScansUsed: true,
+    },
   });
 
   if (!user) {
@@ -30,7 +64,15 @@ export async function getUserUsage(userId: string): Promise<{
   }
 
   const plan = user.plan as Plan;
-  const limit = getScanLimit(plan, user.freeMonthlyScanCredits);
+  const allowance = allowanceForUser(user);
+  const limit = allowance.credits;
+  if (isLifetimeFreeAllowance(user)) {
+    return {
+      plan,
+      scansUsedThisMonth: user.freeLifetimeScansUsed,
+      scansLimitThisMonth: limit,
+    };
+  }
 
   // Get or create usage record for this month
   const usage = await prisma.scanUsage.findUnique({
@@ -65,7 +107,12 @@ export async function canUserScan(userId: string): Promise<{
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({
       where: { id: userId },
-      select: { plan: true, freeMonthlyScanCredits: true },
+      select: {
+        plan: true,
+        freeMonthlyScanCredits: true,
+        freeScanAllowancePeriod: true,
+        freeLifetimeScansUsed: true,
+      },
     });
 
     if (!user) {
@@ -73,7 +120,14 @@ export async function canUserScan(userId: string): Promise<{
     }
 
     const plan = user.plan as Plan;
-    const limit = getScanLimit(plan, user.freeMonthlyScanCredits);
+    const allowance = allowanceForUser(user);
+    const limit = allowance.credits;
+    if (isLifetimeFreeAllowance(user)) {
+      return {
+        canScan: user.freeLifetimeScansUsed < limit,
+        usage: usageInfo(plan, user.freeLifetimeScansUsed, limit),
+      };
+    }
 
     const usage = await tx.scanUsage.findUnique({
       where: {
@@ -89,12 +143,7 @@ export async function canUserScan(userId: string): Promise<{
 
     return {
       canScan: !limitReached,
-      usage: {
-        plan,
-        scansUsedThisMonth: currentCount,
-        scansLimitThisMonth: limit,
-        limitReached,
-      } as UsageInfo,
+      usage: usageInfo(plan, currentCount, limit),
     };
   });
 
@@ -111,7 +160,12 @@ export async function incrementScanCount(userId: string): Promise<UsageInfo> {
   return await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({
       where: { id: userId },
-      select: { plan: true, freeMonthlyScanCredits: true },
+      select: {
+        plan: true,
+        freeMonthlyScanCredits: true,
+        freeScanAllowancePeriod: true,
+        freeLifetimeScansUsed: true,
+      },
     });
 
     if (!user) {
@@ -119,7 +173,23 @@ export async function incrementScanCount(userId: string): Promise<UsageInfo> {
     }
 
     const plan = user.plan as Plan;
-    const limit = getScanLimit(plan, user.freeMonthlyScanCredits);
+    const allowance = allowanceForUser(user);
+    const limit = allowance.credits;
+    if (isLifetimeFreeAllowance(user)) {
+      const updated = await tx.user.updateMany({
+        where: {
+          id: userId,
+          plan: "FREE",
+          freeScanAllowancePeriod: "LIFETIME",
+          freeLifetimeScansUsed: { lt: limit },
+        },
+        data: { freeLifetimeScansUsed: { increment: 1 } },
+      });
+      const used = updated.count === 1
+        ? user.freeLifetimeScansUsed + 1
+        : user.freeLifetimeScansUsed;
+      return usageInfo(plan, used, limit);
+    }
 
     const usage = await tx.scanUsage.upsert({
       where: {
@@ -140,12 +210,7 @@ export async function incrementScanCount(userId: string): Promise<UsageInfo> {
       },
     });
 
-    return {
-      plan,
-      scansUsedThisMonth: usage.scanCount,
-      scansLimitThisMonth: limit,
-      limitReached: usage.scanCount >= limit,
-    };
+    return usageInfo(plan, usage.scanCount, limit);
   });
 }
 
@@ -172,7 +237,12 @@ export async function reserveScanSlot(userId: string): Promise<{
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, freeMonthlyScanCredits: true },
+    select: {
+      plan: true,
+      freeMonthlyScanCredits: true,
+      freeScanAllowancePeriod: true,
+      freeLifetimeScansUsed: true,
+    },
   });
 
   if (!user) {
@@ -180,7 +250,24 @@ export async function reserveScanSlot(userId: string): Promise<{
   }
 
   const plan = user.plan as Plan;
-  const limit = getScanLimit(plan, user.freeMonthlyScanCredits);
+  const allowance = allowanceForUser(user);
+  const limit = allowance.credits;
+
+  if (isLifetimeFreeAllowance(user)) {
+    const reserved = await prisma.user.updateMany({
+      where: {
+        id: userId,
+        plan: "FREE",
+        freeScanAllowancePeriod: "LIFETIME",
+        freeLifetimeScansUsed: { lt: limit },
+      },
+      data: { freeLifetimeScansUsed: { increment: 1 } },
+    });
+    const used = reserved.count === 1
+      ? user.freeLifetimeScansUsed + 1
+      : user.freeLifetimeScansUsed;
+    return { reserved: reserved.count === 1, usage: usageInfo(plan, used, limit) };
+  }
 
   // Conditional atomic increment: only succeeds while still under the limit.
   // Returns the number of rows affected (1 = reserved, 0 = at limit or no row).
@@ -200,12 +287,7 @@ export async function reserveScanSlot(userId: string): Promise<{
     const scanCount = updated?.scanCount ?? 1;
     return {
       reserved: true,
-      usage: {
-        plan,
-        scansUsedThisMonth: scanCount,
-        scansLimitThisMonth: limit,
-        limitReached: scanCount >= limit,
-      },
+      usage: usageInfo(plan, scanCount, limit),
     };
   }
 
@@ -220,12 +302,7 @@ export async function reserveScanSlot(userId: string): Promise<{
     // Row exists but the conditional update matched nothing → at the limit.
     return {
       reserved: false,
-      usage: {
-        plan,
-        scansUsedThisMonth: existing.scanCount,
-        scansLimitThisMonth: limit,
-        limitReached: true,
-      },
+      usage: usageInfo(plan, existing.scanCount, limit),
     };
   }
 
@@ -239,12 +316,7 @@ export async function reserveScanSlot(userId: string): Promise<{
     });
     return {
       reserved: true,
-      usage: {
-        plan,
-        scansUsedThisMonth: created.scanCount,
-        scansLimitThisMonth: limit,
-        limitReached: created.scanCount >= limit,
-      },
+      usage: usageInfo(plan, created.scanCount, limit),
     };
   } catch (error) {
     if (
@@ -267,12 +339,7 @@ export async function reserveScanSlot(userId: string): Promise<{
       const reserved = retry === 1;
       return {
         reserved,
-        usage: {
-          plan,
-          scansUsedThisMonth: scanCount,
-          scansLimitThisMonth: limit,
-          limitReached: !reserved || scanCount >= limit,
-        },
+        usage: usageInfo(plan, scanCount, limit),
       };
     }
     throw error;
@@ -289,6 +356,28 @@ export async function reserveScanSlot(userId: string): Promise<{
  * no-op when no row exists. Safe to call fire-and-forget.
  */
 export async function refundScanSlot(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      plan: true,
+      freeMonthlyScanCredits: true,
+      freeScanAllowancePeriod: true,
+      freeLifetimeScansUsed: true,
+    },
+  });
+  if (user && isLifetimeFreeAllowance(user)) {
+    await prisma.user.updateMany({
+      where: {
+        id: userId,
+        plan: "FREE",
+        freeScanAllowancePeriod: "LIFETIME",
+        freeLifetimeScansUsed: { gt: 0 },
+      },
+      data: { freeLifetimeScansUsed: { decrement: 1 } },
+    });
+    return;
+  }
+
   const monthKey = getCurrentMonthKey();
 
   await prisma.$executeRaw`

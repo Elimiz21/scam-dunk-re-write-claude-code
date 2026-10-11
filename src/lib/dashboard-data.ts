@@ -1,7 +1,7 @@
 import { getCurrentMonthKey } from "@/lib/config";
 import { prisma } from "@/lib/db";
 import {
-  getMonthlyScanCreditLimit,
+  getFreeScanAllowance,
   getMonitorCreditEstimate,
   getPlanEntitlements,
   getRiskLabel,
@@ -444,7 +444,12 @@ export function createDashboardDataService(
       await Promise.all([
         client.user.findUnique({
           where: { id: userId },
-          select: { plan: true, freeMonthlyScanCredits: true },
+          select: {
+            plan: true,
+            freeMonthlyScanCredits: true,
+            freeScanAllowancePeriod: true,
+            freeLifetimeScansUsed: true,
+          },
         }),
         client.scanUsage.findUnique({
           where: { userId_monthKey: { userId, monthKey } },
@@ -503,10 +508,12 @@ export function createDashboardDataService(
       : [];
 
     const entitlements = getPlanEntitlements(user.plan);
-    const scanCreditLimit = getMonthlyScanCreditLimit(
-      user.plan,
-      user.freeMonthlyScanCredits,
-    );
+    const allowance = getFreeScanAllowance(user.plan, {
+      period: user.freeScanAllowancePeriod,
+      monthlyCredits: user.freeMonthlyScanCredits,
+      lifetimeCredits: 1,
+    });
+    const scanCreditLimit = allowance.credits;
     const latestWatchlistScans = watchlist.length
       ? await client.scanHistory.findMany({
           where: {
@@ -526,7 +533,9 @@ export function createDashboardDataService(
       }
     }
     const fullUsed = monitors.length;
-    const creditsUsed = usage?.scanCount ?? 0;
+    const creditsUsed = allowance.period === "LIFETIME"
+      ? user.freeLifetimeScansUsed
+      : usage?.scanCount ?? 0;
 
     return {
       plan: {

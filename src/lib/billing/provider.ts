@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import {
-  getMonthlyScanCreditLimit,
+  getFreeScanAllowance,
   getPlanEntitlements,
 } from "@/lib/entitlements";
 import {
@@ -38,6 +38,8 @@ export interface BillingEntitlements extends BillingPlanConfig {
 interface BillingUserRecord {
   plan: string;
   freeMonthlyScanCredits?: number | null;
+  freeScanAllowancePeriod?: string | null;
+  freeLifetimeScansUsed?: number | null;
   billingCustomerId?: string | null;
   billingProvider?: string | null;
   trialStartedAt?: Date | null;
@@ -131,10 +133,11 @@ export function resolveBillingEntitlements(
 
   return {
     ...planConfig,
-    manualScanCredits: getMonthlyScanCreditLimit(
-      plan,
-      user.freeMonthlyScanCredits,
-    ),
+    manualScanCredits: getFreeScanAllowance(plan, {
+      period: user.freeScanAllowancePeriod,
+      monthlyCredits: user.freeMonthlyScanCredits,
+      lifetimeCredits: 1,
+    }).credits,
     provider,
     subscriptionId,
     trial,
@@ -154,6 +157,8 @@ export async function getBillingEntitlements(
     select: {
       plan: true,
       freeMonthlyScanCredits: true,
+      freeScanAllowancePeriod: true,
+      freeLifetimeScansUsed: true,
       billingCustomerId: true,
       billingProvider: true,
       trialStartedAt: true,

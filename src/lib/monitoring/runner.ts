@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import {
-  getMonthlyScanCreditLimit,
+  getFreeScanAllowance,
   getPlanEntitlements,
 } from "@/lib/entitlements";
 import { isFreshMarketPublication } from "@/lib/pump-radar";
@@ -32,7 +32,10 @@ type RunnerClient = {
     updateMany: (args: unknown) => Promise<{ count: number }>;
     update: (args: unknown) => Promise<any>;
   };
-  user: { findUnique: (args: unknown) => Promise<any> };
+  user: {
+    findUnique: (args: unknown) => Promise<any>;
+    updateMany: (args: unknown) => Promise<{ count: number }>;
+  };
   scanUsage: {
     findUnique: (args: unknown) => Promise<any>;
     upsert: (args: unknown) => Promise<any>;
@@ -255,16 +258,57 @@ export function createMonitoringRunner(
 
         const user = await transaction.user.findUnique({
           where: { id: monitor.watchlistEntry.userId },
-          select: { plan: true, freeMonthlyScanCredits: true },
+          select: {
+            plan: true,
+            freeMonthlyScanCredits: true,
+            freeScanAllowancePeriod: true,
+            freeLifetimeScansUsed: true,
+          },
         });
         if (!user) throw new Error("MONITOR_USER_NOT_FOUND");
 
         const entitlements = getPlanEntitlements(user.plan);
-        const scanCreditLimit = getMonthlyScanCreditLimit(
-          user.plan,
-          user.freeMonthlyScanCredits,
-        );
+        const allowance = getFreeScanAllowance(user.plan, {
+          period: user.freeScanAllowancePeriod,
+          monthlyCredits: user.freeMonthlyScanCredits,
+          lifetimeCredits: 1,
+        });
+        const scanCreditLimit = allowance.credits;
         const usageKey = monthKey(now);
+        if (user.plan === "FREE" && allowance.period === "LIFETIME") {
+          const reserved = await transaction.user.updateMany({
+            where: {
+              id: monitor.watchlistEntry.userId,
+              plan: "FREE",
+              freeScanAllowancePeriod: "LIFETIME",
+              freeLifetimeScansUsed: { lt: scanCreditLimit },
+            },
+            data: { freeLifetimeScansUsed: { increment: 1 } },
+          });
+          if (reserved.count !== 1) {
+            await repository.skipExecution(
+              monitor.watchlistEntry.userId,
+              execution.id,
+              "NO_CREDITS",
+            );
+            await queueNotifications(
+              repository,
+              monitor.watchlistEntry.userId,
+              execution.id,
+            );
+            await transaction.activeMonitor.update({
+              where: { id: monitor.id },
+              data: {
+                lastEvaluatedAt: now,
+                nextEvaluationAt: calculateNextEvaluationAt(
+                  publicationDate,
+                  monitor.frequency,
+                ),
+              },
+            });
+            return "SKIPPED";
+          }
+        }
         const usage = await transaction.scanUsage.findUnique({
           where: {
             userId_monthKey: {
@@ -274,7 +318,7 @@ export function createMonitoringRunner(
           },
           select: { scanCount: true },
         });
-        if ((usage?.scanCount ?? 0) >= scanCreditLimit) {
+        if (allowance.period === "MONTHLY" && (usage?.scanCount ?? 0) >= scanCreditLimit) {
           await repository.skipExecution(
             monitor.watchlistEntry.userId,
             execution.id,
@@ -298,20 +342,22 @@ export function createMonitoringRunner(
           return "SKIPPED";
         }
 
-        await transaction.scanUsage.upsert({
-          where: {
-            userId_monthKey: {
+        if (allowance.period === "MONTHLY") {
+          await transaction.scanUsage.upsert({
+            where: {
+              userId_monthKey: {
+                userId: monitor.watchlistEntry.userId,
+                monthKey: usageKey,
+              },
+            },
+            create: {
               userId: monitor.watchlistEntry.userId,
               monthKey: usageKey,
+              scanCount: 1,
             },
-          },
-          create: {
-            userId: monitor.watchlistEntry.userId,
-            monthKey: usageKey,
-            scanCount: 1,
-          },
-          update: { scanCount: { increment: 1 } },
-        });
+            update: { scanCount: { increment: 1 } },
+          });
+        }
         await transaction.scanHistory.create({
           data: {
             userId: monitor.watchlistEntry.userId,

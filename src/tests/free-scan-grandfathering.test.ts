@@ -20,6 +20,13 @@ const recoveryMigration = fs.readFileSync(
   ),
   "utf8",
 );
+const lifetimeMigration = fs.readFileSync(
+  path.join(
+    repositoryRoot,
+    "prisma/migrations/20261012000000_make_one_free_scan_lifetime/migration.sql",
+  ),
+  "utf8",
+);
 
 describe("free scan grandfathering migration", () => {
   test("gives future users one stored free credit by default", () => {
@@ -42,5 +49,13 @@ describe("free scan grandfathering migration", () => {
     expect(recoveryMigration).toMatch(
       /SET "freeMonthlyScanCredits" = 5\s+WHERE "createdAt" < TIMESTAMPTZ '2026-10-08T18:43:44Z';/,
     );
+  });
+
+  test("keeps the five-scan legacy promise monthly while one-scan users are lifetime-limited", () => {
+    expect(schema).toContain('freeScanAllowancePeriod     String    @default("LIFETIME")');
+    expect(schema).toContain("freeLifetimeScansUsed       Int       @default(0)");
+    expect(lifetimeMigration).toMatch(/ADD COLUMN IF NOT EXISTS "freeScanAllowancePeriod" TEXT NOT NULL DEFAULT 'LIFETIME'/);
+    expect(lifetimeMigration).toMatch(/SET "freeScanAllowancePeriod" = 'MONTHLY'/);
+    expect(lifetimeMigration).toMatch(/"freeLifetimeScansUsed" = LEAST\(1, completed\."successfulScanCount"\)/);
   });
 });

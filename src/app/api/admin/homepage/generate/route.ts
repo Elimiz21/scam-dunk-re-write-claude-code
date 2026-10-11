@@ -49,7 +49,7 @@ PRODUCT CONTEXT:
 - ScamDunk lets users enter a stock ticker or crypto symbol and get an instant risk analysis
 - It detects pump-and-dump patterns, volume anomalies, regulatory red flags
 - Users can also paste suspicious chat messages or upload screenshots
-    - It has Free, Pro, and Pro Max plans: 5, 50, and 200 monthly manual scan credits
+    - It has Free, Pro, and Pro Max plans: 1 lifetime free manual scan, then 50 and 200 monthly paid manual scan credits
     - All plans allow unlimited watchlist saves; scheduled full-analysis monitoring runs after market close, not live
 - The brand tone is: confident, slightly witty, protective, trustworthy
 

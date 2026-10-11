@@ -1,4 +1,5 @@
 import {
+  getFreeScanAllowance,
   getMonthlyScanCreditLimit,
   getMonitorSlotKey,
   getPlanEntitlements,
@@ -55,6 +56,26 @@ describe("plan entitlements", () => {
     expect(getMonthlyScanCreditLimit("FREE", 5)).toBe(5);
     expect(getMonthlyScanCreditLimit("FREE", 1)).toBe(1);
     expect(getMonthlyScanCreditLimit("FREE")).toBe(1);
+  });
+
+  test("makes the one-scan free offer a lifetime allowance instead of resetting monthly", () => {
+    expect(
+      getFreeScanAllowance("FREE", {
+        period: "LIFETIME",
+        monthlyCredits: 1,
+        lifetimeCredits: 1,
+      }),
+    ).toEqual({ period: "LIFETIME", credits: 1 });
+  });
+
+  test("retains the monthly allowance promised to grandfathered free users", () => {
+    expect(
+      getFreeScanAllowance("FREE", {
+        period: "MONTHLY",
+        monthlyCredits: 5,
+        lifetimeCredits: 1,
+      }),
+    ).toEqual({ period: "MONTHLY", credits: 5 });
   });
 
   test("does not let a stored free allowance override a paid plan", () => {
