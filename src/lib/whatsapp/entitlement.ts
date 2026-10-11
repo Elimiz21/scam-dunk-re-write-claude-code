@@ -29,7 +29,9 @@ export function decideWhatsAppScanEntitlement(
     user.plan === "FREE" ||
     (user.subscriptionExpiresAt
       ? user.subscriptionExpiresAt <= now
-      : !["PAYPAL", "STRIPE", "MANUAL"].includes(user.billingProvider || "")) ||
+      // Admin-granted legacy paid accounts retain billingProvider=NONE.
+      // Match the manual entitlement already honored by billing and Telegram.
+      : !["PAYPAL", "STRIPE", "MANUAL", "NONE"].includes(user.billingProvider || "")) ||
     !binding.active ||
     binding.revokedAt
   ) {
