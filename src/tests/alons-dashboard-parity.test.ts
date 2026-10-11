@@ -94,6 +94,8 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(dashboard).toContain("showPublicationStatus={false}");
     expect(dashboard).toContain("text-[clamp(1.4rem,2vw,1.85rem)]");
     expect(dashboard).toContain("<UnifiedMarketTable data={state.data} initialFilter={initialFilter} onRefresh={load}");
+    expect(dashboard).not.toContain("h-[420px] animate-pulse");
+    expect(dashboard).toContain('aria-label="Loading dashboard content"');
   });
 
   test("matches the prototype's compact add bar and green heading accent", () => {

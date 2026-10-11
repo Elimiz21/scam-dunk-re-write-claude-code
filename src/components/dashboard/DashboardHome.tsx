@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useReducer } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 import { dashboardResourceReducer, type DashboardResourceState } from "@/components/dashboard/dashboard-state";
 import { DashboardScanEntry } from "@/components/dashboard/DashboardScanEntry";
@@ -68,8 +68,11 @@ export function DashboardHome() {
       </header>
 
       {(state.status === "idle" || state.status === "loading") && (
-        <div className="h-[420px] animate-pulse rounded-2xl border border-border bg-secondary motion-reduce:animate-none" aria-live="polite" aria-busy="true">
-          <span className="sr-only"><Loader2 className="animate-spin" />Loading dashboard</span>
+        <div className="space-y-4" aria-label="Loading dashboard content" aria-live="polite" aria-busy="true">
+          <div className="h-11 w-full max-w-md animate-pulse rounded-xl bg-muted/70 motion-reduce:animate-none" />
+          <div className="h-64 animate-pulse rounded-2xl border border-border bg-background motion-reduce:animate-none" />
+          <div className="h-40 animate-pulse rounded-2xl border border-border bg-background motion-reduce:animate-none" />
+          <span className="sr-only">Loading dashboard</span>
         </div>
       )}
 
