@@ -273,6 +273,14 @@ function AccountContent() {
         setWhatsAppCodeSent(true);
       }
       if (!response.ok) {
+        // A rejected resend can invalidate the old challenge. Refresh from the
+        // server before offering any recovered code-entry state again.
+        if (data.code === "UNAVAILABLE") {
+          setWhatsAppBinding((current) => current ? { active: current.active, available: current.available } : null);
+          setWhatsAppCodeSent(false);
+          setWhatsAppCode("");
+          await fetchWhatsAppBinding();
+        }
         const retryHint = data.retryAt ? ` Request another code after ${new Date(data.retryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.` : "";
         throw new Error((data.error || "Couldn’t send a code.") + retryHint);
       }
