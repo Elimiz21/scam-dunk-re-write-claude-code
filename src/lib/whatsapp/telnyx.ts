@@ -19,7 +19,7 @@ const inboundSchema = z.object({
 });
 
 export function verifyTelnyxSignature(raw: Buffer, signature: string | null, timestamp: string | null): boolean {
-  const publicKey = process.env.TELNYX_PUBLIC_KEY;
+  const publicKey = process.env.TELNYX_WHATSAPP_PUBLIC_KEY || process.env.TELNYX_PUBLIC_KEY;
   if (!publicKey) throw new Error("TELNYX_NOT_CONFIGURED");
   if (!signature || !timestamp || !/^\d{10}$/.test(timestamp)) return false;
   if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
@@ -52,7 +52,7 @@ export function parseTelnyxWhatsAppInbound(input: unknown) {
 }
 
 export async function postTelnyxWhatsAppMessage(body: { to: string; type: string; [key: string]: unknown }): Promise<string | null> {
-  const apiKey = process.env.TELNYX_API_KEY;
+  const apiKey = process.env.TELNYX_WHATSAPP_API_KEY || process.env.TELNYX_API_KEY;
   const from = process.env.WHATSAPP_PHONE_NUMBER;
   const profile = process.env.TELNYX_MESSAGING_PROFILE_ID;
   if (!apiKey || !from || !profile) throw new Error("WHATSAPP_PROVIDER_NOT_CONFIGURED");
