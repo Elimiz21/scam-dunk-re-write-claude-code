@@ -15,7 +15,7 @@ const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 5;
 
 export type BindingActionResult =
-  | { ok: true; maskedPhone?: string }
+  | { ok: true; maskedPhone?: string; pending?: boolean; expiresAt?: string; retryAt?: string }
   | { ok: false; code: "INVALID_PHONE" | "NUMBER_IN_USE" | "NOT_ENTITLED" | "TOO_SOON" | "INVALID_CODE" | "EXPIRED_CODE" | "UNAVAILABLE" };
 
 function makeVerificationCode(): string {
@@ -95,8 +95,22 @@ export async function beginWhatsAppBinding(
         revokedAt: null,
       },
     });
-    await sendWhatsAppVerificationCode(phoneNumber, code);
-    return { ok: true, maskedPhone: maskPhoneNumber(phoneNumber) };
+    try {
+      await sendWhatsAppVerificationCode(phoneNumber, code);
+    } catch {
+      // Do not offer a code-entry step for a send that the provider rejected.
+      // Guard by this attempt's hash so a newer request is never cleared.
+      await prisma.whatsAppIdentityBinding.updateMany({
+        where: { userId, identityHash, active: false, verificationCodeHash: hashWhatsAppVerificationCode(code) },
+        data: { verificationCodeHash: null, verificationExpiresAt: null, lastVerificationSentAt: null },
+      });
+      return { ok: false, code: "UNAVAILABLE" };
+    }
+    return {
+      ok: true, maskedPhone: maskPhoneNumber(phoneNumber), pending: true,
+      expiresAt: new Date(now.getTime() + CODE_TTL_MS).toISOString(),
+      retryAt: new Date(now.getTime() + RESEND_COOLDOWN_MS).toISOString(),
+    };
   } catch {
     return { ok: false, code: "UNAVAILABLE" };
   }
@@ -160,15 +174,41 @@ export async function revokeWhatsAppBinding(userId: string): Promise<void> {
   });
 }
 
-export async function getWhatsAppBindingStatus(userId: string): Promise<{
+export interface WhatsAppBindingStatus {
   active: boolean;
   maskedPhone?: string;
-}> {
+  pending?: boolean;
+  expiresAt?: string;
+  retryAt?: string;
+}
+
+// Only return non-secret metadata belonging to the signed-in account.
+// Returning this from GET makes verification resumable on another browser.
+export async function getPendingWhatsAppVerification(userId: string, phoneNumber?: string): Promise<WhatsAppBindingStatus | null> {
+  // Match the latest challenge used by confirmWhatsAppBinding. Never resume an
+  // older number's challenge when a newer attempt has superseded it.
+  const binding = await prisma.whatsAppIdentityBinding.findFirst({
+    where: { userId, active: false, verificationCodeHash: { not: null } },
+    orderBy: { lastVerificationSentAt: "desc" },
+  });
+  if (!binding?.verificationExpiresAt || !binding.lastVerificationSentAt ||
+      binding.revokedAt || binding.verificationExpiresAt.getTime() <= Date.now() ||
+      binding.verificationAttempts >= MAX_VERIFICATION_ATTEMPTS ||
+      (phoneNumber && binding.identityHash !== hashWhatsAppIdentity(phoneNumber))) return null;
+  return {
+    active: false, pending: true,
+    maskedPhone: maskPhoneNumber(decryptWhatsAppData(binding.identityEncrypted)),
+    expiresAt: binding.verificationExpiresAt.toISOString(),
+    retryAt: new Date(binding.lastVerificationSentAt.getTime() + RESEND_COOLDOWN_MS).toISOString(),
+  };
+}
+
+export async function getWhatsAppBindingStatus(userId: string): Promise<WhatsAppBindingStatus> {
   const binding = await prisma.whatsAppIdentityBinding.findFirst({
     where: { userId, active: true, revokedAt: null },
     orderBy: { boundAt: "desc" },
   });
-  if (!binding) return { active: false };
+  if (!binding) return (await getPendingWhatsAppVerification(userId)) ?? { active: false };
   try {
     return { active: true, maskedPhone: maskPhoneNumber(decryptWhatsAppData(binding.identityEncrypted)) };
   } catch {
