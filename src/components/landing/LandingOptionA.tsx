@@ -480,10 +480,12 @@ export function LandingOptionA({
             {[
               {
                 name: "WhatsApp Scanner",
+                href: "/account#whatsapp",
                 desc: "Link your WhatsApp number in ScamDunk, then message a stock ticker to the scanner and get the fraud-risk verdict.",
               },
               {
                 name: "Telegram Scanner",
+                href: "/account#telegram",
                 desc: "Message a stock ticker to the ScamDunk bot on Telegram and get the fraud-risk verdict with the signals found.",
               },
             ].map((bot) => (
@@ -503,7 +505,7 @@ export function LandingOptionA({
                 <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
                   {bot.desc}
                 </p>
-                <Link href="/login" className="mt-4 inline-flex text-sm font-medium text-primary underline underline-offset-4">Connect from your dashboard</Link>
+                <Link href={bot.href} className="mt-4 inline-flex text-sm font-medium text-primary underline underline-offset-4">Connect from your dashboard</Link>
               </div>
             ))}
           </div>
@@ -542,3 +544,4 @@ export function LandingOptionA({
     </div>
   );
 }
+

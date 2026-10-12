@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { withRequestTimeout } from "@/lib/pump-radar-timeout";
 
 interface PumpRadarProps {
   status: "LOADING" | "AVAILABLE" | "UNAVAILABLE";
@@ -44,6 +45,7 @@ interface PumpRadarProps {
   fullPage?: boolean;
   showHeading?: boolean;
   showPublicationStatus?: boolean;
+  onRetry?: () => void;
 }
 
 function riskVariant(label: PumpRadarRow["riskLabel"]) {
@@ -90,6 +92,7 @@ export function PumpRadar({
   fullPage = false,
   showHeading = true,
   showPublicationStatus = fullPage,
+  onRetry,
 }: PumpRadarProps) {
   const [filter, setFilter] = useState<PumpRadarFilter>("ALL");
   const view = buildPumpRadarView({ status, rows, coverage, socialSummary });
@@ -211,8 +214,13 @@ export function PumpRadar({
               <Activity className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
               <p className={cn("mt-3", compact ? "text-[11px] font-medium" : "font-semibold")}>{view.title}</p>
               <p className={cn("mt-1", statusTextClass)}>
-                Try again after the next end-of-day publication.
+                The publication could not be loaded. Try again in a moment.
               </p>
+              {onRetry && (
+                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={onRetry}>
+                  Retry
+                </Button>
+              )}
             </div>
           </CardContent>
         ) : view.state === "empty" ? (
@@ -272,27 +280,38 @@ export function PublicPumpRadar({
   showHeading?: boolean;
 }) {
   const [payload, setPayload] = useState<PumpRadarPayload | null>(null);
+  const [requestVersion, setRequestVersion] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`/api/pump-radar?limit=${fullPage ? 50 : 4}`, {
-      cache: "no-store",
-      signal: controller.signal,
-      headers: { Accept: "application/json" },
-    })
-      .then(async (response) => {
+    let timedOut = false;
+    withRequestTimeout(
+      fetch(`/api/pump-radar?limit=${fullPage ? 50 : 4}`, {
+        cache: "no-store",
+        signal: controller.signal,
+        headers: { Accept: "application/json" },
+      }).then(async (response) => {
         const body = (await response.json()) as PumpRadarPayload;
         if (!response.ok && body.status !== "UNAVAILABLE") {
           throw new Error("Pump Radar unavailable");
         }
-        setPayload(body);
-      })
+        return body;
+      }),
+      12_000,
+      () => {
+        timedOut = true;
+        controller.abort();
+      },
+    )
+      .then(setPayload)
       .catch((error) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (controller.signal.aborted && !timedOut) return;
         setPayload({
           status: "UNAVAILABLE",
           asOf: null,
           publishedAt: null,
+          executedAt: null,
+          publicationQuality: "UNKNOWN",
           freshness: null,
           coverage: null,
           socialPublication: null,
@@ -301,7 +320,12 @@ export function PublicPumpRadar({
         });
       });
     return () => controller.abort();
-  }, [fullPage]);
+  }, [fullPage, requestVersion]);
+
+  const retry = () => {
+    setPayload(null);
+    setRequestVersion((version) => version + 1);
+  };
 
   if (!payload) {
     return (
@@ -317,6 +341,7 @@ export function PublicPumpRadar({
         showDashboardLink={showDashboardLink}
         fullPage={fullPage}
         showHeading={showHeading}
+        onRetry={retry}
       />
     );
   }
@@ -328,6 +353,8 @@ export function PublicPumpRadar({
       showDashboardLink={showDashboardLink}
       fullPage={fullPage}
       showHeading={showHeading}
+      onRetry={retry}
     />
   );
 }
+
