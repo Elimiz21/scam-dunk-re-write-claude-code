@@ -30,7 +30,7 @@ function providerConfig() {
 async function postMessage(body: object): Promise<string | null> {
   const { accessToken, phoneNumberId } = providerConfig();
   const response = await fetch(
-    `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`,
+    `https://graph.facebook.com/v26.0/${phoneNumberId}/messages`,
     {
       method: "POST",
       headers: {
@@ -40,12 +40,23 @@ async function postMessage(body: object): Promise<string | null> {
       body: JSON.stringify({ messaging_product: "whatsapp", ...body }),
     },
   );
-  if (!response.ok) throw new Error("WHATSAPP_PROVIDER_SEND_FAILED");
+  if (!response.ok) {
+    // Meta's description can contain request data. Log only diagnostic codes.
+    const failure = (await response.json().catch(() => null)) as {
+      error?: { code?: number; error_subcode?: number };
+    } | null;
+    console.error("WhatsApp provider send failed", {
+      status: response.status,
+      code: failure?.error?.code ?? null,
+      subcode: failure?.error?.error_subcode ?? null,
+    });
+    throw new Error("WHATSAPP_PROVIDER_SEND_FAILED");
+  }
   const data = (await response.json()) as WhatsAppProviderResponse;
   return data.messages?.[0]?.id ?? null;
 }
 
-/** The configured Meta authentication template must have one body variable: code. */
+/** Meta's copy-code authentication template requires the same OTP in body and button. */
 export async function sendWhatsAppVerificationCode(
   phoneNumber: string,
   code: string,
@@ -60,6 +71,12 @@ export async function sendWhatsAppVerificationCode(
       components: [
         {
           type: "body",
+          parameters: [{ type: "text", text: code }],
+        },
+        {
+          type: "button",
+          sub_type: "url",
+          index: "0",
           parameters: [{ type: "text", text: code }],
         },
       ],
