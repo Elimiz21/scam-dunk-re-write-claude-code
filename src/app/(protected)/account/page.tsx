@@ -194,8 +194,9 @@ function AccountContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const billing = subscriptionInfo?.billing;
+  const isPlanResolved = Boolean(billing || usage);
   const currentPlan = billing?.plan ?? usage?.plan ?? "FREE";
-  const currentPlanName = isLoadingAccountData ? "Loading…" : billing?.displayName ?? (
+  const currentPlanName = isLoadingAccountData ? "Loading…" : !isPlanResolved ? "Unavailable" : billing?.displayName ?? (
     currentPlan === "PRO_MAX" ? "Pro Max" : currentPlan === "PAID" ? "Pro" : "Free"
   );
   const monthlyCredits =
@@ -852,7 +853,7 @@ function AccountContent() {
                   <p className="text-sm text-muted-foreground">Current Plan</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge
-                      variant={isLoadingAccountData || currentPlan === "FREE" ? "secondary" : "default"}
+                      variant={isLoadingAccountData || !isPlanResolved || currentPlan === "FREE" ? "secondary" : "default"}
                     >
                       {currentPlanName}
                     </Badge>
@@ -873,10 +874,10 @@ function AccountContent() {
                 <div className="mt-2">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium">
-                      {isLoadingAccountData ? "Loading…" : `${usage?.scansUsedThisMonth ?? 0} / ${monthlyCredits}`}
+                      {isLoadingAccountData ? "Loading…" : !isPlanResolved ? "Unavailable" : `${usage?.scansUsedThisMonth ?? 0} / ${monthlyCredits}`}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      {!isLoadingAccountData && monthlyCredits > 0 &&
+                      {!isLoadingAccountData && isPlanResolved && monthlyCredits > 0 &&
                         usage?.scansUsedThisMonth !== undefined &&
                         Math.round(
                           (usage.scansUsedThisMonth /
@@ -890,7 +891,7 @@ function AccountContent() {
                     <div
                       className="h-full bg-primary rounded-full transition-all"
                       style={{
-                        width: `${isLoadingAccountData ? 0 : usagePercent(usage, monthlyCredits)}%`,
+                        width: `${isLoadingAccountData || !isPlanResolved ? 0 : usagePercent(usage, monthlyCredits)}%`,
                       }}
                     />
                   </div>
@@ -915,7 +916,7 @@ function AccountContent() {
               )}
 
               {/* Subscription details for PAID users */}
-              {!isLoadingAccountData && currentPlan !== "FREE" && (
+              {!isLoadingAccountData && isPlanResolved && currentPlan !== "FREE" && (
                 <div className="pt-4 border-t space-y-4">
                   <div>
                     <p className="text-sm font-medium mb-2">
@@ -1055,6 +1056,8 @@ function AccountContent() {
                     {isRevokingWhatsApp ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Unlinking…</> : "Unlink WhatsApp"}
                   </Button>
                 </div>
+              ) : !isLoadingAccountData && !isPlanResolved ? (
+                <Alert><AlertDescription>We couldn&apos;t confirm your plan right now. Reload this page and try again.</AlertDescription></Alert>
               ) : !isLoadingAccountData && currentPlan === "FREE" ? (
                 <Alert><AlertDescription>An active ScamDunk subscription is required before you can link WhatsApp. <Link href="#plans" className="font-medium underline underline-offset-4">See Pro plans</Link></AlertDescription></Alert>
               ) : whatsAppCodeSent ? (
@@ -1085,7 +1088,7 @@ function AccountContent() {
           </Card>
 
           {/* Upgrade options for Free users */}
-          {!isLoadingAccountData && currentPlan !== "PRO_MAX" && (
+          {!isLoadingAccountData && isPlanResolved && currentPlan !== "PRO_MAX" && (
             <Card id="plans" className="border-primary gradient-brand-subtle">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display italic">
