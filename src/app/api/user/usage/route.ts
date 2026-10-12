@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const usage = await getUsageInfo(userId);
 
-    return NextResponse.json(usage);
+    return NextResponse.json(usage, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Usage API error:", error);
     return NextResponse.json(

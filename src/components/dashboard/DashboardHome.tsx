@@ -8,6 +8,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { dashboardResourceReducer, type DashboardResourceState } from "@/components/dashboard/dashboard-state";
 import { DashboardScanEntry } from "@/components/dashboard/DashboardScanEntry";
 import { DashboardTelegramLink } from "@/components/dashboard/DashboardTelegramLink";
+import { DashboardWhatsAppLink } from "@/components/dashboard/DashboardWhatsAppLink";
 import type { DashboardPayload } from "@/components/dashboard/types";
 import { readApiError } from "@/components/dashboard/types";
 import { UnifiedMarketTable } from "@/components/dashboard/UnifiedMarketTable";
@@ -61,9 +62,12 @@ export function DashboardHome() {
           Market-wide · completed end-of-day
         </p>
         <h1 className="mt-1.5 font-editorial text-[clamp(1.4rem,2vw,1.85rem)] leading-tight">Welcome back, {firstName}</h1>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
           <div className="min-w-0 flex-1"><DashboardScanEntry onAdded={load} /></div>
-          <DashboardTelegramLink />
+          <div className="flex flex-wrap gap-2 sm:flex-col">
+            <DashboardWhatsAppLink />
+            <DashboardTelegramLink />
+          </div>
         </div>
       </header>
 

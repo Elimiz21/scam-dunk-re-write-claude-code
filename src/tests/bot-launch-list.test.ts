@@ -27,9 +27,10 @@ describe("messenger bot launch list", () => {
     expect(form).toContain("/api/feature-interest");
   });
 
-  test("supports a public combined signup for Telegram and WhatsApp updates", () => {
-    expect(route).toContain("MESSENGER_UPDATES");
-    expect(landing).toContain("Get updates when our Telegram and WhatsApp channels launch.");
-    expect(landing).toContain("MESSENGER_UPDATES");
+  test("markets WhatsApp and Telegram as available instead of asking users to join a launch list", () => {
+    expect(landing).toContain("WhatsApp and Telegram scans, available now");
+    expect(landing).toContain("WhatsApp and Telegram scans are available now");
+    expect(landing).not.toContain("Get updates when our Telegram and WhatsApp channels launch.");
+    expect(landing).not.toContain("MESSENGER_UPDATES");
   });
 });

@@ -57,7 +57,10 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const status = await getWhatsAppBindingStatus(userId);
-    return NextResponse.json({ ...status, available: isWhatsAppConfigured() });
+    const eligible = await isCurrentWhatsAppSubscriber(userId);
+    return NextResponse.json({ ...status, available: isWhatsAppConfigured(), eligible }, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch {
     return NextResponse.json({ error: "Unable to load WhatsApp status" }, { status: 503 });
   }
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
   if (begin.success) {
     if (!isWhatsAppConfigured()) {
       return NextResponse.json(
-        { error: "WhatsApp scanning is coming soon — linking opens at launch." },
+        { error: "WhatsApp linking is temporarily unavailable. Please try again later." },
         { status: 503 },
       );
     }

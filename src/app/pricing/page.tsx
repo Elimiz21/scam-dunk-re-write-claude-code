@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/PageLayout";
 import { JsonLd } from "@/components/JsonLd";
-import { BotInterestForm } from "@/components/BotInterestForm";
 import { formatUsdCents, getPublicBillingPrices } from "@/lib/billing/pricing";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://scamdunk.com";
@@ -19,7 +18,7 @@ const publicBillingPrices = getPublicBillingPrices();
 export const metadata: Metadata = {
   title: "Pricing — ScamDunk",
   description:
-    "Choose Free, Pro, or Pro Max for ScamDunk stock-risk checks, unlimited watchlist saves, and scheduled full-analysis monitoring after the trading day closes.",
+    "Choose Free, Pro, or Pro Max for ScamDunk stock-risk checks, WhatsApp and Telegram scans, unlimited watchlist saves, and scheduled full-analysis monitoring.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -28,7 +27,7 @@ const productSchema = {
   "@type": "Product",
   name: "ScamDunk",
   description:
-    "Stock scam checks with unlimited watchlist saves and scheduled full-risk monitoring. Scheduled checks run after the trading day closes, not live.",
+    "Stock scam checks in ScamDunk, WhatsApp, and Telegram, with unlimited watchlist saves and scheduled full-risk monitoring.",
   brand: { "@type": "Brand", name: "ScamDunk" },
   offers: [
     {
@@ -45,7 +44,7 @@ const productSchema = {
       price: (publicBillingPrices.PAID / 100).toFixed(2),
       priceCurrency: "USD",
       description:
-        "50 manual scan credits per month, an unlimited watchlist, and 2 active monitors.",
+        "50 manual scan credits per month, WhatsApp and Telegram scans, an unlimited watchlist, and 2 active monitors.",
     },
     {
       "@type": "Offer",
@@ -53,7 +52,7 @@ const productSchema = {
       price: (publicBillingPrices.PRO_MAX / 100).toFixed(2),
       priceCurrency: "USD",
       description:
-        "200 manual scan credits per month, an unlimited watchlist, and 10 active monitors.",
+        "200 manual scan credits per month, WhatsApp and Telegram scans, an unlimited watchlist, and 10 active monitors.",
     },
   ],
 };
@@ -88,10 +87,10 @@ const faqSchema = {
     },
     {
       "@type": "Question",
-      name: "How will the WhatsApp and Telegram bots work?",
+      name: "How do WhatsApp and Telegram scans work?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The WhatsApp and Telegram bots are coming soon for Pro and Pro Max subscribers. You link your number or start a chat with the ScamDunk bot, then message a ticker and receive the fraud-risk verdict with a link to the full result. Bot scans will draw from your plan’s monthly scan-credit allowance.",
+        text: "WhatsApp and Telegram scans are available now for Pro and Pro Max subscribers. Link WhatsApp from your ScamDunk account or connect to the ScamDunk Telegram bot, then send a ticker to receive the risk verdict. Bot scans use your plan’s monthly scan-credit allowance.",
       },
     },
     {
@@ -141,6 +140,7 @@ const PLAN_CARDS = [
       "Unlimited watchlist saves",
       "2 active monitors",
       "Daily or Weekly scheduled checks",
+      "WhatsApp and Telegram scans",
       "Everything in Free",
     ],
     cta: "Go Pro",
@@ -158,6 +158,7 @@ const PLAN_CARDS = [
       "Unlimited watchlist saves",
       "10 active monitors",
       "Daily or Weekly scheduled checks",
+      "WhatsApp and Telegram scans",
       "Everything in Pro",
     ],
     cta: "Choose Pro Max",
@@ -291,30 +292,27 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* Messenger bots explainer strip — coming soon */}
+        {/* Messenger scans */}
         <section className="border-t border-border/70 bg-background py-14 md:py-16">
           <div className="mx-auto max-w-3xl px-4 text-center">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               The Pro difference
             </p>
             <h2 className="font-editorial mt-5 text-[clamp(1.6rem,3vw,2.25rem)] leading-[1.2] text-foreground">
-              Tips arrive in your chats. Soon the check will too.
+              Check stock tips in your chats.
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">
-              Scam tips don&apos;t reach you on a website — they reach you in
-              WhatsApp groups and Telegram channels. That&apos;s where the
-              checker is headed next.
+              WhatsApp and Telegram scans are available now to Pro and Pro Max
+              subscribers. Send a ticker and receive ScamDunk&apos;s risk verdict.
             </p>
             <div className="mx-auto mt-8 grid max-w-2xl gap-5 text-left sm:grid-cols-2">
               {[
                 {
-                  name: "WhatsApp bot",
-                  feature: "WHATSAPP_BOT" as const,
-                  desc: "Link your number once. When a ticker lands in a group chat, forward it to your ScamDunk contact — the verdict comes back before the conversation moves on.",
+                  name: "WhatsApp Scanner",
+                  desc: "Link your WhatsApp number in ScamDunk, then message a stock ticker to the scanner and get the fraud-risk verdict.",
                 },
                 {
-                  name: "Telegram bot",
-                  feature: "TELEGRAM_BOT" as const,
+                  name: "Telegram Scanner",
                   desc: "Message a ticker to the ScamDunk bot and get the verdict with the signals found — inside the platform where many pump groups actually operate.",
                 },
               ].map((bot) => (
@@ -323,16 +321,16 @@ export default function PricingPage() {
                     <MessageCircle className="h-4 w-4 shrink-0 text-teal" />
                     <h3 className="text-[14px] font-semibold text-foreground">{bot.name}</h3>
                     <span className="rounded-full border border-teal/40 bg-teal/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-teal">
-                      Coming soon
+                      Available now
                     </span>
                   </div>
                   <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">{bot.desc}</p>
-                  <BotInterestForm feature={bot.feature} />
+                  <Link href="/login" className="mt-4 inline-flex text-sm font-medium text-primary underline underline-offset-4">Connect from your dashboard</Link>
                 </div>
               ))}
             </div>
             <p className="mx-auto mt-6 max-w-lg text-xs text-muted-foreground">
-              Pro and Pro Max subscribers get bot access the day each one launches, at no extra cost.
+              Both channels are included with Pro and Pro Max and use your monthly scan credits.
             </p>
           </div>
         </section>

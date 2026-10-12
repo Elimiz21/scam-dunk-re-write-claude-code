@@ -169,7 +169,8 @@ function AccountContent() {
   // Subscription management
   const [subscriptionInfo, setSubscriptionInfo] =
     useState<SubscriptionInfo | null>(null);
-  const [isLoadingSubscription, setIsLoadingSubscription] = useState(false);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+  const [isLoadingAccountData, setIsLoadingAccountData] = useState(true);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isStartingStripeCheckout, setIsStartingStripeCheckout] = useState(false);
@@ -193,12 +194,13 @@ function AccountContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const billing = subscriptionInfo?.billing;
+  const isPlanResolved = Boolean(billing || usage);
   const currentPlan = billing?.plan ?? usage?.plan ?? "FREE";
-  const currentPlanName = billing?.displayName ?? (
+  const currentPlanName = isLoadingAccountData ? "Loading…" : !isPlanResolved ? "Unavailable" : billing?.displayName ?? (
     currentPlan === "PRO_MAX" ? "Pro Max" : currentPlan === "PAID" ? "Pro" : "Free"
   );
   const monthlyCredits =
-    billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 1;
+    billing?.manualScanCredits ?? usage?.scansLimitThisMonth ?? 0;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -208,8 +210,8 @@ function AccountContent() {
 
   useEffect(() => {
     if (session?.user) {
-      fetchUsage();
-      fetchSubscriptionInfo();
+      setIsLoadingAccountData(true);
+      void Promise.all([fetchUsage(), fetchSubscriptionInfo()]).finally(() => setIsLoadingAccountData(false));
       fetchWhatsAppBinding();
       setEditName(session.user.name || "");
     }
@@ -217,7 +219,7 @@ function AccountContent() {
 
   const fetchUsage = async () => {
     try {
-      const response = await fetch("/api/user/usage");
+      const response = await fetch("/api/user/usage", { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
         setUsage(data);
@@ -230,7 +232,7 @@ function AccountContent() {
   const fetchSubscriptionInfo = async () => {
     setIsLoadingSubscription(true);
     try {
-      const response = await fetch("/api/billing/paypal/subscription");
+      const response = await fetch("/api/billing/paypal/subscription", { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
         setSubscriptionInfo(data);
@@ -245,7 +247,7 @@ function AccountContent() {
   const fetchWhatsAppBinding = async () => {
     setIsLoadingWhatsApp(true);
     try {
-      const response = await fetch("/api/user/whatsapp");
+      const response = await fetch("/api/user/whatsapp", { cache: "no-store" });
       if (!response.ok) throw new Error("Unable to load WhatsApp status");
       const binding: WhatsAppBindingStatus = await response.json();
       setWhatsAppBinding(binding);
@@ -373,8 +375,9 @@ function AccountContent() {
         });
         setShowCancelConfirm(false);
         // Refresh data
-        await fetchUsage();
-        await fetchSubscriptionInfo();
+        setIsLoadingAccountData(true);
+        await Promise.all([fetchUsage(), fetchSubscriptionInfo()]);
+        setIsLoadingAccountData(false);
         // Trigger session refresh so the plan badge updates
         await update({});
         router.refresh();
@@ -391,8 +394,8 @@ function AccountContent() {
 
   const handlePayPalSuccess = (plan: "PAID" | "PRO_MAX") => {
     // Refresh usage and subscription data
-    fetchUsage();
-    fetchSubscriptionInfo();
+    setIsLoadingAccountData(true);
+    void Promise.all([fetchUsage(), fetchSubscriptionInfo()]).finally(() => setIsLoadingAccountData(false));
     // Show success message
     addToast({
       type: "success",
@@ -850,7 +853,7 @@ function AccountContent() {
                   <p className="text-sm text-muted-foreground">Current Plan</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge
-                      variant={currentPlan === "FREE" ? "secondary" : "default"}
+                      variant={isLoadingAccountData || !isPlanResolved || currentPlan === "FREE" ? "secondary" : "default"}
                     >
                       {currentPlanName}
                     </Badge>
@@ -871,11 +874,10 @@ function AccountContent() {
                 <div className="mt-2">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium">
-                      {usage?.scansUsedThisMonth ?? 0} /{" "}
-                      {monthlyCredits}
+                      {isLoadingAccountData ? "Loading…" : !isPlanResolved ? "Unavailable" : `${usage?.scansUsedThisMonth ?? 0} / ${monthlyCredits}`}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      {monthlyCredits &&
+                      {!isLoadingAccountData && isPlanResolved && monthlyCredits > 0 &&
                         usage?.scansUsedThisMonth !== undefined &&
                         Math.round(
                           (usage.scansUsedThisMonth /
@@ -889,7 +891,7 @@ function AccountContent() {
                     <div
                       className="h-full bg-primary rounded-full transition-all"
                       style={{
-                        width: `${usagePercent(usage, monthlyCredits)}%`,
+                        width: `${isLoadingAccountData || !isPlanResolved ? 0 : usagePercent(usage, monthlyCredits)}%`,
                       }}
                     />
                   </div>
@@ -914,7 +916,7 @@ function AccountContent() {
               )}
 
               {/* Subscription details for PAID users */}
-              {currentPlan !== "FREE" && (
+              {!isLoadingAccountData && isPlanResolved && currentPlan !== "FREE" && (
                 <div className="pt-4 border-t space-y-4">
                   <div>
                     <p className="text-sm font-medium mb-2">
@@ -1018,7 +1020,7 @@ function AccountContent() {
 
           <Card><CardHeader><CardTitle>Google sign-in</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-muted-foreground">Connect Google while signed in to use it for future logins.</p><GoogleSignInButton callbackUrl="/account" /></CardContent></Card>
           <TelegramAccountCard />
-          <Card>
+          <Card id="whatsapp" className="scroll-mt-20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5" aria-hidden="true" />
@@ -1041,8 +1043,7 @@ function AccountContent() {
               ) : whatsAppBinding?.available === false ? (
                 <Alert>
                   <AlertDescription>
-                    <span className="mr-2 rounded-full border border-teal/40 bg-teal/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-teal">Coming soon</span>
-                    WhatsApp scanning is launching shortly. As a subscriber you&apos;ll be able to link your number here when it goes live — no extra cost.
+                    WhatsApp linking is temporarily unavailable. Please try again later.
                   </AlertDescription>
                 </Alert>
               ) : whatsAppBinding?.active ? (
@@ -1055,8 +1056,10 @@ function AccountContent() {
                     {isRevokingWhatsApp ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Unlinking…</> : "Unlink WhatsApp"}
                   </Button>
                 </div>
-              ) : currentPlan === "FREE" ? (
-                <Alert><AlertDescription>An active ScamDunk subscription is required before you can link WhatsApp.</AlertDescription></Alert>
+              ) : !isLoadingAccountData && !isPlanResolved ? (
+                <Alert><AlertDescription>We couldn&apos;t confirm your plan right now. Reload this page and try again.</AlertDescription></Alert>
+              ) : !isLoadingAccountData && currentPlan === "FREE" ? (
+                <Alert><AlertDescription>An active ScamDunk subscription is required before you can link WhatsApp. <Link href="#plans" className="font-medium underline underline-offset-4">See Pro plans</Link></AlertDescription></Alert>
               ) : whatsAppCodeSent ? (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">Step 2 of 2: Enter the latest code from WhatsApp{whatsAppBinding?.maskedPhone ? ` sent to ${whatsAppBinding.maskedPhone}` : ""} here on ScamDunk to link your number. You can return to this page in another browser.</p>
@@ -1085,7 +1088,7 @@ function AccountContent() {
           </Card>
 
           {/* Upgrade options for Free users */}
-          {currentPlan !== "PRO_MAX" && (
+          {!isLoadingAccountData && isPlanResolved && currentPlan !== "PRO_MAX" && (
             <Card id="plans" className="border-primary gradient-brand-subtle">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-display italic">
