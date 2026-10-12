@@ -3,17 +3,20 @@ type WhatsAppProviderResponse = { messages?: Array<{ id?: string }> };
 /**
  * True only when every env var the WhatsApp pipeline needs is present —
  * provider credentials, webhook secrets, and storage keys. Surfaces the
- * feature as "coming soon" everywhere until the Meta setup is complete.
+ * feature as "coming soon" until the selected transport is configured.
  */
 export function isWhatsAppConfigured(): boolean {
+  const transportReady = process.env.WHATSAPP_PROVIDER === "telnyx"
+    ? Boolean(process.env.TELNYX_API_KEY && process.env.TELNYX_PUBLIC_KEY &&
+        process.env.TELNYX_MESSAGING_PROFILE_ID && process.env.WHATSAPP_PHONE_NUMBER)
+    : (!process.env.WHATSAPP_PROVIDER || process.env.WHATSAPP_PROVIDER === "meta") &&
+      Boolean(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID &&
+        process.env.WHATSAPP_APP_SECRET && process.env.WHATSAPP_VERIFY_TOKEN);
   return Boolean(
-    process.env.WHATSAPP_ACCESS_TOKEN &&
-      process.env.WHATSAPP_PHONE_NUMBER_ID &&
+    transportReady &&
       process.env.WHATSAPP_VERIFICATION_TEMPLATE &&
       process.env.WHATSAPP_ENCRYPTION_KEY &&
-      process.env.WHATSAPP_IDENTITY_HASH_KEY &&
-      process.env.WHATSAPP_APP_SECRET &&
-      process.env.WHATSAPP_VERIFY_TOKEN,
+      process.env.WHATSAPP_IDENTITY_HASH_KEY,
   );
 }
 
@@ -27,7 +30,14 @@ function providerConfig() {
   return { accessToken, phoneNumberId, templateName };
 }
 
-async function postMessage(body: object): Promise<string | null> {
+async function postMessage(body: { to: string; type: string; [key: string]: unknown }): Promise<string | null> {
+  if (process.env.WHATSAPP_PROVIDER === "telnyx") {
+    const { postTelnyxWhatsAppMessage } = await import("./telnyx");
+    return postTelnyxWhatsAppMessage(body);
+  }
+  if (process.env.WHATSAPP_PROVIDER && process.env.WHATSAPP_PROVIDER !== "meta") {
+    throw new Error("WHATSAPP_PROVIDER_NOT_CONFIGURED");
+  }
   const { accessToken, phoneNumberId } = providerConfig();
   const response = await fetch(
     `https://graph.facebook.com/v26.0/${phoneNumberId}/messages`,
@@ -61,7 +71,8 @@ export async function sendWhatsAppVerificationCode(
   phoneNumber: string,
   code: string,
 ): Promise<string | null> {
-  const { templateName } = providerConfig();
+  const templateName = process.env.WHATSAPP_VERIFICATION_TEMPLATE;
+  if (!templateName) throw new Error("WHATSAPP_PROVIDER_NOT_CONFIGURED");
   return postMessage({
     to: phoneNumber.slice(1),
     type: "template",
