@@ -52,3 +52,18 @@ describe("approved Paper & Ink landing template", () => {
     expect(home).toContain("<PublicPumpRadar showDashboardLink />");
   });
 });
+
+
+describe("messaging connection links", () => {
+  test("sends signed-in customers directly to the matching channel settings", () => {
+    const landing = readProjectFile("src/components/landing/LandingOptionA.tsx");
+    const pricing = readProjectFile("src/app/pricing/page.tsx");
+
+    for (const source of [landing, pricing]) {
+      expect(source).toContain('href: "/account#whatsapp"');
+      expect(source).toContain('href: "/account#telegram"');
+      expect(source).toContain('<Link href={bot.href}');
+    }
+  });
+});
+

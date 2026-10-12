@@ -309,10 +309,12 @@ export default function PricingPage() {
               {[
                 {
                   name: "WhatsApp Scanner",
+                  href: "/account#whatsapp",
                   desc: "Link your WhatsApp number in ScamDunk, then message a stock ticker to the scanner and get the fraud-risk verdict.",
                 },
                 {
                   name: "Telegram Scanner",
+                  href: "/account#telegram",
                   desc: "Message a ticker to the ScamDunk bot and get the verdict with the signals found — inside the platform where many pump groups actually operate.",
                 },
               ].map((bot) => (
@@ -325,7 +327,7 @@ export default function PricingPage() {
                     </span>
                   </div>
                   <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">{bot.desc}</p>
-                  <Link href="/login" className="mt-4 inline-flex text-sm font-medium text-primary underline underline-offset-4">Connect from your dashboard</Link>
+                  <Link href={bot.href} className="mt-4 inline-flex text-sm font-medium text-primary underline underline-offset-4">Connect from your dashboard</Link>
                 </div>
               ))}
             </div>
@@ -356,3 +358,4 @@ export default function PricingPage() {
     </PageLayout>
   );
 }
+

@@ -30,3 +30,48 @@ describe("Pump Radar publication provenance", () => {
     expect(result.status).toBe("UNAVAILABLE");
   });
 });
+
+
+describe("Pump Radar social lookup bounds", () => {
+  it("loads social mentions only for tickers in the displayed publication", async () => {
+    const db = client(base);
+    (db.stockDailySnapshot.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: "snapshot-aapl",
+        marketCap: 3_000_000_000,
+        riskLevel: "HIGH",
+        totalScore: 90,
+        signalCount: 3,
+        priceChangePct: 12,
+        volumeRatio: 4,
+        stock: {
+          symbol: "AAPL",
+          sector: "Technology",
+          name: "Apple Inc.",
+          exchange: "NASDAQ",
+          isOTC: false,
+        },
+      },
+    ]);
+    (db.socialScanRun.findFirst as jest.Mock).mockResolvedValue({
+      id: "run-1",
+      status: "COMPLETED",
+      scanDate: base.scanDate,
+      updatedAt: new Date("2026-09-05T07:00:00Z"),
+      platformsUsed: null,
+    });
+
+    await createPumpRadarService(db).getPumpRadar({
+      limit: 50,
+      viewer: "PUBLIC",
+      now: new Date("2026-09-08T12:00:00Z"),
+    });
+
+    expect(db.socialMention.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { scanRunId: "run-1", ticker: { in: ["AAPL"] } },
+      }),
+    );
+  });
+});
+

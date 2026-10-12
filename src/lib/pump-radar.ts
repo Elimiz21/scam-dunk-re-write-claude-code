@@ -295,9 +295,12 @@ export function createPumpRadarService(
         platformsUsed: true,
       },
     });
-    const socialMentions = socialRun
+    const visibleTickers = Array.from(
+      new Set(snapshots.map((snapshot) => String(snapshot.stock.symbol).toUpperCase())),
+    );
+    const socialMentions = socialRun && visibleTickers.length > 0
       ? await client.socialMention.findMany({
-          where: { scanRunId: socialRun.id },
+          where: { scanRunId: socialRun.id, ticker: { in: visibleTickers } },
           select: {
             ticker: true,
             platform: true,
@@ -366,3 +369,4 @@ export function createPumpRadarService(
 
 const defaultService = createPumpRadarService();
 export const getPumpRadar = defaultService.getPumpRadar;
+
