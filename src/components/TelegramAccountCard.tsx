@@ -33,11 +33,11 @@ export function TelegramAccountCard() {
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to update Telegram access."); }
     finally { setBusy(false); }
   }
-  return <Card id="telegram"><CardHeader><CardTitle>Telegram scans</CardTitle></CardHeader>
+  return <Card id="telegram" className="scroll-mt-20"><CardHeader><CardTitle>Telegram scans</CardTitle></CardHeader>
     <CardContent className="space-y-4">
       <p className="text-sm text-muted-foreground">Link your private Telegram chat, then send AAPL or scan AAPL. An active subscription is required. Scans use your monthly ScamDunk allowance.</p>
       {error && <p role="alert" className="text-sm text-destructive">{error} <button type="button" className="underline" onClick={() => void load()}>Retry</button></p>}
-      {!status ? <p>Loading Telegram access…</p> : !status.available ? <p>Telegram linking opens when the bot launches.</p> : status.active ? <>
+      {!status ? <p>Loading Telegram access…</p> : !status.available ? <p>Telegram linking is temporarily unavailable. Please try again later.</p> : status.active ? <>
         <p>Telegram is linked.</p><Button variant="outline" disabled={busy} onClick={() => void action("DELETE")}>Unlink Telegram</Button>
       </> : <>
         <Button disabled={busy} onClick={() => void action("POST")}>{busy ? "Creating link…" : "Link Telegram"}</Button>

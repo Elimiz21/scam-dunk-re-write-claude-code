@@ -14,7 +14,6 @@ import { Footer } from "@/components/Footer";
 import { AssetType } from "@/lib/types";
 import { SITE_STATS } from "@/lib/site-stats";
 import { useLiveSiteStats } from "@/lib/use-site-stats";
-import { BotInterestForm } from "@/components/BotInterestForm";
 
 interface LandingOptionAProps {
   onSubmit: (data: {
@@ -440,7 +439,7 @@ export function LandingOptionA({
                 <li>Unlimited watchlist saves</li>
                 <li>2 active monitors</li>
                 <li>Daily or Weekly scheduled checks</li>
-                <li>WhatsApp &amp; Telegram bots (coming soon)</li>
+                <li>WhatsApp and Telegram scans, available now</li>
               </ul>
             </div>
             {/* Pro Max */}
@@ -460,6 +459,7 @@ export function LandingOptionA({
                 <li>Unlimited watchlist saves</li>
                 <li>10 active monitors</li>
                 <li>Daily or Weekly scheduled checks</li>
+                <li>WhatsApp and Telegram scans, available now</li>
                 <li>Everything in Pro</li>
               </ul>
             </div>
@@ -471,18 +471,20 @@ export function LandingOptionA({
             credit and results appear in-app and by email.
           </p>
 
-          {/* Messenger bots — coming soon */}
+          {/* Messenger scans */}
           <div className="mt-8 grid gap-6 md:grid-cols-2">
+            <div className="md:col-span-2 text-center">
+              <h2 className="font-editorial text-2xl text-foreground">Check stock tips in your chats</h2>
+              <p className="mt-2 text-sm text-muted-foreground">WhatsApp and Telegram scans are available now to Pro and Pro Max subscribers.</p>
+            </div>
             {[
               {
-                name: "WhatsApp bot",
-                feature: "WHATSAPP_BOT" as const,
-                desc: "Link your number once. When a ticker lands in a group chat, forward it to your ScamDunk contact — the fraud verdict comes back as a reply before the conversation moves on.",
+                name: "WhatsApp Scanner",
+                desc: "Link your WhatsApp number in ScamDunk, then message a stock ticker to the scanner and get the fraud-risk verdict.",
               },
               {
-                name: "Telegram bot",
-                feature: "TELEGRAM_BOT" as const,
-                desc: "The same 15-second check inside Telegram, where many pump groups actually operate. Message a ticker to the ScamDunk bot and get the verdict with the signals found.",
+                name: "Telegram Scanner",
+                desc: "Message a stock ticker to the ScamDunk bot on Telegram and get the fraud-risk verdict with the signals found.",
               },
             ].map((bot) => (
               <div
@@ -495,31 +497,15 @@ export function LandingOptionA({
                     {bot.name}
                   </h3>
                   <span className="rounded-full border border-teal/40 bg-teal/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-teal">
-                    Coming soon
+                    Available now
                   </span>
                 </div>
                 <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
                   {bot.desc}
                 </p>
-                <BotInterestForm feature={bot.feature} />
+                <Link href="/login" className="mt-4 inline-flex text-sm font-medium text-primary underline underline-offset-4">Connect from your dashboard</Link>
               </div>
             ))}
-          </div>
-
-          <div className="mt-8 rounded-2xl border border-teal/30 bg-teal/5 px-6 py-7 text-center md:px-8">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-teal">
-              Stay in the loop
-            </p>
-            <h3 className="font-editorial mt-3 text-2xl text-foreground">
-              Get updates when our Telegram and WhatsApp channels launch.
-            </h3>
-            <p className="mx-auto mt-2 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
-              We&apos;ll email you when ScamDunk becomes available in the channels
-              where stock tips actually spread. No extra marketing noise.
-            </p>
-            <div className="mx-auto max-w-md text-left">
-              <BotInterestForm feature="MESSENGER_UPDATES" />
-            </div>
           </div>
 
           <div className="mt-8 text-center">

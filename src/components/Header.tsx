@@ -16,6 +16,8 @@ import {
   History,
   LayoutDashboard,
   ListChecks,
+  MessageCircle,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarToggle } from "./Sidebar";
@@ -184,6 +186,26 @@ export function Header({
                         {session.user?.email}
                       </p>
                     </div>
+
+                    <Link href="/account#whatsapp">
+                      <button
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
+                      >
+                        <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                        Connect WhatsApp
+                      </button>
+                    </Link>
+
+                    <Link href="/account#telegram">
+                      <button
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm hover:bg-secondary transition-smooth"
+                      >
+                        <Send className="h-4 w-4 text-muted-foreground" />
+                        Connect Telegram
+                      </button>
+                    </Link>
 
                     <Link href="/dashboard">
                       <button
