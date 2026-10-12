@@ -7,7 +7,8 @@ type WhatsAppProviderResponse = { messages?: Array<{ id?: string }> };
  */
 export function isWhatsAppConfigured(): boolean {
   const transportReady = process.env.WHATSAPP_PROVIDER === "telnyx"
-    ? Boolean(process.env.TELNYX_API_KEY && process.env.TELNYX_PUBLIC_KEY &&
+    ? Boolean((process.env.TELNYX_WHATSAPP_API_KEY || process.env.TELNYX_API_KEY) &&
+        (process.env.TELNYX_WHATSAPP_PUBLIC_KEY || process.env.TELNYX_PUBLIC_KEY) &&
         process.env.TELNYX_MESSAGING_PROFILE_ID && process.env.WHATSAPP_PHONE_NUMBER)
     : (!process.env.WHATSAPP_PROVIDER || process.env.WHATSAPP_PROVIDER === "meta") &&
       Boolean(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID &&

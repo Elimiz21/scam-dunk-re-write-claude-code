@@ -10,12 +10,13 @@ No dashboard design, Google login, Telegram, database schema, or scoring changes
 
 ## Activation
 
-Use the existing Telnyx account credentials; do not rotate other secrets.
+Keep the legacy TELNYX_API_KEY and TELNYX_PUBLIC_KEY variables unchanged.
+The dedicated WhatsApp variables take priority; legacy names remain fallback-compatible.
 Set these variables in the intended Vercel environment, using secret storage:
 
 - `WHATSAPP_PROVIDER=telnyx`
-- `TELNYX_API_KEY`: existing authorized server-side Telnyx API key (secret)
-- `TELNYX_PUBLIC_KEY`: account Ed25519 verification public key
+- `TELNYX_WHATSAPP_API_KEY`: dedicated authorized server-side Telnyx API key (secret)
+- `TELNYX_WHATSAPP_PUBLIC_KEY`: account Ed25519 verification public key
 - `TELNYX_MESSAGING_PROFILE_ID=4001a058-31a7-49c2-84f2-2c8ad67b3a73`
 - `WHATSAPP_PHONE_NUMBER=+17693909406`
 
