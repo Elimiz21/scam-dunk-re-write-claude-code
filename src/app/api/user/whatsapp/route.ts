@@ -6,14 +6,16 @@ import {
   beginWhatsAppBinding,
   confirmWhatsAppBinding,
   getWhatsAppBindingStatus,
+  getPendingWhatsAppVerification,
   isCurrentWhatsAppSubscriber,
   revokeWhatsAppBinding,
 } from "@/lib/whatsapp/binding";
+import { normalizeWhatsAppPhoneNumber } from "@/lib/whatsapp/security";
 import { isWhatsAppConfigured } from "@/lib/whatsapp/provider";
 
 export const dynamic = "force-dynamic";
 
-const beginSchema = z.object({ action: z.literal("begin"), phoneNumber: z.string().max(32) });
+const beginSchema = z.object({ action: z.literal("begin"), phoneNumber: z.string().max(32), resend: z.boolean().optional() });
 const confirmSchema = z.object({ action: z.literal("confirm"), code: z.string().regex(/^\d{6}$/) });
 
 async function sessionUserId(): Promise<string | null> {
@@ -34,7 +36,7 @@ function errorMessage(code: string): string {
   return messages[code] ?? "WhatsApp linking is temporarily unavailable. Please try again later.";
 }
 
-async function allowBindingCodeSend(request: NextRequest, userId: string): Promise<boolean> {
+async function allowBindingCodeSend(request: NextRequest, userId: string): Promise<{ allowed: boolean; retryAt: number }> {
   const userRequest = new NextRequest("http://internal/whatsapp-binding", {
     headers: { "x-real-ip": `whatsapp-binding-user:${userId}` },
   });
@@ -46,7 +48,8 @@ async function allowBindingCodeSend(request: NextRequest, userId: string): Promi
     rateLimit(request, "whatsappBindingIp"),
     rateLimit(globalRequest, "whatsappBindingGlobal"),
   ]);
-  return byUser.success && byIp.success && global.success;
+  const blocked = [byUser, byIp, global].filter((result) => !result.success);
+  return { allowed: blocked.length === 0, retryAt: Math.max(Date.now(), ...blocked.map((result) => result.reset)) };
 }
 
 export async function GET() {
@@ -77,8 +80,24 @@ export async function POST(request: NextRequest) {
       if (!(await isCurrentWhatsAppSubscriber(userId))) {
         return NextResponse.json({ error: errorMessage("NOT_ENTITLED") }, { status: 403 });
       }
-      if (!(await allowBindingCodeSend(request, userId))) {
-        return NextResponse.json({ error: "Too many verification requests. Please try again later." }, { status: 429 });
+      const phoneNumber = normalizeWhatsAppPhoneNumber(begin.data.phoneNumber);
+      if (!phoneNumber) return NextResponse.json({ error: errorMessage("INVALID_PHONE") }, { status: 400 });
+      const pending = await getPendingWhatsAppVerification(userId, phoneNumber);
+      // Resuming an existing challenge neither sends nor consumes send limits.
+      if (pending && !begin.data.resend) return NextResponse.json({ ok: true, ...pending, resumed: true });
+      if (pending?.retryAt && Date.parse(pending.retryAt) > Date.now()) {
+        return NextResponse.json({ error: errorMessage("TOO_SOON"), ...pending }, { status: 429 });
+      }
+      const limit = await allowBindingCodeSend(request, userId);
+      if (!limit.allowed) {
+        const retryAfter = Math.max(1, Math.ceil((limit.retryAt - Date.now()) / 1000));
+        return NextResponse.json({
+          error: "The verification-code request limit has been reached. You can still enter a code already received.",
+          ...(pending ?? {}),
+          retryAt: new Date(limit.retryAt).toISOString(),
+          // Rate-limit reset takes precedence over the shorter resend cooldown.
+          retryAfter,
+        }, { status: 429, headers: { "Retry-After": String(retryAfter) } });
       }
     } catch {
       return NextResponse.json({ error: "WhatsApp linking is temporarily unavailable. Please try again later." }, { status: 503 });
@@ -90,7 +109,7 @@ export async function POST(request: NextRequest) {
       ? await confirmWhatsAppBinding(userId, confirm.data.code)
       : null;
   if (!result) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  if (result.ok === false) return NextResponse.json({ error: errorMessage(result.code) }, { status: 400 });
+  if (result.ok === false) return NextResponse.json({ error: errorMessage(result.code), code: result.code }, { status: 400 });
   return NextResponse.json(result);
 }
 

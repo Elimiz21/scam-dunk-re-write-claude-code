@@ -78,6 +78,9 @@ interface BillingEntitlements extends BillingPlanSummary {
 }
 
 interface WhatsAppBindingStatus {
+  pending?: boolean;
+  expiresAt?: string;
+  retryAt?: string;
   active: boolean;
   maskedPhone?: string;
   available?: boolean;
@@ -182,6 +185,7 @@ function AccountContent() {
   const [isRevokingWhatsApp, setIsRevokingWhatsApp] = useState(false);
   const [whatsAppError, setWhatsAppError] = useState("");
   const [whatsAppCodeSent, setWhatsAppCodeSent] = useState(false);
+  const [whatsAppResend, setWhatsAppResend] = useState(false);
 
   // Account deletion
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -243,7 +247,9 @@ function AccountContent() {
     try {
       const response = await fetch("/api/user/whatsapp");
       if (!response.ok) throw new Error("Unable to load WhatsApp status");
-      setWhatsAppBinding(await response.json());
+      const binding: WhatsAppBindingStatus = await response.json();
+      setWhatsAppBinding(binding);
+      setWhatsAppCodeSent(Boolean(binding.pending));
       setWhatsAppError("");
     } catch {
       setWhatsAppError("Couldn’t load WhatsApp access. Try again.");
@@ -259,14 +265,22 @@ function AccountContent() {
       const response = await fetch("/api/user/whatsapp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "begin", phoneNumber: whatsAppPhone }),
+        body: JSON.stringify({ action: "begin", phoneNumber: whatsAppPhone, resend: whatsAppResend }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      if (data.pending) {
+        setWhatsAppBinding((current) => ({ ...current, ...data, active: false }));
+        setWhatsAppCodeSent(true);
+      }
+      if (!response.ok) {
+        const retryHint = data.retryAt ? ` Request another code after ${new Date(data.retryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.` : "";
+        throw new Error((data.error || "Couldn’t send a code.") + retryHint);
+      }
       setWhatsAppCodeSent(true);
+      setWhatsAppResend(false);
       addToast({
         type: "success",
-        title: "Verification code sent",
+        title: data.resumed ? "Enter your existing code" : "Verification code sent",
         description: `Enter the code sent to ${data.maskedPhone} here to finish linking.`,
       });
     } catch (requestError) {
@@ -1007,17 +1021,15 @@ function AccountContent() {
               <p className="text-sm text-muted-foreground">
                 Link one WhatsApp number to send a stock ticker for a ScamDunk scan. Only <span className="font-medium text-foreground">AAPL</span> or <span className="font-medium text-foreground">scan AAPL</span> are supported.
               </p>
+              {whatsAppError && (
+                <Alert variant="destructive"><AlertDescription>{whatsAppError}</AlertDescription></Alert>
+              )}
               {isLoadingWhatsApp ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading WhatsApp access…
                 </div>
-              ) : whatsAppError ? (
-                <Alert variant="destructive">
-                  <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <span>{whatsAppError}</span>
-                    <Button variant="outline" size="sm" onClick={() => void fetchWhatsAppBinding()}>Retry</Button>
-                  </AlertDescription>
-                </Alert>
+              ) : !whatsAppBinding ? (
+                <Button variant="outline" onClick={() => void fetchWhatsAppBinding()}>Reload WhatsApp status</Button>
               ) : whatsAppBinding?.available === false ? (
                 <Alert>
                   <AlertDescription>
@@ -1039,13 +1051,15 @@ function AccountContent() {
                 <Alert><AlertDescription>An active ScamDunk subscription is required before you can link WhatsApp.</AlertDescription></Alert>
               ) : whatsAppCodeSent ? (
                 <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Step 2 of 2: Enter the latest code from WhatsApp{whatsAppBinding?.maskedPhone ? ` sent to ${whatsAppBinding.maskedPhone}` : ""} here on ScamDunk to link your number. You can return to this page in another browser.</p>
+                  {whatsAppBinding?.expiresAt && <p className="text-xs text-muted-foreground">Code expires at {new Date(whatsAppBinding.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.</p>}
                   <div className="space-y-2">
                     <Label htmlFor="whatsapp-code">Six-digit verification code</Label>
                     <Input id="whatsapp-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={whatsAppCode} onChange={(event) => setWhatsAppCode(event.target.value.replace(/\D/g, ""))} placeholder="123456" disabled={isConfirmingWhatsApp} />
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Button onClick={() => void handleConfirmWhatsAppCode()} disabled={isConfirmingWhatsApp || whatsAppCode.length !== 6}>{isConfirmingWhatsApp ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Verifying…</> : "Verify and link"}</Button>
-                    <Button variant="outline" onClick={() => { setWhatsAppCodeSent(false); setWhatsAppCode(""); }}>Use another number</Button>
+                    <Button variant="outline" onClick={() => { setWhatsAppCodeSent(false); setWhatsAppCode(""); setWhatsAppResend(true); setWhatsAppError(""); }}>Request a new code or change number</Button>
                   </div>
                 </div>
               ) : (
@@ -1053,9 +1067,10 @@ function AccountContent() {
                   <div className="space-y-2">
                     <Label htmlFor="whatsapp-phone">WhatsApp phone number</Label>
                     <Input id="whatsapp-phone" type="tel" inputMode="tel" autoComplete="tel" value={whatsAppPhone} onChange={(event) => setWhatsAppPhone(event.target.value)} placeholder="+12125550199" disabled={isSendingWhatsAppCode} />
-                    <p className="text-xs text-muted-foreground">Use international format. We&apos;ll send a one-time code to this WhatsApp chat; enter it on this page.</p>
+                    <p className="text-xs text-muted-foreground">Step 1 of 2: Use international format (for Israel, +972 without the leading 0). We&apos;ll send a code in WhatsApp. Return here to enter it and finish linking.</p>
                   </div>
                   <Button onClick={() => void handleSendWhatsAppCode()} disabled={isSendingWhatsAppCode || !whatsAppPhone}>{isSendingWhatsAppCode ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Sending code…</> : "Send verification code"}</Button>
+                  {whatsAppBinding?.pending && <Button variant="outline" onClick={() => { setWhatsAppCodeSent(true); setWhatsAppError(""); }}>I already have a code</Button>}
                 </div>
               )}
             </CardContent>
