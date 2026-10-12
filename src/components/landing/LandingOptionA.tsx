@@ -228,7 +228,7 @@ export function LandingOptionA({
             alt="The Wall Street Journal"
             width={301}
             height={28}
-            className="h-auto w-[220px] max-w-full"
+            className="h-auto w-[220px] max-w-full dark:invert"
           />
         </div>
         <div className="mx-auto mt-5 max-w-2xl px-4 text-center">
