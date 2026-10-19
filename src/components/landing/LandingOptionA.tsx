@@ -479,9 +479,9 @@ export function LandingOptionA({
             </div>
             {[
               {
-                name: "WhatsApp Scanner",
+                name: "ScamDunk Scanner",
                 href: "/account#whatsapp",
-                desc: "Link your WhatsApp number in ScamDunk, then message a stock ticker to the scanner and get the fraud-risk verdict.",
+                desc: "ScamDunk Scanner is ScamDunk’s stock-risk checking service on WhatsApp. Link your number in ScamDunk, then message a stock ticker to the scanner and get the fraud-risk verdict.",
               },
               {
                 name: "Telegram Scanner",
