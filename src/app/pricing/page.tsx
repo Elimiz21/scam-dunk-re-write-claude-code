@@ -308,9 +308,9 @@ export default function PricingPage() {
             <div className="mx-auto mt-8 grid max-w-2xl gap-5 text-left sm:grid-cols-2">
               {[
                 {
-                  name: "WhatsApp Scanner",
+                  name: "ScamDunk Scanner",
                   href: "/account#whatsapp",
-                  desc: "Link your WhatsApp number in ScamDunk, then message a stock ticker to the scanner and get the fraud-risk verdict.",
+                  desc: "ScamDunk Scanner is ScamDunk’s stock-risk checking service on WhatsApp. Link your number in ScamDunk, then message a stock ticker to the scanner and get the fraud-risk verdict.",
                 },
                 {
                   name: "Telegram Scanner",
