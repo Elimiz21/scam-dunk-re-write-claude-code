@@ -35,20 +35,30 @@ export function DashboardTelegramLink() {
       paywallRef.current?.showModal();
       return;
     }
+    // Open the tab synchronously from the click before the network request,
+    // so popup blockers treat the Telegram deep link as user initiated.
+    const telegramTab = window.open("about:blank", "_blank");
+    if (!telegramTab) {
+      setError("Your browser blocked the Telegram tab. Allow pop-ups and try again.");
+      return;
+    }
+    telegramTab.opener = null;
     setBusy(true);
     setError("");
     try {
       const response = await fetch("/api/user/telegram", { method: "POST" });
       const data = await response.json() as { url?: string; error?: string };
       if (response.status === 403) {
+        telegramTab.close();
         paywallRef.current?.showModal();
         return;
       }
       if (!response.ok || !data.url) throw new Error(data.error || "Unable to create a Telegram link.");
       const link = new URL(data.url);
       if (link.protocol !== "https:" || link.hostname !== "t.me") throw new Error("Invalid Telegram link. Please retry.");
-      window.location.assign(link.href);
+      telegramTab.location.replace(link.href);
     } catch (cause) {
+      telegramTab.close();
       setError(cause instanceof Error ? cause.message : "Unable to create a Telegram link.");
     } finally {
       setBusy(false);
