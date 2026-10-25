@@ -77,16 +77,30 @@ export function validClearance(ids: unknown, sources: SourceEvidence[]): ids is 
 const materialEvents: Record<string,RegExp> = {
  EARNINGS:/earnings|financial results|quarterly results|revenue|net income|eps/i,
  GUIDANCE:/guidance|outlook|forecast/i, FDA_TRIAL:/fda|clinical|trial|drug approval/i,
- CONTRACT:/contract|agreement|partnership|purchase order/i,
+ CONTRACT:/contract|agreement|partnership|(?:purchase )?orders?/i,
  MERGER:/merger|acquisition|acquire[ds]?|takeover|tender offer/i,
  REGULATORY_APPROVAL:/approval|approved|authorization|licen[cs]e/i,
  PRODUCT_LAUNCH:/launch|unveil|new product/i,
  MANAGEMENT_CHANGE:/appoint|resign|ceo|chief executive|chair/i,
  CORPORATE_ACTION:/split|dividend|spin.off|buyback|repurchase/i,
- LEGAL_RESOLUTION:/settle|settlement|verdict|ruling|litigation|lawsuit/i,
+ LEGAL_RESOLUTION:/settle|settlement|verdict|ruling|dismissed|dismissal/i,
  FINANCING:/financing|placement|offering|funding|capital rais|credit facility|convertible|debt|raises?\b/i,
 };
 export const MATERIAL_EVENT_TYPES=Object.keys(materialEvents);
+export function materialEventExcerpts(raw:any):Record<string,string>{
+ const content=["title","text","description","body","content"].map(key=>typeof raw?.[key]==="string"?raw[key]:"").filter(Boolean).join(" ");
+ const excerpts:Record<string,string>={};
+ for(const [type,pattern] of Object.entries(materialEvents)){
+  const matcher=new RegExp(pattern.source,"ig");let match:RegExpExecArray|null;
+  while((match=matcher.exec(content))){
+   const excerpt=content.slice(Math.max(0,match.index-40),Math.max(0,match.index-40)+220).trim();
+   if(type==="EARNINGS" && /conference call|earnings call|will host|webcast|earnings date|scheduled/i.test(excerpt))continue;
+   if(excerpt.length>=12){excerpts[type]=excerpt;break;}
+  }
+ }
+ return excerpts;
+}
+
 /** Clearance needs literal substantive content; filing metadata alone cannot prove an event. */
 export function groundedClearance(ids: unknown, quotes: unknown, eventType: unknown, sources: SourceEvidence[]): boolean {
  if(!validClearance(ids,sources)||typeof eventType!=="string"||!materialEvents[eventType]||!Array.isArray(quotes))return false;
@@ -94,6 +108,7 @@ export function groundedClearance(ids: unknown, quotes: unknown, eventType: unkn
  return (ids as string[]).every(id=>{
   const item=sources.flatMap(source=>source.items).find(row=>row.id===id&&row.eligible);
   const quote=quotes.find(row=>row && row.evidenceId===id)?.quote;
+  if(!materialEventExcerpts(item?.raw)[eventType])return false;
   if(!item || typeof quote!=="string" || quote.trim().length<12 || quote.length>240 || !materialEvents[eventType].test(quote))return false;
   const content=["title","text","description","body","content"].map(key=>typeof item.raw?.[key]==="string"?item.raw[key]:"").filter(Boolean).join(" ");
   return normalize(content).includes(normalize(quote));

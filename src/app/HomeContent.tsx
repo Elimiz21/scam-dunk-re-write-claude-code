@@ -40,12 +40,6 @@ interface HomeContentProps {
 }
 
 /** Normalize raw risk score to 0-100 (matches mobile app) */
-function normalizeRiskScore(rawScore: number): number {
-  if (rawScore <= 0) return 0;
-  if (rawScore < 2) return Math.round((rawScore / 2) * 30);
-  if (rawScore < 5) return Math.round(30 + ((rawScore - 2) / 3) * 30);
-  return Math.min(Math.round(60 + ((rawScore - 5) / 15) * 40), 100);
-}
 
 export default function HomeContent({ billingPrices }: HomeContentProps) {
   const { data: session, status } = useSession();
@@ -456,14 +450,13 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
 
   const handleShare = async () => {
     if (result) {
-      const normalizedScore = normalizeRiskScore(result.totalScore);
       const customerRiskLabel =
         result.riskLevel === "HIGH"
           ? "High risk"
           : result.riskLevel === "LOW"
             ? "Low risk"
             : "Caution";
-      const assessment = result.riskLevel === "INSUFFICIENT" ? "Assessment unavailable" : `${customerRiskLabel} (Score: ${normalizedScore}/100)`;
+      const assessment = result.riskLevel === "INSUFFICIENT" ? "Assessment unavailable" : `${customerRiskLabel} (${result.totalScore} signal points)`;
       const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${assessment}\n\nCheck your stocks for scam red flags at ScamDunk.`;
       const shareUrl =
         typeof window !== "undefined" ? window.location.href : "";

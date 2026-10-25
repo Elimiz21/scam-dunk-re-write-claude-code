@@ -93,5 +93,8 @@
       "zod": "4.6.7"
     },
     "postcss-selector-parser": "7.1.6"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

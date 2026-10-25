@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "f
 import os from "os";
 import path from "path";
 import { createNewsReview, type NewsEvidence } from "./news-review";
-import { evidenceWindow, retrieveEvidence } from "./news-evidence";
+import { evidenceWindow, retrieveEvidence, materialEventExcerpts } from "./news-evidence";
 const mockCreate = jest.fn();
 jest.mock("openai", () => jest.fn().mockImplementation(() => ({chat: {completions: {create: mockCreate}}})));
 let dir: string;
@@ -80,4 +80,9 @@ it("generic filing metadata cannot substantiate a claimed financing event",async
  const evidence=await item();evidence.sources[0].items[0].raw={symbol:"TEST",date:"2026-10-23",formType:"8-K",finalLink:"https://www.sec.gov/Archives/example"};
  mockCreate.mockResolvedValue(answer(["E1"],{eventType:"FINANCING",specificEvent:"Corporate developments",evidenceQuotes:[{evidenceId:"E1",quote:"announced a financing transaction"}]}));
  expect((await reviewer().analyzeNewsLegitimacyBatch([evidence],25)).results.get("TEST")).toMatchObject({hasLegitimateNews:false,skipped:true});
+});
+
+it("earnings-calendar notices do not become evidence of reported earnings",()=>{
+ expect(materialEventExcerpts({title:"Example will host an earnings conference call next month"})).not.toHaveProperty("EARNINGS");
+ expect(materialEventExcerpts({title:"Example reports quarterly financial results with revenue growth"})).toHaveProperty("EARNINGS");
 });

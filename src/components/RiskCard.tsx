@@ -25,7 +25,7 @@ import {
   BarChart3,
   MessageSquareOff,
 } from "lucide-react";
-import { formatNumber, formatPrice, normalizeRiskScore } from "@/lib/utils";
+import { formatNumber, formatPrice } from "@/lib/utils";
 
 interface RiskCardProps {
   result: RiskResponse;
@@ -304,7 +304,7 @@ function buildRiskFactorSummary(
 export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
   const riskFactorSummary = buildRiskFactorSummary(signals, riskLevel);
-  const displayScore = normalizeRiskScore(totalScore);
+  const displayScore = totalScore;
   const assessmentUnavailable = riskLevel === "INSUFFICIENT";
   const marketUnavailable = assessmentUnavailable || result.dataCompleteness === "none";
   const stockRedFlags = marketUnavailable
@@ -353,7 +353,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
                   {displayScore}
                 </span>
                 <span className="text-lg sm:text-xl text-muted-foreground font-medium">
-                  / 100
+                  signal points
                 </span>
                 <InfoTooltip
                   term={RISK_LEVEL_TERMS.riskScore.term}

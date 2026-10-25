@@ -41,6 +41,11 @@ test("regulatory warnings survive missing market data", () => {
 
 test("complete assessments retain their numeric display", () => {
   const html = renderToStaticMarkup(createElement(RiskCard, { result: result({ riskLevel: "LOW", dataCompleteness: "full" }) }));
-  expect(html).toContain("/ 100");
+  expect(html).toContain("signal points");
   expect(html).not.toContain("Assessment unavailable");
+});
+
+test("structural caution displays the original signal points without a percentage scale",()=>{
+ const html=renderToStaticMarkup(createElement(RiskCard,{result:result({riskLevel:"MEDIUM",totalScore:6,dataCompleteness:"full"})}));
+ expect(html).toContain("Caution");expect(html).toContain(">6</span>");expect(html).toContain("signal points");expect(html).not.toContain("/ 100");
 });
