@@ -1,6 +1,7 @@
-import { createNewsReview } from "./news-review";
+import { shouldFilterBySize } from "./market-shortlist";
+import { createNewsReview, type NewsLegitimacyResult } from "./news-review";
 import { retrievalComplete, type SourceEvidence } from "./news-evidence";
-import { hasIndependentWarning, type NewsTriage } from "../../src/lib/news-triage";
+import { hasIndependentWarning, reviewedAlertEligible, type NewsTriage } from "../../src/lib/news-triage";
 /**
  * Post-Scan Processing Pipeline
  *
@@ -52,8 +53,6 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 
 // Thresholds for filtering
-const MARKET_CAP_THRESHOLD = 10_000_000_000; // $10B
-const VOLUME_THRESHOLD = 10_000_000; // $10M daily volume
 
 // Supabase setup
 function getSupabaseClient() {
@@ -108,7 +107,7 @@ interface ProcessedStock extends HighRiskStock {
   schemeId: string | null;
   schemeStatus: string | null;
   newsTriage?: NewsTriage;
-  newsEvidence?: { sources: SourceEvidence[]; citedEvidenceIds?: string[] };
+  newsEvidence?: { sources: SourceEvidence[]; citedEvidenceIds?: string[]; review?: Pick<NewsLegitimacyResult, "model" | "reviewVersion" | "eventType" | "evidenceQuotes"> };
 }
 
 // Utility functions
@@ -173,28 +172,6 @@ async function fetchHighRiskStocksFromStorage(
   );
   process.env.POST_SCAN_PARENT_REVISION_HASH = source.parentRevisionHash ?? "";
   return source.stocks;
-}
-
-// Filter by market cap and volume
-function shouldFilterBySize(stock: HighRiskStock): {
-  filtered: boolean;
-  reason: string | null;
-} {
-  if (stock.marketCap && stock.marketCap > MARKET_CAP_THRESHOLD) {
-    return {
-      filtered: true,
-      reason: `Large market cap ($${(stock.marketCap / 1_000_000_000).toFixed(1)}B) - not susceptible to pump-and-dump`,
-    };
-  }
-
-  if (stock.avgDollarVolume && stock.avgDollarVolume > VOLUME_THRESHOLD) {
-    return {
-      filtered: true,
-      reason: `High daily volume ($${(stock.avgDollarVolume / 1_000_000).toFixed(1)}M) - highly liquid, hard to manipulate`,
-    };
-  }
-
-  return { filtered: false, reason: null };
 }
 
 // News legitimacy analysis using OpenAI
@@ -333,6 +310,7 @@ async function runPostScanPhases(): Promise<void> {
         stock.newsTriage = stock.hasLegitimateNews ? "CLEARED" : "RETAINED";
         stock.newsAnalysis = verdict.analysis;
         stock.newsEvidence!.citedEvidenceIds = verdict.evidenceIds;
+        stock.newsEvidence!.review = {model:verdict.model,reviewVersion:verdict.reviewVersion,eventType:verdict.eventType,evidenceQuotes:verdict.evidenceQuotes};
       }
       if (["ERROR","UNAVAILABLE","DEFERRED"].includes(stock.newsTriage!)) newsFilterSkipped++;
       if (afterSizeFilter.includes(stock)) {
@@ -399,6 +377,9 @@ async function runPostScanPhases(): Promise<void> {
     suspiciousStocks.push(stock);
     await sleep(1000);
   }
+
+  // The social sampling cap must not truncate the reviewed market/news cohort.
+  suspiciousStocks.splice(0, suspiciousStocks.length, ...afterNewsFilter.filter(reviewedAlertEligible));
 
   // Phase 5: Assign Scheme IDs
   console.log("\n" + "=".repeat(80));

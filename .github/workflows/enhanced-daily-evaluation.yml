@@ -10,6 +10,11 @@ on:
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
     inputs:
+      validated_pipeline_run:
+        description: "Completed full validation run to release with upload_only; must match this commit or its merge parent"
+        required: false
+        default: ""
+        type: string
       resume_pipeline_cache_key:
         description: "Optional retained pipeline validation cache key for resuming acquisition"
         required: false
@@ -70,6 +75,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: read
   contents: write
   issues: write
 
@@ -223,7 +229,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
 
       - name: Install dependencies
@@ -281,6 +287,18 @@ jobs:
           fi
           echo "date=$DATE" >> $GITHUB_OUTPUT
           echo "Evaluation date: $DATE"
+
+      - name: Import the exact completed full validation output
+        if: ${{ github.event.inputs.upload_only == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATED_RUN_ID: ${{ github.event.inputs.validated_pipeline_run }}
+          RELEASE_DATE: ${{ steps.date.outputs.date }}
+        run: |
+          [[ "$VALIDATED_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID" > "$RUNNER_TEMP/validated-run.json"
+          gh run download "$VALIDATED_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "pipeline-validation-full-$VALIDATED_RUN_ID" --dir "$RUNNER_TEMP/validated-pipeline"
+          npx ts-node --project evaluation/tsconfig.json evaluation/scripts/import-validated-pipeline.ts "$RUNNER_TEMP/validated-run.json" "$RUNNER_TEMP/validated-pipeline" "$RELEASE_DATE"
 
       - name: Restore news evidence cache
         uses: actions/cache/restore@v4
@@ -911,5 +929,11 @@ jobs:
             evaluation/results/*.json
             evaluation/results/*.jsonl
             evaluation/results/news-decisions/*.json
-            /tmp/scan-validation-snapshot
+            evaluation/scheme-database/*.json
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-provider-snapshot-${{ github.run_id }}
+          path: /tmp/scan-validation-snapshot
           retention-days: 30

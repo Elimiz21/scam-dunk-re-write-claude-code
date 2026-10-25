@@ -5,6 +5,7 @@ import { OtcClient } from "./otc-daily";
 import { evidenceWindow, retrieveEvidence, retrievePagedEvidence, retrievalComplete, validClearance, groundedClearance, MATERIAL_EVENT_TYPES, materialEventExcerpts, type SourceEvidence } from "./news-evidence";
 
 export const NEWS_REVIEW_MODEL = "gpt-6.1-sol";
+export const NEWS_REVIEW_VERSION = "dated-news-v6";
 export const NEWS_INPUT_PRICE_PER_MILLION = 2;
 export const NEWS_OUTPUT_PRICE_PER_MILLION = 10;
 
@@ -24,6 +25,8 @@ export interface NewsLegitimacyResult {
   evidenceIds?: string[];
   evidenceQuotes?: Array<{evidenceId:string;quote:string}>;
   eventType?: string;
+  model?: string;
+  reviewVersion?: string;
 }
 
 function formatNewsEvidence(item: NewsEvidence, aliases = new Map<string,string>()): string {
@@ -219,6 +222,8 @@ ${batch.map(item=>formatNewsEvidence(item,aliases)).join("\n\n---\n\n")}`;
         evidenceIds: citations, evidenceQuotes: quotes, eventType,
         skipped: !!choice && !grounded,
         analysis: row.explanation,
+        model,
+        reviewVersion: NEWS_REVIEW_VERSION,
       });
     }
 
@@ -254,10 +259,10 @@ ${batch.map(item=>formatNewsEvidence(item,aliases)).join("\n\n---\n\n")}`;
 async function analyzeNewsLegitimacyBatch(batch: NewsEvidence[], remainingBudgetUsd: number) {
   const decisionDir=path.join(options.resultsDir,"news-decisions");fs.mkdirSync(decisionDir,{recursive:true});
   const resultMap=new Map<string,NewsLegitimacyResult>();
-  const cachePath=(item:NewsEvidence)=>path.join(decisionDir,createHash("sha256").update(JSON.stringify(["dated-news-v6",model,formatNewsEvidence(item),item.sources.map(source=>({source:source.source,status:source.status,window:source.window}))])).digest("hex")+".json");
+  const cachePath=(item:NewsEvidence)=>path.join(decisionDir,createHash("sha256").update(JSON.stringify([NEWS_REVIEW_VERSION,model,formatNewsEvidence(item),item.sources.map(source=>({source:source.source,status:source.status,window:source.window}))])).digest("hex")+".json");
   for(const item of batch){try{
     const cached=JSON.parse(fs.readFileSync(cachePath(item),"utf8"));
-    if(cached.symbol===item.key && typeof cached.result?.hasLegitimateNews==="boolean" && typeof cached.result.analysis==="string" && cached.result.analysis.trim() && cached.result.skipped===false && (!cached.result.hasLegitimateNews || groundedClearance(cached.result.evidenceIds,cached.result.evidenceQuotes,cached.result.eventType,item.sources))) resultMap.set(item.key,cached.result);
+    if(cached.symbol===item.key && typeof cached.result?.hasLegitimateNews==="boolean" && typeof cached.result.analysis==="string" && cached.result.analysis.trim() && cached.result.skipped===false && (!cached.result.hasLegitimateNews || groundedClearance(cached.result.evidenceIds,cached.result.evidenceQuotes,cached.result.eventType,item.sources))) resultMap.set(item.key,{...cached.result,model,reviewVersion:NEWS_REVIEW_VERSION});
   }catch{/* Unavailable or invalid decisions are reviewed again. */}}
   let chargedUpperBoundUsd=0,promptTokens=0,completionTokens=0,attemptCount=0,failedAttemptCount=0,unavailable=false;
   for(let attempt=0;attempt<2;attempt++){

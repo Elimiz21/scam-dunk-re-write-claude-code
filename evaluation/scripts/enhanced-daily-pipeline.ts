@@ -1,7 +1,8 @@
-import { createNewsReview, NEWS_REVIEW_MODEL, NEWS_INPUT_PRICE_PER_MILLION, NEWS_OUTPUT_PRICE_PER_MILLION, type NewsEvidence } from "./news-review";
+import { shouldFilterBySize } from "./market-shortlist";
+import { createNewsReview, NEWS_REVIEW_MODEL, NEWS_REVIEW_VERSION, NEWS_INPUT_PRICE_PER_MILLION, NEWS_OUTPUT_PRICE_PER_MILLION, type NewsEvidence, type NewsLegitimacyResult } from "./news-review";
 import { assessPriceHistory } from "./price-quality";
 import { retrievalComplete, type SourceEvidence } from "./news-evidence";
-import { hasIndependentWarning, type NewsTriage } from "../../src/lib/news-triage";
+import { hasIndependentWarning, reviewedAlertEligible, type NewsTriage } from "../../src/lib/news-triage";
 import { SCORING_VERSION, SCORE_UNIT } from "../../src/lib/scoring/policy";
 /**
  * Enhanced Daily Scanning Pipeline
@@ -130,8 +131,6 @@ const OPENAI_OUTPUT_COST_PER_MILLION = nonNegativeNumberFromEnv(
 );
 
 // Thresholds for filtering
-const MARKET_CAP_THRESHOLD = 10_000_000_000; // $10B - excludes mega/large cap
-const VOLUME_THRESHOLD = 10_000_000; // $10M daily volume - excludes highly liquid stocks
 const TOP_N_MARKET_CAP_EXCLUDE = 100; // Exclude top 100 by market cap
 
 // AI Layer configuration flags
@@ -142,7 +141,7 @@ interface EnhancedStockResult {
   scoringVersion?: string;
   scoreUnit?: string;
   newsTriage?: NewsTriage;
-  newsEvidence?: { sources: SourceEvidence[]; citedEvidenceIds?: string[] };
+  newsEvidence?: { sources: SourceEvidence[]; citedEvidenceIds?: string[]; review?: Pick<NewsLegitimacyResult, "model" | "reviewVersion" | "eventType" | "evidenceQuotes"> };
   symbol: string;
   name: string;
   exchange: string;
@@ -807,33 +806,6 @@ function computePrePumpBasePrice(
   }
 
   return minClose;
-}
-
-// Check if stock should be filtered by size/volume.
-// Accepts either ExtendedQuote (avgDollarVolume30d) or EnhancedStockResult
-// (avgDollarVolume) since the caller passes the latter cast as the former.
-function shouldFilterBySize(quote: any | null): {
-  filtered: boolean;
-  reason: string | null;
-} {
-  if (!quote) return { filtered: false, reason: null };
-
-  if (quote.marketCap && quote.marketCap > MARKET_CAP_THRESHOLD) {
-    return {
-      filtered: true,
-      reason: `Large market cap ($${(quote.marketCap / 1_000_000_000).toFixed(1)}B) - not susceptible to pump-and-dump`,
-    };
-  }
-
-  const dollarVolume = quote.avgDollarVolume30d ?? quote.avgDollarVolume ?? 0;
-  if (dollarVolume > VOLUME_THRESHOLD) {
-    return {
-      filtered: true,
-      reason: `High daily volume ($${(dollarVolume / 1_000_000).toFixed(1)}M) - highly liquid, hard to manipulate`,
-    };
-  }
-
-  return { filtered: false, reason: null };
 }
 
 // Convert modular TickerScanResult → ComprehensiveScanResult (used by scheme tracker)
@@ -1700,7 +1672,7 @@ async function runEnhancedPipeline(): Promise<void> {
   const afterSizeFilter: EnhancedStockResult[] = [];
 
   for (const result of highRiskBeforeFilter) {
-    const sizeFilter = shouldFilterBySize(result as unknown as ExtendedQuote);
+    const sizeFilter = shouldFilterBySize(result);
 
     if (sizeFilter.filtered) {
       result.isFiltered = true;
@@ -1872,6 +1844,10 @@ async function runEnhancedPipeline(): Promise<void> {
           "ERROR: OpenAI batch response omitted this instrument; retained as suspicious",
         skipped: true,
       };
+      for (const result of group.equivalents) if (result.newsEvidence) {
+        result.newsEvidence.citedEvidenceIds = analysis.evidenceIds;
+        result.newsEvidence.review = {model: analysis.model, reviewVersion: analysis.reviewVersion, eventType: analysis.eventType, evidenceQuotes: analysis.evidenceQuotes};
+      }
       if (analysis.skipped) {
         retainAsSuspicious(group, analysis.analysis, true, /^DEFERRED:/i.test(analysis.analysis) ? "DEFERRED" : batchAnalysis.unavailable ? "UNAVAILABLE" : "ERROR");
       } else if (analysis.hasLegitimateNews && !group.equivalents.some(hasIndependentWarning)) {
@@ -1926,6 +1902,8 @@ async function runEnhancedPipeline(): Promise<void> {
     Date.now() -
     new Date(scanStatus.phases.phase3_newsAnalysis.startedAt!).getTime();
   scanStatus.phases.phase3_newsAnalysis.details = {
+    reviewModel: NEWS_REVIEW_MODEL,
+    reviewVersion: NEWS_REVIEW_VERSION,
     stocksAnalyzed: newsMetrics.eligibleRecords,
     sourceRequests: newsClient.calls,
     modelChargedOrReservedUpperBoundUsd: newsClient.modelCostBoundUsd,
@@ -2373,7 +2351,7 @@ async function runEnhancedPipeline(): Promise<void> {
       tickersActuallySearched: scanRunResult.searchedTickers?.length || 0,
     };
   } else {
-    console.log("  No suspicious stocks to scan.");
+    console.log(VALIDATION_ONLY ? "  Social provider execution is disabled for isolated validation." : "  No market observations require social scanning.");
   }
 
   const socialPhaseStatus =
@@ -2390,7 +2368,7 @@ async function runEnhancedPipeline(): Promise<void> {
   const socialCoverageDegraded = socialPhaseStatus === "degraded";
   scanStatus.phases.phase4_socialMedia.status = socialPhaseStatus;
   if (socialCoverageDegraded) {
-    scanStatus.phases.phase4_socialMedia.error = `${scanStatus.socialMediaDetails.tickersActuallySearched}/${scanStatus.socialMediaDetails.tickersSubmitted} submitted tickers have verified search coverage; partial evidence was retained`;
+    scanStatus.phases.phase4_socialMedia.error = VALIDATION_ONLY ? "Social provider execution was intentionally disabled for isolated validation." : `${scanStatus.socialMediaDetails.tickersActuallySearched}/${scanStatus.socialMediaDetails.tickersSubmitted} submitted tickers have verified search coverage; partial evidence was retained`;
   }
   scanStatus.phases.phase4_socialMedia.completedAt = new Date().toISOString();
   scanStatus.phases.phase4_socialMedia.durationMs =
@@ -2405,6 +2383,10 @@ async function runEnhancedPipeline(): Promise<void> {
     platformsUsed: scanStatus.socialMediaDetails.platformsUsed,
     totalMentions: scanStatus.socialMediaDetails.totalMentions,
   };
+
+  // Market/news review survives a skipped or bounded social phase. Unreviewed
+  // observations do not become reviewed alerts merely by entering that phase.
+  suspiciousStocks.splice(0, suspiciousStocks.length, ...afterNewsFilter.filter(reviewedAlertEligible));
 
   // Phase 5: Scheme Tracking
   console.log("\n" + "=".repeat(80));
