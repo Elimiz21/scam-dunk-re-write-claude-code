@@ -4,9 +4,9 @@ import { getConversionFunnelReport } from "@/lib/admin/conversion-funnel";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: NextRequest, { params }: { params: { token: string } }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const expectedToken = process.env.FUNNEL_DASHBOARD_SHARE_TOKEN;
-  if (!expectedToken || params.token !== expectedToken) {
+  if (!expectedToken || (await params).token !== expectedToken) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   try {

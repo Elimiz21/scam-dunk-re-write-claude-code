@@ -397,18 +397,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // User deleted — drop the session.
             return null;
           }
-          if (
-            !user && typeof token.sessionVersion === "number" &&
-            dbUser.sessionVersion > token.sessionVersion
-          ) {
+          if ((!user && typeof token.sessionVersion !== "number") ||
+            (typeof user?.sessionVersion === "number" && user.sessionVersion !== dbUser.sessionVersion) ||
+            (!user && dbUser.sessionVersion !== token.sessionVersion)) {
             // Token predates a credential change — invalidate it.
             return null;
           }
           token.plan = dbUser.plan as "FREE" | "PAID" | "PRO_MAX";
           if (user) token.sessionVersion = dbUser.sessionVersion;
-        } catch (error) {
-          // DB unavailable — fail open and keep the existing token rather than
-          // logging every user out during a transient outage.
+        } catch {
+          // Revocation cannot be checked during an outage; do not authorize a
+          // possibly revoked session. The client can retry after recovery.
+          return null;
         }
       }
       return token;

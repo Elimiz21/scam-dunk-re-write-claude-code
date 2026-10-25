@@ -30,3 +30,14 @@ describe("expected market publication", () => {
     expect(expectedMarketDate(new Date("invalid"))).toBeNull();
   });
 });
+
+describe("interactive EOD provider cutoff", () => {
+ const {expectedPriceSession}=require("@/lib/market-publication-freshness");
+ test.each([
+ ["2026-10-23T20:59:00Z","2026-10-22"],
+ ["2026-10-23T21:00:00Z","2026-10-23"],
+ ["2026-10-25T12:00:00Z","2026-10-23"],
+ ["2026-11-26T23:00:00Z","2026-11-25"],
+ ["2030-10-25T23:00:00Z",null],
+ ])("%s expects %s",(now,expected)=>expect(expectedPriceSession(new Date(now!))).toBe(expected));
+});

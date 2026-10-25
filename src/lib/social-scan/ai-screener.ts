@@ -19,7 +19,7 @@ function getOpenAI(): OpenAI {
     if (!config.openaiApiKey) {
       throw new Error("OPENAI_API_KEY is not configured");
     }
-    openaiClient = new OpenAI({ apiKey: config.openaiApiKey });
+    openaiClient = new OpenAI({ apiKey: config.openaiApiKey, maxRetries: 0 });
   }
   return openaiClient;
 }
@@ -57,7 +57,7 @@ interface ScreeningResult {
  */
 export async function screenMentionsWithAI(
   mentions: SocialMention[],
-  options: { signal?: AbortSignal; deadlineAt?: number } = {},
+  options: { signal?: AbortSignal; deadlineAt?: number; usage?: import("./usage").SocialUsage } = {},
 ): Promise<SocialMention[]> {
   const deadlineSignal =
     options.deadlineAt === undefined
@@ -116,7 +116,7 @@ export async function screenMentionsWithAI(
   ): Promise<ScreeningResult[]> {
     if (cancelled()) return [];
     try {
-      const first = await classifyBatch(mentionsToClassify, effectiveSignal);
+      const first = await classifyBatch(mentionsToClassify, effectiveSignal, options.usage);
       if (first.length > 0) return first;
     } catch (err: any) {
       if (cancelled()) return [];
@@ -126,7 +126,7 @@ export async function screenMentionsWithAI(
     }
     // Retry once (covers transient timeouts/rate limits and empty parses)
     if (cancelled()) return [];
-    return classifyBatch(mentionsToClassify, effectiveSignal);
+    return classifyBatch(mentionsToClassify, effectiveSignal, options.usage);
   }
 
   // Process batches in parallel (MAX_CONCURRENCY at a time)
@@ -205,6 +205,7 @@ export async function screenMentionsWithAI(
 async function classifyBatch(
   mentions: SocialMention[],
   signal?: AbortSignal,
+  usage?: import("./usage").SocialUsage,
 ): Promise<ScreeningResult[]> {
   const openai = getOpenAI();
 
@@ -219,6 +220,7 @@ async function classifyBatch(
     patternFlags: m.redFlags.slice(0, 5).join("; "),
   }));
 
+  const settleUsage = usage?.reserveModel((Buffer.byteLength(JSON.stringify(mentionSummaries), "utf8") + 4000)*.15/1e6 + 1500*.6/1e6);
   const response = await openai.chat.completions.create(
     {
       model: "gpt-4o-mini",
@@ -248,6 +250,7 @@ Respond with ONLY a JSON object of the form: {"classifications":[{"index":0,"cla
     { timeout: REQUEST_TIMEOUT_MS, signal },
   );
 
+  settleUsage?.(response.usage);
   const content = response.choices?.[0]?.message?.content || "";
   if (!content.trim()) {
     console.warn("[AI Screener] Empty response content");

@@ -1,3 +1,4 @@
+import { resolveNewsTriage, reviewedAlertEligible } from "../news-triage";
 import { normalizeEntryPrice } from "@/lib/promoted-stocks/entry-price";
 /**
  * Core ingestion logic for daily evaluation files.
@@ -75,6 +76,13 @@ async function isStaleQuoteSymbol(
 }
 
 interface EvaluationStock {
+  newsTriage?: string;
+  newsEvidence?: unknown;
+  hasLegitimateNews?: boolean;
+  newsAnalysis?: string;
+  recentNews?: unknown[];
+  secFilings?: unknown[];
+  scoringVersion?: string;
   symbol: string;
   name: string;
   exchange: string;
@@ -637,32 +645,10 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           });
         }
       }
-      if (identityQuarantines.length > 0) {
-        const error = `${identityQuarantines.length} OTC issuer identity conflicts quarantined; canonical publication blocked`;
-        await revisionContext.store.failPhase(
-          revisionContext.revisionHash,
-          revisionContext.phase,
-          revisionContext.leaseToken,
-          error,
-        );
-        revisionContext = null;
-        return {
-          success: false,
-          partial: true,
-          identityQuarantines,
-          error,
-          date,
-          stocksCreated: 0,
-          stocksUpdated: 0,
-          snapshotsCreated: 0,
-          alertsCreated: 0,
-          promotedStocksCreated: 0,
-          promotedStocksSkippedStale: 0,
-          totalProcessed: 0,
-          skipped: evaluationData.length,
-          durationMs: Date.now() - startTime,
-        };
-      }
+      // A conflict excludes that instrument from every canonical mutation.
+      // Verified instruments can still publish atomically with explicit coverage.
+      validStocks = validStocks.filter(stock => !quarantinedSymbols.has(stock.symbol));
+
     }
 
     // Step 1: Get all existing stocks in batches
@@ -862,6 +848,9 @@ export async function ingestDate(date: string): Promise<IngestResult> {
           stockSymbol: stock.symbol,
           scanDate,
           riskLevel: stock.riskLevel || "UNKNOWN",
+          newsTriage: resolveNewsTriage(stock),
+          newsEvidence: JSON.stringify(stock.newsEvidence ?? { analysis: stock.newsAnalysis ?? null, recentNews: stock.recentNews ?? [], secFilings: stock.secFilings ?? [], lineage: "legacy_retained_inputs_only" }),
+          scoringVersion: stock.scoringVersion ?? null,
           totalScore: toInt(stock.totalScore) ?? 0,
           isLegitimate:
             stock.riskLevel === "INSUFFICIENT"
@@ -906,7 +895,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     }
 
     // Step 7: Create alerts for HIGH risk stocks
-    const highRiskStocks = validStocks.filter((s) => s.riskLevel === "HIGH");
+    const highRiskStocks = validStocks.filter(reviewedAlertEligible);
     let alertsCreated = 0;
     let alertsToCreate: Array<{
       stockId: string;
@@ -1001,7 +990,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         ...summaryData,
         totalStocks: summaryData?.totalStocks ?? evaluationData.length,
         evaluated: validStocks.length,
-        skippedNoData: summaryData?.skippedNoData ?? invalidStockCount,
+        skippedNoData: (summaryData?.skippedNoData ?? invalidStockCount) + evaluationData.filter(stock => quarantinedSymbols.has(stock.symbol)).length,
         byRiskLevel,
         byExchange,
       };
@@ -1165,10 +1154,10 @@ export async function ingestDate(date: string): Promise<IngestResult> {
     );
 
     return {
-      success: identityQuarantines.length === 0,
+      success: publishedRevision !== null || identityQuarantines.length === 0,
       partial: identityQuarantines.length > 0,
       identityQuarantines,
-      ...(identityQuarantines.length
+      ...(identityQuarantines.length && !publishedRevision
         ? {
             error: `${identityQuarantines.length} OTC issuer identity conflicts quarantined; date remains pending`,
           }

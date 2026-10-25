@@ -35,6 +35,7 @@ export interface PumpRadarCoverage {
 }
 
 export interface PumpRadarRow {
+  newsTriage?: import("@/lib/news-triage").NewsTriage;
   displayTicker: string;
   sector?: string;
   marketCapBand?: string;
@@ -135,6 +136,7 @@ export type HistoryOrder =
   | "DATE_ADDED";
 
 export interface RecentScanDto {
+  assessmentAvailable?: boolean;
   id: string;
   ticker: string;
   source: "MANUAL" | "AUTOMATIC_FULL" | "AUTOMATIC_PRICE";
@@ -236,6 +238,8 @@ export type ScanSocialDto =
     };
 
 export interface ScanDetailDto {
+  assessmentAvailable?: boolean;
+  result?: import("@/lib/types").RiskResponse | null;
   id: string;
   ticker: string;
   source: "MANUAL" | "AUTOMATIC_FULL" | "AUTOMATIC_PRICE";

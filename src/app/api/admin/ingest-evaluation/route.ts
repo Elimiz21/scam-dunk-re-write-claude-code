@@ -32,6 +32,9 @@ export async function POST(request: Request) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!["OWNER", "ADMIN"].includes(session.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
     sessionId = session.id;
 
     const body = await request.json();

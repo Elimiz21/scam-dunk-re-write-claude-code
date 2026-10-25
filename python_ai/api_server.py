@@ -196,6 +196,7 @@ class ProvidedFundamentals(BaseModel):
     current_price: Optional[float] = Field(default=None, ge=0)
     market_cap: Optional[float] = Field(default=None, ge=0)
     avg_daily_volume: Optional[float] = Field(default=None, ge=0)
+    avg_daily_dollar_volume: Optional[float] = Field(default=None, ge=0)
     is_otc: bool = False
     on_watchlist: bool = False
 
@@ -291,6 +292,9 @@ class NewsVerificationResult(BaseModel):
     recommended_level: str = 'HIGH'
 
 
+from scoring_policy import SCORING_VERSION, POLICY
+
+
 class AnalysisResponse(BaseModel):
     """Response model for scam analysis"""
     ticker: str
@@ -298,6 +302,8 @@ class AnalysisResponse(BaseModel):
     risk_level: str
     risk_probability: float
     risk_score: int
+    scoring_version: str = SCORING_VERSION
+    score_unit: str = POLICY["scoreUnit"]
     rf_probability: Optional[float] = None
     lstm_probability: Optional[float] = None
     anomaly_score: float = 0.0

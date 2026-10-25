@@ -1,3 +1,4 @@
+import { SocialUsage } from "./usage";
 /**
  * Social Scan Orchestrator (server-side)
  *
@@ -345,6 +346,7 @@ export async function runScannerSafely(
   targets: ScanTarget[],
   deadlineAt: number,
   parentSignal?: AbortSignal,
+  usage?: SocialUsage,
 ): Promise<PlatformScanResult[]> {
   const controller = new AbortController();
   const abortFromParent = () =>
@@ -359,7 +361,7 @@ export async function runScannerSafely(
   try {
     const work = scanner.scan(targets, {
       signal: controller.signal,
-      deadlineAt,
+      deadlineAt, usage,
     });
     return await Promise.race([
       work,
@@ -685,7 +687,9 @@ export async function runSocialScanAndStore(options: {
   let mentionsStored = 0;
   let readbackComplete = true;
 
+  const usage = new SocialUsage();
   const buildMetadata = (): SocialRunMetadata => ({
+    usage: usage.snapshot(),
     version: 2,
     scanners: Array.from(new Set(platformsUsed)),
     stats: scannerStats,
@@ -873,6 +877,7 @@ export async function runSocialScanAndStore(options: {
         targets,
         workDeadlineAt,
         runController.signal,
+        usage,
       );
       await writeScannerOutput(scanner.name, platformResults, targets);
     }),
@@ -922,6 +927,7 @@ export async function runSocialScanAndStore(options: {
           perplexityTargets,
           workDeadlineAt,
           runController.signal,
+          usage,
         );
         await writeScannerOutput(
           perplexity.name,
@@ -1007,6 +1013,7 @@ export async function runSocialScanAndStore(options: {
       const aiWork = screenMentionsWithAI(uniqueMentions, {
         signal: aiController.signal,
         deadlineAt: workDeadlineAt,
+        usage,
       });
       const screenedMentions = await Promise.race([
         aiWork,

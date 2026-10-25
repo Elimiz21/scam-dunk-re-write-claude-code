@@ -225,7 +225,7 @@ describe("ingestDate OTC records", () => {
     },
   );
 
-  it("fails a pointer revision with an identity conflict before any canonical or metadata write", async () => {
+  it("publishes an explicit quarantine without mutating the conflicting issuer", async () => {
     const date = "2026-09-16";
     rows[0] = { ...row, name: "Different Issuer Ltd", riskLevel: "HIGH" };
     const evaluationName = `enhanced-evaluation-${date}.json`;
@@ -262,13 +262,16 @@ describe("ingestDate OTC records", () => {
     }]);
 
     await expect(ingestDate(date)).resolves.toMatchObject({
-      success: false, partial: true, snapshotsCreated: 0,
+      success: true, partial: true, snapshotsCreated: 0,
     });
-    expect(fail).toHaveBeenCalledWith(
-      plan.manifest.revisionHash, "CANONICAL_PUBLISH", "identity-lease",
-      expect.stringContaining("identity conflicts"),
-    );
-    expect(publish).not.toHaveBeenCalled();
+    expect(fail).not.toHaveBeenCalled();
+    expect(publish).toHaveBeenCalledWith(expect.objectContaining({
+      snapshots: [], alerts: [], newStocks: [], trackedStockUpdates: [],
+      summary: expect.objectContaining({evaluated: 0, skippedNoData: 1, highRiskCount: 0}),
+    }));
+    const quarantine = JSON.parse(publish.mock.calls[0][0].summary.byExchange as string).OTC.identityQuarantines;
+    expect(quarantine).toHaveLength(1);
+    expect(quarantine[0].symbol).toBe("EXAMPLE");
     expect(prisma.trackedStock.update).not.toHaveBeenCalled();
     expect(prisma.trackedStock.createMany).not.toHaveBeenCalled();
     expect(prisma.stockDailySnapshot.createMany).not.toHaveBeenCalled();

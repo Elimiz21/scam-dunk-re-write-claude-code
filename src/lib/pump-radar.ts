@@ -1,3 +1,4 @@
+import { resolveNewsTriage, hasIndependentWarning, type NewsTriage } from "./news-triage";
 import { createHash } from "node:crypto";
 import { expectedMarketDate, isCurrentMarketPublication } from "@/lib/market-publication-freshness";
 import { prisma } from "@/lib/db";
@@ -77,6 +78,7 @@ export type PumpRadarPayload =
         sector: string;
         marketCapBand: string;
         riskLabel: "High risk" | "Caution" | "Low risk";
+        newsTriage: NewsTriage;
         score: number;
         signalCount: number;
         signalSummary?: string | null;
@@ -222,6 +224,7 @@ export function createPumpRadarService(
       orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
       select: {
         scanDate: true,
+        byExchange: true,
         publishedAt: true,
         artifactRevision: { select: { status: true, producerExecutedAt: true, qualityStatus: true } },
         totalStocks: true,
@@ -247,6 +250,9 @@ export function createPumpRadarService(
       };
     }
 
+    let ingestionExcluded = false;
+    try { ingestionExcluded = Object.values(JSON.parse(summary.byExchange ?? "{}")).some((exchange: any) => Array.isArray(exchange?.identityQuarantines) && exchange.identityQuarantines.length > 0); } catch { ingestionExcluded = true; }
+
     const publicationCandidates = await client.stockDailySnapshot.findMany({
       where: {
         scanDate: summary.scanDate,
@@ -261,6 +267,8 @@ export function createPumpRadarService(
         id: true,
         marketCap: true,
         riskLevel: true,
+        newsTriage: true,
+        signals: true,
         totalScore: true,
         signalCount: true,
         priceChangePct: true,
@@ -278,6 +286,11 @@ export function createPumpRadarService(
     });
     const snapshots = publicationCandidates
       .filter(isUsCommonStockSnapshot)
+      .filter(snapshot => {
+        let signals = [];
+        try { signals = JSON.parse(snapshot.signals ?? "[]"); } catch { /* Unknown evidence cannot establish independent warnings. */ }
+        return resolveNewsTriage(snapshot) !== "CLEARED" || hasIndependentWarning({signals});
+      })
       .slice(0, safeLimit);
 
     const dayRange = utcDayRange(summary.scanDate);
@@ -320,6 +333,7 @@ export function createPumpRadarService(
         marketCapBand: marketCapBand(snapshot.marketCap),
         signalSummary: patternSummary(snapshot),
         riskLabel: getRiskLabel(snapshot.riskLevel as RiskLevel),
+        newsTriage: resolveNewsTriage(snapshot),
         score: normalizeRiskScore(Number(snapshot.totalScore) || 0),
         signalCount: snapshot.signalCount,
         // Precise market observations can identify a stock by matching public quotes.
@@ -337,7 +351,7 @@ export function createPumpRadarService(
       asOf: summary.scanDate.toISOString(),
       publishedAt: summary.artifactRevision ? summary.publishedAt?.toISOString() ?? null : null,
       executedAt: summary.artifactRevision?.producerExecutedAt?.toISOString() ?? null,
-      publicationQuality: summary.artifactRevision?.qualityStatus === "VERIFIED" ? "VERIFIED" : summary.artifactRevision?.qualityStatus === "DEGRADED" ? "DEGRADED" : "UNKNOWN",
+      publicationQuality: ingestionExcluded ? "DEGRADED" : summary.artifactRevision?.qualityStatus === "VERIFIED" ? "VERIFIED" : summary.artifactRevision?.qualityStatus === "DEGRADED" ? "DEGRADED" : "UNKNOWN",
       freshness: isFreshMarketPublication(summary.scanDate, now)
         ? "FRESH"
         : "STALE",
@@ -359,7 +373,7 @@ export function createPumpRadarService(
         : null,
       rows,
       notice: expectedMarketDate(now)
-        ? "Checked after the trading day closes — not live."
+        ? "Raw market observations, checked after the trading day closes. News review status is shown separately; these are not confirmed manipulation findings."
         : "Market data is not live. Freshness cannot be confirmed outside the supported 2026–2028 market calendar.",
     };
   }

@@ -6,6 +6,7 @@
   },
   "include": [
     "scripts/enhanced-daily-pipeline.ts",
+    "scripts/news-shadow-validation.ts",
     "scripts/upload-to-supabase.ts",
     "scripts/run-post-scan-phases.ts",
     "scripts/run-evaluation-fmp.ts"

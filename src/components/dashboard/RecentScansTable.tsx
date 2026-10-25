@@ -137,7 +137,7 @@ export function RecentScansTable({
                       <Badge variant={riskVariant(scan.riskLabel)}>{scan.riskLabel}</Badge>
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{scan.signalCount} signals · Score {scan.score}</span>
+                      <span>{scan.assessmentAvailable === false ? "Assessment unavailable" : `${scan.signalCount} signals · Score ${scan.score}`}</span>
                       <span>{scan.socialEvidenceAvailable ? "Social evidence" : "No social evidence shown"}</span>
                     </div>
                     <Button variant="outline" className="min-h-11 w-full" onClick={() => onOpenDetail(scan)}>

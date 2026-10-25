@@ -366,7 +366,7 @@ describe("Risk Scoring Module", () => {
       expect(result.riskLevel).toBe("HIGH");
     });
 
-    test("HIGH: OTC + small cap should result in HIGH risk", async () => {
+    test("MEDIUM: structural OTC susceptibility alone does not establish active manipulation", async () => {
       const marketData = createMockMarketData({
         lastPrice: 2, // MICROCAP_PRICE: 2
         marketCap: 50_000_000, // SMALL_MARKET_CAP: 2
@@ -378,7 +378,7 @@ describe("Risk Scoring Module", () => {
       const result = await computeRiskScore(input);
 
       expect(result.totalScore).toBeGreaterThanOrEqual(5);
-      expect(result.riskLevel).toBe("HIGH");
+      expect(result.riskLevel).toBe("MEDIUM");
     });
 
     test("HIGH: all behavioral flags should result in HIGH risk", async () => {

@@ -15,6 +15,9 @@ export async function POST() {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!["OWNER", "ADMIN"].includes(session.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
 
     // Get existing messages to avoid duplicates
     const existingMessages = await prisma.scanMessage.findMany({

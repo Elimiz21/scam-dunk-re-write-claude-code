@@ -27,7 +27,7 @@ const mentionSchema = z.object({
   url: optionalText,
   author: z.string().max(10_000).nullish(),
   postDate: z.string().datetime({ offset: true }).nullish(),
-  engagement: z.record(z.number().finite()).optional().default({}),
+  engagement: z.record(z.string(), z.number().finite()).optional().default({}),
   sentiment: z.enum(["bullish", "bearish", "neutral"]).nullish(),
   isPromotional: z.boolean().optional().default(false),
   promotionScore: z.number().int().min(0).max(100).optional().default(0),

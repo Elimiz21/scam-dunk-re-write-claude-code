@@ -1,4 +1,5 @@
 import { computeRiskScore, PriceHistory } from "./standalone-scorer";
+import { assessPriceHistory } from "./price-quality";
 
 export type Request = (
   endpoint: string,
@@ -46,6 +47,7 @@ export class OtcClient {
       maxCalls?: number;
       maxDurationMs?: number;
       fetch?: typeof fetch;
+      onAttempt?: (event: {endpoint:string; params:Record<string,string>; attempt:number; requestedAt:string}) => void;
     } = {},
   ) {}
   request: Request = async (endpoint, params) => {
@@ -59,6 +61,7 @@ export class OtcClient {
       )
         throw new Error("budget_exhausted");
       this.calls++;
+      this.options.onAttempt?.({endpoint,params,attempt:attempt+1,requestedAt:new Date().toISOString()});
       const wait = Math.max(0, this.nextAt - Date.now());
       this.nextAt = Date.now() + wait + (this.options.spacingMs ?? 250);
       await delay(wait);
@@ -208,7 +211,8 @@ export async function evaluateOtcSecurity(
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-100);
-    if (bars.length < 30) return fail("insufficient_history");
+    const quality = assessPriceHistory(bars, date);
+    if (quality) return fail(quality === "corporate_action" ? "unresolved_discontinuity" : quality);
     if (
       new Set(bars.map((b) => b.date)).size !== bars.length ||
       bars.some(
@@ -224,7 +228,6 @@ export async function evaluateOtcSecurity(
     )
       return fail("invalid_prices");
     outcome.priceAsOf = bars[bars.length - 1].date;
-    if (outcome.priceAsOf !== date) return fail("stale_prices");
     if (
       bars.filter(
         (b) =>

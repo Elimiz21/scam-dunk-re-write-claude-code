@@ -10,7 +10,7 @@ const idSchema = z.string().trim().min(1).max(128);
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -25,7 +25,7 @@ export async function GET(
     );
   }
 
-  const parsedId = idSchema.safeParse(params.id);
+  const parsedId = idSchema.safeParse((await params).id);
   if (!parsedId.success) {
     return NextResponse.json(
       {

@@ -268,7 +268,7 @@ export function buildUnifiedMarketRows(input: {
       riskLabel: radar?.riskLabel ?? recent?.riskLabel ?? "Low risk",
       priceChangePct: radar?.priceChangePct ?? null,
       lastPrice: radar?.lastPrice ?? null,
-      pumpScore: radar?.score ?? recent?.score ?? null,
+      pumpScore: radar?.score ?? (recent?.assessmentAvailable === false ? null : recent?.score ?? null),
     };
   });
 

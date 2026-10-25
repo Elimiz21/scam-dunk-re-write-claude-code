@@ -10,6 +10,12 @@ on:
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
     inputs:
+      news_shadow_scope:
+        description: "Provider-backed news validation only; does not publish"
+        required: false
+        default: "none"
+        type: choice
+        options: ["none", "100", "500", "full"]
       upload_only:
         description: "Only upload existing results (skip evaluation)"
         required: false
@@ -47,6 +53,7 @@ permissions:
 
 jobs:
   check-trading-day:
+    if: ${{ !github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none' }}
     runs-on: ubuntu-latest
     outputs:
       is_trading_day: ${{ steps.check.outputs.is_trading_day }}
@@ -252,6 +259,14 @@ jobs:
           fi
           echo "date=$DATE" >> $GITHUB_OUTPUT
           echo "Evaluation date: $DATE"
+
+      - name: Restore news evidence cache
+        uses: actions/cache/restore@v4
+        with:
+          path: evaluation/results/news-cache
+          key: news-evidence-v2-${{ steps.date.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            news-evidence-v2-${{ steps.date.outputs.date }}-
 
       - name: Run Enhanced Daily Pipeline
         if: ${{ github.event.inputs.upload_only != 'true' }}
@@ -522,6 +537,13 @@ jobs:
             echo "Results pushed to scam-dunk-data repository"
           fi
 
+      - name: Save resumable news evidence cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: evaluation/results/news-cache
+          key: news-evidence-v2-${{ steps.date.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -530,6 +552,8 @@ jobs:
           path: |
             evaluation/results/*.json
             evaluation/results/*.md
+            evaluation/results/*.jsonl
+            evaluation/results/news-cache/*.json
             evaluation/scheme-database/*.json
           retention-days: 30
           if-no-files-found: warn
@@ -563,7 +587,7 @@ jobs:
   notify-on-failure:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: failure()
+    if: ${{ failure() && (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') }}
     permissions:
       issues: write
     steps:
@@ -611,7 +635,7 @@ jobs:
   notify-on-success:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: success()
+    if: ${{ success() && (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') }}
     steps:
       - name: Send success email (optional - daily digest)
         env:
@@ -677,3 +701,56 @@ jobs:
               \"subject\": \"ℹ️ Daily Stock Scan Skipped - ${DATE} (${DAY_NAME})\",
               \"html\": \"<h2>Daily Scan Skipped</h2><p>The daily stock scan was skipped on <strong>${DATE} (${DAY_NAME})</strong> because it was detected as a non-trading day (weekend or US market holiday).</p><p>If this is incorrect, you can manually trigger the workflow with <code>force_run: true</code>.</p><hr><p style='color:#666;font-size:12px;'>This alert was sent by the ScamDunk automated monitoring system.</p>\"
             }" && echo "Skip alert email sent" || echo "Failed to send email"
+
+  news-shadow-validation:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.news_shadow_scope && github.event.inputs.news_shadow_scope != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: retained-data
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            evaluation/results/news-cache
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: news-shadow-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+          restore-keys: news-shadow-v2-${{ github.event.inputs.date_override }}-
+      - name: Run isolated news retrieval validation
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVALUATION_DATE: ${{ github.event.inputs.date_override }}
+          NEWS_SHADOW_SCOPE: ${{ github.event.inputs.news_shadow_scope }}
+        run: |
+          test -n "$EVALUATION_DATE"
+          test "$NEWS_SHADOW_SCOPE" != "none"
+          export NEWS_SHADOW_INPUT="$GITHUB_WORKSPACE/retained-data/evaluation-results/enhanced-evaluation-${EVALUATION_DATE}.json"
+          npx ts-node --project evaluation/tsconfig.json evaluation/scripts/news-shadow-validation.ts
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            evaluation/results/news-cache
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: news-shadow-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: news-shadow-${{ github.event.inputs.news_shadow_scope }}-${{ github.run_id }}
+          path: |
+            evaluation/results/news-shadow-*.json*
+            evaluation/results/news-source-requests-*.jsonl
+            evaluation/results/news-model-batches-*.jsonl
+            evaluation/results/news-cost-ledger-*.jsonl
+            evaluation/results/news-cache/*.json
+          retention-days: 30

@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
     where: { status: { in: ["DELIVERING", "SENDING"] }, updatedAt: { lte: retryBefore }, encryptedReply: { not: null } },
     data: { status: "RETRY" },
   });
+  // Re-run abandoned work using the same message idempotency key. A saved
+  // scan is replayed; an expired reservation is recovered without double charge.
+  await prisma.telegramInboundEvent.updateMany({
+    where: {status: {in: ["PROCESSING", "SCANNING"]}, updatedAt: {lte: scanBefore}, attemptCount: {lt: 3}, purgeAt: {gt: now}},
+    data: {status: "RECEIVED"},
+  });
   const retryEvents = await prisma.telegramInboundEvent.findMany({
     where: {
       OR: [

@@ -27,7 +27,6 @@ import { Step } from "@/components/LoadingStepper";
 import { PublicPumpRadar } from "@/components/dashboard/PumpRadar";
 import { ActivityTicker } from "@/components/ActivityTicker";
 import type {
-  HistoryPayload,
   ScanDetailDto,
   ScanSocialDto,
 } from "@/components/dashboard/types";
@@ -340,7 +339,7 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
       // first, the user still sees the steps finish at their own pace.
       const apiCall = fetch("/api/check", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
         body: JSON.stringify({
           ticker: data.ticker,
           assetType: data.assetType,
@@ -416,7 +415,7 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
         });
         setScanRefreshKey((k) => k + 1);
         setSidebarOpen(false);
-        void fetchLatestScanSocial(data.ticker);
+        void fetchLatestScanSocial(responseData.resultId);
       }
     } catch (err) {
       clearInterval(tipInterval);
@@ -427,22 +426,13 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
     }
   };
 
-  const fetchLatestScanSocial = async (ticker: string) => {
+  const fetchLatestScanSocial = async (resultId?: string) => {
+    if (!resultId) return;
     setScanSocialLoading(true);
     setScanSocial(null);
     try {
-      const historyResponse = await fetch(
-        "/api/scans/history?order=MOST_RECENT&page=1&limit=10",
-        { cache: "no-store" },
-      );
-      if (!historyResponse.ok) return;
-      const history = (await historyResponse.json()) as HistoryPayload;
-      const latest = history.items.find(
-        (item) => item.ticker.toUpperCase() === ticker.trim().toUpperCase(),
-      );
-      if (!latest) return;
       const detailResponse = await fetch(
-        `/api/scans/${encodeURIComponent(latest.id)}`,
+        `/api/scans/${encodeURIComponent(resultId)}`,
         { cache: "no-store" },
       );
       if (!detailResponse.ok) return;
@@ -473,7 +463,8 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
           : result.riskLevel === "LOW"
             ? "Low risk"
             : "Caution";
-      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${customerRiskLabel} (Score: ${normalizedScore}/100)\n\nCheck your stocks for scam red flags at ScamDunk.`;
+      const assessment = result.riskLevel === "INSUFFICIENT" ? "Assessment unavailable" : `${customerRiskLabel} (Score: ${normalizedScore}/100)`;
+      const shareText = `ScamDunk Analysis: ${result.stockSummary.ticker} - ${assessment}\n\nCheck your stocks for scam red flags at ScamDunk.`;
       const shareUrl =
         typeof window !== "undefined" ? window.location.href : "";
 
@@ -632,6 +623,12 @@ export default function HomeContent({ billingPrices }: HomeContentProps) {
                     )}
 
                     <div className="mx-auto mb-12 w-full max-w-3xl px-4 animate-fade-in sm:px-6" style={{ animationDelay: "0.05s" }}>
+                      {usage?.limitReached && (
+                        <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm" role="status">
+                          <p className="font-semibold">You have used all {usage.scansLimitThisMonth} {usage.scansLimitThisMonth === 1 ? "scan" : "scans"} in your monthly plan.</p>
+                          <p className="mt-1">Your allowance resets next month. <a className="underline" href="/pricing">View plans for more scans</a>.</p>
+                        </div>
+                      )}
                       <ScanInput
                         onSubmit={handleSubmit}
                         isLoading={isLoading}

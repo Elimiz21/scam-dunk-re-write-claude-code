@@ -1,3 +1,6 @@
+import { createNewsReview } from "./news-review";
+import { retrievalComplete, type SourceEvidence } from "./news-evidence";
+import { hasIndependentWarning, type NewsTriage } from "../../src/lib/news-triage";
 /**
  * Post-Scan Processing Pipeline
  *
@@ -104,6 +107,8 @@ interface ProcessedStock extends HighRiskStock {
   socialMediaFindings?: ComprehensiveScanResult | null;
   schemeId: string | null;
   schemeStatus: string | null;
+  newsTriage?: NewsTriage;
+  newsEvidence?: { sources: SourceEvidence[]; citedEvidenceIds?: string[] };
 }
 
 // Utility functions
@@ -164,57 +169,10 @@ async function fetchHighRiskStocksFromStorage(
       return Buffer.from(await data.arrayBuffer());
     },
     head.revisionHash,
+    "all",
   );
   process.env.POST_SCAN_PARENT_REVISION_HASH = source.parentRevisionHash ?? "";
   return source.stocks;
-}
-
-// FMP API functions (using stable API - v3 deprecated Aug 31, 2025)
-async function fetchStockNews(symbol: string): Promise<any[]> {
-  if (!FMP_API_KEY) return [];
-
-  try {
-    const url = `${FMP_BASE_URL}/news/stock?symbols=${symbol}&limit=15&apikey=${FMP_API_KEY}`;
-    const response = curlFetch(url);
-    if (!response) return [];
-    const news = JSON.parse(response);
-    return Array.isArray(news) ? news : [];
-  } catch {
-    return [];
-  }
-}
-
-async function fetchSECFilings(symbol: string): Promise<any[]> {
-  if (!FMP_API_KEY) return [];
-
-  try {
-    // Get filings from last 90 days
-    const toDate = new Date().toISOString().split("T")[0];
-    const fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0];
-    const url = `${FMP_BASE_URL}/sec-filings-search/symbol?symbol=${symbol}&from=${fromDate}&to=${toDate}&limit=10&apikey=${FMP_API_KEY}`;
-    const response = curlFetch(url);
-    if (!response) return [];
-    const filings = JSON.parse(response);
-    return Array.isArray(filings) ? filings : [];
-  } catch {
-    return [];
-  }
-}
-
-async function fetchPressReleases(symbol: string): Promise<any[]> {
-  if (!FMP_API_KEY) return [];
-
-  try {
-    const url = `${FMP_BASE_URL}/news/press-releases?symbols=${symbol}&limit=10&apikey=${FMP_API_KEY}`;
-    const response = curlFetch(url);
-    if (!response) return [];
-    const releases = JSON.parse(response);
-    return Array.isArray(releases) ? releases : [];
-  } catch {
-    return [];
-  }
 }
 
 // Filter by market cap and volume
@@ -240,129 +198,6 @@ function shouldFilterBySize(stock: HighRiskStock): {
 }
 
 // News legitimacy analysis using OpenAI
-async function analyzeNewsLegitimacy(
-  symbol: string,
-  name: string,
-  signals: any[],
-  news: any[],
-  secFilings: any[],
-  pressReleases: any[],
-): Promise<{
-  hasLegitimateNews: boolean;
-  analysis: string;
-  skipped?: boolean;
-}> {
-  if (!OPENAI_API_KEY) {
-    console.error(
-      `  ❌ OPENAI_API_KEY not configured — news filtering SKIPPED for ${symbol}`,
-    );
-    return {
-      hasLegitimateNews: false,
-      analysis:
-        "SKIPPED: OpenAI API key not configured — this stock was NOT evaluated for legitimate news",
-      skipped: true,
-    };
-  }
-
-  const safeNews = Array.isArray(news) ? news : [];
-  const safeFilings = Array.isArray(secFilings) ? secFilings : [];
-  const safeReleases = Array.isArray(pressReleases) ? pressReleases : [];
-  const safeSignals = Array.isArray(signals) ? signals : [];
-
-  if (
-    safeNews.length === 0 &&
-    safeFilings.length === 0 &&
-    safeReleases.length === 0
-  ) {
-    return {
-      hasLegitimateNews: false,
-      analysis: "No recent news, SEC filings, or press releases found.",
-    };
-  }
-
-  const OpenAI = require("openai");
-  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-  const newsText = safeNews
-    .slice(0, 5)
-    .map(
-      (n: any) =>
-        `[${n?.publishedDate || "N/A"}] ${n?.title || "N/A"}: ${n?.text?.substring(0, 200) || ""}...`,
-    )
-    .join("\n\n");
-
-  const filingsText = safeFilings
-    .slice(0, 5)
-    .map(
-      (f: any) =>
-        `[${f?.fillingDate || f?.date || "N/A"}] ${f?.type || "N/A"}: ${f?.link || "N/A"}`,
-    )
-    .join("\n");
-
-  const releasesText = safeReleases
-    .slice(0, 3)
-    .map((p: any) => `[${p?.date || "N/A"}] ${p?.title || "N/A"}`)
-    .join("\n");
-
-  const signalsText = safeSignals.map((s) => s?.description || "").join("; ");
-
-  const prompt = `Analyze whether the following news, SEC filings, and press releases provide a LEGITIMATE explanation for unusual trading activity in ${symbol} (${name}).
-
-STOCK SIGNALS DETECTED:
-${signalsText}
-
-RECENT NEWS:
-${newsText || "No recent news"}
-
-SEC FILINGS:
-${filingsText || "No recent SEC filings"}
-
-PRESS RELEASES:
-${releasesText || "No recent press releases"}
-
-LEGITIMATE EXPLANATIONS (filter out these stocks):
-- Earnings announcements, FDA approvals, clinical trial results
-- Major contracts, partnerships, M&A news
-- Regulatory approvals, product launches, management changes
-- Stock splits, buybacks, significant financing
-
-NOT LEGITIMATE (still suspicious):
-- Vague "investor awareness" campaigns
-- Paid promotional articles
-- Generic positive sentiment with no actual news
-
-Respond in JSON format:
-{
-  "hasLegitimateNews": true/false,
-  "explanation": "Brief explanation",
-  "specificEvent": "The specific event, or null"
-}`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-      max_tokens: 500,
-    });
-
-    const result = JSON.parse(response.choices[0].message.content || "{}");
-    return {
-      hasLegitimateNews: result.hasLegitimateNews === true,
-      analysis: `${result.explanation || "Unable to analyze"}${result.specificEvent ? ` Event: ${result.specificEvent}` : ""}`,
-    };
-  } catch (error: any) {
-    const msg = error?.message || error;
-    console.error(`  ❌ Error analyzing news for ${symbol}: ${msg}`);
-    return {
-      hasLegitimateNews: false,
-      analysis: `ERROR: ${msg}`,
-      skipped: true,
-    };
-  }
-}
-
-// Generate scheme ID
 function generateSchemeId(symbol: string, date: string): string {
   const timestamp = Date.now().toString(36);
   return `SCHEME-${symbol}-${date.replace(/-/g, "")}-${timestamp}`.toUpperCase();
@@ -393,7 +228,7 @@ async function runPostScanPhases(): Promise<void> {
 
   // Phase 1: Load HIGH risk stocks
   console.log("\n" + "=".repeat(80));
-  console.log("PHASE 1: Loading HIGH Risk Stocks");
+  console.log("PHASE 1: Loading all supported scored instruments");
   console.log("-".repeat(50));
 
   const highRiskStocks = await fetchHighRiskStocksFromStorage(evaluationDate);
@@ -437,7 +272,7 @@ async function runPostScanPhases(): Promise<void> {
 
     const sizeFilter = shouldFilterBySize(stock);
 
-    if (sizeFilter.filtered) {
+    if (stock.riskLevel === "HIGH" && sizeFilter.filtered && !hasIndependentWarning(stock)) {
       processed.isFiltered = true;
       processed.filterReason = sizeFilter.reason;
 
@@ -446,7 +281,7 @@ async function runPostScanPhases(): Promise<void> {
       } else {
         filteredByVolume++;
       }
-    } else {
+    } else if (stock.riskLevel === "HIGH") {
       afterSizeFilter.push(processed);
     }
 
@@ -465,63 +300,46 @@ async function runPostScanPhases(): Promise<void> {
   const afterNewsFilter: ProcessedStock[] = [];
   let newsFilterSkipped = 0;
 
-  for (let i = 0; i < afterSizeFilter.length; i++) {
-    const stock = afterSizeFilter[i];
-    console.log(
-      `[${i + 1}/${afterSizeFilter.length}] Analyzing ${stock.symbol}...`,
-    );
-
-    // Fetch news and filings
-    const news = await fetchStockNews(stock.symbol);
-    await sleep(300);
-
-    const secFilings = await fetchSECFilings(stock.symbol);
-    await sleep(300);
-
-    const pressReleases = await fetchPressReleases(stock.symbol);
-    await sleep(300);
-
-    // Store news data
-    stock.recentNews = news.slice(0, 5).map((n: any) => ({
-      title: n?.title || "",
-      date: n?.publishedDate || "",
-      source: n?.site || "",
-      url: n?.url || "",
+  const reviewer = createNewsReview({date: evaluationDate, fmpKey: FMP_API_KEY, openaiKey: OPENAI_API_KEY, resultsDir: RESULTS_DIR});
+  const eligible = processedStocks.filter(stock => stock.riskLevel !== "INSUFFICIENT");
+  let chargedCostUsd = 0;
+  for (let offset = 0; offset < eligible.length; offset += 10) {
+    const batch = eligible.slice(offset, offset + 10);
+    const evidence = await Promise.all(batch.map(async stock => {
+      const sources = process.env.SKIP_NEWS === "true" ? [] : await Promise.all([
+        reviewer.fetchStockNews(stock.symbol), reviewer.fetchSECFilings(stock.symbol), reviewer.fetchPressReleases(stock.symbol),
+      ]);
+      stock.newsEvidence = { sources };
+      const rows = (source: SourceEvidence | undefined) => source?.items.filter(item => item.eligible).map(item => item.raw) ?? [];
+      return {key: stock.symbol, result: stock, sources, news: rows(sources[0]), secFilings: rows(sources[1]), pressReleases: rows(sources[2])};
     }));
-
-    stock.secFilings = secFilings.slice(0, 5).map((f: any) => ({
-      type: f?.type || "",
-      date: f?.fillingDate || f?.date || "",
-      url: f?.finalLink || f?.link || "",
-    }));
-
-    // Analyze legitimacy
-    const newsAnalysis = await analyzeNewsLegitimacy(
-      stock.symbol,
-      stock.name,
-      stock.signals,
-      news,
-      secFilings,
-      pressReleases,
-    );
-
-    stock.hasLegitimateNews = newsAnalysis.hasLegitimateNews;
-    stock.newsAnalysis = newsAnalysis.analysis;
-
-    if (newsAnalysis.skipped) {
-      newsFilterSkipped++;
-      afterNewsFilter.push(stock);
-    } else if (newsAnalysis.hasLegitimateNews) {
-      stock.isFiltered = true;
-      stock.filterReason = `Legitimate news: ${newsAnalysis.analysis}`;
-      filteredByNews++;
-      console.log(`  ✓ Filtered - Legitimate news found`);
-    } else {
-      afterNewsFilter.push(stock);
-      console.log(`  ⚠ No legitimate news - remains suspicious`);
+    const withEvidence = evidence.filter(item => retrievalComplete(item.sources) && item.sources.some(source => source.items.some(item => item.eligible)));
+    const analysis = withEvidence.length ? await reviewer.analyzeNewsLegitimacyBatch(withEvidence, Math.max(0,25-chargedCostUsd)) : null;
+    chargedCostUsd += analysis?.chargedUpperBoundUsd ?? 0;
+    for (const item of evidence) {
+      const stock = item.result;
+      const verdict = analysis?.results.get(item.key);
+      if (!retrievalComplete(item.sources)) {
+        stock.newsTriage = item.sources.some(source => source.status === "ERROR") ? "ERROR" : "UNAVAILABLE";
+        stock.newsAnalysis = "Source retrieval incomplete; no clearance is possible.";
+      } else if (!item.sources.some(source => source.items.some(item => item.eligible))) {
+        stock.newsTriage = "NO_EVIDENCE";
+        stock.newsAnalysis = "Successful searches found no eligible dated evidence in the scan window.";
+      } else if (!verdict || verdict.skipped) {
+        stock.newsTriage = /^DEFERRED:/.test(verdict?.analysis ?? "") ? "DEFERRED" : analysis?.unavailable ? "UNAVAILABLE" : "ERROR";
+        stock.newsAnalysis = verdict?.analysis ?? "Model review incomplete.";
+      } else {
+        stock.hasLegitimateNews = verdict.hasLegitimateNews && !hasIndependentWarning(stock);
+        stock.newsTriage = stock.hasLegitimateNews ? "CLEARED" : "RETAINED";
+        stock.newsAnalysis = verdict.analysis;
+        stock.newsEvidence!.citedEvidenceIds = verdict.evidenceIds;
+      }
+      if (["ERROR","UNAVAILABLE","DEFERRED"].includes(stock.newsTriage!)) newsFilterSkipped++;
+      if (afterSizeFilter.includes(stock)) {
+        if (stock.newsTriage === "CLEARED") { stock.isFiltered = true; stock.filterReason = stock.newsAnalysis; filteredByNews++; }
+        else afterNewsFilter.push(stock);
+      }
     }
-
-    await sleep(500);
   }
 
   if (newsFilterSkipped > 0) {
@@ -540,13 +358,14 @@ async function runPostScanPhases(): Promise<void> {
   console.log("PHASE 4: Social Media Scanning");
   console.log("-".repeat(50));
 
-  for (let i = 0; i < afterNewsFilter.length; i++) {
+  for (let i = 0; i < Math.min(afterNewsFilter.length, 50); i++) {
     const stock = afterNewsFilter[i];
     console.log(
       `[${i + 1}/${afterNewsFilter.length}] Scanning social media for ${stock.symbol}...`,
     );
 
     try {
+      if (process.env.SKIP_SOCIAL === "true") continue;
       const socialFindings = await performRealSocialScan(
         stock.symbol,
         stock.name,
@@ -573,7 +392,7 @@ async function runPostScanPhases(): Promise<void> {
       console.log(
         `  ⚠ Error scanning social media: ${error?.message || error}`,
       );
-      stock.socialMediaScanned = true;
+      stock.socialMediaScanned = false;
       stock.socialMediaFindings = null;
     }
 
@@ -618,8 +437,12 @@ async function runPostScanPhases(): Promise<void> {
     remainingSuspicious: suspiciousStocks.length,
     newSchemes,
     processingTimeMinutes: durationMinutes,
+    newsCoverage: { eligible: eligible.length, incomplete: newsFilterSkipped, sourceRequests: reviewer.calls, modelChargedOrReservedUpperBoundUsd: reviewer.modelCostBoundUsd },
+    socialTargetCap: 50,
   };
 
+  // Preserve triage on the full immutable evaluation, which ingestion actually reads.
+  fs.writeFileSync(path.join(RESULTS_DIR, `enhanced-evaluation-${evaluationDate}.json`), JSON.stringify(processedStocks, null, 2));
   // Save files
   const suspiciousPath = path.join(
     RESULTS_DIR,

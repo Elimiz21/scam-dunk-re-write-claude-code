@@ -153,7 +153,7 @@ export function LandingOptionA({
 
             <p className="mt-8 text-[13px] text-muted-foreground">
               <span className="font-semibold text-foreground">
-                {SITE_STATS.stocksPerDay}
+                {tiles.stocksPerDay}
               </span>{" "}
               {SITE_STATS.trustLine}
             </p>
@@ -248,8 +248,8 @@ export function LandingOptionA({
           {[
             [tiles.stocksPerDay, "stocks scanned every trading day"],
             [tiles.totalScans, "stock scans since January"],
-            [tiles.dumpsConfirmed6mo, "pump-and-dumps confirmed in 6 months"],
-            [tiles.pumpingNow, "suspected pumps live right now"],
+            [tiles.dumpsConfirmed6mo, "tracked declines or delistings in 6 months"],
+            [tiles.pumpingNow, "active observations in the tracker"],
           ].map(([num, label]) => (
             <div key={label}>
               <p className="font-editorial text-4xl text-foreground md:text-[2.75rem]">
@@ -262,7 +262,7 @@ export function LandingOptionA({
           ))}
         </div>
         <p className="mt-8 text-center text-xs text-muted-foreground">
-          Live from our scan database · updated after every daily scan ·{" "}
+          End-of-day observations from published scans · not confirmed fraud findings ·{" "}
           {SITE_STATS.fraudLosses} {SITE_STATS.fraudLossesLabel}
         </p>
       </section>
@@ -534,7 +534,7 @@ export function LandingOptionA({
             returns a plain-language risk verdict with the exact signals found,
             in about 15 seconds. ScamDunk is not a stock picker, broker, or
             newsletter and gives no investment advice; it checks whether a tip
-            is real before you decide anything else. {SITE_STATS.stocksPerDay}{" "}
+            is real before you decide anything else. {tiles.stocksPerDay}{" "}
             US stocks are scanned automatically every trading day.
           </p>
         </div>

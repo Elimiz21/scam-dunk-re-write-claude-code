@@ -1,0 +1,131 @@
+[
+  {
+    "name": "structural only",
+    "signals": [
+      {
+        "code": "SMALL_CAP",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 3
+      }
+    ],
+    "score": 6,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "gentle trend with saturated RSI",
+    "signals": [
+      {
+        "code": "SMALL_CAP",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 3
+      },
+      {
+        "code": "PERSISTENT_OVERBOUGHT",
+        "category": "PATTERN",
+        "weight": 3
+      },
+      {
+        "code": "KELTNER_BREAKOUT",
+        "category": "PATTERN",
+        "weight": 2
+      }
+    ],
+    "score": 9,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "overlapping price evidence counts once",
+    "signals": [
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4
+      },
+      {
+        "code": "EXTREME_SURGE",
+        "category": "PATTERN",
+        "weight": 5
+      },
+      {
+        "code": "PRICE_ACCELERATION",
+        "category": "PATTERN",
+        "weight": 2
+      }
+    ],
+    "score": 5,
+    "level": "HIGH"
+  },
+  {
+    "name": "independent volume and price",
+    "signals": [
+      {
+        "code": "PRICE_ANOMALY",
+        "category": "PATTERN",
+        "weight": 3
+      },
+      {
+        "code": "VOLUME_ANOMALY",
+        "category": "PATTERN",
+        "weight": 2
+      }
+    ],
+    "score": 5,
+    "level": "HIGH"
+  },
+  {
+    "name": "regulatory survives without a market quote",
+    "signals": [
+      {
+        "code": "ALERT_LIST_HIT",
+        "category": "ALERT",
+        "weight": 0
+      }
+    ],
+    "score": 0,
+    "level": "HIGH"
+  },
+  {
+    "name": "identical observations never inflate points",
+    "signals": [
+      {
+        "code": "SMALL_CAP",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "SMALL_CAP",
+        "category": "STRUCTURAL",
+        "weight": 3
+      }
+    ],
+    "score": 3,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "behavioral warning remains independent",
+    "signals": [
+      {
+        "code": "PROMISED_RETURNS",
+        "category": "BEHAVIORAL",
+        "weight": 5
+      }
+    ],
+    "score": 5,
+    "level": "HIGH"
+  }
+]

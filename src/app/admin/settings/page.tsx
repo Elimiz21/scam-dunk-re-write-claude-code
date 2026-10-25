@@ -83,10 +83,11 @@ export default function SettingsPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setPwSuccess("Password changed successfully");
+        setPwSuccess("Password changed. Sign in again on each device.");
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+        window.location.assign("/admin/login");
       } else {
         setPwError(data.error || "Failed to change password");
       }

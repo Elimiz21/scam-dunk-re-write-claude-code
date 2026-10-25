@@ -102,6 +102,13 @@ export interface NewsVerification {
 }
 
 export interface RiskResponse {
+  resultId?: string;
+  schemaVersion?: string;
+  scoringVersion?: string;
+  scoreUnit?: string;
+  assessedAt?: string;
+  marketDataAsOf?: string;
+  marketDataQuality?: string;
   riskLevel: RiskLevel;
   totalScore: number;
   signals: RiskSignal[];
@@ -133,6 +140,7 @@ export type CheckResponse = RiskResponse | LimitReachedResponse;
 
 // Market Data Types
 export interface StockQuote {
+  securityIdentifier?: string;
   ticker: string;
   companyName: string;
   exchange: string;
@@ -152,6 +160,8 @@ export interface PriceHistory {
 }
 
 export interface MarketData {
+  qualityReason?: string;
+  priceAsOf?: string;
   quote: StockQuote | null;
   priceHistory: PriceHistory[];
   isOTC: boolean;

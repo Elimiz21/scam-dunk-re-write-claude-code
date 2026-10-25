@@ -9,6 +9,8 @@ const validResponse = {
   asset_type: "stock",
   risk_level: "LOW",
   risk_score: 0,
+  scoring_version: "rules-2026-10-25-v2",
+  score_unit: "deduplicated_signal_points",
   risk_probability: 0,
   rf_probability: null,
   lstm_probability: null,
@@ -126,5 +128,11 @@ describe("Python AI boundary contract", () => {
     expect(
       parseAIBackendResponse({ ...validResponse, ...override }),
     ).toBeNull();
+  });
+});
+
+describe("scoring version compatibility", () => {
+  test.each([undefined, "rules-v1", "unrecognized"])("rejects backend policy %s", scoring_version => {
+    expect(acceptAIBackendResponse({...validResponse, scoring_version}, {expectedSource: "live"})).toBeNull();
   });
 });

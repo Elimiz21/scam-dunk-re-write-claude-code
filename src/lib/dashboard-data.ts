@@ -224,6 +224,7 @@ export function createDashboardDataService(
       ticker: scan.ticker,
       source: sourceType(scan.assetType),
       riskLabel: getRiskLabel(scan.riskLevel as RiskLevel),
+      assessmentAvailable: scan.riskLevel !== "INSUFFICIENT",
       score: scan.totalScore,
       signalCount: scan.signalsCount,
       scannedAt: new Date(scan.createdAt).toISOString(),
@@ -265,6 +266,7 @@ export function createDashboardDataService(
       where: { id: scanId, userId },
       select: {
         id: true,
+        resultPayload: true,
         ticker: true,
         assetType: true,
         riskLevel: true,
@@ -367,9 +369,11 @@ export function createDashboardDataService(
 
     return {
       id: scan.id,
+      result: scan.resultPayload ? JSON.parse(scan.resultPayload) : null,
       ticker: scan.ticker,
       source: sourceType(scan.assetType),
       riskLabel: getRiskLabel(scan.riskLevel as RiskLevel),
+      assessmentAvailable: scan.riskLevel !== "INSUFFICIENT",
       score: scan.totalScore,
       signalCount: scan.signalsCount,
       scannedAt: scan.createdAt.toISOString(),

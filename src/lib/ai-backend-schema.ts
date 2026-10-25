@@ -17,6 +17,7 @@
  */
 
 import { z } from "zod";
+import { SCORING_VERSION, SCORE_UNIT } from "./scoring/policy";
 
 export interface AIBackendRequestInput {
   ticker: string;
@@ -67,6 +68,8 @@ export const AIBackendNewsVerificationSchema = z.object({
 });
 
 export const AIBackendResponseSchema = z.object({
+  scoring_version: z.string().optional(),
+  score_unit: z.string().optional(),
   risk_level: z.enum(RISK_LEVEL_VALUES),
   risk_score: z
     .union([z.number(), z.string().min(1).transform(Number)])
@@ -86,7 +89,7 @@ export const AIBackendResponseSchema = z.object({
   sec_flagged: z.boolean().optional(),
   is_otc: z.boolean().optional(),
   is_micro_cap: z.boolean().optional(),
-  features: z.record(z.number().nullable()).optional(),
+  features: z.record(z.string(), z.number().nullable()).optional(),
   analysis_timestamp: z.string().optional(),
   ticker: z.string().optional(),
   asset_type: z.string().optional(),
@@ -164,6 +167,10 @@ export function acceptAIBackendResponse(
 ): AIBackendResponse | null {
   const response = parseAIBackendResponse(raw);
   if (!response) return null;
+  if (response.scoring_version !== SCORING_VERSION || response.score_unit !== SCORE_UNIT) {
+    console.error("AI backend scoring policy is incompatible");
+    return null;
+  }
 
   if (response.input_source !== options.expectedSource) {
     console.error(

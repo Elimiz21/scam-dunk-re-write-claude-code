@@ -39,6 +39,9 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!["OWNER", "ADMIN"].includes(session.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
 
     const body = await request.json();
     const { headline, subheadline } = body;
@@ -86,6 +89,9 @@ export async function PUT(request: NextRequest) {
     const session = await getAdminSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!["OWNER", "ADMIN"].includes(session.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -164,6 +170,9 @@ export async function DELETE(request: NextRequest) {
     const session = await getAdminSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!["OWNER", "ADMIN"].includes(session.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

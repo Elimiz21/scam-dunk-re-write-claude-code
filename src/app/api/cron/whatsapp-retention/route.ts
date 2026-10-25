@@ -17,6 +17,12 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   const retryBefore = new Date(now.getTime() - 60_000);
   const scanBefore = new Date(now.getTime() - 5 * 60_000);
+  // Re-run abandoned work using the same message idempotency key. A saved
+  // scan is replayed; an expired reservation is recovered without double charge.
+  await prisma.whatsAppInboundEvent.updateMany({
+    where: {status: {in: ["PROCESSING", "SCANNING"]}, updatedAt: {lte: scanBefore}, attemptCount: {lt: 3}, purgeAt: {gt: now}},
+    data: {status: "RECEIVED"},
+  });
   const retryEvents = await prisma.whatsAppInboundEvent.findMany({
     where: {
       OR: [

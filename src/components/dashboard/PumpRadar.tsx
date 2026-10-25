@@ -63,7 +63,7 @@ function RadarRow({ row, compact }: { row: PumpRadarRow; compact: boolean }) {
           <Badge className={cn(compact && "px-2 py-0.5 text-[10px] tracking-wide")} variant={riskVariant(row.riskLabel)}>{row.riskLabel}</Badge>
         </div>
         <p className="mt-1 truncate text-[11px] text-muted-foreground">
-          {[row.sector, row.marketCapBand, row.signalSummary].filter(Boolean).join(" · ")}
+          {[row.sector, row.marketCapBand, row.signalSummary, `News review: ${{RETAINED:"completed",NO_EVIDENCE:"no dated evidence",DEFERRED:"pending",ERROR:"failed",UNAVAILABLE:"unavailable",UNKNOWN:"unknown",CLEARED:"cleared"}[row.newsTriage ?? "UNKNOWN"]}`].filter(Boolean).join(" · ")}
         </p>
       </div>
       <div role="cell" className="text-right">

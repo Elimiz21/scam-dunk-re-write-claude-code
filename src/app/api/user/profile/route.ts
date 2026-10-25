@@ -46,7 +46,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: validation.error.errors[0].message },
+        { error: validation.error.issues[0].message },
         { status: 400 },
       );
     }
@@ -127,7 +127,7 @@ export async function PUT(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: validation.error.errors[0].message },
+        { error: validation.error.issues[0].message },
         { status: 400 },
       );
     }
@@ -167,12 +167,15 @@ export async function PUT(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     // Update password
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { hashedPassword },
+    const changed = await prisma.user.updateMany({
+      where: { id: user.id, hashedPassword: user.hashedPassword },
+      data: { hashedPassword, sessionVersion: { increment: 1 } },
     });
+    if (changed.count !== 1) {
+      return NextResponse.json({ error: "Credentials changed. Sign in again before retrying." }, { status: 409 });
+    }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, requiresReauthentication: true });
   } catch (error) {
     console.error("Password change error:", error);
     return NextResponse.json(

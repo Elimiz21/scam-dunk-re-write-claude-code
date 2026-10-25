@@ -1,0 +1,17 @@
+{
+  "version": "2026-10-25-v1",
+  "files": [
+    {
+      "path": "prisma/migrations/20261025193500_repair_required_tables/migration.sql",
+      "sha256": "b7930431a6943e7c0a5928cbfee39ebf8ad1116023c1f9a01c1b7bcd8f81973e"
+    },
+    {
+      "path": "prisma/migrations/20261025194000_scan_completion_and_triage/migration.sql",
+      "sha256": "9801a8aa9edc0c8576b8c654190a65f9886c8c9739eca1f88d26c13f17c87b34"
+    },
+    {
+      "path": "prisma/migrations/20261025194500_server_only_database_access/migration.sql",
+      "sha256": "26c2f3bdd14bcdcf02920dff4b1b70b1c4a7cb979884e0eefc9d044d28f1cfe4"
+    }
+  ]
+}

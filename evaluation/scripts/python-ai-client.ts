@@ -1,3 +1,4 @@
+import { SCORING_VERSION, SCORE_UNIT } from "../../src/lib/scoring/policy";
 import { AIBackendResponse, parseAIBackendResponse } from "../../src/lib/ai-backend-schema";
 import { MarketData } from "./standalone-scorer";
 
@@ -21,6 +22,7 @@ export interface ProductionEvaluationRequest {
     current_price: number | null;
     market_cap: number | null;
     avg_daily_volume: number | null;
+    avg_daily_dollar_volume: number | null;
     is_otc: boolean;
     on_watchlist: boolean;
   };
@@ -66,6 +68,7 @@ export function buildProductionEvaluationRequest(
       current_price: quote?.lastPrice ?? null,
       market_cap: quote?.marketCap ?? null,
       avg_daily_volume: quote?.avgVolume30d ?? null,
+      avg_daily_dollar_volume: quote?.avgDollarVolume30d ?? null,
       is_otc: marketData.isOTC,
       on_watchlist: onWatchlist,
     },
@@ -213,7 +216,7 @@ export async function requestPythonAnalysis(options: {
       };
     }
     const parsed = parseAIBackendResponse(await response.json());
-    if (!parsed) return { accepted: false, failure: "malformed_response" };
+    if (!parsed || parsed.scoring_version !== SCORING_VERSION || parsed.score_unit !== SCORE_UNIT) return { accepted: false, failure: "malformed_response" };
     if (parsed.input_source !== "provided_real_bars") {
       return { accepted: false, failure: "wrong_input_source" };
     }

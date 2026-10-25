@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SITE_STATS } from "@/lib/site-stats";
 
 export interface LiveSiteStats {
   updatedAt: string;
@@ -45,16 +44,12 @@ export function useLiveSiteStats() {
 
   return {
     live,
-    /** Four headline tiles, static floors until live data arrives. */
+    /** Unavailable values remain unavailable; zero is a measured count. */
     tiles: {
-      stocksPerDay: live?.stocksPerDay
-        ? floorPlus(live.stocksPerDay, 100)
-        : SITE_STATS.stocksPerDay,
-      totalScans: live?.totalScans
-        ? floorPlus(live.totalScans, 1000)
-        : SITE_STATS.scansPerformed,
-      dumpsConfirmed6mo: live ? String(live.dumpsConfirmed6mo) : "400+",
-      pumpingNow: live ? String(live.pumpingNow) : "60+",
+      stocksPerDay: live?.stocksPerDay == null ? "—" : live.stocksPerDay < 100 ? String(live.stocksPerDay) : floorPlus(live.stocksPerDay, 100),
+      totalScans: live?.totalScans == null ? "—" : live.totalScans < 1000 ? String(live.totalScans) : floorPlus(live.totalScans, 1000),
+      dumpsConfirmed6mo: live ? String(live.dumpsConfirmed6mo) : "—",
+      pumpingNow: live ? String(live.pumpingNow) : "—",
     },
   };
 }

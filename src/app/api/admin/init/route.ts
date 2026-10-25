@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Invalid request body",
-          details: parsed.error.errors.map((e) => ({
+          details: parsed.error.issues.map((e) => ({
             field: e.path.join("."),
             message: e.message,
           })),

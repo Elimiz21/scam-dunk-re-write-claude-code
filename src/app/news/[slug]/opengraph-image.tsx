@@ -14,7 +14,7 @@ type PageParams = { slug: string };
 export async function generateImageMetadata({
   params,
 }: {
-  params: PageParams;
+  params: Promise<PageParams>;
 }) {
   return [
     {
@@ -25,8 +25,8 @@ export async function generateImageMetadata({
   ];
 }
 
-export default async function Image({ params }: { params: PageParams }) {
-  const slug = decodeURIComponent(params.slug);
+export default async function Image({ params }: { params: Promise<PageParams> }) {
+  const slug = decodeURIComponent((await params).slug);
 
   // Fetch post title if possible
   let postTitle = "ScamDunk Blog - Detect Stock Scams";

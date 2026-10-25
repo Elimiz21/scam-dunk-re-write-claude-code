@@ -65,21 +65,28 @@ export async function POST(request: NextRequest) {
 
     // Hash and save new password
     const hashedPassword = await hashPassword(newPassword);
-    await prisma.adminUser.update({
-      where: { id: session.id },
-      data: { hashedPassword },
-    });
-
-    // Audit log
-    await prisma.adminAuditLog.create({
+    const changed = await prisma.$transaction(async (tx) => {
+      const updated = await tx.adminUser.updateMany({
+        where: { id: session.id, hashedPassword: adminUser.hashedPassword },
+        data: { hashedPassword },
+      });
+      if (updated.count !== 1) return false;
+      await tx.adminSession.deleteMany({ where: { adminUserId: session.id } });
+      // Keep credential mutation, revocation and audit atomic.
+      await tx.adminAuditLog.create({
       data: {
         adminUserId: session.id,
         action: "PASSWORD_CHANGED",
         details: JSON.stringify({ changedAt: new Date().toISOString() }),
       },
+      });
+      return true;
     });
+    if (!changed) {
+      return NextResponse.json({ error: "Credentials changed. Sign in again before retrying." }, { status: 409 });
+    }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, requiresReauthentication: true });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

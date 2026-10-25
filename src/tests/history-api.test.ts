@@ -322,7 +322,7 @@ describe("scan history API", () => {
 
     const response = await getScanDetail(
       new NextRequest("http://localhost/api/scans/scan-other"),
-      { params: { id: "scan-other" } },
+      { params: Promise.resolve({ id: "scan-other" }) },
     );
 
     expect(response.status).toBe(404);

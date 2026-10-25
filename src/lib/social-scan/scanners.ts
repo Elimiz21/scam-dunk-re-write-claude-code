@@ -46,7 +46,13 @@ async function fetchWithTimeout(
   const signals = [AbortSignal.timeout(timeoutMs)];
   if (deadline?.signal) signals.push(deadline.signal);
   if (init.signal) signals.push(init.signal);
-  return fetch(input, { ...init, signal: AbortSignal.any(signals) });
+  const started = Date.now();
+  const record = deadline?.usage?.request(new URL(input).hostname);
+  try {
+    const response = await fetch(input, { ...init, signal: AbortSignal.any(signals) });
+    record?.(response.status,Date.now()-started);
+    return response;
+  } catch (error) { record?.(null,Date.now()-started); throw error; }
 }
 
 /** Tracks a wall-clock deadline so a scanner stops making (paid) calls once
@@ -54,6 +60,7 @@ async function fetchWithTimeout(
 class Deadline {
   private readonly end: number;
   readonly signal?: AbortSignal;
+  readonly usage?: import("./usage").SocialUsage;
   constructor(
     context?: SocialScanContext,
     budgetMs: number = SCANNER_BUDGET_MS,
@@ -63,6 +70,7 @@ class Deadline {
       context?.deadlineAt ?? Number.POSITIVE_INFINITY,
     );
     this.signal = context?.signal;
+    this.usage = context?.usage;
   }
   remaining(): number {
     return this.end - Date.now();

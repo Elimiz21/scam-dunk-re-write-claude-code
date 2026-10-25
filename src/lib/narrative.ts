@@ -45,7 +45,7 @@ export async function generateNarrative(
   isLegitimate: boolean = false,
 ): Promise<Narrative> {
   // If OpenAI is not configured, use fallback narrative
-  if (!config.openaiApiKey) {
+  if (!config.openaiApiKey || riskLevel === "INSUFFICIENT") {
     return generateFallbackNarrative(
       riskLevel,
       totalScore,
@@ -309,7 +309,9 @@ export function generateFallbackNarrative(
 
   // Stock red flags from structural, pattern, and alert signals
   let stockRedFlags: string[];
-  if (
+  if (riskLevel === "INSUFFICIENT" && structural.length === 0 && pattern.length === 0 && alert.length === 0) {
+    stockRedFlags = ["Market data is unavailable or incomplete. Market risk could not be assessed."];
+  } else if (
     isLegitimate ||
     (structural.length === 0 && pattern.length === 0 && alert.length === 0)
   ) {

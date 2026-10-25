@@ -97,7 +97,7 @@ describe("Telegram webhook and scan flow", () => {
   });
   it("scans only for a linked subscriber and replies with a concise verdict", async () => {
     expect((await POST(request())).status).toBe(200);
-    expect(runAuthorizedStockScan).toHaveBeenCalledWith({ userId: "user", ticker: "AAPL", assetType: "stock" });
+    expect(runAuthorizedStockScan).toHaveBeenCalledWith({ userId: "user", ticker: "AAPL", assetType: "stock", idempotencyKey: "telegram:event" });
     const progress = JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string);
     expect(progress.text).toContain("Scanning AAPL");
     const body = JSON.parse(jest.mocked(fetch).mock.calls[1][1]!.body as string);
