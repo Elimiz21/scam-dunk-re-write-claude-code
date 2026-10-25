@@ -10,6 +10,11 @@ on:
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
     inputs:
+      resume_news_cache_run:
+        description: "Optional completed validation run ID whose successful source evidence should be reused"
+        required: false
+        default: ""
+        type: string
       pipeline_validation:
         description: "Complete isolated pipeline rehearsal; retains artifacts without publishing or messaging"
         required: false
@@ -56,7 +61,7 @@ on:
 
 # Grant write permissions for issue creation on failure
 concurrency:
-  group: enhanced-daily-evaluation
+  group: enhanced-daily-evaluation-${{ github.event.inputs.news_shadow_scope && github.event.inputs.news_shadow_scope != 'none' && 'news-validation' || github.event.inputs.pipeline_validation && github.event.inputs.pipeline_validation != 'none' && 'pipeline-validation' || github.event.inputs.risk_shadow_scope && github.event.inputs.risk_shadow_scope != 'none' && 'risk-validation' || 'production' }}
   cancel-in-progress: false
 
 permissions:
@@ -716,6 +721,9 @@ jobs:
             }" && echo "Skip alert email sent" || echo "Failed to send email"
 
   news-shadow-validation:
+    permissions:
+      contents: read
+      actions: read
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.news_shadow_scope && github.event.inputs.news_shadow_scope != 'none' }}
     runs-on: ubuntu-latest
     timeout-minutes: 240
@@ -740,6 +748,31 @@ jobs:
             evaluation/results/news-cost-ledger-*.jsonl
           key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
           restore-keys: provider-validation-v3-${{ github.event.inputs.date_override }}-
+      - name: Resume successful source evidence from a completed validation
+        if: ${{ github.event.inputs.resume_news_cache_run != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESUME_RUN_ID: ${{ github.event.inputs.resume_news_cache_run }}
+        run: |
+          [[ "$RESUME_RUN_ID" =~ ^[0-9]+$ ]]
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RESUME_RUN_ID" --jq '.path')" = ".github/workflows/enhanced-daily-evaluation.yml"
+          gh run download "$RESUME_RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern 'news-shadow-*' --dir "$RUNNER_TEMP/news-validation-state"
+          python3 - <<'PYCODE'
+          import os,pathlib,shutil
+          source=pathlib.Path(os.environ['RUNNER_TEMP'])/'news-validation-state'
+          target=pathlib.Path('evaluation/results');(target/'news-cache').mkdir(parents=True,exist_ok=True)
+          for cache in source.rglob('news-cache'):
+              for entry in cache.glob('*.json'):
+                  destination=target/'news-cache'/entry.name
+                  if not destination.exists():shutil.copyfile(entry,destination)
+          for ledger in source.rglob('news-cost-ledger-*.jsonl'):
+              destination=target/ledger.name
+              old=destination.read_text().splitlines() if destination.exists() else []
+              known=set(old)
+              for line in ledger.read_text().splitlines():
+                  if line not in known:old.append(line);known.add(line)
+              destination.write_text('\n'.join(old)+'\n')
+          PYCODE
       - name: Run isolated news retrieval validation
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
