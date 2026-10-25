@@ -7,7 +7,7 @@ function fixture(){
  const row={symbol:'TEST',riskLevel:'HIGH',totalScore:8,marketCap:1e8,avgDollarVolume:1e6,scoringVersion:SCORING_VERSION,scoreUnit:SCORE_UNIT,newsTriage:'RETAINED',signals:[],newsEvidence:{sources:['news','sec_filings','press_releases'].map(source=>({source,status:'EMPTY',items:[]})),review:{model:NEWS_REVIEW_MODEL,reviewVersion:NEWS_REVIEW_VERSION}}};
  const docs:Record<string,any>={
   'enhanced-evaluation':[row],'enhanced-high-risk':[row],'suspicious-stocks':[row],
-  'daily-report':{},'fmp-summary':{evaluated:1,coverageAccounting:{processing:{reconciles:true}},byRiskLevel:{LOW:0,MEDIUM:0,HIGH:1,INSUFFICIENT:0}},
+  'daily-report':{},'fmp-summary':{evaluated:1,coverageAccounting:{processing:{reconciles:true,unprocessed:{total:0}}},byRiskLevel:{LOW:0,MEDIUM:0,HIGH:1,INSUFFICIENT:0}},
   'scan-status':{date,pipelineStatus:'degraded',phases:{phase1_riskScoring:{status:'completed'},phase3_newsAnalysis:{status:'completed',details:{reviewModel:NEWS_REVIEW_MODEL,reviewVersion:NEWS_REVIEW_VERSION,newsFilterSkipped:0,newsAnalysisMetrics:{candidatesDeferred:0,eligibleRecords:1,candidatesSelected:1}}}}},
   'otc-coverage':{},'social-media-scan':{},'promoted-stocks':{},
  };
@@ -27,6 +27,7 @@ test.each([
  ['incomplete review',(d:any)=>{d['enhanced-evaluation'][0].newsTriage='DEFERRED';},run],
  ['older review model',(d:any)=>{d['enhanced-evaluation'][0].newsEvidence.review.model='gpt-4o-mini';},run],
  ['missing reviewed alerts',(d:any)=>{d['suspicious-stocks']=[];},run],
+ ['unprocessed instruments',(d:any)=>{d['fmp-summary'].coverageAccounting.processing.unprocessed.total=1;},run],
  ['count mismatch',(d:any)=>{d['fmp-summary'].byRiskLevel.HIGH=0;},run],
  ['failed scoring',(d:any)=>{d['scan-status'].phases.phase1_riskScoring.status='failed';},run],
 ])('blocks %s before release',(_name,mutate,metadata)=>{

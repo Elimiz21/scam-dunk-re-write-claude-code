@@ -345,15 +345,18 @@ interface SchemeRecord {
 
 // Utility functions
 let lastFmpRequestStartedAt = 0;
+let listedProviderAttempts = 0;
+let listedCacheHits = 0;
 function curlFetch(url: string): string | null {
   const safeUrl=new URL(url);safeUrl.searchParams.delete("apikey");
   const cacheDir=path.join(RESULTS_DIR,"market-http-cache",getEvaluationDate());
   const cacheFile=path.join(cacheDir,require("crypto").createHash("sha256").update(safeUrl.toString()).digest("hex")+".json");
-  if(VALIDATION_ONLY){try{const entry=JSON.parse(fs.readFileSync(cacheFile,"utf8"));if(entry.request===safeUrl.toString()&&typeof entry.response==="string"&&Number.isFinite(Date.parse(entry.retrievedAt)))return entry.response;}catch{}}
+  if(VALIDATION_ONLY){try{const entry=JSON.parse(fs.readFileSync(cacheFile,"utf8"));if(entry.request===safeUrl.toString()&&typeof entry.response==="string"&&Number.isFinite(Date.parse(entry.retrievedAt))){listedCacheHits++;return entry.response;}}catch{}}
   try {
     const waitMs=Math.max(0,lastFmpRequestStartedAt+FMP_DELAY_MS-Date.now());
     if(waitMs>0)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,waitMs);
     lastFmpRequestStartedAt=Date.now();
+    listedProviderAttempts++;
     const result = execSync(
       `curl -s --max-time 15 -H "User-Agent: Mozilla/5.0" "${url}"`,
       { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 },
@@ -2843,12 +2846,14 @@ async function runEnhancedPipeline(): Promise<void> {
     startTime: new Date(startTime).toISOString(),
     endTime: new Date(endTime).toISOString(),
     durationMinutes,
-    apiCallsMade:
-      Math.max(0, processedCount - otcScan.results.length) * 2 +
-      otcClient.calls,
+    apiCallsMade: listedProviderAttempts + otcClient.calls + newsClient.calls,
     apiCallAccounting: {
-      listed: "estimated successful profile/history calls",
+      listed: "actual provider attempts; cache hits excluded",
+      listedProviderAttempts,
+      listedCacheHits,
       otc: "actual calls including failures and retries",
+      otcProviderAttempts: otcClient.calls,
+      newsProviderAttempts: newsClient.calls,
     },
   };
 

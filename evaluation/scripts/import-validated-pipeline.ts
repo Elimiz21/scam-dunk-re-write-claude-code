@@ -18,7 +18,7 @@ export function validatePipelineRelease(input: {date: string; run: any; accepted
   for (const prefix of prefixes) if (!files[`${prefix}-${date}.json`]) throw Error("Full validation output is missing");
   const read = (prefix: string) => JSON.parse(files[`${prefix}-${date}.json`].toString("utf8"));
   const rows = read("enhanced-evaluation"), summary = read("fmp-summary"), status = read("scan-status");
-  if (!Array.isArray(rows) || rows.length < 1 || summary.evaluated !== rows.length || summary.coverageAccounting?.processing?.reconciles !== true) throw Error("Evaluation coverage does not reconcile");
+  if (!Array.isArray(rows) || rows.length < 1 || summary.evaluated !== rows.length || summary.coverageAccounting?.processing?.reconciles !== true || summary.coverageAccounting.processing.unprocessed?.total !== 0) throw Error("Evaluation coverage is incomplete or does not reconcile");
   const counts: Record<string,number> = {LOW:0, MEDIUM:0, HIGH:0, INSUFFICIENT:0};
   const symbols = new Set<string>();
   for (const row of rows) {
