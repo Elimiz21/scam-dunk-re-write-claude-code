@@ -87,9 +87,10 @@ if (!fs.existsSync(SCHEME_DB_DIR))
   fs.mkdirSync(SCHEME_DB_DIR, { recursive: true });
 
 // Configuration
+const VALIDATION_ONLY = process.env.SCAMDUNK_PIPELINE_VALIDATION === "true";
 const FMP_API_KEY = process.env.FMP_API_KEY || "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-const AI_BACKEND_URL = process.env.AI_BACKEND_URL || ""; // Python AI backend for full 4-layer analysis
+const AI_BACKEND_URL = VALIDATION_ONLY ? "" : process.env.AI_BACKEND_URL || ""; // Python AI backend for full 4-layer analysis
 const AI_API_SECRET = process.env.AI_API_SECRET || ""; // Auth key for Python AI backend
 const FMP_BASE_URL = "https://financialmodelingprep.com/stable";
 // Note: Legacy v3 endpoints deprecated Aug 31, 2025 - now using stable API
@@ -345,11 +346,16 @@ interface SchemeRecord {
 
 // Utility functions
 function curlFetch(url: string): string | null {
+  const safeUrl=new URL(url);safeUrl.searchParams.delete("apikey");
+  const cacheDir=path.join(RESULTS_DIR,"market-http-cache",getEvaluationDate());
+  const cacheFile=path.join(cacheDir,require("crypto").createHash("sha256").update(safeUrl.toString()).digest("hex")+".json");
+  if(VALIDATION_ONLY){try{const entry=JSON.parse(fs.readFileSync(cacheFile,"utf8"));if(entry.request===safeUrl.toString()&&typeof entry.response==="string"&&Number.isFinite(Date.parse(entry.retrievedAt)))return entry.response;}catch{}}
   try {
     const result = execSync(
       `curl -s --max-time 15 -H "User-Agent: Mozilla/5.0" "${url}"`,
       { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 },
     );
+    if(VALIDATION_ONLY){try{const data=JSON.parse(result);if(data && !data.error && !data["Error Message"]){fs.mkdirSync(cacheDir,{recursive:true});fs.writeFileSync(cacheFile,JSON.stringify({request:safeUrl.toString(),response:result,retrievedAt:new Date().toISOString()}));}}catch{}}
     return result;
   } catch {
     return null;
@@ -1031,6 +1037,7 @@ function saveScanStatus(scanStatus: ScanStatus): void {
 }
 
 function sendCrashNotification(scanStatus: ScanStatus): void {
+  if(VALIDATION_ONLY) return;
   const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
   if (!RESEND_API_KEY) {
     console.log("RESEND_API_KEY not set – skipping crash email");
@@ -1093,6 +1100,7 @@ function sendCrashNotification(scanStatus: ScanStatus): void {
 // Main pipeline execution
 async function runEnhancedPipeline(): Promise<void> {
   const startTime = Date.now();
+  if(VALIDATION_ONLY && ["DATABASE_URL","DIRECT_URL","RESEND_API_KEY","SOCIAL_SCAN_APP_URL","SOCIAL_SCAN_API_KEY","SOCIAL_SCAN_INGEST_KEY"].some(key=>process.env[key])) throw new Error("Isolated validation cannot hold database, publication or messaging credentials");
   const evaluationDate = getEvaluationDate();
   const scanStatus = createInitialScanStatus(evaluationDate);
 
@@ -1486,7 +1494,14 @@ async function runEnhancedPipeline(): Promise<void> {
     RESULTS_DIR,
     `otc-coverage-${evaluationDate}.json`,
   );
-  const otcScan = await runOtcScan(evaluationDate, otcClient.request, {
+  const otcRequest = async (endpoint:string,params:Record<string,string>) => {
+    if(!VALIDATION_ONLY)return otcClient.request(endpoint,params);
+    const cacheDir=path.join(RESULTS_DIR,"market-http-cache",evaluationDate,"otc");fs.mkdirSync(cacheDir,{recursive:true});
+    const file=path.join(cacheDir,require("crypto").createHash("sha256").update(JSON.stringify([endpoint,params])).digest("hex")+".json");
+    try{const cached=JSON.parse(fs.readFileSync(file,"utf8"));if(cached.endpoint===endpoint&&JSON.stringify(cached.params)===JSON.stringify(params)&&Number.isFinite(Date.parse(cached.retrievedAt)))return cached.data;}catch{}
+    const data=await otcClient.request(endpoint,params);fs.writeFileSync(file,JSON.stringify({endpoint,params,data,retrievedAt:new Date().toISOString()}));return data;
+  };
+  const otcScan = await runOtcScan(evaluationDate, otcRequest, {
     limit: process.env.TEST_MODE === "true" ? 100 : undefined,
     checkpoint: (coverage) =>
       fs.writeFileSync(
@@ -1933,7 +1948,7 @@ async function runEnhancedPipeline(): Promise<void> {
   let scanRunResult: any = null;
   let fallbackPublication: FallbackPublication | null = null;
 
-  if (afterNewsFilter.length > 0) {
+  if (!VALIDATION_ONLY && afterNewsFilter.length > 0) {
     // Convert pipeline stocks to ScanTarget format
     const scanTargets: ScanTarget[] = afterNewsFilter.map((r) => ({
       ticker: r.symbol,

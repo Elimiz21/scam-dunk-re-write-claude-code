@@ -10,6 +10,12 @@ on:
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
     inputs:
+      pipeline_validation:
+        description: "Complete isolated pipeline rehearsal; retains artifacts without publishing or messaging"
+        required: false
+        default: "none"
+        type: choice
+        options: ["none", "100", "full"]
       risk_shadow_scope:
         description: "Fresh provider acquisition and canonical risk validation only; no publication"
         required: false
@@ -59,7 +65,7 @@ permissions:
 
 jobs:
   check-trading-day:
-    if: ${{ (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') && (!github.event.inputs.risk_shadow_scope || github.event.inputs.risk_shadow_scope == 'none') }}
+    if: ${{ (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') && (!github.event.inputs.risk_shadow_scope || github.event.inputs.risk_shadow_scope == 'none') && (!github.event.inputs.pipeline_validation || github.event.inputs.pipeline_validation == 'none') }}
     runs-on: ubuntu-latest
     outputs:
       is_trading_day: ${{ steps.check.outputs.is_trading_day }}
@@ -594,7 +600,7 @@ jobs:
   notify-on-failure:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: ${{ failure() && (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') && (!github.event.inputs.risk_shadow_scope || github.event.inputs.risk_shadow_scope == 'none') }}
+    if: ${{ failure() && (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') && (!github.event.inputs.risk_shadow_scope || github.event.inputs.risk_shadow_scope == 'none') && (!github.event.inputs.pipeline_validation || github.event.inputs.pipeline_validation == 'none') }}
     permissions:
       issues: write
     steps:
@@ -642,7 +648,7 @@ jobs:
   notify-on-success:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: ${{ success() && (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') && (!github.event.inputs.risk_shadow_scope || github.event.inputs.risk_shadow_scope == 'none') }}
+    if: ${{ success() && (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') && (!github.event.inputs.risk_shadow_scope || github.event.inputs.risk_shadow_scope == 'none') && (!github.event.inputs.pipeline_validation || github.event.inputs.pipeline_validation == 'none') }}
     steps:
       - name: Send success email (optional - daily digest)
         env:
@@ -787,4 +793,56 @@ jobs:
         with:
           name: risk-shadow-${{ github.event.inputs.risk_shadow_scope }}-${{ github.run_id }}
           path: evaluation/results/risk-shadow-*.json*
+          retention-days: 30
+
+  pipeline-validation:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pipeline_validation && github.event.inputs.pipeline_validation != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            evaluation/results/market-http-cache
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: pipeline-validation-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+          restore-keys: |
+            pipeline-validation-v2-${{ github.event.inputs.date_override }}-
+            news-shadow-v2-${{ github.event.inputs.date_override }}-
+      - name: Rehearse complete acquisition, scoring and news pipeline
+        timeout-minutes: 330
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVALUATION_DATE: ${{ github.event.inputs.date_override }}
+          SCAMDUNK_PIPELINE_VALIDATION: "true"
+          TEST_MODE: ${{ github.event.inputs.pipeline_validation == '100' && 'true' || 'false' }}
+        run: |
+          test -n "$EVALUATION_DATE"
+          npx ts-node --project evaluation/tsconfig.json evaluation/scripts/enhanced-daily-pipeline.ts
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            evaluation/results/market-http-cache
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: pipeline-validation-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-validation-${{ github.event.inputs.pipeline_validation }}-${{ github.run_id }}
+          path: |
+            evaluation/results/*.json
+            evaluation/results/*.jsonl
+            evaluation/results/news-decisions/*.json
           retention-days: 30
