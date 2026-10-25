@@ -28,6 +28,10 @@ The manifest repairs missing tables/columns, adds durable scan completion and ne
 
 Stage an exact committed candidate in an isolated environment, run positive/negative user flows, then stage production without domain promotion. Promote the exact tested build after live verification. Keep the prior working production deployment for rollback. Do not reset issuer identity fences or clear incomplete reviews to force a desired stock count.
 
+## Server HTML compatibility
+
+Keep DOMPurify on its current security release. The sanitizer scopes jsdom to 26.1.0 because the newer CommonJS entry loads ESM-only transitive modules that fail in Vercel's loader. This follows the [upstream isomorphic-dompurify compatibility approach](https://github.com/kkomelin/isomorphic-dompurify/issues/394). The Node24 regression disables require(ESM), loads the actual sanitizer, and checks executable input plus safe formatting, links and tables. Recheck the dependency audit and actual server logs after deployment; client hydration can mask the server error. Remove the compatibility pin only after the replacement passes this same runtime check.
+
 ## Remaining external gates
 
 Independent labels, outcome/horizon definitions and approved acceptance criteria are needed for F07/F13 efficacy. Point-in-time security/action evidence is needed for historical identity claims. Broker service/tenant contracts, data redistribution rights and commercial/privacy agreements require qualified owner approval. The category evaluator always reports NOT_APPROVED; fixture tests cannot satisfy these gates. User-designated messaging destinations are provided privately in the conversation and must not appear in artifacts or public logs.
