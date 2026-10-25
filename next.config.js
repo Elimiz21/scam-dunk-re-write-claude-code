@@ -1,4 +1,4 @@
-const { withSentryConfig } = require("@sentry/nextjs");
+const { withSentryConfig } = require("@sentry/nextjs/config");
 
 // Security headers applied to every response. CSP is intentionally permissive
 // for the third-party widgets this app embeds (Turnstile, PayPal, Vercel
@@ -55,7 +55,7 @@ const sentryWebpackPluginOptions = {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   widenClientFileUpload: true,
-  disableLogger: true,
+  webpack: { treeshake: { removeDebugLogging: true } },
 };
 
 // Only wrap with Sentry if DSN is configured
