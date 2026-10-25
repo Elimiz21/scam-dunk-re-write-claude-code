@@ -39,7 +39,7 @@ export class OtcClient {
   calls = 0;
   private nextAt = 0;
   private denied = false;
-  private startedAt = Date.now();
+  private startedAt: number | undefined;
   constructor(
     private key: string,
     private options: {
@@ -53,6 +53,8 @@ export class OtcClient {
   request: Request = async (endpoint, params) => {
     if (this.denied) throw new Error("entitlement");
     if (!this.key) throw new Error("missing_credential");
+    // A client may be constructed hours before its pipeline phase begins.
+    this.startedAt ??= Date.now();
     for (let attempt = 0; attempt < 3; attempt++) {
       if (
         this.calls >= (this.options.maxCalls ?? 45000) ||

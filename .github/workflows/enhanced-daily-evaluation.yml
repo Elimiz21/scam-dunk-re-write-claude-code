@@ -878,7 +878,22 @@ jobs:
           TEST_MODE: ${{ github.event.inputs.pipeline_validation == '100' && 'true' || 'false' }}
         run: |
           test -n "$EVALUATION_DATE"
-          npx ts-node --project evaluation/tsconfig.json evaluation/scripts/enhanced-daily-pipeline.ts
+          node node_modules/ts-node/dist/bin.js --project evaluation/tsconfig.json evaluation/scripts/enhanced-daily-pipeline.ts &
+          PIPELINE_PID=$!
+          trap 'kill -TERM "$PIPELINE_PID" 2>/dev/null || true; wait "$PIPELINE_PID" 2>/dev/null || true' INT TERM EXIT
+          wait "$PIPELINE_PID"
+      - name: Retain a stable acquisition snapshot
+        if: always()
+        run: |
+          # Snapshot after the provider process has stopped; a changing directory
+          # makes the cache archiver fail and loses resumable work.
+          mkdir -p /tmp/scan-validation-snapshot
+          for entry in market-http-cache news-cache news-decisions; do
+            if [ -d "evaluation/results/$entry" ]; then
+              cp -R "evaluation/results/$entry" "/tmp/scan-validation-snapshot/$entry"
+            fi
+          done
+          cp evaluation/results/news-cost-ledger-*.jsonl /tmp/scan-validation-snapshot/ 2>/dev/null || true
       - uses: actions/cache/save@v4
         if: always()
         with:
@@ -896,4 +911,5 @@ jobs:
             evaluation/results/*.json
             evaluation/results/*.jsonl
             evaluation/results/news-decisions/*.json
+            /tmp/scan-validation-snapshot
           retention-days: 30

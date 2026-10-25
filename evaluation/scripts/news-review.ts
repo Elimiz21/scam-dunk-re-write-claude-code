@@ -57,7 +57,7 @@ export function createNewsReview(options: { date: string; fmpKey: string; openai
   const inputPrice = options.inputPrice ?? 0.15;
   const outputPrice = options.outputPrice ?? 0.6;
 // Cache successful source responses by instrument and explicit scan-date window.
-const newsClient = new OtcClient(options.fmpKey, { spacingMs: 210, maxCalls: 45_000, onAttempt: event => fs.appendFileSync(path.join(options.resultsDir, `news-source-requests-${options.date}.jsonl`), JSON.stringify(event)+"\n") });
+const newsClient = new OtcClient(options.fmpKey, { spacingMs: 210, maxCalls: 45_000, maxDurationMs: 180 * 60 * 1000, onAttempt: event => fs.appendFileSync(path.join(options.resultsDir, `news-source-requests-${options.date}.jsonl`), JSON.stringify(event)+"\n") });
 async function fetchNewsSource(source: string, symbol: string, endpoint: string, params: Record<string, string>): Promise<SourceEvidence> {
   const window = evidenceWindow(options.date);
   const cacheDir = path.join(options.resultsDir, "news-cache");
