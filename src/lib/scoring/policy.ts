@@ -3,6 +3,10 @@ import type { RiskSignal, RiskLevel } from "../types";
 
 export const SCORING_VERSION = policy.version;
 export const SCORE_UNIT = policy.scoreUnit;
+/** Earlier unversioned values may contain model-derived units. Never compare them as rule points. */
+export function currentSignalPoints(score: unknown, version: unknown, riskLevel?: string): number | null {
+  return version === SCORING_VERSION && riskLevel !== "INSUFFICIENT" && typeof score === "number" && Number.isFinite(score) && score >= 0 ? score : null;
+}
 const families = Object.values(policy.families).map((codes) => new Set<string>(codes));
 
 /** Signals remain visible; overlapping observations contribute their maximum. */

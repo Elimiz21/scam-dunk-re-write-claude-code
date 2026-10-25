@@ -8,7 +8,7 @@ import {
   getTickerCoverage,
   parseRunMetadata,
 } from "@/lib/social-scan/coverage";
-import { normalizeRiskScore } from "@/lib/utils";
+import { currentSignalPoints, SCORING_VERSION, SCORE_UNIT } from "@/lib/scoring/policy";
 
 export type PumpRadarViewer = "PUBLIC" | "AUTHENTICATED";
 export type PumpRadarFreshness = "FRESH" | "STALE";
@@ -79,7 +79,9 @@ export type PumpRadarPayload =
         marketCapBand: string;
         riskLabel: "High risk" | "Caution" | "Low risk";
         newsTriage: NewsTriage;
-        score: number;
+        score: number | null;
+        scoringVersion: string | null;
+        scoreUnit: string | null;
         signalCount: number;
         signalSummary?: string | null;
         lastPrice: number | null;
@@ -256,6 +258,7 @@ export function createPumpRadarService(
     const publicationCandidates = await client.stockDailySnapshot.findMany({
       where: {
         scanDate: summary.scanDate,
+        scoringVersion: SCORING_VERSION,
         stock: {
           exchange: { in: Array.from(US_COMMON_STOCK_EXCHANGES) },
           isOTC: false,
@@ -270,6 +273,7 @@ export function createPumpRadarService(
         newsTriage: true,
         signals: true,
         totalScore: true,
+        scoringVersion: true,
         signalCount: true,
         priceChangePct: true,
         volumeRatio: true,
@@ -334,7 +338,9 @@ export function createPumpRadarService(
         signalSummary: patternSummary(snapshot),
         riskLabel: getRiskLabel(snapshot.riskLevel as RiskLevel),
         newsTriage: resolveNewsTriage(snapshot),
-        score: normalizeRiskScore(Number(snapshot.totalScore) || 0),
+        score: currentSignalPoints(snapshot.totalScore, snapshot.scoringVersion, snapshot.riskLevel),
+        scoringVersion: snapshot.scoringVersion ?? null,
+        scoreUnit: currentSignalPoints(snapshot.totalScore, snapshot.scoringVersion, snapshot.riskLevel) !== null ? SCORE_UNIT : null,
         signalCount: snapshot.signalCount,
         // Precise market observations can identify a stock by matching public quotes.
         // Retain nullable keys for API compatibility; publish only broad patterns.

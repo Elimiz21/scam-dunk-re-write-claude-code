@@ -67,8 +67,8 @@ function RadarRow({ row, compact }: { row: PumpRadarRow; compact: boolean }) {
         </p>
       </div>
       <div role="cell" className="text-right">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:hidden">Risk score</p>
-        <p className={cn("font-semibold tabular-nums", compact ? "text-[11px]" : "text-[13px]")}>{row.score}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:hidden">Signal points</p>
+        <p className={cn("font-semibold tabular-nums", compact ? "text-[11px]" : "text-[13px]")}>{row.score ?? "—"}</p>
       </div>
     </div>
   );
@@ -237,7 +237,7 @@ export function PumpRadar({
             <div className="border-y border-border/60" role="table" aria-label="Pump Radar findings">
               <div role="row" className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border/60 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <div role="columnheader">Instrument</div>
-                <div role="columnheader" className="text-right">Risk score</div>
+                <div role="columnheader" className="text-right">Signal points</div>
               </div>
               {filteredRows.map((row, index) => (
                 <RadarRow key={`${row.displayTicker}-${index}`} row={row} compact={compact} />

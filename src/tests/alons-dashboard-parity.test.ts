@@ -170,7 +170,7 @@ describe("Alon's authenticated dashboard journey", () => {
     expect(pumpPage).toContain('className="mb-8 max-w-3xl pt-3"');
     expect(pumpPage).toContain("Pump Radar");
     expect(pumpRadar).toContain("compact");
-    expect(pumpRadar).toContain("Risk score");
+    expect(pumpRadar).toContain("Signal points");
     expect(pumpRadar).toContain('compact ? "text-[11px]" : "text-[13px]"');
     expect(pumpRadar).toContain('text-[11px] text-muted-foreground');
     expect(pumpRadar).toContain('compact ? "text-[13px] font-medium"');

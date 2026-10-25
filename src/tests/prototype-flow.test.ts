@@ -19,7 +19,7 @@ describe("Alon prototype workflow integration", () => {
     expect(marketTable).toContain('["WATCHING", "Watching"]');
     expect(marketTable).toContain("includeRadarRows: false");
     expect(marketTable).not.toContain('["RADAR", "Radar suspects"]');
-    expect(marketTable).toContain('["PUMP_SCORE", "Risk score"]');
+    expect(marketTable).toContain('["PUMP_SCORE", "Signal points"]');
   });
 
   test("supports last-scan status and manual rescans", () => {

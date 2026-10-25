@@ -284,16 +284,16 @@ export async function processCheckRequest(
     return NextResponse.json(response);
   } catch (error) {
     const elapsed = Date.now() - startTime;
-    console.error(
-      `Check API error at step [${currentStep}] after ${elapsed}ms:`,
-      error,
-    );
-
     if (scanLease) {
       try { await failScan(scanLease, currentStep); }
       catch (refundError) { console.error("Durable refund pending recovery:", refundError); }
     }
     if (error instanceof ScanConflict) return NextResponse.json({ error: error.message }, { status: 409 });
+
+    console.error(
+      `Check API error at step [${currentStep}] after ${elapsed}ms:`,
+      error,
+    );
 
     return NextResponse.json(
       { error: "An internal error occurred. Please try again later." },

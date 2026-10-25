@@ -8,6 +8,7 @@ import {
 } from "@/lib/entitlements";
 import { createPumpRadarService } from "@/lib/pump-radar";
 import type { RiskLevel } from "@/lib/types";
+import { currentSignalPoints, SCORE_UNIT } from "@/lib/scoring/policy";
 import {
   getTickerCoverage,
   parseRunMetadata,
@@ -128,6 +129,7 @@ export function createDashboardDataService(
           assetType: true,
           riskLevel: true,
           totalScore: true,
+          scoringVersion: true,
           signalsCount: true,
           createdAt: true,
         },
@@ -152,9 +154,8 @@ export function createDashboardDataService(
           (RISK_ORDER[right.riskLevel] ?? 0) -
           (RISK_ORDER[left.riskLevel] ?? 0);
         if (riskDifference !== 0) return riskDifference;
-        if (right.totalScore !== left.totalScore) {
-          return right.totalScore - left.totalScore;
-        }
+        // History can span different scoring policies. Within a category use
+        // recency, rather than comparing incompatible earlier score units.
       }
       if (options.order === "DATE_ADDED") {
         const dateDifference =
@@ -225,7 +226,9 @@ export function createDashboardDataService(
       source: sourceType(scan.assetType),
       riskLabel: getRiskLabel(scan.riskLevel as RiskLevel),
       assessmentAvailable: scan.riskLevel !== "INSUFFICIENT",
-      score: scan.totalScore,
+      score: currentSignalPoints(scan.totalScore, scan.scoringVersion, scan.riskLevel),
+      scoringVersion: scan.scoringVersion ?? null,
+      scoreUnit: currentSignalPoints(scan.totalScore, scan.scoringVersion, scan.riskLevel) !== null ? SCORE_UNIT : null,
       signalCount: scan.signalsCount,
       scannedAt: new Date(scan.createdAt).toISOString(),
       watchlistAddedAt: watchlistDates.has(String(scan.ticker).toUpperCase())
@@ -271,6 +274,7 @@ export function createDashboardDataService(
         assetType: true,
         riskLevel: true,
         totalScore: true,
+        scoringVersion: true,
         signalsCount: true,
         isLegitimate: true,
         pitchProvided: true,
@@ -374,7 +378,9 @@ export function createDashboardDataService(
       source: sourceType(scan.assetType),
       riskLabel: getRiskLabel(scan.riskLevel as RiskLevel),
       assessmentAvailable: scan.riskLevel !== "INSUFFICIENT",
-      score: scan.totalScore,
+      score: currentSignalPoints(scan.totalScore, scan.scoringVersion, scan.riskLevel),
+      scoringVersion: scan.scoringVersion ?? null,
+      scoreUnit: currentSignalPoints(scan.totalScore, scan.scoringVersion, scan.riskLevel) !== null ? SCORE_UNIT : null,
       signalCount: scan.signalsCount,
       scannedAt: scan.createdAt.toISOString(),
       isLegitimate: scan.isLegitimate,

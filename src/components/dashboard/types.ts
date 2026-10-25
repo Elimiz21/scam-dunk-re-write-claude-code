@@ -42,7 +42,9 @@ export interface PumpRadarRow {
   ticker?: string;
   companyName?: string;
   riskLabel: CustomerRiskLabel;
-  score: number;
+  score: number | null;
+  scoringVersion?: string | null;
+  scoreUnit?: string | null;
   signalCount: number;
   signalSummary: string | null;
   lastPrice: number | null;
@@ -141,7 +143,9 @@ export interface RecentScanDto {
   ticker: string;
   source: "MANUAL" | "AUTOMATIC_FULL" | "AUTOMATIC_PRICE";
   riskLabel: CustomerRiskLabel;
-  score: number;
+  score: number | null;
+  scoringVersion?: string | null;
+  scoreUnit?: string | null;
   signalCount: number;
   scannedAt: string;
   watchlistAddedAt: string | null;
@@ -244,7 +248,9 @@ export interface ScanDetailDto {
   ticker: string;
   source: "MANUAL" | "AUTOMATIC_FULL" | "AUTOMATIC_PRICE";
   riskLabel: CustomerRiskLabel;
-  score: number;
+  score: number | null;
+  scoringVersion?: string | null;
+  scoreUnit?: string | null;
   signalCount: number;
   scannedAt: string;
   isLegitimate: boolean | null;
