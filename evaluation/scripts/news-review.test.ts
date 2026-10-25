@@ -13,9 +13,9 @@ async function item(): Promise<NewsEvidence> {
  const sources = await Promise.all(["news", "sec_filings", "press_releases"].map(source => retrieveEvidence({source, symbol: "TEST", window: evidenceWindow("2026-10-23"), available: true, retrieve: async () => source === "news" ? [{symbol:"TEST", date:"2026-10-23", title:"Dated earnings release"}] : []})));
  return {key:"TEST", result:{name:"Test Corp", signals:[]}, sources, news:[sources[0].items[0].raw],secFilings:[],pressReleases:[]};
 }
-function answer(evidenceIds: string[], overrides = {}) {return {choices:[{message:{content:JSON.stringify({results:[{symbol:"TEST",hasLegitimateNews:true,specificEvent:"Earnings",explanation:"Dated event",evidenceIds,eventType:"EARNINGS",evidenceQuotes:evidenceIds.map(evidenceId=>({evidenceId,quote:"Dated earnings release"})),...overrides}]})}}],usage:{prompt_tokens:50, completion_tokens:30}};}
+function answer(evidenceIds: string[], overrides = {}) {return {choices:[{message:{content:JSON.stringify({results:[{symbol:"TEST",decision:`EARNINGS:${evidenceIds[0]??"missing"}`,explanation:"Dated event",...overrides}]})}}],usage:{prompt_tokens:50, completion_tokens:30}};}
 it("requires exact dated citations and retains complete model input/output and metered usage", async () => {
- const evidence=await item(); mockCreate.mockResolvedValue(answer([evidence.sources[0].items[0].id]));
+ const evidence=await item(); mockCreate.mockResolvedValue(answer(["E1"]));
  const r=reviewer(); const result=await r.analyzeNewsLegitimacyBatch([evidence],25);
  expect(result.results.get("TEST")).toMatchObject({hasLegitimateNews:true,skipped:false});
  expect(result.chargedUpperBoundUsd).toBeCloseTo((50*.15+30*.6)/1e6);
@@ -78,11 +78,32 @@ it("does not accept a cached clearance after its current dated evidence is remov
 
 it("generic filing metadata cannot substantiate a claimed financing event",async()=>{
  const evidence=await item();evidence.sources[0].items[0].raw={symbol:"TEST",date:"2026-10-23",formType:"8-K",finalLink:"https://www.sec.gov/Archives/example"};
- mockCreate.mockResolvedValue(answer(["E1"],{eventType:"FINANCING",specificEvent:"Corporate developments",evidenceQuotes:[{evidenceId:"E1",quote:"announced a financing transaction"}]}));
+ mockCreate.mockResolvedValue(answer(["E1"],{decision:"FINANCING:E1"}));
  expect((await reviewer().analyzeNewsLegitimacyBatch([evidence],25)).results.get("TEST")).toMatchObject({hasLegitimateNews:false,skipped:true});
 });
 
 it("earnings-calendar notices do not become evidence of reported earnings",()=>{
  expect(materialEventExcerpts({title:"Example will host an earnings conference call next month"})).not.toHaveProperty("EARNINGS");
  expect(materialEventExcerpts({title:"Example reports quarterly financial results with revenue growth"})).toHaveProperty("EARNINGS");
+});
+
+it("binds each allowed decision to that instrument's source and event, without contradictory flags",async()=>{
+ const evidence=await item();mockCreate.mockResolvedValue(answer([],{decision:"NONE",explanation:"Only a call title was available; no substantive result explains the signals."}));
+ const result=await reviewer().analyzeNewsLegitimacyBatch([evidence],25);
+ expect(result.results.get("TEST")).toMatchObject({hasLegitimateNews:false,skipped:false,eventType:"NONE",evidenceIds:[]});
+ const schema=mockCreate.mock.calls[0][0].response_format.json_schema.schema.properties.results.items.anyOf[0];
+ expect(schema.properties.decision.enum).toEqual(["NONE","EARNINGS:E1"]);
+ expect(schema.properties).not.toHaveProperty("hasLegitimateNews");
+});
+it("rejects a real citation paired with an event its content does not support",async()=>{
+ mockCreate.mockResolvedValue(answer(["E1"],{decision:"MANAGEMENT_CHANGE:E1"}));
+ expect((await reviewer().analyzeNewsLegitimacyBatch([await item()],25)).results.get("TEST")).toMatchObject({hasLegitimateNews:false,skipped:true});
+});
+it("keeps a bare CEO mention distinct from a management change and retains substantive new event types",()=>{
+ expect(materialEventExcerpts({title:"CEO discusses weak demand in China"})).not.toHaveProperty("MANAGEMENT_CHANGE");
+ expect(materialEventExcerpts({title:"Example appoints a new CEO"})).toHaveProperty("MANAGEMENT_CHANGE");
+ expect(materialEventExcerpts({title:"Example announces £25 million fundraising"})).toHaveProperty("FINANCING");
+ expect(materialEventExcerpts({title:"Example makes first commercial delivery of its new test panel"})).toHaveProperty("PRODUCT_LAUNCH");
+ expect(materialEventExcerpts({title:"Example to invest nearly $3 billion in a new mill"})).toHaveProperty("CAPITAL_INVESTMENT");
+ expect(materialEventExcerpts({title:"Example plans to cut 2,500 jobs"})).toHaveProperty("RESTRUCTURING");
 });

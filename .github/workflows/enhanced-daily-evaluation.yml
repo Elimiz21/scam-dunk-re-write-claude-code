@@ -10,6 +10,11 @@ on:
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
     inputs:
+      resume_pipeline_cache_key:
+        description: "Optional retained pipeline validation cache key for resuming acquisition"
+        required: false
+        default: ""
+        type: string
       resume_news_cache_run:
         description: "Optional completed validation run ID whose successful source evidence should be reused"
         required: false
@@ -740,6 +745,7 @@ jobs:
           token: ${{ secrets.DATA_REPO_TOKEN }}
           path: retained-data
       - uses: actions/cache/restore@v4
+        if: ${{ github.event.inputs.resume_pipeline_cache_key == '' }}
         with:
           path: |
             evaluation/results/market-http-cache
@@ -842,6 +848,17 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - uses: actions/cache/restore@v4
+        if: ${{ github.event.inputs.resume_pipeline_cache_key != '' }}
+        with:
+          path: |
+            evaluation/results/market-http-cache
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: ${{ github.event.inputs.resume_pipeline_cache_key }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@v4
+        if: ${{ github.event.inputs.resume_pipeline_cache_key == '' }}
         with:
           path: |
             evaluation/results/market-http-cache
@@ -850,7 +867,6 @@ jobs:
             evaluation/results/news-cost-ledger-*.jsonl
           key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
           restore-keys: |
-            provider-validation-v3-${{ github.event.inputs.date_override }}-
             provider-validation-v3-${{ github.event.inputs.date_override }}-
       - name: Rehearse complete acquisition, scoring and news pipeline
         timeout-minutes: 330

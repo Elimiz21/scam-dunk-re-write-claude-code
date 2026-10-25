@@ -345,12 +345,16 @@ interface SchemeRecord {
 }
 
 // Utility functions
+let lastFmpRequestStartedAt = 0;
 function curlFetch(url: string): string | null {
   const safeUrl=new URL(url);safeUrl.searchParams.delete("apikey");
   const cacheDir=path.join(RESULTS_DIR,"market-http-cache",getEvaluationDate());
   const cacheFile=path.join(cacheDir,require("crypto").createHash("sha256").update(safeUrl.toString()).digest("hex")+".json");
   if(VALIDATION_ONLY){try{const entry=JSON.parse(fs.readFileSync(cacheFile,"utf8"));if(entry.request===safeUrl.toString()&&typeof entry.response==="string"&&Number.isFinite(Date.parse(entry.retrievedAt)))return entry.response;}catch{}}
   try {
+    const waitMs=Math.max(0,lastFmpRequestStartedAt+FMP_DELAY_MS-Date.now());
+    if(waitMs>0)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,waitMs);
+    lastFmpRequestStartedAt=Date.now();
     const result = execSync(
       `curl -s --max-time 15 -H "User-Agent: Mozilla/5.0" "${url}"`,
       { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 },
@@ -739,12 +743,10 @@ function fetchFMPHistory(symbol: string): PriceHistory[] {
 export async function fetchStockData(symbol: string): Promise<MarketData | null> {
   const quote = fetchFMPQuote(symbol);
   if (!quote) return null;
-  await sleep(FMP_DELAY_MS);
 
   const priceHistory = fetchFMPHistory(symbol);
   const quality = assessPriceHistory(priceHistory, getEvaluationDate());
   if (quality) { listedDataFailures.set(symbol, quality); return null; }
-  await sleep(FMP_DELAY_MS);
   const actionResponse = curlFetch(`${FMP_BASE_URL}/splits?symbol=${symbol}&apikey=${FMP_API_KEY}`);
   try {
     const actions = JSON.parse(actionResponse || "null");
@@ -1474,7 +1476,6 @@ async function runEnhancedPipeline(): Promise<void> {
         highRiskBeforeFilter.push(result);
       }
 
-      await sleep(FMP_DELAY_MS);
     } catch (error: any) {
       listedOutcomes.push(
         createListedRiskScoringOutcome(stock.symbol, "processing_error"),

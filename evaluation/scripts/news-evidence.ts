@@ -77,14 +77,18 @@ export function validClearance(ids: unknown, sources: SourceEvidence[]): ids is 
 const materialEvents: Record<string,RegExp> = {
  EARNINGS:/earnings|financial results|quarterly results|revenue|net income|eps/i,
  GUIDANCE:/guidance|outlook|forecast/i, FDA_TRIAL:/fda|clinical|trial|drug approval/i,
- CONTRACT:/contract|agreement|partnership|(?:purchase )?orders?/i,
+ CONTRACT:/\bcontract|\bagreement|\bpartnership|\bpartners?\b|\b(?:purchase )?orders?\b/i,
  MERGER:/merger|acquisition|acquire[ds]?|takeover|tender offer/i,
  REGULATORY_APPROVAL:/approval|approved|authorization|licen[cs]e/i,
- PRODUCT_LAUNCH:/launch|unveil|new product/i,
- MANAGEMENT_CHANGE:/appoint|resign|ceo|chief executive|chair/i,
+ PRODUCT_LAUNCH:/launch|unveil|new product|first commercial delivery/i,
+ MANAGEMENT_CHANGE:/\bappoint(?:ed|s|ment)?\b|\bresign(?:ed|s|ation)?\b|\b(?:new|replaces?) (?:ceo|chief executive|chair)/i,
  CORPORATE_ACTION:/split|dividend|spin.off|buyback|repurchase/i,
  LEGAL_RESOLUTION:/settle|settlement|verdict|ruling|dismissed|dismissal/i,
- FINANCING:/financing|placement|offering|funding|capital rais|credit facility|convertible|debt|raises?\b/i,
+ FINANCING:/financing|placement|offering|funding|fundrais|capital rais|credit facility|convertible|debt|raises?\b/i,
+ RESOURCE_DISCOVERY:/\bdiscovers?\b|\bdrilling results\b|\bresource expansion\b/i,
+ CAPITAL_INVESTMENT:/\binvest(?:s|ing|ment)?\b.{0,40}(?:billion|million|\$|equipment|capacity)|\bcapital expenditure/i,
+ RESTRUCTURING:/\blayoffs?\b|\bjob cuts\b|\bcut.{0,15}\bjobs\b|\brestructur/i,
+ EXCHANGE_LISTING:/\bdelist|\bderegister|\blisting (?:approval|transfer)/i,
 };
 export const MATERIAL_EVENT_TYPES=Object.keys(materialEvents);
 export function materialEventExcerpts(raw:any):Record<string,string>{
