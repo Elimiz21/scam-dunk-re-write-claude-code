@@ -13,7 +13,7 @@ async function item(): Promise<NewsEvidence> {
  const sources = await Promise.all(["news", "sec_filings", "press_releases"].map(source => retrieveEvidence({source, symbol: "TEST", window: evidenceWindow("2026-10-23"), available: true, retrieve: async () => source === "news" ? [{symbol:"TEST", date:"2026-10-23", title:"Dated earnings release"}] : []})));
  return {key:"TEST", result:{name:"Test Corp", signals:[]}, sources, news:[sources[0].items[0].raw],secFilings:[],pressReleases:[]};
 }
-function answer(evidenceIds: string[], overrides = {}) {return {choices:[{message:{content:JSON.stringify({results:[{symbol:"TEST",hasLegitimateNews:true,specificEvent:"Earnings",explanation:"Dated event",evidenceIds,...overrides}]})}}],usage:{prompt_tokens:50, completion_tokens:30}};}
+function answer(evidenceIds: string[], overrides = {}) {return {choices:[{message:{content:JSON.stringify({results:[{symbol:"TEST",hasLegitimateNews:true,specificEvent:"Earnings",explanation:"Dated event",evidenceIds,eventType:"EARNINGS",evidenceQuotes:evidenceIds.map(evidenceId=>({evidenceId,quote:"Dated earnings release"})),...overrides}]})}}],usage:{prompt_tokens:50, completion_tokens:30}};}
 it("requires exact dated citations and retains complete model input/output and metered usage", async () => {
  const evidence=await item(); mockCreate.mockResolvedValue(answer([evidence.sources[0].items[0].id]));
  const r=reviewer(); const result=await r.analyzeNewsLegitimacyBatch([evidence],25);
@@ -60,7 +60,7 @@ it("uses short evidence references in a strict response schema and restores exac
  const evidence=await item();mockCreate.mockResolvedValue(answer(["E1"]));
  const result=await reviewer().analyzeNewsLegitimacyBatch([evidence],25);
  expect(result.results.get("TEST")).toMatchObject({hasLegitimateNews:true,evidenceIds:[evidence.sources[0].items[0].id]});
- expect(mockCreate.mock.calls[0][0].response_format).toMatchObject({type:"json_schema",json_schema:{strict:true}});
+ expect(mockCreate.mock.calls[0][0].response_format).toMatchObject({type:"json_schema",json_schema:{strict:true,schema:{properties:{results:{minItems:1,maxItems:1}}}}});
 });
 it("retries an invalid response once, accounts both calls and resumes the valid decision",async()=>{
  const evidence=await item();mockCreate.mockResolvedValueOnce({...answer([]),choices:[{message:{content:"truncated"}}]}).mockResolvedValueOnce(answer(["E1"]));
@@ -74,4 +74,10 @@ it("does not accept a cached clearance after its current dated evidence is remov
  const changed={...evidence,sources:evidence.sources.map(source=>({...source,items:[]}))};
  mockCreate.mockResolvedValue(answer(["invented"]));
  expect((await reviewer().analyzeNewsLegitimacyBatch([changed],25)).results.get("TEST")?.hasLegitimateNews).toBe(false);
+});
+
+it("generic filing metadata cannot substantiate a claimed financing event",async()=>{
+ const evidence=await item();evidence.sources[0].items[0].raw={symbol:"TEST",date:"2026-10-23",formType:"8-K",finalLink:"https://www.sec.gov/Archives/example"};
+ mockCreate.mockResolvedValue(answer(["E1"],{eventType:"FINANCING",specificEvent:"Corporate developments",evidenceQuotes:[{evidenceId:"E1",quote:"announced a financing transaction"}]}));
+ expect((await reviewer().analyzeNewsLegitimacyBatch([evidence],25)).results.get("TEST")).toMatchObject({hasLegitimateNews:false,skipped:true});
 });

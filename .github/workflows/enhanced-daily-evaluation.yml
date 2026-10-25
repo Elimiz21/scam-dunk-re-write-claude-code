@@ -734,11 +734,12 @@ jobs:
       - uses: actions/cache/restore@v4
         with:
           path: |
+            evaluation/results/market-http-cache
             evaluation/results/news-cache
             evaluation/results/news-decisions
             evaluation/results/news-cost-ledger-*.jsonl
-          key: news-shadow-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
-          restore-keys: news-shadow-v2-${{ github.event.inputs.date_override }}-
+          key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+          restore-keys: provider-validation-v3-${{ github.event.inputs.date_override }}-
       - name: Run isolated news retrieval validation
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
@@ -754,10 +755,11 @@ jobs:
         if: always()
         with:
           path: |
+            evaluation/results/market-http-cache
             evaluation/results/news-cache
             evaluation/results/news-decisions
             evaluation/results/news-cost-ledger-*.jsonl
-          key: news-shadow-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+          key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -813,10 +815,10 @@ jobs:
             evaluation/results/news-cache
             evaluation/results/news-decisions
             evaluation/results/news-cost-ledger-*.jsonl
-          key: pipeline-validation-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+          key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
           restore-keys: |
-            pipeline-validation-v2-${{ github.event.inputs.date_override }}-
-            news-shadow-v2-${{ github.event.inputs.date_override }}-
+            provider-validation-v3-${{ github.event.inputs.date_override }}-
+            provider-validation-v3-${{ github.event.inputs.date_override }}-
       - name: Rehearse complete acquisition, scoring and news pipeline
         timeout-minutes: 330
         env:
@@ -836,7 +838,7 @@ jobs:
             evaluation/results/news-cache
             evaluation/results/news-decisions
             evaluation/results/news-cost-ledger-*.jsonl
-          key: pipeline-validation-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+          key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
