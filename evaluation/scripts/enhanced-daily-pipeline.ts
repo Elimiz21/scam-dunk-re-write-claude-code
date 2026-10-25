@@ -365,7 +365,7 @@ function getEvaluationDate(): string {
 }
 
 // Load stock list
-function loadStockList(): any[] {
+export function loadStockList(): any[] {
   const stockListPath = path.join(DATA_DIR, "us-stocks.json");
   if (!fs.existsSync(stockListPath)) {
     console.error("Stock list not found. Please run fetch-us-stocks.ts first.");
@@ -657,6 +657,7 @@ async function callPythonAIBackend(
 
 // FMP API functions
 const listedDataFailures = new Map<string, string>();
+export const listedDataFailure = (symbol: string) => listedDataFailures.get(symbol) ?? "no_data";
 interface ExtendedQuote extends StockQuote {
   securityIdentifier?: string;
   sector?: string;
@@ -729,7 +730,7 @@ function fetchFMPHistory(symbol: string): PriceHistory[] {
   }
 }
 
-async function fetchStockData(symbol: string): Promise<MarketData | null> {
+export async function fetchStockData(symbol: string): Promise<MarketData | null> {
   const quote = fetchFMPQuote(symbol);
   if (!quote) return null;
   await sleep(FMP_DELAY_MS);
@@ -3075,8 +3076,8 @@ async function runEnhancedPipeline(): Promise<void> {
   }
 }
 
-// Run pipeline
-runEnhancedPipeline()
+// Importing acquisition helpers never starts a scan or sends notifications.
+if (require.main === module) runEnhancedPipeline()
   .then(() => {
     console.log(
       "\nEnhanced daily pipeline finished; inspect scan-status.json before promotion.",

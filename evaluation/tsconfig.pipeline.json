@@ -9,6 +9,7 @@
     "scripts/news-shadow-validation.ts",
     "scripts/upload-to-supabase.ts",
     "scripts/run-post-scan-phases.ts",
-    "scripts/run-evaluation-fmp.ts"
+    "scripts/run-evaluation-fmp.ts",
+    "scripts/risk-shadow-validation.ts"
   ]
 }
