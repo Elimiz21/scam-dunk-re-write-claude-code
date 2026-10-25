@@ -4,6 +4,10 @@ import { createHash, randomUUID } from "crypto";
 import { OtcClient } from "./otc-daily";
 import { evidenceWindow, retrieveEvidence, retrievePagedEvidence, retrievalComplete, validClearance, groundedClearance, MATERIAL_EVENT_TYPES, materialEventExcerpts, type SourceEvidence } from "./news-evidence";
 
+export const NEWS_REVIEW_MODEL = "gpt-6.1-sol";
+export const NEWS_INPUT_PRICE_PER_MILLION = 2;
+export const NEWS_OUTPUT_PRICE_PER_MILLION = 10;
+
 export interface NewsEvidence {
   key: string;
   result: { name: string; signals: Array<{code: string; category?: string; weight: number; description: string}> };
@@ -41,7 +45,7 @@ function clearanceChoices(item: NewsEvidence, aliases: Map<string, string>) {
 
 export function createNewsReview(options: { date: string; fmpKey: string; openaiKey: string; resultsDir: string; maxBudgetUsd?: number; inputPrice?: number; outputPrice?: number }) {
   fs.mkdirSync(options.resultsDir, {recursive: true});
-  const model = "gpt-4o-mini";
+  const model = NEWS_REVIEW_MODEL;
   const ledgerPath = path.join(options.resultsDir, `news-cost-ledger-${options.date}.jsonl`);
   const costs = new Map<string, number>();
   if (fs.existsSync(ledgerPath)) for (const line of fs.readFileSync(ledgerPath, "utf8").split("\n").filter(Boolean)) {
@@ -54,8 +58,8 @@ export function createNewsReview(options: { date: string; fmpKey: string; openai
     fs.appendFileSync(ledgerPath, JSON.stringify({id, usdBound, kind, recordedAt: new Date().toISOString()}) + "\n");
     costs.set(id, usdBound);
   };
-  const inputPrice = options.inputPrice ?? 0.15;
-  const outputPrice = options.outputPrice ?? 0.6;
+  const inputPrice = options.inputPrice ?? NEWS_INPUT_PRICE_PER_MILLION;
+  const outputPrice = options.outputPrice ?? NEWS_OUTPUT_PRICE_PER_MILLION;
 // Cache successful source responses by instrument and explicit scan-date window.
 const newsClient = new OtcClient(options.fmpKey, { spacingMs: 210, maxCalls: 45_000, maxDurationMs: 180 * 60 * 1000, onAttempt: event => fs.appendFileSync(path.join(options.resultsDir, `news-source-requests-${options.date}.jsonl`), JSON.stringify(event)+"\n") });
 async function fetchNewsSource(source: string, symbol: string, endpoint: string, params: Record<string, string>): Promise<SourceEvidence> {
@@ -155,7 +159,9 @@ Filter out ONLY substantive, date-specific events: earnings/guidance, FDA or tri
 Return JSON only in this exact shape, with one result for every supplied SYMBOL and no extra symbols:
 {"results":[{"symbol":"...","decision":"EARNINGS:E1","explanation":"brief evidence-based reasoning"}]}
 
-Only evidence within each supplied scan-date window may support clearance. A clearance decision is one supplied EVENT_TYPE:EVIDENCE_ID pair: select an eventExcerpts key and the ID of that exact item. Keep each explanation under 45 words and explain how the dated event accounts for the observed signals. The application will attach the exact source excerpt. Return NONE if no supplied pair substantiates an explanation, including when only an earnings-call title, filing metadata or generic corporate-development label is available. For NONE, explain the evidence limitation without claiming the activity has been explained. Return exactly one combined decision per instrument. Treat an event as a possible explanation, never proof of causality or safety.
+Only evidence within each supplied scan-date window may support clearance. A clearance decision is one supplied EVENT_TYPE:EVIDENCE_ID pair: select an eventExcerpts key and the ID of that exact item. These pairs are mechanical text matches, not verified events. Independently check issuer identity, event meaning and timing against the FULL source content. A mention of customers, partners, acquisition marketing, aspirations, ordinary interest payments, an upcoming earnings call or a factory visit does not establish a new material event. A source can report a dated definitive future action (such as a delisting or approved deal), but an earnings-calendar notice does not establish reported results. Do not infer a new event from an old transaction merely mentioned in a new article. Do not invent outcomes or reverse the direction of reported trial or financial results to fit the stock's signals.
+
+Keep each explanation under 45 words, accurately describe the actual source event and explain its plausible relationship to the observed signals. The application will attach the exact source excerpt. Return NONE when the supplied content does not substantiate a material issuer-specific explanation; describe the limitation without declaring the stock suspicious. Return exactly one combined decision per instrument. A possible explanation is never proof of causality, safety or business legitimacy.
 
 INSTRUMENTS:
 ${batch.map(item=>formatNewsEvidence(item,aliases)).join("\n\n---\n\n")}`;
@@ -171,12 +177,13 @@ ${batch.map(item=>formatNewsEvidence(item,aliases)).join("\n\n---\n\n")}`;
     chargedUpperBoundUsd = upperCost;
     recordCost(attemptId, upperCost, "RESERVED");
     const OpenAI = require("openai");
-    const openai = new OpenAI({ apiKey: options.openaiKey, maxRetries: 0, timeout: 30_000 });
+    const openai = new OpenAI({ apiKey: options.openaiKey, maxRetries: 0, timeout: 60_000 });
     const response = await openai.chat.completions.create({
       model: model,
       messages: [{ role: "user", content: prompt }],
       response_format: responseFormat,
-      max_tokens: maxCompletionTokens,
+      max_completion_tokens: maxCompletionTokens,
+      reasoning_effort: "low",
     });
     usage = response.usage;
     if (usage && Number.isFinite(usage.prompt_tokens) && Number.isFinite(usage.completion_tokens)) {
@@ -247,7 +254,7 @@ ${batch.map(item=>formatNewsEvidence(item,aliases)).join("\n\n---\n\n")}`;
 async function analyzeNewsLegitimacyBatch(batch: NewsEvidence[], remainingBudgetUsd: number) {
   const decisionDir=path.join(options.resultsDir,"news-decisions");fs.mkdirSync(decisionDir,{recursive:true});
   const resultMap=new Map<string,NewsLegitimacyResult>();
-  const cachePath=(item:NewsEvidence)=>path.join(decisionDir,createHash("sha256").update(JSON.stringify(["dated-news-v5",model,formatNewsEvidence(item),item.sources.map(source=>({source:source.source,status:source.status,window:source.window}))])).digest("hex")+".json");
+  const cachePath=(item:NewsEvidence)=>path.join(decisionDir,createHash("sha256").update(JSON.stringify(["dated-news-v6",model,formatNewsEvidence(item),item.sources.map(source=>({source:source.source,status:source.status,window:source.window}))])).digest("hex")+".json");
   for(const item of batch){try{
     const cached=JSON.parse(fs.readFileSync(cachePath(item),"utf8"));
     if(cached.symbol===item.key && typeof cached.result?.hasLegitimateNews==="boolean" && typeof cached.result.analysis==="string" && cached.result.analysis.trim() && cached.result.skipped===false && (!cached.result.hasLegitimateNews || groundedClearance(cached.result.evidenceIds,cached.result.evidenceQuotes,cached.result.eventType,item.sources))) resultMap.set(item.key,cached.result);

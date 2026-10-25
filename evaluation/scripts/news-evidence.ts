@@ -75,10 +75,10 @@ export function validClearance(ids: unknown, sources: SourceEvidence[]): ids is 
 }
 
 const materialEvents: Record<string,RegExp> = {
- EARNINGS:/earnings|financial results|quarterly results|revenue|net income|eps/i,
- GUIDANCE:/guidance|outlook|forecast/i, FDA_TRIAL:/fda|clinical|trial|drug approval/i,
- CONTRACT:/\bcontract|\bagreement|\bpartnership|\bpartners?\b|\b(?:purchase )?orders?\b/i,
- MERGER:/merger|acquisition|acquire[ds]?|takeover|tender offer/i,
+ EARNINGS:/\bearnings\b|\bfinancial results\b|\bquarterly results\b|\brevenue\b|\bnet income\b|\beps\b/i,
+ GUIDANCE:/\bguidance\b|\boutlook\b|\bforecast\b/i, FDA_TRIAL:/\bfda\b|\bclinical\b|\btrial\b|\bdrug approval\b/i,
+ CONTRACT:/\b(?:signs?|signed|secures?|secured|wins?|won|awarded|announces?|announced|executes?|executed)\b.{0,65}\b(?:contract|agreement|partnership|orders?)\b|\b(?:receives?|received)\b.{0,30}\b(?:purchase order|contract)\b|\bpartners? with\b|\benters? into\b.{0,40}\b(?:agreement|partnership)\b/i,
+ MERGER:/\bmerger agreement\b|\bmerges? with\b|\b(?:agreement|agrees?|agreed) to acquire\b|\bacquisition of\b|\btakeover\b|\btender offer\b/i,
  REGULATORY_APPROVAL:/approval|approved|authorization|licen[cs]e/i,
  PRODUCT_LAUNCH:/launch|unveil|new product|first commercial delivery/i,
  MANAGEMENT_CHANGE:/\bappoint(?:ed|s|ment)?\b|\bresign(?:ed|s|ation)?\b|\b(?:new|replaces?) (?:ceo|chief executive|chair)/i,
@@ -98,7 +98,7 @@ export function materialEventExcerpts(raw:any):Record<string,string>{
   const matcher=new RegExp(pattern.source,"ig");let match:RegExpExecArray|null;
   while((match=matcher.exec(content))){
    const excerpt=content.slice(Math.max(0,match.index-40),Math.max(0,match.index-40)+220).trim();
-   if(type==="EARNINGS" && /conference call|earnings call|will host|webcast|earnings date|scheduled/i.test(excerpt))continue;
+   if(type==="EARNINGS" && (/conference call|earnings call|will host|webcast|earnings date|scheduled/i.test(excerpt)||/\bwill (?:issue|release|report|announce)\b.{0,90}\b(?:earnings|financial results|quarterly results)\b/i.test(content)))continue;
    if(excerpt.length>=12){excerpts[type]=excerpt;break;}
   }
  }

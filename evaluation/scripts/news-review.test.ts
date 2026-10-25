@@ -18,9 +18,9 @@ it("requires exact dated citations and retains complete model input/output and m
  const evidence=await item(); mockCreate.mockResolvedValue(answer(["E1"]));
  const r=reviewer(); const result=await r.analyzeNewsLegitimacyBatch([evidence],25);
  expect(result.results.get("TEST")).toMatchObject({hasLegitimateNews:true,skipped:false});
- expect(result.chargedUpperBoundUsd).toBeCloseTo((50*.15+30*.6)/1e6);
+ expect(result.chargedUpperBoundUsd).toBeCloseTo((50*2+30*10)/1e6);
  expect(r.modelCostBoundUsd).toBe(result.chargedUpperBoundUsd);
- expect(require("openai")).toHaveBeenCalledWith(expect.objectContaining({maxRetries:0,timeout:30_000}));
+ expect(require("openai")).toHaveBeenCalledWith(expect.objectContaining({maxRetries:0,timeout:60_000}));
  const retained=readFileSync(path.join(dir,"news-model-batches-2026-10-23.jsonl"),"utf8");
  expect(retained).toContain(evidence.sources[0].items[0].id); expect(retained).toContain('usage');
 });
@@ -106,4 +106,12 @@ it("keeps a bare CEO mention distinct from a management change and retains subst
  expect(materialEventExcerpts({title:"Example makes first commercial delivery of its new test panel"})).toHaveProperty("PRODUCT_LAUNCH");
  expect(materialEventExcerpts({title:"Example to invest nearly $3 billion in a new mill"})).toHaveProperty("CAPITAL_INVESTMENT");
  expect(materialEventExcerpts({title:"Example plans to cut 2,500 jobs"})).toHaveProperty("RESTRUCTURING");
+});
+
+it("does not confuse ordinary words or calendar notices with substantive reported events",()=>{
+ expect(materialEventExcerpts({title:"TAG Oil Outlines Next Steps for Production Testing"})).not.toHaveProperty("EARNINGS");
+ expect(materialEventExcerpts({title:"Company hosts officials and strategic partners at a factory visit"})).not.toHaveProperty("CONTRACT");
+ expect(materialEventExcerpts({title:"Customer acquisition company highlights emerging opportunities"})).not.toHaveProperty("MERGER");
+ expect(materialEventExcerpts({title:"Company announces earnings webcast",text:"It will issue its earnings release earlier that morning."})).not.toHaveProperty("EARNINGS");
+ expect(materialEventExcerpts({title:"Company secures orders across three product lines"})).toHaveProperty("CONTRACT");
 });

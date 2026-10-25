@@ -1,4 +1,4 @@
-import { createNewsReview, type NewsEvidence } from "./news-review";
+import { createNewsReview, NEWS_REVIEW_MODEL, NEWS_INPUT_PRICE_PER_MILLION, NEWS_OUTPUT_PRICE_PER_MILLION, type NewsEvidence } from "./news-review";
 import { assessPriceHistory } from "./price-quality";
 import { retrievalComplete, type SourceEvidence } from "./news-evidence";
 import { hasIndependentWarning, type NewsTriage } from "../../src/lib/news-triage";
@@ -117,16 +117,16 @@ const NEWS_ANALYSIS_BATCH_SIZE = positiveIntegerFromEnv(
   "NEWS_ANALYSIS_BATCH_SIZE",
   10,
 );
-const OPENAI_NEWS_MODEL = "gpt-4o-mini";
-// Pay-as-you-go gpt-4o-mini prices per million tokens. Operators may override
+const OPENAI_NEWS_MODEL = NEWS_REVIEW_MODEL;
+// Standard news-review prices per million tokens. Operators may override
 // these values if their OpenAI pricing agreement changes.
 const OPENAI_INPUT_COST_PER_MILLION = nonNegativeNumberFromEnv(
   "OPENAI_NEWS_INPUT_COST_PER_MILLION",
-  0.15,
+  NEWS_INPUT_PRICE_PER_MILLION,
 );
 const OPENAI_OUTPUT_COST_PER_MILLION = nonNegativeNumberFromEnv(
   "OPENAI_NEWS_OUTPUT_COST_PER_MILLION",
-  0.6,
+  NEWS_OUTPUT_PRICE_PER_MILLION,
 );
 
 // Thresholds for filtering
@@ -3068,11 +3068,8 @@ async function runEnhancedPipeline(): Promise<void> {
     console.log("=".repeat(80));
 
     const sortedSuspicious = [...suspiciousStocks].sort((a, b) => {
-      const aScore =
-        (a.socialMediaFindings?.overallPromotionScore || 0) + a.totalScore;
-      const bScore =
-        (b.socialMediaFindings?.overallPromotionScore || 0) + b.totalScore;
-      return bScore - aScore;
+      // Rank by the declared signal-point unit; social scores remain separate.
+      return b.totalScore - a.totalScore || a.symbol.localeCompare(b.symbol);
     });
 
     sortedSuspicious.slice(0, 10).forEach((s, i) => {

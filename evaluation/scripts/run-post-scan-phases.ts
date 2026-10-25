@@ -486,11 +486,8 @@ async function runPostScanPhases(): Promise<void> {
     console.log("=".repeat(80));
 
     const sorted = [...suspiciousStocks].sort((a, b) => {
-      const aScore =
-        (a.socialMediaFindings?.overallPromotionScore || 0) + a.totalScore;
-      const bScore =
-        (b.socialMediaFindings?.overallPromotionScore || 0) + b.totalScore;
-      return bScore - aScore;
+      // Rank by the declared signal-point unit; social scores remain separate.
+      return b.totalScore - a.totalScore || a.symbol.localeCompare(b.symbol);
     });
 
     sorted.slice(0, 10).forEach((s, i) => {
