@@ -10,7 +10,7 @@ let db,storage;
 try {db=new URL(process.env.DIRECT_URL || process.env.DATABASE_URL);storage=new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);} catch {fail('Migration target configuration is invalid');}
 const production='gwzcluijtbuglznwdqqk',staging='iwbewmdeotcnqtpazezi';
 if (!['postgres:', 'postgresql:'].includes(db.protocol)) fail('Invalid database protocol');
-const ref=db.hostname.match(/^db\.([a-z0-9]{20})\.supabase\.co$/)?.[1] || (db.hostname.endsWith('.pooler.supabase.com') ? decodeURIComponent(db.username).match(/^postgres\.([a-z0-9]{20})$/)?.[1] : null);
+const ref=db.hostname.match(/^db\.([a-z0-9]{20})\.supabase\.co$/)?.[1] || (db.hostname.endsWith('.pooler.supabase.com') ? (decodeURIComponent(db.username).match(/^postgres\.([a-z0-9]{20})$/)?.[1] || (decodeURIComponent(db.username)==='scamdunk_validation_20261025.iwbewmdeotcnqtpazezi' ? staging : null)) : null);
 const storageRef=storage.hostname.match(/^([a-z0-9]{20})\.supabase\.co$/)?.[1];
 const fixture=process.env.SCAMDUNK_LOCAL_MIGRATION_FIXTURE === 'true' && ['127.0.0.1','localhost'].includes(db.hostname) && ['/scamdunk_test','/scamdunk_migration_test'].includes(db.pathname) && ['127.0.0.1','localhost'].includes(storage.hostname);
 if (!fixture) {

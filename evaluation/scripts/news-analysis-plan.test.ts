@@ -12,7 +12,7 @@ describe("createNewsAnalysisPlan", () => {
     expect(plan.selected[0].key).toBe("ABC");
     expect(plan.selected[0].equivalents).toEqual([a, b]);
     expect(plan.batches).toHaveLength(1);
-    expect(plan.modelCallUpperBound).toBe(1);
+    expect(plan.modelCallUpperBound).toBe(2);
   });
 
   it("prioritizes highest deterministic risk and leaves capped candidates unclassified", () => {
@@ -32,6 +32,6 @@ describe("createNewsAnalysisPlan", () => {
       ["HIGH"],
       ["MID"],
     ]);
-    expect(plan.modelCallUpperBound).toBe(2);
+    expect(plan.modelCallUpperBound).toBe(4);
   });
 });

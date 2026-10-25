@@ -55,3 +55,23 @@ it("resumes successful source retrieval and rejects corrupted cache eligibility"
  const corrupted=JSON.parse(readFileSync(cachePath,"utf8"));corrupted.items[0].eligible=false;writeFileSync(cachePath,JSON.stringify(corrupted));
  expect((await r.fetchStockNews("TEST")).items[0].eligible).toBe(true);expect(request).toHaveBeenCalledTimes(2);
 });
+
+it("uses short evidence references in a strict response schema and restores exact source IDs",async()=>{
+ const evidence=await item();mockCreate.mockResolvedValue(answer(["E1"]));
+ const result=await reviewer().analyzeNewsLegitimacyBatch([evidence],25);
+ expect(result.results.get("TEST")).toMatchObject({hasLegitimateNews:true,evidenceIds:[evidence.sources[0].items[0].id]});
+ expect(mockCreate.mock.calls[0][0].response_format).toMatchObject({type:"json_schema",json_schema:{strict:true}});
+});
+it("retries an invalid response once, accounts both calls and resumes the valid decision",async()=>{
+ const evidence=await item();mockCreate.mockResolvedValueOnce({...answer([]),choices:[{message:{content:"truncated"}}]}).mockResolvedValueOnce(answer(["E1"]));
+ const r=reviewer();const result=await r.analyzeNewsLegitimacyBatch([evidence],25);
+ expect(result.attemptCount).toBe(2);expect(result.failedAttemptCount).toBe(1);expect(result.results.get("TEST")?.hasLegitimateNews).toBe(true);
+ const resumed=await reviewer().analyzeNewsLegitimacyBatch([evidence],25);expect(resumed.attemptCount).toBe(0);expect(mockCreate).toHaveBeenCalledTimes(2);
+});
+it("does not accept a cached clearance after its current dated evidence is removed",async()=>{
+ const evidence=await item();mockCreate.mockResolvedValue(answer(["E1"]));
+ await reviewer().analyzeNewsLegitimacyBatch([evidence],25);
+ const changed={...evidence,sources:evidence.sources.map(source=>({...source,items:[]}))};
+ mockCreate.mockResolvedValue(answer(["invented"]));
+ expect((await reviewer().analyzeNewsLegitimacyBatch([changed],25)).results.get("TEST")?.hasLegitimateNews).toBe(false);
+});

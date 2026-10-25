@@ -1843,8 +1843,8 @@ async function runEnhancedPipeline(): Promise<void> {
       Math.max(0, Math.min(25, nonNegativeNumberFromEnv("NEWS_ANALYSIS_MAX_COST_USD", 25)) - chargedNewsCostUsd),
     );
     chargedNewsCostUsd += batchAnalysis.chargedUpperBoundUsd;
-    newsMetrics.modelCallsMade += Number(batchAnalysis.attemptedCall);
-    newsMetrics.failedModelCalls += Number(batchAnalysis.failedCall);
+    newsMetrics.modelCallsMade += batchAnalysis.attemptCount;
+    newsMetrics.failedModelCalls += batchAnalysis.failedAttemptCount;
     newsMetrics.unavailableModelBatches += Number(batchAnalysis.unavailable);
     newsMetrics.promptTokens += batchAnalysis.promptTokens;
     newsMetrics.completionTokens += batchAnalysis.completionTokens;

@@ -560,6 +560,7 @@ jobs:
             evaluation/results/*.md
             evaluation/results/*.jsonl
             evaluation/results/news-cache/*.json
+            evaluation/results/news-decisions/*.json
             evaluation/scheme-database/*.json
           retention-days: 30
           if-no-files-found: warn
@@ -728,6 +729,7 @@ jobs:
         with:
           path: |
             evaluation/results/news-cache
+            evaluation/results/news-decisions
             evaluation/results/news-cost-ledger-*.jsonl
           key: news-shadow-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
           restore-keys: news-shadow-v2-${{ github.event.inputs.date_override }}-
@@ -747,6 +749,7 @@ jobs:
         with:
           path: |
             evaluation/results/news-cache
+            evaluation/results/news-decisions
             evaluation/results/news-cost-ledger-*.jsonl
           key: news-shadow-v2-${{ github.event.inputs.date_override }}-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
@@ -759,6 +762,7 @@ jobs:
             evaluation/results/news-model-batches-*.jsonl
             evaluation/results/news-cost-ledger-*.jsonl
             evaluation/results/news-cache/*.json
+            evaluation/results/news-decisions/*.json
           retention-days: 30
 
   risk-shadow-validation:
