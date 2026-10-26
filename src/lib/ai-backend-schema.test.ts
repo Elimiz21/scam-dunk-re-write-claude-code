@@ -9,7 +9,7 @@ const validResponse = {
   asset_type: "stock",
   risk_level: "LOW",
   risk_score: 0,
-  scoring_version: "rules-2026-10-25-v2",
+  scoring_version: "rules-2026-10-25-v3",
   score_unit: "deduplicated_signal_points",
   risk_probability: 0,
   rf_probability: null,
@@ -36,6 +36,9 @@ const validResponse = {
 };
 
 describe("Python AI boundary contract", () => {
+  it("rejects a backend result from the superseded rules version",()=>{
+    expect(acceptAIBackendResponse({...validResponse,scoring_version:"rules-2026-10-25-v2"},{expectedSource:"live",requireDataAvailable:true})).toBeNull();
+  });
   it("serializes a missing news flag as false while preserving nullable SEC state", () => {
     expect(
       buildAIBackendRequest({

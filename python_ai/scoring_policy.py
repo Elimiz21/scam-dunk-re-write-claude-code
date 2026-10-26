@@ -26,6 +26,10 @@ def signal_score(signals):
 def signal_level(score, signals):
     if any(signal.code == 'ALERT_LIST_HIT' for signal in signals):
         return 'HIGH'
-    if score >= POLICY['highThreshold'] and any(signal.code in POLICY['highEvidenceCodes'] or signal.category in POLICY['highEvidenceCategories'] for signal in signals):
+    def meets(minimums):
+        return any(signal.category == 'PATTERN' and signal.code in minimums and signal.weight >= minimums[signal.code] for signal in signals)
+    market = POLICY['highMarketEvidence']
+    high_evidence = any(signal.category in POLICY['highEvidenceCategories'] for signal in signals) or (meets(market['priceMinimumWeights']) and meets(market['volumeMinimumWeights']))
+    if score >= POLICY['highThreshold'] and high_evidence:
         return 'HIGH'
     return 'MEDIUM' if score >= POLICY['mediumThreshold'] else 'LOW'

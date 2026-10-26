@@ -36,7 +36,7 @@ const validAnalysis = {
   asset_type: "stock",
   risk_level: "LOW",
   risk_score: 0,
-  scoring_version: "rules-2026-10-25-v2",
+  scoring_version: "rules-2026-10-25-v3",
   score_unit: "deduplicated_signal_points",
   risk_probability: 0,
   rf_probability: null,

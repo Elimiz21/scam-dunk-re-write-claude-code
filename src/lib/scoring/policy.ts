@@ -29,7 +29,15 @@ export function scoreSignals(signals: RiskSignal[]): number {
 
 export function levelFromSignals(score: number, signals: RiskSignal[]): RiskLevel {
   if (signals.some((signal) => signal.code === "ALERT_LIST_HIT")) return "HIGH";
-  const hasHighEvidence = signals.some((signal) => policy.highEvidenceCodes.includes(signal.code) || policy.highEvidenceCategories.includes(signal.category));
+  // An absolute z-score can describe a small decline, and structural points
+  // describe susceptibility. Neither establishes a manipulation pattern.
+  // Market-only HIGH needs a substantial price episode corroborated by a
+  // separate sustained-volume observation, using existing detector tiers.
+  const meets = (minimums: Record<string,number>) => signals.some(signal =>
+    signal.category === "PATTERN" && minimums[signal.code] !== undefined && signal.weight >= minimums[signal.code]);
+  const market = policy.highMarketEvidence;
+  const hasHighEvidence = signals.some(signal => policy.highEvidenceCategories.includes(signal.category)) ||
+    (meets(market.priceMinimumWeights) && meets(market.volumeMinimumWeights));
   if (score >= policy.highThreshold && hasHighEvidence) return "HIGH";
   if (score >= policy.mediumThreshold) return "MEDIUM";
   return "LOW";

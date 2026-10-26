@@ -5,7 +5,7 @@ function client(summary: object) {
   return {
     dailyScanSummary: { findFirst: jest.fn().mockResolvedValue(summary) },
     stockDailySnapshot: { findMany: jest.fn().mockResolvedValue([{
-      id: "current-observation", scoringVersion: "rules-2026-10-25-v2", riskLevel: "HIGH", newsTriage: "RETAINED",
+      id: "current-observation", scoringVersion: "rules-2026-10-25-v3", riskLevel: "HIGH", newsTriage: "RETAINED",
       totalScore: 8, signalCount: 3, marketCap: 100000000, signals: "[]",
       stock: {symbol: "TEST", name: "Example Common Corp", exchange: "NASDAQ", isOTC: false},
     }]) },
