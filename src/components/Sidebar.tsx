@@ -24,16 +24,18 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onToggle, persistent = false }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const userId = session?.user?.id;
   const [pumpRadarCount, setPumpRadarCount] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!session?.user) return;
+    setPumpRadarCount(null);
+    if (!userId) return;
     const controller = new AbortController();
     fetch("/api/pump-radar?limit=50", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) return;
-        const radar = (await response.json()) as { rows?: unknown[] };
-        setPumpRadarCount(Array.isArray(radar.rows) ? radar.rows.length : 0);
+        const radar = (await response.json()) as { status?: string; rows?: unknown[] };
+        setPumpRadarCount(radar.status === "AVAILABLE" && Array.isArray(radar.rows) ? radar.rows.length : null);
       })
       .catch((error) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
@@ -41,7 +43,7 @@ export function Sidebar({ isOpen, onToggle, persistent = false }: SidebarProps) 
         }
       });
     return () => controller.abort();
-  }, [session?.user]);
+  }, [userId]);
 
   return (
     <>
@@ -94,7 +96,7 @@ export function Sidebar({ isOpen, onToggle, persistent = false }: SidebarProps) 
                         <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span className="flex-1">{label}</span>
                         {label === "Pump Radar" && (
-                          <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">{pumpRadarCount ?? "…"}</span>
+                          <span aria-label={pumpRadarCount === null ? "Findings count unavailable" : undefined} className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">{pumpRadarCount ?? "—"}</span>
                         )}
                       </Link>
                     </div>

@@ -214,7 +214,7 @@ export function PumpRadar({
               <Activity className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
               <p className={cn("mt-3", compact ? "text-[11px] font-medium" : "font-semibold")}>{view.title}</p>
               <p className={cn("mt-1", statusTextClass)}>
-                The publication could not be loaded. Try again in a moment.
+                {notice || "The publication could not be loaded. Try again in a moment."}
               </p>
               {onRetry && (
                 <Button type="button" variant="outline" size="sm" className="mt-4" onClick={onRetry}>

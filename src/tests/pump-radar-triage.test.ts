@@ -10,3 +10,26 @@ it("cleared market observations stay out of the radar while independent warnings
  expect(result.publicationQuality).toBe("DEGRADED");expect(result.notice).toContain("Raw market observations");
  expect(JSON.stringify(result.rows)).not.toContain('"ticker"');
 });
+
+function emptyViewClient(snapshots: any[]) {
+ return {
+  dailyScanSummary:{findFirst:jest.fn().mockResolvedValue({scanDate:new Date("2026-10-23"),totalStocks:5,evaluated:4,skippedNoData:1})},
+  stockDailySnapshot:{findMany:jest.fn().mockResolvedValue(snapshots)},
+  socialScanRun:{findFirst:jest.fn().mockResolvedValue(null)},socialMention:{findMany:jest.fn()},
+ };
+}
+it.each([
+ ["no matching current-rule assessments",[]],
+ ["only unsupported instruments",[{...row("fund","RETAINED"),stock:{symbol:"FUND",name:"Example ETF Fund",exchange:"NYSE",isOTC:false}}]],
+])("reports unavailable when the publication has %s",async(_reason,snapshots)=>{
+ const client=emptyViewClient(snapshots as any[]);
+ const result=await createPumpRadarService(client).getPumpRadar({limit:10,viewer:"PUBLIC"});
+ expect(result).toMatchObject({status:"UNAVAILABLE",rows:[],coverage:null});
+ expect(result.notice).toContain("Current market assessments are unavailable");
+ expect(client.stockDailySnapshot.findMany).toHaveBeenCalledWith(expect.objectContaining({where:expect.objectContaining({scoringVersion:"rules-2026-10-25-v2",riskLevel:{in:["LOW","MEDIUM","HIGH"]}})}));
+ expect(client.socialScanRun.findFirst).not.toHaveBeenCalled();
+});
+it("retains a completed empty view when compatible observations were cleared",async()=>{
+ const result=await createPumpRadarService(emptyViewClient([row("clear","CLEARED")])).getPumpRadar({limit:10,viewer:"PUBLIC"});
+ expect(result).toMatchObject({status:"AVAILABLE",rows:[],asOf:"2026-10-23T00:00:00.000Z"});
+});

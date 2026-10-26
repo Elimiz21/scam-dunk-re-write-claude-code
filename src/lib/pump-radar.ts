@@ -209,6 +209,14 @@ function isUsCommonStockSnapshot(snapshot: any): boolean {
   return !NON_COMMON_SECURITY_NAME.test(String(stock.name || ""));
 }
 
+function unavailableRadar(notice: string): PumpRadarPayload {
+  return {
+    status: "UNAVAILABLE", asOf: null, publishedAt: null, executedAt: null,
+    publicationQuality: "UNKNOWN", freshness: null, coverage: null,
+    socialPublication: null, rows: [], notice,
+  };
+}
+
 export function createPumpRadarService(
   client: PumpRadarClient = prisma as unknown as PumpRadarClient,
 ) {
@@ -238,18 +246,7 @@ export function createPumpRadarService(
     // Revised publications are visible only after atomic completion. Legacy
     // summaries remain readable, with unknown publication/execution times.
     if (!summary || (summary.artifactRevision && summary.artifactRevision.status !== "PUBLISHED")) {
-      return {
-        status: "UNAVAILABLE",
-        asOf: null,
-        publishedAt: null,
-        executedAt: null,
-        publicationQuality: "UNKNOWN",
-        freshness: null,
-        coverage: null,
-        socialPublication: null,
-        rows: [],
-        notice: "No published end-of-day market scan is available.",
-      };
+      return unavailableRadar("No published end-of-day market scan is available.");
     }
 
     let ingestionExcluded = false;
@@ -259,6 +256,7 @@ export function createPumpRadarService(
       where: {
         scanDate: summary.scanDate,
         scoringVersion: SCORING_VERSION,
+        riskLevel: { in: ["LOW", "MEDIUM", "HIGH"] },
         stock: {
           exchange: { in: Array.from(US_COMMON_STOCK_EXCHANGES) },
           isOTC: false,
@@ -288,8 +286,11 @@ export function createPumpRadarService(
         },
       },
     });
-    const snapshots = publicationCandidates
-      .filter(isUsCommonStockSnapshot)
+    const commonStockCandidates = publicationCandidates.filter(isUsCommonStockSnapshot);
+    if (commonStockCandidates.length === 0) {
+      return unavailableRadar("Current market assessments are unavailable for this view. Findings will appear after an updated scan is published.");
+    }
+    const snapshots = commonStockCandidates
       .filter(snapshot => {
         let signals = [];
         try { signals = JSON.parse(snapshot.signals ?? "[]"); } catch { /* Unknown evidence cannot establish independent warnings. */ }
