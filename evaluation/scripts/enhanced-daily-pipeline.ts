@@ -4,6 +4,7 @@ import { assessPriceHistory } from "./price-quality";
 import { retrievalComplete, type SourceEvidence } from "./news-evidence";
 import { hasIndependentWarning, reviewedAlertEligible, type NewsTriage } from "../../src/lib/news-triage";
 import { SCORING_VERSION, SCORE_UNIT } from "../../src/lib/scoring/policy";
+import { hasUnsupportedInstrumentName } from "../../src/lib/stock-universe";
 /**
  * Enhanced Daily Scanning Pipeline
  *
@@ -687,7 +688,7 @@ function fetchFMPQuote(symbol: string): ExtendedQuote | null {
     // FMP stable API may return object directly or wrapped in array
     const profile = Array.isArray(raw) ? raw[0] : raw;
     if (!profile || !profile.companyName) return null;
-    const unsupported = profile.isEtf !== false || profile.isFund !== false || profile.isActivelyTrading !== true || /\b(warrants?|rights?|units?|preferred|preference|debentures?|notes?|bonds?|et[fn]|fund)\b/i.test(profile.companyName);
+    const unsupported = profile.isEtf !== false || profile.isFund !== false || profile.isActivelyTrading !== true || hasUnsupportedInstrumentName(profile.companyName);
     if (profile.symbol !== symbol || !profile.isin || profile.currency !== "USD" || unsupported) {
       listedDataFailures.set(symbol, profile.symbol !== symbol ? "identity_changed" : unsupported ? "unsupported_or_inactive_instrument" : "unsupported_identity_or_currency");
       return null;
@@ -742,7 +743,11 @@ function fetchFMPHistory(symbol: string): PriceHistory[] {
   }
 }
 
-export async function fetchStockData(symbol: string): Promise<MarketData | null> {
+export async function fetchStockData(symbol: string, directoryName?: string): Promise<MarketData | null> {
+  if (hasUnsupportedInstrumentName(directoryName)) {
+    listedDataFailures.set(symbol, "unsupported_instrument");
+    return null;
+  }
   const quote = fetchFMPQuote(symbol);
   if (!quote) return null;
 
@@ -1310,12 +1315,13 @@ async function runEnhancedPipeline(): Promise<void> {
     );
 
     try {
-      const marketData = await fetchStockData(stock.symbol);
+      const marketData = await fetchStockData(stock.symbol, stock.name);
 
       if (!marketData || !marketData.dataAvailable) {
         skippedNoData++;
+        const reason = listedDataFailures.get(stock.symbol) ?? "no_data";
         listedOutcomes.push(
-          { symbol: stock.symbol, status: "failed", reason: listedDataFailures.get(stock.symbol) ?? "no_data" },
+          { symbol: stock.symbol, status: reason === "unsupported_instrument" ? "excluded" : "failed", reason },
         );
         continue;
       }

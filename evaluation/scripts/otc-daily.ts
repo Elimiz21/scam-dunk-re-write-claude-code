@@ -1,5 +1,6 @@
 import { computeRiskScore, PriceHistory } from "./standalone-scorer";
 import { assessPriceHistory } from "./price-quality";
+import { hasUnsupportedInstrumentName } from "../../src/lib/stock-universe";
 
 export type Request = (
   endpoint: string,
@@ -101,9 +102,7 @@ function exclusion(s: OtcSecurity): string | null {
   if (s.isActivelyTrading !== true) return "inactive";
   if (s.isEtf !== false || s.isFund !== false) return "fund_or_unknown_type";
   if (
-    /\b(warrants?|rights?|units?|preferred|preference|debentures?|notes?|bonds?|et[fn]|fund|trust)\b|\b[0-9.]+%/i.test(
-      s.companyName,
-    )
+    hasUnsupportedInstrumentName(s.companyName) || /\btrust\b|\b[0-9.]+%/i.test(s.companyName)
   )
     return "unsupported_instrument";
   // FINRA fifth-letter instruments: conservatively omit warrants, rights, units,

@@ -1,5 +1,6 @@
 import { assessPriceHistory } from "./price-quality";
 import { expectedPriceSession } from "./market-publication-freshness";
+import { hasUnsupportedInstrumentName } from "./stock-universe";
 /**
  * Market Data Module
  *
@@ -201,7 +202,7 @@ async function fetchFMPQuote(ticker: string): Promise<StockQuote | null> {
 
   const profile = parsed.data[0];
   if (profile.symbol !== ticker || !/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(profile.isin ?? "") || profile.currency !== "USD" || profile.isEtf !== false || profile.isFund !== false || profile.isActivelyTrading !== true ||
-      /\b(?:ETF|FUND|DEPOSITARY|ADR|WARRANTS?|UNITS?|PREFERRED|BONDS?|NOTES?|RIGHTS?)\b/i.test(profile.companyName ?? "")) return null;
+      hasUnsupportedInstrumentName(profile.companyName) || /\b(?:DEPOSITARY|ADR)\b/i.test(profile.companyName ?? "")) return null;
   return {
     securityIdentifier: profile.isin,
     ticker: ticker.toUpperCase(),

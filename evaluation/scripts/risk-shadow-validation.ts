@@ -16,7 +16,7 @@ async function main() {
  const results:any[]=[], outcomes:any[]=[]; const startedAt=new Date().toISOString();
  for (const stock of selected) {
    try {
-     const marketData=await fetchStockData(stock.symbol);
+     const marketData=await fetchStockData(stock.symbol,stock.name);
      if (!marketData?.dataAvailable) outcomes.push({symbol:stock.symbol,status:"excluded",reason:listedDataFailure(stock.symbol)});
      else if (marketData.isOTC) outcomes.push({symbol:stock.symbol,status:"excluded",reason:"requires_fresh_otc_directory"});
      else {
