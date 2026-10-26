@@ -5,6 +5,7 @@ import { retrievalComplete, type SourceEvidence } from "./news-evidence";
 import { hasIndependentWarning, reviewedAlertEligible, type NewsTriage } from "../../src/lib/news-triage";
 import { SCORING_VERSION, SCORE_UNIT } from "../../src/lib/scoring/policy";
 import { hasUnsupportedInstrumentName } from "../../src/lib/stock-universe";
+import { promoterIds, stablePromoterId } from "./scheme-state";
 /**
  * Enhanced Daily Scanning Pipeline
  *
@@ -439,8 +440,10 @@ function saveSchemeDatabase(db: Map<string, SchemeRecord>): void {
 }
 
 // Build the promoter matrix database from all scheme data
-function generatePromoterDatabase(schemes: SchemeRecord[]): void {
-  const promoterDbPath = path.join(SCHEME_DB_DIR, "promoter-database.json");
+export function generatePromoterDatabase(schemes: SchemeRecord[], promoterDbPath = path.join(SCHEME_DB_DIR, "promoter-database.json")): void {
+  const existingIds = fs.existsSync(promoterDbPath)
+    ? promoterIds(JSON.parse(fs.readFileSync(promoterDbPath, "utf8")))
+    : new Map<string, string>();
 
   interface PromoterEntry {
     promoterId: string;
@@ -484,7 +487,7 @@ function generatePromoterDatabase(schemes: SchemeRecord[]): void {
 
       if (!promoter) {
         promoter = {
-          promoterId: `PROM-${account.platform.replace(/[^a-zA-Z]/g, "").toUpperCase()}-${account.identifier.replace(/[^a-zA-Z0-9]/g, "").toUpperCase()}-${Date.now().toString(36).slice(-4).toUpperCase()}`,
+          promoterId: stablePromoterId(account.platform, account.identifier, existingIds),
           identifier: account.identifier,
           platform: account.platform,
           firstSeen: account.firstSeen,

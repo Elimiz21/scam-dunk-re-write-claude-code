@@ -8,6 +8,7 @@ import { retrievalComplete } from "./news-evidence";
 import { assessPublicationQuality } from "../../src/lib/admin/artifact-quality";
 import { reviewedAlertEligible } from "../../src/lib/news-triage";
 import { shouldFilterBySize } from "./market-shortlist";
+import { readSchemeState, schemeBaselineName, schemeStateNames, validateSchemePublication } from "./scheme-state";
 
 const prefixes = ["enhanced-evaluation", "enhanced-high-risk", "suspicious-stocks", "daily-report", "fmp-summary", "scan-status", "otc-coverage", "social-media-scan", "promoted-stocks"];
 const completeTriage = new Set(["CLEARED", "RETAINED", "NO_EVIDENCE"]);
@@ -57,7 +58,7 @@ function locate(root: string, name: string): string[] {
   return found;
 }
 if (require.main === module) {
-  const [metadataFile, artifactRoot, date] = process.argv.slice(2);
+  const [metadataFile, artifactRoot, date, currentSchemeDirectory] = process.argv.slice(2);
   const run=JSON.parse(fs.readFileSync(metadataFile,"utf8"));
   const commit=execFileSync("git",["cat-file","-p","HEAD"],{encoding:"utf8"});
   const acceptedCommits=[execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(),...Array.from(commit.matchAll(/^parent ([a-f0-9]{40})$/gm),match=>match[1])];
@@ -70,10 +71,15 @@ if (require.main === module) {
   }
   const output=validatePipelineRelease({date,run,acceptedCommits,files});
   const staticFiles: Record<string,Buffer>={};
-  for (const name of ["scheme-database.json","promoter-database.json"]) {
+  for (const name of schemeStateNames) {
     const matches=locate(artifactRoot,name); if (matches.length!==1) throw Error("Current scheme state is missing or ambiguous");
     const data=fs.readFileSync(matches[0]); JSON.parse(data.toString("utf8"));staticFiles[name]=data;
   }
+  const baselineMatches=locate(artifactRoot,schemeBaselineName);
+  if (baselineMatches.length!==1 || !currentSchemeDirectory) throw Error("Durable scheme baseline is missing or ambiguous");
+  const baselineBytes=fs.readFileSync(baselineMatches[0]);
+  validateSchemePublication(readSchemeState(currentSchemeDirectory),staticFiles,JSON.parse(baselineBytes.toString("utf8")));
+  output[schemeBaselineName]=baselineBytes;
   const results=path.join(__dirname,"..","results"); fs.mkdirSync(results,{recursive:true});
   for (const [name,bytes] of Object.entries(output)) fs.writeFileSync(path.join(results,name),bytes);
   const target=path.join(__dirname,"..","scheme-database");fs.mkdirSync(target,{recursive:true});

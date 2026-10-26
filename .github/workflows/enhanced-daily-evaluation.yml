@@ -180,6 +180,18 @@ jobs:
           echo "date=$DATE" >> $GITHUB_OUTPUT
           echo "Evaluation date: $DATE"
 
+      - name: Read durable scheme history
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: scheme-state-source
+          persist-credentials: false
+
+      - name: Restore durable scheme history before scanning
+        if: ${{ github.event.inputs.upload_only != 'true' }}
+        run: npx ts-node --project evaluation/tsconfig.json evaluation/scripts/scheme-state.ts restore scheme-state-source/scheme-tracking evaluation/scheme-database evaluation/results/scheme-state-baseline.json
+
       - name: Import the exact completed full validation output
         if: ${{ github.event.inputs.upload_only == 'true' }}
         env:
@@ -190,7 +202,7 @@ jobs:
           [[ "$VALIDATED_RUN_ID" =~ ^[0-9]+$ ]]
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID" > "$RUNNER_TEMP/validated-run.json"
           gh run download "$VALIDATED_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "pipeline-validation-full-$VALIDATED_RUN_ID" --dir "$RUNNER_TEMP/validated-pipeline"
-          npx ts-node --project evaluation/tsconfig.json evaluation/scripts/import-validated-pipeline.ts "$RUNNER_TEMP/validated-run.json" "$RUNNER_TEMP/validated-pipeline" "$RELEASE_DATE"
+          npx ts-node --project evaluation/tsconfig.json evaluation/scripts/import-validated-pipeline.ts "$RUNNER_TEMP/validated-run.json" "$RUNNER_TEMP/validated-pipeline" "$RELEASE_DATE" scheme-state-source/scheme-tracking
 
       - name: Restore news evidence, decisions and spending ledger
         uses: actions/cache/restore@v4
@@ -370,6 +382,19 @@ jobs:
           echo ""
           echo "Validation report written to results/pipeline-validation-${DATE}.json"
 
+      - name: Checkout data repository
+        if: ${{ github.event.inputs.test_mode != 'true' }}
+        id: checkout-data
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: Reject stale or destructive scheme publication
+        if: ${{ github.event.inputs.test_mode != 'true' }}
+        run: npx ts-node --project evaluation/tsconfig.json evaluation/scripts/scheme-state.ts verify data-repo/scheme-tracking evaluation/scheme-database evaluation/results/scheme-state-baseline.json
+
       - name: Upload to Supabase
         if: ${{ github.event.inputs.test_mode != 'true' }}
         env:
@@ -387,16 +412,6 @@ jobs:
 
           cd evaluation
           npx ts-node scripts/upload-to-supabase.ts "$DATE"
-
-      - name: Checkout data repository
-        if: ${{ github.event.inputs.test_mode != 'true' }}
-        continue-on-error: true
-        id: checkout-data
-        uses: actions/checkout@v4
-        with:
-          repository: Elimiz21/scam-dunk-data
-          token: ${{ secrets.DATA_REPO_TOKEN }}
-          path: data-repo
 
       - name: Copy results to data repository
         if: steps.checkout-data.outcome == 'success'
@@ -787,6 +802,14 @@ jobs:
           key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
           restore-keys: |
             provider-validation-v3-${{ github.event.inputs.date_override }}-
+      - name: Read durable scheme history without publication credentials
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          path: scheme-state-source
+          persist-credentials: false
+      - name: Restore durable scheme history before validation
+        run: npx ts-node --project evaluation/tsconfig.json evaluation/scripts/scheme-state.ts restore scheme-state-source/scheme-tracking evaluation/scheme-database evaluation/results/scheme-state-baseline.json
       - name: Rehearse complete acquisition, scoring and news pipeline
         timeout-minutes: 330
         env:
