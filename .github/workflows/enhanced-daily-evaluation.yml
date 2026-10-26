@@ -300,13 +300,16 @@ jobs:
           gh run download "$VALIDATED_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "pipeline-validation-full-$VALIDATED_RUN_ID" --dir "$RUNNER_TEMP/validated-pipeline"
           npx ts-node --project evaluation/tsconfig.json evaluation/scripts/import-validated-pipeline.ts "$RUNNER_TEMP/validated-run.json" "$RUNNER_TEMP/validated-pipeline" "$RELEASE_DATE"
 
-      - name: Restore news evidence cache
+      - name: Restore news evidence, decisions and spending ledger
         uses: actions/cache/restore@v4
         with:
-          path: evaluation/results/news-cache
-          key: news-evidence-v2-${{ steps.date.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: news-review-v3-${{ steps.date.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            news-evidence-v2-${{ steps.date.outputs.date }}-
+            news-review-v3-${{ steps.date.outputs.date }}-
 
       - name: Run Enhanced Daily Pipeline
         if: ${{ github.event.inputs.upload_only != 'true' }}
@@ -339,7 +342,10 @@ jobs:
             echo "Social Scan: Local fallback (JSON only)"
           fi
 
-          npx ts-node scripts/enhanced-daily-pipeline.ts
+          node ../node_modules/ts-node/dist/bin.js --project tsconfig.json scripts/enhanced-daily-pipeline.ts &
+          PIPELINE_PID=$!
+          trap 'kill -TERM "$PIPELINE_PID" 2>/dev/null || true; wait "$PIPELINE_PID" 2>/dev/null || true' INT TERM EXIT
+          wait "$PIPELINE_PID"
 
           echo "Enhanced pipeline complete"
 
@@ -577,12 +583,15 @@ jobs:
             echo "Results pushed to scam-dunk-data repository"
           fi
 
-      - name: Save resumable news evidence cache
+      - name: Save resumable news evidence, decisions and spending ledger
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: evaluation/results/news-cache
-          key: news-evidence-v2-${{ steps.date.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: news-review-v3-${{ steps.date.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload artifacts
         if: always()
