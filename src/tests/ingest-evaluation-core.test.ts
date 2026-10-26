@@ -225,7 +225,7 @@ describe("ingestDate OTC records", () => {
     },
   );
 
-  it("publishes an explicit quarantine without mutating the conflicting issuer", async () => {
+  it.each([0, 1])("publishes an explicit quarantine and %i source exclusions without mutating the conflicting issuer", async excluded => {
     const date = "2026-09-16";
     rows[0] = { ...row, name: "Different Issuer Ltd", riskLevel: "HIGH" };
     const evaluationName = `enhanced-evaluation-${date}.json`;
@@ -236,8 +236,9 @@ describe("ingestDate OTC records", () => {
       files: {
         [evaluationName]: Buffer.from(JSON.stringify(rows)),
         [summaryName]: Buffer.from(JSON.stringify({
-          totalStocks: 1, evaluated: 1, skippedNoData: 0,
+          totalStocks: 1 + excluded * 2, evaluated: 1, skippedNoData: excluded,
           byRiskLevel: { HIGH: 1 }, byExchange: { OTC: { total: 1, HIGH: 1 } },
+          ...(excluded ? {coverageAccounting:{processing:{reconciles:true,processed:{total:1},skippedNoData:{total:1},excluded:{total:1},unprocessed:{total:0},unaccounted:{total:0}}}} : {}),
         })),
       },
       required: [evaluationName, summaryName],
@@ -267,15 +268,33 @@ describe("ingestDate OTC records", () => {
     expect(fail).not.toHaveBeenCalled();
     expect(publish).toHaveBeenCalledWith(expect.objectContaining({
       snapshots: [], alerts: [], newStocks: [], trackedStockUpdates: [],
-      summary: expect.objectContaining({evaluated: 0, skippedNoData: 1, highRiskCount: 0}),
+      summary: expect.objectContaining({evaluated: 0, skippedNoData: 1 + excluded, highRiskCount: 0}),
     }));
     const quarantine = JSON.parse(publish.mock.calls[0][0].summary.byExchange as string).OTC.identityQuarantines;
     expect(quarantine).toHaveLength(1);
     expect(quarantine[0].symbol).toBe("EXAMPLE");
+    expect(JSON.parse(publish.mock.calls[0][0].summary.byExchange as string)._coverage).toEqual({schemaVersion:"scamdunk.coverage-counts/v1",excluded});
     expect(prisma.trackedStock.update).not.toHaveBeenCalled();
     expect(prisma.trackedStock.createMany).not.toHaveBeenCalled();
     expect(prisma.stockDailySnapshot.createMany).not.toHaveBeenCalled();
     expect(prisma.dailyScanSummary.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects an inconsistent explicit exclusion ledger before canonical or legacy writes", async () => {
+    const date = "2026-09-16", evaluationName = `enhanced-evaluation-${date}.json`, summaryName = `fmp-summary-${date}.json`;
+    const plan = createRevisionUploadPlan({scanDate:date,producerRunId:"invalid-coverage",files:{
+      [evaluationName]:Buffer.from(JSON.stringify(rows)),
+      [summaryName]:Buffer.from(JSON.stringify({totalStocks:3,evaluated:1,skippedNoData:1,byRiskLevel:{HIGH:1},byExchange:{},coverageAccounting:{processing:{reconciles:true,processed:{total:1},skippedNoData:{total:1},excluded:{total:1},unprocessed:{total:1},unaccounted:{total:0}}}})),
+    },required:[evaluationName,summaryName]});
+    const objects = new Map(plan.operations.map(op => [op.path,op.content]));
+    download.mockImplementation(async (objectPath: string) => {
+      const bytes=objects.get(objectPath);return bytes?{data:new Blob([new Uint8Array(bytes)]),error:null}:{data:null,error:{message:"not found"}};
+    });
+    const ensure = jest.spyOn(PrismaIngestionStore.prototype,"ensureRevision").mockResolvedValue();
+    await expect(ingestDate(date)).resolves.toMatchObject({success:false,error:"Source coverage ledger does not reconcile"});
+    expect(ensure).not.toHaveBeenCalled();
+    expect(prisma.trackedStock.createMany).not.toHaveBeenCalled();
+    expect(prisma.stockDailySnapshot.createMany).not.toHaveBeenCalled();
   });
 
   it("rejects hash-bound failed mandatory scoring before claiming publication", async () => {

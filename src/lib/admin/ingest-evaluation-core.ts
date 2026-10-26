@@ -6,6 +6,7 @@ import { normalizeEntryPrice } from "@/lib/promoted-stocks/entry-price";
  */
 
 import { prisma } from "@/lib/db";
+import { coverageCountMetadata, sourceExcludedCount } from "@/lib/publication-counts";
 import { EVALUATION_BUCKET } from "@/lib/supabase";
 import { getEvaluationStorageServerClient } from "@/lib/server/evaluation-storage";
 import { fetchDailyCloses } from "@/lib/promoted-stocks/tracker";
@@ -182,6 +183,7 @@ type IngestionErrorType =
   "MISSING_FILE" | "BAD_JSON" | "INVALID_SUPABASE_CONFIG" | "FETCH_ERROR";
 
 interface EvaluationSummary {
+  coverageAccounting?: unknown;
   totalStocks: number;
   evaluated: number;
   skippedNoData: number;
@@ -526,6 +528,9 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       promotedData = (await fetchPromotedStocksFile(promotedFilename)).data;
     }
 
+    if (summaryData?.coverageAccounting !== undefined && sourceExcludedCount(summaryData) === null) {
+      throw new Error("Source coverage ledger does not reconcile");
+    }
     if (!evaluationData) {
       return {
         success: false,
@@ -995,6 +1000,12 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         byExchange,
       };
     }
+    const excluded = sourceExcludedCount(summaryData ?? effectiveSummary);
+    const exchangeMetadata = {
+      ...(effectiveSummary.byExchange || {}),
+      ...(excluded !== null && effectiveSummary.evaluated + effectiveSummary.skippedNoData + excluded === effectiveSummary.totalStocks
+        ? { _coverage: coverageCountMetadata(excluded) } : {}),
+    };
     const summaryValues = {
       totalStocks: effectiveSummary.totalStocks,
       evaluated: effectiveSummary.evaluated,
@@ -1003,7 +1014,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
       mediumRiskCount: effectiveSummary.byRiskLevel?.MEDIUM || 0,
       highRiskCount: effectiveSummary.byRiskLevel?.HIGH || 0,
       insufficientCount: effectiveSummary.byRiskLevel?.INSUFFICIENT || 0,
-      byExchange: JSON.stringify(effectiveSummary.byExchange || {}),
+      byExchange: JSON.stringify(exchangeMetadata),
       scanDurationMins: effectiveSummary.durationMinutes ?? null,
       apiCallsMade: effectiveSummary.apiCallsMade ?? null,
     };
