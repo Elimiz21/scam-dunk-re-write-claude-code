@@ -243,8 +243,7 @@ function buildRiskFactorSummary(
   const categoryLabels: Record<string, string> = {
     STRUCTURAL:
       "how the stock is structured (exchange type, company size, trading volume)",
-    PATTERN:
-      "unusual trading activity (price spikes, volume surges, or pump-and-dump patterns)",
+    PATTERN: "market indicators",
     ALERT: "regulatory warnings or alerts from agencies like the SEC",
     BEHAVIORAL:
       "the language and tactics used in the pitch or message you shared",
@@ -259,16 +258,10 @@ function buildRiskFactorSummary(
   const parts: string[] = [];
 
   if (riskLevel === "LOW") {
-    if (signals.length === 0) {
-      parts.push(
-        "We didn't find any red flags across the areas we checked. This stock looks clean based on publicly available data.",
-      );
-    } else {
-      parts.push(
-        `We found only ${signals.length} minor concern${signals.length > 1 ? "s" : ""} — nothing that stands out as a serious warning sign. ` +
-          `${topSignals[0].description}`,
-      );
-    }
+    parts.push(
+      `We found only ${signals.length} minor concern${signals.length > 1 ? "s" : ""} — nothing that stands out as a serious warning sign. ` +
+        `${topSignals[0].description}`,
+    );
   } else if (riskLevel === "MEDIUM") {
     parts.push("Here's what caught our attention:");
     const topDescs = topSignals.map((s) => s.description);
@@ -293,7 +286,7 @@ function buildRiskFactorSummary(
       .map(([cat]) => categoryLabels[cat] || cat.toLowerCase());
     if (cats.length > 1) {
       parts.push(
-        `Red flags were detected across ${cats.join(" and ")} — this combination increases the overall concern.`,
+        `The observations cover ${cats.join(" and ")}. Review the individual findings for their severity.`,
       );
     }
   }

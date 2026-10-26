@@ -49,3 +49,18 @@ test("structural caution displays the original signal points without a percentag
  const html=renderToStaticMarkup(createElement(RiskCard,{result:result({riskLevel:"MEDIUM",totalScore:6,dataCompleteness:"full"})}));
  expect(html).toContain("Caution");expect(html).toContain(">6</span>");expect(html).toContain("signal points");expect(html).not.toContain("/ 100");
 });
+
+test("behavioral HIGH with only an RSI observation does not invent a price or volume spike",()=>{
+ const signals: RiskSignal[]=[
+  {code:"OVERBOUGHT_RSI",category:"PATTERN",weight:1,description:"Overbought RSI"},
+  {code:"PROMISED_RETURNS",category:"BEHAVIORAL",weight:2,description:"Guaranteed-return claim"},
+  {code:"URGENCY",category:"BEHAVIORAL",weight:2,description:"Urgency pressure"},
+  {code:"SECRECY",category:"BEHAVIORAL",weight:2,description:"Secret-information claim"},
+ ];
+ const value=result({riskLevel:"HIGH",totalScore:7,signals,dataCompleteness:"full",narrative:generateFallbackNarrative("HIGH",7,signals,stock)});
+ const html=renderToStaticMarkup(createElement(RiskCard,{result:value}));
+ expect(html).toContain("Guaranteed-return claim");
+ expect(html).toContain("market indicators");
+ expect(html).not.toContain("unusual trading activity (price spikes, volume surges, or pump-and-dump patterns)");
+ expect(html).not.toContain("this combination increases the overall concern");
+});
