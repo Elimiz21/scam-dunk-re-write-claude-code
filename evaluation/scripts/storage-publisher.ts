@@ -1,4 +1,6 @@
 import { buildArtifactManifest } from "../../src/lib/admin/artifact-ingestion";
+import { encodeArtifact } from "../../src/lib/admin/artifact-encoding";
+import { createHash } from "node:crypto";
 import { normalizeStrictIsoTimestamp } from "../../src/lib/strict-timestamp";
 import { requireSupabaseServiceConfig } from "../../src/lib/server/supabase-service-config";
 import { assessPublicationQuality } from "../../src/lib/admin/artifact-quality";
@@ -19,7 +21,7 @@ export interface UploadOperation {
   kind: "ARTIFACT" | "MANIFEST" | "POINTER";
   path: string;
   content: Buffer;
-  contentType: "application/json" | "text/markdown" | "application/octet-stream";
+  contentType: "application/json" | "text/markdown" | "application/octet-stream" | "application/gzip";
   upsert: boolean;
 }
 
@@ -159,12 +161,20 @@ export function createRevisionUploadPlan(input: {
   manifest: ReturnType<typeof buildArtifactManifest>;
   operations: UploadOperation[];
 } {
-  const manifest = buildArtifactManifest(input);
+  const encoded = new Map(Object.entries(input.files).map(([name, bytes]) => [name, encodeArtifact(bytes)]));
+  const declaredArtifacts = Object.entries(input.files).flatMap(([logicalName, bytes]) => {
+    const suffix = encoded.get(logicalName)!.suffix;
+    if (!suffix) return [];
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    return [{ logicalName, storagePath: `revisions/${input.scanDate}/${digest}/${logicalName}${suffix}`,
+      sha256: digest, byteLength: bytes.length, required: input.required.includes(logicalName) }];
+  });
+  const manifest = buildArtifactManifest({ ...input, declaredArtifacts });
   const artifactOperations = manifest.artifacts.map((artifact) => ({
     kind: "ARTIFACT" as const,
     path: artifact.storagePath,
-    content: input.files[artifact.logicalName],
-    contentType: contentTypeFor(artifact.logicalName),
+    content: encoded.get(artifact.logicalName)!.bytes,
+    contentType: encoded.get(artifact.logicalName)!.suffix ? "application/gzip" as const : contentTypeFor(artifact.logicalName),
     upsert: false,
   }));
   const manifestPath = `revisions/${input.scanDate}/${manifest.revisionHash}/manifest.json`;
@@ -318,7 +328,14 @@ export async function executeRevisionUploadPlan(input: {
     );
     if (!response.ok) {
       const responseBody = await response.text();
-      if (!operation.upsert && (response.status === 400 || response.status === 409)) {
+      let duplicate = response.status === 409;
+      if (response.status === 400) {
+        try {
+          const body = JSON.parse(responseBody);
+          duplicate = body.error === "Duplicate" || ["Duplicate", "ResourceAlreadyExists", "KeyAlreadyExists", "already_exists"].includes(body.code) || String(body.statusCode ?? body.httpStatusCode) === "409";
+        } catch { /* A generic 400 is not evidence of an existing object. */ }
+      }
+      if (!operation.upsert && duplicate) {
         const existingResponse = await fetchImpl(
           `${input.config.supabaseUrl}/storage/v1/object/authenticated/${bucket}/${operation.path}`,
           {
