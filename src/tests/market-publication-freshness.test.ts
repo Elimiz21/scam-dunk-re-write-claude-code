@@ -1,4 +1,23 @@
-import { expectedMarketDate, isCurrentMarketPublication } from "@/lib/market-publication-freshness";
+import { expectedMarketDate, isCurrentMarketPublication, marketSessionOnOrBefore } from "@/lib/market-publication-freshness";
+
+describe("shared scheduled and price session calendar", () => {
+  it.each([
+    ["2026-07-03", "2026-07-02"],
+    ["2027-06-18", "2027-06-17"],
+    ["2027-07-05", "2027-07-02"],
+    ["2027-12-24", "2027-12-23"],
+    ["2027-12-31", "2027-12-31"],
+    ["2028-07-03", "2028-07-03"],
+    ["2026-11-27", "2026-11-27"],
+    ["2026-10-25", "2026-10-23"],
+  ])("on %s the latest session is %s", (date, expected) => {
+    expect(marketSessionOnOrBefore(date)).toBe(expected);
+  });
+
+  it.each(["2029-01-02", "2026-02-30", "invalid"])("rejects an unsupported or invalid date %s", date => {
+    expect(marketSessionOnOrBefore(date)).toBeNull();
+  });
+});
 
 describe("expected market publication", () => {
   it.each([
