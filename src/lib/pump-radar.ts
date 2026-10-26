@@ -234,6 +234,7 @@ export function createPumpRadarService(
       orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
       select: {
         scanDate: true,
+        artifactRevisionId: true,
         byExchange: true,
         publishedAt: true,
         artifactRevision: { select: { status: true, producerExecutedAt: true, qualityStatus: true } },
@@ -252,51 +253,65 @@ export function createPumpRadarService(
     let ingestionExcluded = false;
     try { ingestionExcluded = Object.values(JSON.parse(summary.byExchange ?? "{}")).some((exchange: any) => Array.isArray(exchange?.identityQuarantines) && exchange.identityQuarantines.length > 0); } catch { ingestionExcluded = true; }
 
-    const publicationCandidates = await client.stockDailySnapshot.findMany({
-      where: {
-        scanDate: summary.scanDate,
-        scoringVersion: SCORING_VERSION,
-        riskLevel: { in: ["LOW", "MEDIUM", "HIGH"] },
-        stock: {
-          exchange: { in: Array.from(US_COMMON_STOCK_EXCHANGES) },
-          isOTC: false,
-        },
-      },
-      orderBy: [{ totalScore: "desc" }, { signalCount: "desc" }],
-      take: Math.min(safeLimit * 4, 200),
-      select: {
-        id: true,
-        marketCap: true,
-        riskLevel: true,
-        newsTriage: true,
-        signals: true,
-        totalScore: true,
-        scoringVersion: true,
-        signalCount: true,
-        priceChangePct: true,
-        volumeRatio: true,
-        stock: {
-          select: {
-            symbol: true,
-            sector: true,
-            name: true,
-            exchange: true,
-            isOTC: true,
+    const snapshots: any[] = [];
+    let hasCurrentCommonAssessment = false;
+    const pageSize = 200;
+    // Bind every page to one publication; apply the display limit after all
+    // class and news filters, so cleared leaders cannot hide later warnings.
+    for (let skip = 0; ; skip += pageSize) {
+      const publicationCandidates = await client.stockDailySnapshot.findMany({
+        where: {
+          scanDate: summary.scanDate,
+          artifactRevisionId: summary.artifactRevisionId ?? null,
+          scoringVersion: SCORING_VERSION,
+          riskLevel: { in: ["LOW", "MEDIUM", "HIGH"] },
+          stock: {
+            exchange: { in: Array.from(US_COMMON_STOCK_EXCHANGES) },
+            isOTC: false,
           },
         },
-      },
-    });
-    const commonStockCandidates = publicationCandidates.filter(isUsCommonStockSnapshot);
-    if (commonStockCandidates.length === 0) {
+        orderBy: [{ totalScore: "desc" }, { signalCount: "desc" }, { id: "asc" }],
+        take: pageSize,
+        skip,
+        select: {
+          id: true,
+          marketCap: true,
+          riskLevel: true,
+          newsTriage: true,
+          signals: true,
+          totalScore: true,
+          scoringVersion: true,
+          signalCount: true,
+          priceChangePct: true,
+          volumeRatio: true,
+          stock: {
+            select: {
+              symbol: true,
+              sector: true,
+              name: true,
+              exchange: true,
+              isOTC: true,
+            },
+          },
+        },
+      });
+      for (const snapshot of publicationCandidates) {
+        if (!isUsCommonStockSnapshot(snapshot)) continue;
+        hasCurrentCommonAssessment = true;
+        let signals = [];
+        try {
+          const parsed = JSON.parse(snapshot.signals ?? "[]");
+          if (Array.isArray(parsed)) signals = parsed.filter(value => value && typeof value === "object");
+        } catch { /* Unknown evidence cannot establish independent warnings. */ }
+        if (resolveNewsTriage(snapshot) === "CLEARED" && !hasIndependentWarning({signals})) continue;
+        snapshots.push(snapshot);
+        if (snapshots.length >= safeLimit) break;
+      }
+      if (snapshots.length >= safeLimit || publicationCandidates.length < pageSize) break;
+    }
+    if (!hasCurrentCommonAssessment) {
       return unavailableRadar("Current market assessments are unavailable for this view. Findings will appear after an updated scan is published.");
     }
-    const snapshots = commonStockCandidates
-      .filter(snapshot => {
-        let signals = [];
-        try { signals = JSON.parse(snapshot.signals ?? "[]"); } catch { /* Unknown evidence cannot establish independent warnings. */ }
-        return resolveNewsTriage(snapshot) !== "CLEARED" || hasIndependentWarning({signals});
-      })
-      .slice(0, safeLimit);
 
     const dayRange = utcDayRange(summary.scanDate);
     const socialRun = await client.socialScanRun.findFirst({

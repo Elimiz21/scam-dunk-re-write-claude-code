@@ -33,3 +33,19 @@ it("retains a completed empty view when compatible observations were cleared",as
  const result=await createPumpRadarService(emptyViewClient([row("clear","CLEARED")])).getPumpRadar({limit:10,viewer:"PUBLIC"});
  expect(result).toMatchObject({status:"AVAILABLE",rows:[],asOf:"2026-10-23T00:00:00.000Z"});
 });
+it.each(["{}","[null]","not-json"])("does not turn malformed signal evidence %s into an independent warning",async signals=>{
+ const result=await createPumpRadarService(emptyViewClient([row("clear","CLEARED",signals)])).getPumpRadar({limit:10,viewer:"PUBLIC"});
+ expect(result).toMatchObject({status:"AVAILABLE",rows:[]});
+});
+it("finds retained and independent warnings beyond a full page of cleared observations",async()=>{
+ const client=emptyViewClient([]);
+ client.dailyScanSummary.findFirst.mockResolvedValue({scanDate:new Date("2026-10-23"),artifactRevisionId:"published-revision",totalStocks:202,evaluated:202,skippedNoData:0} as any);
+ client.stockDailySnapshot.findMany
+  .mockResolvedValueOnce(Array.from({length:200},(_,i)=>row(`cleared-${i}`,"CLEARED")))
+  .mockResolvedValueOnce([row("retained","RETAINED"),row("independent","CLEARED",JSON.stringify([{code:"ALERT_LIST_HIT",category:"ALERT"}]))]);
+ const result=await createPumpRadarService(client).getPumpRadar({limit:2,viewer:"PUBLIC"});
+ expect(result.status).toBe("AVAILABLE");
+ expect(result.rows.map(value=>value.newsTriage)).toEqual(["RETAINED","CLEARED"]);
+ expect(client.stockDailySnapshot.findMany).toHaveBeenCalledTimes(2);
+ expect(client.stockDailySnapshot.findMany).toHaveBeenNthCalledWith(2,expect.objectContaining({skip:200,take:200,where:expect.objectContaining({artifactRevisionId:"published-revision"}),orderBy:[{totalScore:"desc"},{signalCount:"desc"},{id:"asc"}]}));
+});
