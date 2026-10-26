@@ -6,6 +6,7 @@ import { hasIndependentWarning, reviewedAlertEligible, type NewsTriage } from ".
 import { SCORING_VERSION, SCORE_UNIT } from "../../src/lib/scoring/policy";
 import { hasUnsupportedInstrumentName } from "../../src/lib/stock-universe";
 import { promoterIds, stablePromoterId } from "./scheme-state";
+import { prefetchOne } from "./prefetch-one";
 /**
  * Enhanced Daily Scanning Pipeline
  *
@@ -1793,8 +1794,7 @@ async function runEnhancedPipeline(): Promise<void> {
   );
 
   let chargedNewsCostUsd = 0;
-  for (const groups of newsPlan.batches) {
-    const evidence = await Promise.all(
+  const retrieveNewsBatch = (groups: typeof newsPlan.batches[number]) => Promise.all(
       groups.map(async (group) => {
         const [newsRaw, secFilingsRaw, pressReleasesRaw] = await Promise.all([
           fetchStockNews(group.representative.symbol),
@@ -1811,6 +1811,9 @@ async function runEnhancedPipeline(): Promise<void> {
         return { group, item };
       }),
     );
+  // Keep the source limiter busy during model latency. Only one evidence batch
+  // is prefetched; model calls and their spending ledger remain sequential.
+  for await (const evidence of prefetchOne(newsPlan.batches, retrieveNewsBatch)) {
     const withEvidence = evidence.filter(
       ({ item }) => retrievalComplete(item.sources) && (item.news.length > 0 || item.secFilings.length > 0 || item.pressReleases.length > 0),
     );
