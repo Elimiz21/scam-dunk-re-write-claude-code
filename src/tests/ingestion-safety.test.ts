@@ -127,6 +127,21 @@ describe("ingestion target identity", () => {
     ).toEqual({ ok: true, projectRef: previewRef });
   });
 
+  test.each([
+    ["accepts a custom database login for the expected Preview project", "cccccccccccccccccccc", { ok: true, projectRef: "cccccccccccccccccccc" }],
+    ["rejects a custom login targeting a different project", "dddddddddddddddddddd", { ok: false, code: "PROJECT_MISMATCH" }],
+    ["rejects a custom login targeting production from Preview", PRODUCTION_SUPABASE_PROJECT_REF, { ok: false, code: "PROJECT_MISMATCH" }],
+  ])("%s", (_name, databaseRef, expected) => {
+    const previewRef = "cccccccccccccccccccc";
+    expect(verifyIngestionTarget({
+      VERCEL_ENV: "preview",
+      VERCEL_PROJECT_ID: PRODUCTION_VERCEL_PROJECT_ID,
+      EXPECTED_PREVIEW_SUPABASE_PROJECT_REF: previewRef,
+      DATABASE_URL: `postgresql://restricted_ingest.${databaseRef}:secret@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`,
+      NEXT_PUBLIC_SUPABASE_URL: `https://${previewRef}.supabase.co`,
+    })).toEqual(expected);
+  });
+
   test("rejects when runtime Preview identity disagrees with the URL used by the storage client", () => {
     const previewRef = "cccccccccccccccccccc";
     expect(
@@ -244,6 +259,23 @@ describe("evaluation ingestion guards", () => {
     });
     expect(mockGetPendingDates).toHaveBeenCalledTimes(1);
     expect(mockIngestDate).toHaveBeenCalledWith("2026-08-14");
+  });
+
+  test.each([
+    ["accepts the restricted Preview login", "cccccccccccccccccccc", 200, 1],
+    ["blocks a restricted login pointing at production", PRODUCTION_SUPABASE_PROJECT_REF, 503, 0],
+  ])("cron %s", async (_name, databaseRef, status, calls) => {
+    process.env.VERCEL_ENV = "preview";
+    process.env.VERCEL_PROJECT_ID = PRODUCTION_VERCEL_PROJECT_ID;
+    process.env.EXPECTED_PREVIEW_SUPABASE_PROJECT_REF = "cccccccccccccccccccc";
+    process.env.DATABASE_URL = `postgresql://restricted_ingest.${databaseRef}:secret@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://cccccccccccccccccccc.supabase.co";
+    const response = await cronIngest(new Request("http://localhost/api/cron/ingest-evaluation", {
+      headers: { authorization: "Bearer cron-test-secret" },
+    }));
+    expect(response.status).toBe(status);
+    expect(mockGetPendingDates).toHaveBeenCalledTimes(calls);
+    expect(mockIngestDate).toHaveBeenCalledTimes(calls);
   });
 
   test("cron rejects an unsafe target before storage or database work", async () => {

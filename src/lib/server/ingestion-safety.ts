@@ -50,7 +50,8 @@ function databaseProjectRef(value: string | undefined): string | null {
   } catch {
     return null;
   }
-  const poolerMatch = username.match(/^postgres\.([a-z0-9]{20})$/);
+  // Supavisor routes both administrator and restricted logins as role.projectRef.
+  const poolerMatch = username.match(/^[^.]+\.([a-z0-9]{20})$/);
   return poolerMatch?.[1] ?? null;
 }
 
