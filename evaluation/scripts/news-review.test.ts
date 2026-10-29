@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
-import { createNewsReview, type NewsEvidence } from "./news-review";
+import { assertCompleteNewsReview, createNewsReview, type NewsEvidence } from "./news-review";
 import { evidenceWindow, retrieveEvidence, materialEventExcerpts } from "./news-evidence";
 const mockCreate = jest.fn();
 jest.mock("openai", () => jest.fn().mockImplementation(() => ({chat: {completions: {create: mockCreate}}})));
@@ -114,4 +114,92 @@ it("does not confuse ordinary words or calendar notices with substantive reporte
  expect(materialEventExcerpts({title:"Customer acquisition company highlights emerging opportunities"})).not.toHaveProperty("MERGER");
  expect(materialEventExcerpts({title:"Company announces earnings webcast",text:"It will issue its earnings release earlier that morning."})).not.toHaveProperty("EARNINGS");
  expect(materialEventExcerpts({title:"Company secures orders across three product lines"})).toHaveProperty("CONTRACT");
+});
+
+it("waits for a provider rate-limit cooldown before its one retry and retains safe diagnostics",async()=>{
+ jest.useFakeTimers();
+ try {
+  const evidence=await item();
+  mockCreate.mockRejectedValueOnce({status:429,code:"rate_limit_exceeded",headers:new Headers({"retry-after":"2"}),message:"secret URL"}).mockResolvedValueOnce(answer(["E1"]));
+  const pending=reviewer().analyzeNewsLegitimacyBatch([evidence],25);
+  await jest.advanceTimersByTimeAsync(1999);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(1);
+  const result=await pending;
+  expect(result.results.get("TEST")?.hasLegitimateNews).toBe(true);
+  expect(result.attemptCount).toBe(2);
+  const retained=readFileSync(path.join(dir,"news-model-batches-2026-10-23.jsonl"),"utf8");
+  expect(retained).toContain('"httpStatus":429');expect(retained).toContain('rate_limit_exceeded');expect(retained).not.toContain('secret URL');
+ } finally {jest.useRealTimers();}
+});
+it("does not repeat a request the provider rejects as invalid",async()=>{
+ mockCreate.mockRejectedValue({status:400,code:"invalid_json_schema",message:"secret URL"});
+ const result=await reviewer().analyzeNewsLegitimacyBatch([await item()],25);
+ expect(result.attemptCount).toBe(1);expect(mockCreate).toHaveBeenCalledTimes(1);
+ expect(result.results.get("TEST")).toMatchObject({hasLegitimateNews:false,skipped:true});
+});
+it.each(["insufficient_quota","credit_balance_exhausted","organization_spend_limit_exceeded"])("stops further model requests after provider quota denial %s",async(code)=>{
+ mockCreate.mockRejectedValue({status:429,code,message:"secret URL"});
+ const r=reviewer();const evidence=await item();
+ await r.analyzeNewsLegitimacyBatch([evidence],25);
+ const next=await r.analyzeNewsLegitimacyBatch([{...evidence,key:"OTHER"}],25);
+ expect(mockCreate).toHaveBeenCalledTimes(1);expect(next.attemptedCall).toBe(false);
+ expect(next.results.get("OTHER")).toMatchObject({hasLegitimateNews:false,skipped:true});
+});
+it("a separately configured higher ceiling preserves the dated cost ledger",async()=>{
+ writeFileSync(path.join(dir,"news-cost-ledger-2026-10-23.jsonl"),JSON.stringify({id:"earlier-ambiguous-request",usdBound:25,kind:"RESERVED"})+'\n');
+ const evidence=await item();
+ expect((await reviewer(25).analyzeNewsLegitimacyBatch([evidence],25)).attemptedCall).toBe(false);
+ mockCreate.mockResolvedValue(answer(["E1"]));const r=reviewer(50);
+ expect((await r.analyzeNewsLegitimacyBatch([evidence],50)).results.get("TEST")?.hasLegitimateNews).toBe(true);
+ expect(r.modelCostBoundUsd).toBeGreaterThan(25);expect(r.modelCostBoundUsd).toBeLessThan(50);
+});
+
+
+it("accepts only a completed mandatory news phase with zero omitted reviews",()=>{
+ expect(()=>assertCompleteNewsReview({status:"completed",details:{newsFilterSkipped:0}})).not.toThrow();
+ for (const phase of [{status:"degraded",details:{newsFilterSkipped:1534}},{status:"completed",details:{newsFilterSkipped:1}},{status:"completed"}]) {
+  expect(()=>assertCompleteNewsReview(phase)).toThrow("publication is blocked");
+ }
+});
+
+
+it("preserves the provider cooldown across separate batches after both retries fail",async()=>{
+ jest.useFakeTimers();
+ try {
+  const evidence=await item();const rateLimit={status:429,code:"rate_limit_exceeded",headers:new Headers({"retry-after":"2"})};
+  mockCreate.mockRejectedValueOnce(rateLimit).mockRejectedValueOnce(rateLimit).mockResolvedValueOnce(answer([],{symbol:"OTHER",decision:"NONE"}));
+  const r=reviewer();const first=r.analyzeNewsLegitimacyBatch([evidence],25);
+  await jest.advanceTimersByTimeAsync(2000);await first;
+  const next=r.analyzeNewsLegitimacyBatch([{...evidence,key:"OTHER"}],25);
+  await jest.advanceTimersByTimeAsync(1999);expect(mockCreate).toHaveBeenCalledTimes(2);
+  await jest.advanceTimersByTimeAsync(1);await next;expect(mockCreate).toHaveBeenCalledTimes(3);
+ } finally {jest.useRealTimers();}
+});
+it("does not spend on more requests when a provider asks for a long cooldown",async()=>{
+ mockCreate.mockRejectedValue({status:429,code:"rate_limit_exceeded",headers:new Headers({"retry-after":"3600"})});
+ const r=reviewer();const evidence=await item();await r.analyzeNewsLegitimacyBatch([evidence],25);
+ await r.analyzeNewsLegitimacyBatch([{...evidence,key:"OTHER"}],25);
+ expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+
+it("never permits an operator ceiling above the absolute $50 bound",async()=>{
+ writeFileSync(path.join(dir,"news-cost-ledger-2026-10-23.jsonl"),JSON.stringify({id:"earlier-ambiguous-request",usdBound:50,kind:"RESERVED"})+'\n');
+ const result=await reviewer(500).analyzeNewsLegitimacyBatch([await item()],500);
+ expect(result.attemptedCall).toBe(false);expect(mockCreate).not.toHaveBeenCalled();
+});
+
+
+it("uses increasing cooldowns across rate-limited batches when Retry-After is absent",async()=>{
+ jest.useFakeTimers();jest.spyOn(Math,"random").mockReturnValue(0);
+ try {
+  const evidence=await item();const rateLimit={status:429,code:"rate_limit_exceeded"};
+  mockCreate.mockRejectedValueOnce(rateLimit).mockRejectedValueOnce(rateLimit).mockResolvedValueOnce(answer([],{symbol:"OTHER",decision:"NONE"}));
+  const r=reviewer();const first=r.analyzeNewsLegitimacyBatch([evidence],25);
+  await jest.advanceTimersByTimeAsync(1000);await first;
+  const next=r.analyzeNewsLegitimacyBatch([{...evidence,key:"OTHER"}],25);
+  await jest.advanceTimersByTimeAsync(1999);expect(mockCreate).toHaveBeenCalledTimes(2);
+  await jest.advanceTimersByTimeAsync(1);await next;expect(mockCreate).toHaveBeenCalledTimes(3);
+ } finally {jest.useRealTimers();}
 });

@@ -31,6 +31,12 @@ on:
         default: "none"
         type: choice
         options: ["none", "100", "full"]
+      validation_news_budget_usd:
+        description: "Explicit model-cost ceiling for isolated validation; dated spending reservations are retained"
+        required: false
+        default: "25"
+        type: choice
+        options: ["25", "50"]
       risk_shadow_scope:
         description: "Fresh provider acquisition and canonical risk validation only; no publication"
         required: false
@@ -817,6 +823,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           EVALUATION_DATE: ${{ github.event.inputs.date_override }}
           SCAMDUNK_PIPELINE_VALIDATION: "true"
+          NEWS_ANALYSIS_MAX_COST_USD: ${{ github.event.inputs.validation_news_budget_usd || '25' }}
           TEST_MODE: ${{ github.event.inputs.pipeline_validation == '100' && 'true' || 'false' }}
         run: |
           test -n "$EVALUATION_DATE"

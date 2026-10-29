@@ -1,5 +1,5 @@
 import { shouldFilterBySize } from "./market-shortlist";
-import { createNewsReview, NEWS_REVIEW_MODEL, NEWS_REVIEW_VERSION, NEWS_INPUT_PRICE_PER_MILLION, NEWS_OUTPUT_PRICE_PER_MILLION, type NewsEvidence, type NewsLegitimacyResult } from "./news-review";
+import { assertCompleteNewsReview, NEWS_MAX_ALLOWED_COST_USD, createNewsReview, NEWS_REVIEW_MODEL, NEWS_REVIEW_VERSION, NEWS_INPUT_PRICE_PER_MILLION, NEWS_OUTPUT_PRICE_PER_MILLION, type NewsEvidence, type NewsLegitimacyResult } from "./news-review";
 import { assessPriceHistory } from "./price-quality";
 import { retrievalComplete, type SourceEvidence } from "./news-evidence";
 import { hasIndependentWarning, reviewedAlertEligible, type NewsTriage } from "../../src/lib/news-triage";
@@ -132,6 +132,8 @@ const OPENAI_OUTPUT_COST_PER_MILLION = nonNegativeNumberFromEnv(
   "OPENAI_NEWS_OUTPUT_COST_PER_MILLION",
   NEWS_OUTPUT_PRICE_PER_MILLION,
 );
+
+const NEWS_ANALYSIS_MAX_COST_USD = Math.min(NEWS_MAX_ALLOWED_COST_USD, nonNegativeNumberFromEnv("NEWS_ANALYSIS_MAX_COST_USD", 25));
 
 // Thresholds for filtering
 const TOP_N_MARKET_CAP_EXCLUDE = 100; // Exclude top 100 by market cap
@@ -778,7 +780,7 @@ export async function fetchStockData(symbol: string, directoryName?: string): Pr
   };
 }
 
-const newsClient = createNewsReview({date: getEvaluationDate(), fmpKey: FMP_API_KEY, openaiKey: OPENAI_API_KEY, resultsDir: RESULTS_DIR, inputPrice: OPENAI_INPUT_COST_PER_MILLION, outputPrice: OPENAI_OUTPUT_COST_PER_MILLION});
+const newsClient = createNewsReview({date: getEvaluationDate(), fmpKey: FMP_API_KEY, openaiKey: OPENAI_API_KEY, resultsDir: RESULTS_DIR, maxBudgetUsd: NEWS_ANALYSIS_MAX_COST_USD, inputPrice: OPENAI_INPUT_COST_PER_MILLION, outputPrice: OPENAI_OUTPUT_COST_PER_MILLION});
 const { fetchStockNews, fetchSECFilings, fetchPressReleases, analyzeNewsLegitimacyBatch } = newsClient;
 
 /**
@@ -1843,7 +1845,7 @@ async function runEnhancedPipeline(): Promise<void> {
     );
     const batchAnalysis = await analyzeNewsLegitimacyBatch(
       withEvidence.map(({ item }) => item),
-      Math.max(0, Math.min(25, nonNegativeNumberFromEnv("NEWS_ANALYSIS_MAX_COST_USD", 25)) - chargedNewsCostUsd),
+      Math.max(0, NEWS_ANALYSIS_MAX_COST_USD - chargedNewsCostUsd),
     );
     chargedNewsCostUsd += batchAnalysis.chargedUpperBoundUsd;
     newsMetrics.modelCallsMade += batchAnalysis.attemptCount;
@@ -1923,7 +1925,7 @@ async function runEnhancedPipeline(): Promise<void> {
     sourceRequests: newsClient.calls,
     modelChargedOrReservedUpperBoundUsd: newsClient.modelCostBoundUsd,
     sourceRequestCostUsd: null,
-    modelBudgetUsd: Math.min(25, nonNegativeNumberFromEnv("NEWS_ANALYSIS_MAX_COST_USD", 25)),
+    modelBudgetUsd: NEWS_ANALYSIS_MAX_COST_USD,
     filteredByNews,
     remainingSuspicious: afterNewsFilter.length,
     newsFilterSkipped,
@@ -3017,6 +3019,10 @@ async function runEnhancedPipeline(): Promise<void> {
   scanStatus.completedAt = new Date().toISOString();
   scanStatus.durationMinutes = durationMinutes;
   saveScanStatus(scanStatus);
+
+  // Retain diagnostic artifacts, then fail the producer before any upload when
+  // mandatory news review is incomplete. Data-quality skips remain explicit.
+  assertCompleteNewsReview(scanStatus.phases.phase3_newsAnalysis);
 
   // Print final summary
   console.log("\n" + "=".repeat(80));

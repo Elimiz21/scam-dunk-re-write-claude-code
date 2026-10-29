@@ -6,6 +6,28 @@ import { evidenceWindow, retrieveEvidence, retrievePagedEvidence, retrievalCompl
 
 export const NEWS_REVIEW_MODEL = "gpt-6.1-sol";
 export const NEWS_REVIEW_VERSION = "dated-news-v6";
+export const NEWS_MAX_ALLOWED_COST_USD = 50;
+
+export function assertCompleteNewsReview(phase: {status: string; details?: {newsFilterSkipped?: number}}) {
+  if (phase.status !== "completed" || phase.details?.newsFilterSkipped !== 0) {
+    throw new Error("Mandatory news review is incomplete; publication is blocked");
+  }
+}
+
+const safeProviderCodes = new Set(["rate_limit_exceeded", "slow_down", "server_is_overloaded", "insufficient_quota", "credit_balance_exhausted", "organization_spend_limit_exceeded", "invalid_api_key", "model_not_found", "invalid_json_schema", "context_length_exceeded", "server_error"]);
+function providerFailure(error: any, consecutiveFailures: number) {
+  const httpStatus = Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599 ? error.status as number : undefined;
+  const code = safeProviderCodes.has(error?.code) ? error.code as string : "UNKNOWN";
+  const quotaDenied = ["insufficient_quota", "credit_balance_exhausted", "organization_spend_limit_exceeded"].includes(code);
+  const retryable = !quotaDenied && (httpStatus === undefined || [408,409,429].includes(httpStatus) || httpStatus >= 500);
+  const rawRetryAfter = typeof error?.headers?.get === "function" ? error.headers.get("retry-after") : error?.headers?.["retry-after"];
+  const seconds = typeof rawRetryAfter === "string" && /^\d+(?:\.\d+)?$/.test(rawRetryAfter) ? Number(rawRetryAfter) : null;
+  const requestedDelay = seconds !== null ? seconds * 1000 : typeof rawRetryAfter === "string" ? Date.parse(rawRetryAfter) - Date.now() : 0;
+  const fallbackDelay = Math.min(60_000, 1000 * 2 ** Math.min(consecutiveFailures - 1, 6)) * (1 + Math.random() * 0.1);
+  const retryAfterMs = retryable && httpStatus !== undefined ? Math.max(1000, Number.isFinite(requestedDelay) && requestedDelay > 0 ? requestedDelay : fallbackDelay) : 0;
+  return {httpStatus, code, retryable: retryable && retryAfterMs <= 120_000, retryAfterMs, providerUnavailable: quotaDenied || retryAfterMs > 120_000 || [401,403,404].includes(httpStatus ?? 0)};
+}
+
 export const NEWS_INPUT_PRICE_PER_MILLION = 2;
 export const NEWS_OUTPUT_PRICE_PER_MILLION = 10;
 
@@ -49,6 +71,11 @@ function clearanceChoices(item: NewsEvidence, aliases: Map<string, string>) {
 export function createNewsReview(options: { date: string; fmpKey: string; openaiKey: string; resultsDir: string; maxBudgetUsd?: number; inputPrice?: number; outputPrice?: number }) {
   fs.mkdirSync(options.resultsDir, {recursive: true});
   const model = NEWS_REVIEW_MODEL;
+  const budgetUsd = Math.min(NEWS_MAX_ALLOWED_COST_USD, options.maxBudgetUsd ?? 25);
+  if (!Number.isFinite(budgetUsd) || budgetUsd < 0) throw new Error("Invalid model budget");
+  let providerUnavailable = false;
+  let modelNotBefore = 0;
+  let consecutiveProviderFailures = 0;
   const ledgerPath = path.join(options.resultsDir, `news-cost-ledger-${options.date}.jsonl`);
   const costs = new Map<string, number>();
   if (fs.existsSync(ledgerPath)) for (const line of fs.readFileSync(ledgerPath, "utf8").split("\n").filter(Boolean)) {
@@ -107,6 +134,8 @@ async function analyzeNewsAttempt(batch: NewsEvidence[], remainingBudgetUsd: num
   attemptedCall: boolean;
   failedCall: boolean;
   unavailable: boolean;
+  retryable?: boolean;
+  retryAfterMs?: number;
 }> {
   const skipped = (reason: string) => ({
     results: new Map(
@@ -123,6 +152,7 @@ async function analyzeNewsAttempt(batch: NewsEvidence[], remainingBudgetUsd: num
     unavailable: true,
   });
 
+  if (providerUnavailable) return skipped("SKIPPED: Model provider is temporarily unavailable; news review incomplete");
   if (!options.openaiKey) {
     return skipped(
       "SKIPPED: OpenAI API key not configured; news review unavailable",
@@ -172,7 +202,12 @@ ${batch.map(item=>formatNewsEvidence(item,aliases)).join("\n\n---\n\n")}`;
   const maxCompletionTokens = Math.min(8000, 350 * batch.length + 200);
   // UTF-8 byte count is a conservative prompt-token bound, avoiding budget overshoot.
   const upperCost = (Buffer.byteLength(prompt, "utf8") + Buffer.byteLength(JSON.stringify(responseFormat), "utf8")) / 1_000_000 * inputPrice + maxCompletionTokens / 1_000_000 * outputPrice;
-  if (!Number.isFinite(upperCost) || upperCost < 0 || upperCost > Math.min(remainingBudgetUsd, Math.min(25, options.maxBudgetUsd ?? 25) - spent())) return skipped("DEFERRED: Model budget exhausted; news review incomplete");
+  if (!Number.isFinite(upperCost) || upperCost < 0 || upperCost > Math.min(remainingBudgetUsd, budgetUsd - spent())) return skipped("DEFERRED: Model budget exhausted; news review incomplete");
+  const waitMs = Math.max(0, modelNotBefore - Date.now());
+  if (waitMs > 0) await new Promise(resolve=>setTimeout(resolve, waitMs));
+  if (providerUnavailable) return skipped("SKIPPED: Model provider is temporarily unavailable; news review incomplete");
+  // Another caller may have reserved funds during the cooldown.
+  if (upperCost > Math.min(remainingBudgetUsd, budgetUsd - spent())) return skipped("DEFERRED: Model budget exhausted; news review incomplete");
   const attemptId = randomUUID();
   let usage: { prompt_tokens?: number; completion_tokens?: number } | undefined;
   let chargedUpperBoundUsd = 0;
@@ -188,6 +223,7 @@ ${batch.map(item=>formatNewsEvidence(item,aliases)).join("\n\n---\n\n")}`;
       max_completion_tokens: maxCompletionTokens,
       reasoning_effort: "low",
     });
+    consecutiveProviderFailures = 0;
     usage = response.usage;
     if (usage && Number.isFinite(usage.prompt_tokens) && Number.isFinite(usage.completion_tokens)) {
       chargedUpperBoundUsd = (usage.prompt_tokens! * inputPrice + usage.completion_tokens! * outputPrice) / 1_000_000;
@@ -242,7 +278,13 @@ ${batch.map(item=>formatNewsEvidence(item,aliases)).join("\n\n---\n\n")}`;
     };
   } catch (error: any) {
     const message = "Model response failed or was invalid";
-    fs.appendFileSync(path.join(options.resultsDir, `news-model-batches-${options.date}.jsonl`), JSON.stringify({ model, status: "ERROR", chargedUpperBoundUsd, usage, retrievedAt: new Date().toISOString() }) + "\n");
+    const failure = providerFailure(error, consecutiveProviderFailures + 1);
+    if (failure.httpStatus !== undefined && ([408,409,429].includes(failure.httpStatus) || failure.httpStatus >= 500)) consecutiveProviderFailures++;
+    providerUnavailable ||= failure.providerUnavailable;
+    modelNotBefore = Math.max(modelNotBefore, Date.now() + failure.retryAfterMs);
+    // Keep ambiguous charges reserved; only controlled metadata reaches diagnostics.
+    fs.appendFileSync(path.join(options.resultsDir, `news-model-batches-${options.date}.jsonl`), JSON.stringify({ model, status: "ERROR", chargedUpperBoundUsd, usage, ...failure, retrievedAt: new Date().toISOString() }) + "\n");
+    console.warn("NEWS_MODEL_REQUEST_FAILED " + JSON.stringify(failure));
     return {
       ...skipped(`ERROR: ${message}; news review incomplete`),
       chargedUpperBoundUsd,
@@ -250,7 +292,9 @@ ${batch.map(item=>formatNewsEvidence(item,aliases)).join("\n\n---\n\n")}`;
       completionTokens: usage?.completion_tokens ?? 0,
       attemptedCall: true,
       failedCall: true,
-      unavailable: false,
+      unavailable: !failure.retryable,
+      retryable: failure.retryable,
+      retryAfterMs: failure.retryAfterMs,
     };
   }
 }
@@ -272,7 +316,10 @@ async function analyzeNewsLegitimacyBatch(batch: NewsEvidence[], remainingBudget
     chargedUpperBoundUsd+=result.chargedUpperBoundUsd;promptTokens+=result.promptTokens;completionTokens+=result.completionTokens;
     attemptCount+=Number(result.attemptedCall);failedAttemptCount+=Number(result.failedCall);unavailable=result.unavailable;
     for(const [key,value] of result.results)resultMap.set(key,value);
-    if(!result.attemptedCall || result.unavailable)break;
+    if(!result.attemptedCall || result.unavailable || result.retryable === false)break;
+    if (attempt === 0 && result.retryAfterMs && batch.some(item=>resultMap.get(item.key)?.skipped)) {
+      await new Promise(resolve=>setTimeout(resolve, result.retryAfterMs));
+    }
   }
   for(const item of batch){const result=resultMap.get(item.key);if(result && !result.skipped){const file=cachePath(item);fs.writeFileSync(file+".tmp",JSON.stringify({symbol:item.key,result:{...result,skipped:false}}));fs.renameSync(file+".tmp",file);}}
   return {results:resultMap,chargedUpperBoundUsd,promptTokens,completionTokens,attemptCount,failedAttemptCount,attemptedCall:attemptCount>0,failedCall:batch.some(item=>resultMap.get(item.key)?.skipped===true)&&!unavailable,unavailable};
