@@ -54,6 +54,7 @@ const ADMIN_PUBLIC_PATHS = [
   "/api/admin/auth/logout",
   "/api/admin/auth/session",
   "/api/admin/auth/preview-login",
+  "/api/admin/auth/reset-password",
   "/api/admin/init",
   "/api/admin/setup",
   "/api/admin/social-scan", // Accepts Bearer API key for daily pipeline
@@ -83,9 +84,11 @@ export default async function middleware(request: NextRequest) {
   // admin dashboard isn't loadable by anonymous visitors. /admin/login and the
   // invite-acceptance flow must remain reachable without a session.
   if (request.nextUrl.pathname.startsWith("/admin")) {
-    const isLoginPage = request.nextUrl.pathname.startsWith("/admin/login");
+    const isPublicAdminPage =
+      request.nextUrl.pathname.startsWith("/admin/login") ||
+      request.nextUrl.pathname === "/admin/reset-password";
     const adminToken = request.cookies.get("admin_session_token")?.value;
-    if (!isLoginPage && !adminToken) {
+    if (!isPublicAdminPage && !adminToken) {
       const loginUrl = new URL("/admin/login", request.url);
       return NextResponse.redirect(loginUrl);
     }
