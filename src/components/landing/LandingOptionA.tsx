@@ -152,10 +152,16 @@ export function LandingOptionA({
             </div>
 
             <p className="mt-8 text-[13px] text-muted-foreground">
-              <span className="font-semibold text-foreground">
-                {tiles.stocksPerDay}
-              </span>{" "}
-              {SITE_STATS.trustLine}
+              {tiles.stocksPerDay === "—" ? (
+                "Market-wide scan totals are not available yet."
+              ) : (
+                <>
+                  <span className="font-semibold text-foreground">
+                    {tiles.stocksPerDay}
+                  </span>{" "}
+                  {SITE_STATS.trustLine}
+                </>
+              )}
             </p>
           </div>
 
@@ -534,8 +540,10 @@ export function LandingOptionA({
             returns a plain-language risk verdict with the exact signals found,
             in about 15 seconds. ScamDunk is not a stock picker, broker, or
             newsletter and gives no investment advice; it checks whether a tip
-            is real before you decide anything else. {tiles.stocksPerDay}{" "}
-            US stocks are scanned automatically every trading day.
+            is real before you decide anything else.{" "}
+            {tiles.stocksPerDay === "—"
+              ? "Market-wide scan totals are not available yet."
+              : `${tiles.stocksPerDay} US stocks are scanned automatically every trading day.`}
           </p>
         </div>
       </section>

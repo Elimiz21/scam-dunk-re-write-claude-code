@@ -21,10 +21,9 @@ export function floorPlus(n: number, step: number): string {
 }
 
 /**
- * Live scan statistics for public/marketing surfaces. Renders the static
- * SITE_STATS floors immediately and swaps in fresh numbers from
- * /api/stats/site (recomputed after each daily scan) once loaded — no layout
- * shift, graceful degradation if the API is unreachable.
+ * Verified scan statistics for public surfaces. Unknown, stale or incomplete
+ * publication counters remain unavailable until the service verifies a current
+ * cohort; independent historical tracker counts remain separate.
  */
 export function useLiveSiteStats() {
   const [live, setLive] = useState<LiveSiteStats | null>(null);

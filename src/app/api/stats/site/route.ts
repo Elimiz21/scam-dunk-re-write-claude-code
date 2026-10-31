@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getActivityTicker } from "@/lib/activity-ticker";
 
 // Publication can change after late ingestion or a corrected artifact. Always
 // read the published database state instead of caching an obsolete scan date.
@@ -16,12 +17,8 @@ interface SiteStatsRow {
 
 export async function GET() {
   try {
-    const [latestScan, totals, rows] = await Promise.all([
-      prisma.dailyScanSummary.findFirst({
-        orderBy: { scanDate: "desc" },
-        select: { scanDate: true, createdAt: true, evaluated: true, highRiskCount: true },
-      }),
-      prisma.dailyScanSummary.aggregate({ _sum: { evaluated: true } }),
+    const [activity, rows] = await Promise.all([
+      getActivityTicker(),
       prisma.$queryRaw<SiteStatsRow[]>`
         SELECT
           (SELECT COUNT(DISTINCT symbol) FROM "PromotedStock"
@@ -42,14 +39,23 @@ export async function GET() {
       `,
     ]);
 
+    const latestScan = activity.latestScan;
+    const summary = latestScan
+      ? await prisma.dailyScanSummary.findUnique({
+          where: { scanDate: new Date(latestScan.scanDate) },
+          select: { createdAt: true },
+        })
+      : null;
     const row = rows[0];
     const stats = {
-      updatedAt: new Date().toISOString(),
-      lastScanDate: latestScan?.scanDate?.toISOString() ?? null,
-      summaryCreatedAt: latestScan?.createdAt?.toISOString() ?? null,
+      status: activity.status,
+      notice: activity.notice,
+      updatedAt: activity.updatedAt,
+      lastScanDate: latestScan?.scanDate ?? null,
+      summaryCreatedAt: summary?.createdAt?.toISOString() ?? null,
       stocksPerDay: latestScan?.evaluated ?? null,
-      highRiskLastScan: latestScan?.highRiskCount ?? null,
-      totalScans: totals._sum.evaluated ?? null,
+      highRiskLastScan: latestScan?.highRisk ?? null,
+      totalScans: activity.allTimeEvaluations,
       dumpsConfirmed6mo: Number(row?.dump_symbols_6mo ?? 0),
       dumpsConfirmed30d: Number(row?.dump_symbols_30d ?? 0),
       newFlagSymbols7d: Number(row?.flag_symbols_7d ?? 0),
