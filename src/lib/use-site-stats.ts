@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { SITE_STATS } from "@/lib/site-stats";
+import { useLivePublication } from "./use-live-publication";
 
 export interface LiveSiteStats {
+  status: "AVAILABLE" | "UNAVAILABLE";
   updatedAt: string;
   lastScanDate: string | null;
   stocksPerDay: number | null;
@@ -22,39 +22,21 @@ export function floorPlus(n: number, step: number): string {
 }
 
 /**
- * Live scan statistics for public/marketing surfaces. Renders the static
- * SITE_STATS floors immediately and swaps in fresh numbers from
- * /api/stats/site (recomputed after each daily scan) once loaded — no layout
- * shift, graceful degradation if the API is unreachable.
+ * Verified scan statistics for public surfaces. Unknown, stale or incomplete
+ * publication counters remain unavailable until the service verifies a current
+ * cohort; independent historical tracker counts remain separate.
  */
 export function useLiveSiteStats() {
-  const [live, setLive] = useState<LiveSiteStats | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/stats/site")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data && !data.error) setLive(data);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: live } = useLivePublication<LiveSiteStats>("/api/stats/site");
 
   return {
     live,
-    /** Four headline tiles, static floors until live data arrives. */
+    /** Unavailable values remain unavailable; zero is a measured count. */
     tiles: {
-      stocksPerDay: live?.stocksPerDay
-        ? floorPlus(live.stocksPerDay, 100)
-        : SITE_STATS.stocksPerDay,
-      totalScans: live?.totalScans
-        ? floorPlus(live.totalScans, 1000)
-        : SITE_STATS.scansPerformed,
-      dumpsConfirmed6mo: live ? String(live.dumpsConfirmed6mo) : "400+",
-      pumpingNow: live ? String(live.pumpingNow) : "60+",
+      stocksPerDay: live?.stocksPerDay == null ? "—" : live.stocksPerDay < 100 ? String(live.stocksPerDay) : floorPlus(live.stocksPerDay, 100),
+      totalScans: live?.totalScans == null ? "—" : live.totalScans < 1000 ? String(live.totalScans) : floorPlus(live.totalScans, 1000),
+      dumpsConfirmed6mo: live ? String(live.dumpsConfirmed6mo) : "—",
+      pumpingNow: live ? String(live.pumpingNow) : "—",
     },
   };
 }

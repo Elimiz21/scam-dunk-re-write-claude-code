@@ -236,15 +236,9 @@ export class PrismaIngestionStore implements IngestionStore {
           where: { revisionId_phase: { revisionId: revision.id, phase } },
           select: { status: true },
         });
-        if (current.status === "COMPLETE" && revision.status === "PUBLISHED") {
-          return { state: "COMPLETE" };
-        }
-        if (current.status === "COMPLETE") {
-          await tx.evaluationIngestionPhase.update({
-            where: { revisionId_phase: { revisionId: revision.id, phase } },
-            data: { status: "PENDING", completedAt: null },
-          });
-        }
+        // Completion is durable even before the final publication transaction.
+        // A second worker resumes publication rather than rerunning the handler.
+        if (current.status === "COMPLETE") return { state: "COMPLETE" };
 
         const now = new Date();
         const leaseToken = randomUUID();

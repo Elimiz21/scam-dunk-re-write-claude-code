@@ -2,6 +2,7 @@ import {
   ArtifactManifest,
   buildArtifactManifest,
 } from "./artifact-ingestion";
+import { decodeArtifact } from "./artifact-encoding";
 
 export interface ArtifactPointer {
   schemaVersion: "scamdunk.artifact-pointer/v1" | "scamdunk.artifact-pointer/v2";
@@ -104,7 +105,7 @@ export async function loadPublishedArtifactRevision(
       }
       continue;
     }
-    files[artifact.logicalName] = bytes;
+    files[artifact.logicalName] = decodeArtifact(bytes, artifact.storagePath, artifact.byteLength);
   }
   const verified = buildArtifactManifest({
     scanDate,

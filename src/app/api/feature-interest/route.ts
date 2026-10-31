@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const parsed = interestSchema.safeParse(await request.json());
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.errors[0]?.message || "Invalid signup" },
+        { error: parsed.error.issues[0]?.message || "Invalid signup" },
         { status: 400 },
       );
     }

@@ -25,6 +25,8 @@ import {
   DataCompleteness,
 } from "../types";
 
+import { scoreSignals, levelFromSignals } from "./policy";
+
 // ============================================================================
 // SIGNAL CODES
 // ============================================================================
@@ -1002,41 +1004,8 @@ function getBehavioralSignals(
 // single MAX weight.
 // ============================================================================
 
-const PRICE_FAMILY = new Set<string>([
-  SIGNAL_CODES.SPIKE_7D,
-  SIGNAL_CODES.SPIKE_3D,
-  SIGNAL_CODES.PRICE_ANOMALY,
-  SIGNAL_CODES.EXTREME_SURGE,
-  SIGNAL_CODES.PRICE_ACCELERATION,
-]);
-
-const VOLUME_FAMILY = new Set<string>([
-  SIGNAL_CODES.VOLUME_EXPLOSION,
-  SIGNAL_CODES.VOLUME_ANOMALY,
-  SIGNAL_CODES.VOLUME_SURGE_3D,
-  SIGNAL_CODES.VOLUME_ACCELERATION,
-]);
-
-/**
- * Compute the de-duplicated total score: each correlated family (price, volume)
- * contributes only its single highest weight; everything else sums normally.
- */
 export function dedupeSignalScore(signals: RiskSignal[]): number {
-  let total = 0;
-  let priceMax = 0;
-  let volumeMax = 0;
-
-  for (const s of signals) {
-    if (PRICE_FAMILY.has(s.code)) {
-      priceMax = Math.max(priceMax, s.weight);
-    } else if (VOLUME_FAMILY.has(s.code)) {
-      volumeMax = Math.max(volumeMax, s.weight);
-    } else {
-      total += s.weight;
-    }
-  }
-
-  return total + priceMax + volumeMax;
+  return scoreSignals(signals);
 }
 
 // ============================================================================
@@ -1054,14 +1023,7 @@ export function calculateRiskLevel(
   dedupedScore: number,
   signals: RiskSignal[],
 ): RiskLevel {
-  const hasAlertHit = signals.some(
-    (s) => s.code === SIGNAL_CODES.ALERT_LIST_HIT,
-  );
-  if (hasAlertHit) return "HIGH";
-
-  if (dedupedScore >= 5) return "HIGH";
-  if (dedupedScore >= 2) return "MEDIUM";
-  return "LOW";
+  return levelFromSignals(dedupedScore, signals);
 }
 
 /**

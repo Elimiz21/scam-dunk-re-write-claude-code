@@ -69,7 +69,7 @@ export async function adminLogin(
       return { success: false, error: "Invalid credentials" };
     }
 
-    if (!adminUser.isActive) {
+    if (!adminUser.isActive || adminUser.email.toLowerCase() === "preview@scamdunk.com") {
       return { success: false, error: "Invalid credentials" };
     }
 
@@ -84,7 +84,15 @@ export async function adminLogin(
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
 
-    await prisma.adminSession.create({
+    const created = await prisma.$transaction(async (tx) => {
+      // Updating the user row locks it until commit. A concurrent credential
+      // change either revokes this session afterwards or makes this guard fail.
+      const current = await tx.adminUser.updateMany({
+        where: { id: adminUser.id, hashedPassword: adminUser.hashedPassword, isActive: true },
+        data: { lastLoginAt: new Date() },
+      });
+      if (current.count !== 1) return false;
+      await tx.adminSession.create({
       data: {
         adminUserId: adminUser.id,
         token: tokenHash,
@@ -94,14 +102,8 @@ export async function adminLogin(
       },
     });
 
-    // Update last login
-    await prisma.adminUser.update({
-      where: { id: adminUser.id },
-      data: { lastLoginAt: new Date() },
-    });
-
     // Log the login
-    await prisma.adminAuditLog.create({
+    await tx.adminAuditLog.create({
       data: {
         adminUserId: adminUser.id,
         action: "LOGIN",
@@ -109,6 +111,9 @@ export async function adminLogin(
         details: JSON.stringify({ userAgent }),
       },
     });
+      return true;
+    });
+    if (!created) return { success: false, error: "Invalid credentials" };
 
     // Set cookie at root path so it's sent for both /admin/* and /api/admin/*.
     // Next.js cookies().set() keys by name only, so two calls with different
@@ -198,7 +203,7 @@ export async function getAdminSession(): Promise<AdminSessionData | null> {
       return null;
     }
 
-    if (!session.adminUser.isActive) {
+    if (!session.adminUser.isActive || session.adminUser.email.toLowerCase() === "preview@scamdunk.com") {
       await prisma.adminSession.delete({ where: { token: tokenHash } });
       return null;
     }

@@ -18,6 +18,9 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   try {
     const session = await getAdminSession();
+    if (session && !["OWNER", "ADMIN"].includes(session.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
     if (!session) {
       const authHeader = request.headers.get("authorization");
       const apiKey = process.env.SOCIAL_SCAN_INGEST_KEY;

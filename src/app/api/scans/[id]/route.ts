@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
+import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { getScanDetail } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
@@ -9,11 +10,12 @@ export const dynamic = "force-dynamic";
 const idSchema = z.string().trim().min(1).max(128);
 
 export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
+  const userId = session?.user?.id ?? await authenticateMobileRequest(request);
+  if (!userId) {
     return NextResponse.json(
       {
         error: {
@@ -25,7 +27,7 @@ export async function GET(
     );
   }
 
-  const parsedId = idSchema.safeParse(params.id);
+  const parsedId = idSchema.safeParse((await params).id);
   if (!parsedId.success) {
     return NextResponse.json(
       {
@@ -36,7 +38,7 @@ export async function GET(
   }
 
   try {
-    const detail = await getScanDetail(session.user.id, parsedId.data);
+    const detail = await getScanDetail(userId, parsedId.data);
     if (!detail) {
       return NextResponse.json(
         { error: { code: "NOT_FOUND", message: "Scan was not found." } },

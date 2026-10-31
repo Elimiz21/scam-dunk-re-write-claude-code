@@ -156,12 +156,17 @@ export async function processWhatsAppInboundEvent(
   });
 
   const scan = await runAuthorizedStockScan({
+    idempotencyKey: "whatsapp:" + event.id,
     userId: event.binding.userId,
     ticker: parsed.ticker,
     assetType: "stock",
   });
   if (!scan.ok) {
     const body = scan.body as { error?: string };
+    if (scan.status === 409 && body.error === "SCAN_IN_PROGRESS") {
+      await prisma.whatsAppInboundEvent.update({where: {id: eventId}, data: {status: "RECEIVED", reasonCode: "SCAN_IN_PROGRESS"}});
+      return;
+    }
     if (scan.status === 429 && body.error === "LIMIT_REACHED") {
       await respond(eventId, recipient, QUOTA_REPLY, "REPLIED", "QUOTA_EXHAUSTED");
     } else if (scan.status >= 500) {

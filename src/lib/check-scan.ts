@@ -1,64 +1,24 @@
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { z } from "zod";
 import { fetchMarketData, checkAlertList } from "@/lib/marketData";
-import { computeRiskScore, computeIsLegitimate } from "@/lib/scoring";
+import { computeRiskScore } from "@/lib/scoring";
 import {
-  dedupeSignalScore,
-  calculateRiskLevel,
-  getDataCompleteness,
   applyPumpDumpFeasibilityFilter,
 } from "@/lib/scoring/engine";
 import { generateFallbackNarrative, generateNarrative } from "@/lib/narrative";
-import { reserveScanSlot, refundScanSlot } from "@/lib/usage";
+import { beginScan, completeScan, failScan, ScanConflict, type ScanLease } from "@/lib/scan-completion";
+import { SCORING_VERSION, SCORE_UNIT } from "@/lib/scoring/policy";
 import { logScanHistory } from "@/lib/admin/metrics";
 import { rateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
-import { sendAPIFailureAlert } from "@/lib/email";
-import {
-  acceptAIBackendResponse,
-  buildAIBackendRequest,
-} from "@/lib/ai-backend-schema";
 import { normalizeSupportedTicker } from "@/lib/stock-universe";
 import {
   LimitReachedResponse,
   RiskResponse,
-  RiskLevel,
   StockSummary,
-  RiskSignal,
-  SignalCategory,
-  ScoringResult,
 } from "@/lib/types";
-
-// Python AI backend URL (must match ai-analyze/route.ts and config.ts default)
-const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000";
-
-// No-downgrade guard: when enabled (default), if the AI backend returns a
-// LOWER risk level than the TypeScript deterministic baseline, we use the
-// baseline instead.  This ensures the AI backend is purely additive and
-// can never mask a high-risk finding.  Set AI_NO_DOWNGRADE_GUARD=false
-// to disable (e.g. during controlled experiments).
-const NO_DOWNGRADE_GUARD = process.env.AI_NO_DOWNGRADE_GUARD !== "false";
-
-const RISK_PRIORITY: Record<string, number> = {
-  INSUFFICIENT: -1,
-  LOW: 0,
-  MEDIUM: 1,
-  HIGH: 2,
-};
-
-const VALID_CATEGORIES: SignalCategory[] = [
-  "STRUCTURAL",
-  "PATTERN",
-  "ALERT",
-  "BEHAVIORAL",
-  "SOCIAL",
-];
-
-function normalizeCategory(category: string | undefined): SignalCategory {
-  const upper = (category || "").toUpperCase() as SignalCategory;
-  return VALID_CATEGORIES.includes(upper) ? upper : "PATTERN";
-}
 
 // Request validation schema - only ticker is required
 const checkRequestSchema = z.object({
@@ -74,195 +34,11 @@ const checkRequestSchema = z.object({
       secrecyInsideInfo: z.boolean().optional().default(false),
     })
     .optional()
-    .default({}),
+    .default({ unsolicited: false, promisesHighReturns: false, urgencyPressure: false, secrecyInsideInfo: false }),
 });
 
-/** Details describing a backend 503 (data API outage) so the route can alert. */
-interface ServiceUnavailableInfo {
-  apiName: string;
-  ticker: string;
-  assetType: string;
-  originalError: string;
-}
-
-interface AIBackendCallResult {
-  success: boolean;
-  failReason?: string;
-  /** Present when the backend returned 503 — route should alert + fall back. */
-  serviceUnavailable?: ServiceUnavailableInfo;
-  riskLevel?: RiskLevel;
-  probability?: number;
-  signals?: RiskSignal[];
-  rfProbability?: number | null;
-  lstmProbability?: number | null;
-  anomalyScore?: number;
-  layersApplied?: Array<
-    "rule_signals" | "anomaly_detection" | "random_forest" | "lstm"
-  >;
-  explanations?: string[];
-  secFlagged?: boolean;
-  isOtc?: boolean;
-  isMicroCap?: boolean;
-  stockInfo?: {
-    companyName?: string;
-    exchange?: string;
-    lastPrice?: number;
-    marketCap?: number;
-    avgVolume?: number;
-  };
-  newsVerification?: {
-    hasLegitimateCatalyst: boolean;
-    hasSecFilings: boolean;
-    hasPromotionalSignals: boolean;
-    catalystSummary: string;
-    shouldReduceRisk: boolean;
-    recommendedLevel: string;
-  };
-}
-
-/**
- * Call the Python AI backend for full ML analysis.
- *
- * Never throws: a backend 503 is captured into `serviceUnavailable` so the
- * caller can fire the admin alert AND gracefully fall back to TypeScript
- * scoring rather than hard-failing the user (audit TS-C2). The response is
- * validated through the zod contract schema; an invalid payload is treated as
- * a failure so we fall back (audit TS-H7).
- */
-async function callPythonAIBackend(
-  ticker: string,
-  assetType: string,
-  secFlagged?: boolean,
-  newsFlag?: boolean,
-): Promise<AIBackendCallResult> {
-  if (!AI_BACKEND_URL) {
-    console.log("AI_BACKEND_URL not configured, using TypeScript scoring");
-    return { success: false, failReason: "AI_BACKEND_URL not configured" };
-  }
-
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  try {
-    const controller = new AbortController();
-    timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout - keep short so TS fallback has time
-
-    console.log(`Calling Python AI backend: ${AI_BACKEND_URL}/analyze`);
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (process.env.AI_API_SECRET) {
-      headers["X-API-Key"] = process.env.AI_API_SECRET;
-    }
-
-    const response = await fetch(`${AI_BACKEND_URL}/analyze`, {
-      method: "POST",
-      headers,
-      // TS <-> Python contract (see ai-backend-schema.ts).
-      body: JSON.stringify(buildAIBackendRequest({
-        ticker,
-        assetType: assetType as "stock" | "crypto",
-        useLiveData: true,
-        secFlagged,
-        newsFlag,
-      })),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      if (response.status === 503) {
-        const errorData = await response.json().catch(() => ({}));
-        const detail = errorData.detail || {};
-        console.error(`AI backend returned 503 - Service Unavailable:`, detail);
-        // Capture (do NOT throw) so the caller can both alert and fall back.
-        return {
-          success: false,
-          failReason: "AI backend 503 (data API unavailable)",
-          serviceUnavailable: {
-            apiName: detail.api_name || "Unknown API",
-            ticker: detail.ticker || ticker,
-            assetType: detail.asset_type || assetType,
-            originalError: detail.original_error || "Data API unavailable",
-          },
-        };
-      }
-
-      console.error(`AI backend returned ${response.status}`);
-      return {
-        success: false,
-        failReason: `AI backend returned HTTP ${response.status}`,
-      };
-    }
-
-    const raw = await response.json();
-    const data = acceptAIBackendResponse(raw, {
-      expectedSource: "live",
-      requireDataAvailable: true,
-    });
-    if (!data) {
-      // Payload failed the contract — fall back to TS scoring.
-      return {
-        success: false,
-        failReason: "AI backend response failed schema validation",
-      };
-    }
-
-    console.log(
-      `AI backend response for ${ticker}: ${data.risk_level} (${data.risk_probability})`,
-    );
-
-    const signals: RiskSignal[] = data.signals.map((s) => ({
-      code: s.code,
-      category: normalizeCategory(s.category),
-      description: s.description,
-      weight: s.weight,
-    }));
-
-    return {
-      success: true,
-      riskLevel: data.risk_level,
-      probability: data.risk_probability,
-      signals,
-      rfProbability: data.rf_probability ?? null,
-      lstmProbability: data.lstm_probability ?? null,
-      anomalyScore: data.anomaly_score,
-      layersApplied: data.layers_applied,
-      explanations: data.explanations,
-      secFlagged: data.sec_flagged,
-      isOtc: data.is_otc,
-      isMicroCap: data.is_micro_cap,
-      stockInfo: data.stock_info
-        ? {
-            companyName: data.stock_info.company_name,
-            exchange: data.stock_info.exchange,
-            lastPrice: data.stock_info.last_price,
-            marketCap: data.stock_info.market_cap,
-            avgVolume: data.stock_info.avg_volume,
-          }
-        : undefined,
-      newsVerification: data.news_verification
-        ? {
-            hasLegitimateCatalyst:
-              data.news_verification.has_legitimate_catalyst,
-            hasSecFilings: data.news_verification.has_sec_filings,
-            hasPromotionalSignals:
-              data.news_verification.has_promotional_signals,
-            catalystSummary: data.news_verification.catalyst_summary,
-            shouldReduceRisk: data.news_verification.should_reduce_risk,
-            recommendedLevel: data.news_verification.recommended_level,
-          }
-        : undefined,
-    };
-  } catch (error) {
-    if (timeoutId) clearTimeout(timeoutId);
-    const errMsg = error instanceof Error ? error.message : "Unknown error";
-    console.error("AI backend call failed:", error);
-    return { success: false, failReason: `Exception: ${errMsg}` };
-  }
-}
-
 export type AuthorizedStockScanRequest = {
+  idempotencyKey?: string;
   userId: string;
   ticker: string;
   assetType: "stock";
@@ -277,7 +53,7 @@ export async function processCheckRequest(
   let currentStep = "INIT";
   // Tracks whether a quota slot has been reserved, so the error path can refund
   // it (and only it) on failure without refunding requests that never reserved.
-  let userIdForRefund: string | null = null;
+  let scanLease: ScanLease | null = null;
 
   try {
     // Rate limit: heavy for CPU-intensive scan operations (10 requests per minute)
@@ -321,7 +97,7 @@ export async function processCheckRequest(
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: validation.error.errors[0].message },
+        { error: validation.error.issues[0].message },
         { status: 400 },
       );
     }
@@ -362,9 +138,13 @@ export async function processCheckRequest(
 
     // Atomically check scan limit and reserve a slot (prevents TOCTOU race).
     currentStep = "USAGE_CHECK";
-    const { reserved, usage } = await reserveScanSlot(userId);
-
-    if (!reserved) {
+    const requestKey = request.headers.get("idempotency-key") || randomUUID();
+    if (!/^[A-Za-z0-9:._-]{1,128}$/.test(requestKey)) return NextResponse.json({ error: "Invalid idempotency key" }, { status: 400 });
+    const reservation = await beginScan(userId, requestKey, { ...checkRequest, ticker: supportedTicker });
+    if (reservation.state === "COMPLETED") return NextResponse.json(reservation.result, { headers: { "Cache-Control": "private, no-store" } });
+    if (reservation.state === "PENDING") return NextResponse.json({ error: "SCAN_IN_PROGRESS" }, { status: 409, headers: { "Retry-After": "3" } });
+    const { usage } = reservation;
+    if (reservation.state === "LIMIT_REACHED") {
       const limitResponse: LimitReachedResponse = {
         error: "LIMIT_REACHED",
         usage: {
@@ -377,137 +157,17 @@ export async function processCheckRequest(
     }
 
     // A slot is now reserved — the error path below must refund it on failure.
-    userIdForRefund = userId;
+    scanLease = reservation.lease;
 
-    // =====================================================
-    // TRY PYTHON AI BACKEND FIRST (Full ML Models)
-    // =====================================================
-    currentStep = "AI_BACKEND";
-    const aiResult = await callPythonAIBackend(supportedTicker, assetType, secFlagged);
-
-    // If the backend reported a data-API outage (503), alert admins
-    // asynchronously and FALL BACK to TypeScript scoring (audit TS-C2) —
-    // never hard-fail the user.
-    if (aiResult.serviceUnavailable) {
-      const info = aiResult.serviceUnavailable;
-      console.error(
-        `AI backend data API unavailable — API: ${info.apiName}, Ticker: ${info.ticker}, Type: ${info.assetType}. Falling back to TypeScript scoring.`,
-      );
-      void sendAPIFailureAlert(
-        info.apiName,
-        info.ticker,
-        info.originalError,
-        info.assetType,
-      ).catch((emailError) => {
-        console.error("Failed to send admin alert email:", emailError);
-      });
-    }
-
-    let scoringResult: ScoringResult;
-    let marketData;
-    let usedAIBackend = false;
-    let aiStockInfo: typeof aiResult.stockInfo | undefined;
-
-    if (aiResult.success && aiResult.riskLevel && aiResult.signals) {
-      usedAIBackend = true;
-      aiStockInfo = aiResult.stockInfo;
-      console.log(`Using Python AI backend for ${ticker}`);
-
-      // Fetch market data (needed for stock summary, legitimacy + baseline).
-      currentStep = "MARKET_DATA_AI";
-      marketData = await fetchMarketData(supportedTicker, assetType);
-
-      // Derive the displayed score and level CONSISTENTLY from the same set of
-      // signals so we can never show e.g. HIGH with score 0 (audit TS-H7). The
-      // de-dup logic also stops correlated signals double-counting (TS-C1).
-      const aiSignals = aiResult.signals;
-      let aiTotalScore = dedupeSignalScore(aiSignals);
-      if (!Number.isFinite(aiTotalScore)) aiTotalScore = 0;
-
-      // Prefer the backend ensemble level, but never let it contradict an
-      // alert-list hit, and keep level/score coherent.
-      const derivedLevel = calculateRiskLevel(aiTotalScore, aiSignals);
-      const backendPriority = RISK_PRIORITY[aiResult.riskLevel] ?? 0;
-      const derivedPriority = RISK_PRIORITY[derivedLevel] ?? 0;
-      // Take the MORE severe of the backend level and the score-derived level.
-      const aiRiskLevel: RiskLevel =
-        derivedPriority > backendPriority ? derivedLevel : aiResult.riskLevel;
-
-      // isLegitimate via the SHARED check (large-cap/liquidity/major-exchange,
-      // forced false when not LOW) — never "well-established" for an unknown
-      // ticker just because it had no signals (audit TS-H6).
-      const aiIsLegitimate = computeIsLegitimate(
-        marketData,
-        aiSignals,
-        aiRiskLevel,
-      );
-
-      scoringResult = {
-        riskLevel: aiRiskLevel,
-        totalScore: aiTotalScore,
-        signals: aiSignals,
-        isInsufficient: aiRiskLevel === "INSUFFICIENT",
-        isLegitimate: aiIsLegitimate,
-        dataCompleteness: getDataCompleteness(marketData),
-      };
-
-      // =====================================================
-      // NO-DOWNGRADE GUARD
-      // =====================================================
-      if (NO_DOWNGRADE_GUARD && scoringResult.riskLevel !== "HIGH") {
-        currentStep = "BASELINE_COMPARISON";
-        try {
-          const baselineResult = await computeRiskScore({
-            marketData,
-            pitchText: checkRequest.pitchText || "",
-            context,
-            secFlagged,
-          });
-
-          const aiPriority = RISK_PRIORITY[scoringResult.riskLevel] ?? 0;
-          const baselinePriority = RISK_PRIORITY[baselineResult.riskLevel] ?? 0;
-
-          if (baselinePriority > aiPriority) {
-            console.log(
-              `No-downgrade guard: AI=${scoringResult.riskLevel}(${scoringResult.totalScore}), ` +
-                `baseline=${baselineResult.riskLevel}(${baselineResult.totalScore}) → using baseline`,
-            );
-            scoringResult = baselineResult;
-            usedAIBackend = false;
-            aiStockInfo = undefined;
-          }
-        } catch (baselineError) {
-          console.warn(
-            "Baseline comparison failed, keeping AI result:",
-            baselineError,
-          );
-        }
-      }
-    } else {
-      // =====================================================
-      // FALLBACK TO TYPESCRIPT SCORING
-      // =====================================================
-      console.log(`Falling back to TypeScript scoring for ${ticker}`);
-
-      currentStep = "MARKET_DATA_TS";
-      marketData = await fetchMarketData(supportedTicker, assetType);
-
-      if (!marketData.dataAvailable) {
-        console.warn(
-          `No market data available for ${ticker} — relying on alert-list/behavioral signals. Check that FMP_API_KEY or ALPHA_VANTAGE_API_KEY is configured.`,
-        );
-      }
-
-      // Pass the already-computed secFlagged so a flagged-but-quoteless ticker
-      // is HIGH rather than INSUFFICIENT (audit TS-C6).
-      currentStep = "SCORING";
-      scoringResult = await computeRiskScore({
-        marketData,
-        pitchText: checkRequest.pitchText || "",
-        context,
-        secFlagged,
-      });
-    }
+    // One canonical rules engine serves web, mobile, legacy API and messaging.
+    // Backend probabilities and differing feature sets cannot change these points.
+    currentStep = "MARKET_DATA";
+    const marketData = await fetchMarketData(supportedTicker, assetType);
+    currentStep = "SCORING";
+    let scoringResult = await computeRiskScore({
+      marketData, pitchText: checkRequest.pitchText || "", context, secFlagged,
+    });
+    const usedAIBackend = false;
 
     // The nightly size/liquidity rule also protects ticker-only customer scans
     // from treating ordinary market activity in very large/liquid stocks as a
@@ -523,15 +183,12 @@ export async function processCheckRequest(
     const stockSummary: StockSummary = {
       ticker: supportedTicker,
       companyName:
-        aiStockInfo?.companyName ||
         marketData.quote?.companyName ||
         checkRequest.companyName,
-      exchange: aiStockInfo?.exchange || marketData.quote?.exchange,
-      lastPrice: aiStockInfo?.lastPrice ?? marketData.quote?.lastPrice,
-      marketCap: aiStockInfo?.marketCap ?? marketData.quote?.marketCap,
-      avgDollarVolume30d: aiStockInfo?.avgVolume
-        ? aiStockInfo.avgVolume * (aiStockInfo.lastPrice || 1)
-        : marketData.quote?.avgDollarVolume30d,
+      exchange: marketData.quote?.exchange,
+      lastPrice: marketData.quote?.lastPrice,
+      marketCap: marketData.quote?.marketCap,
+      avgDollarVolume30d: marketData.quote?.avgDollarVolume30d,
     };
 
     // Generate narrative (LLM or fallback)
@@ -549,18 +206,6 @@ export async function processCheckRequest(
       narrative.header = `${supportedTicker} is above the nightly market-cap or liquidity threshold. Market activity alone is not counted as pump-and-dump risk for this stock. This does not rule out other investment scams.`;
     }
 
-    if (usedAIBackend) {
-      const appliedLabels = (aiResult.layersApplied ?? []).map((layer) => ({
-        rule_signals: "rule signals",
-        anomaly_detection: "statistical anomaly detection",
-        random_forest: "Random Forest",
-        lstm: "LSTM",
-      })[layer]);
-      narrative.disclaimers.push(
-        `Python engine layers applied: ${appliedLabels.join(", ")}`,
-      );
-    }
-
     if (scoringResult.dataCompleteness === "quote-only") {
       narrative.disclaimers.push(
         "Limited price history was available — pattern and anomaly detection could not be fully evaluated for this ticker.",
@@ -574,6 +219,23 @@ export async function processCheckRequest(
     const ipAddress = forwardedFor
       ? forwardedFor.split(",")[0].trim()
       : undefined;
+
+    const response: RiskResponse = {
+      resultId: randomUUID(), schemaVersion: "1.1", scoringVersion: SCORING_VERSION,
+      scoreUnit: SCORE_UNIT, assessedAt: new Date().toISOString(),
+      marketDataAsOf: marketData.priceAsOf, marketDataQuality: marketData.qualityReason,
+      riskLevel: scoringResult.riskLevel,
+      totalScore: scoringResult.totalScore,
+      signals: scoringResult.signals,
+      excludedMarketSignals: filtered.excludedSignals,
+      stockSummary,
+      narrative,
+      usage: updatedUsage,
+      isLegitimate: scoringResult.isLegitimate,
+      dataCompleteness: scoringResult.dataCompleteness,
+
+    };
+
 
     // Finish saving customer history before returning: a serverless runtime
     // may freeze unfinished work after the response. Keep the catch so a
@@ -591,7 +253,14 @@ export async function processCheckRequest(
       (s) => s.code === "VOLUME_EXPLOSION" || s.code === "VOLUME_ANOMALY",
     );
 
+    await completeScan(scanLease, response, {
+      ticker: supportedTicker, assetType, processingTime,
+      pitchProvided: !!checkRequest.pitchText, contextProvided: Object.values(context).some(Boolean),
+      isOtc: isOtcScan, isMicroCap: isMicroCapScan, isHighVolume: isHighVolumeScan, usedAiBackend: usedAIBackend,
+    });
+    scanLease = null;
     await logScanHistory({
+      historySaved: true,
       userId,
       ticker: supportedTicker,
       assetType,
@@ -611,39 +280,20 @@ export async function processCheckRequest(
       console.error("Failed to log scan history:", logError);
     });
 
-    const response: RiskResponse = {
-      riskLevel: scoringResult.riskLevel,
-      totalScore: scoringResult.totalScore,
-      signals: scoringResult.signals,
-      excludedMarketSignals: filtered.excludedSignals,
-      stockSummary,
-      narrative,
-      usage: updatedUsage,
-      isLegitimate: scoringResult.isLegitimate,
-      dataCompleteness: scoringResult.dataCompleteness,
-      // Only attach news verification if the AI result actually drove this
-      // response (not when the no-downgrade guard replaced it — audit TS-L7).
-      ...(usedAIBackend && !filtered.applied && aiResult.newsVerification
-        ? { newsVerification: aiResult.newsVerification }
-        : {}),
-    };
 
     return NextResponse.json(response);
   } catch (error) {
     const elapsed = Date.now() - startTime;
+    if (scanLease) {
+      try { await failScan(scanLease, currentStep); }
+      catch (refundError) { console.error("Durable refund pending recovery:", refundError); }
+    }
+    if (error instanceof ScanConflict) return NextResponse.json({ error: error.message }, { status: 409 });
+
     console.error(
       `Check API error at step [${currentStep}] after ${elapsed}ms:`,
       error,
     );
-
-    // If a scan slot was reserved before this 5xx, refund it so users aren't
-    // charged for a scan that never produced a result (audit ARCH-C4).
-    // Fire-and-forget: a refund hiccup must not itself fail the response.
-    if (userIdForRefund) {
-      void refundScanSlot(userIdForRefund).catch((refundError) => {
-        console.error("Failed to refund scan slot:", refundError);
-      });
-    }
 
     return NextResponse.json(
       { error: "An internal error occurred. Please try again later." },
@@ -664,7 +314,8 @@ export async function runAuthorizedStockScan(
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-real-ip": `whatsapp:${input.userId}`,
+      "x-real-ip": `channel:${input.userId}`,
+      ...(input.idempotencyKey ? { "idempotency-key": input.idempotencyKey } : {}),
     },
     body: JSON.stringify({ ticker: input.ticker, assetType: input.assetType }),
   });

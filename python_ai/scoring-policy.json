@@ -1,0 +1,43 @@
+{
+  "version": "rules-2026-10-25-v3",
+  "scoreUnit": "deduplicated_signal_points",
+  "mediumThreshold": 2,
+  "highThreshold": 5,
+  "families": {
+    "price": [
+      "SPIKE_7D",
+      "SPIKE_3D",
+      "PRICE_ANOMALY",
+      "EXTREME_SURGE",
+      "PRICE_ACCELERATION",
+      "OVERBOUGHT_RSI",
+      "PERSISTENT_OVERBOUGHT",
+      "KELTNER_BREAKOUT",
+      "SPIKE_THEN_DROP"
+    ],
+    "volume": [
+      "VOLUME_EXPLOSION",
+      "VOLUME_ANOMALY",
+      "VOLUME_SURGE_3D",
+      "VOLUME_ACCELERATION",
+      "PERSISTENT_HIGH_VOLUME"
+    ]
+  },
+  "highEvidenceCategories": [
+    "ALERT",
+    "BEHAVIORAL",
+    "SOCIAL"
+  ],
+  "highMarketEvidence": {
+    "priceMinimumWeights": {
+      "SPIKE_7D": 4,
+      "SPIKE_3D": 3,
+      "EXTREME_SURGE": 3,
+      "SPIKE_THEN_DROP": 3
+    },
+    "volumeMinimumWeights": {
+      "VOLUME_EXPLOSION": 2,
+      "VOLUME_SURGE_3D": 2
+    }
+  }
+}

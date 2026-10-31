@@ -46,7 +46,7 @@ export async function generateStaticParams(): Promise<PageParams[]> {
 export async function generateMetadata({
   params,
 }: {
-  params: PageParams;
+  params: Promise<PageParams>;
 }): Promise<Metadata> {
   if (!process.env.DATABASE_URL) {
     return {
@@ -67,7 +67,7 @@ export async function generateMetadata({
 
   try {
     post = await prisma.blogPost.findFirst({
-      where: { slug: params.slug, isPublished: true },
+      where: { slug: (await params).slug, isPublished: true },
       select: {
         title: true,
         excerpt: true,
@@ -88,7 +88,7 @@ export async function generateMetadata({
   }
 
   const description = post.excerpt || "Read the latest ScamDunk blog update.";
-  const canonical = `/news/${params.slug}`;
+  const canonical = `/news/${(await params).slug}`;
 
   return {
     title: `${post.title} | ScamDunk`,
@@ -103,7 +103,7 @@ export async function generateMetadata({
       description,
       images: post.coverImage
         ? [{ url: post.coverImage }]
-        : [{ url: `${siteUrl}/news/${params.slug}/opengraph-image` }],
+        : [{ url: `${siteUrl}/news/${(await params).slug}/opengraph-image` }],
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt?.toISOString(),
       siteName: "ScamDunk",
@@ -117,7 +117,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function BlogPostPage({ params }: { params: PageParams }) {
+export default async function BlogPostPage({ params }: { params: Promise<PageParams> }) {
   if (!process.env.DATABASE_URL) {
     notFound();
   }
@@ -141,7 +141,7 @@ export default async function BlogPostPage({ params }: { params: PageParams }) {
 
   try {
     post = await prisma.blogPost.findFirst({
-      where: { slug: params.slug, isPublished: true },
+      where: { slug: (await params).slug, isPublished: true },
     });
   } catch (error) {
     console.error("Failed to load blog post:", error);

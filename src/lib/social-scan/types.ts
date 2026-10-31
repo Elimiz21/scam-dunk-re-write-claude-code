@@ -118,6 +118,7 @@ export interface SocialScanner {
 }
 
 export interface SocialScanContext {
+  usage?: import("./usage").SocialUsage;
   signal: AbortSignal;
   deadlineAt: number;
 }

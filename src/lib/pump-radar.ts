@@ -1,3 +1,4 @@
+import { resolveNewsTriage, hasIndependentWarning, type NewsTriage } from "./news-triage";
 import { createHash } from "node:crypto";
 import { expectedMarketDate, isCurrentMarketPublication } from "@/lib/market-publication-freshness";
 import { prisma } from "@/lib/db";
@@ -7,7 +8,7 @@ import {
   getTickerCoverage,
   parseRunMetadata,
 } from "@/lib/social-scan/coverage";
-import { normalizeRiskScore } from "@/lib/utils";
+import { currentSignalPoints, SCORING_VERSION, SCORE_UNIT } from "@/lib/scoring/policy";
 
 export type PumpRadarViewer = "PUBLIC" | "AUTHENTICATED";
 export type PumpRadarFreshness = "FRESH" | "STALE";
@@ -77,7 +78,10 @@ export type PumpRadarPayload =
         sector: string;
         marketCapBand: string;
         riskLabel: "High risk" | "Caution" | "Low risk";
-        score: number;
+        newsTriage: NewsTriage;
+        score: number | null;
+        scoringVersion: string | null;
+        scoreUnit: string | null;
         signalCount: number;
         signalSummary?: string | null;
         lastPrice: number | null;
@@ -205,6 +209,14 @@ function isUsCommonStockSnapshot(snapshot: any): boolean {
   return !NON_COMMON_SECURITY_NAME.test(String(stock.name || ""));
 }
 
+function unavailableRadar(notice: string): PumpRadarPayload {
+  return {
+    status: "UNAVAILABLE", asOf: null, publishedAt: null, executedAt: null,
+    publicationQuality: "UNKNOWN", freshness: null, coverage: null,
+    socialPublication: null, rows: [], notice,
+  };
+}
+
 export function createPumpRadarService(
   client: PumpRadarClient = prisma as unknown as PumpRadarClient,
 ) {
@@ -222,6 +234,8 @@ export function createPumpRadarService(
       orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
       select: {
         scanDate: true,
+        artifactRevisionId: true,
+        byExchange: true,
         publishedAt: true,
         artifactRevision: { select: { status: true, producerExecutedAt: true, qualityStatus: true } },
         totalStocks: true,
@@ -233,52 +247,71 @@ export function createPumpRadarService(
     // Revised publications are visible only after atomic completion. Legacy
     // summaries remain readable, with unknown publication/execution times.
     if (!summary || (summary.artifactRevision && summary.artifactRevision.status !== "PUBLISHED")) {
-      return {
-        status: "UNAVAILABLE",
-        asOf: null,
-        publishedAt: null,
-        executedAt: null,
-        publicationQuality: "UNKNOWN",
-        freshness: null,
-        coverage: null,
-        socialPublication: null,
-        rows: [],
-        notice: "No published end-of-day market scan is available.",
-      };
+      return unavailableRadar("No published end-of-day market scan is available.");
     }
 
-    const publicationCandidates = await client.stockDailySnapshot.findMany({
-      where: {
-        scanDate: summary.scanDate,
-        stock: {
-          exchange: { in: Array.from(US_COMMON_STOCK_EXCHANGES) },
-          isOTC: false,
-        },
-      },
-      orderBy: [{ totalScore: "desc" }, { signalCount: "desc" }],
-      take: Math.min(safeLimit * 4, 200),
-      select: {
-        id: true,
-        marketCap: true,
-        riskLevel: true,
-        totalScore: true,
-        signalCount: true,
-        priceChangePct: true,
-        volumeRatio: true,
-        stock: {
-          select: {
-            symbol: true,
-            sector: true,
-            name: true,
-            exchange: true,
-            isOTC: true,
+    let ingestionExcluded = false;
+    try { ingestionExcluded = Object.values(JSON.parse(summary.byExchange ?? "{}")).some((exchange: any) => Array.isArray(exchange?.identityQuarantines) && exchange.identityQuarantines.length > 0); } catch { ingestionExcluded = true; }
+
+    const snapshots: any[] = [];
+    let hasCurrentCommonAssessment = false;
+    const pageSize = 200;
+    // Bind every page to one publication; apply the display limit after all
+    // class and news filters, so cleared leaders cannot hide later warnings.
+    for (let skip = 0; ; skip += pageSize) {
+      const publicationCandidates = await client.stockDailySnapshot.findMany({
+        where: {
+          scanDate: summary.scanDate,
+          artifactRevisionId: summary.artifactRevisionId ?? null,
+          scoringVersion: SCORING_VERSION,
+          riskLevel: { in: ["LOW", "MEDIUM", "HIGH"] },
+          stock: {
+            exchange: { in: Array.from(US_COMMON_STOCK_EXCHANGES) },
+            isOTC: false,
           },
         },
-      },
-    });
-    const snapshots = publicationCandidates
-      .filter(isUsCommonStockSnapshot)
-      .slice(0, safeLimit);
+        orderBy: [{ totalScore: "desc" }, { signalCount: "desc" }, { id: "asc" }],
+        take: pageSize,
+        skip,
+        select: {
+          id: true,
+          marketCap: true,
+          riskLevel: true,
+          newsTriage: true,
+          signals: true,
+          totalScore: true,
+          scoringVersion: true,
+          signalCount: true,
+          priceChangePct: true,
+          volumeRatio: true,
+          stock: {
+            select: {
+              symbol: true,
+              sector: true,
+              name: true,
+              exchange: true,
+              isOTC: true,
+            },
+          },
+        },
+      });
+      for (const snapshot of publicationCandidates) {
+        if (!isUsCommonStockSnapshot(snapshot)) continue;
+        hasCurrentCommonAssessment = true;
+        let signals = [];
+        try {
+          const parsed = JSON.parse(snapshot.signals ?? "[]");
+          if (Array.isArray(parsed)) signals = parsed.filter(value => value && typeof value === "object");
+        } catch { /* Unknown evidence cannot establish independent warnings. */ }
+        if (resolveNewsTriage(snapshot) === "CLEARED" && !hasIndependentWarning({signals})) continue;
+        snapshots.push(snapshot);
+        if (snapshots.length >= safeLimit) break;
+      }
+      if (snapshots.length >= safeLimit || publicationCandidates.length < pageSize) break;
+    }
+    if (!hasCurrentCommonAssessment) {
+      return unavailableRadar("Current market assessments are unavailable for this view. Findings will appear after an updated scan is published.");
+    }
 
     const dayRange = utcDayRange(summary.scanDate);
     const socialRun = await client.socialScanRun.findFirst({
@@ -320,7 +353,10 @@ export function createPumpRadarService(
         marketCapBand: marketCapBand(snapshot.marketCap),
         signalSummary: patternSummary(snapshot),
         riskLabel: getRiskLabel(snapshot.riskLevel as RiskLevel),
-        score: normalizeRiskScore(Number(snapshot.totalScore) || 0),
+        newsTriage: resolveNewsTriage(snapshot),
+        score: currentSignalPoints(snapshot.totalScore, snapshot.scoringVersion, snapshot.riskLevel),
+        scoringVersion: snapshot.scoringVersion ?? null,
+        scoreUnit: currentSignalPoints(snapshot.totalScore, snapshot.scoringVersion, snapshot.riskLevel) !== null ? SCORE_UNIT : null,
         signalCount: snapshot.signalCount,
         // Precise market observations can identify a stock by matching public quotes.
         // Retain nullable keys for API compatibility; publish only broad patterns.
@@ -337,7 +373,7 @@ export function createPumpRadarService(
       asOf: summary.scanDate.toISOString(),
       publishedAt: summary.artifactRevision ? summary.publishedAt?.toISOString() ?? null : null,
       executedAt: summary.artifactRevision?.producerExecutedAt?.toISOString() ?? null,
-      publicationQuality: summary.artifactRevision?.qualityStatus === "VERIFIED" ? "VERIFIED" : summary.artifactRevision?.qualityStatus === "DEGRADED" ? "DEGRADED" : "UNKNOWN",
+      publicationQuality: ingestionExcluded ? "DEGRADED" : summary.artifactRevision?.qualityStatus === "VERIFIED" ? "VERIFIED" : summary.artifactRevision?.qualityStatus === "DEGRADED" ? "DEGRADED" : "UNKNOWN",
       freshness: isFreshMarketPublication(summary.scanDate, now)
         ? "FRESH"
         : "STALE",
@@ -359,7 +395,7 @@ export function createPumpRadarService(
         : null,
       rows,
       notice: expectedMarketDate(now)
-        ? "Checked after the trading day closes — not live."
+        ? "Raw market observations, checked after the trading day closes. News review status is shown separately; these are not confirmed manipulation findings."
         : "Market data is not live. Freshness cannot be confirmed outside the supported 2026–2028 market calendar.",
     };
   }

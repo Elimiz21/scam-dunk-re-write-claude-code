@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/scan-recovery",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/ingest-evaluation",
       "schedule": "0 7 * * *"
     },
@@ -24,5 +28,6 @@
       "path": "/api/cron/telegram-retention",
       "schedule": "27 * * * *"
     }
-  ]
+  ],
+  "buildCommand": "SCAMDUNK_VERIFY_DEPLOYMENT_TARGET=true node scripts/apply-approved-release-migrations.cjs && npm run build"
 }

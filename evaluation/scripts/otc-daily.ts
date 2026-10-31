@@ -1,4 +1,6 @@
 import { computeRiskScore, PriceHistory } from "./standalone-scorer";
+import { assessPriceHistory } from "./price-quality";
+import { hasUnsupportedInstrumentName } from "../../src/lib/stock-universe";
 
 export type Request = (
   endpoint: string,
@@ -38,7 +40,7 @@ export class OtcClient {
   calls = 0;
   private nextAt = 0;
   private denied = false;
-  private startedAt = Date.now();
+  private startedAt: number | undefined;
   constructor(
     private key: string,
     private options: {
@@ -46,11 +48,14 @@ export class OtcClient {
       maxCalls?: number;
       maxDurationMs?: number;
       fetch?: typeof fetch;
+      onAttempt?: (event: {endpoint:string; params:Record<string,string>; attempt:number; requestedAt:string}) => void;
     } = {},
   ) {}
   request: Request = async (endpoint, params) => {
     if (this.denied) throw new Error("entitlement");
     if (!this.key) throw new Error("missing_credential");
+    // A client may be constructed hours before its pipeline phase begins.
+    this.startedAt ??= Date.now();
     for (let attempt = 0; attempt < 3; attempt++) {
       if (
         this.calls >= (this.options.maxCalls ?? 45000) ||
@@ -59,6 +64,7 @@ export class OtcClient {
       )
         throw new Error("budget_exhausted");
       this.calls++;
+      this.options.onAttempt?.({endpoint,params,attempt:attempt+1,requestedAt:new Date().toISOString()});
       const wait = Math.max(0, this.nextAt - Date.now());
       this.nextAt = Date.now() + wait + (this.options.spacingMs ?? 250);
       await delay(wait);
@@ -96,9 +102,7 @@ function exclusion(s: OtcSecurity): string | null {
   if (s.isActivelyTrading !== true) return "inactive";
   if (s.isEtf !== false || s.isFund !== false) return "fund_or_unknown_type";
   if (
-    /\b(warrants?|rights?|units?|preferred|preference|debentures?|notes?|bonds?|et[fn]|fund|trust)\b|\b[0-9.]+%/i.test(
-      s.companyName,
-    )
+    hasUnsupportedInstrumentName(s.companyName) || /\btrust\b|\b[0-9.]+%/i.test(s.companyName)
   )
     return "unsupported_instrument";
   // FINRA fifth-letter instruments: conservatively omit warrants, rights, units,
@@ -208,7 +212,8 @@ export async function evaluateOtcSecurity(
       }))
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-100);
-    if (bars.length < 30) return fail("insufficient_history");
+    const quality = assessPriceHistory(bars, date);
+    if (quality) return fail(quality === "corporate_action" ? "unresolved_discontinuity" : quality);
     if (
       new Set(bars.map((b) => b.date)).size !== bars.length ||
       bars.some(
@@ -224,7 +229,6 @@ export async function evaluateOtcSecurity(
     )
       return fail("invalid_prices");
     outcome.priceAsOf = bars[bars.length - 1].date;
-    if (outcome.priceAsOf !== date) return fail("stale_prices");
     if (
       bars.filter(
         (b) =>

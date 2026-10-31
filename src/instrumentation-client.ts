@@ -2,10 +2,12 @@
  * Sentry Client Configuration
  *
  * This file configures Sentry for client-side error tracking.
- * It is imported in the Next.js instrumentation file.
+ * Next.js loads this before the application becomes interactive.
  */
 
 import * as Sentry from "@sentry/nextjs";
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
 const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN;
 

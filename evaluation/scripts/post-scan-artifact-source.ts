@@ -41,6 +41,7 @@ export async function loadPostScanHighRiskSource<T extends { riskLevel?: string 
   date: string,
   readObject: (objectPath: string) => Promise<Buffer | null>,
   authoritativeRevisionHash?: string,
+  scope: "high" | "all" = "high",
 ): Promise<PostScanArtifactSource<T>> {
   const revision = await loadPublishedArtifactRevision(
     date,
@@ -48,6 +49,11 @@ export async function loadPostScanHighRiskSource<T extends { riskLevel?: string 
     authoritativeRevisionHash,
   );
   if (revision) {
+    if (scope === "all") {
+      const name = [`enhanced-evaluation-${date}.json`, `fmp-evaluation-${date}.json`].find((name) => revision.files.has(name));
+      if (!name) throw new Error("Full-cohort news review requires an immutable complete evaluation artifact");
+      return { stocks: parseArray<T>(revision.files.get(name)!, name), parentRevisionHash: revision.manifest.revisionHash };
+    }
     const preferred = [
       `enhanced-high-risk-${date}.json`,
       `fmp-high-risk-${date}.json`,
@@ -73,6 +79,7 @@ export async function loadPostScanHighRiskSource<T extends { riskLevel?: string 
     };
   }
 
+  if (scope === "all") throw new Error("Full-cohort review requires a verified immutable revision");
   for (const rootName of [
     `fmp-high-risk-${date}.json`,
     `enhanced-high-risk-${date}.json`,

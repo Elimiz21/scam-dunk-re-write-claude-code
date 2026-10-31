@@ -11,6 +11,7 @@ This module computes technical and contextual features:
 
 import numpy as np
 import pandas as pd
+from liquidity import average_dollar_volume
 from typing import Dict, List, Optional, Tuple, Union
 
 from config import (
@@ -277,6 +278,7 @@ def compute_momentum_indicators(df: pd.DataFrame) -> pd.DataFrame:
 
     rs = avg_gain / avg_loss.replace(0, np.nan)
     df['RSI_14'] = 100 - (100 / (1 + rs))
+    df.loc[(avg_loss == 0) & (avg_gain > 0), 'RSI_14'] = 100
     df['RSI_14'] = df['RSI_14'].fillna(50)
 
     # Money Flow (volume * direction)
@@ -337,11 +339,13 @@ def extract_contextual_features(
     avg_volume = known_avg_volume if known_avg_volume is not None else 0.0
     features['float_shares'] = float_shares
     features['avg_daily_volume'] = avg_volume
+    dollar_volume = average_dollar_volume(fundamentals)
+    features['avg_daily_dollar_volume'] = dollar_volume
     features['is_micro_liquidity'] = int(
-        avg_volume > 0 and avg_volume < MARKET_THRESHOLDS['micro_liquidity']
+        dollar_volume is not None and 0 < dollar_volume < MARKET_THRESHOLDS['micro_liquidity']
     )
     features['is_low_liquidity'] = int(
-        avg_volume > 0 and avg_volume < MARKET_THRESHOLDS['low_liquidity']
+        dollar_volume is not None and 0 < dollar_volume < MARKET_THRESHOLDS['low_liquidity']
     )
 
     # Float turnover (if volume data available)

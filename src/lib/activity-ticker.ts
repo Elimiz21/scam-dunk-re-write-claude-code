@@ -1,10 +1,14 @@
 import { prisma } from "@/lib/db";
+import { SCORING_VERSION } from "@/lib/scoring/policy";
+import { publishedExcludedCount } from "@/lib/publication-counts";
+import { isCurrentMarketPublication } from "@/lib/market-publication-freshness";
 
 export interface ActivityMarketScan {
   scanDate: string;
   totalStocks: number;
   evaluated: number;
   skipped: number;
+  excluded: number;
   highRisk: number;
   caution: number;
   lowRisk: number;
@@ -28,6 +32,9 @@ export type ActivityTickerPayload =
     };
 
 type DailyScanSummaryRow = {
+  artifactRevisionId: string | null;
+  artifactRevision: { status: string } | null;
+  byExchange: string;
   scanDate: Date;
   totalStocks: number;
   evaluated: number;
@@ -43,6 +50,9 @@ type ActivityTickerClient = {
     findFirst: (args: unknown) => Promise<DailyScanSummaryRow | null>;
     findMany?: (args: unknown) => Promise<DailyScanSummaryRow[]>;
     aggregate: (args: unknown) => Promise<{ _sum: { evaluated: number | null } }>;
+  };
+  stockDailySnapshot: {
+    groupBy: (args: unknown) => Promise<Array<{ scoringVersion: string | null; _count: { _all: number } }>>;
   };
 };
 
@@ -69,8 +79,12 @@ export function createActivityTickerService(
     now?: Date;
   } = {}): Promise<ActivityTickerPayload> {
     const summaryQuery = {
+      where: { artifactRevision: { is: { status: "PUBLISHED" } } },
       orderBy: [{ scanDate: "desc" }, { createdAt: "desc" }],
       select: {
+        artifactRevisionId: true,
+        artifactRevision: { select: { status: true } },
+        byExchange: true,
         scanDate: true,
         totalStocks: true,
         evaluated: true,
@@ -81,40 +95,15 @@ export function createActivityTickerService(
         insufficientCount: true,
       },
     };
-    const [summaries, allTime] = await Promise.all([
-      client.dailyScanSummary.findMany
-        ? client.dailyScanSummary.findMany({ ...summaryQuery, take: 30 })
-        : client.dailyScanSummary
-            .findFirst(summaryQuery)
-            .then((summary) => (summary ? [summary] : [])),
+    const [latest, allTime] = await Promise.all([
+      client.dailyScanSummary.findFirst(summaryQuery),
       client.dailyScanSummary.aggregate({ _sum: { evaluated: true } }),
     ]);
-
-    const latest = summaries.find((summary) => {
-      const totalStocks = safeCount(summary.totalStocks);
-      const evaluated = safeCount(summary.evaluated);
-      const skipped = safeCount(summary.skippedNoData);
-      const highRisk = safeCount(summary.highRiskCount);
-      const caution =
-        safeCount(summary.mediumRiskCount) + safeCount(summary.insufficientCount);
-      const lowRisk = safeCount(summary.lowRiskCount);
-      return (
-        summary.scanDate instanceof Date &&
-        !Number.isNaN(summary.scanDate.getTime()) &&
-        totalStocks > 0 &&
-        evaluated > 0 &&
-        evaluated <= totalStocks &&
-        evaluated + skipped === totalStocks &&
-        highRisk + caution + lowRisk === evaluated
-      );
-    });
 
     if (!latest) {
       return unavailable(
         now.toISOString(),
-        summaries.length
-          ? "The latest market-wide scan publication is incomplete."
-          : "No completed market-wide scan is available yet.",
+        "No completed market-wide scan is available yet.",
       );
     }
 
@@ -125,14 +114,29 @@ export function createActivityTickerService(
     const caution =
       safeCount(latest.mediumRiskCount) + safeCount(latest.insufficientCount);
     const lowRisk = safeCount(latest.lowRiskCount);
+    const excluded = publishedExcludedCount(latest.byExchange);
     const allTimeEvaluations = safeCount(allTime._sum.evaluated);
-    const publicationIsComplete = allTimeEvaluations >= evaluated;
+    const publicationIsComplete = latest.artifactRevisionId && latest.artifactRevision?.status === "PUBLISHED" &&
+      latest.scanDate instanceof Date && isCurrentMarketPublication(latest.scanDate, now) &&
+      [latest.totalStocks, latest.evaluated, latest.skippedNoData, latest.highRiskCount, latest.mediumRiskCount, latest.insufficientCount, latest.lowRiskCount]
+        .every(value => Number.isSafeInteger(value) && value >= 0) &&
+      totalStocks > 0 && evaluated > 0 && excluded !== null &&
+      evaluated + skipped + excluded === totalStocks && highRisk + caution + lowRisk === evaluated && allTimeEvaluations >= evaluated;
 
     if (!publicationIsComplete) {
       return unavailable(
         now.toISOString(),
-        "The latest market-wide scan publication is incomplete.",
+        "The latest market-wide scan publication is incomplete or out of date.",
       );
+    }
+
+    const versions = await client.stockDailySnapshot.groupBy({
+      by: ["scoringVersion"],
+      where: { artifactRevisionId: latest.artifactRevisionId, scanDate: latest.scanDate },
+      _count: { _all: true },
+    });
+    if (versions.length !== 1 || versions[0].scoringVersion !== SCORING_VERSION || versions[0]._count._all !== evaluated) {
+      return unavailable(now.toISOString(), "The latest market-wide scan does not contain a complete current-rule cohort.");
     }
 
     return {
@@ -143,6 +147,7 @@ export function createActivityTickerService(
         totalStocks,
         evaluated,
         skipped,
+        excluded: excluded!,
         highRisk,
         caution,
         lowRisk,

@@ -25,7 +25,7 @@ import {
   BarChart3,
   MessageSquareOff,
 } from "lucide-react";
-import { formatNumber, formatPrice, normalizeRiskScore } from "@/lib/utils";
+import { formatNumber, formatPrice } from "@/lib/utils";
 
 interface RiskCardProps {
   result: RiskResponse;
@@ -243,8 +243,7 @@ function buildRiskFactorSummary(
   const categoryLabels: Record<string, string> = {
     STRUCTURAL:
       "how the stock is structured (exchange type, company size, trading volume)",
-    PATTERN:
-      "unusual trading activity (price spikes, volume surges, or pump-and-dump patterns)",
+    PATTERN: "market indicators",
     ALERT: "regulatory warnings or alerts from agencies like the SEC",
     BEHAVIORAL:
       "the language and tactics used in the pitch or message you shared",
@@ -259,16 +258,10 @@ function buildRiskFactorSummary(
   const parts: string[] = [];
 
   if (riskLevel === "LOW") {
-    if (signals.length === 0) {
-      parts.push(
-        "We didn't find any red flags across the areas we checked. This stock looks clean based on publicly available data.",
-      );
-    } else {
-      parts.push(
-        `We found only ${signals.length} minor concern${signals.length > 1 ? "s" : ""} — nothing that stands out as a serious warning sign. ` +
-          `${topSignals[0].description}`,
-      );
-    }
+    parts.push(
+      `We found only ${signals.length} minor concern${signals.length > 1 ? "s" : ""} — nothing that stands out as a serious warning sign. ` +
+        `${topSignals[0].description}`,
+    );
   } else if (riskLevel === "MEDIUM") {
     parts.push("Here's what caught our attention:");
     const topDescs = topSignals.map((s) => s.description);
@@ -293,7 +286,7 @@ function buildRiskFactorSummary(
       .map(([cat]) => categoryLabels[cat] || cat.toLowerCase());
     if (cats.length > 1) {
       parts.push(
-        `Red flags were detected across ${cats.join(" and ")} — this combination increases the overall concern.`,
+        `The observations cover ${cats.join(" and ")}. Review the individual findings for their severity.`,
       );
     }
   }
@@ -304,7 +297,12 @@ function buildRiskFactorSummary(
 export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
   const { riskLevel, totalScore, signals, stockSummary, narrative } = result;
   const riskFactorSummary = buildRiskFactorSummary(signals, riskLevel);
-  const displayScore = normalizeRiskScore(totalScore);
+  const displayScore = totalScore;
+  const assessmentUnavailable = riskLevel === "INSUFFICIENT";
+  const marketUnavailable = assessmentUnavailable || result.dataCompleteness === "none";
+  const stockRedFlags = marketUnavailable
+    ? narrative.stockRedFlags.filter((flag) => !/no concerning|no red flags|no signals/i.test(flag))
+    : narrative.stockRedFlags;
   const customerRiskLabel =
     riskLevel === "HIGH"
       ? "High risk"
@@ -337,20 +335,24 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
                   </Badge>
                 </div>
               </div>
-              <div className="flex items-baseline gap-1 mt-1">
+              {assessmentUnavailable ? (
+                <p className="mt-2 text-sm font-semibold text-muted-foreground" role="status">
+                  Assessment unavailable
+                </p>
+              ) : <div className="flex items-baseline gap-1 mt-1">
                 <span
                   className={`text-4xl sm:text-5xl font-extrabold tracking-tight ${getRiskScoreColor(riskLevel)}`}
                 >
                   {displayScore}
                 </span>
                 <span className="text-lg sm:text-xl text-muted-foreground font-medium">
-                  / 100
+                  signal points
                 </span>
                 <InfoTooltip
                   term={RISK_LEVEL_TERMS.riskScore.term}
                   definition={RISK_LEVEL_TERMS.riskScore.definition}
                 />
-              </div>
+              </div>}
             </div>
             {/* Right: Ticker + company name */}
             <div className="text-center sm:text-right">
@@ -372,6 +374,11 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
           <p className="text-sm font-medium leading-relaxed text-foreground/85">
             {narrative.header}
           </p>
+          {marketUnavailable && (
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              There is not enough market data to assess this stock. Any regulatory or pitch warnings below still apply.
+            </p>
+          )}
           {riskFactorSummary && (
             <p className="text-sm leading-relaxed text-muted-foreground">
               {riskFactorSummary}
@@ -445,7 +452,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
         </div>
 
         {/* Stock & Market Red Flags */}
-        {narrative.stockRedFlags.length > 0 && (
+        {stockRedFlags.length > 0 && (
           <div className="space-y-3">
             <h3 className="flex items-center gap-2.5 font-semibold text-sm">
               <div className="h-7 w-7 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
@@ -454,7 +461,7 @@ export function RiskCard({ result, hasChatData = true }: RiskCardProps) {
               Stock & Market Behavior
             </h3>
             <ul className="space-y-2 ml-9">
-              {narrative.stockRedFlags.map((flag, index) => {
+              {stockRedFlags.map((flag, index) => {
                 const isPositive =
                   flag.toLowerCase().includes("no concerning") ||
                   flag.toLowerCase().includes("no red flags") ||

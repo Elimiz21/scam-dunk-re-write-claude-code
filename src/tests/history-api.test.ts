@@ -322,7 +322,7 @@ describe("scan history API", () => {
 
     const response = await getScanDetail(
       new NextRequest("http://localhost/api/scans/scan-other"),
-      { params: { id: "scan-other" } },
+      { params: Promise.resolve({ id: "scan-other" }) },
     );
 
     expect(response.status).toBe(404);
@@ -332,4 +332,17 @@ describe("scan history API", () => {
       }),
     );
   });
+});
+
+test("history keeps earlier score units out of current-point display and category ordering ties",async()=>{
+ const client={scanHistory:{findMany:jest.fn().mockResolvedValue([
+  {id:"legacy",ticker:"OLD",assetType:"stock",riskLevel:"HIGH",totalScore:99,scoringVersion:null,signalsCount:4,createdAt:new Date("2026-10-20")},
+  {id:"current",ticker:"NEW",assetType:"stock",riskLevel:"HIGH",totalScore:8,scoringVersion:"rules-2026-10-25-v3",signalsCount:3,createdAt:new Date("2026-10-23")},
+  {id:"unknown",ticker:"UNK",assetType:"stock",riskLevel:"INSUFFICIENT",totalScore:0,scoringVersion:"rules-2026-10-25-v3",signalsCount:0,createdAt:new Date("2026-10-24")}
+ ])},socialMention:{findMany:jest.fn().mockResolvedValue([])}};
+ const data=await createDashboardDataService(client as never).getScanHistory("owner",{order:"HIGHEST_RISK",page:1,limit:20});
+ expect(data.items.map(row=>row.id)).toEqual(["current","legacy","unknown"]);
+ expect(data.items[0]).toMatchObject({score:8,scoreUnit:"deduplicated_signal_points"});
+ expect(data.items[1]).toMatchObject({score:null,scoreUnit:null});
+ expect(data.items[2]).toMatchObject({score:null,assessmentAvailable:false});
 });

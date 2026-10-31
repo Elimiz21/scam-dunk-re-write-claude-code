@@ -168,7 +168,7 @@ export const RISK_LEVEL_TERMS: Record<string, GlossaryTerm> = {
   riskScore: {
     term: "Risk Score",
     definition:
-      "A score from 0 to 100 based on all the warning signs (signals) we detected. Each signal has a weight based on how strongly it indicates potential fraud. Scores above 60 indicate high risk, 30-59 medium risk, and below 30 low risk.",
+      "Deduplicated rule points summarize the observed warning signs. The risk category also depends on the kind of evidence: structural susceptibility alone cannot produce HIGH. These points are not a percentage or a measured probability of fraud.",
   },
   lowRisk: {
     term: "Low Risk",

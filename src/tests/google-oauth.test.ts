@@ -57,6 +57,18 @@ describe("Google OAuth integration", () => {
   it("still revokes prior JWT sessions after a credential change", async () => {
     expect(await mockConfig.callbacks!.jwt!({ token: { id: "user", sessionVersion: 3 } } as never)).toBeNull();
   });
+  it("rejects legacy and future-generation JWTs", async () => {
+    for (const token of [{ id: "user" }, { id: "user", sessionVersion: 5 }]) {
+      expect(await mockConfig.callbacks!.jwt!({ token } as never)).toBeNull();
+    }
+  });
+  it("rejects an old-password login racing with a credential change", async () => {
+    expect(await mockConfig.callbacks!.jwt!({ token: {}, user: { id: "user", sessionVersion: 3 } } as never)).toBeNull();
+  });
+  it("does not authorize a session when revocation cannot be checked", async () => {
+    mockPrisma.user.findUnique.mockRejectedValueOnce(new Error("database unavailable"));
+    expect(await mockConfig.callbacks!.jwt!({ token: { id: "user", sessionVersion: 4 } } as never)).toBeNull();
+  });
   it("verifies Google email and records the successful login", async () => {
     await mockConfig.events!.signIn!({ user: { id: "user" }, account: { provider: "google" } } as never);
     expect(mockPrisma.user.update).toHaveBeenCalledWith({ where: { id: "user" }, data: { emailVerified: expect.any(Date) } });

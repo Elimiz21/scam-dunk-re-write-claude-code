@@ -139,7 +139,8 @@ describe("monitoring publication runner", () => {
     client.activeMonitor.findMany.mockResolvedValue([dueMonitor()]);
     client.stockDailySnapshot.findFirst.mockResolvedValue({
       riskLevel: "HIGH",
-      totalScore: 92,
+      totalScore: 8,
+      scoringVersion: "rules-2026-10-25-v2",
       signalCount: 4,
       evaluatedAt: new Date("2026-08-25T22:00:00.000Z"),
     });
@@ -199,6 +200,8 @@ describe("monitoring publication runner", () => {
     expect(client.scanHistory.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         assetType: "monitor-full",
+        scoringVersion: "rules-2026-10-25-v2",
+        totalScore: 8,
         createdAt: new Date("2026-08-25T00:00:00.000Z"),
       }),
     });

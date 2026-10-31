@@ -1,3 +1,6 @@
+import { assessPriceHistory } from "./price-quality";
+import { expectedPriceSession } from "./market-publication-freshness";
+import { hasUnsupportedInstrumentName } from "./stock-universe";
 /**
  * Market Data Module
  *
@@ -66,6 +69,12 @@ async function fetchWithTimeout(
 const FMPProfileSchema = z
   .array(
     z.object({
+      symbol: z.string().optional(),
+      isin: z.string().optional(),
+      currency: z.string().optional(),
+      isEtf: z.boolean().optional(),
+      isFund: z.boolean().optional(),
+      isActivelyTrading: z.boolean().optional(),
       companyName: z.string().optional(),
       exchange: z.string().optional(),
       price: z.number().optional(),
@@ -98,6 +107,7 @@ const AlphaVantageQuoteSchema = z.object({
 
 const AlphaVantageTimeSeriesSchema = z.object({
   "Time Series (Daily)": z.record(
+    z.string(),
     z.object({
       "1. open": z.string(),
       "2. high": z.string(),
@@ -191,7 +201,10 @@ async function fetchFMPQuote(ticker: string): Promise<StockQuote | null> {
   }
 
   const profile = parsed.data[0];
+  if (profile.symbol !== ticker || !/^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(profile.isin ?? "") || profile.currency !== "USD" || profile.isEtf !== false || profile.isFund !== false || profile.isActivelyTrading !== true ||
+      hasUnsupportedInstrumentName(profile.companyName) || /\b(?:DEPOSITARY|ADR)\b/i.test(profile.companyName ?? "")) return null;
   return {
+    securityIdentifier: profile.isin,
     ticker: ticker.toUpperCase(),
     companyName: profile.companyName || ticker.toUpperCase(),
     exchange: profile.exchange || "Unknown",
@@ -811,10 +824,28 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
       quote.marketCap = profile.marketCap;
     }
 
+    const expectedSession = expectedPriceSession(new Date());
+    const availableBars = expectedSession ? priceHistory.filter(bar => bar.date <= expectedSession) : [];
+    const qualityReason = expectedSession ? assessPriceHistory(availableBars, expectedSession) : "unsupported_calendar";
+    if (qualityReason && qualityReason !== "insufficient_history") return {quote: null, priceHistory: [], isOTC: false, dataAvailable: false, qualityReason};
+    const acceptedHistory = qualityReason ? [] : availableBars;
+    if (acceptedHistory.length) {
+      try {
+        const response = await fetchWithTimeout(`${FMP_BASE_URL}/splits?symbol=${ticker}&apikey=${config.fmpApiKey}`);
+        const actions = response.ok ? await response.json() : null;
+        if (!Array.isArray(actions) || actions.some(action => !/^\d{4}-\d{2}-\d{2}$/.test(action.date) || !Number.isFinite(Date.parse(action.date)) || new Date(action.date).toISOString().slice(0,10) !== action.date || (action.symbol && action.symbol !== ticker) || !Number.isFinite(action.numerator) || action.numerator<=0 || !Number.isFinite(action.denominator) || action.denominator<=0)) throw new Error("invalid_corporate_actions");
+        if (actions.some(action => action.date >= acceptedHistory[0].date && action.date <= expectedSession!)) return {quote: null, priceHistory: [], isOTC:false, dataAvailable:false, qualityReason:"corporate_action"};
+      } catch {
+        return {quote:null, priceHistory:[], isOTC:false, dataAvailable:false, qualityReason:"corporate_action_data_unavailable"};
+      }
+    }
+
+
     // Calculate 30-day average volume from history
-    const avgVolume30d = calculateAvgVolume30d(priceHistory);
+    const avgVolume30d = calculateAvgVolume30d(acceptedHistory);
     quote.avgVolume30d = avgVolume30d;
-    quote.avgDollarVolume30d = avgVolume30d * quote.lastPrice;
+    quote.avgDollarVolume30d = acceptedHistory.length ? acceptedHistory.slice(-30).reduce((sum, bar) => sum + bar.close*bar.volume,0)/Math.min(30,acceptedHistory.length) : quote.avgDollarVolume30d;
+    if (acceptedHistory.length) quote.lastPrice = acceptedHistory[acceptedHistory.length-1].close;
 
     // Determine if OTC
     const isOTC = OTC_EXCHANGES.some((exc) =>
@@ -831,7 +862,9 @@ async function fetchMarketDataFromFMP(ticker: string): Promise<MarketData> {
 
     return {
       quote,
-      priceHistory,
+      priceHistory: acceptedHistory,
+      qualityReason: qualityReason ?? undefined,
+      priceAsOf: acceptedHistory.at(-1)?.date,
       isOTC,
       category: isOTC ? "OTC" : "MAJOR",
       dataAvailable: true,
@@ -905,39 +938,11 @@ async function fetchMarketDataFromAlphaVantage(
     const overview = await fetchCompanyOverview(ticker);
     apiCallCount = 3;
 
-    // Update quote with overview data
-    if (overview) {
-      quote.companyName = overview.companyName;
-      quote.exchange = overview.exchange;
-      quote.marketCap = overview.marketCap;
-    }
+    // This fallback does not establish a stable security identifier or action
+    // lineage. It cannot substitute unverifiable bars for a supported instrument.
+    return {quote:null, priceHistory:[], isOTC:false, dataAvailable:false, qualityReason:"instrument_identity_unverified"};
 
-    // Calculate 30-day average volume
-    const avgVolume30d = calculateAvgVolume30d(priceHistory);
-    quote.avgVolume30d = avgVolume30d;
-    quote.avgDollarVolume30d = avgVolume30d * quote.lastPrice;
 
-    // Determine if OTC
-    const isOTC = OTC_EXCHANGES.some((exc) =>
-      quote.exchange.toUpperCase().includes(exc.toUpperCase()),
-    );
-
-    // Log successful API usage
-    const responseTime = Date.now() - apiStartTime;
-    await logApiUsage({
-      service: "ALPHA_VANTAGE",
-      endpoint: `${apiCallCount} calls`,
-      responseTime,
-      statusCode: 200,
-    });
-
-    return {
-      quote,
-      priceHistory,
-      isOTC,
-      category: isOTC ? "OTC" : "MAJOR",
-      dataAvailable: true,
-    };
   } catch (error) {
     if (error instanceof CircuitBreakerOpenError) {
       console.warn(

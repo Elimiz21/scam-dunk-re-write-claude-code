@@ -1,0 +1,292 @@
+[
+  {
+    "name": "structural only",
+    "signals": [
+      {
+        "code": "SMALL_CAP",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 3
+      }
+    ],
+    "score": 6,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "gentle trend with saturated RSI",
+    "signals": [
+      {
+        "code": "SMALL_CAP",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "OVERBOUGHT_RSI",
+        "category": "PATTERN",
+        "weight": 3
+      },
+      {
+        "code": "PERSISTENT_OVERBOUGHT",
+        "category": "PATTERN",
+        "weight": 3
+      },
+      {
+        "code": "KELTNER_BREAKOUT",
+        "category": "PATTERN",
+        "weight": 2
+      }
+    ],
+    "score": 9,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "overlapping price evidence counts once",
+    "signals": [
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4
+      },
+      {
+        "code": "EXTREME_SURGE",
+        "category": "PATTERN",
+        "weight": 5
+      },
+      {
+        "code": "PRICE_ACCELERATION",
+        "category": "PATTERN",
+        "weight": 2
+      }
+    ],
+    "score": 5,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "statistical anomalies alone do not establish material manipulation",
+    "signals": [
+      {
+        "code": "PRICE_ANOMALY",
+        "category": "PATTERN",
+        "weight": 3
+      },
+      {
+        "code": "VOLUME_ANOMALY",
+        "category": "PATTERN",
+        "weight": 2
+      }
+    ],
+    "score": 5,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "regulatory survives without a market quote",
+    "signals": [
+      {
+        "code": "ALERT_LIST_HIT",
+        "category": "ALERT",
+        "weight": 0
+      }
+    ],
+    "score": 0,
+    "level": "HIGH"
+  },
+  {
+    "name": "identical observations never inflate points",
+    "signals": [
+      {
+        "code": "SMALL_CAP",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "SMALL_CAP",
+        "category": "STRUCTURAL",
+        "weight": 3
+      }
+    ],
+    "score": 3,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "behavioral warning remains independent",
+    "signals": [
+      {
+        "code": "PROMISED_RETURNS",
+        "category": "BEHAVIORAL",
+        "weight": 5
+      }
+    ],
+    "score": 5,
+    "level": "HIGH"
+  },
+  {
+    "name": "declining-price anomaly remains medium",
+    "signals": [
+      {
+        "code": "OTC_EXCHANGE",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2
+      },
+      {
+        "code": "PRICE_ANOMALY",
+        "category": "PATTERN",
+        "weight": 4
+      }
+    ],
+    "score": 9,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "weak acceleration does not become high with volume",
+    "signals": [
+      {
+        "code": "OTC_EXCHANGE",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2
+      },
+      {
+        "code": "PRICE_ACCELERATION",
+        "category": "PATTERN",
+        "weight": 2
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 3
+      }
+    ],
+    "score": 10,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "volume alone does not become high",
+    "signals": [
+      {
+        "code": "OTC_EXCHANGE",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 3
+      }
+    ],
+    "score": 8,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "strong price without independent volume remains medium",
+    "signals": [
+      {
+        "code": "OTC_EXCHANGE",
+        "category": "STRUCTURAL",
+        "weight": 3
+      },
+      {
+        "code": "MICRO_LIQUIDITY",
+        "category": "STRUCTURAL",
+        "weight": 2
+      },
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4
+      }
+    ],
+    "score": 9,
+    "level": "MEDIUM"
+  },
+  {
+    "name": "strong price and sustained volume justify market high",
+    "signals": [
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4
+      },
+      {
+        "code": "VOLUME_EXPLOSION",
+        "category": "PATTERN",
+        "weight": 2
+      }
+    ],
+    "score": 6,
+    "level": "HIGH"
+  },
+  {
+    "name": "short strong price and volume window justify market high",
+    "signals": [
+      {
+        "code": "SPIKE_3D",
+        "category": "PATTERN",
+        "weight": 3
+      },
+      {
+        "code": "VOLUME_SURGE_3D",
+        "category": "PATTERN",
+        "weight": 2
+      }
+    ],
+    "score": 5,
+    "level": "HIGH"
+  },
+  {
+    "name": "spike then drop with volume remains high",
+    "signals": [
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3
+      },
+      {
+        "code": "VOLUME_SURGE_3D",
+        "category": "PATTERN",
+        "weight": 2
+      }
+    ],
+    "score": 5,
+    "level": "HIGH"
+  },
+  {
+    "name": "spike and reversal from one price episode count once",
+    "signals": [
+      {
+        "code": "SPIKE_7D",
+        "category": "PATTERN",
+        "weight": 4
+      },
+      {
+        "code": "SPIKE_THEN_DROP",
+        "category": "PATTERN",
+        "weight": 3
+      }
+    ],
+    "score": 4,
+    "level": "MEDIUM"
+  }
+]

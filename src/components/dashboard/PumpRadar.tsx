@@ -63,12 +63,12 @@ function RadarRow({ row, compact }: { row: PumpRadarRow; compact: boolean }) {
           <Badge className={cn(compact && "px-2 py-0.5 text-[10px] tracking-wide")} variant={riskVariant(row.riskLabel)}>{row.riskLabel}</Badge>
         </div>
         <p className="mt-1 truncate text-[11px] text-muted-foreground">
-          {[row.sector, row.marketCapBand, row.signalSummary].filter(Boolean).join(" · ")}
+          {[row.sector, row.marketCapBand, row.signalSummary, `News review: ${{RETAINED:"completed",NO_EVIDENCE:"no dated evidence",DEFERRED:"pending",ERROR:"failed",UNAVAILABLE:"unavailable",UNKNOWN:"unknown",CLEARED:"cleared"}[row.newsTriage ?? "UNKNOWN"]}`].filter(Boolean).join(" · ")}
         </p>
       </div>
       <div role="cell" className="text-right">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:hidden">Risk score</p>
-        <p className={cn("font-semibold tabular-nums", compact ? "text-[11px]" : "text-[13px]")}>{row.score}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:hidden">Signal points</p>
+        <p className={cn("font-semibold tabular-nums", compact ? "text-[11px]" : "text-[13px]")}>{row.score ?? "—"}</p>
       </div>
     </div>
   );
@@ -214,7 +214,7 @@ export function PumpRadar({
               <Activity className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
               <p className={cn("mt-3", compact ? "text-[11px] font-medium" : "font-semibold")}>{view.title}</p>
               <p className={cn("mt-1", statusTextClass)}>
-                The publication could not be loaded. Try again in a moment.
+                {notice || "The publication could not be loaded. Try again in a moment."}
               </p>
               {onRetry && (
                 <Button type="button" variant="outline" size="sm" className="mt-4" onClick={onRetry}>
@@ -237,7 +237,7 @@ export function PumpRadar({
             <div className="border-y border-border/60" role="table" aria-label="Pump Radar findings">
               <div role="row" className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border/60 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <div role="columnheader">Instrument</div>
-                <div role="columnheader" className="text-right">Risk score</div>
+                <div role="columnheader" className="text-right">Signal points</div>
               </div>
               {filteredRows.map((row, index) => (
                 <RadarRow key={`${row.displayTicker}-${index}`} row={row} compact={compact} />

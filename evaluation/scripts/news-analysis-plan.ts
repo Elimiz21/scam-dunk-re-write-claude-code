@@ -69,6 +69,6 @@ export function createNewsAnalysisPlan<T extends NewsAnalysisCandidate>(
     selected,
     deferred,
     batches,
-    modelCallUpperBound: batches.length,
+    modelCallUpperBound: 2 * batches.length,
   };
 }

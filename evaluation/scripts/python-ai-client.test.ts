@@ -36,6 +36,8 @@ const validAnalysis = {
   asset_type: "stock",
   risk_level: "LOW",
   risk_score: 0,
+  scoring_version: "rules-2026-10-25-v3",
+  score_unit: "deduplicated_signal_points",
   risk_probability: 0,
   rf_probability: null,
   lstm_probability: null,
@@ -180,4 +182,9 @@ describe("daily Python evaluation client", () => {
       "Random Forest",
     ]);
   });
+});
+
+it("rejects an old backend score policy before daily results can mix units", async () => {
+  const result = await requestPythonAnalysis({baseUrl: "https://ai.invalid", apiSecret: "fixture", request: buildProductionEvaluationRequest("TEST", marketData, false), fetchImpl: async () => jsonResponse(200, {...validAnalysis, scoring_version: "old"})});
+  expect(result).toMatchObject({accepted: false, failure: "malformed_response"});
 });

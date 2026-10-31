@@ -61,23 +61,32 @@ describePostgres("artifact ingestion PostgreSQL integration", () => {
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const run = (workerId: string) =>
-      runResumableIngestion({
-        manifest: first,
-        workerId,
-        phases: ["OBSERVATIONS"],
-        store: new PrismaIngestionStore(client),
-        handlers: {
-          OBSERVATIONS: async () => {
-            executions++;
-            await gate;
-          },
-        },
+    let publishing = 0;
+    let releasePublish!: () => void;
+    const bothPublishing = new Promise<void>(resolve => { releasePublish = resolve; });
+    let entered!: () => void;
+    const handlerEntered = new Promise<void>(resolve => { entered = resolve; });
+    const run = (workerId: string) => {
+      const store = new PrismaIngestionStore(client);
+      const publish = store.publishIfComplete.bind(store);
+      store.publishIfComplete = async (...args) => {
+        publishing++;
+        if (publishing === 2) releasePublish();
+        await bothPublishing;
+        return publish(...args);
+      };
+      return runResumableIngestion({
+        manifest: first, workerId, phases: ["OBSERVATIONS"], store,
+        handlers: { OBSERVATIONS: async () => { executions++; entered(); await gate; } },
       });
+    };
     const workerOne = run("pg-worker-1");
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    const workerTwo = run("pg-worker-2");
+    await handlerEntered;
     release();
+    // Wait for completion but keep publication suspended. This is the precise
+    // gap in which a second worker must never reset and rerun a complete phase.
+    while (publishing === 0) await new Promise(resolve => setTimeout(resolve, 1));
+    const workerTwo = run("pg-worker-2");
     const concurrentResults = await Promise.all([workerOne, workerTwo]);
     expect(executions).toBe(1);
     expect(

@@ -46,6 +46,17 @@ const ETF_SYMBOLS = new Set([
 // and corresponding market-data support are established.
 const SUPPORTED_US_SUFFIXES = new Set(["B"]);
 
+/** Check every supplied security name; a shorter issuer profile cannot erase a directory class label. */
+export function hasUnsupportedInstrumentName(...names: unknown[]): boolean {
+  return names.some(name => typeof name === "string" && (
+    /\b(?:warrants?|rights?|units?|preferred|preference|debentures?|notes?|bonds?|et[fn]|fund)\b\s*(?:$|[-,(])/i.test(name) ||
+    /\b(?:warrants?|rights?)\s+(?:to|expir\w*|exercis\w*|each|subscription|\d{4})\b/i.test(name) ||
+    /\b(?:preferred|preference)\s+(?:stock|shares?|securities)\b/i.test(name) ||
+    /\bunits?\s+(?:each|consisting|comprised|containing)\b/i.test(name) ||
+    /\b(?:notes?|bonds?|debentures?)\s+(?:due|matur\w*|series|\d{4})\b/i.test(name)
+  ));
+}
+
 const OPTION_CONTRACT_PATTERN =
   /\b\d{6,8}[CP]\d{6,8}\b|\b(?:CALL|PUT)\b|\b\d{6,8}[ -][CP][ -]?\d+/i;
 

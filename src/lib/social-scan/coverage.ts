@@ -109,6 +109,7 @@ export class CoverageTracker {
 }
 
 export interface SocialRunMetadata {
+  usage?: ReturnType<import("./usage").SocialUsage["snapshot"]>;
   version: 2;
   scanners: string[];
   stats: Record<string, unknown>;

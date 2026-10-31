@@ -2,6 +2,17 @@ import { NextRequest } from "next/server";
 
 const mockReserveScanSlot = jest.fn();
 const mockLogScanHistory = jest.fn();
+const mockCompleteScan = jest.fn().mockResolvedValue(undefined);
+const mockFailScan = jest.fn().mockResolvedValue(undefined);
+
+jest.mock("@/lib/scan-completion", () => ({
+  beginScan: async (userId: string) => {
+    const result = await mockReserveScanSlot(userId);
+    return { state: result.reserved ? "RESERVED" : "LIMIT_REACHED", usage: result.usage, lease: { id: "test", token: "test", userId } };
+  },
+  completeScan: mockCompleteScan, failScan: mockFailScan,
+  ScanConflict: class extends Error {},
+}));
 
 jest.mock("@/lib/auth", () => ({
   auth: jest.fn().mockResolvedValue({ user: { id: "user-1" } }),
@@ -84,6 +95,8 @@ describe("completed scan persistence", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCompleteScan.mockResolvedValue(undefined);
+    mockLogScanHistory.mockResolvedValue(undefined);
     logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 });
@@ -113,7 +126,7 @@ describe("completed scan persistence", () => {
     let enteredSave: () => void;
     const savingStarted = new Promise<void>((resolve) => { enteredSave = resolve; });
     const saving = new Promise<void>((resolve) => { finishSave = resolve; });
-    mockLogScanHistory.mockImplementationOnce(() => { enteredSave(); return saving; });
+    mockCompleteScan.mockImplementationOnce(() => { enteredSave(); return saving; });
     let returned = false;
     const responsePromise = POST(scanRequest()).then((response) => { returned = true; return response; });
     await savingStarted;
@@ -130,6 +143,13 @@ describe("completed scan persistence", () => {
     const response = await POST(scanRequest());
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ riskLevel: "LOW", stockSummary: { ticker: "AAPL" } });
+  });
+  test("does not acknowledge an unsaved result and awaits durable refund", async () => {
+    mockCompleteScan.mockRejectedValueOnce(new Error("history write failed"));
+    const response = await POST(scanRequest());
+    expect(response.status).toBe(500);
+    expect(mockFailScan).toHaveBeenCalledTimes(1);
+    expect(mockLogScanHistory).not.toHaveBeenCalled();
   });
 
   test("uses immediate narrative for a messaging scan without calling the LLM", async () => {
@@ -152,7 +172,7 @@ describe("completed scan persistence", () => {
     expect(mockLogScanHistory).toHaveBeenCalledWith(expect.objectContaining({ riskLevel: "LOW", totalScore: 0 }));
   });
 
-  test("rejects a synthetic AI result and falls back to deterministic scoring", async () => {
+  test("uses canonical deterministic scoring without allowing a remote verdict to override it", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -177,5 +197,6 @@ describe("completed scan persistence", () => {
       stockSummary: { ticker: "AAPL" },
     });
     expect(jest.requireMock("@/lib/scoring").computeRiskScore).toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

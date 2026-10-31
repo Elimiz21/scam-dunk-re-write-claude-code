@@ -4,7 +4,11 @@ jest.mock("@/lib/db", () => ({ prisma: {} }));
 function client(summary: object) {
   return {
     dailyScanSummary: { findFirst: jest.fn().mockResolvedValue(summary) },
-    stockDailySnapshot: { findMany: jest.fn().mockResolvedValue([]) },
+    stockDailySnapshot: { findMany: jest.fn().mockResolvedValue([{
+      id: "current-observation", scoringVersion: "rules-2026-10-25-v3", riskLevel: "HIGH", newsTriage: "RETAINED",
+      totalScore: 8, signalCount: 3, marketCap: 100000000, signals: "[]",
+      stock: {symbol: "TEST", name: "Example Common Corp", exchange: "NASDAQ", isOTC: false},
+    }]) },
     socialScanRun: { findFirst: jest.fn().mockResolvedValue(null) },
     socialMention: { findMany: jest.fn().mockResolvedValue([]) },
   };
@@ -21,7 +25,7 @@ describe("Pump Radar publication provenance", () => {
     const result = await createPumpRadarService(db).getPumpRadar({ limit: 10, viewer: "AUTHENTICATED", now: new Date("2026-09-08T12:00:00Z") });
     expect(result).toMatchObject({ publishedAt: "2026-09-08T08:00:00.000Z", executedAt: "2026-09-04T23:45:00.000Z", asOf: "2026-09-04T00:00:00.000Z", freshness: "FRESH" });
   });
-  it("retains legacy data with unknown execution/publication timestamps", async () => {
+  it("retains unknown timestamps for a compatible legacy summary", async () => {
     const result = await createPumpRadarService(client(base)).getPumpRadar({ limit: 10, viewer: "PUBLIC", now: new Date("2026-09-09T07:00:00Z") });
     expect(result).toMatchObject({ status: "AVAILABLE", publishedAt: null, executedAt: null, publicationQuality: "UNKNOWN", freshness: "STALE" });
   });

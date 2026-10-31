@@ -9,6 +9,23 @@ import {
 import { loadPublishedArtifactRevision } from "@/lib/admin/artifact-storage";
 
 describe("server-side evaluation artifact publication", () => {
+  it("reports size-limit rejections instead of inventing an immutable-path conflict", async () => {
+    const plan = createRevisionUploadPlan({scanDate:"2026-09-15",producerRunId:"large",files:{"evidence.json":Buffer.from("[]")},required:["evidence.json"]});
+    const fetchImpl = jest.fn(async () => new Response(JSON.stringify({statusCode:"413",error:"Payload too large",code:"EntityTooLarge"}), {status:400}));
+    await expect(executeRevisionUploadPlan({config:{supabaseUrl:"https://project.supabase.co",serviceKey:"server-only"},operations:plan.operations,fetchImpl:fetchImpl as typeof fetch}))
+      .rejects.toThrow("HTTP 400");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([{statusCode:"409",error:"Duplicate"},{code:"ResourceAlreadyExists"},{code:"KeyAlreadyExists"},{code:"already_exists",httpStatusCode:409}])("accepts a verified identical immutable object on a documented duplicate response %j", async duplicateBody => {
+    const plan = createRevisionUploadPlan({scanDate:"2026-09-15",producerRunId:"repeat",files:{"evidence.json":Buffer.from("[]")},required:["evidence.json"]});
+    const object = plan.operations[0];
+    const fetchImpl = jest.fn(async (_url: string, init?: RequestInit) => init?.method === "POST"
+      ? new Response(JSON.stringify(duplicateBody), {status:400})
+      : new Response(new Uint8Array(object.content), {status:200}));
+    await expect(executeRevisionUploadPlan({config:{supabaseUrl:"https://project.supabase.co",serviceKey:"server-only"},operations:[object],fetchImpl:fetchImpl as typeof fetch})).resolves.toBeUndefined();
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
   const jwt = (payload: Record<string, unknown>) =>
     [
       Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString(

@@ -1,7 +1,7 @@
 name: Enhanced Daily Stock Evaluation
 
 on:
-  # Run daily at 11 PM UTC (6 PM EST, 2 hours after market close at 4 PM)
+  # Run daily at 11 PM UTC (6 PM EST / 7 PM EDT, after market close)
   # This allows time for after-hours data to settle and ensures we have complete daily data
   # Only runs on weekdays; holiday check is done in the job
   schedule:
@@ -10,6 +10,45 @@ on:
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
     inputs:
+      validated_pipeline_run:
+        description: "Completed full validation run to release with upload_only; must match this commit or its merge parent"
+        required: false
+        default: ""
+        type: string
+      resume_pipeline_cache_key:
+        description: "Optional retained pipeline validation cache key for resuming acquisition"
+        required: false
+        default: ""
+        type: string
+      resume_news_cache_run:
+        description: "Optional completed validation run ID whose successful source evidence should be reused"
+        required: false
+        default: ""
+        type: string
+      pipeline_validation:
+        description: "Complete isolated pipeline rehearsal; retains artifacts without publishing or messaging"
+        required: false
+        default: "none"
+        type: choice
+        options: ["none", "100", "full"]
+      validation_news_budget_usd:
+        description: "Explicit model-cost ceiling for isolated validation; dated spending reservations are retained"
+        required: false
+        default: "25"
+        type: choice
+        options: ["25", "50"]
+      risk_shadow_scope:
+        description: "Fresh provider acquisition and canonical risk validation only; no publication"
+        required: false
+        default: "none"
+        type: choice
+        options: ["none", "100", "500", "full"]
+      news_shadow_scope:
+        description: "Provider-backed news validation only; does not publish"
+        required: false
+        default: "none"
+        type: choice
+        options: ["none", "100", "500", "full"]
       upload_only:
         description: "Only upload existing results (skip evaluation)"
         required: false
@@ -38,146 +77,40 @@ on:
 
 # Grant write permissions for issue creation on failure
 concurrency:
-  group: enhanced-daily-evaluation
+  group: enhanced-daily-evaluation-${{ github.event.inputs.news_shadow_scope && github.event.inputs.news_shadow_scope != 'none' && 'news-validation' || github.event.inputs.pipeline_validation && github.event.inputs.pipeline_validation != 'none' && 'pipeline-validation' || github.event.inputs.risk_shadow_scope && github.event.inputs.risk_shadow_scope != 'none' && 'risk-validation' || 'production' }}
   cancel-in-progress: false
 
 permissions:
+  actions: read
   contents: write
   issues: write
 
 jobs:
   check-trading-day:
+    if: ${{ (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') && (!github.event.inputs.risk_shadow_scope || github.event.inputs.risk_shadow_scope == 'none') && (!github.event.inputs.pipeline_validation || github.event.inputs.pipeline_validation == 'none') }}
     runs-on: ubuntu-latest
     outputs:
       is_trading_day: ${{ steps.check.outputs.is_trading_day }}
     steps:
-      - name: Check if today is a US market trading day
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Check the shared NYSE calendar
         id: check
         run: |
-          # Get current date in EST/EDT timezone
-          export TZ="America/New_York"
-          TODAY=$(date +%Y-%m-%d)
-          DAY_OF_WEEK=$(date +%u)  # 1=Monday, 7=Sunday
-          MONTH=$(date +%m)
-          DAY=$(date +%d)
-          YEAR=$(date +%Y)
-
-          echo "Today: $TODAY (Day of week: $DAY_OF_WEEK)"
-
-          # Skip weekends (should already be filtered by cron, but double-check)
-          if [ "$DAY_OF_WEEK" -gt 5 ]; then
-            echo "Weekend - not a trading day"
-            echo "is_trading_day=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # US Market Holidays (fixed dates)
-          # New Year's Day - January 1
-          # Juneteenth - June 19
-          # Independence Day - July 4
-          # Christmas - December 25
-          FIXED_HOLIDAYS="01-01 06-19 07-04 12-25"
-          MMDD="${MONTH}-${DAY}"
-
-          for holiday in $FIXED_HOLIDAYS; do
-            if [ "$MMDD" = "$holiday" ]; then
-              echo "Fixed holiday ($holiday) - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          done
-
-          # MLK Day - 3rd Monday of January
-          if [ "$MONTH" = "01" ]; then
-            FIRST_DAY_DOW=$(date -d "$YEAR-01-01" +%u)
-            if [ "$FIRST_DAY_DOW" -le 1 ]; then
-              FIRST_MONDAY=$((1 + (1 - FIRST_DAY_DOW)))
-            else
-              FIRST_MONDAY=$((1 + (8 - FIRST_DAY_DOW)))
-            fi
-            THIRD_MONDAY=$((FIRST_MONDAY + 14))
-            if [ "$DAY" = "$THIRD_MONDAY" ] || [ "$DAY" = "0$THIRD_MONDAY" ]; then
-              echo "MLK Day - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          fi
-
-          # Presidents Day - 3rd Monday of February
-          if [ "$MONTH" = "02" ]; then
-            FIRST_DAY_DOW=$(date -d "$YEAR-02-01" +%u)
-            if [ "$FIRST_DAY_DOW" -le 1 ]; then
-              FIRST_MONDAY=$((1 + (1 - FIRST_DAY_DOW)))
-            else
-              FIRST_MONDAY=$((1 + (8 - FIRST_DAY_DOW)))
-            fi
-            THIRD_MONDAY=$((FIRST_MONDAY + 14))
-            if [ "$DAY" -eq "$THIRD_MONDAY" ]; then
-              echo "Presidents Day - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          fi
-
-          # Memorial Day - Last Monday of May
-          if [ "$MONTH" = "05" ]; then
-            LAST_DAY_DOW=$(date -d "$YEAR-05-31" +%u)
-            if [ "$LAST_DAY_DOW" -ge 1 ]; then
-              LAST_MONDAY=$((31 - (LAST_DAY_DOW - 1)))
-            else
-              LAST_MONDAY=$((31 - 6))
-            fi
-            if [ "$DAY" -eq "$LAST_MONDAY" ]; then
-              echo "Memorial Day - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          fi
-
-          # Labor Day - 1st Monday of September
-          if [ "$MONTH" = "09" ]; then
-            FIRST_DAY_DOW=$(date -d "$YEAR-09-01" +%u)
-            if [ "$FIRST_DAY_DOW" -le 1 ]; then
-              FIRST_MONDAY=$((1 + (1 - FIRST_DAY_DOW)))
-            else
-              FIRST_MONDAY=$((1 + (8 - FIRST_DAY_DOW)))
-            fi
-            if [ "$DAY" -eq "$FIRST_MONDAY" ]; then
-              echo "Labor Day - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          fi
-
-          # Thanksgiving - 4th Thursday of November
-          if [ "$MONTH" = "11" ]; then
-            FIRST_DAY_DOW=$(date -d "$YEAR-11-01" +%u)
-            if [ "$FIRST_DAY_DOW" -le 4 ]; then
-              FIRST_THURSDAY=$((1 + (4 - FIRST_DAY_DOW)))
-            else
-              FIRST_THURSDAY=$((1 + (11 - FIRST_DAY_DOW)))
-            fi
-            FOURTH_THURSDAY=$((FIRST_THURSDAY + 21))
-            if [ "$DAY" -eq "$FOURTH_THURSDAY" ]; then
-              echo "Thanksgiving - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          fi
-
-          # Good Friday - hardcoded for known years
-          # 2024: March 29, 2025: April 18, 2026: April 3, 2027: March 26
-          GOOD_FRIDAYS="2024-03-29 2025-04-18 2026-04-03 2027-03-26 2028-04-14"
-          for gf in $GOOD_FRIDAYS; do
-            if [ "$TODAY" = "$gf" ]; then
-              echo "Good Friday - not a trading day"
-              echo "is_trading_day=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          done
-
-          echo "Today is a trading day!"
-          echo "is_trading_day=true" >> $GITHUB_OUTPUT
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+          import { marketSessionOnOrBefore } from './src/lib/market-publication-freshness.ts';
+          const today = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+          }).format(new Date());
+          const session = marketSessionOnOrBefore(today);
+          if (session === null) throw new Error(`NYSE calendar unavailable for ${today}; refresh the shared calendar`);
+          const trading = session === today;
+          console.log(`${today}: ${trading ? 'trading session' : 'market closed'}`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `is_trading_day=${trading}\n`);
+          NODE
 
   enhanced-evaluation:
     needs: check-trading-day
@@ -194,7 +127,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
 
       - name: Install dependencies
@@ -253,6 +186,41 @@ jobs:
           echo "date=$DATE" >> $GITHUB_OUTPUT
           echo "Evaluation date: $DATE"
 
+      - name: Read durable scheme history
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: scheme-state-source
+          persist-credentials: false
+
+      - name: Restore durable scheme history before scanning
+        if: ${{ github.event.inputs.upload_only != 'true' }}
+        run: npx ts-node --project evaluation/tsconfig.json evaluation/scripts/scheme-state.ts restore scheme-state-source/scheme-tracking evaluation/scheme-database evaluation/results/scheme-state-baseline.json
+
+      - name: Import the exact completed full validation output
+        if: ${{ github.event.inputs.upload_only == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATED_RUN_ID: ${{ github.event.inputs.validated_pipeline_run }}
+          RELEASE_DATE: ${{ steps.date.outputs.date }}
+        run: |
+          [[ "$VALIDATED_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID" > "$RUNNER_TEMP/validated-run.json"
+          gh run download "$VALIDATED_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "pipeline-validation-full-$VALIDATED_RUN_ID" --dir "$RUNNER_TEMP/validated-pipeline"
+          npx ts-node --project evaluation/tsconfig.json evaluation/scripts/import-validated-pipeline.ts "$RUNNER_TEMP/validated-run.json" "$RUNNER_TEMP/validated-pipeline" "$RELEASE_DATE" scheme-state-source/scheme-tracking
+
+      - name: Restore news evidence, decisions and spending ledger
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: news-review-v3-${{ steps.date.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            news-review-v3-${{ steps.date.outputs.date }}-
+
       - name: Run Enhanced Daily Pipeline
         if: ${{ github.event.inputs.upload_only != 'true' }}
         env:
@@ -284,7 +252,10 @@ jobs:
             echo "Social Scan: Local fallback (JSON only)"
           fi
 
-          npx ts-node scripts/enhanced-daily-pipeline.ts
+          node ../node_modules/ts-node/dist/bin.js --project tsconfig.json scripts/enhanced-daily-pipeline.ts &
+          PIPELINE_PID=$!
+          trap 'kill -TERM "$PIPELINE_PID" 2>/dev/null || true; wait "$PIPELINE_PID" 2>/dev/null || true' INT TERM EXIT
+          wait "$PIPELINE_PID"
 
           echo "Enhanced pipeline complete"
 
@@ -417,6 +388,19 @@ jobs:
           echo ""
           echo "Validation report written to results/pipeline-validation-${DATE}.json"
 
+      - name: Checkout data repository
+        if: ${{ github.event.inputs.test_mode != 'true' }}
+        id: checkout-data
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data-repo
+
+      - name: Reject stale or destructive scheme publication
+        if: ${{ github.event.inputs.test_mode != 'true' }}
+        run: npx ts-node --project evaluation/tsconfig.json evaluation/scripts/scheme-state.ts verify data-repo/scheme-tracking evaluation/scheme-database evaluation/results/scheme-state-baseline.json
+
       - name: Upload to Supabase
         if: ${{ github.event.inputs.test_mode != 'true' }}
         env:
@@ -434,16 +418,6 @@ jobs:
 
           cd evaluation
           npx ts-node scripts/upload-to-supabase.ts "$DATE"
-
-      - name: Checkout data repository
-        if: ${{ github.event.inputs.test_mode != 'true' }}
-        continue-on-error: true
-        id: checkout-data
-        uses: actions/checkout@v4
-        with:
-          repository: Elimiz21/scam-dunk-data
-          token: ${{ secrets.DATA_REPO_TOKEN }}
-          path: data-repo
 
       - name: Copy results to data repository
         if: steps.checkout-data.outcome == 'success'
@@ -522,6 +496,16 @@ jobs:
             echo "Results pushed to scam-dunk-data repository"
           fi
 
+      - name: Save resumable news evidence, decisions and spending ledger
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: news-review-v3-${{ steps.date.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -530,6 +514,9 @@ jobs:
           path: |
             evaluation/results/*.json
             evaluation/results/*.md
+            evaluation/results/*.jsonl
+            evaluation/results/news-cache/*.json
+            evaluation/results/news-decisions/*.json
             evaluation/scheme-database/*.json
           retention-days: 30
           if-no-files-found: warn
@@ -563,7 +550,7 @@ jobs:
   notify-on-failure:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: failure()
+    if: ${{ failure() && (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') && (!github.event.inputs.risk_shadow_scope || github.event.inputs.risk_shadow_scope == 'none') && (!github.event.inputs.pipeline_validation || github.event.inputs.pipeline_validation == 'none') }}
     permissions:
       issues: write
     steps:
@@ -611,7 +598,7 @@ jobs:
   notify-on-success:
     needs: enhanced-evaluation
     runs-on: ubuntu-latest
-    if: success()
+    if: ${{ success() && (!github.event.inputs.news_shadow_scope || github.event.inputs.news_shadow_scope == 'none') && (!github.event.inputs.risk_shadow_scope || github.event.inputs.risk_shadow_scope == 'none') && (!github.event.inputs.pipeline_validation || github.event.inputs.pipeline_validation == 'none') }}
     steps:
       - name: Send success email (optional - daily digest)
         env:
@@ -677,3 +664,207 @@ jobs:
               \"subject\": \"ℹ️ Daily Stock Scan Skipped - ${DATE} (${DAY_NAME})\",
               \"html\": \"<h2>Daily Scan Skipped</h2><p>The daily stock scan was skipped on <strong>${DATE} (${DAY_NAME})</strong> because it was detected as a non-trading day (weekend or US market holiday).</p><p>If this is incorrect, you can manually trigger the workflow with <code>force_run: true</code>.</p><hr><p style='color:#666;font-size:12px;'>This alert was sent by the ScamDunk automated monitoring system.</p>\"
             }" && echo "Skip alert email sent" || echo "Failed to send email"
+
+  news-shadow-validation:
+    permissions:
+      contents: read
+      actions: read
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.news_shadow_scope && github.event.inputs.news_shadow_scope != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: retained-data
+      - uses: actions/cache/restore@v4
+        if: ${{ github.event.inputs.resume_pipeline_cache_key == '' }}
+        with:
+          path: |
+            evaluation/results/market-http-cache
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+          restore-keys: provider-validation-v3-${{ github.event.inputs.date_override }}-
+      - name: Resume successful source evidence from a completed validation
+        if: ${{ github.event.inputs.resume_news_cache_run != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESUME_RUN_ID: ${{ github.event.inputs.resume_news_cache_run }}
+        run: |
+          [[ "$RESUME_RUN_ID" =~ ^[0-9]+$ ]]
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RESUME_RUN_ID" --jq '.path')" = ".github/workflows/enhanced-daily-evaluation.yml"
+          gh run download "$RESUME_RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern 'news-shadow-*' --dir "$RUNNER_TEMP/news-validation-state"
+          python3 - <<'PYCODE'
+          import os,pathlib,shutil
+          source=pathlib.Path(os.environ['RUNNER_TEMP'])/'news-validation-state'
+          target=pathlib.Path('evaluation/results');(target/'news-cache').mkdir(parents=True,exist_ok=True)
+          for cache in source.rglob('news-cache'):
+              for entry in cache.glob('*.json'):
+                  destination=target/'news-cache'/entry.name
+                  if not destination.exists():shutil.copyfile(entry,destination)
+          for ledger in source.rglob('news-cost-ledger-*.jsonl'):
+              destination=target/ledger.name
+              old=destination.read_text().splitlines() if destination.exists() else []
+              known=set(old)
+              for line in ledger.read_text().splitlines():
+                  if line not in known:old.append(line);known.add(line)
+              destination.write_text('\n'.join(old)+'\n')
+          PYCODE
+      - name: Run isolated news retrieval validation
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVALUATION_DATE: ${{ github.event.inputs.date_override }}
+          NEWS_SHADOW_SCOPE: ${{ github.event.inputs.news_shadow_scope }}
+        run: |
+          test -n "$EVALUATION_DATE"
+          test "$NEWS_SHADOW_SCOPE" != "none"
+          export NEWS_SHADOW_INPUT="$GITHUB_WORKSPACE/retained-data/evaluation-results/enhanced-evaluation-${EVALUATION_DATE}.json"
+          npx ts-node --project evaluation/tsconfig.json evaluation/scripts/news-shadow-validation.ts
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            evaluation/results/market-http-cache
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: news-shadow-${{ github.event.inputs.news_shadow_scope }}-${{ github.run_id }}
+          path: |
+            evaluation/results/news-shadow-*.json*
+            evaluation/results/news-source-requests-*.jsonl
+            evaluation/results/news-model-batches-*.jsonl
+            evaluation/results/news-cost-ledger-*.jsonl
+            evaluation/results/news-cache/*.json
+            evaluation/results/news-decisions/*.json
+          retention-days: 30
+
+  risk-shadow-validation:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.risk_shadow_scope && github.event.inputs.risk_shadow_scope != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Acquire fresh inputs and evaluate canonical policy
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          EVALUATION_DATE: ${{ github.event.inputs.date_override }}
+          RISK_SHADOW_SCOPE: ${{ github.event.inputs.risk_shadow_scope }}
+        run: npx ts-node --project evaluation/tsconfig.json evaluation/scripts/risk-shadow-validation.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: risk-shadow-${{ github.event.inputs.risk_shadow_scope }}-${{ github.run_id }}
+          path: evaluation/results/risk-shadow-*.json*
+          retention-days: 30
+
+  pipeline-validation:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pipeline_validation && github.event.inputs.pipeline_validation != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/cache/restore@v4
+        if: ${{ github.event.inputs.resume_pipeline_cache_key != '' }}
+        with:
+          path: |
+            evaluation/results/market-http-cache
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: ${{ github.event.inputs.resume_pipeline_cache_key }}
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@v4
+        if: ${{ github.event.inputs.resume_pipeline_cache_key == '' }}
+        with:
+          path: |
+            evaluation/results/market-http-cache
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+          restore-keys: |
+            provider-validation-v3-${{ github.event.inputs.date_override }}-
+      - name: Read durable scheme history without publication credentials
+        uses: actions/checkout@v4
+        with:
+          repository: Elimiz21/scam-dunk-data
+          path: scheme-state-source
+          persist-credentials: false
+      - name: Restore durable scheme history before validation
+        run: npx ts-node --project evaluation/tsconfig.json evaluation/scripts/scheme-state.ts restore scheme-state-source/scheme-tracking evaluation/scheme-database evaluation/results/scheme-state-baseline.json
+      - name: Rehearse complete acquisition, scoring and news pipeline
+        timeout-minutes: 330
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVALUATION_DATE: ${{ github.event.inputs.date_override }}
+          SCAMDUNK_PIPELINE_VALIDATION: "true"
+          NEWS_ANALYSIS_MAX_COST_USD: ${{ github.event.inputs.validation_news_budget_usd || '25' }}
+          TEST_MODE: ${{ github.event.inputs.pipeline_validation == '100' && 'true' || 'false' }}
+        run: |
+          test -n "$EVALUATION_DATE"
+          node node_modules/ts-node/dist/bin.js --project evaluation/tsconfig.json evaluation/scripts/enhanced-daily-pipeline.ts &
+          PIPELINE_PID=$!
+          trap 'kill -TERM "$PIPELINE_PID" 2>/dev/null || true; wait "$PIPELINE_PID" 2>/dev/null || true' INT TERM EXIT
+          wait "$PIPELINE_PID"
+      - name: Retain a stable acquisition snapshot
+        if: always()
+        run: |
+          # Snapshot after the provider process has stopped; a changing directory
+          # makes the cache archiver fail and loses resumable work.
+          mkdir -p /tmp/scan-validation-snapshot
+          for entry in market-http-cache news-cache news-decisions; do
+            if [ -d "evaluation/results/$entry" ]; then
+              cp -R "evaluation/results/$entry" "/tmp/scan-validation-snapshot/$entry"
+            fi
+          done
+          cp evaluation/results/news-cost-ledger-*.jsonl /tmp/scan-validation-snapshot/ 2>/dev/null || true
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            evaluation/results/market-http-cache
+            evaluation/results/news-cache
+            evaluation/results/news-decisions
+            evaluation/results/news-cost-ledger-*.jsonl
+          key: provider-validation-v3-${{ github.event.inputs.date_override }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-validation-${{ github.event.inputs.pipeline_validation }}-${{ github.run_id }}
+          path: |
+            evaluation/results/*.json
+            evaluation/results/*.jsonl
+            evaluation/results/news-decisions/*.json
+            evaluation/scheme-database/*.json
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-provider-snapshot-${{ github.run_id }}
+          path: /tmp/scan-validation-snapshot
+          retention-days: 30

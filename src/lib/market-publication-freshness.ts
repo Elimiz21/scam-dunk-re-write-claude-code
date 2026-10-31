@@ -18,6 +18,19 @@ function tradingDay(date: Date): boolean {
   return date.getUTCDay() !== 0 && date.getUTCDay() !== 6 && !HOLIDAYS.has(date.toISOString().slice(0, 10));
 }
 
+/** Session ending on/before an explicit EOD evaluation date; unknown calendars fail closed. */
+export function marketSessionOnOrBefore(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const candidate = new Date(value + "T00:00:00Z");
+  if (!supported(candidate) || candidate.toISOString().slice(0,10) !== value) return null;
+  for (let offset = 0; offset < 8; offset++) {
+    if (!supported(candidate)) return null;
+    if (tradingDay(candidate)) return candidate.toISOString().slice(0,10);
+    candidate.setUTCDate(candidate.getUTCDate() - 1);
+  }
+  return null;
+}
+
 /** Latest market session due for publication at the daily 07:00 UTC ingest. */
 export function expectedMarketDate(now: Date): string | null {
   if (!supported(now)) return null;
@@ -36,4 +49,15 @@ export function isCurrentMarketPublication(scanDate: Date, now: Date): boolean {
   const expected = expectedMarketDate(now);
   if (!expected || !supported(scanDate) || scanDate.getTime() > now.getTime() || !tradingDay(scanDate)) return false;
   return scanDate.toISOString().slice(0, 10) >= expected;
+}
+
+/** EOD data is due after 17:00 New York time, allowing one hour after a full close. */
+export function expectedPriceSession(now: Date): string | null {
+  if (!supported(now)) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hourCycle:"h23"}).formatToParts(now);
+  const value = (type: string) => parts.find(part => part.type === type)?.value;
+  const day = `${value("year")}-${value("month")}-${value("day")}`;
+  const cutoff = new Date(day + "T00:00:00Z");
+  if (Number(value("hour")) < 17) cutoff.setUTCDate(cutoff.getUTCDate()-1);
+  return marketSessionOnOrBefore(cutoff.toISOString().slice(0,10));
 }

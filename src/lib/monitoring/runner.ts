@@ -319,6 +319,7 @@ export function createMonitoringRunner(
             assetType: "monitor-full",
             riskLevel: snapshot.riskLevel,
             totalScore: snapshot.totalScore,
+            scoringVersion: snapshot.scoringVersion ?? null,
             signalsCount: snapshot.signalCount,
             isLegitimate: snapshot.isLegitimate ?? null,
             // ScanHistory has no publication-key column. For automatic scans,
@@ -521,6 +522,7 @@ export function createMonitoringRunner(
           select: {
             riskLevel: true,
             totalScore: true,
+            scoringVersion: true,
             signalCount: true,
             isLegitimate: true,
             evaluatedAt: true,

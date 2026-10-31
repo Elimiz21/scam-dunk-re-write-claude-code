@@ -43,9 +43,9 @@ export async function generateStaticParams(): Promise<PageParams[]> {
 export async function generateMetadata({
   params,
 }: {
-  params: PageParams;
+  params: Promise<PageParams>;
 }): Promise<Metadata> {
-  const authorSlug = slugify(decodeURIComponent(params.author));
+  const authorSlug = slugify(decodeURIComponent((await params).author));
   const authorName = authorNameFromSlug(authorSlug);
 
   const description = `Read articles by ${authorName} on stock fraud detection, investment scams, and market manipulation analysis.`;
@@ -66,8 +66,8 @@ export async function generateMetadata({
   };
 }
 
-export default async function AuthorPage({ params }: { params: PageParams }) {
-  const authorSlug = slugify(decodeURIComponent(params.author));
+export default async function AuthorPage({ params }: { params: Promise<PageParams> }) {
+  const authorSlug = slugify(decodeURIComponent((await params).author));
   const authorName = authorNameFromSlug(authorSlug);
   const authorBio = getAuthorBio(authorSlug, authorName);
 

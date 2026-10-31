@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import warnings
 import os
+from liquidity import average_dollar_volume
+from scoring_policy import signal_score, signal_level, SCORING_VERSION
 
 warnings.filterwarnings('ignore')
 
@@ -246,9 +248,9 @@ class ScamDetectionPipeline:
                 weight=2,
             ))
 
-        avg_volume = fundamentals.get('avg_daily_volume') or 0
-        if 0 < avg_volume < MARKET_THRESHOLDS['micro_liquidity']:
-            vol_k = f'${avg_volume / 1e3:.0f}K'
+        dollar_volume = average_dollar_volume(fundamentals)
+        if dollar_volume is not None and 0 < dollar_volume < MARKET_THRESHOLDS['micro_liquidity']:
+            vol_k = f'${dollar_volume / 1e3:.0f}K'
             signals.append(SignalDetail(
                 code='MICRO_LIQUIDITY', category='STRUCTURAL',
                 description=f'Very low daily volume ({vol_k}) – easier to manipulate',
@@ -749,7 +751,7 @@ class ScamDetectionPipeline:
             ),
             detailed_report=detailed_report,
             signals=signals,
-            signal_total_score=sum(s.weight for s in signals),
+            signal_total_score=signal_score(signals),
             news_verification=None,
             data_available=False,
         )
@@ -911,7 +913,7 @@ class ScamDetectionPipeline:
             features, feature_names, fundamentals, sec_flagged,
             anomaly_result, price_data,
         )
-        signal_total_score = sum(s.weight for s in computed_signals)
+        signal_total_score = signal_score(computed_signals)
         print(f"   Signals detected: {len(computed_signals)}")
         print(f"   Signal total score: {signal_total_score}")
         for sig in computed_signals[:5]:
@@ -927,20 +929,7 @@ class ScamDetectionPipeline:
         # conservative and SHOULD be recalibrated against a labelled dataset
         # (report Brier/reliability) before being treated as tuned.
         has_alert = any(s.code == 'ALERT_LIST_HIT' for s in computed_signals)
-        has_pattern_or_alert = any(
-            s.category in ('PATTERN', 'ALERT') for s in computed_signals
-        )
-        if has_alert:
-            signal_risk_level = 'HIGH'
-        elif signal_total_score >= 5 and has_pattern_or_alert:
-            signal_risk_level = 'HIGH'
-        elif signal_total_score >= 5:
-            # Structural-only stack: vulnerable but no manipulation evidence.
-            signal_risk_level = 'MEDIUM'
-        elif signal_total_score >= 2:
-            signal_risk_level = 'MEDIUM'
-        else:
-            signal_risk_level = 'LOW'
+        signal_risk_level = signal_level(signal_total_score, computed_signals)
 
         # Step 7: ML model ensemble (supplementary)
         print("\n[Step 7] ML ensemble (supplementary)...")
@@ -961,7 +950,7 @@ class ScamDetectionPipeline:
         # Final risk level: use the HIGHER of signal-based vs ML-based
         # This ensures the AI backend is never less sensitive than the TS fallback
         risk_priority = {'LOW': 0, 'MEDIUM': 1, 'HIGH': 2}
-        if risk_priority.get(signal_risk_level, 0) >= risk_priority.get(ml_risk_level, 0):
+        if not ml_models_enabled() or risk_priority.get(signal_risk_level, 0) >= risk_priority.get(ml_risk_level, 0):
             risk_level = signal_risk_level
         else:
             risk_level = ml_risk_level
@@ -973,32 +962,10 @@ class ScamDetectionPipeline:
             context, features, feature_names, anomaly_result, combined_prob
         )
 
-        # Step 9: News verification for HIGH risk results
-        # Check if legitimate news catalysts explain suspicious activity
+        # Rule category and reviewed news triage are separate contracts. News
+        # clearance is recorded by the evidence/citation-based publication path;
+        # an independent legacy lookup cannot downgrade a raw rule or SEC flag.
         news_verification = None
-        if risk_level == 'HIGH' and not use_synthetic and allow_external_news:
-            print("\n[Step 9] Verifying HIGH risk - checking for legitimate catalysts...")
-            try:
-                from live_data import verify_legitimate_catalysts
-                news_verification = verify_legitimate_catalysts(ticker)
-
-                if news_verification['should_reduce_risk']:
-                    risk_level = news_verification['recommended_level']
-                    key_indicators.append(
-                        f"News verification: {news_verification['catalyst_summary']}"
-                    )
-                    print(f"   Risk reduced to {risk_level} due to legitimate catalyst")
-                else:
-                    key_indicators.append(
-                        f"No legitimate catalyst: {news_verification['catalyst_summary']}"
-                    )
-                    print(f"   Risk remains HIGH - no legitimate catalyst found")
-            except Exception as e:
-                print(f"   Warning: News verification failed: {e}")
-                # Don't block the assessment if news verification fails
-        elif risk_level == 'HIGH':
-            reason = "synthetic data mode" if use_synthetic else "external verification disabled"
-            print(f"\n[Step 9] Skipping news verification ({reason})")
 
         # Build detailed report
         detailed_report = {

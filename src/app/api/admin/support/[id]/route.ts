@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getAdminSession();
@@ -19,7 +19,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const ticketId = params.id;
+    const ticketId = (await params).id;
 
     const ticket = await prisma.supportTicket.findUnique({
       where: { id: ticketId },
@@ -61,7 +61,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getAdminSession();
@@ -76,7 +76,7 @@ export async function POST(
       );
     }
 
-    const ticketId = params.id;
+    const ticketId = (await params).id;
     const body = await request.json();
     const { message, sendEmail = true } = body;
 
@@ -179,7 +179,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getAdminSession();
@@ -194,7 +194,7 @@ export async function DELETE(
       );
     }
 
-    const ticketId = params.id;
+    const ticketId = (await params).id;
 
     const ticket = await prisma.supportTicket.findUnique({
       where: { id: ticketId },

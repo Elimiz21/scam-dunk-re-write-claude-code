@@ -524,8 +524,9 @@ function AccountContent() {
         addToast({
           type: "success",
           title: "Password changed",
-          description: "Your password has been updated successfully.",
+          description: "Your password has been updated. Sign in again on each device.",
         });
+        window.location.assign("/login");
       } else {
         setPasswordError(data.error || "Failed to change password");
       }

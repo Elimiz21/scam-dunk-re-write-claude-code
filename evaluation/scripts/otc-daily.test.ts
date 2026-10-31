@@ -248,3 +248,17 @@ test("budget-limited scans rotate their starting point without losing or duplica
   expect(first[0].symbol).not.toBe(next[0].symbol);
   expect(orderOtcSecurities(stocks, "2026-09-15")).toEqual(first);
 });
+
+test("a later pipeline phase receives its time budget from its first request", async () => {
+  let now = 1_000;
+  const clock = jest.spyOn(Date, "now").mockImplementation(() => now);
+  const provider = jest.fn(async () => new Response("[]", { status: 200 }));
+  const client = new OtcClient("key", { spacingMs: 0, maxDurationMs: 100, fetch: provider });
+  try {
+    now += 10_000;
+    await expect(client.request("news/stock", { symbols: "TEST" })).resolves.toEqual([]);
+    now += 101;
+    await expect(client.request("news/stock", { symbols: "OTHER" })).rejects.toThrow("budget_exhausted");
+    expect(provider).toHaveBeenCalledTimes(1);
+  } finally { clock.mockRestore(); }
+});

@@ -1,4 +1,4 @@
-const { withSentryConfig } = require("@sentry/nextjs");
+const { withSentryConfig } = require("@sentry/nextjs/config");
 
 // Security headers applied to every response. CSP is intentionally permissive
 // for the third-party widgets this app embeds (Turnstile, PayPal, Vercel
@@ -41,7 +41,6 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "2mb",
     },
-    instrumentationHook: true,
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
@@ -55,18 +54,13 @@ const sentryWebpackPluginOptions = {
   // Organization and project are set via environment variables
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
+  widenClientFileUpload: true,
+  webpack: { treeshake: { removeDebugLogging: true } },
 };
 
 // Only wrap with Sentry if DSN is configured
 const config = process.env.NEXT_PUBLIC_SENTRY_DSN
-  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions, {
-      // Upload source maps to Sentry
-      widenClientFileUpload: true,
-      // Hides source maps from generated client bundles
-      hideSourceMaps: true,
-      // Automatically tree-shake Sentry logger statements
-      disableLogger: true,
-    })
+  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
   : nextConfig;
 
 module.exports = config;

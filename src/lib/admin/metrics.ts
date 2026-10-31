@@ -55,6 +55,7 @@ export async function logApiUsage(data: {
  * Log scan history for model efficacy tracking
  */
 export async function logScanHistory(data: {
+  historySaved?: boolean;
   userId?: string;
   ticker: string;
   assetType: string;
@@ -75,7 +76,7 @@ export async function logScanHistory(data: {
   usedAiBackend?: boolean;
 }) {
   try {
-    await prisma.scanHistory.create({
+    if (!data.historySaved) await prisma.scanHistory.create({
       data: {
         userId: data.userId,
         ticker: data.ticker,

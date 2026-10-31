@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
+import { authenticateMobileRequest } from "@/lib/mobile-auth";
 import { getScanHistory, HISTORY_ORDERS } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,8 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
+  const userId = session?.user?.id ?? await authenticateMobileRequest(request);
+  if (!userId) {
     return NextResponse.json(
       {
         error: {
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const payload = await getScanHistory(session.user.id, {
+    const payload = await getScanHistory(userId, {
       order: parsed.data.order ?? "MOST_RECENT",
       page: parsed.data.page ?? 1,
       limit: parsed.data.limit ?? 20,
