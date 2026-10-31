@@ -1,15 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { Activity, AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
 
 import type { ActivityTickerPayload } from "@/lib/activity-ticker";
 import { cn } from "@/lib/utils";
-
-type ResourceState =
-  | { status: "loading"; data: null }
-  | { status: "ready"; data: ActivityTickerPayload }
-  | { status: "error"; data: null };
+import { useLivePublication } from "@/lib/use-live-publication";
 
 function formatCount(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
@@ -71,36 +66,7 @@ function Stat({
 }
 
 export function ActivityTicker() {
-  const [state, setState] = useState<ResourceState>({
-    status: "loading",
-    data: null,
-  });
-
-  const load = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const response = await fetch("/api/activity-ticker", {
-        cache: "no-store",
-        signal,
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) throw new Error("activity unavailable");
-      const data = (await response.json()) as ActivityTickerPayload;
-      if (!signal?.aborted) setState({ status: "ready", data });
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      if (!signal?.aborted) setState({ status: "error", data: null });
-    }
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void load(controller.signal);
-    const interval = window.setInterval(() => void load(), 60_000);
-    return () => {
-      controller.abort();
-      window.clearInterval(interval);
-    };
-  }, [load]);
+  const state = useLivePublication<ActivityTickerPayload>("/api/activity-ticker");
 
   return (
     <section

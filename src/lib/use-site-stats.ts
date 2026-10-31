@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLivePublication } from "./use-live-publication";
 
 export interface LiveSiteStats {
+  status: "AVAILABLE" | "UNAVAILABLE";
   updatedAt: string;
   lastScanDate: string | null;
   stocksPerDay: number | null;
@@ -26,20 +27,7 @@ export function floorPlus(n: number, step: number): string {
  * cohort; independent historical tracker counts remain separate.
  */
 export function useLiveSiteStats() {
-  const [live, setLive] = useState<LiveSiteStats | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/stats/site")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data && !data.error) setLive(data);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: live } = useLivePublication<LiveSiteStats>("/api/stats/site");
 
   return {
     live,
