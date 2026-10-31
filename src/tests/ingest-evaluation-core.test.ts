@@ -671,6 +671,29 @@ describe("ingestDate OTC records", () => {
       expect(prisma.dailyScanSummary.upsert).not.toHaveBeenCalled();
     },
   );
+  it.each(["stockDailySnapshot", "stockRiskAlert"] as const)(
+    "sends only schema fields to the legacy %s writer",
+    async (model) => {
+      const { Prisma } = jest.requireActual("@prisma/client");
+      const schemaName = model === "stockDailySnapshot" ? "StockDailySnapshot" : "StockRiskAlert";
+      const fields = new Set(Prisma.dmmf.datamodel.models.find(
+        (entry: { name: string }) => entry.name === schemaName,
+      ).fields.map((field: { name: string }) => field.name));
+      rows[0] = { ...row, riskLevel: "HIGH", newsTriage: "RETAINED" };
+      const writer = prisma[model].createMany as jest.Mock;
+      writer.mockImplementation(async ({ data }) => {
+        for (const item of data) {
+          const unknown = Object.keys(item).filter(key => !fields.has(key));
+          if (unknown.length) throw new Error(`Unknown database field: ${unknown.join(", ")}`);
+        }
+        return { count: data.length };
+      });
+      const result = await ingestDate("2026-09-16");
+      expect(result).toMatchObject({ success: true, snapshotsCreated: 1, alertsCreated: 1 });
+      expect(writer).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it("preserves legacy listed ingestion without evaluation timestamps", async () => {
     rows[0].exchange = "NASDAQ";
     delete rows[0].evaluatedAt;
