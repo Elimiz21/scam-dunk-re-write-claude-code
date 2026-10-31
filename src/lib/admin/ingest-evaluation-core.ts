@@ -850,7 +850,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
 
         return {
           stockId,
-          stockSymbol: stock.symbol,
+          ...(publishedRevision ? { stockSymbol: stock.symbol } : {}),
           scanDate,
           riskLevel: stock.riskLevel || "UNKNOWN",
           newsTriage: resolveNewsTriage(stock),
@@ -938,7 +938,7 @@ export async function ingestDate(date: string): Promise<IngestResult> {
         })
         .map((stock) => ({
           stockId: existingStockMap.get(stock.symbol) ?? "",
-          stockSymbol: stock.symbol,
+          ...(publishedRevision ? { stockSymbol: stock.symbol } : {}),
           alertDate: scanDate,
           alertType: "NEW_HIGH_RISK",
           newRiskLevel: stock.riskLevel,

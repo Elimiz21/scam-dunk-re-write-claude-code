@@ -54,6 +54,57 @@ describePostgres("artifact ingestion PostgreSQL integration", () => {
     });
   }
 
+  it("ingests and replays a retained legacy result and alert with real database validation", async () => {
+    const date = "2099-09-14";
+    const scanDateValue = new Date(`${date}T00:00:00.000Z`);
+    const symbol = "LEGACY_PAYLOAD_FIXTURE";
+    const name = "Legacy Payload Fixture";
+    const retained = new Map([
+      [`enhanced-evaluation-${date}.json`, JSON.stringify([{
+        symbol, name, exchange: "NASDAQ", riskLevel: "HIGH", totalScore: 12,
+        newsTriage: "RETAINED", signals: [], lastPrice: 1, volume: 1000,
+      }])],
+      [`fmp-summary-${date}.json`, JSON.stringify({
+        totalStocks: 1, evaluated: 1, skippedNoData: 0,
+        byRiskLevel: { HIGH: 1 }, byExchange: { NASDAQ: { total: 1, HIGH: 1 } },
+      })],
+    ]);
+    const stock = await client.trackedStock.upsert({
+      where: { symbol }, update: {}, create: { symbol, name, exchange: "NASDAQ", isOTC: false },
+    });
+    try {
+      await jest.isolateModulesAsync(async () => {
+        jest.doMock("@/lib/db", () => ({ prisma: client }));
+        jest.doMock("@/lib/server/evaluation-storage", () => ({
+          getEvaluationStorageServerClient: () => ({ storage: { from: () => ({
+            download: async (filename: string) => retained.has(filename)
+              ? { data: new Blob([retained.get(filename)!]), error: null }
+              : { data: null, error: { message: "not found" } },
+          }) } }),
+        }));
+        const { ingestDate } = await import("@/lib/admin/ingest-evaluation-core");
+        await expect(ingestDate(date)).resolves.toMatchObject({
+          success: true, snapshotsCreated: 1, alertsCreated: 1,
+        });
+        await expect(ingestDate(date)).resolves.toMatchObject({
+          success: true, snapshotsCreated: 0, alertsCreated: 0,
+        });
+      });
+      await expect(client.stockDailySnapshot.findMany({
+        where: { stockId: stock.id, scanDate: scanDateValue },
+        select: { riskLevel: true, totalScore: true, newsTriage: true },
+      })).resolves.toEqual([{ riskLevel: "HIGH", totalScore: 12, newsTriage: "RETAINED" }]);
+      expect(await client.stockRiskAlert.count({ where: { stockId: stock.id, alertDate: scanDateValue } })).toBe(1);
+    } finally {
+      jest.dontMock("@/lib/db");
+      jest.dontMock("@/lib/server/evaluation-storage");
+      await client.stockRiskAlert.deleteMany({ where: { stockId: stock.id, alertDate: scanDateValue } });
+      await client.stockDailySnapshot.deleteMany({ where: { stockId: stock.id, scanDate: scanDateValue } });
+      await client.dailyScanSummary.deleteMany({ where: { scanDate: scanDateValue } });
+      await client.trackedStock.delete({ where: { id: stock.id } });
+    }
+  });
+
   it("fences concurrent workers and publishes one same-date revision atomically", async () => {
     const first = revision("pg-run-1", "[]");
     let executions = 0;
