@@ -134,12 +134,14 @@ function LoginForm() {
             return;
           }
         }
-        // Could not auto-login — send the user to the normal login screen to
-        // sign in with the email from their invitation.
+        // Keep the newly created account's email and password available so the
+        // invitee can sign in immediately if automatic sign-in is unavailable.
+        setEmail(inviteEmail);
         setIsInviteMode(false);
-        setPassword("");
-        setError("Account created. Please sign in with your email and password.");
-        router.push("/admin/login");
+        setError(
+          "Your account was created. Automatic sign-in failed, so please sign in with your invitation email and the password you just created.",
+        );
+        router.replace("/admin/login");
       } else {
         setError(data.error || "Failed to accept invite");
       }

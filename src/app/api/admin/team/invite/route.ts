@@ -106,7 +106,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, email: result.email });
   } catch (error) {
     console.error("Accept invite error:", error);
     return NextResponse.json(
