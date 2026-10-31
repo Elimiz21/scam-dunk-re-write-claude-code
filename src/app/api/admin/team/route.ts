@@ -5,6 +5,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession, hasRole } from "@/lib/admin/auth";
 import { prisma } from "@/lib/db";
+import { sendAdminPasswordResetEmail } from "@/lib/email";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +97,36 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
 
-    if (action === "deactivate") {
+    if (action === "sendPasswordReset") {
+      if (!member.isActive || member.role === "OWNER") {
+        return NextResponse.json(
+          { error: "Password reset is only available for active non-owner members" },
+          { status: 400 },
+        );
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      await prisma.adminPasswordResetToken.deleteMany({ where: { adminUserId: memberId } });
+      await prisma.adminPasswordResetToken.create({
+        data: { adminUserId: memberId, token, expiresAt },
+      });
+
+      const sent = await sendAdminPasswordResetEmail(member.email, token);
+      if (!sent) {
+        await prisma.adminPasswordResetToken.deleteMany({ where: { adminUserId: memberId, token } });
+        return NextResponse.json({ error: "Could not send reset email. Check email configuration and try again." }, { status: 502 });
+      }
+
+      await prisma.adminAuditLog.create({
+        data: {
+          adminUserId: session.id,
+          action: "ADMIN_PASSWORD_RESET_REQUESTED",
+          resource: memberId,
+        },
+      });
+      return NextResponse.json({ success: true, email: member.email });
+    } else if (action === "deactivate") {
       await prisma.adminUser.update({
         where: { id: memberId },
         data: { isActive: false },
