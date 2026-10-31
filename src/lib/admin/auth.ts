@@ -316,7 +316,7 @@ export async function acceptAdminInvite(
   token: string,
   name: string,
   password: string,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; email?: string; error?: string }> {
   try {
     const invite = await prisma.adminInvite.findUnique({
       where: { token },
@@ -353,7 +353,7 @@ export async function acceptAdminInvite(
       data: { usedAt: new Date() },
     });
 
-    return { success: true };
+    return { success: true, email: invite.email };
   } catch (error) {
     console.error("Accept invite error:", error);
     return { success: false, error: "Failed to accept invite" };
