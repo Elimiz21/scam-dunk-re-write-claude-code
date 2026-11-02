@@ -108,7 +108,7 @@ export default function TeamPage() {
         throw new Error(data.error || "Failed to update member");
       }
 
-      setSuccess("Member updated successfully");
+      setSuccess(action === "sendPasswordReset" ? "Password reset email sent." : "Member updated successfully");
       fetchTeam();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update member");
@@ -281,6 +281,18 @@ export default function TeamPage() {
                           {menuOpen === member.id && (
                             <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-10">
                               <div className="py-1">
+                                {member.isActive && (
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm(`Send a password reset link to ${member.email}?`)) {
+                                        updateMember(member.id, "sendPasswordReset");
+                                      }
+                                    }}
+                                    className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary"
+                                  >
+                                    Send password reset
+                                  </button>
+                                )}
                                 {member.isActive ? (
                                   <button
                                     onClick={() =>
