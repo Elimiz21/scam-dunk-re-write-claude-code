@@ -31,10 +31,7 @@ export async function GET() {
     });
 
     const pendingInvites = await prisma.adminInvite.findMany({
-      where: {
-        usedAt: null,
-        expiresAt: { gt: new Date() },
-      },
+      where: { usedAt: null },
       select: {
         id: true,
         email: true,
