@@ -48,6 +48,7 @@ export async function GET() {
     return NextResponse.json({
       members,
       pendingInvites,
+      currentAdminId: session.id,
     });
   } catch (error) {
     console.error("Get team error:", error);
@@ -98,13 +99,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === "sendPasswordReset") {
-      if (!member.isActive || member.role === "OWNER") {
-        return NextResponse.json(
-          { error: "Password reset is only available for active non-owner members" },
-          { status: 400 },
-        );
-      }
-
+      const wasInactive = !member.isActive;
       const token = crypto.randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
       await prisma.adminPasswordResetToken.deleteMany({ where: { adminUserId: memberId } });
@@ -118,14 +113,39 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "Could not send reset email. Check email configuration and try again." }, { status: 502 });
       }
 
+      if (wasInactive) {
+        await prisma.$transaction([
+          prisma.adminUser.update({
+            where: { id: memberId },
+            data: { isActive: true },
+          }),
+          prisma.adminSession.deleteMany({
+            where: { adminUserId: memberId },
+          }),
+          prisma.adminAuditLog.create({
+            data: {
+              adminUserId: session.id,
+              action: "MEMBER_ACTIVATED",
+              resource: memberId,
+              details: JSON.stringify({ reason: "PASSWORD_RESET_REQUESTED" }),
+            },
+          }),
+        ]);
+      }
+
       await prisma.adminAuditLog.create({
         data: {
           adminUserId: session.id,
           action: "ADMIN_PASSWORD_RESET_REQUESTED",
           resource: memberId,
+          details: wasInactive ? JSON.stringify({ reactivated: true }) : undefined,
         },
       });
-      return NextResponse.json({ success: true, email: member.email });
+      return NextResponse.json({
+        success: true,
+        email: member.email,
+        reactivated: wasInactive,
+      });
     } else if (action === "deactivate") {
       await prisma.adminUser.update({
         where: { id: memberId },
