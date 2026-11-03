@@ -35,6 +35,7 @@ interface PendingInvite {
 
 export default function TeamPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [currentAdminId, setCurrentAdminId] = useState("");
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,6 +58,7 @@ export default function TeamPage() {
       if (!res.ok) throw new Error("Failed to fetch team");
       const data = await res.json();
       setMembers(data.members);
+      setCurrentAdminId(data.currentAdminId || "");
       setPendingInvites(data.pendingInvites);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load team");
@@ -103,13 +105,19 @@ export default function TeamPage() {
         body: JSON.stringify({ memberId, action, role }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Failed to update member");
       }
 
-      setSuccess(action === "sendPasswordReset" ? "Password reset email sent." : "Member updated successfully");
-      fetchTeam();
+      setSuccess(
+        action === "sendPasswordReset"
+          ? data.reactivated
+            ? "Account reactivated and password reset email sent."
+            : "Password reset email sent."
+          : "Member updated successfully",
+      );
+      await fetchTeam();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update member");
     }
@@ -266,7 +274,7 @@ export default function TeamPage() {
                           ? `Last login: ${new Date(member.lastLoginAt).toLocaleDateString()}`
                           : "Never logged in"}
                       </div>
-                      {member.role !== "OWNER" && (
+                      {member.id !== currentAdminId && (
                         <div className="relative">
                           <button
                             onClick={() =>
@@ -281,52 +289,52 @@ export default function TeamPage() {
                           {menuOpen === member.id && (
                             <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-10">
                               <div className="py-1">
-                                {member.isActive && (
-                                  <button
-                                    onClick={() => {
-                                      if (window.confirm(`Send a password reset link to ${member.email}?`)) {
-                                        updateMember(member.id, "sendPasswordReset");
-                                      }
-                                    }}
-                                    className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary"
-                                  >
-                                    Send password reset
-                                  </button>
-                                )}
-                                {member.isActive ? (
-                                  <button
-                                    onClick={() =>
-                                      updateMember(member.id, "deactivate")
-                                    }
-                                    className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-secondary"
-                                  >
-                                    Deactivate
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() =>
-                                      updateMember(member.id, "activate")
-                                    }
-                                    className="block w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-secondary"
-                                  >
-                                    Activate
-                                  </button>
-                                )}
                                 <button
-                                  onClick={() =>
-                                    updateMember(
-                                      member.id,
-                                      "updateRole",
-                                      member.role === "ADMIN"
-                                        ? "VIEWER"
-                                        : "ADMIN",
-                                    )
-                                  }
+                                  onClick={() => {
+                                    const action = member.isActive
+                                      ? `Send a password reset link to ${member.email}?`
+                                      : `Reactivate ${member.email} and send a password reset link?`;
+                                    if (window.confirm(action)) {
+                                      updateMember(member.id, "sendPasswordReset");
+                                    }
+                                  }}
                                   className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary"
                                 >
-                                  Change to{" "}
-                                  {member.role === "ADMIN" ? "Viewer" : "Admin"}
+                                  {member.isActive
+                                    ? "Send password reset"
+                                    : "Reactivate & send password reset"}
                                 </button>
+                                {member.role !== "OWNER" && (
+                                  <>
+                                    {member.isActive ? (
+                                      <button
+                                        onClick={() => updateMember(member.id, "deactivate")}
+                                        className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-secondary"
+                                      >
+                                        Deactivate
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => updateMember(member.id, "activate")}
+                                        className="block w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-secondary"
+                                      >
+                                        Activate
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() =>
+                                        updateMember(
+                                          member.id,
+                                          "updateRole",
+                                          member.role === "ADMIN" ? "VIEWER" : "ADMIN",
+                                        )
+                                      }
+                                      className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary"
+                                    >
+                                      Change to {member.role === "ADMIN" ? "Viewer" : "Admin"}
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           )}
