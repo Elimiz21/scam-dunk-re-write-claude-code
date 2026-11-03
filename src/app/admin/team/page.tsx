@@ -47,6 +47,7 @@ export default function TeamPage() {
   const [inviteUrl, setInviteUrl] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [updatingInviteId, setUpdatingInviteId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTeam();
@@ -122,6 +123,32 @@ export default function TeamPage() {
       setError(err instanceof Error ? err.message : "Failed to update member");
     }
     setMenuOpen(null);
+  }
+
+  async function updateInvite(inviteId: string, action: "resend" | "delete") {
+    setUpdatingInviteId(inviteId);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/team/invite", {
+        method: action === "resend" ? "PATCH" : "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(action === "resend" ? { inviteId, action } : { inviteId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update invitation");
+
+      setSuccess(
+        action === "resend"
+          ? `A fresh setup invitation was sent to ${data.email}.`
+          : `Invitation for ${data.email} deleted.`,
+      );
+      await fetchTeam();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update invitation");
+    } finally {
+      setUpdatingInviteId(null);
+      setMenuOpen(null);
+    }
   }
 
   function copyToClipboard(text: string) {
@@ -374,10 +401,62 @@ export default function TeamPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       {getRoleBadge(invite.role)}
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        new Date(invite.expiresAt) <= new Date()
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}>
                         <Clock className="h-3 w-3 mr-1" />
-                        Pending
+                        {new Date(invite.expiresAt) <= new Date() ? "Expired" : "Pending"}
                       </span>
+                      <div className="relative">
+                        <button
+                          aria-label={`Invitation actions for ${invite.email}`}
+                          disabled={updatingInviteId === invite.id}
+                          onClick={() =>
+                            setMenuOpen(
+                              menuOpen === `invite:${invite.id}` ? null : `invite:${invite.id}`,
+                            )
+                          }
+                          className="p-1 rounded hover:bg-secondary disabled:opacity-50"
+                        >
+                          <MoreVertical className="h-5 w-5 text-muted-foreground" />
+                        </button>
+                        {menuOpen === `invite:${invite.id}` && (
+                          <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-card ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="py-1">
+                              <button
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      `Send ${invite.email} a fresh invitation link to set their password? The previous link will stop working.`,
+                                    )
+                                  ) {
+                                    updateInvite(invite.id, "resend");
+                                  }
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary"
+                              >
+                                Reset setup link &amp; resend invitation
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      `Delete the pending invitation for ${invite.email}? Any previously sent link will stop working.`,
+                                    )
+                                  ) {
+                                    updateInvite(invite.id, "delete");
+                                  }
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-secondary"
+                              >
+                                Delete invitation
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </li>
