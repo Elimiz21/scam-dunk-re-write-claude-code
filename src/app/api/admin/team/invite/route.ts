@@ -16,6 +16,12 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
+function buildInviteUrl(request: NextRequest, token: string): string {
+  const url = new URL("/admin/login", request.nextUrl.origin);
+  url.searchParams.set("invite", token);
+  return url.toString();
+}
+
 const inviteSchema = z.object({
   email: z.string().email("Invalid email address"),
   role: z.enum(["ADMIN", "VIEWER"]).default("ADMIN"),
@@ -63,9 +69,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    // Generate invite URL
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    const inviteUrl = `${baseUrl}/admin/login?invite=${result.token}`;
+    // Generate the link from the host that received the invite request. This
+    // avoids sending production users to localhost or an outdated auth URL.
+    const inviteUrl = buildInviteUrl(request, result.token);
 
     // Attempt to send invite email
     let emailSent = false;
@@ -141,8 +147,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Invitation changed. Refresh the page and try again." }, { status: 409 });
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    const inviteUrl = `${baseUrl}/admin/login?invite=${token}`;
+    const inviteUrl = buildInviteUrl(request, token);
     let emailSent = false;
     try {
       emailSent = await sendAdminInviteEmail(

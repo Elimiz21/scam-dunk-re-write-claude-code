@@ -9,7 +9,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
 
-  const [isInviteMode, setIsInviteMode] = useState(false);
+  const [isInviteMode, setIsInviteMode] = useState(Boolean(inviteToken));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -24,7 +24,7 @@ function LoginForm() {
       try {
         const res = await fetch("/api/admin/auth/session");
         const data = await res.json();
-        if (active && data.authenticated) router.push("/admin/dashboard");
+        if (active && data.authenticated && !inviteToken) router.push("/admin/dashboard");
       } catch {
         // Keep the normal login form available when the session check fails.
       } finally {
@@ -33,7 +33,7 @@ function LoginForm() {
     }
     void checkSession();
     return () => { active = false; };
-  }, [router]);
+  }, [router, inviteToken]);
 
   useEffect(() => {
     if (inviteToken) setIsInviteMode(true);
