@@ -106,6 +106,15 @@ export default async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
+    // Invitees do not have a session yet. Only acceptance is token-authenticated
+    // by the route handler; invitation management must keep requiring a session.
+    if (
+      request.method === "PUT" &&
+      request.nextUrl.pathname === "/api/admin/team/invite"
+    ) {
+      return NextResponse.next();
+    }
+
     // Allow public admin paths through (login, setup, etc.)
     if (ADMIN_PUBLIC_PATHS.includes(request.nextUrl.pathname)) {
       return NextResponse.next();
