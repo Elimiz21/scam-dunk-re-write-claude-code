@@ -75,7 +75,8 @@ export default async function middleware(request: NextRequest) {
   // (webhook signature is verified in the route handler itself)
   if (
     request.nextUrl.pathname === "/api/billing/paypal/webhook" ||
-    request.nextUrl.pathname === "/api/billing/stripe/webhook"
+    request.nextUrl.pathname === "/api/billing/stripe/webhook" ||
+    request.nextUrl.pathname === "/api/inbound-email"
   ) {
     return NextResponse.next();
   }

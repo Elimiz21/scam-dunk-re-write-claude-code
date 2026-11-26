@@ -8,12 +8,14 @@
  * Setup:
  * 1. Add your domain to Resend: https://resend.com/domains
  * 2. Configure an MX record to route support@scamdunk.com to Resend inbound
- * 3. Set INBOUND_EMAIL_WEBHOOK_SECRET in your environment
+ * 3. Set RESEND_INBOUND_WEBHOOK_SECRET to the existing Resend signing secret
+ *    (INBOUND_EMAIL_WEBHOOK_SECRET remains supported for legacy forwarding)
  * 4. Add the webhook URL in Resend: https://yourdomain.com/api/inbound-email
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { Resend } from "resend";
 import { prisma } from "@/lib/db";
 import {
   sendSupportTicketNotification,
@@ -117,35 +119,75 @@ export async function POST(request: NextRequest) {
       return rateLimitExceededResponse(rateLimitHeaders);
     }
 
-    // Verify webhook secret
-    if (!WEBHOOK_SECRET) {
-      console.error(
-        "[INBOUND EMAIL] INBOUND_EMAIL_WEBHOOK_SECRET not configured",
-      );
-      return NextResponse.json(
-        { error: "Webhook not configured" },
-        { status: 503 },
-      );
+    const rawBody = await request.text();
+    const hasResendSignature = request.headers.has("svix-signature");
+    let body;
+    if (hasResendSignature) {
+      const signingSecret = process.env.RESEND_INBOUND_WEBHOOK_SECRET;
+      if (!signingSecret || !process.env.RESEND_API_KEY) {
+        return NextResponse.json({ error: "Inbound signing is not configured" }, { status: 503 });
+      }
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      let event;
+      try {
+        event = resend.webhooks.verify({
+          payload: rawBody,
+          headers: {
+            id: request.headers.get("svix-id") || "",
+            timestamp: request.headers.get("svix-timestamp") || "",
+            signature: request.headers.get("svix-signature") || "",
+          },
+          webhookSecret: signingSecret,
+        });
+      } catch {
+        return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+      }
+      if (event.type !== "email.received") {
+        return NextResponse.json({ success: true, ignored: true });
+      }
+      const received = await resend.emails.receiving.get(event.data.email_id);
+      if (received.error || !received.data) {
+        return NextResponse.json({ error: "Unable to retrieve incoming email" }, { status: 503 });
+      }
+      body = { ...received.data, inboundId: event.data.email_id };
+      const allowedInboxes = [
+        process.env.SUPPORT_REPLY_EMAIL || "support@inbound.scamdunk.com",
+        process.env.SUPPORT_EMAIL || "support@scamdunk.com",
+      ].map((email) => email.toLowerCase());
+      if (!body.to.some((email: string) => allowedInboxes.includes(extractEmail(email).toLowerCase()))) {
+        return NextResponse.json({ success: true, ignored: true });
+      }
+    } else {
+      // Keep the existing authenticated forwarding integration compatible.
+      if (!WEBHOOK_SECRET) {
+        console.error(
+          "[INBOUND EMAIL] INBOUND_EMAIL_WEBHOOK_SECRET not configured",
+        );
+        return NextResponse.json(
+          { error: "Webhook not configured" },
+          { status: 503 },
+        );
+      }
+
+      const authHeader = request.headers.get("authorization");
+      const webhookHeader = request.headers.get("x-webhook-secret");
+      const token = authHeader?.replace("Bearer ", "") || webhookHeader || "";
+
+      const tokenBuf = Buffer.from(token);
+      const secretBuf = Buffer.from(WEBHOOK_SECRET);
+      if (
+        tokenBuf.length !== secretBuf.length ||
+        !crypto.timingSafeEqual(tokenBuf, secretBuf)
+      ) {
+        console.error("[INBOUND EMAIL] Invalid webhook secret");
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      body = JSON.parse(rawBody);
     }
-
-    const authHeader = request.headers.get("authorization");
-    const webhookHeader = request.headers.get("x-webhook-secret");
-    const token = authHeader?.replace("Bearer ", "") || webhookHeader || "";
-
-    const tokenBuf = Buffer.from(token);
-    const secretBuf = Buffer.from(WEBHOOK_SECRET);
-    if (
-      tokenBuf.length !== secretBuf.length ||
-      !crypto.timingSafeEqual(tokenBuf, secretBuf)
-    ) {
-      console.error("[INBOUND EMAIL] Invalid webhook secret");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
 
     // Support multiple webhook formats:
-    // 1. Resend inbound: { from, to, subject, text, html }
+    // 1. Verified Resend email retrieved via the Receiving API
     // 2. Generic/forwarded: { from, subject, body/text/html }
     const from = body.from || body.sender || "";
     const subject = body.subject || "(No subject)";
@@ -160,7 +202,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const senderEmail = extractEmail(from);
+    const senderEmail = extractEmail(from).toLowerCase();
     const senderName = extractName(from);
 
     if (!senderEmail) {
@@ -177,6 +219,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // A ticket reference is only honored for its original sender. Older
+    // support emails did not include references, so match reply subjects for
+    // the same sender as a backwards-compatible fallback.
+    const ticketReference = subject.match(/\[Ticket ([a-zA-Z0-9_-]+)\]/i)?.[1];
+    const originalSubject = subject.replace(/^(?:(?:re|fw|fwd):\s*)+/i, "").trim();
+    const existingTicket = ticketReference
+      ? await prisma.supportTicket.findFirst({ where: { id: ticketReference, email: { equals: senderEmail, mode: "insensitive" } } })
+      : /^re:/i.test(subject)
+        ? await prisma.supportTicket.findFirst({
+          where: { email: { equals: senderEmail, mode: "insensitive" }, subject: originalSubject },
+          orderBy: { lastActivityAt: "desc" },
+        })
+        : null;
+    // Deterministic IDs make provider retries safe without a schema migration.
+    const inboundId = body.inboundId || body.message_id;
+    const recordId = typeof inboundId === "string"
+      ? `inbound-${crypto.createHash("sha256").update(inboundId).digest("hex")}`
+      : undefined;
+
+    if (existingTicket) {
+      try {
+        await prisma.$transaction(async (transaction) => {
+          await transaction.supportTicketResponse.create({ data: {
+            ...(recordId ? { id: recordId } : {}),
+            ticketId: existingTicket.id,
+            message: message.substring(0, 5000),
+            isFromAdmin: false,
+            responderName: senderName,
+            responderEmail: senderEmail,
+          } });
+          await transaction.supportTicket.update({ where: { id: existingTicket.id }, data: {
+            status: "OPEN", resolvedAt: null, closedAt: null, lastActivityAt: new Date(),
+          } });
+        });
+      } catch (error) {
+        if (recordId && (error as { code?: string }).code === "P2002") {
+          return NextResponse.json({ success: true, ticketId: existingTicket.id, duplicate: true });
+        }
+        throw error;
+      }
+      await sendSupportTicketNotification(existingTicket.id, senderName, senderEmail, existingTicket.subject, message.substring(0, 2000), existingTicket.category, "reply");
+      return NextResponse.json({ success: true, ticketId: existingTicket.id, isReply: true });
+    }
+
     // Auto-detect category from content
     const category = detectCategory(subject, message);
 
@@ -187,20 +273,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the support ticket
-    const ticket = await prisma.supportTicket.create({
-      data: {
-        name: senderName,
-        email: senderEmail,
-        subject: subject.substring(0, 200),
-        message: message.substring(0, 5000),
-        category,
-        priority,
-        status: "NEW",
-        ipAddress: "inbound-email",
-        userAgent: "Inbound Email Webhook",
-        lastActivityAt: new Date(),
-      },
-    });
+    let ticket;
+    try {
+      ticket = await prisma.supportTicket.create({
+        data: {
+          ...(recordId ? { id: recordId } : {}),
+          name: senderName,
+          email: senderEmail,
+          subject: subject.substring(0, 200),
+          message: message.substring(0, 5000),
+          category,
+          priority,
+          status: "NEW",
+          ipAddress: "inbound-email",
+          userAgent: "Inbound Email Webhook",
+          lastActivityAt: new Date(),
+        },
+      });
+    } catch (error) {
+      if (recordId && (error as { code?: string }).code === "P2002") {
+        return NextResponse.json({ success: true, ticketId: recordId, duplicate: true });
+      }
+      throw error;
+    }
 
     // Route notifications through the email routing system
     try {

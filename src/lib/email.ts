@@ -508,7 +508,7 @@ async function getSupportEmailRecipients(category?: string): Promise<string[]> {
           const recipientCategories: string[] = JSON.parse(r.categories);
           return (
             Array.isArray(recipientCategories) &&
-            recipientCategories.includes(category)
+            (recipientCategories.length === 0 || recipientCategories.includes(category))
           );
         } catch {
           // If JSON parsing fails, try simple string match as fallback
@@ -751,6 +751,7 @@ export async function sendCustomEmail(
 
 // For backwards compatibility
 const SUPPORT_EMAIL = DEFAULT_SUPPORT_EMAIL;
+const supportReplyEmail = () => process.env.SUPPORT_REPLY_EMAIL || SUPPORT_EMAIL;
 const ADMIN_SUPPORT_EMAIL = DEFAULT_ADMIN_EMAIL;
 
 /**
@@ -763,6 +764,7 @@ export async function sendSupportTicketNotification(
   subject: string,
   message: string,
   category: string,
+  event: "new" | "reply" = "new",
 ): Promise<boolean> {
   const config = checkEmailConfiguration();
   if (config.isTestMode) {
@@ -790,7 +792,8 @@ export async function sendSupportTicketNotification(
   const safeMessage = escapeHtml(message);
   const safeTicketId = escapeHtml(ticketId);
   // Subject line must not echo raw user markup or allow header injection.
-  const headerSubject = `[Support Ticket] ${sanitizeSubject(subject)}`;
+  const headerSubject = `[Support ${event === "reply" ? "Reply" : "Ticket"}] ${sanitizeSubject(subject)}`;
+  const notificationType = event === "reply" ? "TICKET_REPLY_NOTIFICATION" : "TICKET_NOTIFICATION";
 
   try {
     // Get all active recipients for this category
@@ -812,7 +815,7 @@ export async function sendSupportTicketNotification(
           <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #4f46e5; margin: 0;">ScamDunk Support</h1>
-              <p style="color: #666; margin-top: 5px;">New Support Ticket Received</p>
+              <p style="color: #666; margin-top: 5px;">${event === "reply" ? "New User Reply Received" : "New Support Ticket Received"}</p>
             </div>
 
             <div style="background: #f9fafb; border-radius: 8px; padding: 30px; margin-bottom: 20px;">
@@ -857,7 +860,7 @@ export async function sendSupportTicketNotification(
         </html>
       `,
       },
-      "TICKET_NOTIFICATION",
+      notificationType,
     );
 
     if (result.error) {
@@ -869,7 +872,7 @@ export async function sendSupportTicketNotification(
         await logEmailSend({
           recipientEmail: recipient,
           subject: headerSubject,
-          emailType: "TICKET_NOTIFICATION",
+          emailType: notificationType,
           status: "FAILED",
           errorMessage: result.error.message,
           relatedTicketId: ticketId,
@@ -888,7 +891,7 @@ export async function sendSupportTicketNotification(
       await logEmailSend({
         recipientEmail: recipient,
         subject: headerSubject,
-        emailType: "TICKET_NOTIFICATION",
+        emailType: notificationType,
         status: "SENT",
         resendId: result.data?.id,
         relatedTicketId: ticketId,
@@ -933,14 +936,14 @@ export async function sendSupportTicketConfirmation(
   const safeName = escapeHtml(name);
   const safeSubject = escapeHtml(subject);
   const safeTicketId = escapeHtml(ticketId);
-  const headerSubject = sanitizeSubject(`We've received your message: ${subject}`);
+  const headerSubject = sanitizeSubject(`[Ticket ${ticketId}] We've received your message: ${subject}`);
 
   try {
     const result = await sendResendEmail(
       {
         from: FROM_EMAIL,
         to: email,
-        replyTo: SUPPORT_EMAIL,
+        replyTo: supportReplyEmail(),
         subject: headerSubject,
         html: `
         <!DOCTYPE html>
@@ -1045,14 +1048,14 @@ export async function sendSupportTicketResponse(
   const safeTicketId = escapeHtml(ticketId);
   const safeResponseMessage = escapeHtml(responseMessage);
   const safeResponderName = escapeHtml(responderName);
-  const headerSubject = sanitizeSubject(`Re: ${originalSubject}`);
+  const headerSubject = sanitizeSubject(`Re: [Ticket ${ticketId}] ${originalSubject}`);
 
   try {
     const result = await sendResendEmail(
       {
         from: FROM_EMAIL,
         to: userEmail,
-        replyTo: SUPPORT_EMAIL,
+        replyTo: supportReplyEmail(),
         subject: headerSubject,
         html: `
         <!DOCTYPE html>
