@@ -86,7 +86,8 @@ const CATEGORIES = [
 const EMAIL_TYPE_LABELS: Record<string, string> = {
   TEST: "Test Email",
   CUSTOM: "Custom Email",
-  TICKET_NOTIFICATION: "Ticket Notification",
+  TICKET_NOTIFICATION: "New Ticket Notification",
+  TICKET_REPLY_NOTIFICATION: "User Reply Notification",
   TICKET_CONFIRMATION: "Ticket Confirmation",
   TICKET_RESPONSE: "Ticket Response",
   VERIFICATION: "Email Verification",
